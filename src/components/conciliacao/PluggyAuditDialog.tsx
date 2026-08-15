@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { Search, Eye, FileJson, Loader2, X } from "lucide-react";
+import { Search, X, FileJson, Loader2 } from "lucide-react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -40,38 +40,47 @@ export function PluggyAuditDialog({ open, onOpenChange }: PluggyAuditDialogProps
     if (!open || !selectedCompanyId) return;
     let cancelled = false;
     setLoading(true);
-    supabase
-      .from("transactions")
-      .select("id, description, transaction_date, amount, transaction_type, pluggy_transaction_id, pluggy_raw_snapshot, account_id, accounts(name), created_at")
-      .eq("company_id", selectedCompanyId)
-      .eq("context", "pj")
-      .not("pluggy_transaction_id", "is", null)
-      .order("transaction_date", { ascending: false })
-      .limit(500)
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          toast.error("Erro ao carregar auditoria", { description: error.message });
-          setRows([]);
-        } else {
-          const mapped = (data ?? []).map((r: any) => ({
-            id: r.id,
-            description: r.description,
-            transaction_date: r.transaction_date,
-            amount: r.amount,
-            transaction_type: r.transaction_type,
-            pluggy_transaction_id: r.pluggy_transaction_id,
-            pluggy_raw_snapshot: r.pluggy_raw_snapshot,
-            account_id: r.account_id,
-            account_name: r.accounts?.name ?? null,
-            created_at: r.created_at,
-          }));
-          setRows(mapped);
-        }
+    Promise.all([
+      supabase
+        .from("transactions")
+        .select("id, description, transaction_date, amount, transaction_type, pluggy_transaction_id, pluggy_raw_snapshot, account_id, created_at")
+        .eq("company_id", selectedCompanyId)
+        .eq("context", "pj")
+        .not("pluggy_transaction_id", "is", null)
+        .order("transaction_date", { ascending: false })
+        .limit(500),
+      supabase
+        .from("accounts")
+        .select("id, name")
+        .eq("company_id", selectedCompanyId)
+        .eq("context", "pj"),
+    ]).then(([txRes, accRes]) => {
+      if (cancelled) return;
+      if (txRes.error) {
+        toast.error("Erro ao carregar auditoria", { description: txRes.error.message });
+        setRows([]);
         setLoading(false);
-      });
+        return;
+      }
+      const accountMap = new Map((accRes.data ?? []).map((a: any) => [a.id, a.name]));
+      const mapped = (txRes.data ?? []).map((r: any) => ({
+        id: r.id,
+        description: r.description,
+        transaction_date: r.transaction_date,
+        amount: r.amount,
+        transaction_type: r.transaction_type,
+        pluggy_transaction_id: r.pluggy_transaction_id,
+        pluggy_raw_snapshot: r.pluggy_raw_snapshot,
+        account_id: r.account_id,
+        account_name: accountMap.get(r.account_id) ?? null,
+        created_at: r.created_at,
+      }));
+      setRows(mapped);
+      setLoading(false);
+    });
     return () => { cancelled = true; };
   }, [open, selectedCompanyId]);
+
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
