@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
+import { DescriptionEditor } from "@/components/conciliacao/DescriptionEditor";
+
 import type { ReactNode } from "react";
 
 interface AccountOpt {
