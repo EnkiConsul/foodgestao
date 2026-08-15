@@ -344,6 +344,17 @@ export function ColaboradorJornadaPanel({
       vigencia_inicio: inicio,
       dias: dias.map((d) => ({ ...d, turno_id: null })),
     });
+    // A folga fixa fica em um único lugar: a semana desta tela alimenta também
+    // o campo do cadastro, que é lido pela escala e pelo portal.
+    if (colaborador?.id) {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        await supabase
+          .from("dp_colaboradores")
+          .update({ folga_fixa_semana: folgaVariavel || folgas.length !== 1 ? null : folgas[0] })
+          .eq("id", colaborador.id);
+      } catch { /* o horário já foi gravado; o campo espelho não deve travar */ }
+    }
     setAlterado(false);
     toast.success("Horário de trabalho salvo");
     // Feedback: o topo do painel mostra a vigência gravada.
