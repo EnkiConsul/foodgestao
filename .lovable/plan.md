@@ -1,5 +1,6 @@
 # Fase 5 — Sindicatos: piso salarial e reflexo na remuneração
 
+
 Fases 1 a 4 (Horário de Trabalho, Remuneração, Benefícios e Cargos) estão concluídas. Esta fase fecha o roteiro do DP conectando a convenção coletiva ao cadastro do colaborador.
 
 ## Situação atual verificada
