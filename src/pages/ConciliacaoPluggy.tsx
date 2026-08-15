@@ -1016,7 +1016,9 @@ export default function ConciliacaoPluggy() {
                 busy={rowBusy === r.id}
                 isTransferBadge={!!r.matched_transaction_id && transferTxIds.has(r.matched_transaction_id)}
                 maskBRL={maskBRL}
+                onDescriptionSave={(v) => saveDescription(r.id, v)}
                 onAction={(action) => handleRowAction(r.id, action)}
+
               />
             );
           })}
