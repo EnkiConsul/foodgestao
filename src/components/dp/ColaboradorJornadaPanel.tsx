@@ -71,24 +71,30 @@ interface Props {
  * continuem lendo turno. Dias fora do padrão ficam como exceção no próprio
  * colaborador, sem criar horários novos na loja.
  */
-export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveButton = true }: Props) {
+export function ColaboradorJornadaPanel({
+  colaborador, active = true, showSaveButton = true, onRegistrarSalvar,
+}: Props) {
   const policy = contratoPolicy(colaborador?.regime);
   const { selectedCompanyId } = useCompanyContext();
   const { data: unidades = [] } = useDpUnidades();
   const { configs, vigente, isLoading, salvar, encerrar, remover, saving } =
     useDpColaboradorConfigTrabalho(colaborador?.id ?? undefined);
 
+  const topoRef = useRef<HTMLDivElement | null>(null);
   const [unidadeId, setUnidadeId] = useState<string>("none");
   const [horario, setHorario] = useState<HorarioSimples>(HORARIO_PADRAO);
   const [folgaVariavel, setFolgaVariavel] = useState(false);
   const [dias, setDias] = useState<DiaConfig[]>(diasPadrao());
   const [inicio, setInicio] = useState(hoje());
+  /** Houve alteração do usuário desde o carregamento — evita salvar sem motivo. */
+  const [alterado, setAlterado] = useState(false);
   /** "base" = admissão (ou vigência atual) · "nova_data" = mudança de horário. */
   const [vigenciaModo, setVigenciaModo] = useState<"base" | "nova_data">("base");
   const admissao = colaborador?.data_admissao ?? null;
   const [obs, setObs] = useState("");
   const [copiarOpen, setCopiarOpen] = useState(false);
   const [cienciaOpen, setCienciaOpen] = useState(false);
+
 
   const { turnos: turnosUnidade, criar: criarTurno } = useDpTurnos(unidadeId === "none" ? null : unidadeId);
   const turnosAtivos = useMemo(() => turnosUnidade.filter((t) => t.ativo), [turnosUnidade]);
