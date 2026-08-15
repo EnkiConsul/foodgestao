@@ -120,21 +120,7 @@ export function useExtratoConciliacao(filtros: ExtratoConciliacaoFiltros) {
         pushRows(data as unknown[]);
       }
 
-        for (const t of (data ?? []) as unknown as JoinedTx[]) {
-          txs.push({
-            id: t.id,
-            pluggy_staging_transaction_id: t.pluggy_staging_transaction_id,
-            description: t.description,
-            amount: Number(t.amount ?? 0),
-            transaction_type: t.transaction_type,
-            date: t.transaction_date,
-            category_name: t.categories?.name ?? null,
-            account_name: t.accounts?.name ?? null,
-            payment_method_name: t.payment_methods?.name ?? null,
-            contact_name: t.contacts?.name ?? null,
-          });
-        }
-      }
+
       setTransactions(txs);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao carregar o extrato");
