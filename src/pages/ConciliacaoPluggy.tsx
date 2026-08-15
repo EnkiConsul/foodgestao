@@ -785,6 +785,15 @@ export default function ConciliacaoPluggy() {
           {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
           Sincronizar
         </Button>
+        <Button
+          onClick={() => setAuditOpen(true)}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          <FileJson className="h-4 w-4 mr-2" />
+          Auditoria
+        </Button>
+
       </div>
 
 
