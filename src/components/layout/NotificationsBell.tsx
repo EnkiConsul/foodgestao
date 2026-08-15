@@ -13,10 +13,11 @@ import { formatBRL } from "@/lib/billing";
 
 type Alert = {
   id: string;
-  type: "overdue" | "upcoming" | "budget";
+  type: "overdue" | "upcoming" | "budget" | "accountant";
   title: string;
   description: string;
   href: string;
+  dismiss?: () => void;
 };
 
 const formatDate = (d: string) =>
