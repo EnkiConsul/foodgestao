@@ -4,7 +4,7 @@ O usuário é o dono da loja, não um analista de DP. Ele pensa em "quem trabalh
 
 ## O que ele passa a ver
 
-Na aba "Turno & Jornada" do colaborador — renomeada para **"Horário de trabalho"**:
+Na aba "Turno & Jornada" do colaborador — renomeada para **"Horário de Trabalho"**:
 
 1. **Horário** — entrada, saída e intervalo direto na tela, com atalhos prontos da loja ("Almoço 10:00–16:00", "Jantar 17:00–23:00") sugeridos a partir dos horários que já existem na unidade. Escolher um atalho preenche os campos; digitar outro horário também funciona, sem passar por nenhum cadastro.
 2. **Dias e folga** — sete switches da semana. Dia desmarcado = folga, e o texto abaixo confirma ("Folga: quarta-feira"), com a opção "folga varia conforme a escala". Atalhos 6x1 e 5x2 continuam.
