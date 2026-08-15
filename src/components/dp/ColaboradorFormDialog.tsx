@@ -680,7 +680,39 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 ))}
               </SelectContent>
             </Select>
+            {risco && (
+              <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+                <p className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>
+                    <strong className="block text-foreground">{risco.titulo}</strong>
+                    {risco.mensagem}
+                    {risco.reforco && <span className="mt-1 block font-medium">{risco.reforco}</span>}
+                  </span>
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {risco.atalhos.map((a) => (
+                    <Button
+                      key={a.regime} type="button" size="sm" variant="outline" className="h-7 text-xs"
+                      onClick={() => setForm({
+                        ...form,
+                        tipo_vinculo: a.regime === "clt" ? "CLT" : "Intermitente",
+                      })}
+                    >
+                      {a.label}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button" size="sm" variant="link" className="h-7 p-0 text-xs"
+                    onClick={() => setRiscoOpen(true)}
+                  >
+                    {risco.verMaisLabel}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
+
 
           {/* Folga Fixa / Perfil */}
           {policy.exigeFolgaSemanal ? (
