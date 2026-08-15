@@ -86,6 +86,7 @@ export const remuneracaoBlank: RemuneracaoFormState = {
   vale_alimentacao_valor: "",
   vale_alimentacao_periodicidade: "mensal",
   vale_alimentacao_dias_base: String(DIAS_BASE_PADRAO),
+  vale_alimentacao_dias_origem: "jornada",
   vale_alimentacao_desconto_tipo: "percentual",
   vale_alimentacao_desconto_valor: "1",
 };
