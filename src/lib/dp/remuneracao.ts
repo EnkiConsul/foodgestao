@@ -8,7 +8,12 @@
 
 import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy, formasPagamentoDoRegime, formaPagamentoValida } from "./contrato-policy";
-import { calcularBeneficioMes, type DescontoTipo, type Periodicidade } from "./beneficios-regras";
+import {
+  calcularBeneficioMes,
+  diasConsideradosBeneficio,
+  type DescontoTipo,
+  type Periodicidade,
+} from "./beneficios-regras";
 
 export type FormaPagamento = Database["public"]["Enums"]["dp_forma_pagamento"];
 
@@ -297,21 +302,44 @@ export interface ValeAlimentacaoConfig {
   vale_alimentacao_valor?: number | null;
   vale_alimentacao_periodicidade?: "diario" | "mensal" | string | null;
   vale_alimentacao_dias_base?: number | null;
+  /** `jornada` (padrão) calcula os dias pela jornada; `fixo` usa `dias_base`. */
+  vale_alimentacao_dias_origem?: "jornada" | "fixo" | string | null;
   vale_alimentacao_desconto_tipo?: "nenhum" | "percentual" | "valor" | string | null;
   vale_alimentacao_desconto_valor?: number | null;
 }
 
-/** Vale-alimentação do mês: concedido, desconto do colaborador e custo líquido. */
-export function valeAlimentacaoDoMes(cfg: ValeAlimentacaoConfig) {
-  if (!cfg.vale_alimentacao) return { bruto: 0, desconto: 0, liquido: 0, percentualEfetivo: 0 };
-  return calcularBeneficioMes({
+export interface ValeAlimentacaoDias {
+  /** Dias trabalháveis do mês calculados pela jornada do colaborador. */
+  diasJornada?: number | null;
+  /** Dias efetivamente trabalhados no período, quando há ponto apurado. */
+  diasApurados?: number | null;
+}
+
+/**
+ * Vale-alimentação do mês: concedido, desconto do colaborador e custo líquido.
+ * Para o benefício diário, os dias seguem a precedência
+ * ponto apurado > jornada > quantidade fixa > padrão.
+ */
+export function valeAlimentacaoDoMes(cfg: ValeAlimentacaoConfig, dias?: ValeAlimentacaoDias) {
+  if (!cfg.vale_alimentacao) {
+    return { bruto: 0, desconto: 0, liquido: 0, percentualEfetivo: 0, dias: 0, diasOrigem: "padrao" as const };
+  }
+  const resolvido = diasConsideradosBeneficio({
+    origem: cfg.vale_alimentacao_dias_origem,
+    diasFixos: cfg.vale_alimentacao_dias_base,
+    diasJornada: dias?.diasJornada,
+    diasApurados: dias?.diasApurados,
+  });
+  const calc = calcularBeneficioMes({
     valor: cfg.vale_alimentacao_valor,
     periodicidade: (cfg.vale_alimentacao_periodicidade ?? "mensal") as Periodicidade,
-    dias_base: cfg.vale_alimentacao_dias_base,
+    dias_base: resolvido.dias,
     desconto_tipo: (cfg.vale_alimentacao_desconto_tipo ?? "nenhum") as DescontoTipo,
     desconto_valor: cfg.vale_alimentacao_desconto_valor,
   });
+  return { ...calc, dias: resolvido.dias, diasOrigem: resolvido.origem };
 }
+
 
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 const round2 = (v: number) => Math.round(v * 100) / 100;
