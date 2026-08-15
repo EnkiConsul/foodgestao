@@ -278,19 +278,43 @@ export function NotificationsBell() {
                       <p className="text-xs text-muted-foreground truncate">{a.description}</p>
                     </div>
                   </button>
-                  {a.dismiss && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        a.dismiss?.();
-                      }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground transition-opacity"
-                      aria-label="Dispensar aviso"
-                      title="Dispensar este mês"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
+                  {a.snoozeKey && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground opacity-100 hover:bg-muted hover:text-foreground transition-colors"
+                          aria-label="Não mostrar novamente"
+                          title="Não mostrar novamente"
+                        >
+                          <BellOff className="h-3.5 w-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                          Não mostrar novamente
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {SNOOZE_OPTIONS.map((opt) => (
+                          <DropdownMenuItem
+                            key={opt.label}
+                            onSelect={() => {
+                              applySnooze(a.snoozeKey!, opt.days);
+                              setSnoozeVersion((v) => v + 1);
+                              toast.success(
+                                opt.days === null
+                                  ? "Aviso desativado para esta empresa."
+                                  : `Aviso oculto ${opt.label.toLowerCase()}.`
+                              );
+                            }}
+                          >
+                            {opt.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
+
                 </li>
               ))}
             </ul>
