@@ -1,6 +1,23 @@
-# Horário de Trabalho: alertas certos por vínculo e um só botão de salvar
+# Horário de Trabalho: orientação jurídica no vínculo, alertas certos e um só botão de salvar
 
-Quatro ajustes na aba "Horário de Trabalho" do cadastro do colaborador.
+Cinco ajustes no cadastro do colaborador.
+
+## 0. Freelancer: o sistema orienta o empreendedor
+
+"Freelancer" não é figura prevista na CLT. Contratar alguém de forma habitual e subordinada chamando de freelancer é vínculo de emprego não registrado — risco de reclamação trabalhista, multa e passivo de verbas.
+
+Ao escolher **Freelancer** no tipo de vínculo, aparece logo abaixo do campo um aviso âmbar, sem bloquear o salvamento:
+
+> **Freelancer não é um vínculo previsto na lei trabalhista.** Se essa pessoa trabalha com habitualidade, cumpre horário e recebe ordens da sua equipe, a Justiça do Trabalho tende a reconhecer vínculo de emprego — com registro retroativo, férias, 13º, FGTS e multa. Para chamar quando precisa, com segurança, o caminho legal é o **contrato intermitente**.
+>
+> **Ver como funciona o intermitente** · **Mudar para Intermitente**
+
+"Ver como funciona" abre um diálogo explicativo em linguagem de dono de loja: contrato assinado uma vez, sem jornada fixa; você convoca com 3 dias de antecedência informando o dia, o horário e o valor; o colaborador pode aceitar ou recusar em 1 dia útil sem penalidade; paga-se ao fim de cada convocação o proporcional de salário, férias + 1/3, 13º, DSR e FGTS; entre as convocações não há salário nem exclusividade; o valor da hora não pode ser menor que o do mensalista da mesma função nem que o mínimo por hora. Fecha com o que muda no sistema: as convocações passam a ser registradas em Convocações, entram na escala e no ponto e viram lançamentos na folha.
+
+"Mudar para Intermitente" troca o vínculo no formulário na hora, mantendo o que já foi digitado e reaplicando as regras do regime (formas de pagamento permitidas, base salarial e de horas).
+
+Freelancer continua permitido — a decisão é do empreendedor. O aviso é orientação, não trava.
+
 
 ## 1. Alertas trabalhistas por tipo de vínculo
 
@@ -39,3 +56,5 @@ Fica assim: dentro do cadastro do colaborador, o painel de horário não mostra 
 - `src/components/dp/ColaboradorJornadaPanel.tsx`: passa `folgaVariavel` ao verificador; nota informativa quando `policy.horasPorConvocacao`; `ref` no topo do painel + `scrollIntoView({ behavior: "smooth", block: "start" })` após salvar com sucesso; rótulo "Salvar"; expõe um handler de salvamento via `ref` (ou callback registrado em `onRegistrarSalvar`) para o diálogo acionar.
 - `src/components/dp/ColaboradorFormDialog.tsx`: renderiza o painel com `showSaveButton={false}`, rodapé com rótulo "Salvar", e no submit encadeia o salvamento do horário quando a aba tem alteração pendente (incluindo o fluxo de ciência legal já existente).
 - `src/lib/dp/__tests__/clt-alertas.test.ts`: casos novos — intermitente adulto com 60h/semana e sem folga não gera aviso; intermitente menor após 22:00 gera; CLT mantém todos os avisos atuais; folga variável não gera aviso de domingo.
+- Freelancer: novo `src/components/dp/RegimeIntermitenteInfoDialog.tsx` (conteúdo explicativo, texto estático) e faixa de orientação renderizada em `ColaboradorFormDialog.tsx` sob o seletor de vínculo, com ação que muda o regime para `intermitente` e reaplica `contratoPolicy`. Texto de apoio derivado de `src/lib/dp/contrato-policy.ts`, sem mudança de schema nem de validação.
+
