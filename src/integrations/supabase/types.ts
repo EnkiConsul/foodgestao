@@ -29,6 +29,7 @@ export type Database = {
           icon: string | null
           id: string
           initial_balance: number
+          is_accounting: boolean
           is_active: boolean
           name: string
           reference_balance_date: string | null
@@ -50,6 +51,7 @@ export type Database = {
           icon?: string | null
           id?: string
           initial_balance?: number
+          is_accounting?: boolean
           is_active?: boolean
           name: string
           reference_balance_date?: string | null
@@ -71,6 +73,7 @@ export type Database = {
           icon?: string | null
           id?: string
           initial_balance?: number
+          is_accounting?: boolean
           is_active?: boolean
           name?: string
           reference_balance_date?: string | null
@@ -11635,6 +11638,7 @@ export type Database = {
           icon: string | null
           id: string
           initial_balance: number
+          is_accounting: boolean
           is_active: boolean
           name: string
           reference_balance_date: string | null
@@ -12878,7 +12882,7 @@ export type Database = {
       bill_status: "em_dia" | "vence_em_breve" | "atrasado" | "pago" | "parcial"
       billing_period: "monthly" | "yearly"
       budget_period: "mensal" | "anual"
-      company_role: "owner" | "admin" | "member" | "viewer"
+      company_role: "owner" | "admin" | "member" | "viewer" | "contabilidade"
       contact_type: "cliente" | "fornecedor" | "ambos"
       context_type: "pf" | "pj"
       discount_type: "percent" | "fixed"
@@ -13382,7 +13386,7 @@ export const Constants = {
       bill_status: ["em_dia", "vence_em_breve", "atrasado", "pago", "parcial"],
       billing_period: ["monthly", "yearly"],
       budget_period: ["mensal", "anual"],
-      company_role: ["owner", "admin", "member", "viewer"],
+      company_role: ["owner", "admin", "member", "viewer", "contabilidade"],
       contact_type: ["cliente", "fornecedor", "ambos"],
       context_type: ["pf", "pj"],
       discount_type: ["percent", "fixed"],

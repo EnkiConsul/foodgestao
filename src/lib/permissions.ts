@@ -53,7 +53,20 @@ export const FINANCE_MODULES: FinanceModuleKey[] = [
 
 export const ALL_MODULES = [...FINANCE_MODULES, ...ORDERS_PERMISSION_KEYS] as ModuleKey[];
 
-export type CompanyRole = "owner" | "admin" | "member" | "viewer";
+export type CompanyRole = "owner" | "admin" | "member" | "viewer" | "contabilidade";
+
+/** Módulos financeiros visíveis para o papel Contabilidade (somente leitura). */
+export const ACCOUNTING_MODULES: FinanceModuleKey[] = [
+  "dashboard",
+  "transactions",
+  "accounts",
+  "categories",
+  "contacts",
+  "payment_methods",
+  "reports",
+  "cash_flow",
+  "attachments",
+];
 
 export type PermissionsMap = Partial<Record<ModuleKey, PermissionLevel>>;
 
@@ -65,6 +78,13 @@ export function getDefaultPermissions(role: CompanyRole): PermissionsMap {
     case "owner":
     case "admin":
       return all("edit");
+    case "contabilidade":
+      return Object.fromEntries(
+        ALL_MODULES.map((m) => [
+          m,
+          (ACCOUNTING_MODULES as ModuleKey[]).includes(m) ? "view" : "none",
+        ]),
+      ) as PermissionsMap;
     case "viewer":
       return all("view");
     case "member":
@@ -95,6 +115,9 @@ export function resolvePermission(
   if (!role) return "none";
   if (role === "owner" || role === "admin") return "edit";
   if (role === "viewer") return "view";
+  if (role === "contabilidade") {
+    return (ACCOUNTING_MODULES as ModuleKey[]).includes(module) ? "view" : "none";
+  }
   // Módulo Pedidos: ausência de chave = sem acesso (nunca `edit`).
   if (isOrdersPermissionKey(module)) return permissions?.[module] ?? "none";
   return permissions?.[module] ?? "edit";

@@ -49,6 +49,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
   const [bankSlug, setBankSlug] = useState<string | null>(null);
   const [agency, setAgency] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
+  const [isAccounting, setIsAccounting] = useState<"contabil" | "nao_contabil">("contabil");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -67,6 +68,11 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setOwnerCompanyId(account.company_id);
       setAgency(a.agency ?? "");
       setAccountNumber(a.account_number ?? "");
+      setIsAccounting(
+        (account as Account & { is_accounting?: boolean }).is_accounting === false
+          ? "nao_contabil"
+          : "contabil",
+      );
     } else {
       setName("");
       setAccountType("corrente");
@@ -76,6 +82,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
       setBankSlug(null);
       setAgency("");
       setAccountNumber("");
+      setIsAccounting("contabil");
     }
   }, [open, account, contextType, selectedCompanyId]);
 
@@ -107,6 +114,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           bank_slug: bankSlug,
           agency: agencyValue,
           account_number: accountNumberValue,
+          is_accounting: isAccounting === "contabil",
         } as never)
         .eq("id", account.id);
       if (error) toast.error("Erro ao atualizar conta");
@@ -135,6 +143,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           bank_slug: bankSlug,
           agency: agencyValue,
           account_number: accountNumberValue,
+          is_accounting: isAccounting === "contabil",
         } as never)
         .select("id")
         .single();
@@ -223,6 +232,23 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Natureza Contábil</Label>
+              <Select
+                value={isAccounting}
+                onValueChange={(v) => setIsAccounting(v as "contabil" | "nao_contabil")}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contabil">Contábil</SelectItem>
+                  <SelectItem value="nao_contabil">Não Contábil</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Contas contábeis são as que a contabilidade acompanha. Contas não contábeis (caixa
+                interno, empréstimos entre sócios) ficam visíveis só para você e sua equipe.
+              </p>
             </div>
           </section>
 

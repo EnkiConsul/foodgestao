@@ -74,6 +74,7 @@ export default function ContasBancarias() {
   const [adjustAccount, setAdjustAccount] = useState<Account | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [filterNature, setFilterNature] = useState<"all" | "contabil" | "nao_contabil">("all");
   const [staleBalance, setStaleBalance] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [lastTxAt, setLastTxAt] = useState<number>(0);
@@ -360,9 +361,13 @@ export default function ContasBancarias() {
     return accounts.filter((a) => {
       const matchSearch = !search || a.name.toLowerCase().includes(search.toLowerCase());
       const matchType = filterType === "all" || a.account_type === filterType;
-      return matchSearch && matchType;
+      const isAccounting = (a as typeof a & { is_accounting?: boolean }).is_accounting !== false;
+      const matchNature =
+        filterNature === "all" ||
+        (filterNature === "contabil" ? isAccounting : !isAccounting);
+      return matchSearch && matchType && matchNature;
     });
-  }, [accounts, search, filterType]);
+  }, [accounts, search, filterType, filterNature]);
 
   const totals = useMemo(() => {
     const active = accounts.filter((a) => a.is_active);
@@ -461,6 +466,14 @@ export default function ContasBancarias() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={filterNature} onValueChange={(v) => setFilterNature(v as typeof filterNature)}>
+          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Contábil e não contábil</SelectItem>
+            <SelectItem value="contabil">Somente contábeis</SelectItem>
+            <SelectItem value="nao_contabil">Somente não contábeis</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Account list */}
@@ -503,6 +516,11 @@ export default function ContasBancarias() {
                       <Badge className="text-[10px] h-4 px-1.5 shrink-0 bg-primary/10 text-primary border-0 hover:bg-primary/15">
                         {accountTypeLabels[a.account_type]}
                       </Badge>
+                      {(a as typeof a & { is_accounting?: boolean }).is_accounting === false && (
+                        <Badge variant="secondary" className="text-[10px] h-4 px-1.5 shrink-0">
+                          Não Contábil
+                        </Badge>
+                      )}
                       {!a.is_active && (
                         <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">Inativa</Badge>
                       )}

@@ -135,6 +135,7 @@ export function InviteUserDialog({ open, onOpenChange, companyId, onSuccess }: I
                 <SelectItem value="admin">Admin — acesso total</SelectItem>
                 <SelectItem value="member">Membro — permissões customizáveis</SelectItem>
                 <SelectItem value="viewer">Visualizador — somente leitura</SelectItem>
+                <SelectItem value="contabilidade">Contabilidade — somente leitura, apenas contas contábeis</SelectItem>
               </SelectContent>
             </Select>
           </div>
