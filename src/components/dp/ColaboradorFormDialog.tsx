@@ -994,6 +994,34 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         }}
       />
 
+      <BeneficioDispensaDialog
+        open={dispensas.length > 0}
+        onOpenChange={(o) => {
+          if (!o) {
+            // Manter o benefício: recoloca as marcações desfeitas.
+            const restaurar = Object.fromEntries(dispensas.map((d) => [d.beneficio_id, true]));
+            patchRem({ beneficios: { ...rem.beneficios, ...restaurar } });
+            setDispensas([]);
+          }
+        }}
+        colaborador={{
+          nome: form.nome.trim() || "Colaborador",
+          cpf: form.cpf,
+          cargo: cargos.data?.find((c) => c.id === form.cargo_id)?.nome ?? null,
+        }}
+        empresa={{
+          nome: companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa",
+          cnpj: null,
+          cidade: null,
+        }}
+        itens={dispensas}
+        onConfirmar={async () => {
+          isonomiaConfirmada.current = true;
+          setDispensas([]);
+          await submit();
+        }}
+      />
+
       <CargoQuickCreateDialog
         open={novoCargoOpen}
         onOpenChange={setNovoCargoOpen}
