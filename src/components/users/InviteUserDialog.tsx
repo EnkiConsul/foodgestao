@@ -26,6 +26,11 @@ export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, o
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    setRole(defaultRole ?? "member");
+    setPermissions(getDefaultPermissions(defaultRole ?? "member"));
+  }, [defaultRole]);
+
+  useEffect(() => {
     setPermissions(getDefaultPermissions(role));
   }, [role]);
 
