@@ -54,8 +54,10 @@ export async function materializePluggyItemV2(params: {
   } = params;
 
   // 1. Busca item na Pluggy
-  const item = await getItem(pluggyItemId);
-  if (!item) throw new Error(`pluggy_item_not_found:${pluggyItemId}`);
+  const itemResult = await getItem(pluggyItemId);
+  if (!itemResult.ok) throw new Error(`pluggy_item_not_found:${pluggyItemId}:${itemResult.error}`);
+  const item = itemResult.data;
+
 
   // 2. Upsert conexão
   const { data: connRow, error: connErr } = await supabase
