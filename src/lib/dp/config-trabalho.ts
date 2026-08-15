@@ -147,7 +147,7 @@ export function validarConfigTrabalho(
     out.push({
       campo: "turno",
       nivel: "erro",
-      mensagem: `Sem turno definido em: ${semTurno.map((d) => DOW_CURTO[d.dow]).join(", ")}. Escolha um turno padrão ou um turno para cada dia.`,
+      mensagem: `Informe o horário de trabalho em: ${semTurno.map((d) => DOW_CURTO[d.dow]).join(", ")}.`,
     });
   }
 
