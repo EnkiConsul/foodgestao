@@ -48,9 +48,11 @@ const statusBadge = (status: string) => {
 
 export default function GestaoUsuarios() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(location.state?.openInvite ?? false);
   const [editingMember, setEditingMember] = useState<{ id: string; full_name: string; role: CompanyRole; permissions: PermissionsMap } | null>(null);
 
   // Fetch companies where user is a member
