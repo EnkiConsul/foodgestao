@@ -455,6 +455,7 @@ export default function GestaoUsuarios() {
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         companyId={activeCompanyId}
+        defaultRole={inviteDefaultRole}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["company-invites", activeCompanyId] })}
       />
 
