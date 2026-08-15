@@ -18,6 +18,8 @@ import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/disp
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import { buildCategoryTree, type Category } from "@/lib/categories/tree";
 import { StagingCard } from "@/components/conciliacao/StagingCard";
+import { DescriptionEditor } from "@/components/conciliacao/DescriptionEditor";
+
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
 import { suggestPaymentMethodId } from "@/lib/conciliacao/paymentMethodInference";
 import { fetchAllCompanyContacts, findExistingContact, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
