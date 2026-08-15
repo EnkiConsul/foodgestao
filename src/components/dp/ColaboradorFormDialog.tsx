@@ -196,6 +196,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       assiduidade_criterio: (c.assiduidade_criterio ?? "sem_faltas_sem_atrasos") as AssiduidadeCriterio,
       assiduidade_tolerancia_min: String(c.assiduidade_tolerancia_min ?? 10),
       assiduidade_max_atrasos: String(c.assiduidade_max_atrasos ?? 2),
+      premio_assiduidade_tipo: (c.premio_assiduidade_tipo ?? "valor") as "valor" | "percentual",
+      vale_alimentacao: !!c.vale_alimentacao,
+      vale_alimentacao_valor:
+        c.vale_alimentacao_valor != null ? String(c.vale_alimentacao_valor).replace(".", ",") : "",
+      vale_alimentacao_periodicidade: (c.vale_alimentacao_periodicidade ?? "mensal") as "diario" | "mensal",
+      vale_alimentacao_dias_base: String(c.vale_alimentacao_dias_base ?? 22),
+      vale_alimentacao_desconto_tipo:
+        (c.vale_alimentacao_desconto_tipo ?? "percentual") as "nenhum" | "percentual" | "valor",
+      vale_alimentacao_desconto_valor:
+        c.vale_alimentacao_desconto_valor != null
+          ? String(c.vale_alimentacao_desconto_valor).replace(".", ",")
+          : "1",
     });
 
     setForm({
@@ -403,7 +415,19 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     const usaBaseCalculo = rem.forma_pagamento === "horista" || rem.forma_pagamento === "diarista";
     const premioNum = numeroBR(rem.premio_assiduidade_valor);
     if (rem.premio_assiduidade && premioNum <= 0) {
-      toast.error("Informe o valor do prêmio de assiduidade");
+      toast.error(
+        rem.premio_assiduidade_tipo === "percentual"
+          ? "Informe o percentual do prêmio de assiduidade"
+          : "Informe o valor do prêmio de assiduidade",
+      );
+      return;
+    }
+    if (rem.premio_assiduidade && rem.premio_assiduidade_tipo === "percentual" && premioNum > 100) {
+      toast.error("O percentual do prêmio de assiduidade não pode passar de 100%");
+      return;
+    }
+    if (rem.vale_alimentacao && numeroBR(rem.vale_alimentacao_valor) <= 0) {
+      toast.error("Informe o valor do vale-alimentação");
       return;
     }
 
@@ -479,6 +503,17 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         assiduidade_max_atrasos: rem.premio_assiduidade
           ? Math.max(0, Math.trunc(numeroBR(rem.assiduidade_max_atrasos)))
           : null,
+        premio_assiduidade_tipo: rem.premio_assiduidade ? rem.premio_assiduidade_tipo : "valor",
+
+        // Vale-alimentação / refeição
+        vale_alimentacao: rem.vale_alimentacao,
+        vale_alimentacao_valor: rem.vale_alimentacao ? numeroBR(rem.vale_alimentacao_valor) || null : null,
+        vale_alimentacao_periodicidade: rem.vale_alimentacao_periodicidade,
+        vale_alimentacao_dias_base: Math.max(0, Math.trunc(numeroBR(rem.vale_alimentacao_dias_base))) || 22,
+        vale_alimentacao_desconto_tipo: rem.vale_alimentacao_desconto_tipo,
+        vale_alimentacao_desconto_valor: rem.vale_alimentacao_desconto_tipo === "nenhum"
+          ? 0
+          : numeroBR(rem.vale_alimentacao_desconto_valor),
         ...(isDesligado
           ? {
               data_desligamento: form.data_desligamento,
