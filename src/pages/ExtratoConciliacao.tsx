@@ -221,18 +221,30 @@ export default function ExtratoConciliacao() {
   };
 
   const exportRows = () =>
-    model.rows.map((r) => [
-      fmtDate(r.date),
-      r.bankDescription,
-      r.amount,
-      r.conciliado ? "Conciliado" : EXTRATO_STATUS_LABEL[r.status],
-      r.platform?.description ?? "",
-      r.platform?.categoryName ?? "",
-      r.platform?.contactName ?? "",
-      r.platform?.accountName ?? "",
-      r.platform?.paymentMethodName ?? "",
-      r.platform?.amount ?? null,
-    ]);
+    model.rows.flatMap((r) => {
+      const base = [
+        fmtDate(r.date),
+        r.bankDescription,
+        r.amount,
+        r.conciliado ? "Conciliado" : EXTRATO_STATUS_LABEL[r.status],
+      ];
+      if (r.platforms.length === 0) {
+        return [[...base, "", "", "", "", "", null]];
+      }
+      return r.platforms.map((p, i) => [
+        i === 0 ? base[0] : "",
+        i === 0 ? base[1] : r.platforms.length > 1 ? "  (divisão)" : "",
+        i === 0 ? base[2] : null,
+        i === 0 ? base[3] : "",
+        p.description,
+        p.categoryName ?? "",
+        p.contactName ?? "",
+        p.accountName ?? "",
+        p.paymentMethodName ?? "",
+        p.amount,
+      ]);
+    });
+
 
   const head = [
     "Data",
