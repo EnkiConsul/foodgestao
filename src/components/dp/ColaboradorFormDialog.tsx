@@ -17,7 +17,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
-import { ColaboradorJornadaPanel } from "@/components/dp/ColaboradorJornadaPanel";
+import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
 import { CargoSalarioConflitoDialog } from "@/components/dp/CargoSalarioConflitoDialog";
 import { compararSalarioCargo, moedaBR, salarioReferencia, sugerirNomeVariacao } from "@/lib/dp/cargos";
