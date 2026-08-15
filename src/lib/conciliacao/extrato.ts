@@ -34,6 +34,16 @@ export interface ExtratoTxLike {
 
 export type ExtratoSide = "credito" | "debito";
 
+export interface ExtratoPlatformItem {
+  id: string;
+  description: string;
+  amount: number;
+  categoryName: string | null;
+  contactName: string | null;
+  accountName: string | null;
+  paymentMethodName: string | null;
+}
+
 export interface ExtratoRow {
   stagingId: string;
   date: string;
@@ -41,18 +51,16 @@ export interface ExtratoRow {
   amount: number;
   side: ExtratoSide;
   status: ExtratoStatus;
-  /** true quando existe lançamento na plataforma vinculado a esta linha */
+  /** true quando existe pelo menos um lançamento na plataforma vinculado a esta linha */
   conciliado: boolean;
-  platform: {
-    id: string;
-    description: string;
-    amount: number;
-    categoryName: string | null;
-    contactName: string | null;
-    accountName: string | null;
-    paymentMethodName: string | null;
-  } | null;
+  /** lançamentos vinculados (mais de um quando a linha do banco foi dividida) */
+  platforms: ExtratoPlatformItem[];
+  /** soma dos valores absolutos dos lançamentos vinculados */
+  platformTotal: number;
+  /** true quando a soma dos lançamentos difere do valor do banco */
+  divergenteValor: boolean;
 }
+
 
 export interface ExtratoBucket {
   total: number;
