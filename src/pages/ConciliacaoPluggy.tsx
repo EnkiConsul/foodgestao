@@ -1447,7 +1447,7 @@ export default function ConciliacaoPluggy() {
         onOpenChange={(o) => { if (!o) setSplitRowId(null); }}
         row={splitRow ? { id: splitRow.id, date: splitRow.date, description: splitRow.description, amount: splitRow.amount } : null}
         accountId={splitAccountId}
-        categoryOptions={(splitRow?.amount ?? 0) >= 0 ? categoryOptionsReceita : categoryOptionsDespesa}
+        categoryOptions={renderCategoryItems((splitRow?.amount ?? 0) >= 0 ? categoryOptionsReceita : categoryOptionsDespesa)}
         paymentMethods={paymentMethods}
         contacts={contacts}
         onDone={() => { setSplitRowId(null); load(); }}
