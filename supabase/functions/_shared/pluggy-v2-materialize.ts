@@ -160,13 +160,15 @@ export async function materializePluggyItemV2(params: {
     let cursor: string | undefined;
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const page = await listTransactionsV2({
+      const txResp = await listTransactionsV2({
         accountId: acc.id,
         from,
         pageCursor: cursor,
         pageSize: 500,
       });
+      if (!txResp.ok) throw new Error(`list_transactions_failed:${txResp.error}`);
       pagesProcessed++;
+      const page = txResp.data;
       const txs = page.results ?? [];
       if (txs.length > 0) {
         const rows = txs.map((t) => ({
@@ -197,6 +199,7 @@ export async function materializePluggyItemV2(params: {
       }
       cursor = page.nextCursor ?? undefined;
       cursorAfter = cursor ?? cursorAfter;
+
       if (!cursor) break;
       if (pagesProcessed > 200) {
         console.warn("[pv2-materialize] safety-cap 200 pages hit");
