@@ -48,4 +48,7 @@ Hoje a tela de turno não mostra quem usa aquele horário, e a escolha ao editar
 - `src/lib/dp/escala-mes.ts`, `src/lib/dp/horario-previsto.ts`, `src/lib/dp/operacao-dia.ts`, `src/hooks/useDpEscalaMes.tsx`: propagar o horário do dia na resolução do previsto (escala continua congelando entrada/saída no item, então Ponto e Folha leem as mesmas horas).
 - `src/config/dpNavigation.tsx`: `/dp/cadastros/turnos` renomeado para "Horários da loja" e movido para o fim do grupo Cadastros.
 - `src/components/dp/CopiarConfigColaboradorDialog.tsx`: copiar também as exceções de horário.
-- Testes: estender `config-trabalho.test.ts`, `escala-mes.test.ts`, `horario-previsto.test.ts` e criar teste do resolver (reaproveita vs cria).
+- Novo `src/hooks/useDpTurnoVinculos.tsx`: colaboradores com configuração vigente apontando para o turno (via `dp_colaborador_config_trabalho` + `dp_colaborador_config_dias`), com nome e cargo.
+- Novo `src/components/dp/TurnoAlcanceDialog.tsx` (padrão do `ReplicarRegrasDialog`): escolha entre "todos" e "somente alguns" + data de início; ao aplicar parcialmente, repõe o horário antigo nos não marcados via o resolver.
+- `src/pages/dp/cadastros/DpTurnos.tsx` e `src/components/dp/TurnoCard.tsx`: contagem/lista de vinculados no card, no formulário e no diálogo de exclusão.
+- Testes: estender `config-trabalho.test.ts`, `escala-mes.test.ts`, `horario-previsto.test.ts`, criar teste do resolver (reaproveita vs cria) e do cálculo de alcance (quem permanece, quem é movido).
