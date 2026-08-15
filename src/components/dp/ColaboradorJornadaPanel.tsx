@@ -387,7 +387,8 @@ export function ColaboradorJornadaPanel({
   const cargaDiaria = calcularCargaDia(horario);
 
   return (
-    <div className="space-y-5">
+    <div ref={topoRef} className="space-y-5">
+
       {!colaborador?.id && (
         <p className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
