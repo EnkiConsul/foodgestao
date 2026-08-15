@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CalendarOff, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert } from "lucide-react";
+import { CalendarOff, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert, CopyPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDpTurnos, TURNO_FORM_DEFAULT } from "@/hooks/useDpTurnos";
@@ -15,6 +17,7 @@ import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
+import { useDpModelosHorario } from "@/hooks/useDpModelosHorario";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { formatarHoras, calcularCargaDia } from "@/lib/dp/jornada-utils";
 import { formatarFaixaTurno, intervaloAbaixoDoLegal } from "@/lib/dp/turno-utils";
@@ -22,8 +25,9 @@ import { atalhosDeHorario, resolverTurnoDoHorario, type HorarioSimples } from "@
 import { verificarAlertasClt, idadeNaData, temAlertaClt, type AlertaClt } from "@/lib/dp/clt-alertas";
 import { tituloSistema } from "@/lib/text/titleCase";
 import {
-  cargaSemanalConfig, configTemErro, diasPadrao, DOW_LABEL, folgaFixaDerivada, normalizarDias,
-  resumoConfigTexto, temHorarioProprio, turnoDoDia, validarConfigTrabalho,
+  cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia, diaDivergeDoBase,
+  diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia, normalizarDias,
+  resumoConfigTexto, turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
 
@@ -112,7 +116,23 @@ export function ColaboradorJornadaPanel({
     [turnosAtivos],
   );
 
-  const atalhos = useMemo(() => atalhosDeHorario(turnosResolvidos).slice(0, 6), [turnosResolvidos]);
+  /**
+   * Atalhos de horário mostrados por nome de colaborador: o empresário reconhece
+   * "o horário da Cristiane", não a faixa de horas solta.
+   */
+  const { modelos } = useDpModelosHorario(unidadeId === "none" ? null : unidadeId, colaborador?.id ?? null);
+  const atalhosColegas = useMemo(() => {
+    const vistos = new Set<string>();
+    return modelos
+      .filter((m) => !!m.horario)
+      .filter((m) => {
+        const chave = `${m.horario!.entrada}-${m.horario!.saida}-${m.horario!.intervalo_minutos ?? 0}`;
+        if (vistos.has(chave)) return false;
+        vistos.add(chave);
+        return true;
+      })
+      .slice(0, 6);
+  }, [modelos]);
 
   // Recarrega o formulário com a configuração vigente sempre que o painel ativa.
   useEffect(() => {
@@ -212,19 +232,25 @@ export function ColaboradorJornadaPanel({
       : d)));
   };
 
-  /** Liga/desliga o horário próprio do dia, partindo do horário atualmente previsto. */
-  const alternarHorarioProprio = (dow: number, ativar: boolean) => {
-    marcarAlterado();
-    setDias((prev) => prev.map((d) => {
-      if (d.dow !== dow) return d;
-      if (!ativar) return { ...d, entrada: null, saida: null, intervalo_minutos: null };
-      return { ...d, ...horario };
-    }));
-  };
-
+  /**
+   * Edição direta do horário do dia: o campo já vem preenchido com o horário
+   * previsto e o que o usuário digitar passa a valer só para aquele dia.
+   */
   const definirHorarioDia = (dow: number, patch: Partial<HorarioSimples>) => {
     marcarAlterado();
-    setDias((prev) => prev.map((d) => (d.dow === dow ? { ...d, ...patch } : d)));
+    setDias((prev) => {
+      const dia = prev.find((d) => d.dow === dow);
+      if (!dia) return prev;
+      return definirHorarioNoDia(prev, dow, { ...horarioEfetivoDia(dia, horario), ...patch });
+    });
+  };
+
+  /** Repete o horário de um dia nos dias escolhidos. */
+  const repetirHorario = (dow: number, destinos: number[]) => {
+    if (destinos.length === 0) return;
+    marcarAlterado();
+    setDias((prev) => copiarHorarioEntreDias(prev, dow, destinos, horario));
+    toast.success(`Horário repetido em ${destinos.map((d) => DOW_CURTO[d]).join(", ")}`);
   };
 
   const definirHorario = (patch: Partial<HorarioSimples>) => {
@@ -246,9 +272,12 @@ export function ColaboradorJornadaPanel({
     marcarAlterado();
     setFolgaVariavel(c.folga_variavel);
     setDias(normalizarDias(c.dias));
-    const base = c.turno_padrao_id ? turnosResolvidos.find((t) => t.id === c.turno_padrao_id) : null;
-    if (base?.entrada && base?.saida) {
-      setHorario({ entrada: base.entrada, saida: base.saida, intervalo_minutos: base.intervalo_minutos ?? 0 });
+    if (c.horario?.entrada && c.horario?.saida) {
+      setHorario({
+        entrada: c.horario.entrada,
+        saida: c.horario.saida,
+        intervalo_minutos: c.horario.intervalo_minutos ?? 0,
+      });
     }
     toast.success("Configuração copiada — revise e salve");
   };
@@ -498,17 +527,19 @@ export function ColaboradorJornadaPanel({
             />
           </div>
         </div>
-        {atalhos.length > 0 && (
+        {atalhosColegas.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground">Horários já usados na loja:</span>
-            {atalhos.map((t) => (
+            <span className="text-[11px] text-muted-foreground">Copiar o horário de:</span>
+            {atalhosColegas.map((m) => (
               <Button
-                key={t.id} type="button" size="sm" variant="secondary" className="h-7 text-[11px]"
+                key={m.id} type="button" size="sm" variant="secondary" className="h-7 text-[11px]"
                 onClick={() => definirHorario({
-                  entrada: t.entrada, saida: t.saida, intervalo_minutos: t.intervalo_minutos ?? 0,
+                  entrada: m.horario!.entrada,
+                  saida: m.horario!.saida,
+                  intervalo_minutos: m.horario!.intervalo_minutos ?? 0,
                 })}
               >
-                {formatarFaixaTurno(t)}
+                {m.colaborador_nome.split(" ")[0]} · {formatarFaixaTurno(m.horario!)}
               </Button>
             ))}
           </div>
@@ -536,8 +567,8 @@ export function ColaboradorJornadaPanel({
         </div>
         <ul className="divide-y rounded-lg border">
           {dias.map((dia) => {
-            const proprio = temHorarioProprio(dia);
-            const turno = turnoDoDia(dia, turnoPadraoTela.id, turnosTela);
+            const h = horarioEfetivoDia(dia, horario);
+            const diferente = diaDivergeDoBase(dia, horario);
             return (
               <li key={dia.dow} className="space-y-2 p-3">
                 <div className="flex flex-wrap items-center gap-3">
@@ -549,10 +580,11 @@ export function ColaboradorJornadaPanel({
                   <span className="w-24 shrink-0 text-sm font-medium">{DOW_LABEL[dia.dow]}</span>
                   {dia.trabalha ? (
                     <div className="ml-auto flex items-center gap-2">
-                      <span className="text-xs tabular-nums text-muted-foreground">
-                        {turno ? formatarFaixaTurno(turno) : "sem horário"}
-                      </span>
-                      {proprio && <Badge variant="outline" className="text-[10px]">Exceção</Badge>}
+                      {diferente && <Badge variant="outline" className="text-[10px]">Horário próprio</Badge>}
+                      <RepetirHorarioPopover
+                        dow={dia.dow}
+                        onRepetir={(destinos) => repetirHorario(dia.dow, destinos)}
+                      />
                     </div>
                   ) : (
                     <Badge variant="secondary" className="ml-auto">Folga</Badge>
@@ -560,43 +592,29 @@ export function ColaboradorJornadaPanel({
                 </div>
 
                 {dia.trabalha && (
-                  <div className="space-y-2 pl-[3.25rem]">
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Switch
-                        checked={proprio}
-                        onCheckedChange={(v) => alternarHorarioProprio(dia.dow, v)}
-                        aria-label={`Horário diferente em ${DOW_LABEL[dia.dow]}`}
+                  <div className="grid gap-2 pl-[3.25rem] sm:grid-cols-3">
+                    <div className="space-y-1">
+                      <Label className="text-[11px]" htmlFor={`h-ent-${dia.dow}`}>Entrada</Label>
+                      <Input
+                        id={`h-ent-${dia.dow}`} type="time" className="h-9" value={h.entrada}
+                        onChange={(e) => definirHorarioDia(dia.dow, { entrada: e.target.value })}
                       />
-                      Horário diferente neste dia
-                    </label>
-                    {proprio && (
-                      <div className="grid gap-2 sm:grid-cols-3">
-                        <div className="space-y-1">
-                          <Label className="text-[11px]" htmlFor={`h-ent-${dia.dow}`}>Entrada</Label>
-                          <Input
-                            id={`h-ent-${dia.dow}`} type="time" className="h-9"
-                            value={dia.entrada ?? ""}
-                            onChange={(e) => definirHorarioDia(dia.dow, { entrada: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[11px]" htmlFor={`h-sai-${dia.dow}`}>Saída</Label>
-                          <Input
-                            id={`h-sai-${dia.dow}`} type="time" className="h-9"
-                            value={dia.saida ?? ""}
-                            onChange={(e) => definirHorarioDia(dia.dow, { saida: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[11px]" htmlFor={`h-int-${dia.dow}`}>Intervalo (min)</Label>
-                          <Input
-                            id={`h-int-${dia.dow}`} type="number" min={0} inputMode="numeric" className="h-9"
-                            value={dia.intervalo_minutos ?? 0}
-                            onChange={(e) => definirHorarioDia(dia.dow, { intervalo_minutos: Number(e.target.value || 0) })}
-                          />
-                        </div>
-                      </div>
-                    )}
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px]" htmlFor={`h-sai-${dia.dow}`}>Saída</Label>
+                      <Input
+                        id={`h-sai-${dia.dow}`} type="time" className="h-9" value={h.saida}
+                        onChange={(e) => definirHorarioDia(dia.dow, { saida: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px]" htmlFor={`h-int-${dia.dow}`}>Intervalo (min)</Label>
+                      <Input
+                        id={`h-int-${dia.dow}`} type="number" min={0} inputMode="numeric" className="h-9"
+                        value={h.intervalo_minutos ?? 0}
+                        onChange={(e) => definirHorarioDia(dia.dow, { intervalo_minutos: Number(e.target.value || 0) })}
+                      />
+                    </div>
                   </div>
                 )}
               </li>
@@ -769,5 +787,51 @@ export function ColaboradorJornadaPanel({
         onCopiar={onCopiarConfig}
       />
     </div>
+  );
+}
+
+/** Repete o horário de um dia nos demais dias escolhidos pelo usuário. */
+function RepetirHorarioPopover({ dow, onRepetir }: { dow: number; onRepetir: (destinos: number[]) => void }) {
+  const [open, setOpen] = useState(false);
+  const [sel, setSel] = useState<number[]>([]);
+  const outros = Object.keys(DOW_LABEL).map(Number).filter((d) => d !== dow);
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(v) => { setOpen(v); if (!v) setSel([]); }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          type="button" size="sm" variant="ghost" className="h-7 gap-1.5 text-[11px]"
+          aria-label={`Repetir o horário de ${DOW_LABEL[dow]} em outros dias`}
+        >
+          <CopyPlus className="h-3.5 w-3.5" aria-hidden="true" />
+          Repetir
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-56 space-y-2">
+        <p className="text-xs font-medium">Repetir {DOW_LABEL[dow]} em:</p>
+        <ul className="space-y-1.5">
+          {outros.map((d) => (
+            <li key={d}>
+              <label className="flex items-center gap-2 text-xs">
+                <Checkbox
+                  checked={sel.includes(d)}
+                  onCheckedChange={(v) => setSel((prev) => (v ? [...prev, d] : prev.filter((x) => x !== d)))}
+                />
+                {DOW_LABEL[d]}
+              </label>
+            </li>
+          ))}
+        </ul>
+        <Button
+          type="button" size="sm" className="w-full" disabled={sel.length === 0}
+          onClick={() => { onRepetir(sel); setOpen(false); setSel([]); }}
+        >
+          Aplicar
+        </Button>
+      </PopoverContent>
+    </Popover>
   );
 }
