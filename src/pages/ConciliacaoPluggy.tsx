@@ -793,6 +793,14 @@ export default function ConciliacaoPluggy() {
           <FileJson className="h-4 w-4 mr-2" />
           Auditoria
         </Button>
+        <Button
+          onClick={() => navigate(`/contas-bancarias/conciliacao/extrato${scopedLocalAccountId ? `?account=${scopedLocalAccountId}` : ""}`)}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Extrato de Conciliação
+        </Button>
 
       </div>
 
