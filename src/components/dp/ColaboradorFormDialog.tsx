@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useUpsertDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
+import { useUpsertDpColaborador, useDpColaboradores, type DpColaborador } from "@/hooks/useDpColaboradores";
+import { alertaIsonomia } from "@/lib/dp/beneficios-regras";
+import { BeneficioDispensaDialog, type DispensaBeneficio } from "@/components/dp/BeneficioDispensaDialog";
 import { useDpUnidades, useDpCargos, useUpsertDpCargo, type DpCargo } from "@/hooks/useDpCadastros";
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { Textarea } from "@/components/ui/textarea";
@@ -128,7 +130,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const upsertCargo = useUpsertDpCargo();
   const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
   const [form, setForm] = useState(blank);
-  const { selectedCompanyId } = useCompanyContext();
+  const { selectedCompanyId, companies } = useCompanyContext();
+  const todosColaboradores = useDpColaboradores();
+  /** Benefícios retirados que exigem ciência de isonomia neste salvamento. */
+  const [dispensas, setDispensas] = useState<DispensaBeneficio[]>([]);
+  const isonomiaConfirmada = useRef(false);
   const [cienciaAberta, setCienciaAberta] = useState(false);
   const [tab, setTab] = useState<"dados" | "jornada" | "remuneracao">("dados");
   /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
@@ -181,11 +187,22 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       vale_transporte: !!c.vale_transporte,
       vale_transporte_valor_dia:
         c.vale_transporte_valor_dia != null ? String(c.vale_transporte_valor_dia).replace(".", ",") : "",
-      beneficios: Object.fromEntries(
-        (atribuicoes ?? [])
-          .filter((a: any) => a.colaborador_id === c.id && a.ativo)
-          .map((a: any) => [a.beneficio_id, true]),
-      ),
+      // Novo colaborador herda os benefícios que a empresa já concede ao time.
+      beneficios: c.id
+        ? Object.fromEntries(
+            (atribuicoes ?? [])
+              .filter((a: any) => a.colaborador_id === c.id && a.ativo)
+              .map((a: any) => [a.beneficio_id, true]),
+          )
+        : Object.fromEntries(
+            Array.from(
+              new Set(
+                (atribuicoes ?? [])
+                  .filter((a: any) => a.ativo)
+                  .map((a: any) => a.beneficio_id as string),
+              ),
+            ).map((id) => [id, true]),
+          ),
       base_salarial: c.base_salarial != null ? String(c.base_salarial).replace(".", ",") : "",
       base_horas_mes: String(c.base_horas_mes ?? BASE_HORAS_MES_PADRAO),
       base_dias_mes: String(c.base_dias_mes ?? BASE_DIAS_MES_PADRAO),
@@ -239,6 +256,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       optante_adiantamento: c.optante_adiantamento ?? false,
     });
   }, [open, colaborador, atribuicoes]);
+
+  useEffect(() => {
+    if (!open) { setDispensas([]); isonomiaConfirmada.current = false; }
+  }, [open]);
 
   const regimeSelecionado = VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt";
 
@@ -326,8 +347,41 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     } catch { /* o cadastro não deve falhar por causa do log */ }
   };
 
+  /** Benefícios ativos hoje que o usuário desmarcou e colegas equivalentes mantêm. */
+  const dispensasPendentes = (): DispensaBeneficio[] => {
+    if (!colaborador?.id) return [];
+    const out: DispensaBeneficio[] = [];
+    for (const b of beneficios) {
+      const atual = (atribuicoes ?? []).find(
+        (a: any) => a.colaborador_id === colaborador.id && a.beneficio_id === b.id,
+      ) as any;
+      if (!atual?.ativo || rem.beneficios[b.id]) continue;
+      const colegas = (todosColaboradores.data ?? [])
+        .filter((x: any) => x.id !== colaborador.id && x.ativo !== false)
+        .map((x: any) => ({
+          colaborador_id: x.id,
+          nome: x.nome,
+          cargo_id: x.cargo_id,
+          unidade_id: x.unidade_id,
+          ativo: (atribuicoes ?? []).some(
+            (a: any) => a.colaborador_id === x.id && a.beneficio_id === b.id && a.ativo,
+          ),
+        }));
+      const alerta = alertaIsonomia(b.nome, colegas, {
+        cargo_id: form.cargo_id || null,
+        unidade_id: form.unidade_id || null,
+      });
+      if (alerta) out.push({ beneficio_id: b.id, beneficio_nome: b.nome, alerta });
+    }
+    return out;
+  };
+
   const submit = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
+    if (!isonomiaConfirmada.current) {
+      const pendentes = dispensasPendentes();
+      if (pendentes.length > 0) { setDispensas(pendentes); return; }
+    }
     if (!form.cpf.trim()) { toast.error("CPF é obrigatório"); return; }
 
     const cpfDigits = form.cpf.replace(/\D/g, "");
