@@ -72,6 +72,7 @@ export default function DpColaboradores() {
   const [perfilFilter, setPerfilFilter] = useState<string>("all");
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewing, setViewing] = useState<DpColaborador | null>(null);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
   const [toDesligar, setToDesligar] = useState<DpColaborador | null>(null);
