@@ -440,7 +440,11 @@ export function ColaboradorJornadaPanel({
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Input id="ct-inicio" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+              <Input
+                id="ct-inicio" type="date" value={inicio}
+                onChange={(e) => { marcarAlterado(); setInicio(e.target.value); }}
+              />
+
               {(vigente || admissao) && (
                 <Button
                   type="button" variant="link" size="sm" className="h-auto p-0 text-xs"
