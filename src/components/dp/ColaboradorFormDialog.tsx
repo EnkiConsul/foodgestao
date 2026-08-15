@@ -219,6 +219,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         c.vale_alimentacao_valor != null ? String(c.vale_alimentacao_valor).replace(".", ",") : "",
       vale_alimentacao_periodicidade: (c.vale_alimentacao_periodicidade ?? "mensal") as "diario" | "mensal",
       vale_alimentacao_dias_base: String(c.vale_alimentacao_dias_base ?? 22),
+      vale_alimentacao_dias_origem:
+        ((c as any).vale_alimentacao_dias_origem ?? "jornada") as "jornada" | "fixo",
       vale_alimentacao_desconto_tipo:
         (c.vale_alimentacao_desconto_tipo ?? "percentual") as "nenhum" | "percentual" | "valor",
       vale_alimentacao_desconto_valor:
