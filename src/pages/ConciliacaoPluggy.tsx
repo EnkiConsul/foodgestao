@@ -1068,7 +1068,13 @@ export default function ConciliacaoPluggy() {
                     </td>
                     <td className="p-2 whitespace-nowrap">{format(parseISO(r.date), "dd/MM/yyyy")}</td>
                     <td className="p-2 max-w-[280px]">
-                      <p className="truncate" title={r.description ?? ""}>{r.description ?? "-"}</p>
+                      <DescriptionEditor
+                        compact
+                        value={r.description}
+                        disabled={disabled}
+                        onSave={(v) => saveDescription(r.id, v)}
+                      />
+
                       {counterpartyLabel(counterpartyByRow[r.id] ?? { name: null, document: null, documentType: null, internal: false }) && (
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={counterpartyLabel(counterpartyByRow[r.id]!) ?? ""}>
                           {counterpartyByRow[r.id]?.internal ? "Banco (débito interno): " : ""}
