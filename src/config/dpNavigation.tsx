@@ -218,6 +218,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Unidades", to: "/dp/cadastros/unidades", icon: Building2 },
       { label: "Sindicatos", to: "/dp/cadastros/sindicatos", icon: Scale },
       { label: "Turnos", to: "/dp/cadastros/turnos", icon: Clock },
+      { label: "Benefícios", to: "/dp/cadastros/beneficios", icon: Gift },
       { label: "Pendências", to: "/dp/cadastros/pendencias", icon: BellRing },
     ],
   },
