@@ -142,7 +142,7 @@ export default function RelatoriosContabeis() {
                       Nenhum lançamento no período selecionado.
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Ajuste o período/regime ou ative “Incluir contas sem movimento” para ver o
+                      Ajuste o período ou ative “Incluir contas sem movimento” para ver o
                       plano de contas completo.
                     </p>
                   </>
