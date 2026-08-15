@@ -468,53 +468,76 @@ export default function ExtratoConciliacao() {
                         <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground md:hidden">
                           Lançamento na plataforma
                         </div>
-                        {r.platform ? (
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate text-sm font-medium">{r.platform.description}</div>
-                              <div
-                                className={cn(
-                                  "text-sm font-semibold tabular-nums",
-                                  Math.abs(Math.abs(r.platform.amount) - Math.abs(r.amount)) > 0.004
-                                    ? "text-warning"
-                                    : r.side === "credito"
-                                      ? "text-success"
-                                      : "text-destructive",
-                                )}
-                              >
-                                {maskBRL(r.side === "debito" ? -Math.abs(r.platform.amount) : Math.abs(r.platform.amount))}
+                        {r.platforms.length > 0 ? (
+                          <div className="space-y-2">
+                            {r.platforms.length > 1 && (
+                              <div className="flex items-center justify-between gap-2 text-[11px]">
+                                <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                                  Dividido em {r.platforms.length} lançamentos
+                                </Badge>
+                                <span
+                                  className={cn(
+                                    "font-semibold tabular-nums",
+                                    r.divergenteValor
+                                      ? "text-warning"
+                                      : r.side === "credito"
+                                        ? "text-success"
+                                        : "text-destructive",
+                                  )}
+                                >
+                                  Total {maskBRL(r.side === "debito" ? -r.platformTotal : r.platformTotal)}
+                                </span>
                               </div>
-                              <div className="mt-0.5 flex flex-wrap gap-1">
-                                {r.platform.categoryName && (
-                                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{r.platform.categoryName}</Badge>
-                                )}
-                                {r.platform.contactName && (
-                                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{r.platform.contactName}</Badge>
-                                )}
-                                {r.platform.accountName && (
-                                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{r.platform.accountName}</Badge>
-                                )}
-                                {r.platform.paymentMethodName && (
-                                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{r.platform.paymentMethodName}</Badge>
-                                )}
-                              </div>
-                            </div>
+                            )}
+                            {r.platforms.map((p) => (
+                              <div key={p.id} className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-sm font-medium">{p.description}</div>
+                                  <div
+                                    className={cn(
+                                      "text-sm font-semibold tabular-nums",
+                                      r.divergenteValor
+                                        ? "text-warning"
+                                        : r.side === "credito"
+                                          ? "text-success"
+                                          : "text-destructive",
+                                    )}
+                                  >
+                                    {maskBRL(r.side === "debito" ? -Math.abs(p.amount) : Math.abs(p.amount))}
+                                  </div>
+                                  <div className="mt-0.5 flex flex-wrap gap-1">
+                                    {p.categoryName && (
+                                      <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{p.categoryName}</Badge>
+                                    )}
+                                    {p.contactName && (
+                                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{p.contactName}</Badge>
+                                    )}
+                                    {p.accountName && (
+                                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{p.accountName}</Badge>
+                                    )}
+                                    {p.paymentMethodName && (
+                                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{p.paymentMethodName}</Badge>
+                                    )}
+                                  </div>
+                                </div>
 
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="h-8 shrink-0"
-                              disabled={openingTransactionId === r.platform.id}
-                              onClick={() => editReconciledTransaction(r.platform?.id ?? "")}
-                            >
-                              {openingTransactionId === r.platform.id ? (
-                                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                              )}
-                              Editar e conciliar
-                            </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 shrink-0"
+                                  disabled={openingTransactionId === p.id}
+                                  onClick={() => editReconciledTransaction(p.id)}
+                                >
+                                  {openingTransactionId === p.id ? (
+                                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                                  )}
+                                  Editar e conciliar
+                                </Button>
+                              </div>
+                            ))}
                           </div>
                         ) : (
                           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -534,6 +557,7 @@ export default function ExtratoConciliacao() {
                             )}
                           </div>
                         )}
+
                       </div>
                     </div>
                   ))}
