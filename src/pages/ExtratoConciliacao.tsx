@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/billing";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { tituloSistema } from "@/lib/tituloSistema";
+import { tituloSistema } from "@/lib/text/titleCase";
 import { useExtratoConciliacao } from "@/hooks/useExtratoConciliacao";
 import {
   buildExtratoConciliacao,
