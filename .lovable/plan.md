@@ -4,7 +4,7 @@ O usuário é o dono da loja, não um analista de DP. Ele pensa em "quem trabalh
 
 ## O que ele passa a ver
 
-Na aba "Turno & Jornada" do colaborador — renomeada para **"Horário de trabalho"**:
+Na aba "Turno & Jornada" do colaborador — renomeada para **"Horário de Trabalho"**:
 
 1. **Horário** — entrada, saída e intervalo direto na tela, com atalhos prontos da loja ("Almoço 10:00–16:00", "Jantar 17:00–23:00") sugeridos a partir dos horários que já existem na unidade. Escolher um atalho preenche os campos; digitar outro horário também funciona, sem passar por nenhum cadastro.
 2. **Dias e folga** — sete switches da semana. Dia desmarcado = folga, e o texto abaixo confirma ("Folga: quarta-feira"), com a opção "folga varia conforme a escala". Atalhos 6x1 e 5x2 continuam.
@@ -23,13 +23,21 @@ Nada disso obriga o usuário a abrir outra tela. Ele nunca precisa saber que exi
 Um modelo por pessoa quebra coisas que o empresário usa sem saber: a cobertura mínima por horário ("preciso de 2 no jantar"), as colunas da Operação do Dia, os relatórios que agrupam por horário e, no futuro, adicional noturno e tolerância de ponto — que são regras do horário, não da pessoa. Além disso, mudar o jantar de 17h para 18h passaria a ser 40 edições em vez de uma.
 
 ### E a tela "Turnos"
-Sai do menu principal e passa a viver como tela avançada em Cadastros, renomeada **"Horários da loja"** — para quem quiser ajustar cobertura mínima ou corrigir um horário de todos de uma vez. Deixa de ser passo obrigatório.
+Sai do menu principal e passa a viver como tela avançada em Cadastros, renomeada **"Horários da Loja"** — para quem quiser ajustar cobertura mínima ou corrigir um horário de todos de uma vez. Deixa de ser passo obrigatório.
+
+## Padrão de Títulos do Sistema
+
+Todo título passa a usar inicial maiúscula em cada palavra: "Horário de Trabalho", "Horários da Loja", "Contas a Pagar", "Fluxo de Caixa". Conectivos curtos (de, da, do, e, em, para, com, a, o, no, na) ficam minúsculos quando não são a primeira palavra — é o padrão de título em português e o que o sistema já usa em "Fluxo de Caixa".
+
+Onde vale: títulos de página, títulos de card e de seção, nomes de item de menu e submenu, títulos de diálogo, rótulos de aba e cabeçalhos de coluna de tabela. Não vale para textos de apoio, descrições, mensagens de toast, placeholders e conteúdo digitado pelo usuário — esses seguem escrita normal de frase.
+
+Nesta entrega isso é aplicado às telas e aos menus tocados pelo plano (Horário de Trabalho, Horários da Loja, abas do cadastro do colaborador, diálogos novos). Como é uma varredura em muitas telas, o resto do sistema é padronizado numa passagem própria de revisão de textos, listando página por página, para não misturar mudança de texto com mudança de comportamento.
 
 ## Corrigir um horário depois: quem é afetado
 
 Hoje a tela de turno não mostra quem usa aquele horário, e a escolha ao editar é apenas "aplicar às novas escalas" ou "criar nova versão". Passa a ficar assim:
 
-- **Cada horário mostra quem trabalha nele.** No card de "Horários da loja" aparece a contagem ("6 colaboradores") e, ao abrir, a lista com nome, cargo e dias. O mesmo bloco aparece dentro da edição, antes de salvar.
+- **Cada horário mostra quem trabalha nele.** No card de "Horários da Loja" aparece a contagem ("6 colaboradores") e, ao abrir, a lista com nome, cargo e dias. O mesmo bloco aparece dentro da edição, antes de salvar.
 - **Ao salvar uma alteração de horário, o usuário escolhe o alcance:**
   - *Todos os que usam este horário* (padrão) — uma edição, todos passam a seguir o horário novo.
   - *Somente alguns* — marca os colaboradores na lista; os marcados continuam no horário novo e os não marcados são movidos para um horário com os valores antigos (reaproveitando um equivalente se existir, ou criado automaticamente), então ninguém tem a jornada alterada sem intenção.
@@ -47,7 +55,7 @@ Hoje a regra "menor não encerra após as 22:00" existe em `validarSemana` (`src
   - **Todos**: mais de 44h na semana; mais de 8h no dia sem acordo de compensação; intervalo menor que 1h em jornada acima de 6h (já existe) e ausência de intervalo acima de 4h; menos de 11h entre a saída de um dia e a entrada do seguinte; 7 dias seguidos sem folga; domingo sem folga no mês.
   - **Aprendiz**: 6h/dia sem prorrogação.
   - **Noturno (22h–5h)**: aviso informativo de que a hora vale 52min30 e há adicional de 20% — para a Folha calcular certo depois.
-- **Onde mais aparece**: o mesmo verificador é reaproveitado na ficha do colaborador (selo "Fora da referência CLT" com o motivo), no cadastro de "Horários da loja" e na geração da escala do mês (aviso na publicação, sem impedir).
+- **Onde mais aparece**: o mesmo verificador é reaproveitado na ficha do colaborador (selo "Fora da Referência CLT" com o motivo), no cadastro de "Horários da Loja" e na geração da escala do mês (aviso na publicação, sem impedir).
 - A chave `exige_validacao_menor` já existente em `dp_config_dp` passa a significar "avisar sobre menores" — o texto do card em Configurações é corrigido, pois hoje promete bloqueio que não existe.
 
 
@@ -59,7 +67,8 @@ Hoje a regra "menor não encerra após as 22:00" existe em `validarSemana` (`src
 - `src/components/dp/ColaboradorJornadaPanel.tsx`: campos de horário no lugar do seletor de turno, atalhos vindos dos turnos da unidade, overrides por dia dentro do estado `dias`, remoção de `VIRTUAL_PREFIX`/`resolverDias` e do seletor de dia de folga; textos sem a palavra "turno".
 - `src/hooks/useDpColaboradorConfigTrabalho.tsx`: resolver/criar o turno da unidade no salvamento, persistir horários por dia e derivar `folga_fixa_dow`.
 - `src/lib/dp/escala-mes.ts`, `src/lib/dp/horario-previsto.ts`, `src/lib/dp/operacao-dia.ts`, `src/hooks/useDpEscalaMes.tsx`: propagar o horário do dia na resolução do previsto (escala continua congelando entrada/saída no item, então Ponto e Folha leem as mesmas horas).
-- `src/config/dpNavigation.tsx`: `/dp/cadastros/turnos` renomeado para "Horários da loja" e movido para o fim do grupo Cadastros.
+- `src/config/dpNavigation.tsx`: `/dp/cadastros/turnos` renomeado para "Horários da Loja" e movido para o fim do grupo Cadastros; itens tocados seguem o Title Case.
+- Novo `src/lib/text/titleCase.ts`: helper `tituloSistema(texto)` com lista de conectivos minúsculos (de, da, do, das, dos, e, em, no, na, para, com, a, o, ao, por), preservando siglas (CLT, DP, PIX, CPF) e nomes de marca. Aplicado aos títulos das telas desta entrega e disponível para a varredura geral. Teste unitário com os casos de conectivo, sigla e primeira palavra.
 - `src/components/dp/CopiarConfigColaboradorDialog.tsx`: copiar também as exceções de horário.
 - Novo `src/hooks/useDpTurnoVinculos.tsx`: colaboradores com configuração vigente apontando para o turno (via `dp_colaborador_config_trabalho` + `dp_colaborador_config_dias`), com nome e cargo.
 - Novo `src/components/dp/TurnoAlcanceDialog.tsx` (padrão do `ReplicarRegrasDialog`): escolha entre "todos" e "somente alguns" + data de início; ao aplicar parcialmente, repõe o horário antigo nos não marcados via o resolver.
