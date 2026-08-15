@@ -253,8 +253,12 @@ export function verificarAlertasClt(input: EntradaAlertasClt): AlertaClt[] {
       });
     }
 
+    // Com folga variável, quem responde pelo DSR é a escala do mês, não o cadastro.
     const folgas = input.dias.filter((d) => !d.trabalha);
-    if (folgas.length === 0) {
+    if (input.folgaVariavel) {
+      // nada a avisar aqui
+    } else if (folgas.length === 0) {
+
       out.push({
         codigo: "sem_folga_semanal",
         campo: "folga",
