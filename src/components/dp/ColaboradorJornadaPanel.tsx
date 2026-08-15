@@ -413,7 +413,7 @@ export function ColaboradorJornadaPanel({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="ct-unidade">Unidade</Label>
-          <Select value={unidadeId} onValueChange={setUnidadeId}>
+          <Select value={unidadeId} onValueChange={(v) => { marcarAlterado(); setUnidadeId(v); }}>
             <SelectTrigger id="ct-unidade"><SelectValue placeholder="Selecione" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Sem unidade definida</SelectItem>
