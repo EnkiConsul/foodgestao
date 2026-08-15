@@ -566,10 +566,26 @@ export function RemuneracaoFields({
               </div>
             )}
             <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground md:col-span-2">
+              {value.vale_alimentacao_periodicidade === "diario" && (
+                <div>
+                  Conta do mês: {formatarBRL(numeroBR(value.vale_alimentacao_valor))} × {va.dias} dias{" "}
+                  ({va.diasOrigem === "jornada"
+                    ? "pela jornada"
+                    : va.diasOrigem === "fixo"
+                      ? "quantidade fixa"
+                      : "referência padrão"})
+                </div>
+              )}
               <div>Concedido no mês: <strong className="text-foreground">{formatarBRL(va.bruto)}</strong></div>
               <div>Desconto do colaborador: <strong className="text-foreground">{formatarBRL(va.desconto)}</strong></div>
               <div>Custo da empresa: <strong className="text-foreground">{formatarBRL(va.liquido)}</strong></div>
+              {value.vale_alimentacao_periodicidade === "diario" && (
+                <p>
+                  Na folha, quando houver ponto apurado no período, valem os dias efetivamente trabalhados.
+                </p>
+              )}
             </div>
+
             {alertasVa.map((a) => (
               <p
                 key={a.codigo}
