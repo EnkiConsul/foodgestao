@@ -125,6 +125,8 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
   const assiduidadeTolerancia = (colaborador as any)?.assiduidade_tolerancia_min as number | null;
   const assiduidadeMaxAtrasos = (colaborador as any)?.assiduidade_max_atrasos as number | null;
 
+  if (!colaborador) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
