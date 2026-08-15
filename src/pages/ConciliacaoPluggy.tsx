@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, FileJson } from "lucide-react";
+import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, FileJson, FileText } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
@@ -572,7 +572,20 @@ export default function ConciliacaoPluggy() {
 
   const confirmSelected = async () => {
     setBulkBusy("confirm");
-    try { await confirmIds(Array.from(selected)); } finally { setBulkBusy(null); }
+    try {
+      await confirmIds(Array.from(selected));
+      // Fim do fluxo: oferece o extrato comparativo banco x plataforma
+      toast.success("Conciliação concluída", {
+        description: "Veja o extrato comparativo entre o banco e a plataforma.",
+        action: {
+          label: "Ver extrato",
+          onClick: () =>
+            navigate(
+              `/contas-bancarias/conciliacao/extrato${scopedLocalAccountId ? `?account=${scopedLocalAccountId}` : ""}`,
+            ),
+        },
+      });
+    } finally { setBulkBusy(null); }
   };
   const ignoreSelected = async () => {
     setBulkBusy("ignore");
@@ -792,6 +805,14 @@ export default function ConciliacaoPluggy() {
         >
           <FileJson className="h-4 w-4 mr-2" />
           Auditoria
+        </Button>
+        <Button
+          onClick={() => navigate(`/contas-bancarias/conciliacao/extrato${scopedLocalAccountId ? `?account=${scopedLocalAccountId}` : ""}`)}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Extrato de Conciliação
         </Button>
 
       </div>
