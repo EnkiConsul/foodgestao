@@ -163,20 +163,25 @@ export function RemuneracaoFields({
     salario,
   );
 
+  // Dias do mês pela jornada: fonte única do "dias considerados" do VA diário.
+  const diasJornadaMes = diasTrabalhaveisNoMes(diasJornada);
+  const resumoJornada = descreverDiasJornada(diasJornada);
+
   const vaInput = {
     vale_alimentacao: value.vale_alimentacao,
     vale_alimentacao_valor: numeroBR(value.vale_alimentacao_valor),
     vale_alimentacao_periodicidade: value.vale_alimentacao_periodicidade,
     vale_alimentacao_dias_base: numeroBR(value.vale_alimentacao_dias_base),
+    vale_alimentacao_dias_origem: value.vale_alimentacao_dias_origem,
     vale_alimentacao_desconto_tipo: value.vale_alimentacao_desconto_tipo,
     vale_alimentacao_desconto_valor: numeroBR(value.vale_alimentacao_desconto_valor),
   };
-  const va = valeAlimentacaoDoMes(vaInput);
+  const va = valeAlimentacaoDoMes(vaInput, { diasJornada: diasJornadaMes });
   const alertasVa = value.vale_alimentacao
     ? alertasBeneficioAlimentacao({
       valor: vaInput.vale_alimentacao_valor,
       periodicidade: vaInput.vale_alimentacao_periodicidade,
-      dias_base: vaInput.vale_alimentacao_dias_base,
+      dias_base: va.dias,
       desconto_tipo: vaInput.vale_alimentacao_desconto_tipo,
       desconto_valor: vaInput.vale_alimentacao_desconto_valor,
     })
