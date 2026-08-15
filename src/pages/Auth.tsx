@@ -254,7 +254,9 @@ export default function Auth() {
         }
         const result = await unifiedSignIn(identifier, password, turnstileToken);
         if (!result.ok) {
-          toast.error("Erro ao entrar", { description: result.errorMessage });
+          toast.error("Erro ao entrar", {
+            description: result.errorMessage ? translateAuthError(result.errorMessage) : undefined,
+          });
           setTurnstileToken(""); // force re-solve
           if (typeof window !== "undefined" && window.turnstile) {
             try { window.turnstile.reset(); } catch { /* noop */ }
