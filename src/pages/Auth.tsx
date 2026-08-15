@@ -369,6 +369,8 @@ export default function Auth() {
           <CardDescription>
             {mfaRequired
               ? "Verificação em duas etapas"
+              : isConfirmEmail
+              ? "Confirme seu e-mail"
               : isForgot
               ? "Recuperar senha"
               : isLogin
@@ -383,6 +385,40 @@ export default function Auth() {
               onSuccess={() => navigate(getRedirectTarget(), { replace: true })}
               onCancel={() => setMfaRequired(false)}
             />
+          </CardContent>
+        ) : isConfirmEmail ? (
+          <CardContent className="space-y-4">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                <MailCheck className="h-7 w-7 text-primary" aria-hidden="true" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Confirme seu e-mail</h2>
+              <p className="text-sm text-muted-foreground">
+                Enviamos um link de confirmação para{" "}
+                <span className="font-medium text-foreground break-all">{pendingConfirmationEmail}</span>.
+                Abra sua caixa de entrada e clique no link para ativar seu acesso.
+              </p>
+            </div>
+            <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+              Não encontrou? Verifique a pasta de spam ou lixo eletrônico. O link é válido por tempo limitado.
+            </div>
+            <div className="space-y-2">
+              <Button
+                type="button"
+                className="w-full"
+                onClick={handleResendConfirmation}
+                disabled={resending || resendCooldown > 0}
+              >
+                {resending
+                  ? "Reenviando..."
+                  : resendCooldown > 0
+                  ? `Reenviar em ${resendCooldown}s`
+                  : "Reenviar e-mail de confirmação"}
+              </Button>
+              <Button type="button" variant="outline" className="w-full" onClick={() => switchMode("login")}>
+                Voltar ao login
+              </Button>
+            </div>
           </CardContent>
         ) : (
           <form onSubmit={handleSubmit}>
