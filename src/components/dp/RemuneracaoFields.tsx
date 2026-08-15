@@ -14,9 +14,18 @@ import {
   valorDiaPorBase,
   BASES_HORAS_MES,
   ASSIDUIDADE_CRITERIO_OPTIONS,
+  PREMIO_TIPO_LABEL,
+  premioAssiduidadeBase,
+  valeAlimentacaoDoMes,
   type FormaPagamento,
   type AssiduidadeCriterio,
+  type PremioTipo,
 } from "@/lib/dp/remuneracao";
+import {
+  alertasBeneficioAlimentacao, DESCONTO_TIPO_LABEL, DIAS_BASE_PADRAO, PERIODICIDADE_LABEL,
+  type DescontoTipo, type Periodicidade,
+} from "@/lib/dp/beneficios-regras";
+import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
 import { formatarBRL } from "@/lib/dp/folha";
 
@@ -40,6 +49,15 @@ export interface RemuneracaoFormState {
   assiduidade_criterio: AssiduidadeCriterio;
   assiduidade_tolerancia_min: string;
   assiduidade_max_atrasos: string;
+  /** Prêmio em valor fixo ou percentual do salário. */
+  premio_assiduidade_tipo: PremioTipo;
+  /** Vale-alimentação / refeição. */
+  vale_alimentacao: boolean;
+  vale_alimentacao_valor: string;
+  vale_alimentacao_periodicidade: Periodicidade;
+  vale_alimentacao_dias_base: string;
+  vale_alimentacao_desconto_tipo: DescontoTipo;
+  vale_alimentacao_desconto_valor: string;
 }
 
 export const remuneracaoBlank: RemuneracaoFormState = {
@@ -60,6 +78,13 @@ export const remuneracaoBlank: RemuneracaoFormState = {
   assiduidade_criterio: "sem_faltas_sem_atrasos",
   assiduidade_tolerancia_min: "10",
   assiduidade_max_atrasos: "2",
+  premio_assiduidade_tipo: "valor",
+  vale_alimentacao: false,
+  vale_alimentacao_valor: "",
+  vale_alimentacao_periodicidade: "mensal",
+  vale_alimentacao_dias_base: String(DIAS_BASE_PADRAO),
+  vale_alimentacao_desconto_tipo: "percentual",
+  vale_alimentacao_desconto_valor: "1",
 };
 
 export const numeroBR = (v: string): number => {
@@ -289,13 +314,34 @@ export function RemuneracaoFields({
         {value.premio_assiduidade && (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Valor mensal</Label>
+              <Label>Forma do prêmio</Label>
+              <Select
+                value={value.premio_assiduidade_tipo}
+                onValueChange={(v: PremioTipo) => onChange({ premio_assiduidade_tipo: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(PREMIO_TIPO_LABEL) as PremioTipo[]).map((t) => (
+                    <SelectItem key={t} value={t}>{PREMIO_TIPO_LABEL[t]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>
+                {value.premio_assiduidade_tipo === "percentual" ? "Percentual do salário (%)" : "Valor mensal"}
+              </Label>
               <Input
                 inputMode="decimal"
                 value={value.premio_assiduidade_valor}
                 onChange={(e) => onChange({ premio_assiduidade_valor: e.target.value })}
-                placeholder="Ex: 150,00"
+                placeholder={value.premio_assiduidade_tipo === "percentual" ? "Ex: 5" : "Ex: 150,00"}
               />
+              {value.premio_assiduidade_tipo === "percentual" && premioCalculado > 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  Equivale a <strong className="text-foreground">{formatarBRL(premioCalculado)}</strong> por mês.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Critério</Label>
@@ -327,8 +373,10 @@ export function RemuneracaoFields({
                 value={value.assiduidade_max_atrasos}
                 onChange={(e) => onChange({ assiduidade_max_atrasos: e.target.value.replace(/\D/g, "") })}
                 placeholder="2"
-                disabled={value.assiduidade_criterio !== "sem_faltas_sem_atrasos"}
               />
+              <p className="text-[11px] text-muted-foreground">
+                Limite definido pela empresa — 0 exige pontualidade integral no mês.
+              </p>
             </div>
             <p className="text-[11px] text-muted-foreground md:col-span-2">
               O prêmio é pago quando o critério é cumprido no mês. Faltas sempre cancelam o benefício.
@@ -362,6 +410,113 @@ export function RemuneracaoFields({
               <div>Concedido no mês (22 dias): <strong className="text-foreground">{formatarBRL(vt.bruto)}</strong></div>
               <div>Desconto legal (até 6%): <strong className="text-foreground">{formatarBRL(vt.desconto)}</strong></div>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Vale-alimentação / refeição */}
+      <div className="space-y-3 rounded-lg border border-border bg-background p-3">
+        <div className="flex items-center gap-3">
+          <Switch
+            id="vale_alimentacao"
+            checked={value.vale_alimentacao}
+            onCheckedChange={(v) => onChange({ vale_alimentacao: v })}
+          />
+          <Label htmlFor="vale_alimentacao" className="cursor-pointer">
+            Vale-alimentação / refeição
+          </Label>
+        </div>
+        {value.vale_alimentacao && (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Periodicidade</Label>
+              <Select
+                value={value.vale_alimentacao_periodicidade}
+                onValueChange={(v: Periodicidade) => onChange({ vale_alimentacao_periodicidade: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(PERIODICIDADE_LABEL) as Periodicidade[]).map((t) => (
+                    <SelectItem key={t} value={t}>{PERIODICIDADE_LABEL[t]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>
+                {value.vale_alimentacao_periodicidade === "diario" ? "Valor por dia" : "Valor por mês"}
+              </Label>
+              <Input
+                inputMode="decimal"
+                value={value.vale_alimentacao_valor}
+                onChange={(e) => onChange({ vale_alimentacao_valor: e.target.value })}
+                placeholder="Ex: 25,00"
+              />
+            </div>
+            {value.vale_alimentacao_periodicidade === "diario" && (
+              <div className="space-y-2">
+                <Label>Dias considerados no mês</Label>
+                <Input
+                  inputMode="numeric"
+                  value={value.vale_alimentacao_dias_base}
+                  onChange={(e) => onChange({ vale_alimentacao_dias_base: e.target.value.replace(/\D/g, "") })}
+                  placeholder={String(DIAS_BASE_PADRAO)}
+                />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Desconto do colaborador</Label>
+              <Select
+                value={value.vale_alimentacao_desconto_tipo}
+                onValueChange={(v: DescontoTipo) => onChange({ vale_alimentacao_desconto_tipo: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(DESCONTO_TIPO_LABEL) as DescontoTipo[]).map((t) => (
+                    <SelectItem key={t} value={t}>{DESCONTO_TIPO_LABEL[t]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {value.vale_alimentacao_desconto_tipo !== "nenhum" && (
+              <div className="space-y-2">
+                <Label>
+                  {value.vale_alimentacao_desconto_tipo === "percentual"
+                    ? "Percentual descontado (%)"
+                    : "Valor descontado (R$)"}
+                </Label>
+                <Input
+                  inputMode="decimal"
+                  value={value.vale_alimentacao_desconto_valor}
+                  onChange={(e) => onChange({ vale_alimentacao_desconto_valor: e.target.value })}
+                  placeholder={value.vale_alimentacao_desconto_tipo === "percentual" ? "1" : "20,00"}
+                />
+              </div>
+            )}
+            <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground md:col-span-2">
+              <div>Concedido no mês: <strong className="text-foreground">{formatarBRL(va.bruto)}</strong></div>
+              <div>Desconto do colaborador: <strong className="text-foreground">{formatarBRL(va.desconto)}</strong></div>
+              <div>Custo da empresa: <strong className="text-foreground">{formatarBRL(va.liquido)}</strong></div>
+            </div>
+            {alertasVa.map((a) => (
+              <p
+                key={a.codigo}
+                className={`flex items-start gap-2 rounded-md border p-2 text-[11px] md:col-span-2 ${
+                  a.severidade === "aviso"
+                    ? "border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-400"
+                    : "bg-muted/30 text-muted-foreground"
+                }`}
+              >
+                {a.severidade === "aviso"
+                  ? <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  : <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+                <span>
+                  <strong className="block text-foreground">{a.titulo}</strong>
+                  {a.mensagem}
+                  {a.recomendacao && <span className="mt-0.5 block">{a.recomendacao}</span>}
+                </span>
+              </p>
+            ))}
           </div>
         )}
       </div>
