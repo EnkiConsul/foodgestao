@@ -241,6 +241,8 @@ export default function ConciliacaoPluggy() {
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
+
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(() => new Set(draft.selected));
