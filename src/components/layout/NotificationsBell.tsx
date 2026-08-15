@@ -1,5 +1,5 @@
-import { Bell, AlertTriangle, Clock, TrendingUp, CheckCircle2 } from "lucide-react";
-import { useMemo } from "react";
+import { Bell, AlertTriangle, Clock, TrendingUp, CheckCircle2, Calculator, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -13,19 +13,26 @@ import { formatBRL } from "@/lib/billing";
 
 type Alert = {
   id: string;
-  type: "overdue" | "upcoming" | "budget";
+  type: "overdue" | "upcoming" | "budget" | "accountant";
   title: string;
   description: string;
   href: string;
+  dismiss?: () => void;
 };
 
 const formatDate = (d: string) =>
   new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 
+const accountantKey = (companyId: string) => {
+  const month = new Date().toISOString().slice(0, 7); // yyyy-MM
+  return `accountant-reminder-${companyId}-${month}`;
+};
+
 export function NotificationsBell() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const navigate = useNavigate();
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   const today = new Date().toISOString().slice(0, 10);
   const in7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
@@ -115,13 +122,63 @@ export function NotificationsBell() {
         }
       }
 
+      // Accountant access reminder (PJ only, once per month, only for owner/admin)
+      if (contextType === "pj" && selectedCompanyId) {
+        const storageKey = accountantKey(selectedCompanyId);
+        const alreadyDismissed = typeof window !== "undefined" && localStorage.getItem(storageKey) === "1";
+
+        if (!alreadyDismissed && !dismissed.has(storageKey)) {
+          const { data: myMembership } = await supabase
+            .from("company_members")
+            .select("role")
+            .eq("company_id", selectedCompanyId)
+            .eq("user_id", user!.id)
+            .maybeSingle();
+
+          const isAdminOrOwner = myMembership?.role === "owner" || myMembership?.role === "admin";
+
+          if (isAdminOrOwner) {
+            const { data: accountants } = await supabase
+              .from("company_members")
+              .select("id")
+              .eq("company_id", selectedCompanyId)
+              .eq("role", "contabilidade")
+              .limit(1);
+
+            const { data: pendingInvites } = await supabase
+              .from("company_invites")
+              .select("id")
+              .eq("company_id", selectedCompanyId)
+              .eq("role", "contabilidade")
+              .eq("status", "pending")
+              .limit(1);
+
+            if (!accountants?.length && !pendingInvites?.length) {
+              result.push({
+                id: `accountant-${selectedCompanyId}`,
+                type: "accountant",
+                title: "Cadastre o acesso do seu contador",
+                description: "Adicione um usuário com papel Contabilidade para acesso somente leitura às contas contábeis.",
+                href: "/gestao-usuarios",
+                dismiss: () => {
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem(storageKey, "1");
+                  }
+                  setDismissed((prev) => new Set([...prev, storageKey]));
+                },
+              });
+            }
+          }
+        }
+      }
+
       return result;
     },
   });
 
   const count = alerts.length;
   const grouped = useMemo(() => {
-    const order = ["overdue", "upcoming", "budget"] as const;
+    const order = ["overdue", "upcoming", "budget", "accountant"] as const;
     return order.flatMap((t) => alerts.filter((a) => a.type === t));
   }, [alerts]);
 
@@ -130,6 +187,8 @@ export function NotificationsBell() {
       <AlertTriangle className="h-4 w-4 text-destructive" />
     ) : t === "upcoming" ? (
       <Clock className="h-4 w-4 text-warning" />
+    ) : t === "accountant" ? (
+      <Calculator className="h-4 w-4 text-emerald-600" />
     ) : (
       <TrendingUp className="h-4 w-4 text-primary" />
     );
@@ -168,19 +227,39 @@ export function NotificationsBell() {
           ) : (
             <ul className="divide-y">
               {grouped.map((a) => (
-                <li key={a.id}>
+                <li key={a.id} className="group relative">
                   <button
-                    onClick={() => navigate(a.href)}
+                    onClick={() => {
+                      if (a.type === "accountant") {
+                        navigate(a.href, { state: { openInvite: true, defaultRole: "contabilidade" } });
+                      } else {
+                        navigate(a.href);
+                      }
+                    }}
                     className={cn(
-                      "w-full flex gap-3 items-start px-4 py-3 text-left hover:bg-muted/60 transition-colors"
+                      "w-full flex gap-3 items-start px-4 py-3 text-left hover:bg-muted/60 transition-colors",
+                      a.type === "accountant" && "bg-emerald-50/50 dark:bg-emerald-950/20"
                     )}
                   >
                     <div className="mt-0.5">{iconFor(a.type)}</div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pr-6">
                       <p className="text-sm font-medium leading-tight">{a.title}</p>
                       <p className="text-xs text-muted-foreground truncate">{a.description}</p>
                     </div>
                   </button>
+                  {a.dismiss && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        a.dismiss?.();
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground transition-opacity"
+                      aria-label="Dispensar aviso"
+                      title="Dispensar este mês"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,10 +48,19 @@ const statusBadge = (status: string) => {
 
 export default function GestaoUsuarios() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(location.state?.openInvite ?? false);
+  const [inviteDefaultRole] = useState<CompanyRole>(location.state?.defaultRole ?? "member");
   const [editingMember, setEditingMember] = useState<{ id: string; full_name: string; role: CompanyRole; permissions: PermissionsMap } | null>(null);
+
+  useEffect(() => {
+    if (location.state?.openInvite) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   // Fetch companies where user is a member
   const { data: companies = [], isLoading: loadingCompanies } = useQuery({
@@ -445,6 +455,7 @@ export default function GestaoUsuarios() {
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         companyId={activeCompanyId}
+        defaultRole={inviteDefaultRole}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["company-invites", activeCompanyId] })}
       />
 

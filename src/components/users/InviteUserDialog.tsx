@@ -14,15 +14,21 @@ interface InviteUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   companyId: string;
+  defaultRole?: CompanyRole;
   onSuccess: () => void;
 }
 
-export function InviteUserDialog({ open, onOpenChange, companyId, onSuccess }: InviteUserDialogProps) {
+export function InviteUserDialog({ open, onOpenChange, companyId, defaultRole, onSuccess }: InviteUserDialogProps) {
   const { user } = useAuth();
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<CompanyRole>("member");
-  const [permissions, setPermissions] = useState<PermissionsMap>(() => getDefaultPermissions("member"));
+  const [role, setRole] = useState<CompanyRole>(defaultRole ?? "member");
+  const [permissions, setPermissions] = useState<PermissionsMap>(() => getDefaultPermissions(defaultRole ?? "member"));
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setRole(defaultRole ?? "member");
+    setPermissions(getDefaultPermissions(defaultRole ?? "member"));
+  }, [defaultRole]);
 
   useEffect(() => {
     setPermissions(getDefaultPermissions(role));
