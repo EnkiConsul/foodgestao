@@ -49,6 +49,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
   const [bankSlug, setBankSlug] = useState<string | null>(null);
   const [agency, setAgency] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
+  const [isAccounting, setIsAccounting] = useState<"contabil" | "nao_contabil">("contabil");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
