@@ -371,7 +371,8 @@ export function ColaboradorJornadaPanel({
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar o horário");
       return "erro";
     }
-  });
+  };
+
 
   const salvarExternoRef = useRef(salvarExterno);
   salvarExternoRef.current = salvarExterno;
