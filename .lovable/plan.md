@@ -67,7 +67,8 @@ Hoje a regra "menor não encerra após as 22:00" existe em `validarSemana` (`src
 - `src/components/dp/ColaboradorJornadaPanel.tsx`: campos de horário no lugar do seletor de turno, atalhos vindos dos turnos da unidade, overrides por dia dentro do estado `dias`, remoção de `VIRTUAL_PREFIX`/`resolverDias` e do seletor de dia de folga; textos sem a palavra "turno".
 - `src/hooks/useDpColaboradorConfigTrabalho.tsx`: resolver/criar o turno da unidade no salvamento, persistir horários por dia e derivar `folga_fixa_dow`.
 - `src/lib/dp/escala-mes.ts`, `src/lib/dp/horario-previsto.ts`, `src/lib/dp/operacao-dia.ts`, `src/hooks/useDpEscalaMes.tsx`: propagar o horário do dia na resolução do previsto (escala continua congelando entrada/saída no item, então Ponto e Folha leem as mesmas horas).
-- `src/config/dpNavigation.tsx`: `/dp/cadastros/turnos` renomeado para "Horários da loja" e movido para o fim do grupo Cadastros.
+- `src/config/dpNavigation.tsx`: `/dp/cadastros/turnos` renomeado para "Horários da Loja" e movido para o fim do grupo Cadastros; itens tocados seguem o Title Case.
+- Novo `src/lib/text/titleCase.ts`: helper `tituloSistema(texto)` com lista de conectivos minúsculos (de, da, do, das, dos, e, em, no, na, para, com, a, o, ao, por), preservando siglas (CLT, DP, PIX, CPF) e nomes de marca. Aplicado aos títulos das telas desta entrega e disponível para a varredura geral. Teste unitário com os casos de conectivo, sigla e primeira palavra.
 - `src/components/dp/CopiarConfigColaboradorDialog.tsx`: copiar também as exceções de horário.
 - Novo `src/hooks/useDpTurnoVinculos.tsx`: colaboradores com configuração vigente apontando para o turno (via `dp_colaborador_config_trabalho` + `dp_colaborador_config_dias`), com nome e cargo.
 - Novo `src/components/dp/TurnoAlcanceDialog.tsx` (padrão do `ReplicarRegrasDialog`): escolha entre "todos" e "somente alguns" + data de início; ao aplicar parcialmente, repõe o horário antigo nos não marcados via o resolver.
