@@ -8,7 +8,7 @@ const folga = (dow: number) => ({ dow, trabalha: false });
 
 const semana6x1 = [
   dia(1, "08:00", "17:00"), dia(2, "08:00", "17:00"), dia(3, "08:00", "17:00"),
-  dia(4, "08:00", "17:00"), dia(5, "08:00", "17:00"), dia(6, "08:00", "17:00"),
+  dia(4, "08:00", "17:00"), dia(5, "08:00", "17:00"), dia(6, "08:00", "12:00", 0),
   folga(0),
 ];
 
@@ -29,7 +29,7 @@ describe("clt-alertas", () => {
 
   it("avisa menor de 18 anos depois das 22h e acima de 6h", () => {
     const alertas = verificarAlertasClt({
-      dias: [dia(1, "16:00", "23:00"), folga(0)],
+      dias: [dia(1, "16:00", "23:00", 0), folga(0)],
       idade: 17,
       regime: "clt",
     });
