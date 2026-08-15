@@ -566,6 +566,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         vale_alimentacao_valor: rem.vale_alimentacao ? numeroBR(rem.vale_alimentacao_valor) || null : null,
         vale_alimentacao_periodicidade: rem.vale_alimentacao_periodicidade,
         vale_alimentacao_dias_base: Math.max(0, Math.trunc(numeroBR(rem.vale_alimentacao_dias_base))) || 22,
+        vale_alimentacao_dias_origem: rem.vale_alimentacao_dias_origem,
         vale_alimentacao_desconto_tipo: rem.vale_alimentacao_desconto_tipo,
         vale_alimentacao_desconto_valor: rem.vale_alimentacao_desconto_tipo === "nenhum"
           ? 0
