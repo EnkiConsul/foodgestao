@@ -14,6 +14,7 @@ interface InviteUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   companyId: string;
+  defaultRole?: CompanyRole;
   onSuccess: () => void;
 }
 
