@@ -515,10 +515,19 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       }
 
       if (isEdit || criadoId) {
+        // Botão único: grava também o horário de trabalho quando houve mudança.
+        const salvarJornada = jornadaSalvarRef.current;
+        const resultado = salvarJornada ? await salvarJornada() : "nada";
+        if (resultado === "pendente_ciencia") {
+          setTab("jornada");
+          return;
+        }
+        if (resultado === "erro") { setTab("jornada"); return; }
         toast.success("Colaborador atualizado");
         onOpenChange(false);
         return;
       }
+
 
       // Cadastro novo: o registro passa a existir, então a jornada já pode ser
       // gravada sem sair da tela — levamos o administrador para a aba de turno.
