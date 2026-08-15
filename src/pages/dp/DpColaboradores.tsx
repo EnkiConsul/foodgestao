@@ -431,13 +431,13 @@ export default function DpColaboradores() {
                           {PERFIL_LABEL[perfil ?? "colaborador"]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="align-top">
+                      <TableCell className="align-top" onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-0.5 justify-end">
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(c); setDialogOpen(true); }} title="Editar">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditing(c); setDialogOpen(true); }} title="Editar">
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                               <Button size="icon" variant="ghost" className="h-8 w-8" title="Mais ações">
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
