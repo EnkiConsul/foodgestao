@@ -1,7 +1,12 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { useContabeisLedger, type Regime, type ReportNode } from "@/hooks/useContabeisReport";
+import {
+  useContabeisLedger,
+  type Regime,
+  type ReportNode,
+  type StatusFiltro,
+} from "@/hooks/useContabeisReport";
 import { brlAcc, signClass } from "@/lib/format-contabil";
 import { cn } from "@/lib/utils";
 
@@ -12,10 +17,30 @@ interface Props {
   from: string;
   to: string;
   regime: Regime;
+  status?: StatusFiltro;
 }
 
-export function GeneralLedgerDrawer({ account, open, onOpenChange, from, to, regime }: Props) {
-  const { data = [], isLoading } = useContabeisLedger(account?.id ?? null, { from, to, regime });
+const STATUS_LABEL: Record<StatusFiltro, string> = {
+  pago: "Pagos",
+  pendente: "A Pagar/Receber",
+  todos: "Todos",
+};
+
+export function GeneralLedgerDrawer({
+  account,
+  open,
+  onOpenChange,
+  from,
+  to,
+  regime,
+  status = "pago",
+}: Props) {
+  const { data = [], isLoading } = useContabeisLedger(account?.id ?? null, {
+    from,
+    to,
+    regime,
+    status,
+  });
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -29,6 +54,9 @@ export function GeneralLedgerDrawer({ account, open, onOpenChange, from, to, reg
                 <span>{account.name}</span>
                 <Badge variant="outline" className="text-[10px]">
                   {regime === "caixa" ? "Caixa" : "Competência"}
+                </Badge>
+                <Badge variant="outline" className="text-[10px]">
+                  {STATUS_LABEL[status]}
                 </Badge>
               </>
             )}

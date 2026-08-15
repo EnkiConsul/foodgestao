@@ -26,6 +26,7 @@ const DEFAULTS: FiltersState = (() => {
     from: format(startOfMonth(now), "yyyy-MM-dd"),
     to: format(endOfMonth(now), "yyyy-MM-dd"),
     regime: "caixa",
+    status: "pago",
     include_zero: false,
   };
 })();
@@ -40,6 +41,7 @@ export default function RelatoriosContabeis() {
       from: sp.get("from") || DEFAULTS.from,
       to: sp.get("to") || DEFAULTS.to,
       regime: "caixa",
+      status: (sp.get("status") as FiltersState["status"]) || DEFAULTS.status,
       include_zero: sp.get("include_zero") === "1",
     };
   }, [sp]);
@@ -50,6 +52,7 @@ export default function RelatoriosContabeis() {
     next.set("from", v.from);
     next.set("to", v.to);
     next.set("regime", v.regime);
+    next.set("status", v.status);
     next.set("include_zero", v.include_zero ? "1" : "0");
     setSp(next, { replace: true });
   };
@@ -203,6 +206,7 @@ export default function RelatoriosContabeis() {
         from={filters.from}
         to={filters.to}
         regime={filters.regime}
+        status={filters.status}
       />
     </div>
   );

@@ -5,6 +5,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 export type Regime = "caixa" | "competencia";
+export type StatusFiltro = "pago" | "pendente" | "todos";
 
 export interface ReportNode {
   id: string;
@@ -32,6 +33,7 @@ export interface ReportFilters {
   regime: Regime;
   cost_center_ids?: string[] | null;
   include_zero?: boolean;
+  status?: StatusFiltro;
 }
 
 export function useContabeisReport(filters: ReportFilters, enabled = true) {
@@ -53,6 +55,7 @@ export function useContabeisReport(filters: ReportFilters, enabled = true) {
       filters.regime,
       (filters.cost_center_ids ?? []).join(","),
       !!filters.include_zero,
+      filters.status ?? "pago",
     ],
     enabled: !!user && enabled && (contextType === "pf" || !!selectedCompanyId),
     queryFn: async () => {
@@ -64,6 +67,7 @@ export function useContabeisReport(filters: ReportFilters, enabled = true) {
         _regime: filters.regime,
         _cost_center_ids: filters.cost_center_ids ?? null,
         _include_zero: !!filters.include_zero,
+        _status: filters.status ?? "pago",
       };
 
       const { data, error } = await (supabase as any).rpc("chart_accounts_report", params);
@@ -106,7 +110,7 @@ export function useContabeisReport(filters: ReportFilters, enabled = true) {
 
 export function useContabeisLedger(
   accountId: string | null,
-  filters: Pick<ReportFilters, "from" | "to" | "regime">
+  filters: Pick<ReportFilters, "from" | "to" | "regime" | "status">
 ) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
@@ -120,6 +124,7 @@ export function useContabeisLedger(
       filters.from,
       filters.to,
       filters.regime,
+      filters.status ?? "pago",
     ],
     enabled:
       !!user &&
@@ -133,6 +138,7 @@ export function useContabeisLedger(
         _from: filters.from,
         _to: filters.to,
         _regime: filters.regime,
+        _status: filters.status ?? "pago",
       });
       if (error) throw error;
       return (data ?? []) as Array<{

@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { ptBR } from "date-fns/locale";
-import type { Regime } from "@/hooks/useContabeisReport";
+import type { Regime, StatusFiltro } from "@/hooks/useContabeisReport";
 import { rangeForPreset, type Preset } from "@/lib/relatorios/reportFilters";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,7 @@ export interface FiltersState {
   from: string;
   to: string;
   regime: Regime;
+  status: StatusFiltro;
   include_zero: boolean;
 }
 
@@ -73,6 +74,20 @@ export function ReportFilters({ value, onChange }: Props) {
 
 
 
+
+        <div className="space-y-1">
+          <Label className="text-xs">Situação</Label>
+          <ToggleGroup
+            type="single"
+            value={value.status}
+            onValueChange={(v) => v && onChange({ ...value, status: v as StatusFiltro })}
+            className="flex-wrap justify-start"
+          >
+            <ToggleGroupItem value="pago" size="sm">Pagos</ToggleGroupItem>
+            <ToggleGroupItem value="pendente" size="sm">A Pagar/Receber</ToggleGroupItem>
+            <ToggleGroupItem value="todos" size="sm">Todos</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
 
         <div className="flex items-center gap-2 pb-1.5">
           <Switch
