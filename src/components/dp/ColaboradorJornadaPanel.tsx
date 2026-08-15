@@ -350,7 +350,7 @@ export function ColaboradorJornadaPanel({
    * Devolve "pendente_ciencia" quando ainda falta a confirmação dos avisos —
    * nesse caso o cadastro permanece aberto nesta aba.
    */
-  const salvarExterno = useCallback(async (): Promise<SalvarJornadaResultado> => {
+  const salvarExterno = async (): Promise<SalvarJornadaResultado> => {
     if (!colaborador?.id || !alterado) return "nada";
     if (!horario.entrada || !horario.saida) {
       toast.error("Informe a entrada e a saída do horário de trabalho.");
