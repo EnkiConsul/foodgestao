@@ -14,7 +14,8 @@ const staging = [
 
 const transactions = [
   { id: "t1", pluggy_staging_transaction_id: "s1", description: "Venda balcão", amount: 1000, category_name: "Vendas" },
-  { id: "t2", pluggy_staging_transaction_id: "s2", description: "Insumos", amount: -250, category_name: "Insumos" },
+  { id: "t2", pluggy_staging_transaction_id: "s2", description: "Insumos", amount: -200, category_name: "Insumos" },
+  { id: "t3", pluggy_staging_transaction_id: "s2", description: "Juros", amount: -50, category_name: "Juros e Multas" },
 ];
 
 describe("buildExtratoConciliacao", () => {
@@ -53,6 +54,14 @@ describe("buildExtratoConciliacao", () => {
     expect(groups.map((g) => g.date)).toEqual(["2026-01-02", "2026-01-03"]);
     expect(groups[0].total).toBe(750);
     expect(groups[1].total).toBe(15);
+  });
+
+  it("agrupa múltiplos lançamentos da mesma linha do banco (divisão)", () => {
+    const s2 = model.rows.find((r) => r.stagingId === "s2")!;
+    expect(s2.platforms.map((p) => p.id)).toEqual(["t2", "t3"]);
+    expect(s2.platformTotal).toBe(250);
+    expect(s2.divergenteValor).toBe(false);
+    expect(s2.conciliado).toBe(true);
   });
 
   it("expõe o período coberto", () => {
