@@ -25,7 +25,7 @@ const DEFAULTS: FiltersState = (() => {
     preset: "month",
     from: format(startOfMonth(now), "yyyy-MM-dd"),
     to: format(endOfMonth(now), "yyyy-MM-dd"),
-    regime: "competencia",
+    regime: "caixa",
     include_zero: false,
   };
 })();
