@@ -32,6 +32,7 @@ export function NotificationsBell() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const navigate = useNavigate();
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   const today = new Date().toISOString().slice(0, 10);
   const in7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
