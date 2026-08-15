@@ -361,9 +361,13 @@ export default function ContasBancarias() {
     return accounts.filter((a) => {
       const matchSearch = !search || a.name.toLowerCase().includes(search.toLowerCase());
       const matchType = filterType === "all" || a.account_type === filterType;
-      return matchSearch && matchType;
+      const isAccounting = (a as typeof a & { is_accounting?: boolean }).is_accounting !== false;
+      const matchNature =
+        filterNature === "all" ||
+        (filterNature === "contabil" ? isAccounting : !isAccounting);
+      return matchSearch && matchType && matchNature;
     });
-  }, [accounts, search, filterType]);
+  }, [accounts, search, filterType, filterNature]);
 
   const totals = useMemo(() => {
     const active = accounts.filter((a) => a.is_active);
