@@ -29,6 +29,7 @@ export type Database = {
           icon: string | null
           id: string
           initial_balance: number
+          is_accounting: boolean
           is_active: boolean
           name: string
           reference_balance_date: string | null
@@ -50,6 +51,7 @@ export type Database = {
           icon?: string | null
           id?: string
           initial_balance?: number
+          is_accounting?: boolean
           is_active?: boolean
           name: string
           reference_balance_date?: string | null
@@ -71,6 +73,7 @@ export type Database = {
           icon?: string | null
           id?: string
           initial_balance?: number
+          is_accounting?: boolean
           is_active?: boolean
           name?: string
           reference_balance_date?: string | null
@@ -11635,6 +11638,7 @@ export type Database = {
           icon: string | null
           id: string
           initial_balance: number
+          is_accounting: boolean
           is_active: boolean
           name: string
           reference_balance_date: string | null
