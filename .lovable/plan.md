@@ -23,13 +23,21 @@ Nada disso obriga o usuário a abrir outra tela. Ele nunca precisa saber que exi
 Um modelo por pessoa quebra coisas que o empresário usa sem saber: a cobertura mínima por horário ("preciso de 2 no jantar"), as colunas da Operação do Dia, os relatórios que agrupam por horário e, no futuro, adicional noturno e tolerância de ponto — que são regras do horário, não da pessoa. Além disso, mudar o jantar de 17h para 18h passaria a ser 40 edições em vez de uma.
 
 ### E a tela "Turnos"
-Sai do menu principal e passa a viver como tela avançada em Cadastros, renomeada **"Horários da loja"** — para quem quiser ajustar cobertura mínima ou corrigir um horário de todos de uma vez. Deixa de ser passo obrigatório.
+Sai do menu principal e passa a viver como tela avançada em Cadastros, renomeada **"Horários da Loja"** — para quem quiser ajustar cobertura mínima ou corrigir um horário de todos de uma vez. Deixa de ser passo obrigatório.
+
+## Padrão de Títulos do Sistema
+
+Todo título passa a usar inicial maiúscula em cada palavra: "Horário de Trabalho", "Horários da Loja", "Contas a Pagar", "Fluxo de Caixa". Conectivos curtos (de, da, do, e, em, para, com, a, o, no, na) ficam minúsculos quando não são a primeira palavra — é o padrão de título em português e o que o sistema já usa em "Fluxo de Caixa".
+
+Onde vale: títulos de página, títulos de card e de seção, nomes de item de menu e submenu, títulos de diálogo, rótulos de aba e cabeçalhos de coluna de tabela. Não vale para textos de apoio, descrições, mensagens de toast, placeholders e conteúdo digitado pelo usuário — esses seguem escrita normal de frase.
+
+Nesta entrega isso é aplicado às telas e aos menus tocados pelo plano (Horário de Trabalho, Horários da Loja, abas do cadastro do colaborador, diálogos novos). Como é uma varredura em muitas telas, o resto do sistema é padronizado numa passagem própria de revisão de textos, listando página por página, para não misturar mudança de texto com mudança de comportamento.
 
 ## Corrigir um horário depois: quem é afetado
 
 Hoje a tela de turno não mostra quem usa aquele horário, e a escolha ao editar é apenas "aplicar às novas escalas" ou "criar nova versão". Passa a ficar assim:
 
-- **Cada horário mostra quem trabalha nele.** No card de "Horários da loja" aparece a contagem ("6 colaboradores") e, ao abrir, a lista com nome, cargo e dias. O mesmo bloco aparece dentro da edição, antes de salvar.
+- **Cada horário mostra quem trabalha nele.** No card de "Horários da Loja" aparece a contagem ("6 colaboradores") e, ao abrir, a lista com nome, cargo e dias. O mesmo bloco aparece dentro da edição, antes de salvar.
 - **Ao salvar uma alteração de horário, o usuário escolhe o alcance:**
   - *Todos os que usam este horário* (padrão) — uma edição, todos passam a seguir o horário novo.
   - *Somente alguns* — marca os colaboradores na lista; os marcados continuam no horário novo e os não marcados são movidos para um horário com os valores antigos (reaproveitando um equivalente se existir, ou criado automaticamente), então ninguém tem a jornada alterada sem intenção.
