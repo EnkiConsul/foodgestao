@@ -169,12 +169,19 @@ export function ColaboradorJornadaPanel({
   const bloqueado = configTemErro(validacoes);
   const folgas = folgaFixaDerivada(dias);
 
-  /** Alertas trabalhistas do horário resolvido de cada dia. */
+  /**
+   * Alertas trabalhistas do horário resolvido de cada dia.
+   *
+   * O escopo do que é verificado sai da política do contrato: no intermitente,
+   * freelancer, PJ e MEI o cadastro é apenas disponibilidade, então só valem as
+   * regras de menor de idade e o informativo de adicional noturno.
+   */
   const alertas: AlertaClt[] = useMemo(() => {
     const idade = idadeNaData(colaborador?.data_nascimento, inicio);
     return verificarAlertasClt({
       idade,
       regime: colaborador?.regime,
+      folgaVariavel,
       dias: dias.map((d) => {
         const t = turnoDoDia(d, turnoPadraoTela.id, turnosTela);
         return {
@@ -186,29 +193,47 @@ export function ColaboradorJornadaPanel({
         };
       }),
     });
-  }, [dias, turnoPadraoTela.id, turnosTela, colaborador?.data_nascimento, colaborador?.regime, inicio]);
+  }, [
+    dias, turnoPadraoTela.id, turnosTela, folgaVariavel,
+    colaborador?.data_nascimento, colaborador?.regime, inicio,
+  ]);
 
   const avisos = alertas.filter((a) => a.severidade === "aviso");
   const infos = alertas.filter((a) => a.severidade === "info");
 
-  const alternarDia = (dow: number) =>
+  /** Qualquer alteração do usuário habilita o salvamento pelo rodapé do cadastro. */
+  const marcarAlterado = () => setAlterado(true);
+
+  const alternarDia = (dow: number) => {
+    marcarAlterado();
     setDias((prev) => prev.map((d) => (d.dow === dow
       ? { ...d, trabalha: !d.trabalha, entrada: null, saida: null, intervalo_minutos: null }
       : d)));
+  };
 
   /** Liga/desliga o horário próprio do dia, partindo do horário atualmente previsto. */
-  const alternarHorarioProprio = (dow: number, ativar: boolean) =>
+  const alternarHorarioProprio = (dow: number, ativar: boolean) => {
+    marcarAlterado();
     setDias((prev) => prev.map((d) => {
       if (d.dow !== dow) return d;
       if (!ativar) return { ...d, entrada: null, saida: null, intervalo_minutos: null };
       return { ...d, ...horario };
     }));
+  };
 
-  const definirHorarioDia = (dow: number, patch: Partial<HorarioSimples>) =>
+  const definirHorarioDia = (dow: number, patch: Partial<HorarioSimples>) => {
+    marcarAlterado();
     setDias((prev) => prev.map((d) => (d.dow === dow ? { ...d, ...patch } : d)));
+  };
+
+  const definirHorario = (patch: Partial<HorarioSimples>) => {
+    marcarAlterado();
+    setHorario((h) => ({ ...h, ...patch }));
+  };
 
   /** Atalhos de escala: 6x1 folga no domingo e 5x2 folga sábado e domingo. */
   const aplicarEscala = (modo: "6x1" | "5x2") => {
+    marcarAlterado();
     setFolgaVariavel(false);
     const folgar = modo === "6x1" ? [0] : [0, 6];
     setDias((prev) => prev.map((d) => (folgar.includes(d.dow)
@@ -217,6 +242,7 @@ export function ColaboradorJornadaPanel({
   };
 
   const onCopiarConfig = (c: ConfigCopiada) => {
+    marcarAlterado();
     setFolgaVariavel(c.folga_variavel);
     setDias(normalizarDias(c.dias));
     const base = c.turno_padrao_id ? turnosResolvidos.find((t) => t.id === c.turno_padrao_id) : null;
@@ -225,6 +251,7 @@ export function ColaboradorJornadaPanel({
     }
     toast.success("Configuração copiada — revise e salve");
   };
+
 
   /**
    * Converte o horário digitado em um horário da loja: reaproveita um turno com
