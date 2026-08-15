@@ -5,7 +5,11 @@
 // empresário registre ciência. Funções puras — sem React, sem Supabase.
 // ------------------------------------------------------------------
 
-import { paraMinutos, duracaoBrutaMinutos, viraODia, formatarHoras, DOW_LABEL_LONGO } from "@/lib/dp/jornada-utils";
+import { paraMinutos, duracaoBrutaMinutos, viraODia, formatarHoras, DIAS_SEMANA } from "@/lib/dp/jornada-utils";
+
+const DOW_LABEL_LONGO: Record<number, string> = Object.fromEntries(
+  DIAS_SEMANA.map((d) => [d.v, d.longo]),
+) as Record<number, string>;
 
 /** Um dia da semana com o horário já resolvido (override do dia ou turno). */
 export interface DiaHorarioResolvido {
