@@ -1387,7 +1387,10 @@ export default function ConciliacaoPluggy() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PluggyAuditDialog open={auditOpen} onOpenChange={setAuditOpen} />
     </div>
 
   );
+
 }
