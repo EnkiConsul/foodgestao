@@ -24,6 +24,10 @@ export interface DiaConfig {
   trabalha: boolean;
   /** Turno específico do dia. Quando ausente, vale o turno padrão da configuração. */
   turno_id: string | null;
+  /** Horário próprio deste dia (exceção). Quando ausente, vale o horário do turno. */
+  entrada?: string | null;
+  saida?: string | null;
+  intervalo_minutos?: number | null;
 }
 
 export interface ConfigTrabalho {
@@ -41,19 +45,39 @@ export function diasPadrao(): DiaConfig[] {
   return ORDEM_EXIBICAO.map((dow) => ({ dow, trabalha: true, turno_id: null }));
 }
 
+/** O dia tem horário próprio gravado (exceção)? */
+export function temHorarioProprio(dia: DiaConfig): boolean {
+  return !!dia.entrada && !!dia.saida;
+}
+
 /** Aplica a folga fixa sobre a semana, garantindo 7 dias e ordem de exibição. */
 export function normalizarDias(dias: DiaConfig[], folgaFixaDow?: number | null): DiaConfig[] {
   return ORDEM_EXIBICAO.map((dow) => {
     const atual = dias.find((d) => d.dow === dow);
     const base: DiaConfig = atual
-      ? { dow, trabalha: atual.trabalha, turno_id: atual.turno_id }
-      : { dow, trabalha: true, turno_id: null };
+      ? {
+        dow,
+        trabalha: atual.trabalha,
+        turno_id: atual.turno_id,
+        entrada: atual.entrada ? String(atual.entrada).slice(0, 5) : null,
+        saida: atual.saida ? String(atual.saida).slice(0, 5) : null,
+        intervalo_minutos: atual.intervalo_minutos ?? null,
+      }
+      : { dow, trabalha: true, turno_id: null, entrada: null, saida: null, intervalo_minutos: null };
     if (folgaFixaDow != null && dow === folgaFixaDow) return { ...base, trabalha: false };
     return base;
   });
 }
 
-/** Turno efetivo do dia: o específico, senão o padrão da configuração. */
+/** Dias de folga derivados dos switches da semana — fonte única da folga fixa. */
+export function folgaFixaDerivada(dias: DiaConfig[]): number[] {
+  return dias.filter((d) => !d.trabalha).map((d) => d.dow);
+}
+
+/**
+ * Turno efetivo do dia: o horário próprio do dia (quando houver) sobre o turno
+ * específico do dia, senão o turno padrão da configuração.
+ */
 export function turnoDoDia(
   dia: DiaConfig,
   turnoPadraoId: string | null,
@@ -61,8 +85,18 @@ export function turnoDoDia(
 ): TurnoResolvido | null {
   if (!dia.trabalha) return null;
   const id = dia.turno_id ?? turnoPadraoId;
-  if (!id) return null;
-  return turnos.find((t) => t.id === id) ?? null;
+  const base = id ? turnos.find((t) => t.id === id) ?? null : null;
+  if (temHorarioProprio(dia)) {
+    return {
+      id: base?.id ?? `dia:${dia.dow}`,
+      nome: base ? `${base.nome} (horário deste dia)` : `Horário de ${DOW_LABEL[dia.dow]}`,
+      cor: base?.cor ?? null,
+      entrada: String(dia.entrada).slice(0, 5),
+      saida: String(dia.saida).slice(0, 5),
+      intervalo_minutos: dia.intervalo_minutos ?? base?.intervalo_minutos ?? 0,
+    };
+  }
+  return base;
 }
 
 /** Carga semanal prevista, somando a carga líquida do turno de cada dia trabalhado. */
