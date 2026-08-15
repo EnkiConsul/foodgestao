@@ -53,7 +53,14 @@ export default function GestaoUsuarios() {
   const queryClient = useQueryClient();
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [inviteOpen, setInviteOpen] = useState(location.state?.openInvite ?? false);
+  const [inviteDefaultRole] = useState<CompanyRole>(location.state?.defaultRole ?? "member");
   const [editingMember, setEditingMember] = useState<{ id: string; full_name: string; role: CompanyRole; permissions: PermissionsMap } | null>(null);
+
+  useEffect(() => {
+    if (location.state?.openInvite) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   // Fetch companies where user is a member
   const { data: companies = [], isLoading: loadingCompanies } = useQuery({
