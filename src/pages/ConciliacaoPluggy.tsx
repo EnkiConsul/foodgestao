@@ -213,6 +213,7 @@ export default function ConciliacaoPluggy() {
 
   const [searchParams] = useSearchParams();
   const scopedLocalAccountId = searchParams.get("account");
+  const focusedStagingId = searchParams.get("item");
 
   const [connections, setConnections] = useState<Connection[]>([]);
   const [connectionId, setConnectionId] = useState<string>("all");
@@ -455,12 +456,21 @@ export default function ConciliacaoPluggy() {
 
   const filtered = useMemo(() => {
     return rows.filter((r) => {
+      if (focusedStagingId && r.id !== focusedStagingId) return false;
       if (connectionId !== "all" && r.connection_id !== connectionId) return false;
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (search && !(r.description ?? "").toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [rows, connectionId, statusFilter, search]);
+  }, [rows, connectionId, statusFilter, search, focusedStagingId]);
+
+  useEffect(() => {
+    if (!focusedStagingId || loading) return;
+    document.querySelector(`[data-staging-id="${focusedStagingId}"]`)?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, [focusedStagingId, loading, filtered.length]);
 
   const counts = useMemo(() => ({
     pending: rows.filter((r) => r.status === "pending").length,
@@ -1004,8 +1014,8 @@ export default function ConciliacaoPluggy() {
           {filtered.map((r) => {
             const isEntrada = r.amount >= 0;
             return (
+              <div key={r.id} data-staging-id={r.id}>
               <StagingCard
-                key={r.id}
                 row={r}
                 accounts={accounts}
                 accountValue={rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? ""}
@@ -1054,6 +1064,7 @@ export default function ConciliacaoPluggy() {
                 onAction={(action) => handleRowAction(r.id, action)}
 
               />
+              </div>
             );
           })}
         </div>
@@ -1090,7 +1101,7 @@ export default function ConciliacaoPluggy() {
                 const isEntrada = r.amount >= 0;
                 const disabled = r.status !== "pending";
                 return (
-                  <tr key={r.id} className="border-t hover:bg-muted/30">
+                  <tr key={r.id} data-staging-id={r.id} className="border-t hover:bg-muted/30">
                     <td className="p-2">
                       <Checkbox
                         checked={selected.has(r.id)}
