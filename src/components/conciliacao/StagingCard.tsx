@@ -75,7 +75,10 @@ interface StagingCardProps {
   busy: boolean;
   isTransferBadge: boolean;
   maskBRL: (value: number) => string;
+  /** Salva a descrição editada do lançamento importado. */
+  onDescriptionSave?: (value: string) => Promise<boolean | void>;
   onAction: (action: "confirm" | "ignore") => void;
+
 }
 
 /** Versão mobile de uma linha da fila de conciliação (mesma lógica da tabela). */
