@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowLeftRight, FileSpreadsheet, Loader2, Printer, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, FileSpreadsheet, Loader2, Pencil, Printer, TrendingDown, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -153,6 +153,13 @@ export default function ExtratoConciliacao() {
   const groups = useMemo(() => groupExtratoByDay(model.rows), [model.rows]);
 
   const subtitle = `${accountName ? `${accountName} · ` : ""}Período de ${fmtDate(from)} a ${fmtDate(to)}`;
+
+  const openForReconciliation = (stagingId: string) => {
+    const params = new URLSearchParams();
+    if (accountParam) params.set("account", accountParam);
+    params.set("item", stagingId);
+    navigate(`/contas-bancarias/conciliacao?${params.toString()}`);
+  };
 
   const exportRows = () =>
     model.rows.map((r) => [
@@ -409,8 +416,21 @@ export default function ExtratoConciliacao() {
                             </div>
                           </>
                         ) : (
-                          <div className="text-sm text-muted-foreground">
-                            {r.status === "ignored" ? "Lançamento ignorado na conciliação" : "Sem lançamento correspondente"}
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-sm text-muted-foreground">
+                              {r.status === "ignored" ? "Lançamento ignorado na conciliação" : "Sem lançamento correspondente"}
+                            </span>
+                            {r.status === "pending" && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-8 shrink-0"
+                                onClick={() => openForReconciliation(r.stagingId)}
+                              >
+                                <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                                Editar e conciliar
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>
