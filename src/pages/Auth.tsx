@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, User, Eye, EyeOff, IdCard, ArrowLeft } from "lucide-react";
+import { Mail, MailCheck, Lock, User, Eye, EyeOff, IdCard, ArrowLeft } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -42,12 +42,15 @@ const signupSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type Mode = "login" | "signup" | "forgot";
+type Mode = "login" | "signup" | "forgot" | "confirm-email";
 
 function translateAuthError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("weak") || m.includes("pwned") || m.includes("known to be")) {
     return "Senha comprometida ou muito fraca. Escolha outra com no mínimo 6 caracteres, combinando letras maiúsculas, minúsculas, números e símbolos.";
+  }
+  if (m.includes("email not confirmed") || m.includes("not confirmed")) {
+    return "Seu e-mail ainda não foi confirmado. Abra o link que enviamos para a sua caixa de entrada e confirme o cadastro.";
   }
   if (m.includes("already registered") || m.includes("user already")) {
     return "Este e-mail já está cadastrado. Tente entrar ou recuperar sua senha.";
@@ -92,6 +95,9 @@ export default function Auth() {
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const [turnstileError, setTurnstileError] = useState<string | null>(null);
   const [turnstileNonce, setTurnstileNonce] = useState(0);
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resending, setResending] = useState(false);
   const turnstileSiteKey = useTurnstileSiteKey();
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -120,6 +126,33 @@ export default function Auth() {
   const isLogin = mode === "login";
   const isSignup = mode === "signup";
   const isForgot = mode === "forgot";
+  const isConfirmEmail = mode === "confirm-email";
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  const handleResendConfirmation = async () => {
+    if (!pendingConfirmationEmail || resendCooldown > 0) return;
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: pendingConfirmationEmail,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) {
+        toast.error("Não foi possível reenviar", { description: translateAuthError(error.message) });
+      } else {
+        toast.success("E-mail reenviado", { description: "Confira sua caixa de entrada e a pasta de spam." });
+        setResendCooldown(60);
+      }
+    } finally {
+      setResending(false);
+    }
+  };
 
   // Track signup form view (funnel step between CTA click and signup_start)
   const signupViewTracked = useRef(false);
@@ -221,7 +254,9 @@ export default function Auth() {
         }
         const result = await unifiedSignIn(identifier, password, turnstileToken);
         if (!result.ok) {
-          toast.error("Erro ao entrar", { description: result.errorMessage });
+          toast.error("Erro ao entrar", {
+            description: result.errorMessage ? translateAuthError(result.errorMessage) : undefined,
+          });
           setTurnstileToken(""); // force re-solve
           if (typeof window !== "undefined" && window.turnstile) {
             try { window.turnstile.reset(); } catch { /* noop */ }
@@ -233,7 +268,7 @@ export default function Auth() {
         }
       } else {
         try {
-          const { error } = await signUp(email, password, fullName);
+          const { error, needsEmailConfirmation } = await signUp(email, password, fullName);
           if (error) {
             const translated = translateAuthError(error.message);
             const { reason, category } = classifySignupError(error.message);
@@ -264,8 +299,19 @@ export default function Auth() {
               value: 0,
               method: "email_signup",
             });
-            toast.success("Cadastro realizado!");
-            navigate("/onboarding");
+            if (needsEmailConfirmation) {
+              setPendingConfirmationEmail(email.trim());
+              setPassword("");
+              setConfirmPassword("");
+              setResendCooldown(60);
+              setMode("confirm-email");
+              toast.success("Cadastro realizado!", {
+                description: "Confirme seu e-mail para ativar o acesso.",
+              });
+            } else {
+              toast.success("Cadastro realizado!");
+              navigate("/onboarding");
+            }
           }
         } catch (thrown) {
           const msg = thrown instanceof Error ? thrown.message : String(thrown);
@@ -323,6 +369,8 @@ export default function Auth() {
           <CardDescription>
             {mfaRequired
               ? "Verificação em duas etapas"
+              : isConfirmEmail
+              ? "Confirme seu e-mail"
               : isForgot
               ? "Recuperar senha"
               : isLogin
@@ -337,6 +385,40 @@ export default function Auth() {
               onSuccess={() => navigate(getRedirectTarget(), { replace: true })}
               onCancel={() => setMfaRequired(false)}
             />
+          </CardContent>
+        ) : isConfirmEmail ? (
+          <CardContent className="space-y-4">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                <MailCheck className="h-7 w-7 text-primary" aria-hidden="true" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Confirme seu e-mail</h2>
+              <p className="text-sm text-muted-foreground">
+                Enviamos um link de confirmação para{" "}
+                <span className="font-medium text-foreground break-all">{pendingConfirmationEmail}</span>.
+                Abra sua caixa de entrada e clique no link para ativar seu acesso.
+              </p>
+            </div>
+            <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+              Não encontrou? Verifique a pasta de spam ou lixo eletrônico. O link é válido por tempo limitado.
+            </div>
+            <div className="space-y-2">
+              <Button
+                type="button"
+                className="w-full"
+                onClick={handleResendConfirmation}
+                disabled={resending || resendCooldown > 0}
+              >
+                {resending
+                  ? "Reenviando..."
+                  : resendCooldown > 0
+                  ? `Reenviar em ${resendCooldown}s`
+                  : "Reenviar e-mail de confirmação"}
+              </Button>
+              <Button type="button" variant="outline" className="w-full" onClick={() => switchMode("login")}>
+                Voltar ao login
+              </Button>
+            </div>
           </CardContent>
         ) : (
           <form onSubmit={handleSubmit}>
