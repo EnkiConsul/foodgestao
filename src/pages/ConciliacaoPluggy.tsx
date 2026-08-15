@@ -1314,6 +1314,18 @@ export default function ConciliacaoPluggy() {
                           </Button>
                           <Button
                             size="sm"
+                            variant="outline"
+                            className="h-8 px-2"
+                            disabled={rowBusy === r.id}
+                            onClick={() => openSplit(r.id)}
+                            aria-label="Dividir lançamento em vários"
+                            title="Dividir em vários lançamentos"
+                          >
+                            <Split className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            size="sm"
                             className="h-8 px-2"
                             disabled={rowBusy === r.id}
                             onClick={() => handleRowAction(r.id, "confirm")}
