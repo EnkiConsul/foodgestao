@@ -54,6 +54,7 @@ const ContasContabeis = lazyWithRetry(() => import("./pages/ContasContabeis"));
 const ContasBancarias = lazyWithRetry(() => import("./pages/ContasBancarias"));
 const ConciliacaoPluggy = lazyWithRetry(() => import("./pages/ConciliacaoPluggy"));
 const ConexoesPluggy = lazyWithRetry(() => import("./pages/ConexoesPluggy"));
+const ExtratoConciliacao = lazyWithRetry(() => import("./pages/ExtratoConciliacao"));
 const Configuracoes = lazyWithRetry(() => import("./pages/Configuracoes"));
 const GestaoUsuarios = lazyWithRetry(() => import("./pages/GestaoUsuarios"));
 const Empresas = lazyWithRetry(() => import("./pages/Empresas"));
@@ -382,6 +383,7 @@ const AppRoutes = () => (
         <Route path="/contas-contabeis" element={<ContasContabeis />} />
         <Route path="/contas-bancarias" element={<ContasBancarias />} />
         <Route path="/contas-bancarias/conciliacao" element={<ConciliacaoPluggy />} />
+        <Route path="/contas-bancarias/conciliacao/extrato" element={<ExtratoConciliacao />} />
         <Route path="/contas-bancarias/conexoes" element={<ConexoesPluggy />} />
         <Route path="/cartoes-credito" element={<CartoesCredito />} />
         
