@@ -2,21 +2,36 @@
 
 Cinco ajustes no cadastro do colaborador.
 
-## 0. Freelancer: o sistema orienta o empreendedor
+## 0. Orientação jurídica no tipo de vínculo (Freelancer, PJ e MEI)
 
-"Freelancer" não é figura prevista na CLT. Contratar alguém de forma habitual e subordinada chamando de freelancer é vínculo de emprego não registrado — risco de reclamação trabalhista, multa e passivo de verbas.
+Cada tipo de vínculo de risco ganha uma faixa âmbar logo abaixo do campo, em linguagem de dono de loja, com um link para a explicação completa e um atalho para o caminho seguro. Nada bloqueia o salvamento — a decisão é do empreendedor.
 
-Ao escolher **Freelancer** no tipo de vínculo, aparece logo abaixo do campo um aviso âmbar, sem bloquear o salvamento:
+### Freelancer
+
+"Freelancer" não é figura prevista na CLT. Contratar alguém de forma habitual e subordinada chamando de freelancer é vínculo de emprego não registrado.
 
 > **Freelancer não é um vínculo previsto na lei trabalhista.** Se essa pessoa trabalha com habitualidade, cumpre horário e recebe ordens da sua equipe, a Justiça do Trabalho tende a reconhecer vínculo de emprego — com registro retroativo, férias, 13º, FGTS e multa. Para chamar quando precisa, com segurança, o caminho legal é o **contrato intermitente**.
 >
 > **Ver como funciona o intermitente** · **Mudar para Intermitente**
 
-"Ver como funciona" abre um diálogo explicativo em linguagem de dono de loja: contrato assinado uma vez, sem jornada fixa; você convoca com 3 dias de antecedência informando o dia, o horário e o valor; o colaborador pode aceitar ou recusar em 1 dia útil sem penalidade; paga-se ao fim de cada convocação o proporcional de salário, férias + 1/3, 13º, DSR e FGTS; entre as convocações não há salário nem exclusividade; o valor da hora não pode ser menor que o do mensalista da mesma função nem que o mínimo por hora. Fecha com o que muda no sistema: as convocações passam a ser registradas em Convocações, entram na escala e no ponto e viram lançamentos na folha.
+### PJ e MEI
 
-"Mudar para Intermitente" troca o vínculo no formulário na hora, mantendo o que já foi digitado e reaplicando as regras do regime (formas de pagamento permitidas, base salarial e de horas).
+Contratar PJ ou MEI é legítimo para serviço autônomo e eventual. O risco é a "pejotização": quando a pessoa trabalha como empregado e emite nota, a Justiça reconhece o vínculo e cobra tudo de uma vez.
 
-Freelancer continua permitido — a decisão é do empreendedor. O aviso é orientação, não trava.
+> **Atenção ao risco de pejotização.** PJ/MEI só se sustenta quando não há pessoalidade, subordinação, horário imposto nem habitualidade. Se essa pessoa cumpre escala, bate ponto, recebe ordens diretas e presta serviço só para você, a Justiça do Trabalho pode reconhecer vínculo de emprego — com registro retroativo, férias, 13º, FGTS + 40%, INSS e multa; o MEI ainda pode ser desenquadrado. Para quem trabalha em escala na sua operação, o caminho seguro é **CLT** (fixo) ou **intermitente** (por convocação).
+>
+> **Ver os riscos e alternativas** · **Mudar para Intermitente** · **Mudar para CLT**
+
+O aviso fica mais forte quando o próprio cadastro contradiz a tese de autonomia — colaborador PJ/MEI com horário de trabalho definido, dias fixos ou participação em escala/ponto: nesse caso a faixa acrescenta a linha "Este cadastro tem horário e escala definidos, o que reforça a caracterização de vínculo."
+
+### Diálogos explicativos
+
+**Intermitente**: contrato assinado uma vez, sem jornada fixa; você convoca com 3 dias de antecedência informando o dia, o horário e o valor; o colaborador pode aceitar ou recusar em 1 dia útil sem penalidade; paga-se ao fim de cada convocação o proporcional de salário, férias + 1/3, 13º, DSR e FGTS; entre as convocações não há salário nem exclusividade; o valor da hora não pode ser menor que o do mensalista da mesma função nem que o mínimo por hora. Fecha com o que muda no sistema: as convocações são registradas em Convocações, entram na escala e no ponto e viram lançamentos na folha.
+
+**PJ/MEI**: os quatro elementos que caracterizam vínculo (pessoalidade, subordinação, habitualidade, onerosidade), quando PJ/MEI é adequado (serviço pontual, com autonomia de horário e método, para vários clientes), o que costuma derrubar a tese (escala, ponto, uniforme, cliente único, valor mensal fixo), o custo estimado de um reconhecimento de vínculo e o comparativo lado a lado CLT × Intermitente × PJ para a mesma função.
+
+Os atalhos de troca alteram o vínculo no formulário na hora, mantendo o que já foi digitado e reaplicando as regras do regime (formas de pagamento permitidas, base salarial e de horas).
+
 
 
 ## 1. Alertas trabalhistas por tipo de vínculo
@@ -56,5 +71,5 @@ Fica assim: dentro do cadastro do colaborador, o painel de horário não mostra 
 - `src/components/dp/ColaboradorJornadaPanel.tsx`: passa `folgaVariavel` ao verificador; nota informativa quando `policy.horasPorConvocacao`; `ref` no topo do painel + `scrollIntoView({ behavior: "smooth", block: "start" })` após salvar com sucesso; rótulo "Salvar"; expõe um handler de salvamento via `ref` (ou callback registrado em `onRegistrarSalvar`) para o diálogo acionar.
 - `src/components/dp/ColaboradorFormDialog.tsx`: renderiza o painel com `showSaveButton={false}`, rodapé com rótulo "Salvar", e no submit encadeia o salvamento do horário quando a aba tem alteração pendente (incluindo o fluxo de ciência legal já existente).
 - `src/lib/dp/__tests__/clt-alertas.test.ts`: casos novos — intermitente adulto com 60h/semana e sem folga não gera aviso; intermitente menor após 22:00 gera; CLT mantém todos os avisos atuais; folga variável não gera aviso de domingo.
-- Freelancer: novo `src/components/dp/RegimeIntermitenteInfoDialog.tsx` (conteúdo explicativo, texto estático) e faixa de orientação renderizada em `ColaboradorFormDialog.tsx` sob o seletor de vínculo, com ação que muda o regime para `intermitente` e reaplica `contratoPolicy`. Texto de apoio derivado de `src/lib/dp/contrato-policy.ts`, sem mudança de schema nem de validação.
+- Orientação de vínculo: novo `src/lib/dp/regime-riscos.ts` (função pura por regime → título, mensagem, severidade, atalhos sugeridos e flag de "cadastro contradiz autonomia" a partir de horário/dias/escala) e novo `src/components/dp/RegimeRiscoDialog.tsx` com os conteúdos de Intermitente e PJ/MEI (texto estático, comparativo CLT × Intermitente × PJ). A faixa é renderizada em `ColaboradorFormDialog.tsx` sob o seletor de vínculo; os atalhos apenas alteram o campo de regime no formulário e reaplicam `contratoPolicy`. Sem mudança de schema nem de validação. Teste unitário de `regime-riscos.ts`.
 
