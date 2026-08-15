@@ -3679,6 +3679,7 @@ export type Database = {
           vale_alimentacao_desconto_tipo: string
           vale_alimentacao_desconto_valor: number
           vale_alimentacao_dias_base: number
+          vale_alimentacao_dias_origem: string
           vale_alimentacao_periodicidade: string
           vale_alimentacao_valor: number | null
           vale_transporte: boolean
@@ -3748,6 +3749,7 @@ export type Database = {
           vale_alimentacao_desconto_tipo?: string
           vale_alimentacao_desconto_valor?: number
           vale_alimentacao_dias_base?: number
+          vale_alimentacao_dias_origem?: string
           vale_alimentacao_periodicidade?: string
           vale_alimentacao_valor?: number | null
           vale_transporte?: boolean
@@ -3817,6 +3819,7 @@ export type Database = {
           vale_alimentacao_desconto_tipo?: string
           vale_alimentacao_desconto_valor?: number
           vale_alimentacao_dias_base?: number
+          vale_alimentacao_dias_origem?: string
           vale_alimentacao_periodicidade?: string
           vale_alimentacao_valor?: number | null
           vale_transporte?: boolean

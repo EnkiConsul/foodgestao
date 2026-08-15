@@ -22,6 +22,7 @@ import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/des
 import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
@@ -142,6 +143,16 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Salvamento do horário de trabalho exposto pelo painel da aba. */
   const jornadaSalvarRef = useRef<(() => Promise<SalvarJornadaResultado>) | null>(null);
 
+  /**
+   * Dias da semana da configuração vigente — usados para calcular os dias do
+   * mês do vale-alimentação diário (fonte única: aba Horário de Trabalho).
+   */
+  const configTrabalho = useDpColaboradorConfigTrabalho(colaborador?.id ?? criadoId);
+  const diasJornada = useMemo(() => {
+    const vigente = configTrabalho.vigente ?? configTrabalho.configs[0] ?? null;
+    return (vigente?.dias ?? []).map((d) => ({ dow: d.dow, trabalha: d.trabalha }));
+  }, [configTrabalho.vigente, configTrabalho.configs]);
+
   /** Criação de cargo sem sair do cadastro. */
   const [novoCargoOpen, setNovoCargoOpen] = useState(false);
   /** Conflito entre o salário informado e o salário de referência do cargo. */
@@ -219,6 +230,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         c.vale_alimentacao_valor != null ? String(c.vale_alimentacao_valor).replace(".", ",") : "",
       vale_alimentacao_periodicidade: (c.vale_alimentacao_periodicidade ?? "mensal") as "diario" | "mensal",
       vale_alimentacao_dias_base: String(c.vale_alimentacao_dias_base ?? 22),
+      vale_alimentacao_dias_origem:
+        ((c as any).vale_alimentacao_dias_origem ?? "jornada") as "jornada" | "fixo",
       vale_alimentacao_desconto_tipo:
         (c.vale_alimentacao_desconto_tipo ?? "percentual") as "nenhum" | "percentual" | "valor",
       vale_alimentacao_desconto_valor:
@@ -564,6 +577,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         vale_alimentacao_valor: rem.vale_alimentacao ? numeroBR(rem.vale_alimentacao_valor) || null : null,
         vale_alimentacao_periodicidade: rem.vale_alimentacao_periodicidade,
         vale_alimentacao_dias_base: Math.max(0, Math.trunc(numeroBR(rem.vale_alimentacao_dias_base))) || 22,
+        vale_alimentacao_dias_origem: rem.vale_alimentacao_dias_origem,
         vale_alimentacao_desconto_tipo: rem.vale_alimentacao_desconto_tipo,
         vale_alimentacao_desconto_valor: rem.vale_alimentacao_desconto_tipo === "nenhum"
           ? 0
@@ -939,6 +953,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
                 regime={regimeSelecionado}
                 beneficios={beneficios}
+                diasJornada={diasJornada}
               />
 
               {/* Adiantamento — apenas para contratos com salário mensal em folha */}

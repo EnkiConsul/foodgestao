@@ -22,8 +22,9 @@ import {
   type PremioTipo,
 } from "@/lib/dp/remuneracao";
 import {
-  alertasBeneficioAlimentacao, DESCONTO_TIPO_LABEL, DIAS_BASE_PADRAO, PERIODICIDADE_LABEL,
-  type DescontoTipo, type Periodicidade,
+  alertasBeneficioAlimentacao, DESCONTO_TIPO_LABEL, DIAS_BASE_PADRAO, DIAS_ORIGEM_LABEL,
+  PERIODICIDADE_LABEL, descreverDiasJornada, diasTrabalhaveisNoMes,
+  type DescontoTipo, type DiaSemanaTrabalho, type DiasOrigem, type Periodicidade,
 } from "@/lib/dp/beneficios-regras";
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
@@ -56,6 +57,8 @@ export interface RemuneracaoFormState {
   vale_alimentacao_valor: string;
   vale_alimentacao_periodicidade: Periodicidade;
   vale_alimentacao_dias_base: string;
+  /** Origem dos dias no mês para o VA pago por dia. */
+  vale_alimentacao_dias_origem: DiasOrigem;
   vale_alimentacao_desconto_tipo: DescontoTipo;
   vale_alimentacao_desconto_valor: string;
 }
@@ -83,6 +86,7 @@ export const remuneracaoBlank: RemuneracaoFormState = {
   vale_alimentacao_valor: "",
   vale_alimentacao_periodicidade: "mensal",
   vale_alimentacao_dias_base: String(DIAS_BASE_PADRAO),
+  vale_alimentacao_dias_origem: "jornada",
   vale_alimentacao_desconto_tipo: "percentual",
   vale_alimentacao_desconto_valor: "1",
 };
@@ -105,6 +109,8 @@ interface Props {
   cargoInsalubreHint?: string;
   /** Regime do vínculo — restringe as formas de pagamento admitidas. */
   regime?: string | null;
+  /** Dias da semana da jornada do colaborador (aba Horário de Trabalho). */
+  diasJornada?: DiaSemanaTrabalho[] | null;
 }
 
 /**
@@ -118,6 +124,7 @@ export function RemuneracaoFields({
   cargoInsalubre,
   beneficios,
   regime,
+  diasJornada,
 }: Props) {
   const forma = value.forma_pagamento;
   const formaOptions = formaPagamentoOptions(regime);
@@ -156,20 +163,25 @@ export function RemuneracaoFields({
     salario,
   );
 
+  // Dias do mês pela jornada: fonte única do "dias considerados" do VA diário.
+  const diasJornadaMes = diasTrabalhaveisNoMes(diasJornada);
+  const resumoJornada = descreverDiasJornada(diasJornada);
+
   const vaInput = {
     vale_alimentacao: value.vale_alimentacao,
     vale_alimentacao_valor: numeroBR(value.vale_alimentacao_valor),
     vale_alimentacao_periodicidade: value.vale_alimentacao_periodicidade,
     vale_alimentacao_dias_base: numeroBR(value.vale_alimentacao_dias_base),
+    vale_alimentacao_dias_origem: value.vale_alimentacao_dias_origem,
     vale_alimentacao_desconto_tipo: value.vale_alimentacao_desconto_tipo,
     vale_alimentacao_desconto_valor: numeroBR(value.vale_alimentacao_desconto_valor),
   };
-  const va = valeAlimentacaoDoMes(vaInput);
+  const va = valeAlimentacaoDoMes(vaInput, { diasJornada: diasJornadaMes });
   const alertasVa = value.vale_alimentacao
     ? alertasBeneficioAlimentacao({
       valor: vaInput.vale_alimentacao_valor,
       periodicidade: vaInput.vale_alimentacao_periodicidade,
-      dias_base: vaInput.vale_alimentacao_dias_base,
+      dias_base: va.dias,
       desconto_tipo: vaInput.vale_alimentacao_desconto_tipo,
       desconto_valor: vaInput.vale_alimentacao_desconto_valor,
     })
@@ -482,16 +494,48 @@ export function RemuneracaoFields({
               />
             </div>
             {value.vale_alimentacao_periodicidade === "diario" && (
-              <div className="space-y-2">
-                <Label>Dias considerados no mês</Label>
-                <Input
-                  inputMode="numeric"
-                  value={value.vale_alimentacao_dias_base}
-                  onChange={(e) => onChange({ vale_alimentacao_dias_base: e.target.value.replace(/\D/g, "") })}
-                  placeholder={String(DIAS_BASE_PADRAO)}
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label>Dias considerados no mês</Label>
+                  <Select
+                    value={value.vale_alimentacao_dias_origem}
+                    onValueChange={(v: DiasOrigem) => onChange({ vale_alimentacao_dias_origem: v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(DIAS_ORIGEM_LABEL) as DiasOrigem[]).map((t) => (
+                        <SelectItem key={t} value={t}>{DIAS_ORIGEM_LABEL[t]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Quantidade de dias</Label>
+                  {value.vale_alimentacao_dias_origem === "fixo" ? (
+                    <Input
+                      inputMode="numeric"
+                      value={value.vale_alimentacao_dias_base}
+                      onChange={(e) => onChange({ vale_alimentacao_dias_base: e.target.value.replace(/\D/g, "") })}
+                      placeholder={String(DIAS_BASE_PADRAO)}
+                    />
+                  ) : (
+                    <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+                      {diasJornadaMes != null ? (
+                        <>
+                          <strong>{diasJornadaMes} dias</strong>
+                          <span className="text-muted-foreground"> — {resumoJornada}</span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          Cadastre o Horário de Trabalho para calcular os dias (usando {DIAS_BASE_PADRAO} como referência).
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
             )}
+
             <div className="space-y-2">
               <Label>Desconto do colaborador</Label>
               <Select
@@ -522,10 +566,26 @@ export function RemuneracaoFields({
               </div>
             )}
             <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground md:col-span-2">
+              {value.vale_alimentacao_periodicidade === "diario" && (
+                <div>
+                  Conta do mês: {formatarBRL(numeroBR(value.vale_alimentacao_valor))} × {va.dias} dias{" "}
+                  ({va.diasOrigem === "jornada"
+                    ? "pela jornada"
+                    : va.diasOrigem === "fixo"
+                      ? "quantidade fixa"
+                      : "referência padrão"})
+                </div>
+              )}
               <div>Concedido no mês: <strong className="text-foreground">{formatarBRL(va.bruto)}</strong></div>
               <div>Desconto do colaborador: <strong className="text-foreground">{formatarBRL(va.desconto)}</strong></div>
               <div>Custo da empresa: <strong className="text-foreground">{formatarBRL(va.liquido)}</strong></div>
+              {value.vale_alimentacao_periodicidade === "diario" && (
+                <p>
+                  Na folha, quando houver ponto apurado no período, valem os dias efetivamente trabalhados.
+                </p>
+              )}
             </div>
+
             {alertasVa.map((a) => (
               <p
                 key={a.codigo}
