@@ -591,6 +591,17 @@ export default function DpColaboradores() {
       </div>
 
 
+      <ColaboradorFichaDialog
+        open={!!viewing}
+        onOpenChange={(o) => !o && setViewing(null)}
+        colaborador={viewing}
+        onEdit={() => {
+          setEditing(viewing);
+          setViewing(null);
+          setDialogOpen(true);
+        }}
+      />
+
       <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
 
 
