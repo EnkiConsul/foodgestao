@@ -234,5 +234,88 @@ export function termoDispensaTexto(d: TermoDispensaDados): string[] {
   ];
 }
 
+// ------------------------------------------------------------------
+// Dias considerados no mês (benefício pago por dia)
+// ------------------------------------------------------------------
+
+/** Origem dos dias do benefício diário. */
+export type DiasOrigem = "jornada" | "fixo";
+
+export const DIAS_ORIGEM_LABEL: Record<DiasOrigem, string> = {
+  jornada: "Pela jornada do colaborador",
+  fixo: "Quantidade fixa (acordo/CCT)",
+};
+
+export interface DiaSemanaTrabalho {
+  /** 0 = domingo … 6 = sábado. */
+  dow: number;
+  trabalha: boolean;
+}
+
+const DOW_CURTO_LABEL = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+
+/**
+ * Dias trabalháveis do mês a partir dos dias da semana marcados na jornada.
+ * Conta quantas vezes cada `dow` marcado como trabalha ocorre na competência.
+ *
+ * Retorna `null` quando a jornada ainda não foi cadastrada (nenhum dia marcado),
+ * para que a tela avise em vez de fingir um número.
+ */
+export function diasTrabalhaveisNoMes(
+  dias: DiaSemanaTrabalho[] | null | undefined,
+  competencia: Date | string = new Date(),
+): number | null {
+  const marcados = new Set((dias ?? []).filter((d) => d.trabalha).map((d) => d.dow));
+  if (marcados.size === 0) return null;
+
+  const ref = typeof competencia === "string" ? new Date(`${competencia.slice(0, 7)}-01T12:00:00`) : competencia;
+  const ano = ref.getFullYear();
+  const mes = ref.getMonth();
+  const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+
+  let total = 0;
+  for (let dia = 1; dia <= ultimoDia; dia++) {
+    if (marcados.has(new Date(ano, mes, dia).getDay())) total++;
+  }
+  return total;
+}
+
+/** Resumo legível da jornada semanal — "seg a sáb, folga domingo". */
+export function descreverDiasJornada(dias: DiaSemanaTrabalho[] | null | undefined): string {
+  const trabalha = (dias ?? []).filter((d) => d.trabalha).map((d) => d.dow).sort((a, b) => a - b);
+  if (trabalha.length === 0) return "jornada não cadastrada";
+  if (trabalha.length === 7) return "todos os dias da semana";
+  const folgas = [0, 1, 2, 3, 4, 5, 6].filter((d) => !trabalha.includes(d));
+  const listaTrabalha = trabalha.map((d) => DOW_CURTO_LABEL[d]).join(", ");
+  return `${listaTrabalha} — folga ${folgas.map((d) => DOW_CURTO_LABEL[d]).join(", ")}`;
+}
+
+/**
+ * Dias considerados para o benefício diário, na ordem de precedência:
+ * dias apurados no ponto > dias da jornada > quantidade fixa > padrão (22).
+ */
+export function diasConsideradosBeneficio(input: {
+  origem?: DiasOrigem | string | null;
+  diasFixos?: number | null;
+  diasJornada?: number | null;
+  diasApurados?: number | null;
+}): { dias: number; origem: "ponto" | DiasOrigem | "padrao" } {
+  const apurados = num(input.diasApurados);
+  if (apurados > 0) return { dias: Math.trunc(apurados), origem: "ponto" };
+
+  if ((input.origem ?? "jornada") === "jornada") {
+    const jornada = num(input.diasJornada);
+    if (jornada > 0) return { dias: Math.trunc(jornada), origem: "jornada" };
+  } else {
+    const fixo = num(input.diasFixos);
+    if (fixo > 0) return { dias: Math.trunc(fixo), origem: "fixo" };
+  }
+
+  const fallback = num(input.diasFixos);
+  if (fallback > 0) return { dias: Math.trunc(fallback), origem: "fixo" };
+  return { dias: DIAS_BASE_PADRAO, origem: "padrao" };
+}
+
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 const round2 = (v: number) => Math.round(v * 100) / 100;
+
