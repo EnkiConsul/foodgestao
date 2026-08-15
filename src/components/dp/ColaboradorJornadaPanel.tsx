@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CalendarOff, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,13 +43,25 @@ export interface JornadaColaborador {
   data_nascimento?: string | null;
 }
 
+/** Resultado do salvamento acionado de fora (pelo rodapé do cadastro). */
+export type SalvarJornadaResultado = "salvo" | "nada" | "pendente_ciencia" | "erro";
+
 interface Props {
   colaborador: JornadaColaborador | null;
   /** Recarrega o formulário com a configuração vigente quando muda para true. */
   active?: boolean;
-  /** Mostra o botão "Salvar Configuração" dentro do painel. */
+  /** Mostra o botão "Salvar" dentro do painel. */
   showSaveButton?: boolean;
+  /**
+   * Registra o salvamento do painel para que o cadastro do colaborador possa
+   * acioná-lo pelo botão único do rodapé. Recebe null ao desmontar.
+   */
+  onRegistrarSalvar?: (
+    fn: (() => Promise<SalvarJornadaResultado>) | null,
+  ) => void;
+
 }
+
 
 /**
  * Painel de horário de trabalho do colaborador.
@@ -60,24 +72,30 @@ interface Props {
  * continuem lendo turno. Dias fora do padrão ficam como exceção no próprio
  * colaborador, sem criar horários novos na loja.
  */
-export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveButton = true }: Props) {
+export function ColaboradorJornadaPanel({
+  colaborador, active = true, showSaveButton = true, onRegistrarSalvar,
+}: Props) {
   const policy = contratoPolicy(colaborador?.regime);
   const { selectedCompanyId } = useCompanyContext();
   const { data: unidades = [] } = useDpUnidades();
   const { configs, vigente, isLoading, salvar, encerrar, remover, saving } =
     useDpColaboradorConfigTrabalho(colaborador?.id ?? undefined);
 
+  const topoRef = useRef<HTMLDivElement | null>(null);
   const [unidadeId, setUnidadeId] = useState<string>("none");
   const [horario, setHorario] = useState<HorarioSimples>(HORARIO_PADRAO);
   const [folgaVariavel, setFolgaVariavel] = useState(false);
   const [dias, setDias] = useState<DiaConfig[]>(diasPadrao());
   const [inicio, setInicio] = useState(hoje());
+  /** Houve alteração do usuário desde o carregamento — evita salvar sem motivo. */
+  const [alterado, setAlterado] = useState(false);
   /** "base" = admissão (ou vigência atual) · "nova_data" = mudança de horário. */
   const [vigenciaModo, setVigenciaModo] = useState<"base" | "nova_data">("base");
   const admissao = colaborador?.data_admissao ?? null;
   const [obs, setObs] = useState("");
   const [copiarOpen, setCopiarOpen] = useState(false);
   const [cienciaOpen, setCienciaOpen] = useState(false);
+
 
   const { turnos: turnosUnidade, criar: criarTurno } = useDpTurnos(unidadeId === "none" ? null : unidadeId);
   const turnosAtivos = useMemo(() => turnosUnidade.filter((t) => t.ativo), [turnosUnidade]);
@@ -113,6 +131,8 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
       setInicio(admissao ?? hoje());
     }
     setVigenciaModo("base");
+    setAlterado(false);
+
   }, [active, vigente, colaborador?.unidade_id, admissao]);
 
   // O horário principal da tela vem do turno padrão gravado na vigência.
@@ -150,12 +170,19 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
   const bloqueado = configTemErro(validacoes);
   const folgas = folgaFixaDerivada(dias);
 
-  /** Alertas trabalhistas do horário resolvido de cada dia. */
+  /**
+   * Alertas trabalhistas do horário resolvido de cada dia.
+   *
+   * O escopo do que é verificado sai da política do contrato: no intermitente,
+   * freelancer, PJ e MEI o cadastro é apenas disponibilidade, então só valem as
+   * regras de menor de idade e o informativo de adicional noturno.
+   */
   const alertas: AlertaClt[] = useMemo(() => {
     const idade = idadeNaData(colaborador?.data_nascimento, inicio);
     return verificarAlertasClt({
       idade,
       regime: colaborador?.regime,
+      folgaVariavel,
       dias: dias.map((d) => {
         const t = turnoDoDia(d, turnoPadraoTela.id, turnosTela);
         return {
@@ -167,29 +194,47 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
         };
       }),
     });
-  }, [dias, turnoPadraoTela.id, turnosTela, colaborador?.data_nascimento, colaborador?.regime, inicio]);
+  }, [
+    dias, turnoPadraoTela.id, turnosTela, folgaVariavel,
+    colaborador?.data_nascimento, colaborador?.regime, inicio,
+  ]);
 
   const avisos = alertas.filter((a) => a.severidade === "aviso");
   const infos = alertas.filter((a) => a.severidade === "info");
 
-  const alternarDia = (dow: number) =>
+  /** Qualquer alteração do usuário habilita o salvamento pelo rodapé do cadastro. */
+  const marcarAlterado = () => setAlterado(true);
+
+  const alternarDia = (dow: number) => {
+    marcarAlterado();
     setDias((prev) => prev.map((d) => (d.dow === dow
       ? { ...d, trabalha: !d.trabalha, entrada: null, saida: null, intervalo_minutos: null }
       : d)));
+  };
 
   /** Liga/desliga o horário próprio do dia, partindo do horário atualmente previsto. */
-  const alternarHorarioProprio = (dow: number, ativar: boolean) =>
+  const alternarHorarioProprio = (dow: number, ativar: boolean) => {
+    marcarAlterado();
     setDias((prev) => prev.map((d) => {
       if (d.dow !== dow) return d;
       if (!ativar) return { ...d, entrada: null, saida: null, intervalo_minutos: null };
       return { ...d, ...horario };
     }));
+  };
 
-  const definirHorarioDia = (dow: number, patch: Partial<HorarioSimples>) =>
+  const definirHorarioDia = (dow: number, patch: Partial<HorarioSimples>) => {
+    marcarAlterado();
     setDias((prev) => prev.map((d) => (d.dow === dow ? { ...d, ...patch } : d)));
+  };
+
+  const definirHorario = (patch: Partial<HorarioSimples>) => {
+    marcarAlterado();
+    setHorario((h) => ({ ...h, ...patch }));
+  };
 
   /** Atalhos de escala: 6x1 folga no domingo e 5x2 folga sábado e domingo. */
   const aplicarEscala = (modo: "6x1" | "5x2") => {
+    marcarAlterado();
     setFolgaVariavel(false);
     const folgar = modo === "6x1" ? [0] : [0, 6];
     setDias((prev) => prev.map((d) => (folgar.includes(d.dow)
@@ -198,6 +243,7 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
   };
 
   const onCopiarConfig = (c: ConfigCopiada) => {
+    marcarAlterado();
     setFolgaVariavel(c.folga_variavel);
     setDias(normalizarDias(c.dias));
     const base = c.turno_padrao_id ? turnosResolvidos.find((t) => t.id === c.turno_padrao_id) : null;
@@ -206,6 +252,7 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
     }
     toast.success("Configuração copiada — revise e salve");
   };
+
 
   /**
    * Converte o horário digitado em um horário da loja: reaproveita um turno com
@@ -268,7 +315,10 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
       vigencia_inicio: inicio,
       dias: dias.map((d) => ({ ...d, turno_id: null })),
     });
+    setAlterado(false);
     toast.success("Horário de trabalho salvo");
+    // Feedback: o topo do painel mostra a vigência gravada.
+    topoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const onSalvar = async () => {
@@ -296,10 +346,50 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
     }
   };
 
+  /**
+   * Salvamento acionado pelo botão único do cadastro do colaborador.
+   * Devolve "pendente_ciencia" quando ainda falta a confirmação dos avisos —
+   * nesse caso o cadastro permanece aberto nesta aba.
+   */
+  const salvarExterno = async (): Promise<SalvarJornadaResultado> => {
+    if (!colaborador?.id || !alterado) return "nada";
+    if (!horario.entrada || !horario.saida) {
+      toast.error("Informe a entrada e a saída do horário de trabalho.");
+      return "erro";
+    }
+    if (bloqueado) {
+      toast.error("Corrija os pontos indicados no horário de trabalho.");
+      return "erro";
+    }
+    if (temAlertaClt(alertas)) {
+      setCienciaOpen(true);
+      return "pendente_ciencia";
+    }
+    try {
+      await persistir();
+      return "salvo";
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar o horário");
+      return "erro";
+    }
+  };
+
+
+  const salvarExternoRef = useRef(salvarExterno);
+  salvarExternoRef.current = salvarExterno;
+
+  useEffect(() => {
+    if (!onRegistrarSalvar) return;
+    onRegistrarSalvar(() => salvarExternoRef.current());
+    return () => onRegistrarSalvar(null);
+  }, [onRegistrarSalvar]);
+
+
   const cargaDiaria = calcularCargaDia(horario);
 
   return (
-    <div className="space-y-5">
+    <div ref={topoRef} className="space-y-5">
+
       {!colaborador?.id && (
         <p className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -324,7 +414,7 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="ct-unidade">Unidade</Label>
-          <Select value={unidadeId} onValueChange={setUnidadeId}>
+          <Select value={unidadeId} onValueChange={(v) => { marcarAlterado(); setUnidadeId(v); }}>
             <SelectTrigger id="ct-unidade"><SelectValue placeholder="Selecione" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Sem unidade definida</SelectItem>
@@ -351,7 +441,11 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Input id="ct-inicio" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+              <Input
+                id="ct-inicio" type="date" value={inicio}
+                onChange={(e) => { marcarAlterado(); setInicio(e.target.value); }}
+              />
+
               {(vigente || admissao) && (
                 <Button
                   type="button" variant="link" size="sm" className="h-auto p-0 text-xs"
@@ -386,21 +480,21 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
             <Label className="text-xs" htmlFor="ct-entrada">Entrada</Label>
             <Input
               id="ct-entrada" type="time" value={horario.entrada}
-              onChange={(e) => setHorario((h) => ({ ...h, entrada: e.target.value }))}
+              onChange={(e) => definirHorario({ entrada: e.target.value })}
             />
           </div>
           <div className="space-y-1">
             <Label className="text-xs" htmlFor="ct-saida">Saída</Label>
             <Input
               id="ct-saida" type="time" value={horario.saida}
-              onChange={(e) => setHorario((h) => ({ ...h, saida: e.target.value }))}
+              onChange={(e) => definirHorario({ saida: e.target.value })}
             />
           </div>
           <div className="space-y-1">
             <Label className="text-xs" htmlFor="ct-intervalo">Intervalo (min)</Label>
             <Input
               id="ct-intervalo" type="number" min={0} inputMode="numeric" value={horario.intervalo_minutos}
-              onChange={(e) => setHorario((h) => ({ ...h, intervalo_minutos: Number(e.target.value || 0) }))}
+              onChange={(e) => definirHorario({ intervalo_minutos: Number(e.target.value || 0) })}
             />
           </div>
         </div>
@@ -410,7 +504,7 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
             {atalhos.map((t) => (
               <Button
                 key={t.id} type="button" size="sm" variant="secondary" className="h-7 text-[11px]"
-                onClick={() => setHorario({
+                onClick={() => definirHorario({
                   entrada: t.entrada, saida: t.saida, intervalo_minutos: t.intervalo_minutos ?? 0,
                 })}
               >
@@ -420,8 +514,11 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
           </div>
         )}
         <p className="text-[11px] text-muted-foreground">
-          Este horário vale para todos os dias trabalhados. Dias diferentes ficam como exceção logo abaixo.
+          {policy.horasPorConvocacao
+            ? "Este é o horário habitual de disponibilidade. O que vale para pagamento é o que for efetivamente convocado e trabalhado."
+            : "Este horário vale para todos os dias trabalhados. Dias diferentes ficam como exceção logo abaixo."}
         </p>
+
       </section>
 
       <section className="space-y-2">
@@ -521,7 +618,7 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
             <label className="flex items-center gap-2 text-xs text-muted-foreground">
               <Switch
                 checked={folgaVariavel}
-                onCheckedChange={setFolgaVariavel}
+                onCheckedChange={(v) => { marcarAlterado(); setFolgaVariavel(v); }}
                 aria-label="A folga varia conforme a escala"
               />
               Varia conforme a escala
@@ -581,7 +678,11 @@ export function ColaboradorJornadaPanel({ colaborador, active = true, showSaveBu
 
       <div className="space-y-1.5">
         <Label htmlFor="ct-obs">Observações</Label>
-        <Textarea id="ct-obs" rows={2} value={obs} onChange={(e) => setObs(e.target.value)} />
+        <Textarea
+          id="ct-obs" rows={2} value={obs}
+          onChange={(e) => { marcarAlterado(); setObs(e.target.value); }}
+        />
+
       </div>
 
       {showSaveButton && (

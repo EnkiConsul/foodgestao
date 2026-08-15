@@ -1,4 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { AlertTriangle } from "lucide-react";
+import { regimeRisco } from "@/lib/dp/regime-riscos";
+import { RegimeRiscoDialog } from "@/components/dp/RegimeRiscoDialog";
+
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,7 +21,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
-import { ColaboradorJornadaPanel } from "@/components/dp/ColaboradorJornadaPanel";
+import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
 import { CargoSalarioConflitoDialog } from "@/components/dp/CargoSalarioConflitoDialog";
 import { compararSalarioCargo, moedaBR, salarioReferencia, sugerirNomeVariacao } from "@/lib/dp/cargos";
@@ -136,6 +140,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const [tab, setTab] = useState<"dados" | "jornada" | "remuneracao">("dados");
   /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
   const [criadoId, setCriadoId] = useState<string | null>(null);
+  /** Salvamento do horário de trabalho exposto pelo painel da aba. */
+  const jornadaSalvarRef = useRef<(() => Promise<SalvarJornadaResultado>) | null>(null);
+
   /** Criação de cargo sem sair do cadastro. */
   const [novoCargoOpen, setNovoCargoOpen] = useState(false);
   /** Conflito entre o salário informado e o salário de referência do cargo. */
@@ -227,6 +234,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   }, [open, colaborador, atribuicoes]);
 
   const regimeSelecionado = VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt";
+
+  // Orientação jurídica: vínculos sem previsão legal (freelancer) ou de risco
+  // de pejotização (PJ/MEI) ganham faixa de alerta com caminhos seguros.
+  const risco = useMemo(
+    () => regimeRisco({ regime: regimeSelecionado, temHorarioDefinido: true }),
+    [regimeSelecionado],
+  );
+  const [riscoOpen, setRiscoOpen] = useState(false);
+
 
   // Mudar o vínculo pode invalidar a forma de pagamento (ex.: intermitente não
   // é mensalista): reconciliamos sempre pela política do contrato.
@@ -515,10 +531,19 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       }
 
       if (isEdit || criadoId) {
+        // Botão único: grava também o horário de trabalho quando houve mudança.
+        const salvarJornada = jornadaSalvarRef.current;
+        const resultado = salvarJornada ? await salvarJornada() : "nada";
+        if (resultado === "pendente_ciencia") {
+          setTab("jornada");
+          return;
+        }
+        if (resultado === "erro") { setTab("jornada"); return; }
         toast.success("Colaborador atualizado");
         onOpenChange(false);
         return;
       }
+
 
       // Cadastro novo: o registro passa a existir, então a jornada já pode ser
       // gravada sem sair da tela — levamos o administrador para a aba de turno.
@@ -668,7 +693,39 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 ))}
               </SelectContent>
             </Select>
+            {risco && (
+              <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+                <p className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>
+                    <strong className="block text-foreground">{risco.titulo}</strong>
+                    {risco.mensagem}
+                    {risco.reforco && <span className="mt-1 block font-medium">{risco.reforco}</span>}
+                  </span>
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {risco.atalhos.map((a) => (
+                    <Button
+                      key={a.regime} type="button" size="sm" variant="outline" className="h-7 text-xs"
+                      onClick={() => setForm({
+                        ...form,
+                        tipo_vinculo: a.regime === "clt" ? "CLT" : "Intermitente",
+                      })}
+                    >
+                      {a.label}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button" size="sm" variant="link" className="h-7 p-0 text-xs"
+                    onClick={() => setRiscoOpen(true)}
+                  >
+                    {risco.verMaisLabel}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
+
 
           {/* Folga Fixa / Perfil */}
           {policy.exigeFolgaSemanal ? (
@@ -798,7 +855,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             </div>
           </TabsContent>
 
-          <TabsContent value="jornada" className="mt-4">
+          {/* forceMount: mantém o horário digitado ao alternar de aba, para que o
+              botão único do rodapé grave também esta aba. */}
+          <TabsContent value="jornada" className="mt-4 data-[state=inactive]:hidden" forceMount>
             <ColaboradorJornadaPanel
               colaborador={{
                 id: colaborador?.id ?? criadoId ?? null,
@@ -809,8 +868,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 data_nascimento: form.data_nascimento || null,
               }}
               active={tab === "jornada"}
+              showSaveButton={false}
+              onRegistrarSalvar={(fn) => { jornadaSalvarRef.current = fn; }}
             />
           </TabsContent>
+
 
 
           <TabsContent value="remuneracao" className="mt-4">
@@ -923,7 +985,20 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           }}
         />
       )}
+
+      {risco && (
+        <RegimeRiscoDialog
+          open={riscoOpen}
+          onOpenChange={setRiscoOpen}
+          tipo={risco.tipo}
+          onEscolher={(regime) => {
+            setForm({ ...form, tipo_vinculo: regime === "clt" ? "CLT" : "Intermitente" });
+            setRiscoOpen(false);
+          }}
+        />
+      )}
     </Dialog>
+
 
   );
 }

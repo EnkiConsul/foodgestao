@@ -6,6 +6,8 @@
 // ------------------------------------------------------------------
 
 import { paraMinutos, duracaoBrutaMinutos, viraODia, formatarHoras, DIAS_SEMANA } from "@/lib/dp/jornada-utils";
+import { contratoPolicy } from "@/lib/dp/contrato-policy";
+
 
 const DOW_LABEL_LONGO: Record<number, string> = Object.fromEntries(
   DIAS_SEMANA.map((d) => [d.v, d.longo]),
@@ -39,7 +41,10 @@ export interface EntradaAlertasClt {
   cargo?: string | null;
   /** Quando true, o alerta de menores é gerado (config da empresa). */
   avisarMenor?: boolean;
+  /** A folga muda a cada semana: quem responde por DSR é a escala do mês. */
+  folgaVariavel?: boolean;
 }
+
 
 const LIMITE_SEMANAL_CLT = 44;
 const LIMITE_DIARIO_CLT = 8;
@@ -83,11 +88,18 @@ function tocaNoturno(d: DiaHorarioResolvido): boolean {
   return s > NOTURNO_INICIO || e < NOTURNO_FIM || s > 24 * 60 + NOTURNO_FIM - 1;
 }
 
-/** Regimes fora da validação celetista de carga/folga. */
+/**
+ * Regimes fora da validação celetista de carga/folga.
+ *
+ * A decisão vem da política do contrato: PJ/MEI/freelancer não têm jornada
+ * contratual e o intermitente cadastra apenas disponibilidade habitual — as
+ * obrigações de jornada, intervalo e descanso são conferidas na convocação
+ * (art. 452-A da CLT), não no cadastro.
+ */
 function foraDaClt(regime?: string | null): boolean {
-  const r = (regime ?? "").toLowerCase();
-  return r === "pj" || r === "mei" || r === "estagio" || r === "estágio";
+  return !contratoPolicy(regime).validaCargaSemanal;
 }
+
 
 /**
  * Verifica o horário da semana contra as referências da CLT.
@@ -241,8 +253,12 @@ export function verificarAlertasClt(input: EntradaAlertasClt): AlertaClt[] {
       });
     }
 
+    // Com folga variável, quem responde pelo DSR é a escala do mês, não o cadastro.
     const folgas = input.dias.filter((d) => !d.trabalha);
-    if (folgas.length === 0) {
+    if (input.folgaVariavel) {
+      // nada a avisar aqui
+    } else if (folgas.length === 0) {
+
       out.push({
         codigo: "sem_folga_semanal",
         campo: "folga",
