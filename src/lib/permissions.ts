@@ -115,6 +115,9 @@ export function resolvePermission(
   if (!role) return "none";
   if (role === "owner" || role === "admin") return "edit";
   if (role === "viewer") return "view";
+  if (role === "contabilidade") {
+    return (ACCOUNTING_MODULES as ModuleKey[]).includes(module) ? "view" : "none";
+  }
   // Módulo Pedidos: ausência de chave = sem acesso (nunca `edit`).
   if (isOrdersPermissionKey(module)) return permissions?.[module] ?? "none";
   return permissions?.[module] ?? "edit";
