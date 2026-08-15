@@ -11,7 +11,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/billing";
 import { usePrivacy } from "@/hooks/usePrivacy";
+import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { applyFinancialScope, assertFinancialScope, isFinancialScopeReady } from "@/lib/financialScope";
 import { tituloSistema } from "@/lib/text/titleCase";
 import { useExtratoConciliacao } from "@/hooks/useExtratoConciliacao";
 import {
@@ -22,6 +26,29 @@ import {
   type ExtratoStatusFilter,
 } from "@/lib/conciliacao/extrato";
 import { downloadXlsx, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
+
+type EditableTransaction = {
+  id: string;
+  description: string;
+  amount: number;
+  transaction_type: "entrada" | "saida" | "transferencia";
+  transaction_date: string;
+  status: string;
+  category_id: string | null;
+  account_id: string | null;
+  payment_method_id: string | null;
+  due_date: string | null;
+  amount_paid: number;
+  payment_date: string | null;
+  contact_id: string | null;
+  notes: string | null;
+  destination_account_id: string | null;
+  is_recurring: boolean;
+  parent_transaction_id: string | null;
+  attachment_url: string | null;
+  installment_number: number | null;
+  installment_total: number | null;
+};
 
 function isoToday(): string {
   return new Date().toISOString().slice(0, 10);
@@ -100,6 +127,7 @@ function StatusBadge({ row }: { row: ExtratoRow }) {
 
 export default function ExtratoConciliacao() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
   const [searchParams] = useSearchParams();
@@ -112,6 +140,9 @@ export default function ExtratoConciliacao() {
   const [statusFilter, setStatusFilter] = useState<ExtratoStatusFilter>("all");
   const [pluggyAccountId, setPluggyAccountId] = useState<string | null>(null);
   const [accountName, setAccountName] = useState<string | null>(null);
+  const [editTransaction, setEditTransaction] = useState<EditableTransaction | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [openingTransactionId, setOpeningTransactionId] = useState<string | null>(null);
 
   // Resolve o escopo por conta financeira (quando veio da tela da conta)
   useEffect(() => {
@@ -138,7 +169,7 @@ export default function ExtratoConciliacao() {
     };
   }, [accountParam, selectedCompanyId]);
 
-  const { staging, transactions, loading, error } = useExtratoConciliacao({
+  const { staging, transactions, loading, error, reload } = useExtratoConciliacao({
     companyId: selectedCompanyId ?? null,
     from,
     to,
@@ -161,8 +192,32 @@ export default function ExtratoConciliacao() {
     navigate(`/contas-bancarias/conciliacao?${params.toString()}`);
   };
 
-  const editReconciledTransaction = (transactionId: string) => {
-    navigate(`/lancamentos?edit=${encodeURIComponent(transactionId)}`);
+  const editReconciledTransaction = async (transactionId: string) => {
+    if (!transactionId || !user || !isFinancialScopeReady(contextType, user.id, selectedCompanyId)) {
+      toast.error("Não foi possível abrir o lançamento conciliado");
+      return;
+    }
+
+    setOpeningTransactionId(transactionId);
+    try {
+      const scope = assertFinancialScope({ context: contextType, userId: user.id, companyId: selectedCompanyId });
+      const query = applyFinancialScope(
+        supabase
+          .from("transactions")
+          .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total")
+          .eq("id", transactionId),
+        scope,
+      );
+      const { data, error: transactionError } = await query.maybeSingle();
+      if (transactionError || !data) throw transactionError ?? new Error("Lançamento não encontrado");
+
+      setEditTransaction(data as EditableTransaction);
+      setEditDialogOpen(true);
+    } catch {
+      toast.error("Não foi possível abrir o lançamento conciliado");
+    } finally {
+      setOpeningTransactionId(null);
+    }
   };
 
   const exportRows = () =>
@@ -438,9 +493,14 @@ export default function ExtratoConciliacao() {
                               size="sm"
                               variant="outline"
                               className="h-8 shrink-0"
+                              disabled={openingTransactionId === r.platform.id}
                               onClick={() => editReconciledTransaction(r.platform?.id ?? "")}
                             >
-                              <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                              {openingTransactionId === r.platform.id ? (
+                                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                              )}
                               Editar e conciliar
                             </Button>
                           </div>
@@ -493,6 +553,17 @@ export default function ExtratoConciliacao() {
           )}
         </div>
       )}
+
+      <TransactionFormDialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open);
+          if (!open) setEditTransaction(null);
+        }}
+        onCreated={() => void reload()}
+        transaction={editTransaction}
+        editScope="single"
+      />
     </div>
   );
 }
