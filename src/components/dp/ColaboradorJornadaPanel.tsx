@@ -43,13 +43,24 @@ export interface JornadaColaborador {
   data_nascimento?: string | null;
 }
 
+/** Resultado do salvamento acionado de fora (pelo rodapé do cadastro). */
+export type SalvarJornadaResultado = "salvo" | "nada" | "pendente_ciencia" | "erro";
+
 interface Props {
   colaborador: JornadaColaborador | null;
   /** Recarrega o formulário com a configuração vigente quando muda para true. */
   active?: boolean;
-  /** Mostra o botão "Salvar Configuração" dentro do painel. */
+  /** Mostra o botão "Salvar" dentro do painel. */
   showSaveButton?: boolean;
+  /**
+   * Registra o salvamento do painel para que o cadastro do colaborador possa
+   * acioná-lo pelo botão único do rodapé. Recebe null ao desmontar.
+   */
+  onRegistrarSalvar?: (
+    fn: ((colaboradorId: string) => Promise<SalvarJornadaResultado>) | null,
+  ) => void;
 }
+
 
 /**
  * Painel de horário de trabalho do colaborador.
