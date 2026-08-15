@@ -93,6 +93,8 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit }: ColaboradorFichaDialogProps) {
+  const { atribuicoes } = useDpBeneficios(colaborador?.id ?? "todos");
+
   if (!colaborador) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,8 +102,6 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
       </Dialog>
     );
   }
-
-  const { atribuicoes } = useDpBeneficios(colaborador.id);
 
   const perfil = (colaborador as any)?.perfil_acesso as string | null;
   const isDesligado = !!colaborador?.data_desligamento;
