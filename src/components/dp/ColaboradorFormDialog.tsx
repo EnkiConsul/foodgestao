@@ -24,6 +24,10 @@ import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
 import { CargoSalarioConflitoDialog } from "@/components/dp/CargoSalarioConflitoDialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { compararSalarioCargo, moedaBR, salarioReferencia, sugerirNomeVariacao } from "@/lib/dp/cargos";
 import {
   RemuneracaoFields,
@@ -86,17 +90,6 @@ const REGIME_TO_VINCULO: Record<string, string> = {
   mei: "PJ",
   freelancer: "Freelancer",
 };
-
-const DIAS_SEMANA = [
-  { value: "none", label: "Nenhuma" },
-  { value: "0", label: "Domingo" },
-  { value: "1", label: "Segunda-feira" },
-  { value: "2", label: "Terça-feira" },
-  { value: "3", label: "Quarta-feira" },
-  { value: "4", label: "Quinta-feira" },
-  { value: "5", label: "Sexta-feira" },
-  { value: "6", label: "Sábado" },
-];
 
 interface Props {
   open: boolean;
@@ -162,6 +155,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
   const [rem, setRem] = useState<RemuneracaoFormState>(remuneracaoBlank);
+  /** Cargo ainda sem salário de referência — decisão feita dentro do sistema. */
+  const [cargoSemSalario, setCargoSemSalario] = useState<{ salarioInformado: number } | null>(null);
   const patchRem = (patch: Partial<RemuneracaoFormState>) => setRem((r) => ({ ...r, ...patch }));
 
   useEffect(() => {
@@ -955,6 +950,54 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           }}
         />
       )}
+
+      <AlertDialog open={!!cargoSemSalario} onOpenChange={(v) => { if (!v) setCargoSemSalario(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Definir o salário de referência do cargo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O cargo {cargoSelecionado?.nome ?? ""} ainda não tem salário de referência.
+              Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como referência para
+              os próximos colaboradores deste cargo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                cargoResolvido.current = true;
+                setCargoSemSalario(null);
+                void submit();
+              }}
+            >
+              Só para este colaborador
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={upsertCargo.isPending}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!cargoSemSalario || !cargoSelecionado) return;
+                try {
+                  await upsertCargo.mutateAsync({
+                    id: form.cargo_id,
+                    nome: cargoSelecionado.nome,
+                    salario_base: cargoSemSalario.salarioInformado,
+                  } as Parameters<typeof upsertCargo.mutateAsync>[0]);
+                } catch (err) {
+                  toast.error("Não foi possível gravar o salário do cargo", {
+                    description: err instanceof Error ? err.message : String(err),
+                  });
+                  return;
+                }
+                cargoResolvido.current = true;
+                setCargoSemSalario(null);
+                void submit();
+              }}
+            >
+              Definir para o cargo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {risco && (
         <RegimeRiscoDialog
