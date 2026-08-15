@@ -227,19 +227,39 @@ export function NotificationsBell() {
           ) : (
             <ul className="divide-y">
               {grouped.map((a) => (
-                <li key={a.id}>
+                <li key={a.id} className="group relative">
                   <button
-                    onClick={() => navigate(a.href)}
+                    onClick={() => {
+                      if (a.type === "accountant") {
+                        navigate(a.href, { state: { openInvite: true, defaultRole: "contabilidade" } });
+                      } else {
+                        navigate(a.href);
+                      }
+                    }}
                     className={cn(
-                      "w-full flex gap-3 items-start px-4 py-3 text-left hover:bg-muted/60 transition-colors"
+                      "w-full flex gap-3 items-start px-4 py-3 text-left hover:bg-muted/60 transition-colors",
+                      a.type === "accountant" && "bg-emerald-50/50 dark:bg-emerald-950/20"
                     )}
                   >
                     <div className="mt-0.5">{iconFor(a.type)}</div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pr-6">
                       <p className="text-sm font-medium leading-tight">{a.title}</p>
                       <p className="text-xs text-muted-foreground truncate">{a.description}</p>
                     </div>
                   </button>
+                  {a.dismiss && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        a.dismiss?.();
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground transition-opacity"
+                      aria-label="Dispensar aviso"
+                      title="Dispensar este mês"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
