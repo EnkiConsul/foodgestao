@@ -23,6 +23,11 @@ type Alert = {
 const formatDate = (d: string) =>
   new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 
+const accountantKey = (companyId: string) => {
+  const month = new Date().toISOString().slice(0, 7); // yyyy-MM
+  return `accountant-reminder-${companyId}-${month}`;
+};
+
 export function NotificationsBell() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
