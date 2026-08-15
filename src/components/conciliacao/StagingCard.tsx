@@ -227,6 +227,17 @@ export function StagingCard({
 
         {open && (
           <div className="space-y-3 border-t bg-muted/20 p-3">
+            {onDescriptionSave && (
+              <div>
+                <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Descrição</label>
+                <DescriptionEditor
+                  value={row.description}
+                  disabled={disabled}
+                  onSave={onDescriptionSave}
+                />
+              </div>
+            )}
+
             <div>
               <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Conta destino</label>
               <Select value={accountValue} onValueChange={onAccountChange} disabled={disabled}>
