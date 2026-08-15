@@ -8,6 +8,7 @@
 
 import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy, formasPagamentoDoRegime, formaPagamentoValida } from "./contrato-policy";
+import { calcularBeneficioMes, type DescontoTipo, type Periodicidade } from "./beneficios-regras";
 
 export type FormaPagamento = Database["public"]["Enums"]["dp_forma_pagamento"];
 
@@ -255,6 +256,61 @@ export function premioAssiduidadeDevido(
   const maxAtrasos = Math.max(0, num(cfg.assiduidade_max_atrasos));
   if (faltas > 0) return 0;
   return atrasos > maxAtrasos ? 0 : valor;
+}
+
+
+// ------------------------------------------------------------------
+// Prêmio de assiduidade em valor ou percentual
+// ------------------------------------------------------------------
+
+export type PremioTipo = "valor" | "percentual";
+
+export const PREMIO_TIPO_LABEL: Record<PremioTipo, string> = {
+  valor: "Valor fixo (R$)",
+  percentual: "Percentual do salário (%)",
+};
+
+/**
+ * Valor mensal do prêmio de assiduidade.
+ * No modo percentual, incide sobre o salário base efetivo do colaborador.
+ */
+export function premioAssiduidadeBase(
+  cfg: { premio_assiduidade_tipo?: PremioTipo | string | null; premio_assiduidade_valor?: number | null },
+  salarioBase?: number | null,
+): number {
+  const informado = num(cfg.premio_assiduidade_valor);
+  if (informado <= 0) return 0;
+  if ((cfg.premio_assiduidade_tipo ?? "valor") === "percentual") {
+    const salario = num(salarioBase);
+    const p = Math.min(100, Math.max(0, informado));
+    return salario > 0 ? round2(salario * (p / 100)) : 0;
+  }
+  return round2(informado);
+}
+
+// ------------------------------------------------------------------
+// Vale-alimentação / refeição
+// ------------------------------------------------------------------
+
+export interface ValeAlimentacaoConfig {
+  vale_alimentacao?: boolean | null;
+  vale_alimentacao_valor?: number | null;
+  vale_alimentacao_periodicidade?: "diario" | "mensal" | string | null;
+  vale_alimentacao_dias_base?: number | null;
+  vale_alimentacao_desconto_tipo?: "nenhum" | "percentual" | "valor" | string | null;
+  vale_alimentacao_desconto_valor?: number | null;
+}
+
+/** Vale-alimentação do mês: concedido, desconto do colaborador e custo líquido. */
+export function valeAlimentacaoDoMes(cfg: ValeAlimentacaoConfig) {
+  if (!cfg.vale_alimentacao) return { bruto: 0, desconto: 0, liquido: 0, percentualEfetivo: 0 };
+  return calcularBeneficioMes({
+    valor: cfg.vale_alimentacao_valor,
+    periodicidade: (cfg.vale_alimentacao_periodicidade ?? "mensal") as Periodicidade,
+    dias_base: cfg.vale_alimentacao_dias_base,
+    desconto_tipo: (cfg.vale_alimentacao_desconto_tipo ?? "nenhum") as DescontoTipo,
+    desconto_valor: cfg.vale_alimentacao_desconto_valor,
+  });
 }
 
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);

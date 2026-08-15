@@ -214,3 +214,75 @@ export function resumoConfigTexto(config: ConfigTrabalho, turnos: TurnoResolvido
 
   return partes.join(" · ");
 }
+
+// ------------------------------------------------------------------
+// Horário por dia (edição direta na tela do colaborador)
+// ------------------------------------------------------------------
+
+export interface HorarioDia {
+  entrada: string;
+  saida: string;
+  intervalo_minutos: number;
+}
+
+/**
+ * Horário efetivo mostrado no dia: o horário próprio, quando houver, senão o
+ * horário base do colaborador. A tela edita sempre este valor.
+ */
+export function horarioEfetivoDia(dia: DiaConfig, base: HorarioDia): HorarioDia {
+  return {
+    entrada: dia.entrada ? String(dia.entrada).slice(0, 5) : base.entrada,
+    saida: dia.saida ? String(dia.saida).slice(0, 5) : base.saida,
+    intervalo_minutos: dia.intervalo_minutos ?? base.intervalo_minutos ?? 0,
+  };
+}
+
+/** O dia difere do horário base do colaborador? */
+export function diaDivergeDoBase(dia: DiaConfig, base: HorarioDia): boolean {
+  if (!temHorarioProprio(dia)) return false;
+  const h = horarioEfetivoDia(dia, base);
+  return h.entrada !== base.entrada
+    || h.saida !== base.saida
+    || (h.intervalo_minutos ?? 0) !== (base.intervalo_minutos ?? 0);
+}
+
+/** Grava um horário próprio no dia informado. */
+export function definirHorarioNoDia(
+  dias: DiaConfig[],
+  dow: number,
+  horario: HorarioDia,
+): DiaConfig[] {
+  return dias.map((d) => (d.dow === dow
+    ? {
+      ...d,
+      entrada: horario.entrada || null,
+      saida: horario.saida || null,
+      intervalo_minutos: horario.intervalo_minutos ?? 0,
+    }
+    : d));
+}
+
+/**
+ * Repete o horário de um dia nos dias escolhidos. Dias de folga passam a
+ * trabalhar com o horário copiado — é o que o usuário espera ao marcá-los.
+ */
+export function copiarHorarioEntreDias(
+  dias: DiaConfig[],
+  origemDow: number,
+  destinos: number[],
+  base: HorarioDia,
+): DiaConfig[] {
+  const origem = dias.find((d) => d.dow === origemDow);
+  if (!origem) return dias;
+  const h = horarioEfetivoDia(origem, base);
+  const alvo = new Set(destinos.filter((d) => d !== origemDow));
+  return dias.map((d) => (alvo.has(d.dow)
+    ? {
+      ...d,
+      trabalha: true,
+      entrada: h.entrada || null,
+      saida: h.saida || null,
+      intervalo_minutos: h.intervalo_minutos ?? 0,
+    }
+    : d));
+}

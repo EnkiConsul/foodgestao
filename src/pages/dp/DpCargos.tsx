@@ -8,12 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
 import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, type DpCargo, type DpCargoWithCount } from "@/hooks/useDpCadastros";
+import { useDpColaboradores } from "@/hooks/useDpColaboradores";
+import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { moedaBR } from "@/lib/dp/cargos";
+import { numeroBR } from "@/components/dp/RemuneracaoFields";
 import { cn } from "@/lib/utils";
 
-type FormState = { nome: string; descricao: string };
-const blankForm: FormState = { nome: "", descricao: "" };
+type FormState = { nome: string; descricao: string; salario_base: string; insalubre: boolean };
+const blankForm: FormState = { nome: "", descricao: "", salario_base: "", insalubre: false };
 
 export default function DpCargos() {
   const list = useDpCargos();
@@ -26,6 +31,9 @@ export default function DpCargos() {
   const [toDelete, setToDelete] = useState<DpCargoWithCount | null>(null);
   const [viewCargo, setViewCargo] = useState<DpCargoWithCount | null>(null);
   const [busca, setBusca] = useState("");
+  /** Colaborador aberto para edição a partir da lista de vinculados. */
+  const [editarColaborador, setEditarColaborador] = useState<any | null>(null);
+  const colaboradores = useDpColaboradores();
 
   const openNew = () => {
     setEditing(null);
@@ -35,7 +43,13 @@ export default function DpCargos() {
 
   const openEdit = (c: DpCargo) => {
     setEditing(c);
-    setForm({ nome: c.nome, descricao: (c as DpCargo & { descricao?: string | null }).descricao ?? "" });
+    const cargo = c as DpCargo & { descricao?: string | null; salario_base?: number | null; insalubre_periculoso?: boolean | null };
+    setForm({
+      nome: c.nome,
+      descricao: cargo.descricao ?? "",
+      salario_base: cargo.salario_base != null ? String(cargo.salario_base).replace(".", ",") : "",
+      insalubre: !!cargo.insalubre_periculoso,
+    });
     setOpen(true);
   };
 
@@ -49,6 +63,8 @@ export default function DpCargos() {
         id: editing?.id,
         nome: form.nome.trim(),
         descricao: form.descricao.trim() || null,
+        salario_base: numeroBR(form.salario_base) || null,
+        insalubre_periculoso: form.insalubre,
       } as Parameters<typeof upsert.mutateAsync>[0]);
       toast.success(editing ? "Cargo atualizado com sucesso." : "Cargo cadastrado com sucesso.");
       setOpen(false);
@@ -124,17 +140,18 @@ export default function DpCargos() {
             <thead className="bg-muted/50 text-muted-foreground border-b border-border">
               <tr>
                 <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] w-[30%]">Nome</th>
-                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell w-[42%]">Descrição</th>
-                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[16%]">Colaboradores</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell w-[27%]">Descrição</th>
+                <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px] w-[17%]">Salário base</th>
+                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[14%]">Colaboradores</th>
                 <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px] w-[12%]">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {list.isLoading && (
-                <tr><td colSpan={4} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
+                <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
               )}
               {!list.isLoading && rows.length === 0 && (
-                <tr><td colSpan={4} className="p-12 text-center text-muted-foreground">
+                <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">
                   {(list.data ?? []).length === 0 ? "Nenhum cargo cadastrado." : "Nenhum cargo encontrado."}
                 </td></tr>
               )}
@@ -148,6 +165,14 @@ export default function DpCargos() {
                   >
                     <td className="p-4 font-bold uppercase truncate" title={c.nome}>{c.nome}</td>
                     <td className="p-4 hidden md:table-cell text-muted-foreground truncate" title={descricao ?? ""}>{descricao || "—"}</td>
+                    <td className="p-4 text-right tabular-nums whitespace-nowrap">
+                      {(c as any).salario_base != null ? moedaBR(Number((c as any).salario_base)) : "—"}
+                      {(c as any).insalubre_periculoso && (
+                        <span className="ml-2 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                          insalubre
+                        </span>
+                      )}
+                    </td>
                     <td className="p-4 text-center">
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                         <Users className="size-3" /> {c.colaboradores_count}
@@ -205,6 +230,9 @@ export default function DpCargos() {
                 <div className="min-w-0 flex-1">
                   <div className="font-bold uppercase truncate">{c.nome}</div>
                   {descricao && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{descricao}</div>}
+                  <div className="mt-1 text-xs tabular-nums text-muted-foreground">
+                    Salário base: {(c as any).salario_base != null ? moedaBR(Number((c as any).salario_base)) : "—"}
+                  </div>
                 </div>
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary shrink-0">
                   <Users className="size-3" /> {c.colaboradores_count}
@@ -251,6 +279,29 @@ export default function DpCargos() {
                 placeholder="Breve descrição das responsabilidades."
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="cargo-salario">Salário de referência (R$)</Label>
+              <Input
+                id="cargo-salario"
+                inputMode="decimal"
+                value={form.salario_base}
+                onChange={(e) => setForm({ ...form, salario_base: e.target.value })}
+                placeholder="Ex: 2.200,00"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Usado como base ao cadastrar colaboradores neste cargo.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-border p-3">
+              <Switch
+                id="cargo-insalubre"
+                checked={form.insalubre}
+                onCheckedChange={(v) => setForm({ ...form, insalubre: v })}
+              />
+              <Label htmlFor="cargo-insalubre" className="cursor-pointer">
+                Cargo insalubre ou perigoso
+              </Label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setOpen(false); setEditing(null); setForm(blankForm); }}>
@@ -282,6 +333,53 @@ export default function DpCargos() {
               </div>
               <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border">
                 <div>
+                  <Label className="text-xs text-muted-foreground">Salário de referência</Label>
+                  <p className="mt-1 tabular-nums">
+                    {(viewCargo as any).salario_base != null
+                      ? moedaBR(Number((viewCargo as any).salario_base))
+                      : "Não definido"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Insalubridade / periculosidade</Label>
+                  <p className="mt-1">{(viewCargo as any).insalubre_periculoso ? "Sim" : "Não"}</p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-border">
+                <Label className="text-xs text-muted-foreground">Colaboradores neste cargo</Label>
+                {(() => {
+                  const vinculados = (colaboradores.data ?? []).filter((x: any) => x.cargo_id === viewCargo.id);
+                  if (vinculados.length === 0) {
+                    return <p className="mt-1 text-muted-foreground">Nenhum colaborador vinculado.</p>;
+                  }
+                  return (
+                    <ul className="mt-2 divide-y rounded-lg border">
+                      {vinculados.map((x: any) => (
+                        <li key={x.id} className="flex items-center gap-2 p-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium">{x.nome}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {x.unidade_nome ?? "Sem unidade"}
+                              {x.salario_base != null ? ` · ${moedaBR(Number(x.salario_base))}` : ""}
+                              {x.ativo === false ? " · desligado" : ""}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm" variant="outline" className="shrink-0"
+                            onClick={() => { setViewCargo(null); setEditarColaborador(x); }}
+                          >
+                            <Pencil className="size-4 mr-1" /> Editar
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border">
+                <div>
                   <Label className="text-xs text-muted-foreground">Criado em</Label>
                   <p className="mt-1">{formatDate(viewCargo.created_at)}</p>
                 </div>
@@ -302,6 +400,13 @@ export default function DpCargos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edição do colaborador a partir da lista de vinculados */}
+      <ColaboradorFormDialog
+        open={!!editarColaborador}
+        onOpenChange={(o) => { if (!o) setEditarColaborador(null); }}
+        colaborador={editarColaborador}
+      />
 
       {/* Excluir */}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>

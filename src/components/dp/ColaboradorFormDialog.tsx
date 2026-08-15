@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useUpsertDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
+import { useUpsertDpColaborador, useDpColaboradores, type DpColaborador } from "@/hooks/useDpColaboradores";
+import { alertaIsonomia } from "@/lib/dp/beneficios-regras";
+import { BeneficioDispensaDialog, type DispensaBeneficio } from "@/components/dp/BeneficioDispensaDialog";
 import { useDpUnidades, useDpCargos, useUpsertDpCargo, type DpCargo } from "@/hooks/useDpCadastros";
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +26,10 @@ import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
 import { CargoSalarioConflitoDialog } from "@/components/dp/CargoSalarioConflitoDialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { compararSalarioCargo, moedaBR, salarioReferencia, sugerirNomeVariacao } from "@/lib/dp/cargos";
 import {
   RemuneracaoFields,
@@ -87,17 +93,6 @@ const REGIME_TO_VINCULO: Record<string, string> = {
   freelancer: "Freelancer",
 };
 
-const DIAS_SEMANA = [
-  { value: "none", label: "Nenhuma" },
-  { value: "0", label: "Domingo" },
-  { value: "1", label: "Segunda-feira" },
-  { value: "2", label: "Terça-feira" },
-  { value: "3", label: "Quarta-feira" },
-  { value: "4", label: "Quinta-feira" },
-  { value: "5", label: "Sexta-feira" },
-  { value: "6", label: "Sábado" },
-];
-
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -135,7 +130,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const upsertCargo = useUpsertDpCargo();
   const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
   const [form, setForm] = useState(blank);
-  const { selectedCompanyId } = useCompanyContext();
+  const { selectedCompanyId, companies } = useCompanyContext();
+  const todosColaboradores = useDpColaboradores();
+  /** Benefícios retirados que exigem ciência de isonomia neste salvamento. */
+  const [dispensas, setDispensas] = useState<DispensaBeneficio[]>([]);
+  const isonomiaConfirmada = useRef(false);
   const [cienciaAberta, setCienciaAberta] = useState(false);
   const [tab, setTab] = useState<"dados" | "jornada" | "remuneracao">("dados");
   /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
@@ -162,6 +161,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
   const [rem, setRem] = useState<RemuneracaoFormState>(remuneracaoBlank);
+  /** Cargo ainda sem salário de referência — decisão feita dentro do sistema. */
+  const [cargoSemSalario, setCargoSemSalario] = useState<{ salarioInformado: number } | null>(null);
   const patchRem = (patch: Partial<RemuneracaoFormState>) => setRem((r) => ({ ...r, ...patch }));
 
   useEffect(() => {
@@ -186,11 +187,22 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       vale_transporte: !!c.vale_transporte,
       vale_transporte_valor_dia:
         c.vale_transporte_valor_dia != null ? String(c.vale_transporte_valor_dia).replace(".", ",") : "",
-      beneficios: Object.fromEntries(
-        (atribuicoes ?? [])
-          .filter((a: any) => a.colaborador_id === c.id && a.ativo)
-          .map((a: any) => [a.beneficio_id, true]),
-      ),
+      // Novo colaborador herda os benefícios que a empresa já concede ao time.
+      beneficios: c.id
+        ? Object.fromEntries(
+            (atribuicoes ?? [])
+              .filter((a: any) => a.colaborador_id === c.id && a.ativo)
+              .map((a: any) => [a.beneficio_id, true]),
+          )
+        : Object.fromEntries(
+            Array.from(
+              new Set(
+                (atribuicoes ?? [])
+                  .filter((a: any) => a.ativo)
+                  .map((a: any) => a.beneficio_id as string),
+              ),
+            ).map((id) => [id, true]),
+          ),
       base_salarial: c.base_salarial != null ? String(c.base_salarial).replace(".", ",") : "",
       base_horas_mes: String(c.base_horas_mes ?? BASE_HORAS_MES_PADRAO),
       base_dias_mes: String(c.base_dias_mes ?? BASE_DIAS_MES_PADRAO),
@@ -201,6 +213,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       assiduidade_criterio: (c.assiduidade_criterio ?? "sem_faltas_sem_atrasos") as AssiduidadeCriterio,
       assiduidade_tolerancia_min: String(c.assiduidade_tolerancia_min ?? 10),
       assiduidade_max_atrasos: String(c.assiduidade_max_atrasos ?? 2),
+      premio_assiduidade_tipo: (c.premio_assiduidade_tipo ?? "valor") as "valor" | "percentual",
+      vale_alimentacao: !!c.vale_alimentacao,
+      vale_alimentacao_valor:
+        c.vale_alimentacao_valor != null ? String(c.vale_alimentacao_valor).replace(".", ",") : "",
+      vale_alimentacao_periodicidade: (c.vale_alimentacao_periodicidade ?? "mensal") as "diario" | "mensal",
+      vale_alimentacao_dias_base: String(c.vale_alimentacao_dias_base ?? 22),
+      vale_alimentacao_desconto_tipo:
+        (c.vale_alimentacao_desconto_tipo ?? "percentual") as "nenhum" | "percentual" | "valor",
+      vale_alimentacao_desconto_valor:
+        c.vale_alimentacao_desconto_valor != null
+          ? String(c.vale_alimentacao_desconto_valor).replace(".", ",")
+          : "1",
     });
 
     setForm({
@@ -232,6 +256,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       optante_adiantamento: c.optante_adiantamento ?? false,
     });
   }, [open, colaborador, atribuicoes]);
+
+  useEffect(() => {
+    if (!open) { setDispensas([]); isonomiaConfirmada.current = false; }
+  }, [open]);
 
   const regimeSelecionado = VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt";
 
@@ -319,8 +347,41 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     } catch { /* o cadastro não deve falhar por causa do log */ }
   };
 
+  /** Benefícios ativos hoje que o usuário desmarcou e colegas equivalentes mantêm. */
+  const dispensasPendentes = (): DispensaBeneficio[] => {
+    if (!colaborador?.id) return [];
+    const out: DispensaBeneficio[] = [];
+    for (const b of beneficios) {
+      const atual = (atribuicoes ?? []).find(
+        (a: any) => a.colaborador_id === colaborador.id && a.beneficio_id === b.id,
+      ) as any;
+      if (!atual?.ativo || rem.beneficios[b.id]) continue;
+      const colegas = (todosColaboradores.data ?? [])
+        .filter((x: any) => x.id !== colaborador.id && x.ativo !== false)
+        .map((x: any) => ({
+          colaborador_id: x.id,
+          nome: x.nome,
+          cargo_id: x.cargo_id,
+          unidade_id: x.unidade_id,
+          ativo: (atribuicoes ?? []).some(
+            (a: any) => a.colaborador_id === x.id && a.beneficio_id === b.id && a.ativo,
+          ),
+        }));
+      const alerta = alertaIsonomia(b.nome, colegas, {
+        cargo_id: form.cargo_id || null,
+        unidade_id: form.unidade_id || null,
+      });
+      if (alerta) out.push({ beneficio_id: b.id, beneficio_nome: b.nome, alerta });
+    }
+    return out;
+  };
+
   const submit = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
+    if (!isonomiaConfirmada.current) {
+      const pendentes = dispensasPendentes();
+      if (pendentes.length > 0) { setDispensas(pendentes); return; }
+    }
     if (!form.cpf.trim()) { toast.error("CPF é obrigatório"); return; }
 
     const cpfDigits = form.cpf.replace(/\D/g, "");
@@ -385,7 +446,13 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       valor_hora: valorHoraNum || null,
       salario_cargo: salarioCargo,
     });
-    if (pendencia) { toast.error(pendencia); return; }
+    // Editando um colaborador existente, a falta de remuneração não pode travar
+    // o salvamento das outras abas: avisamos depois de gravar.
+    if (pendencia && !isEdit && !criadoId) {
+      toast.error(pendencia);
+      setTab("remuneracao");
+      return;
+    }
 
     const adicionalNum = numeroBR(rem.adicional_percentual);
     if (adicionalNum < 0 || adicionalNum > 100) {
@@ -402,7 +469,19 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     const usaBaseCalculo = rem.forma_pagamento === "horista" || rem.forma_pagamento === "diarista";
     const premioNum = numeroBR(rem.premio_assiduidade_valor);
     if (rem.premio_assiduidade && premioNum <= 0) {
-      toast.error("Informe o valor do prêmio de assiduidade");
+      toast.error(
+        rem.premio_assiduidade_tipo === "percentual"
+          ? "Informe o percentual do prêmio de assiduidade"
+          : "Informe o valor do prêmio de assiduidade",
+      );
+      return;
+    }
+    if (rem.premio_assiduidade && rem.premio_assiduidade_tipo === "percentual" && premioNum > 100) {
+      toast.error("O percentual do prêmio de assiduidade não pode passar de 100%");
+      return;
+    }
+    if (rem.vale_alimentacao && numeroBR(rem.vale_alimentacao_valor) <= 0) {
+      toast.error("Informe o valor do vale-alimentação");
       return;
     }
 
@@ -411,25 +490,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     if (!cargoResolvido.current) {
       const comparacao = compararSalarioCargo(cargoSelecionado, baseSalarialInformada());
       if (comparacao.status === "cargo_sem_salario") {
-        const definir = window.confirm(
-          `Definir ${moedaBR(comparacao.salarioInformado)} como salário de referência do cargo ` +
-            `${cargoSelecionado?.nome ?? ""}?`,
-        );
-        if (definir) {
-          try {
-            await upsertCargo.mutateAsync({
-              id: form.cargo_id,
-              nome: cargoSelecionado.nome,
-              salario_base: comparacao.salarioInformado,
-            } as Parameters<typeof upsertCargo.mutateAsync>[0]);
-          } catch (e) {
-            toast.error("Não foi possível gravar o salário do cargo", {
-              description: e instanceof Error ? e.message : String(e),
-            });
-            return;
-          }
-        }
-        cargoResolvido.current = true;
+        setCargoSemSalario({ salarioInformado: comparacao.salarioInformado });
+        return;
       } else if (comparacao.status === "divergente") {
         setConflitoCargo({
           salarioCargo: comparacao.salarioCargo,
@@ -495,6 +557,17 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         assiduidade_max_atrasos: rem.premio_assiduidade
           ? Math.max(0, Math.trunc(numeroBR(rem.assiduidade_max_atrasos)))
           : null,
+        premio_assiduidade_tipo: rem.premio_assiduidade ? rem.premio_assiduidade_tipo : "valor",
+
+        // Vale-alimentação / refeição
+        vale_alimentacao: rem.vale_alimentacao,
+        vale_alimentacao_valor: rem.vale_alimentacao ? numeroBR(rem.vale_alimentacao_valor) || null : null,
+        vale_alimentacao_periodicidade: rem.vale_alimentacao_periodicidade,
+        vale_alimentacao_dias_base: Math.max(0, Math.trunc(numeroBR(rem.vale_alimentacao_dias_base))) || 22,
+        vale_alimentacao_desconto_tipo: rem.vale_alimentacao_desconto_tipo,
+        vale_alimentacao_desconto_valor: rem.vale_alimentacao_desconto_tipo === "nenhum"
+          ? 0
+          : numeroBR(rem.vale_alimentacao_desconto_valor),
         ...(isDesligado
           ? {
               data_desligamento: form.data_desligamento,
@@ -540,6 +613,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         }
         if (resultado === "erro") { setTab("jornada"); return; }
         toast.success("Colaborador atualizado");
+        if (pendencia) {
+          toast.warning("Falta completar a remuneração", {
+            description: `${pendencia} A folha só é gerada depois disso.`,
+          });
+        }
         onOpenChange(false);
         return;
       }
@@ -727,32 +805,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           </div>
 
 
-          {/* Folga Fixa / Perfil */}
-          {policy.exigeFolgaSemanal ? (
-            <div className="space-y-2">
-              <Label>Folga Fixa Semanal</Label>
-              <Select
-                value={form.folga_fixa_semana}
-                onValueChange={(v) => setForm({ ...form, folga_fixa_semana: v })}
-              >
-                <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-                <SelectContent>
-                  {DIAS_SEMANA.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label>Folga Fixa Semanal</Label>
-              <p className="rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
-                {policy.jornadaComoDisponibilidade
-                  ? "No contrato intermitente não há folga fixa: os dias trabalhados nascem das convocações aceitas."
-                  : "Não se aplica a este tipo de vínculo."}
-              </p>
-            </div>
-          )}
+          {/* A folga fixa semanal é definida na aba Horário de Trabalho, junto
+              com os dias da semana — evita dois lugares com a mesma informação. */}
 
           <div className="space-y-2">
             <Label>Perfil de Acesso</Label>
@@ -940,6 +994,34 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         }}
       />
 
+      <BeneficioDispensaDialog
+        open={dispensas.length > 0}
+        onOpenChange={(o) => {
+          if (!o) {
+            // Manter o benefício: recoloca as marcações desfeitas.
+            const restaurar = Object.fromEntries(dispensas.map((d) => [d.beneficio_id, true]));
+            patchRem({ beneficios: { ...rem.beneficios, ...restaurar } });
+            setDispensas([]);
+          }
+        }}
+        colaborador={{
+          nome: form.nome.trim() || "Colaborador",
+          cpf: form.cpf,
+          cargo: cargos.data?.find((c) => c.id === form.cargo_id)?.nome ?? null,
+        }}
+        empresa={{
+          nome: companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa",
+          cnpj: null,
+          cidade: null,
+        }}
+        itens={dispensas}
+        onConfirmar={async () => {
+          isonomiaConfirmada.current = true;
+          setDispensas([]);
+          await submit();
+        }}
+      />
+
       <CargoQuickCreateDialog
         open={novoCargoOpen}
         onOpenChange={setNovoCargoOpen}
@@ -985,6 +1067,54 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           }}
         />
       )}
+
+      <AlertDialog open={!!cargoSemSalario} onOpenChange={(v) => { if (!v) setCargoSemSalario(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Definir o salário de referência do cargo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O cargo {cargoSelecionado?.nome ?? ""} ainda não tem salário de referência.
+              Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como referência para
+              os próximos colaboradores deste cargo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                cargoResolvido.current = true;
+                setCargoSemSalario(null);
+                void submit();
+              }}
+            >
+              Só para este colaborador
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={upsertCargo.isPending}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!cargoSemSalario || !cargoSelecionado) return;
+                try {
+                  await upsertCargo.mutateAsync({
+                    id: form.cargo_id,
+                    nome: cargoSelecionado.nome,
+                    salario_base: cargoSemSalario.salarioInformado,
+                  } as Parameters<typeof upsertCargo.mutateAsync>[0]);
+                } catch (err) {
+                  toast.error("Não foi possível gravar o salário do cargo", {
+                    description: err instanceof Error ? err.message : String(err),
+                  });
+                  return;
+                }
+                cargoResolvido.current = true;
+                setCargoSemSalario(null);
+                void submit();
+              }}
+            >
+              Definir para o cargo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {risco && (
         <RegimeRiscoDialog
