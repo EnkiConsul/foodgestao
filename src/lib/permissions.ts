@@ -53,7 +53,20 @@ export const FINANCE_MODULES: FinanceModuleKey[] = [
 
 export const ALL_MODULES = [...FINANCE_MODULES, ...ORDERS_PERMISSION_KEYS] as ModuleKey[];
 
-export type CompanyRole = "owner" | "admin" | "member" | "viewer";
+export type CompanyRole = "owner" | "admin" | "member" | "viewer" | "contabilidade";
+
+/** Módulos financeiros visíveis para o papel Contabilidade (somente leitura). */
+export const ACCOUNTING_MODULES: FinanceModuleKey[] = [
+  "dashboard",
+  "transactions",
+  "accounts",
+  "categories",
+  "contacts",
+  "payment_methods",
+  "reports",
+  "cash_flow",
+  "attachments",
+];
 
 export type PermissionsMap = Partial<Record<ModuleKey, PermissionLevel>>;
 
