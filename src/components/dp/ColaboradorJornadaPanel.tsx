@@ -618,7 +618,7 @@ export function ColaboradorJornadaPanel({
             <label className="flex items-center gap-2 text-xs text-muted-foreground">
               <Switch
                 checked={folgaVariavel}
-                onCheckedChange={setFolgaVariavel}
+                onCheckedChange={(v) => { marcarAlterado(); setFolgaVariavel(v); }}
                 aria-label="A folga varia conforme a escala"
               />
               Varia conforme a escala
