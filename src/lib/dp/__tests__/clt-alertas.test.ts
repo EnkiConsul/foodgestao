@@ -103,7 +103,7 @@ describe("clt-alertas por regime de contrato", () => {
     const codigos = verificarAlertasClt({ dias, regime: "intermitente", idade: 30 })
       .map((a) => a.codigo);
     expect(codigos).not.toContain("carga_semanal");
-    expect(codigos).not.toContain("sem_folga");
+    expect(codigos).not.toContain("sem_folga_semanal");
   });
 
   it("mantém as regras de menor de idade mesmo em regimes sem carga semanal", () => {
@@ -118,13 +118,13 @@ describe("clt-alertas por regime de contrato", () => {
   it("aponta ausência de folga na CLT quando todos os dias são trabalhados", () => {
     const dias = [0, 1, 2, 3, 4, 5, 6].map((d) => dia(d, "08:00", "14:00", 0));
     const codigos = verificarAlertasClt({ dias, regime: "clt", idade: 30 }).map((a) => a.codigo);
-    expect(codigos).toContain("sem_folga");
+    expect(codigos).toContain("sem_folga_semanal");
   });
 
   it("folga variável não gera aviso de ausência de folga", () => {
     const dias = [0, 1, 2, 3, 4, 5, 6].map((d) => dia(d, "08:00", "14:00", 0));
     const codigos = verificarAlertasClt({ dias, regime: "clt", idade: 30, folgaVariavel: true })
       .map((a) => a.codigo);
-    expect(codigos).not.toContain("sem_folga");
+    expect(codigos).not.toContain("sem_folga_semanal");
   });
 });
