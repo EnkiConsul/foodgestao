@@ -34,11 +34,11 @@ function formatToken(token: string, isFirst: boolean): string {
   const upper = token.toLocaleUpperCase("pt-BR");
   if (UPPER_TOKENS.has(upper)) return upper;
 
-  // Sigla curta já em maiúsculas ("GR", "JBS", "BR") — preserva.
-  if (token === upper && token.replace(/[^A-ZÀ-Ý]/g, "").length <= 3) return token;
-
   const lowerKey = token.toLocaleLowerCase("pt-BR");
   if (!isFirst && LOWER_TOKENS.has(lowerKey)) return lowerKey;
+
+  // Sigla curta já em maiúsculas ("GR", "JBS", "BR") — preserva.
+  if (token === upper && token.replace(/[^A-ZÀ-Ý]/g, "").length <= 3) return token;
 
   // Palavras com apóstrofo ou hífen internos: capitaliza cada parte.
   if (/['’]/.test(token)) {
@@ -62,9 +62,9 @@ export function toProperName(input: string | null | undefined): string {
 
   let wordIndex = 0;
   return value
-    .split(/(\s+|-|\/)/)
+    .split(/(\s+|-)/)
     .map((part) => {
-      if (/^\s+$/.test(part) || part === "-" || part === "/") return part;
+      if (/^\s+$/.test(part) || part === "-") return part;
       const out = formatToken(part, wordIndex === 0);
       wordIndex++;
       return out;
