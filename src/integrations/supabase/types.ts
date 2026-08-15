@@ -13257,6 +13257,10 @@ export type Database = {
         }[]
       }
       seed_default_categories: { Args: { _company_id: string }; Returns: Json }
+      seed_default_contacts: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: undefined
+      }
       seed_default_payment_methods: {
         Args: { _company_id: string; _user_id: string }
         Returns: number
