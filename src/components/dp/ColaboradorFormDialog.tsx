@@ -542,7 +542,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full">
           <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value="dados">Dados</TabsTrigger>
-            <TabsTrigger value="jornada">Turno &amp; Jornada</TabsTrigger>
+            <TabsTrigger value="jornada">Horário de Trabalho</TabsTrigger>
             <TabsTrigger value="remuneracao">Remuneração</TabsTrigger>
           </TabsList>
 
