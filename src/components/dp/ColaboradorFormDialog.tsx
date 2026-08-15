@@ -855,7 +855,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             </div>
           </TabsContent>
 
-          <TabsContent value="jornada" className="mt-4">
+          {/* forceMount: mantém o horário digitado ao alternar de aba, para que o
+              botão único do rodapé grave também esta aba. */}
+          <TabsContent value="jornada" className="mt-4 data-[state=inactive]:hidden" forceMount>
             <ColaboradorJornadaPanel
               colaborador={{
                 id: colaborador?.id ?? criadoId ?? null,
@@ -866,8 +868,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 data_nascimento: form.data_nascimento || null,
               }}
               active={tab === "jornada"}
+              showSaveButton={false}
+              onRegistrarSalvar={(fn) => { jornadaSalvarRef.current = fn; }}
             />
           </TabsContent>
+
 
 
           <TabsContent value="remuneracao" className="mt-4">
