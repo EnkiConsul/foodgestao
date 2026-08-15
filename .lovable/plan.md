@@ -1,6 +1,23 @@
-# Horário de Trabalho: alertas certos por vínculo e um só botão de salvar
+# Horário de Trabalho: orientação jurídica no vínculo, alertas certos e um só botão de salvar
 
-Quatro ajustes na aba "Horário de Trabalho" do cadastro do colaborador.
+Cinco ajustes no cadastro do colaborador.
+
+## 0. Freelancer: o sistema orienta o empreendedor
+
+"Freelancer" não é figura prevista na CLT. Contratar alguém de forma habitual e subordinada chamando de freelancer é vínculo de emprego não registrado — risco de reclamação trabalhista, multa e passivo de verbas.
+
+Ao escolher **Freelancer** no tipo de vínculo, aparece logo abaixo do campo um aviso âmbar, sem bloquear o salvamento:
+
+> **Freelancer não é um vínculo previsto na lei trabalhista.** Se essa pessoa trabalha com habitualidade, cumpre horário e recebe ordens da sua equipe, a Justiça do Trabalho tende a reconhecer vínculo de emprego — com registro retroativo, férias, 13º, FGTS e multa. Para chamar quando precisa, com segurança, o caminho legal é o **contrato intermitente**.
+>
+> **Ver como funciona o intermitente** · **Mudar para Intermitente**
+
+"Ver como funciona" abre um diálogo explicativo em linguagem de dono de loja: contrato assinado uma vez, sem jornada fixa; você convoca com 3 dias de antecedência informando o dia, o horário e o valor; o colaborador pode aceitar ou recusar em 1 dia útil sem penalidade; paga-se ao fim de cada convocação o proporcional de salário, férias + 1/3, 13º, DSR e FGTS; entre as convocações não há salário nem exclusividade; o valor da hora não pode ser menor que o do mensalista da mesma função nem que o mínimo por hora. Fecha com o que muda no sistema: as convocações passam a ser registradas em Convocações, entram na escala e no ponto e viram lançamentos na folha.
+
+"Mudar para Intermitente" troca o vínculo no formulário na hora, mantendo o que já foi digitado e reaplicando as regras do regime (formas de pagamento permitidas, base salarial e de horas).
+
+Freelancer continua permitido — a decisão é do empreendedor. O aviso é orientação, não trava.
+
 
 ## 1. Alertas trabalhistas por tipo de vínculo
 
