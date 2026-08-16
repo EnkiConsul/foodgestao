@@ -19,7 +19,8 @@ Hoje, quando o VA é "por dia", o sistema conta as ocorrências reais de cada di
 
 ## Detalhes técnicos
 
-- `src/lib/dp/beneficios-regras.ts`: `diasTrabalhaveisNoMes` passa a ser substituída (na simulação) por `diasSimuladosMesComercial(dias)` — `30 − folgasSemanais × 4`, retornando `null` quando a jornada não tem nenhum dia marcado. Novo helper `descreverBaseSimulacao(dias)` gera o texto "base 30 dias − 1 folga semanal × 4". `diasTrabalhaveisNoMes` permanece exportada para usos por competência real (apuração), sem alteração de assinatura.
+- `src/lib/dp/beneficios-regras.ts`: nova função `diasSimuladosMesComercial(dias)` — `30 − (nº de dias da semana marcados como folga) × 4`, retornando `null` quando a jornada não tem nenhum dia marcado. Novo helper `descreverBaseSimulacao(dias)` gera o texto "base 30 dias − 1 folga semanal × 4". `diasTrabalhaveisNoMes` permanece exportada para usos por competência real (apuração), sem alteração de assinatura.
 - `src/components/dp/RemuneracaoFields.tsx`: usa `diasSimuladosMesComercial` em vez de `diasTrabalhaveisNoMes`, renomeia o bloco de prévia para "Simulação do mês", inclui a conta detalhada e o aviso de simulação.
-- `src/test/unit/dpHorarioBeneficios.test.ts`: casos 6x1 → 26, 5x2 → 22, 7x0 → 30, jornada vazia → null, e o texto da base.
+- `src/test/unit/dpHorarioBeneficios.test.ts`: casos 1 folga (domingo) → 26, 1 folga (quarta) → 26, 2 folgas → 22, sem folga → 30, jornada vazia → null, e o texto da base.
+
 - Sem mudança de banco de dados; `vale_alimentacao_dias_origem` e `vale_alimentacao_dias_base` seguem como estão.
