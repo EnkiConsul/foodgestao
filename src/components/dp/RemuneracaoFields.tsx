@@ -518,6 +518,8 @@ export function RemuneracaoFields({
               <Input
                 inputMode="decimal"
                 value={value.vale_alimentacao_valor}
+                {...marca("vale_alimentacao_valor")}
+
                 onChange={(e) => onChange({ vale_alimentacao_valor: e.target.value })}
                 placeholder="Ex: 25,00"
               />
