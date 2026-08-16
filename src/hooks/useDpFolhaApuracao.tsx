@@ -67,9 +67,8 @@ export function useDpFolhaApuracao(competencia: string) {
           forma_pagamento: (c.forma_pagamento ?? "mensalista") as FormaPagamento,
           salario_base: c.salario_base ?? null,
           valor_hora: c.valor_hora ?? null,
-          salario_cargo: referenciaSalarial(
-            pisos, c.cargo_id, c.unidade_id, c.dp_cargos?.salario_base ?? null, competenciaDate,
-          ),
+          salario_cargo: referenciaSalarial(pisos, c.cargo_id, c.unidade_id, competenciaDate),
+
         };
         bases.set(c.id, {
           salarioBase: remuneracao.salario_base ?? remuneracao.salario_cargo ?? null,
