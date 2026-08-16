@@ -103,6 +103,12 @@ export function ColaboradorJornadaPanel({
   const [copiarOpen, setCopiarOpen] = useState(false);
   const [gradeOpen, setGradeOpen] = useState(false);
   const [cienciaOpen, setCienciaOpen] = useState(false);
+  /**
+   * Quando o salvamento vem do rodapé do cadastro, a decisão do diálogo de
+   * ciência precisa devolver o resultado para o fluxo que está aguardando —
+   * assim um único "Concluir" já salva e fecha a tela.
+   */
+  const cienciaPendenteRef = useRef<((r: SalvarJornadaResultado) => void) | null>(null);
 
 
   const { turnos: turnosUnidade, criar: criarTurno } = useDpTurnos(unidadeId === "none" ? null : unidadeId);
