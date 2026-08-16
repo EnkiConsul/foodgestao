@@ -497,6 +497,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     const intencao = intencaoRef.current;
     intencaoRef.current = "stay";
     if (intencao === "close") { onOpenChange(false); return; }
+    // "Salvar e continuar": avança para a aba seguinte, se houver.
+    const proxima = abaSeguinte(tab);
+    if (proxima) setTab(proxima);
   };
 
 
@@ -793,13 +796,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       setBaseline(snapshot);
       toast.success("Colaborador cadastrado");
 
-      if (intencaoRef.current === "close") {
-        finalizar();
-        return;
+      if (intencaoRef.current !== "close" && abaSeguinte(tab)) {
+        toast("Defina o turno e a jornada");
       }
-
-      toast("Defina o turno e a jornada");
-      setTab(abaSeguinte(tab) ?? "jornada");
+      finalizar();
 
 
     } catch (e) {
@@ -1208,7 +1208,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               onClick={() => void submit("stay")}
               disabled={upsert.isPending}
             >
-              {upsert.isPending ? "Salvando..." : "Salvar e continuar"}
+              {upsert.isPending
+                ? "Salvando..."
+                : abaSeguinte(tab)
+                  ? "Salvar e continuar"
+                  : "Salvar"}
             </Button>
             <Button onClick={() => void submit("close")} disabled={upsert.isPending}>
               Concluir
