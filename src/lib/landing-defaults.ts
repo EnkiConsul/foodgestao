@@ -187,6 +187,57 @@ export const LANDING_DEFAULTS = {
     items: ["Bares", "Restaurantes", "Pizzarias", "Hamburguerias", "Cafeterias", "Redes e filiais"],
   } satisfies PersonasStripContent,
 
+  pain: {
+    eyebrow: "O dia a dia hoje",
+    title: "O caixa fecha, mas ninguém sabe se o mês fechou no lucro",
+    subtitle:
+      "Bar e restaurante têm dezenas de pagamentos por semana, fornecedor no boleto, maquininha, delivery e equipe girando. A planilha não acompanha esse ritmo.",
+    pain_title: "Sem o 360°FOOD",
+    pains: [
+      "Boletos de fornecedor descobertos só quando já venceram",
+      "Extrato do banco conferido à mão, lançamento por lançamento",
+      "Maquininha, delivery e PIX misturados sem saber o que entrou de verdade",
+      "Custo de equipe estimado no papel: hora extra, folga e ponto sem controle",
+      "Fim do mês sem saber a margem de cada unidade",
+    ],
+    gain_title: "Com o 360°FOOD",
+    gains: [
+      "Contas a pagar e a receber com aviso de vencimento antes de atrasar",
+      "Extrato do banco entrando automático e conciliação em poucos cliques",
+      "Recebimentos separados por forma de pagamento e por unidade",
+      "Ponto, escala e folha organizados no módulo de Departamento Pessoal",
+      "Fluxo de caixa e DRE gerencial prontos, sem montar planilha",
+    ],
+  } satisfies PainContent,
+
+  segments: {
+    eyebrow: "Segmentos",
+    title: "Feito para quem vive o salão e a cozinha",
+    subtitle:
+      "A operação de alimentos fora do lar tem rotina própria — o 360°FOOD já vem preparado para ela.",
+    items: [
+      { title: "Bares e casas noturnas", desc: "Turnos à noite, equipe rotativa e alto volume de pagamentos em cartão e PIX." },
+      { title: "Restaurantes", desc: "Fornecedor no boleto, custo de ficha técnica e controle de margem por período." },
+      { title: "Pizzarias e hamburguerias", desc: "Delivery e salão no mesmo caixa, com recebíveis separados por canal." },
+      { title: "Cafeterias e padarias", desc: "Ticket baixo e muitos lançamentos: categorização automática economiza horas." },
+      { title: "Redes e filiais", desc: "Cada unidade com dados isolados e visão consolidada do grupo." },
+      { title: "Franquias e sócios", desc: "Relatórios prontos para sócios, contador e franqueadora." },
+    ],
+  } satisfies SegmentsContent,
+
+  how_it_works: {
+    eyebrow: "Como funciona",
+    title: "Do cadastro ao primeiro relatório em poucos passos",
+    subtitle: "Sem instalação e sem projeto de implantação. Você usa no celular e no computador.",
+    steps: [
+      { title: "Crie a conta do seu negócio", desc: "Cadastro rápido com os dados do bar ou restaurante e das unidades." },
+      { title: "Conecte o banco ou importe o extrato", desc: "Os lançamentos chegam sozinhos e ficam prontos para conciliar." },
+      { title: "Organize contas e equipe", desc: "Contas a pagar e a receber, categorias e o time no Departamento Pessoal." },
+      { title: "Acompanhe caixa e resultado", desc: "Fluxo de caixa projetado e DRE gerencial atualizados a cada lançamento." },
+    ],
+    note: "Nossa equipe acompanha a configuração inicial junto com você.",
+  } satisfies HowItWorksContent,
+
   comparison: {
     eyebrow: "Planilha vs 360°FOOD",
     title: "Saia da planilha sem perder o controle",
