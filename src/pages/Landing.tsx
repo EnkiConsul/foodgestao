@@ -14,11 +14,24 @@ import { SolutionsSection } from "@/components/landing/SolutionsSection";
 import { TrustSection } from "@/components/landing/TrustSection";
 import { WhatsappButton } from "@/components/WhatsappButton";
 import { useUtmQuery } from "@/lib/landing/utm";
+import { Helmet } from "react-helmet-async";
+
+const SEO_TITLE = "360°FOOD — Gestão financeira para bares e restaurantes";
+const SEO_DESC =
+  "Sistema de gestão para bares, restaurantes, pizzarias e redes: conciliação bancária via Open Finance, contas a pagar, fluxo de caixa, DRE e departamento pessoal.";
 
 export default function Landing() {
   const utm = useUtmQuery();
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>{SEO_TITLE}</title>
+        <meta name="description" content={SEO_DESC} />
+        <meta property="og:title" content={SEO_TITLE} />
+        <meta property="og:description" content={SEO_DESC} />
+        <meta name="twitter:title" content={SEO_TITLE} />
+        <meta name="twitter:description" content={SEO_DESC} />
+      </Helmet>
       <PublicHeader utm={utm} />
       <main>
         <HeroSection utm={utm} />
