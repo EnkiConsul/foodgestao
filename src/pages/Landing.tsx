@@ -68,16 +68,19 @@ export default function Landing() {
       <main id="conteudo">
         <HeroSection utm={utm} />
         <PersonasStrip />
-        <PainSection />
-        <SegmentsSection />
-        <SolutionsSection utm={utm} />
-        <ModulesSection />
-        <FeaturesGrid />
-        <HowItWorksSection />
-        <TrustSection />
-        <FaqSection />
-        <ContactSection />
-        <FinalCta utm={utm} />
+        <Suspense fallback={<SectionFallback />}>
+          <PainSection />
+          <SegmentsSection />
+          <SolutionsSection utm={utm} />
+          <ModulesSection />
+          <FeaturesGrid />
+          <HowItWorksSection />
+          <TrustSection />
+          <FaqSection />
+          <ContactSection />
+          <FinalCta utm={utm} />
+        </Suspense>
+
       </main>
       <MobileCtaBar utm={utm} />
 
