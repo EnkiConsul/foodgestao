@@ -39,7 +39,7 @@ type GtagWindow = Window & {
   gtag?: (...args: unknown[]) => void;
 };
 
-export function trackCta(source: string, ctaText = "Começe Grátis") {
+export function trackCta(source: string, ctaText = "Conheça a solução") {
   try {
     const w = window as GtagWindow;
     const payload = {

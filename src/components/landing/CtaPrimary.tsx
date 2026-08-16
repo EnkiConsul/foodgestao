@@ -5,7 +5,7 @@ import { buildCta, trackCta } from "@/lib/landing/utm";
 
 export function CtaPrimary({
   utm,
-  label = "Começe Grátis",
+  label = "Conheça a solução",
   source,
   className = "",
   size = "lg",

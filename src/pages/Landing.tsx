@@ -1,25 +1,50 @@
-import { ContactSection } from "@/components/landing/ContactSection";
-import { FaqSection } from "@/components/landing/FaqSection";
-import { FeaturesGrid } from "@/components/landing/FeaturesGrid";
-import { FinalCta } from "@/components/landing/FinalCta";
 import { HeroSection } from "@/components/landing/HeroSection";
-import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { MobileCtaBar } from "@/components/landing/MobileCtaBar";
-import { ModulesSection } from "@/components/landing/ModulesSection";
-import { PainSection } from "@/components/landing/PainSection";
 import { PersonasStrip } from "@/components/landing/PersonasStrip";
 import { PublicFooter } from "@/components/landing/PublicFooter";
 import { PublicHeader } from "@/components/landing/PublicHeader";
-import { SegmentsSection } from "@/components/landing/SegmentsSection";
-import { SolutionsSection } from "@/components/landing/SolutionsSection";
-import { TrustSection } from "@/components/landing/TrustSection";
 import { WhatsappButton } from "@/components/WhatsappButton";
 import { useUtmQuery } from "@/lib/landing/utm";
+import { Suspense, lazy } from "react";
 import { Helmet } from "react-helmet-async";
+
+const PainSection = lazy(() =>
+  import("@/components/landing/PainSection").then((m) => ({ default: m.PainSection })),
+);
+const SegmentsSection = lazy(() =>
+  import("@/components/landing/SegmentsSection").then((m) => ({ default: m.SegmentsSection })),
+);
+const SolutionsSection = lazy(() =>
+  import("@/components/landing/SolutionsSection").then((m) => ({ default: m.SolutionsSection })),
+);
+const ModulesSection = lazy(() =>
+  import("@/components/landing/ModulesSection").then((m) => ({ default: m.ModulesSection })),
+);
+const FeaturesGrid = lazy(() =>
+  import("@/components/landing/FeaturesGrid").then((m) => ({ default: m.FeaturesGrid })),
+);
+const HowItWorksSection = lazy(() =>
+  import("@/components/landing/HowItWorksSection").then((m) => ({ default: m.HowItWorksSection })),
+);
+const TrustSection = lazy(() =>
+  import("@/components/landing/TrustSection").then((m) => ({ default: m.TrustSection })),
+);
+const FaqSection = lazy(() =>
+  import("@/components/landing/FaqSection").then((m) => ({ default: m.FaqSection })),
+);
+const ContactSection = lazy(() =>
+  import("@/components/landing/ContactSection").then((m) => ({ default: m.ContactSection })),
+);
+const FinalCta = lazy(() =>
+  import("@/components/landing/FinalCta").then((m) => ({ default: m.FinalCta })),
+);
+
+const SectionFallback = () => <div className="h-64" aria-hidden="true" />;
 
 const SEO_TITLE = "360°FOOD — Gestão financeira para bares e restaurantes";
 const SEO_DESC =
   "Sistema de gestão para bares, restaurantes, pizzarias e redes: conciliação bancária via Open Finance, contas a pagar, fluxo de caixa, DRE e departamento pessoal.";
+
 
 export default function Landing() {
   const utm = useUtmQuery();
@@ -43,16 +68,19 @@ export default function Landing() {
       <main id="conteudo">
         <HeroSection utm={utm} />
         <PersonasStrip />
-        <PainSection />
-        <SegmentsSection />
-        <SolutionsSection utm={utm} />
-        <ModulesSection />
-        <FeaturesGrid />
-        <HowItWorksSection />
-        <TrustSection />
-        <FaqSection />
-        <ContactSection />
-        <FinalCta utm={utm} />
+        <Suspense fallback={<SectionFallback />}>
+          <PainSection />
+          <SegmentsSection />
+          <SolutionsSection utm={utm} />
+          <ModulesSection />
+          <FeaturesGrid />
+          <HowItWorksSection />
+          <TrustSection />
+          <FaqSection />
+          <ContactSection />
+          <FinalCta utm={utm} />
+        </Suspense>
+
       </main>
       <MobileCtaBar utm={utm} />
 
