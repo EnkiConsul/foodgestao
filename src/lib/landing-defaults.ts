@@ -117,23 +117,24 @@ export type FooterContent = {
 
 export const LANDING_DEFAULTS = {
   hero: {
-    badge: "Teste grátis 7 dias · sem cartão",
-    title_prefix: "Controle financeiro ",
-    title_highlight: "pessoal e da sua empresa",
+    badge: "1º mês grátis · Programa Fidelidade 360",
+    title_prefix: "A gestão financeira do seu ",
+    title_highlight: "bar, restaurante ou rede",
     title_suffix: ", sem planilha.",
     subtitle:
-      "Para MEI, autônomos, pequenas empresas e finanças pessoais. Contas a pagar e receber, fluxo de caixa projetado e relatórios — em uma só conta, com troca de PF/PJ em 1 clique.",
+      "Contas a pagar e receber, lançamentos bancários automáticos, conciliação, fluxo de caixa e DRE gerencial. Comece com o primeiro mês grátis e, a cada 3 mensalidades pagas, a próxima é por conta do 360° Food.",
     bullets: [
-      "Sem cartão de crédito para testar",
-      "Cancele em 1 clique, sem fidelidade",
+      "Primeiro mês grátis — cartão validado, sem cobrança",
+      "12 meses de 360° Food pagando apenas 9",
       "Dados protegidos (LGPD) e em servidores no Brasil",
     ],
-    cta_primary: "Começe Grátis",
-    cta_secondary: "Ver como funciona",
+    cta_primary: "Começar com o 1º mês grátis",
+    cta_secondary: "Ver planos",
     trust_satisfaction: "4.9 em satisfação",
-    trust_users: "Usado por MEIs e PMEs",
+    trust_users: "Usado por bares e restaurantes",
     trust_devices: "Mobile e desktop",
   } satisfies HeroContent,
+
 
   personas_strip: {
     label: "Feito para",
