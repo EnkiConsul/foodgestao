@@ -672,7 +672,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
       // Um cargo = um salário: reconcilia o cargo antes de gravar o colaborador.
       if (!cargoResolvido.current) {
-        const comparacao = compararSalarioCargo(cargoSelecionado, baseSalarialInformada());
+        const comparacao = compararSalarioCargo(cargoParaComparacao, baseSalarialInformada());
         if (comparacao.status === "cargo_sem_salario") {
           setTab("remuneracao");
           setCargoSemSalario({ salarioInformado: comparacao.salarioInformado });
