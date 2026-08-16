@@ -139,7 +139,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const [dispensas, setDispensas] = useState<DispensaBeneficio[]>([]);
   const isonomiaConfirmada = useRef(false);
   const [cienciaAberta, setCienciaAberta] = useState(false);
-  const [tab, setTab] = useState<"dados" | "jornada" | "remuneracao">("dados");
+  const [tab, setTab] = useState<AbaCadastro>("dados");
+  /** Intenção do botão acionado: continuar na tela, avançar de aba ou sair. */
+  const intencaoRef = useRef<IntencaoSalvar>("stay");
+  /** Marco do último estado gravado — base para detectar alterações pendentes. */
+  const [baseline, setBaseline] = useState<string | null>(null);
+  /** Muda a cada carregamento do colaborador para renovar o marco acima. */
+  const [resetKey, setResetKey] = useState(0);
+  const [confirmarSaida, setConfirmarSaida] = useState(false);
   /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
   const [criadoId, setCriadoId] = useState<string | null>(null);
   /** Salvamento do horário de trabalho exposto pelo painel da aba. */
