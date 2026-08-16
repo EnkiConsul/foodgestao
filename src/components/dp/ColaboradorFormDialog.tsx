@@ -964,6 +964,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 regime={regimeSelecionado}
                 beneficios={beneficios}
                 diasJornada={diasJornada}
+                folgasFimDeSemanaMes={folgasFimDeSemanaMes}
+
               />
 
               {/* Adiantamento — apenas para contratos com salário mensal em folha */}
