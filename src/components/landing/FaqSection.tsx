@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { useLandingSection } from "@/hooks/useLandingContent";
-import { scrollToSection } from "@/lib/landing/scroll";
+import { scrollToAnchor } from "@/lib/landing/scroll";
 
 const WHATSAPP_URL =
   "https://wa.me/5562992365959?text=" +
@@ -85,7 +85,7 @@ export function FaqSection() {
             </Button>
             <Button
               className="w-full sm:w-auto"
-              onClick={() => scrollToSection("contato")}
+              onClick={() => scrollToAnchor("#contato")}
             >
               Falar com o time
             </Button>
