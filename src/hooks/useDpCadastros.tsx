@@ -245,3 +245,70 @@ export function useDeleteDpSindicato() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_sindicatos"] }),
   });
 }
+
+// ---------------- Salário do cargo por unidade ----------------
+// O piso do cargo pode variar por unidade porque o sindicato patronal é da
+// unidade: cada convenção patronal negocia seu próprio valor.
+export type DpCargoSalario = Database["public"]["Tables"]["dp_cargo_salarios"]["Row"];
+export type DpCargoSalarioInsert = Database["public"]["Tables"]["dp_cargo_salarios"]["Insert"];
+
+export function useDpCargoSalarios(cargoId?: string | null) {
+  const { selectedCompanyId } = useCompanyContext();
+  return useQuery({
+    queryKey: ["dp_cargo_salarios", selectedCompanyId, cargoId ?? "all"],
+    enabled: !!selectedCompanyId,
+    queryFn: async (): Promise<DpCargoSalario[]> => {
+      let q = supabase
+        .from("dp_cargo_salarios")
+        .select("*")
+        .eq("company_id", selectedCompanyId!)
+        .order("vigencia_inicio", { ascending: false });
+      if (cargoId) q = q.eq("cargo_id", cargoId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as DpCargoSalario[];
+    },
+  });
+}
+
+export function useUpsertDpCargoSalario() {
+  const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
+  return useMutation({
+    mutationFn: async (
+      input: Partial<DpCargoSalarioInsert> & { id?: string; cargo_id: string; unidade_id: string; salario_base: number },
+    ) => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      const payload = { ...input, company_id: selectedCompanyId } as DpCargoSalarioInsert;
+      if (input.id) {
+        const { data, error } = await supabase
+          .from("dp_cargo_salarios")
+          .update(payload)
+          .eq("id", input.id)
+          .select("*")
+          .single();
+        if (error) throw error;
+        return data as DpCargoSalario;
+      }
+      const { data, error } = await supabase
+        .from("dp_cargo_salarios")
+        .insert(payload)
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as DpCargoSalario;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_cargo_salarios"] }),
+  });
+}
+
+export function useDeleteDpCargoSalario() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("dp_cargo_salarios").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_cargo_salarios"] }),
+  });
+}
