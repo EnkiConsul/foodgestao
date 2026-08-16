@@ -1397,12 +1397,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       <AlertDialog open={!!cargoSemSalario} onOpenChange={(v) => { if (!v) setCargoSemSalario(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Definir o salário de referência do cargo?</AlertDialogTitle>
+            <AlertDialogTitle>Cadastrar o piso salarial deste cargo?</AlertDialogTitle>
             <AlertDialogDescription>
-              O cargo {cargoSelecionado?.nome ?? ""} ainda não tem salário de referência
-              {refSalario.faltaPisoDaUnidade ? ` para ${unidadeSelecionada?.nome ?? "esta unidade"}` : ""}.
-              Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como referência para
-              os próximos colaboradores?
+              O cargo {cargoSelecionado?.nome ?? ""} ainda não tem piso cadastrado
+              {patronalUnidade?.nome
+                ? ` no sindicato patronal ${patronalUnidade.nome}`
+                : ` para ${unidadeSelecionada?.nome ?? "esta unidade"}`}
+              . Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como piso, valendo para
+              todas as unidades com esse mesmo patronal?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1415,22 +1417,23 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             >
               Só para este colaborador
             </AlertDialogCancel>
-            {/* Piso por unidade: cada convenção patronal negocia seu próprio valor. */}
-            {form.unidade_id && (
-              <Button
-                variant="outline"
+            {/* O piso é do sindicato patronal: unidades com o mesmo patronal compartilham. */}
+            {patronalUnidade?.id && (
+              <AlertDialogAction
                 disabled={upsertCargoSalario.isPending}
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.preventDefault();
                   if (!cargoSemSalario || !form.cargo_id) return;
                   try {
                     await upsertCargoSalario.mutateAsync({
                       cargo_id: form.cargo_id,
-                      unidade_id: form.unidade_id,
+                      unidade_id: null,
+                      sindicato_patronal_id: patronalUnidade.id,
                       salario_base: cargoSemSalario.salarioInformado,
                       vigencia_inicio: form.data_admissao || new Date().toISOString().slice(0, 10),
                     });
                   } catch (err) {
-                    toast.error("Não foi possível gravar o salário da unidade", {
+                    toast.error("Não foi possível gravar o piso do sindicato patronal", {
                       description: err instanceof Error ? err.message : String(err),
                     });
                     return;
@@ -1440,34 +1443,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                   void submit();
                 }}
               >
-                Definir para {unidadeSelecionada?.nome ?? "esta unidade"}
-              </Button>
+                Definir piso do patronal
+              </AlertDialogAction>
             )}
-            <AlertDialogAction
 
-              disabled={upsertCargo.isPending}
-              onClick={async (e) => {
-                e.preventDefault();
-                if (!cargoSemSalario || !cargoSelecionado) return;
-                try {
-                  await upsertCargo.mutateAsync({
-                    id: form.cargo_id,
-                    nome: cargoSelecionado.nome,
-                    salario_base: cargoSemSalario.salarioInformado,
-                  } as Parameters<typeof upsertCargo.mutateAsync>[0]);
-                } catch (err) {
-                  toast.error("Não foi possível gravar o salário do cargo", {
-                    description: err instanceof Error ? err.message : String(err),
-                  });
-                  return;
-                }
-                cargoResolvido.current = true;
-                setCargoSemSalario(null);
-                void submit();
-              }}
-            >
-              Definir para o cargo
-            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
