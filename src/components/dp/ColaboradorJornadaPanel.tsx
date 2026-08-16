@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CalendarOff, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert, CopyPlus } from "lucide-react";
+import { CalendarOff, CalendarRange, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert, CopyPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,10 +26,13 @@ import { verificarAlertasClt, idadeNaData, temAlertaClt, type AlertaClt } from "
 import { tituloSistema } from "@/lib/text/titleCase";
 import {
   cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia, diaDivergeDoBase,
-  diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia, normalizarDias,
-  resumoConfigTexto, turnoDoDia, validarConfigTrabalho,
+  diaEhHorarioDaLoja, diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia,
+  normalizarDias, resumoConfigTexto, semanaDaGrade, turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
+import { UsarGradeSemanalDialog } from "@/components/dp/UsarGradeSemanalDialog";
+import type { GradeSemanal } from "@/hooks/useDpGradesSemanais";
+
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : null);
@@ -98,6 +101,7 @@ export function ColaboradorJornadaPanel({
   const admissao = colaborador?.data_admissao ?? null;
   const [obs, setObs] = useState("");
   const [copiarOpen, setCopiarOpen] = useState(false);
+  const [gradeOpen, setGradeOpen] = useState(false);
   const [cienciaOpen, setCienciaOpen] = useState(false);
 
 
@@ -152,17 +156,29 @@ export function ColaboradorJornadaPanel({
     }
     setVigenciaModo("base");
     setAlterado(false);
+    // Nova vigência carregada: o horário base pode ser reaplicado.
+    horarioAplicadoRef.current = null;
 
   }, [active, vigente, colaborador?.unidade_id, admissao]);
 
-  // O horário principal da tela vem do turno padrão gravado na vigência.
+
+  /**
+   * O horário principal da tela vem do turno padrão gravado na vigência — e é
+   * aplicado uma única vez por vigência carregada. Sem esse controle, o efeito
+   * reaplicava o turno antigo a cada render e desfazia o horário copiado de
+   * outro colaborador ou vindo da grade da unidade.
+   */
+  const horarioAplicadoRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!active || !vigente?.turno_padrao_id) return;
-    const t = turnosResolvidos.find((x) => x.id === vigente.turno_padrao_id);
-    if (t?.entrada && t?.saida) {
-      setHorario({ entrada: t.entrada, saida: t.saida, intervalo_minutos: t.intervalo_minutos ?? 0 });
-    }
+    if (!active) return;
+    const id = vigente?.turno_padrao_id ?? null;
+    if (!id || horarioAplicadoRef.current === id) return;
+    const t = turnosResolvidos.find((x) => x.id === id);
+    if (!t?.entrada || !t?.saida) return;
+    horarioAplicadoRef.current = id;
+    setHorario({ entrada: t.entrada, saida: t.saida, intervalo_minutos: t.intervalo_minutos ?? 0 });
   }, [active, vigente?.turno_padrao_id, turnosResolvidos]);
+
 
   /** Turno virtual que representa o horário digitado — só para cálculo na tela. */
   const turnoPadraoTela: TurnoResolvido = useMemo(
@@ -273,24 +289,46 @@ export function ColaboradorJornadaPanel({
     setFolgaVariavel(c.folga_variavel);
     setDias(normalizarDias(c.dias));
     if (c.horario?.entrada && c.horario?.saida) {
+      // Evita que o efeito de sincronização devolva o horário antigo por cima.
+      horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "copiado";
       setHorario({
         entrada: c.horario.entrada,
         saida: c.horario.saida,
         intervalo_minutos: c.horario.intervalo_minutos ?? 0,
       });
     }
-    toast.success("Configuração copiada — revise e salve");
+    toast.success("Horário copiado do colega — revise e salve");
   };
 
+  /** Aplica uma grade semanal da unidade sobre a semana da tela. */
+  const onUsarGrade = (grade: GradeSemanal) => {
+    marcarAlterado();
+    const { dias: novos, base } = semanaDaGrade(grade.dias, turnosResolvidos, horario);
+    horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "grade";
+    setHorario(base);
+    setDias(normalizarDias(novos));
+    setFolgaVariavel(grade.folga_variavel);
+    toast.success(`Grade "${grade.nome}" aplicada — revise e salve`);
+  };
 
   /**
-   * Converte o horário digitado em um horário da loja: reaproveita um turno com
+   * Converte um horário digitado em um horário da loja: reaproveita um turno com
    * o mesmo horário na unidade ou cria um novo, sem pedir nada ao usuário.
+   * O cache evita criar o mesmo turno duas vezes num único salvamento.
    */
-  const resolverTurnoPadrao = async (): Promise<string> => {
+  const resolverTurno = async (
+    h: HorarioSimples,
+    cache?: Map<string, string>,
+  ): Promise<string> => {
     const unidade = unidadeId === "none" ? null : unidadeId;
-    const decisao = resolverTurnoDoHorario(horario, turnosResolvidos.map((t) => ({ ...t, ativo: true })), unidade);
-    if (decisao.tipo === "reaproveita") return decisao.turno.id;
+    const chave = `${h.entrada}|${h.saida}|${h.intervalo_minutos ?? 0}`;
+    const emCache = cache?.get(chave);
+    if (emCache) return emCache;
+    const decisao = resolverTurnoDoHorario(h, turnosResolvidos.map((t) => ({ ...t, ativo: true })), unidade);
+    if (decisao.tipo === "reaproveita") {
+      cache?.set(chave, decisao.turno.id);
+      return decisao.turno.id;
+    }
     const criado = await criarTurno.mutateAsync({
       form: {
         ...TURNO_FORM_DEFAULT,
@@ -301,12 +339,14 @@ export function ColaboradorJornadaPanel({
         saida: decisao.novo.saida,
         intervalo_minutos: decisao.novo.intervalo_minutos,
       },
-      ciencia: intervaloAbaixoDoLegal(horario)
+      ciencia: intervaloAbaixoDoLegal(h)
         ? { confirmada: true, justificativa: "Horário definido no cadastro do colaborador" }
         : null,
     });
+    cache?.set(chave, criado.id);
     return criado.id;
   };
+
 
   /** Registra a ciência dos desvios da CLT em dp_regras_historico. */
   const registrarCiencia = async (justificativa: string) => {
@@ -334,7 +374,28 @@ export function ColaboradorJornadaPanel({
   };
 
   const persistir = async () => {
-    const turnoPadraoId = await resolverTurnoPadrao();
+    const cache = new Map<string, string>();
+    const turnoPadraoId = await resolverTurno(horario, cache);
+
+    // Cada dia com horário diferente do base aponta para um horário da loja —
+    // horários de fim de semana da unidade deixam de ser "exceção" do colaborador.
+    const diasResolvidos: DiaConfig[] = [];
+    for (const d of dias) {
+      if (!d.trabalha || !diaDivergeDoBase(d, horario)) {
+        diasResolvidos.push({ ...d, turno_id: null, entrada: null, saida: null, intervalo_minutos: null });
+        continue;
+      }
+      const h = horarioEfetivoDia(d, horario);
+      const id = await resolverTurno(h, cache);
+      diasResolvidos.push({
+        ...d,
+        turno_id: id,
+        entrada: h.entrada,
+        saida: h.saida,
+        intervalo_minutos: h.intervalo_minutos ?? 0,
+      });
+    }
+
     await salvar.mutateAsync({
       unidade_id: unidadeId === "none" ? null : unidadeId,
       turno_padrao_id: turnoPadraoId,
@@ -342,8 +403,9 @@ export function ColaboradorJornadaPanel({
       folga_fixa_dow: folgaVariavel || folgas.length !== 1 ? null : folgas[0],
       observacoes: obs.trim() || null,
       vigencia_inicio: inicio,
-      dias: dias.map((d) => ({ ...d, turno_id: null })),
+      dias: diasResolvidos,
     });
+
     // A folga fixa fica em um único lugar: a semana desta tela alimenta também
     // o campo do cadastro, que é lido pela escala e pelo portal.
     if (colaborador?.id) {
@@ -567,6 +629,13 @@ export function ColaboradorJornadaPanel({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-sm font-semibold">{tituloSistema("Dias da Semana")}</h3>
           <div className="flex items-center gap-2">
+            <Button
+              type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
+              onClick={() => setGradeOpen(true)}
+            >
+              <CalendarRange className="h-3.5 w-3.5" aria-hidden="true" />
+              Grade da unidade
+            </Button>
             <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => aplicarEscala("6x1")}>
               6x1
             </Button>
@@ -580,6 +649,10 @@ export function ColaboradorJornadaPanel({
           {dias.map((dia) => {
             const h = horarioEfetivoDia(dia, horario);
             const diferente = diaDivergeDoBase(dia, horario);
+
+            // Horário diferente que já existe como horário da loja é padrão da
+            // operação (ex.: fim de semana), não exceção deste colaborador.
+            const daLoja = diferente && diaEhHorarioDaLoja({ ...dia, ...h }, turnosResolvidos);
             return (
               <li key={dia.dow} className="space-y-2 p-3">
                 <div className="flex flex-wrap items-center gap-3">
@@ -591,12 +664,17 @@ export function ColaboradorJornadaPanel({
                   <span className="w-24 shrink-0 text-sm font-medium">{DOW_LABEL[dia.dow]}</span>
                   {dia.trabalha ? (
                     <div className="ml-auto flex items-center gap-2">
-                      {diferente && <Badge variant="outline" className="text-[10px]">Horário próprio</Badge>}
+                      {diferente && (
+                        <Badge variant={daLoja ? "secondary" : "outline"} className="text-[10px]">
+                          {daLoja ? "Horário da loja" : "Horário próprio"}
+                        </Badge>
+                      )}
                       <RepetirHorarioPopover
                         dow={dia.dow}
                         onRepetir={(destinos) => repetirHorario(dia.dow, destinos)}
                       />
                     </div>
+
                   ) : (
                     <Badge variant="secondary" className="ml-auto">Folga</Badge>
                   )}
@@ -796,6 +874,14 @@ export function ColaboradorJornadaPanel({
         unidadeId={unidadeId === "none" ? null : unidadeId}
         turnos={turnosResolvidos}
         onCopiar={onCopiarConfig}
+      />
+
+      <UsarGradeSemanalDialog
+        open={gradeOpen}
+        onOpenChange={setGradeOpen}
+        unidadeId={unidadeId === "none" ? null : unidadeId}
+        turnos={turnosResolvidos}
+        onAplicar={onUsarGrade}
       />
     </div>
   );

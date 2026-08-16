@@ -286,3 +286,106 @@ export function copiarHorarioEntreDias(
     }
     : d));
 }
+
+// ------------------------------------------------------------------
+// Grade semanal da unidade
+//
+// Horário diferente em alguns dias da semana é padrão da operação, não exceção
+// pessoal: cada horário vira um horário da loja (dp_turnos) e a grade guarda
+// qual horário vale em cada dia.
+// ------------------------------------------------------------------
+
+/** O horário próprio do dia coincide com um horário da loja já cadastrado? */
+export function diaEhHorarioDaLoja(dia: DiaConfig, turnos: TurnoResolvido[]): boolean {
+  if (!temHorarioProprio(dia)) return false;
+  const e = String(dia.entrada).slice(0, 5);
+  const s = String(dia.saida).slice(0, 5);
+  const i = dia.intervalo_minutos ?? 0;
+  return turnos.some(
+    (t) => String(t.entrada).slice(0, 5) === e
+      && String(t.saida).slice(0, 5) === s
+      && (t.intervalo_minutos ?? 0) === i,
+  );
+}
+
+export interface GradeDiaSemana {
+  dow: number;
+  trabalha: boolean;
+  turno_id: string | null;
+}
+
+/**
+ * Traduz uma grade semanal na semana do colaborador: o horário mais usado nos
+ * dias trabalhados vira o horário base e os demais dias ficam com o horário da
+ * loja do próprio dia.
+ */
+export function semanaDaGrade(
+  grade: GradeDiaSemana[],
+  turnos: TurnoResolvido[],
+  baseAtual: HorarioDia,
+): { dias: DiaConfig[]; base: HorarioDia } {
+  const turnoDe = (id: string | null) => (id ? turnos.find((t) => t.id === id) ?? null : null);
+
+  const contagem = new Map<string, number>();
+  for (const d of grade) {
+    if (!d.trabalha || !d.turno_id) continue;
+    contagem.set(d.turno_id, (contagem.get(d.turno_id) ?? 0) + 1);
+  }
+  const dominanteId = [...contagem.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  const dominante = turnoDe(dominanteId);
+  const base: HorarioDia = dominante
+    ? {
+      entrada: String(dominante.entrada).slice(0, 5),
+      saida: String(dominante.saida).slice(0, 5),
+      intervalo_minutos: dominante.intervalo_minutos ?? 0,
+    }
+    : baseAtual;
+
+  const dias: DiaConfig[] = ORDEM_EXIBICAO.map((dow) => {
+    const g = grade.find((x) => x.dow === dow);
+    if (!g || !g.trabalha) {
+      return { dow, trabalha: false, turno_id: null, entrada: null, saida: null, intervalo_minutos: null };
+    }
+    const t = turnoDe(g.turno_id);
+    if (!t || g.turno_id === dominanteId) {
+      return { dow, trabalha: true, turno_id: null, entrada: null, saida: null, intervalo_minutos: null };
+    }
+    return {
+      dow,
+      trabalha: true,
+      turno_id: t.id,
+      entrada: String(t.entrada).slice(0, 5),
+      saida: String(t.saida).slice(0, 5),
+      intervalo_minutos: t.intervalo_minutos ?? 0,
+    };
+  });
+
+  return { dias, base };
+}
+
+/**
+ * Caminho inverso: a semana montada na tela do colaborador vira uma grade,
+ * usando os horários da loja equivalentes a cada dia.
+ */
+export function gradeDaSemana(
+  dias: DiaConfig[],
+  base: HorarioDia,
+  turnos: TurnoResolvido[],
+  turnoBaseId: string | null,
+): GradeDiaSemana[] {
+  const idPorHorario = (h: HorarioDia): string | null => {
+    const achado = turnos.find(
+      (t) => String(t.entrada).slice(0, 5) === h.entrada
+        && String(t.saida).slice(0, 5) === h.saida
+        && (t.intervalo_minutos ?? 0) === (h.intervalo_minutos ?? 0),
+    );
+    return achado?.id ?? null;
+  };
+  return ORDEM_EXIBICAO.map((dow) => {
+    const dia = dias.find((d) => d.dow === dow);
+    if (!dia || !dia.trabalha) return { dow, trabalha: false, turno_id: null };
+    if (!temHorarioProprio(dia)) return { dow, trabalha: true, turno_id: turnoBaseId ?? idPorHorario(base) };
+    return { dow, trabalha: true, turno_id: dia.turno_id ?? idPorHorario(horarioEfetivoDia(dia, base)) };
+  });
+}
+
