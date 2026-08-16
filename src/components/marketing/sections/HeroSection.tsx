@@ -48,7 +48,7 @@ export function HeroSection() {
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/80">
             O 360°FOOD organiza o dinheiro e a equipe do seu negócio de alimentação em um único ecossistema, com
-            contratação modular: comece pelo Financeiro, pelo Departamento Pessoal ou pelos dois.
+            contratação modular: comece pelo Financeiro 360°, pelo Pessoas 360° ou pelos dois.
           </p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
@@ -101,7 +101,7 @@ export function HeroSection() {
               >
                 <div className="flex items-center gap-2.5">
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-site-orange/15 text-site-orange">
-                    <mod.icon className="h-4.5 w-4.5" />
+                    <mod.icon className="h-4 w-4" />
                   </span>
                   <p className="text-base font-extrabold text-white">{mod.name}</p>
                 </div>
