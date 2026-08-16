@@ -285,24 +285,46 @@ export function ColaboradorJornadaPanel({
     setFolgaVariavel(c.folga_variavel);
     setDias(normalizarDias(c.dias));
     if (c.horario?.entrada && c.horario?.saida) {
+      // Evita que o efeito de sincronização devolva o horário antigo por cima.
+      horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "copiado";
       setHorario({
         entrada: c.horario.entrada,
         saida: c.horario.saida,
         intervalo_minutos: c.horario.intervalo_minutos ?? 0,
       });
     }
-    toast.success("Configuração copiada — revise e salve");
+    toast.success("Horário copiado do colega — revise e salve");
   };
 
+  /** Aplica uma grade semanal da unidade sobre a semana da tela. */
+  const onUsarGrade = (grade: GradeSemanal) => {
+    marcarAlterado();
+    const { dias: novos, base } = semanaDaGrade(grade.dias, turnosResolvidos, horario);
+    horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "grade";
+    setHorario(base);
+    setDias(normalizarDias(novos));
+    setFolgaVariavel(grade.folga_variavel);
+    toast.success(`Grade "${grade.nome}" aplicada — revise e salve`);
+  };
 
   /**
-   * Converte o horário digitado em um horário da loja: reaproveita um turno com
+   * Converte um horário digitado em um horário da loja: reaproveita um turno com
    * o mesmo horário na unidade ou cria um novo, sem pedir nada ao usuário.
+   * O cache evita criar o mesmo turno duas vezes num único salvamento.
    */
-  const resolverTurnoPadrao = async (): Promise<string> => {
+  const resolverTurno = async (
+    h: HorarioSimples,
+    cache?: Map<string, string>,
+  ): Promise<string> => {
     const unidade = unidadeId === "none" ? null : unidadeId;
-    const decisao = resolverTurnoDoHorario(horario, turnosResolvidos.map((t) => ({ ...t, ativo: true })), unidade);
-    if (decisao.tipo === "reaproveita") return decisao.turno.id;
+    const chave = `${h.entrada}|${h.saida}|${h.intervalo_minutos ?? 0}`;
+    const emCache = cache?.get(chave);
+    if (emCache) return emCache;
+    const decisao = resolverTurnoDoHorario(h, turnosResolvidos.map((t) => ({ ...t, ativo: true })), unidade);
+    if (decisao.tipo === "reaproveita") {
+      cache?.set(chave, decisao.turno.id);
+      return decisao.turno.id;
+    }
     const criado = await criarTurno.mutateAsync({
       form: {
         ...TURNO_FORM_DEFAULT,
@@ -313,12 +335,14 @@ export function ColaboradorJornadaPanel({
         saida: decisao.novo.saida,
         intervalo_minutos: decisao.novo.intervalo_minutos,
       },
-      ciencia: intervaloAbaixoDoLegal(horario)
+      ciencia: intervaloAbaixoDoLegal(h)
         ? { confirmada: true, justificativa: "Horário definido no cadastro do colaborador" }
         : null,
     });
+    cache?.set(chave, criado.id);
     return criado.id;
   };
+
 
   /** Registra a ciência dos desvios da CLT em dp_regras_historico. */
   const registrarCiencia = async (justificativa: string) => {
