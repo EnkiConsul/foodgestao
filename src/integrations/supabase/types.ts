@@ -3177,6 +3177,77 @@ export type Database = {
           },
         ]
       }
+      dp_cargo_salarios: {
+        Row: {
+          cargo_id: string
+          company_id: string
+          created_at: string
+          id: string
+          observacao: string | null
+          salario_base: number
+          sindicato_patronal_id: string | null
+          unidade_id: string
+          updated_at: string
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          cargo_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          salario_base: number
+          sindicato_patronal_id?: string | null
+          unidade_id: string
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Update: {
+          cargo_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          salario_base?: number
+          sindicato_patronal_id?: string | null
+          unidade_id?: string
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_cargo_salarios_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_cargo_salarios_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_cargo_salarios_sindicato_patronal_id_fkey"
+            columns: ["sindicato_patronal_id"]
+            isOneToOne: false
+            referencedRelation: "dp_sindicatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_cargo_salarios_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_cargos: {
         Row: {
           ativo: boolean
