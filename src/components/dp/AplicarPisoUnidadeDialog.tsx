@@ -52,13 +52,14 @@ export function AplicarPisoUnidadeDialog({
     }
   }, [open, vigenciaInicio]);
 
-  const atual = (cargoId: string, salarioGeral: number | null) =>
+  const atual = (cargoId: string) =>
     salarioCargoNaUnidade(
-      salarioGeral,
       (pisos.data ?? []).filter((p) => p.cargo_id === cargoId) as any,
       unidadeId,
+      sindicatoPatronalId ?? null,
       vigencia,
     );
+
 
   const novoValor = (base: number | null) => {
     if (modo === "valor") return numeroBR(valor);
@@ -69,12 +70,15 @@ export function AplicarPisoUnidadeDialog({
   const lista = useMemo(() => cargos.data ?? [], [cargos.data]);
 
   const aplicar = async () => {
+    if (!sindicatoPatronalId) {
+      return toast.error("Vincule o sindicato patronal da unidade antes de aplicar o piso.");
+    }
     if (selecionados.length === 0) return toast.error("Selecione ao menos um cargo.");
     let ok = 0;
     const semBase: string[] = [];
     for (const cargoId of selecionados) {
       const cargo = lista.find((c) => c.id === cargoId);
-      const base = atual(cargoId, (cargo as any)?.salario_base ?? null).valor;
+      const base = atual(cargoId).valor;
       const alvo = novoValor(base);
       if (!alvo || alvo <= 0) {
         semBase.push(cargo?.nome ?? "cargo");
@@ -83,10 +87,10 @@ export function AplicarPisoUnidadeDialog({
       try {
         await upsert.mutateAsync({
           cargo_id: cargoId,
-          unidade_id: unidadeId,
+          unidade_id: null,
           salario_base: alvo,
           vigencia_inicio: vigencia,
-          sindicato_patronal_id: sindicatoPatronalId ?? null,
+          sindicato_patronal_id: sindicatoPatronalId!,
         });
         ok += 1;
       } catch (e) {
@@ -108,8 +112,8 @@ export function AplicarPisoUnidadeDialog({
         <DialogHeader>
           <DialogTitle>Aplicar aos cargos de {unidadeNome}</DialogTitle>
           <DialogDescription>
-            O piso negociado vale para esta unidade. Cargos de outras unidades, mesmo com o
-            mesmo sindicato laboral, mantêm os valores das suas próprias convenções patronais.
+            O piso negociado é do sindicato patronal desta unidade: passa a valer para todas as
+            unidades que usam o mesmo patronal. Outras convenções patronais mantêm seus valores.
           </DialogDescription>
         </DialogHeader>
 
@@ -145,7 +149,7 @@ export function AplicarPisoUnidadeDialog({
               <p className="p-3 text-sm text-muted-foreground">Nenhum cargo cadastrado.</p>
             ) : (
               lista.map((c) => {
-                const ref = atual(c.id, (c as any).salario_base ?? null);
+                const ref = atual(c.id);
                 const alvo = novoValor(ref.valor);
                 const marcado = selecionados.includes(c.id);
                 return (

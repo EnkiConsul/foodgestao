@@ -51,8 +51,8 @@ export function useDpBasesColaboradores() {
             pisos,
             c.cargo_id,
             (c as { unidade_id?: string | null }).unidade_id ?? null,
-            (c as { dp_cargos?: { salario_base: number | null } | null }).dp_cargos?.salario_base ?? null,
           ),
+
           dataAdmissao: c.data_admissao ?? null,
           dependentes: 0,
         }))

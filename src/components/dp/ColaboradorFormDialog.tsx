@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { useUpsertDpColaborador, useDpColaboradores, type DpColaborador } from "@/hooks/useDpColaboradores";
 import { alertaIsonomia } from "@/lib/dp/beneficios-regras";
 import { BeneficioDispensaDialog, type DispensaBeneficio } from "@/components/dp/BeneficioDispensaDialog";
-import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, type DpCargo } from "@/hooks/useDpCadastros";
+import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, type DpCargo } from "@/hooks/useDpCadastros";
 import { salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
 
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
@@ -360,25 +360,29 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
   const cargoSelecionado = (cargos.data ?? []).find((c) => c.id === form.cargo_id) as any;
 
-  // O sindicato laboral vem do cargo, mas o patronal é da unidade: o piso pode
-  // ser diferente por unidade, então resolvemos a referência por (cargo, unidade).
+  // O piso é negociado pelo sindicato patronal, que é vinculado à unidade:
+  // unidades com o mesmo patronal compartilham o piso; ajustes por unidade só
+  // valem acima dele. Sem patronal ou sem piso, a referência fica pendente.
   const pisosCargo = useDpCargoSalarios(form.cargo_id || null);
+  const patronalPorUnidade = useDpPatronalPorUnidade();
+  const patronalUnidade = form.unidade_id
+    ? patronalPorUnidade.data?.[form.unidade_id] ?? null
+    : null;
   const refSalario = useMemo(
     () =>
       salarioCargoNaUnidade(
-        cargoSelecionado?.salario_base ?? null,
         (pisosCargo.data ?? []) as any,
         form.unidade_id || null,
+        patronalUnidade?.id ?? null,
         form.data_admissao || undefined,
       ),
-    [cargoSelecionado?.salario_base, pisosCargo.data, form.unidade_id, form.data_admissao],
+    [pisosCargo.data, form.unidade_id, patronalUnidade?.id, form.data_admissao],
   );
-  // Quando o cargo tem pisos por unidade e a unidade escolhida não tem valor
-  // próprio, não travamos o salário: a convenção patronal daquela unidade é outra.
-  const salarioCargo = refSalario.faltaPisoDaUnidade ? null : refSalario.valor;
+  const salarioCargo = refSalario.valor;
   const cargoParaComparacao = cargoSelecionado
     ? { ...cargoSelecionado, salario_base: salarioCargo }
     : cargoSelecionado;
+
 
 
   // Trocar o cargo ou o salário exige revalidar a regra "um cargo = um salário".
@@ -1188,31 +1192,40 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
           <TabsContent value="remuneracao" className="mt-4">
-            {/* Enquadramento salarial: laboral pelo cargo, patronal pela unidade. */}
-            {cargoSelecionado && form.unidade_id && (refSalario.temPisosPorUnidade || refSalario.origem !== "nenhuma") && (
+            {/* Enquadramento salarial: laboral pelo cargo, piso pelo patronal da unidade. */}
+            {cargoSelecionado && form.unidade_id && (
               <div className="mb-4 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                {refSalario.faltaPisoDaUnidade ? (
+                {refSalario.semPatronalVinculado ? (
                   <>
                     <span className="font-medium text-foreground">
-                      {cargoSelecionado.nome} não tem salário definido para {unidadeSelecionada?.nome ?? "esta unidade"}.
+                      {unidadeSelecionada?.nome ?? "Esta unidade"} não tem sindicato patronal vinculado.
                     </span>{" "}
-                    O sindicato patronal é da unidade, então a convenção pode ter piso diferente.
-                    Informe o salário desta unidade — ele pode ser guardado como referência do cargo nesta unidade.
+                    Vincule o patronal da unidade para o sistema saber qual piso aplicar a {cargoSelecionado.nome}.
+                  </>
+                ) : refSalario.origem === "pendente" ? (
+                  <>
+                    <span className="font-medium text-foreground">
+                      {cargoSelecionado.nome} ainda não tem piso cadastrado no sindicato patronal
+                      {patronalUnidade?.nome ? ` ${patronalUnidade.nome}` : ""}.
+                    </span>{" "}
+                    Cada convenção patronal negocia seu próprio piso, então o valor precisa ser cadastrado
+                    para este patronal — ele passa a valer para todas as unidades que o utilizam.
                   </>
                 ) : (
                   <>
                     Referência salarial de {cargoSelecionado.nome}
                     {refSalario.origem === "unidade"
-                      ? ` na unidade ${unidadeSelecionada?.nome ?? ""}`
-                      : " (salário geral do cargo)"}
+                      ? ` (ajuste da unidade ${unidadeSelecionada?.nome ?? ""})`
+                      : ` (piso do patronal${patronalUnidade?.nome ? ` ${patronalUnidade.nome}` : ""})`}
                     : <span className="font-medium text-foreground">{moedaBR(Number(refSalario.valor ?? 0))}</span>.
-                    {refSalario.origem === "cargo" && refSalario.temPisosPorUnidade
-                      ? " Outras unidades têm piso próprio por negociação patronal distinta."
+                    {refSalario.origem === "unidade" && refSalario.pisoPatronal != null
+                      ? ` Piso do patronal: ${moedaBR(refSalario.pisoPatronal)}.`
                       : ""}
                   </>
                 )}
               </div>
             )}
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* Remuneração e benefícios — base da folha de pagamento */}
 
@@ -1384,12 +1397,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       <AlertDialog open={!!cargoSemSalario} onOpenChange={(v) => { if (!v) setCargoSemSalario(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Definir o salário de referência do cargo?</AlertDialogTitle>
+            <AlertDialogTitle>Cadastrar o piso salarial deste cargo?</AlertDialogTitle>
             <AlertDialogDescription>
-              O cargo {cargoSelecionado?.nome ?? ""} ainda não tem salário de referência
-              {refSalario.faltaPisoDaUnidade ? ` para ${unidadeSelecionada?.nome ?? "esta unidade"}` : ""}.
-              Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como referência para
-              os próximos colaboradores?
+              O cargo {cargoSelecionado?.nome ?? ""} ainda não tem piso cadastrado
+              {patronalUnidade?.nome
+                ? ` no sindicato patronal ${patronalUnidade.nome}`
+                : ` para ${unidadeSelecionada?.nome ?? "esta unidade"}`}
+              . Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como piso, valendo para
+              todas as unidades com esse mesmo patronal?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1402,22 +1417,23 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             >
               Só para este colaborador
             </AlertDialogCancel>
-            {/* Piso por unidade: cada convenção patronal negocia seu próprio valor. */}
-            {form.unidade_id && (
-              <Button
-                variant="outline"
+            {/* O piso é do sindicato patronal: unidades com o mesmo patronal compartilham. */}
+            {patronalUnidade?.id && (
+              <AlertDialogAction
                 disabled={upsertCargoSalario.isPending}
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.preventDefault();
                   if (!cargoSemSalario || !form.cargo_id) return;
                   try {
                     await upsertCargoSalario.mutateAsync({
                       cargo_id: form.cargo_id,
-                      unidade_id: form.unidade_id,
+                      unidade_id: null,
+                      sindicato_patronal_id: patronalUnidade.id,
                       salario_base: cargoSemSalario.salarioInformado,
                       vigencia_inicio: form.data_admissao || new Date().toISOString().slice(0, 10),
                     });
                   } catch (err) {
-                    toast.error("Não foi possível gravar o salário da unidade", {
+                    toast.error("Não foi possível gravar o piso do sindicato patronal", {
                       description: err instanceof Error ? err.message : String(err),
                     });
                     return;
@@ -1427,34 +1443,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                   void submit();
                 }}
               >
-                Definir para {unidadeSelecionada?.nome ?? "esta unidade"}
-              </Button>
+                Definir piso do patronal
+              </AlertDialogAction>
             )}
-            <AlertDialogAction
 
-              disabled={upsertCargo.isPending}
-              onClick={async (e) => {
-                e.preventDefault();
-                if (!cargoSemSalario || !cargoSelecionado) return;
-                try {
-                  await upsertCargo.mutateAsync({
-                    id: form.cargo_id,
-                    nome: cargoSelecionado.nome,
-                    salario_base: cargoSemSalario.salarioInformado,
-                  } as Parameters<typeof upsertCargo.mutateAsync>[0]);
-                } catch (err) {
-                  toast.error("Não foi possível gravar o salário do cargo", {
-                    description: err instanceof Error ? err.message : String(err),
-                  });
-                  return;
-                }
-                cargoResolvido.current = true;
-                setCargoSemSalario(null);
-                void submit();
-              }}
-            >
-              Definir para o cargo
-            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

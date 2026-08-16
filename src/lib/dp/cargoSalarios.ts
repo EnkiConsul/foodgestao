@@ -1,80 +1,156 @@
 // ------------------------------------------------------------------
-// Domínio: DP → Salário do cargo por unidade.
+// Domínio: DP → Piso salarial do cargo por sindicato patronal.
 //
-// O sindicato laboral vem do cargo, mas o patronal é da unidade: convenções
-// patronais diferentes produzem pisos diferentes para o mesmo cargo. Por isso
-// o salário de referência é resolvido por (cargo, unidade, data), caindo no
-// salário geral do cargo apenas quando a unidade não tem valor próprio.
+// O sindicato laboral vem do cargo, mas o patronal é da unidade. Cada convenção
+// patronal negocia seu próprio piso, então o salário de referência é resolvido
+// por (cargo, sindicato patronal da unidade, data). Unidades que compartilham o
+// mesmo patronal compartilham o piso; uma unidade pode ter ajuste próprio, desde
+// que não fique abaixo do piso do patronal. Sem piso do patronal, o sistema não
+// herda o salário geral do cargo: exige o cadastro.
 // ------------------------------------------------------------------
 
-export interface CargoSalarioUnidade {
+export interface CargoSalarioLinha {
   id?: string;
   cargo_id?: string;
-  unidade_id: string;
+  /** Preenchido apenas nos ajustes de uma unidade específica. */
+  unidade_id?: string | null;
+  /** Sindicato patronal ao qual o piso pertence. */
+  sindicato_patronal_id?: string | null;
   salario_base: number;
   vigencia_inicio: string;
   vigencia_fim?: string | null;
-  sindicato_patronal_id?: string | null;
   observacao?: string | null;
 }
 
-export type OrigemSalario = "unidade" | "cargo" | "nenhuma";
+/** Compatibilidade com o nome anterior. */
+export type CargoSalarioUnidade = CargoSalarioLinha;
+
+export type OrigemSalario = "unidade" | "patronal" | "pendente";
 
 export interface SalarioResolvido {
+  /** Valor aplicável (null quando pendente de cadastro). */
   valor: number | null;
   origem: OrigemSalario;
-  /** Registro por unidade usado, quando a origem é `unidade`. */
-  piso?: CargoSalarioUnidade | null;
-  /** Existem pisos por unidade cadastrados para este cargo. */
-  temPisosPorUnidade: boolean;
-  /** Há piso em outra unidade, mas não na unidade escolhida. */
-  faltaPisoDaUnidade: boolean;
+  /** Piso do patronal vigente (mínimo legal para ajustes da unidade). */
+  pisoPatronal: number | null;
+  /** Linha usada como piso do patronal. */
+  linhaPatronal?: CargoSalarioLinha | null;
+  /** Linha de ajuste da unidade, quando existir. */
+  linhaUnidade?: CargoSalarioLinha | null;
+  /** Falta cadastrar o piso deste cargo para o patronal da unidade. */
+  faltaPisoPatronal: boolean;
+  /** A unidade não tem sindicato patronal vinculado. */
+  semPatronalVinculado: boolean;
 }
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 
-/** O registro está vigente na data informada (YYYY-MM-DD). */
-export function pisoVigente(p: CargoSalarioUnidade, data: string): boolean {
+/** A linha está vigente na data informada (YYYY-MM-DD). */
+export function pisoVigente(p: CargoSalarioLinha, data: string): boolean {
   if (p.vigencia_inicio && p.vigencia_inicio > data) return false;
   if (p.vigencia_fim && p.vigencia_fim < data) return false;
   return true;
 }
 
-/** Piso vigente do cargo naquela unidade (o de início mais recente). */
-export function pisoDaUnidade(
-  pisos: CargoSalarioUnidade[] | null | undefined,
+const maisRecente = (lista: CargoSalarioLinha[]): CargoSalarioLinha | null =>
+  [...lista].sort((a, b) => (a.vigencia_inicio < b.vigencia_inicio ? 1 : -1))[0] ?? null;
+
+/** Piso vigente do cargo naquele sindicato patronal. */
+export function pisoDoPatronal(
+  linhas: CargoSalarioLinha[] | null | undefined,
+  patronalId: string | null | undefined,
+  data: string = hoje(),
+): CargoSalarioLinha | null {
+  if (!patronalId) return null;
+  return maisRecente(
+    (linhas ?? []).filter(
+      (p) => !p.unidade_id && p.sindicato_patronal_id === patronalId && pisoVigente(p, data),
+    ),
+  );
+}
+
+/** Ajuste vigente do cargo naquela unidade. */
+export function ajusteDaUnidade(
+  linhas: CargoSalarioLinha[] | null | undefined,
   unidadeId: string | null | undefined,
   data: string = hoje(),
-): CargoSalarioUnidade | null {
+): CargoSalarioLinha | null {
   if (!unidadeId) return null;
-  const candidatos = (pisos ?? [])
-    .filter((p) => p.unidade_id === unidadeId && pisoVigente(p, data))
-    .sort((a, b) => (a.vigencia_inicio < b.vigencia_inicio ? 1 : -1));
-  return candidatos[0] ?? null;
+  return maisRecente((linhas ?? []).filter((p) => p.unidade_id === unidadeId && pisoVigente(p, data)));
 }
 
 /**
  * Salário de referência do cargo para a unidade na data:
- * piso da unidade → salário geral do cargo → sem referência.
+ * ajuste da unidade → piso do patronal da unidade → pendente.
  */
 export function salarioCargoNaUnidade(
-  salarioGeralCargo: number | null | undefined,
-  pisos: CargoSalarioUnidade[] | null | undefined,
+  linhas: CargoSalarioLinha[] | null | undefined,
   unidadeId: string | null | undefined,
+  patronalId: string | null | undefined,
   data: string = hoje(),
 ): SalarioResolvido {
-  const lista = pisos ?? [];
-  const temPisosPorUnidade = lista.length > 0;
-  const piso = pisoDaUnidade(lista, unidadeId, data);
-  if (piso && piso.salario_base > 0) {
-    return { valor: piso.salario_base, origem: "unidade", piso, temPisosPorUnidade, faltaPisoDaUnidade: false };
+  const lista = linhas ?? [];
+  const linhaPatronal = pisoDoPatronal(lista, patronalId, data);
+  const pisoPatronal = linhaPatronal && linhaPatronal.salario_base > 0 ? Number(linhaPatronal.salario_base) : null;
+  const linhaUnidade = ajusteDaUnidade(lista, unidadeId, data);
+  const semPatronalVinculado = !!unidadeId && !patronalId;
+  const faltaPisoPatronal = !!patronalId && pisoPatronal == null;
+
+  if (linhaUnidade && linhaUnidade.salario_base > 0) {
+    return {
+      valor: Number(linhaUnidade.salario_base),
+      origem: "unidade",
+      pisoPatronal,
+      linhaPatronal,
+      linhaUnidade,
+      faltaPisoPatronal,
+      semPatronalVinculado,
+    };
   }
-  const faltaPisoDaUnidade = temPisosPorUnidade && !!unidadeId && !piso;
-  const geral = salarioGeralCargo == null ? null : Number(salarioGeralCargo);
-  if (geral && geral > 0) {
-    return { valor: geral, origem: "cargo", piso: null, temPisosPorUnidade, faltaPisoDaUnidade };
+  if (pisoPatronal != null) {
+    return {
+      valor: pisoPatronal,
+      origem: "patronal",
+      pisoPatronal,
+      linhaPatronal,
+      linhaUnidade: null,
+      faltaPisoPatronal: false,
+      semPatronalVinculado,
+    };
   }
-  return { valor: null, origem: "nenhuma", piso: null, temPisosPorUnidade, faltaPisoDaUnidade };
+  return {
+    valor: null,
+    origem: "pendente",
+    pisoPatronal: null,
+    linhaPatronal: null,
+    linhaUnidade: null,
+    faltaPisoPatronal,
+    semPatronalVinculado,
+  };
+}
+
+/** Tolerância de centavos. */
+const TOL = 0.005;
+
+export type ValidacaoOverride =
+  | { ok: true }
+  | { ok: false; motivo: "valor_invalido" }
+  | { ok: false; motivo: "abaixo_do_piso"; piso: number }
+  | { ok: false; motivo: "sem_piso_patronal" };
+
+/**
+ * O ajuste de uma unidade só é aceito se houver piso do patronal cadastrado e o
+ * valor não ficar abaixo dele (o piso sindical é mínimo, não teto).
+ */
+export function validarOverrideUnidade(
+  valor: number | null | undefined,
+  pisoPatronal: number | null | undefined,
+): ValidacaoOverride {
+  const v = valor == null ? 0 : Number(valor);
+  if (!v || v <= 0) return { ok: false, motivo: "valor_invalido" };
+  if (pisoPatronal == null || pisoPatronal <= 0) return { ok: false, motivo: "sem_piso_patronal" };
+  if (v + TOL < pisoPatronal) return { ok: false, motivo: "abaixo_do_piso", piso: Number(pisoPatronal) };
+  return { ok: true };
 }
 
 /** Aplica um reajuste percentual a um valor, arredondando em centavos. */

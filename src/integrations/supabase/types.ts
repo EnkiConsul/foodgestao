@@ -3186,7 +3186,7 @@ export type Database = {
           observacao: string | null
           salario_base: number
           sindicato_patronal_id: string | null
-          unidade_id: string
+          unidade_id: string | null
           updated_at: string
           vigencia_fim: string | null
           vigencia_inicio: string
@@ -3199,7 +3199,7 @@ export type Database = {
           observacao?: string | null
           salario_base: number
           sindicato_patronal_id?: string | null
-          unidade_id: string
+          unidade_id?: string | null
           updated_at?: string
           vigencia_fim?: string | null
           vigencia_inicio?: string
@@ -3212,7 +3212,7 @@ export type Database = {
           observacao?: string | null
           salario_base?: number
           sindicato_patronal_id?: string | null
-          unidade_id?: string
+          unidade_id?: string | null
           updated_at?: string
           vigencia_fim?: string | null
           vigencia_inicio?: string

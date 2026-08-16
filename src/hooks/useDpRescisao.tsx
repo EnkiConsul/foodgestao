@@ -51,9 +51,9 @@ export function useDpColaboradoresDesligados() {
               pisos,
               (c as { cargo_id?: string | null }).cargo_id ?? null,
               c.unidade_id ?? null,
-              cargo?.salario_base ?? null,
               (c.data_desligamento as string) ?? undefined,
             ),
+
             dataAdmissao: c.data_admissao ?? null,
             dataDesligamento: c.data_desligamento as string,
             motivo: (c.motivo_desligamento ?? "outro") as MotivoDesligamento,
