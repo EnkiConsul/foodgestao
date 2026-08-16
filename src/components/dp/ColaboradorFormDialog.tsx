@@ -355,7 +355,27 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
   const cargoSelecionado = (cargos.data ?? []).find((c) => c.id === form.cargo_id) as any;
-  const salarioCargo = cargoSelecionado?.salario_base ?? null;
+
+  // O sindicato laboral vem do cargo, mas o patronal é da unidade: o piso pode
+  // ser diferente por unidade, então resolvemos a referência por (cargo, unidade).
+  const pisosCargo = useDpCargoSalarios(form.cargo_id || null);
+  const refSalario = useMemo(
+    () =>
+      salarioCargoNaUnidade(
+        cargoSelecionado?.salario_base ?? null,
+        (pisosCargo.data ?? []) as any,
+        form.unidade_id || null,
+        form.data_admissao || undefined,
+      ),
+    [cargoSelecionado?.salario_base, pisosCargo.data, form.unidade_id, form.data_admissao],
+  );
+  // Quando o cargo tem pisos por unidade e a unidade escolhida não tem valor
+  // próprio, não travamos o salário: a convenção patronal daquela unidade é outra.
+  const salarioCargo = refSalario.faltaPisoDaUnidade ? null : refSalario.valor;
+  const cargoParaComparacao = cargoSelecionado
+    ? { ...cargoSelecionado, salario_base: salarioCargo }
+    : cargoSelecionado;
+
 
   // Trocar o cargo ou o salário exige revalidar a regra "um cargo = um salário".
   useEffect(() => {
