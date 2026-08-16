@@ -72,6 +72,22 @@ const TIPOS_VINCULO: { value: string; label: string }[] = [
   { value: "Freelancer", label: "Freelancer (sem registro)" },
 ];
 
+/** Traduz o erro do backend para uma mensagem sempre visível ao usuário. */
+function mensagemErro(e: unknown): string {
+  const any = e as any;
+  const bruto: string =
+    (typeof any?.message === "string" && any.message) ||
+    (typeof any?.details === "string" && any.details) ||
+    (typeof any?.hint === "string" && any.hint) ||
+    (typeof e === "string" ? e : "") ||
+    "Não foi possível concluir a gravação. Tente novamente.";
+  if (bruto.includes("data de demissão")) {
+    return "Este colaborador está inativo sem data de demissão. Informe a data da demissão na aba Dados ou reintegre o colaborador.";
+  }
+  return bruto;
+}
+
+
 // (Dropdown "Regime de Trabalho" removido: duplicava o Tipo de Vínculo e não era persistido.
 //  O regime do banco é derivado de tipo_vinculo via VINCULO_TO_REGIME abaixo.)
 
@@ -204,7 +220,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
   const isEdit = !!colaborador?.id;
-  const isDesligado = isEdit && !!colaborador?.data_desligamento;
+  // Inativo sem data de demissão também conta como desligado: o banco exige a data.
+  const isDesligado = isEdit && (!!colaborador?.data_desligamento || colaborador?.ativo === false);
   // Comportamento da jornada/folga é derivado do contrato, nunca testado inline.
   const policy = contratoPolicy(VINCULO_TO_REGIME[form.tipo_vinculo]);
 
@@ -803,7 +820,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
     } catch (e) {
-      toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Erro ao salvar", { description: mensagemErro(e) });
     }
   };
 
