@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { formatCents, formatLimit } from "@/lib/billing";
+import { FIDELIDADE_INSTALLMENTS, annualSavingsCents } from "@/lib/billing/fidelidade360";
+
 
 export default function Planos() {
   const navigate = useNavigate();
