@@ -129,7 +129,9 @@ export function RemuneracaoFields({
   beneficios,
   regime,
   diasJornada,
+  folgasFimDeSemanaMes,
 }: Props) {
+
   const forma = value.forma_pagamento;
   const formaOptions = formaPagamentoOptions(regime);
   const usaBase = forma === "horista" || forma === "diarista";
