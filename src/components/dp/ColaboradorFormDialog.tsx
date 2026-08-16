@@ -450,6 +450,25 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
 
+  /** Leva o usuário até o campo pendente: rola, foca e mantém o destaque. */
+  useEffect(() => {
+    if (!campoErro) return;
+    const t = window.setTimeout(() => {
+      const alvo = contentRef.current?.querySelector<HTMLElement>(`[data-field="${campoErro}"]`);
+      if (!alvo) return;
+      alvo.scrollIntoView({ block: "center", behavior: "smooth" });
+      alvo.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [campoErro, tab]);
+
+  /** Qualquer edição limpa o destaque de pendência. */
+  useEffect(() => {
+    setCampoErro((atual) => (atual ? null : atual));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshot]);
+
+
 
   /** Fecha o diálogo conferindo alterações pendentes. */
   const tentarFechar = () => {
