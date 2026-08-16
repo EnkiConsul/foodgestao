@@ -39,6 +39,8 @@ function mapRow(data: Record<string, unknown>): ConfigRow {
       data.tipo_descanso_domingo === "acordo_coletivo" ? "acordo_coletivo" : "legal",
     dias_descanso_negociados: ((data.dias_descanso_negociados as number[] | null) ?? [0]).map(Number),
     negociacao_id: (data.negociacao_id as string | null) ?? null,
+    folgas_fds_por_mes: Number(data.folgas_fds_por_mes ?? 1),
+
   };
 }
 /** Remove campos de identidade da linha, deixando apenas os valores de regra. */
