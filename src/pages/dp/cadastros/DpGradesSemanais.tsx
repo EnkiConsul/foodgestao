@@ -182,11 +182,10 @@ export default function DpGradesSemanais() {
       {error && <p className="text-sm text-destructive">Não foi possível carregar as grades.</p>}
 
       {!isLoading && filtradas.length === 0 && (
-        <DpEmptyState
-          icon={CalendarRange}
-          title="Nenhuma grade cadastrada"
-          description="Crie a semana padrão da unidade para reaproveitar nos cadastros de colaboradores."
-        />
+        <DpEmptyState icon={CalendarRange} dashed>
+          <p className="font-medium text-foreground">Nenhuma grade cadastrada</p>
+          <p>Crie a semana padrão da unidade para reaproveitar nos cadastros de colaboradores.</p>
+        </DpEmptyState>
       )}
 
       <ul className="space-y-2">
@@ -284,7 +283,6 @@ export default function DpGradesSemanais() {
                             {t.nome} · {formatarFaixaTurno({
                               entrada: (t.entrada ?? "").slice(0, 5),
                               saida: (t.saida ?? "").slice(0, 5),
-                              intervalo_minutos: t.intervalo_minutos ?? 0,
                             })}
                           </SelectItem>
                         ))}
