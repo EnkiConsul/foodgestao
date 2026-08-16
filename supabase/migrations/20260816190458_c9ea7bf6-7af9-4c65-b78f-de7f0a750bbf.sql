@@ -1,0 +1,1 @@
+DELETE FROM public.landing_content WHERE section IN ('hero','personas_strip','pricing_intro','loyalty','plan_matrix','persona_cards','comparison','guarantee');
