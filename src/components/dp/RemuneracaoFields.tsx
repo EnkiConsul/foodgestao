@@ -219,6 +219,9 @@ export function RemuneracaoFields({
   const labelValor =
     forma === "horista" ? "Valor da hora *" : forma === "diarista" ? "Valor do dia *" : "Salário base *";
   const bloqueiaValor = usaBase && !value.valor_hora_manual && calculado != null;
+  // Um cargo = um salário: mensalista com cargo remunerado não edita o valor aqui.
+  const salarioDoCargo = forma === "mensalista" && !!salarioCargo && salarioCargo > 0;
+  const travadoPeloCargo = salarioDoCargo;
 
   return (
     <div className="col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
