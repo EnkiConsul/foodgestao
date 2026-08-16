@@ -885,7 +885,7 @@ export function ColaboradorJornadaPanel({
         titulo="Horário fora da referência da CLT"
         alertas={avisos.map((a) => ({ campo: a.codigo, mensagem: a.mensagem }))}
         confirming={saving}
-        onCancel={() => setCienciaOpen(false)}
+        onCancel={() => onFecharCiencia(false)}
         onConfirm={(j) => void onConfirmarCiencia(j)}
       />
 
