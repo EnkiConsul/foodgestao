@@ -347,6 +347,14 @@ export default function DpCargos() {
               </div>
 
               <div className="pt-2 border-t border-border">
+                <CargoSalariosUnidadePanel
+                  cargoId={viewCargo.id}
+                  salarioGeral={(viewCargo as any).salario_base ?? null}
+                />
+              </div>
+
+              <div className="pt-2 border-t border-border">
+
                 <Label className="text-xs text-muted-foreground">Colaboradores neste cargo</Label>
                 {(() => {
                   const vinculados = (colaboradores.data ?? []).filter((x: any) => x.cargo_id === viewCargo.id);
