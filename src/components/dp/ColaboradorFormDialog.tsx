@@ -759,8 +759,17 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           return;
         }
         if (resultado === "erro") { setTab("jornada"); return; }
-        toast.success("Colaborador atualizado");
-        if (pendencia) {
+        toast.success(
+          alvo === "close"
+            ? "Colaborador atualizado"
+            : tab === "jornada"
+              ? "Horário de trabalho salvo"
+              : tab === "remuneracao"
+                ? "Remuneração salva"
+                : "Dados salvos",
+        );
+        // O aviso de remuneração só cabe quando essa aba foi validada.
+        if (pendencia && validaRem) {
           toast.warning("Falta completar a remuneração", {
             description: `${pendencia} A folha só é gerada depois disso.`,
           });
