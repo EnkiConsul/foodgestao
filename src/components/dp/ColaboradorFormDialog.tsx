@@ -155,6 +155,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     return (vigente?.dias ?? []).map((d) => ({ dow: d.dow, trabalha: d.trabalha }));
   }, [configTrabalho.vigente, configTrabalho.configs]);
 
+  /**
+   * Folgas de fim de semana por mês da regra de DSR vigente (exceção da unidade
+   * → padrão da empresa) — entram na simulação do vale-alimentação diário.
+   */
+  const regrasDsr = useDpRegrasColaborador(selectedCompanyId, form.unidade_id || null);
+  const folgasFimDeSemanaMes = regrasDsr.config.folgas_fds_por_mes;
+
+
   /** Criação de cargo sem sair do cadastro. */
   const [novoCargoOpen, setNovoCargoOpen] = useState(false);
   /** Conflito entre o salário informado e o salário de referência do cargo. */
