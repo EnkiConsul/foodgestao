@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { carregarPisosPorCargo, referenciaSalarial } from "@/lib/dp/cargoSalariosQuery";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { lerDetalhe, lerExtras, valoresDoLancamento, type RubricaExtra } from "@/lib/dp/folha";
 import {
@@ -32,17 +33,26 @@ export function useDpBasesColaboradores() {
     queryKey: ["dp_bases_colaboradores", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async (): Promise<BaseColaborador[]> => {
-      const { data, error } = await supabase
-        .from("dp_colaboradores")
-        .select("id, nome, data_admissao, cargo_id, dp_cargos:cargo_id(salario_base)")
-        .eq("company_id", selectedCompanyId!)
-        .eq("ativo", true);
+      const [{ data, error }, pisos] = await Promise.all([
+        supabase
+          .from("dp_colaboradores")
+          .select("id, nome, data_admissao, cargo_id, unidade_id, dp_cargos:cargo_id(salario_base)")
+          .eq("company_id", selectedCompanyId!)
+          .eq("ativo", true),
+        // O piso do cargo pode variar por unidade (convenção patronal da unidade).
+        carregarPisosPorCargo(selectedCompanyId!),
+      ]);
       if (error) throw error;
       return (data ?? [])
         .map((c) => ({
           id: c.id,
           nome: c.nome,
-          salarioBase: (c as { dp_cargos?: { salario_base: number | null } | null }).dp_cargos?.salario_base ?? null,
+          salarioBase: referenciaSalarial(
+            pisos,
+            c.cargo_id,
+            (c as { unidade_id?: string | null }).unidade_id ?? null,
+            (c as { dp_cargos?: { salario_base: number | null } | null }).dp_cargos?.salario_base ?? null,
+          ),
           dataAdmissao: c.data_admissao ?? null,
           dependentes: 0,
         }))
