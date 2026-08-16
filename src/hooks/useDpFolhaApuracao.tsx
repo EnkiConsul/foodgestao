@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { carregarPisosPorCargo, referenciaSalarial } from "@/lib/dp/cargoSalariosQuery";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { apuracaoParaLancamento, type LinhaApuracao } from "@/lib/dp/apuracao";
 import {
@@ -35,11 +36,11 @@ export function useDpFolhaApuracao(competencia: string) {
     queryKey: ["dp_folha_base_salarial", selectedCompanyId, competencia],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
-      const [colabRes, configRes] = await Promise.all([
+      const [colabRes, configRes, pisos] = await Promise.all([
         supabase
           .from("dp_colaboradores")
           .select(
-            "id, cargo_id, forma_pagamento, salario_base, valor_hora, dependentes_irrf, adicional_percentual, dp_cargos:cargo_id(salario_base)",
+            "id, cargo_id, unidade_id, forma_pagamento, salario_base, valor_hora, dependentes_irrf, adicional_percentual, dp_cargos:cargo_id(salario_base)",
           )
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true),
@@ -48,6 +49,8 @@ export function useDpFolhaApuracao(competencia: string) {
           .select("colaborador_id, carga_semanal_horas, vigencia_inicio")
           .eq("company_id", selectedCompanyId!)
           .order("vigencia_inicio", { ascending: false }),
+        // O piso do cargo pode variar por unidade (convenção patronal da unidade).
+        carregarPisosPorCargo(selectedCompanyId!),
       ]);
       if (colabRes.error) throw colabRes.error;
       if (configRes.error) throw configRes.error;
@@ -64,7 +67,9 @@ export function useDpFolhaApuracao(competencia: string) {
           forma_pagamento: (c.forma_pagamento ?? "mensalista") as FormaPagamento,
           salario_base: c.salario_base ?? null,
           valor_hora: c.valor_hora ?? null,
-          salario_cargo: c.dp_cargos?.salario_base ?? null,
+          salario_cargo: referenciaSalarial(
+            pisos, c.cargo_id, c.unidade_id, c.dp_cargos?.salario_base ?? null, competenciaDate,
+          ),
         };
         bases.set(c.id, {
           salarioBase: remuneracao.salario_base ?? remuneracao.salario_cargo ?? null,

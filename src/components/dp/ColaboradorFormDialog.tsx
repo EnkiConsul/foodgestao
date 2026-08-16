@@ -14,7 +14,9 @@ import { Switch } from "@/components/ui/switch";
 import { useUpsertDpColaborador, useDpColaboradores, type DpColaborador } from "@/hooks/useDpColaboradores";
 import { alertaIsonomia } from "@/lib/dp/beneficios-regras";
 import { BeneficioDispensaDialog, type DispensaBeneficio } from "@/components/dp/BeneficioDispensaDialog";
-import { useDpUnidades, useDpCargos, useUpsertDpCargo, type DpCargo } from "@/hooks/useDpCadastros";
+import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, type DpCargo } from "@/hooks/useDpCadastros";
+import { salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
+
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { Textarea } from "@/components/ui/textarea";
 import { maskCpf, isValidCpf } from "@/lib/cpf";
@@ -164,6 +166,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
   const upsertCargo = useUpsertDpCargo();
+  const upsertCargoSalario = useUpsertDpCargoSalario();
+
   const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
   const [form, setForm] = useState(blank);
   const { selectedCompanyId, companies } = useCompanyContext();
@@ -355,7 +359,27 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
   const cargoSelecionado = (cargos.data ?? []).find((c) => c.id === form.cargo_id) as any;
-  const salarioCargo = cargoSelecionado?.salario_base ?? null;
+
+  // O sindicato laboral vem do cargo, mas o patronal é da unidade: o piso pode
+  // ser diferente por unidade, então resolvemos a referência por (cargo, unidade).
+  const pisosCargo = useDpCargoSalarios(form.cargo_id || null);
+  const refSalario = useMemo(
+    () =>
+      salarioCargoNaUnidade(
+        cargoSelecionado?.salario_base ?? null,
+        (pisosCargo.data ?? []) as any,
+        form.unidade_id || null,
+        form.data_admissao || undefined,
+      ),
+    [cargoSelecionado?.salario_base, pisosCargo.data, form.unidade_id, form.data_admissao],
+  );
+  // Quando o cargo tem pisos por unidade e a unidade escolhida não tem valor
+  // próprio, não travamos o salário: a convenção patronal daquela unidade é outra.
+  const salarioCargo = refSalario.faltaPisoDaUnidade ? null : refSalario.valor;
+  const cargoParaComparacao = cargoSelecionado
+    ? { ...cargoSelecionado, salario_base: salarioCargo }
+    : cargoSelecionado;
+
 
   // Trocar o cargo ou o salário exige revalidar a regra "um cargo = um salário".
   useEffect(() => {
@@ -650,7 +674,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
       // Um cargo = um salário: reconcilia o cargo antes de gravar o colaborador.
       if (!cargoResolvido.current) {
-        const comparacao = compararSalarioCargo(cargoSelecionado, baseSalarialInformada());
+        const comparacao = compararSalarioCargo(cargoParaComparacao, baseSalarialInformada());
         if (comparacao.status === "cargo_sem_salario") {
           setTab("remuneracao");
           setCargoSemSalario({ salarioInformado: comparacao.salarioInformado });
@@ -1164,8 +1188,34 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
           <TabsContent value="remuneracao" className="mt-4">
+            {/* Enquadramento salarial: laboral pelo cargo, patronal pela unidade. */}
+            {cargoSelecionado && form.unidade_id && (refSalario.temPisosPorUnidade || refSalario.origem !== "nenhuma") && (
+              <div className="mb-4 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                {refSalario.faltaPisoDaUnidade ? (
+                  <>
+                    <span className="font-medium text-foreground">
+                      {cargoSelecionado.nome} não tem salário definido para {unidadeSelecionada?.nome ?? "esta unidade"}.
+                    </span>{" "}
+                    O sindicato patronal é da unidade, então a convenção pode ter piso diferente.
+                    Informe o salário desta unidade — ele pode ser guardado como referência do cargo nesta unidade.
+                  </>
+                ) : (
+                  <>
+                    Referência salarial de {cargoSelecionado.nome}
+                    {refSalario.origem === "unidade"
+                      ? ` na unidade ${unidadeSelecionada?.nome ?? ""}`
+                      : " (salário geral do cargo)"}
+                    : <span className="font-medium text-foreground">{moedaBR(Number(refSalario.valor ?? 0))}</span>.
+                    {refSalario.origem === "cargo" && refSalario.temPisosPorUnidade
+                      ? " Outras unidades têm piso próprio por negociação patronal distinta."
+                      : ""}
+                  </>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* Remuneração e benefícios — base da folha de pagamento */}
+
               <RemuneracaoFields
                 value={rem}
                 onChange={patchRem}
@@ -1336,9 +1386,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           <AlertDialogHeader>
             <AlertDialogTitle>Definir o salário de referência do cargo?</AlertDialogTitle>
             <AlertDialogDescription>
-              O cargo {cargoSelecionado?.nome ?? ""} ainda não tem salário de referência.
+              O cargo {cargoSelecionado?.nome ?? ""} ainda não tem salário de referência
+              {refSalario.faltaPisoDaUnidade ? ` para ${unidadeSelecionada?.nome ?? "esta unidade"}` : ""}.
               Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como referência para
-              os próximos colaboradores deste cargo?
+              os próximos colaboradores?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1351,7 +1402,36 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             >
               Só para este colaborador
             </AlertDialogCancel>
+            {/* Piso por unidade: cada convenção patronal negocia seu próprio valor. */}
+            {form.unidade_id && (
+              <Button
+                variant="outline"
+                disabled={upsertCargoSalario.isPending}
+                onClick={async () => {
+                  if (!cargoSemSalario || !form.cargo_id) return;
+                  try {
+                    await upsertCargoSalario.mutateAsync({
+                      cargo_id: form.cargo_id,
+                      unidade_id: form.unidade_id,
+                      salario_base: cargoSemSalario.salarioInformado,
+                      vigencia_inicio: form.data_admissao || new Date().toISOString().slice(0, 10),
+                    });
+                  } catch (err) {
+                    toast.error("Não foi possível gravar o salário da unidade", {
+                      description: err instanceof Error ? err.message : String(err),
+                    });
+                    return;
+                  }
+                  cargoResolvido.current = true;
+                  setCargoSemSalario(null);
+                  void submit();
+                }}
+              >
+                Definir para {unidadeSelecionada?.nome ?? "esta unidade"}
+              </Button>
+            )}
             <AlertDialogAction
+
               disabled={upsertCargo.isPending}
               onClick={async (e) => {
                 e.preventDefault();

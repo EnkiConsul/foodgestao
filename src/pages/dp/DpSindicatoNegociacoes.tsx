@@ -14,7 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useDpSindicatos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { AplicarPisoUnidadeDialog } from "@/components/dp/AplicarPisoUnidadeDialog";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+
 import type { Database } from "@/integrations/supabase/types";
 
 type Negociacao = Database["public"]["Tables"]["dp_sindicato_negociacoes"]["Row"] & {
@@ -68,6 +70,10 @@ export default function DpSindicatoNegociacoes() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [toDelete, setToDelete] = useState<Negociacao | null>(null);
+  // Aplicação do piso negociado aos cargos da unidade da negociação.
+  const [aplicar, setAplicar] = useState<{
+    unidadeId: string; unidadeNome: string; sindicatoPatronalId: string | null; vigenciaInicio: string;
+  } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const list = useQuery({
@@ -304,6 +310,22 @@ export default function DpSindicatoNegociacoes() {
                     </div>
                   </div>
                   <div className="flex gap-1 md:justify-end">
+                    {n.unidade_id && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setAplicar({
+                            unidadeId: n.unidade_id!,
+                            unidadeNome: unidadeNome ?? "unidade",
+                            sindicatoPatronalId: n.sindicato_id ?? null,
+                            vigenciaInicio: `${n.ano ?? currentYear}-${String(n.mes ?? 1).padStart(2, "0")}-01`,
+                          })
+                        }
+                      >
+                        Aplicar aos cargos
+                      </Button>
+                    )}
                     <Button size="icon" variant="ghost" onClick={() => openEdit(n)} aria-label="Editar">
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -311,6 +333,7 @@ export default function DpSindicatoNegociacoes() {
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
+
                 </div>
 
                 {n.pdf_path && (
@@ -465,6 +488,16 @@ export default function DpSindicatoNegociacoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {aplicar && (
+        <AplicarPisoUnidadeDialog
+          open
+          onOpenChange={(v) => { if (!v) setAplicar(null); }}
+          unidadeId={aplicar.unidadeId}
+          unidadeNome={aplicar.unidadeNome}
+          sindicatoPatronalId={aplicar.sindicatoPatronalId}
+          vigenciaInicio={aplicar.vigenciaInicio}
+        />
+      )}
     </DpPage>
   );
 }

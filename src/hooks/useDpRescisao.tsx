@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { carregarPisosPorCargo, referenciaSalarial } from "@/lib/dp/cargoSalariosQuery";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { lerDetalhe, lerExtras, valoresDoLancamento, type RubricaExtra } from "@/lib/dp/folha";
 import { verbasDaRescisao } from "@/lib/dp/rescisao";
@@ -25,14 +26,18 @@ export function useDpColaboradoresDesligados() {
     queryKey: ["dp_colaboradores_desligados", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async (): Promise<ColaboradorDesligado[]> => {
-      const { data, error } = await supabase
-        .from("dp_colaboradores")
-        .select(
-          "id, nome, data_admissao, data_desligamento, motivo_desligamento, unidade_id, dp_cargos:cargo_id(nome, salario_base)",
-        )
-        .eq("company_id", selectedCompanyId!)
-        .not("data_desligamento", "is", null)
-        .order("data_desligamento", { ascending: false });
+      const [{ data, error }, pisos] = await Promise.all([
+        supabase
+          .from("dp_colaboradores")
+          .select(
+            "id, nome, data_admissao, data_desligamento, motivo_desligamento, unidade_id, cargo_id, dp_cargos:cargo_id(nome, salario_base)",
+          )
+          .eq("company_id", selectedCompanyId!)
+          .not("data_desligamento", "is", null)
+          .order("data_desligamento", { ascending: false }),
+        // O piso do cargo pode variar por unidade (convenção patronal da unidade).
+        carregarPisosPorCargo(selectedCompanyId!),
+      ]);
       if (error) throw error;
       return (data ?? [])
         .filter((c) => !!c.data_desligamento)
@@ -42,7 +47,13 @@ export function useDpColaboradoresDesligados() {
             id: c.id,
             nome: c.nome,
             cargo: cargo?.nome ?? null,
-            salarioBase: cargo?.salario_base ?? null,
+            salarioBase: referenciaSalarial(
+              pisos,
+              (c as { cargo_id?: string | null }).cargo_id ?? null,
+              c.unidade_id ?? null,
+              cargo?.salario_base ?? null,
+              (c.data_desligamento as string) ?? undefined,
+            ),
             dataAdmissao: c.data_admissao ?? null,
             dataDesligamento: c.data_desligamento as string,
             motivo: (c.motivo_desligamento ?? "outro") as MotivoDesligamento,
