@@ -42,6 +42,8 @@ export function useDpRegrasColaborador(
         tipo_descanso_domingo:
           row.tipo_descanso_domingo === "acordo_coletivo" ? "acordo_coletivo" : "legal",
         dias_descanso_negociados: ((row.dias_descanso_negociados as number[] | null) ?? [0]).map(Number),
+        folgas_fds_por_mes: Number(row.folgas_fds_por_mes ?? 1),
+
       };
     },
   });
