@@ -77,6 +77,8 @@ export function SindicatoEnquadramentoField({
   const patronal = enquadramento.data?.patronal ?? null;
   const negociacao = enquadramento.data?.negociacao ?? null;
   const negociacaoPatronal = enquadramento.data?.negociacaoPatronal ?? null;
+  // Enquanto a consulta não responde, não afirmamos que falta vínculo.
+  const carregando = enquadramento.isPending || enquadramento.isLoading;
 
   const unidadeNome = useMemo(
     () => (unidades.data ?? []).find((u) => u.id === unidadeId)?.nome ?? null,
@@ -87,11 +89,14 @@ export function SindicatoEnquadramentoField({
     (sindicatos.data ?? []).filter((s) => (s as any).tipo === tipo && s.ativo !== false);
   const laborais = useMemo(() => porTipo("laboral"), [sindicatos.data]);
   const patronais = useMemo(() => porTipo("patronal"), [sindicatos.data]);
+  /** Único patronal da empresa: sugerimos o vínculo com um clique. */
+  const patronalSugerido = patronais.length === 1 ? patronais[0] : null;
 
   // O cargo é a fonte do enquadramento: mantém o colaborador alinhado ao vínculo.
   useEffect(() => {
+    if (carregando) return;
     if (laboral && value !== laboral.id) onChange(laboral.id);
-  }, [laboral, value, onChange]);
+  }, [carregando, laboral, value, onChange]);
 
   const invalidar = () => {
     for (const key of [
@@ -156,6 +161,8 @@ export function SindicatoEnquadramentoField({
             <p className="text-[11px] text-muted-foreground">
               Selecione o cargo: o sindicato laboral vem do cargo do colaborador.
             </p>
+          ) : carregando ? (
+            <p className="text-[11px] text-muted-foreground">Buscando o sindicato do cargo…</p>
           ) : laboral ? (
             <ResumoVinculado sindicato={laboral} negociacao={negociacao} origem="cargo" />
           ) : (
@@ -195,6 +202,8 @@ export function SindicatoEnquadramentoField({
             <p className="text-[11px] text-muted-foreground">
               Selecione a unidade: o sindicato patronal vem da unidade do colaborador.
             </p>
+          ) : carregando ? (
+            <p className="text-[11px] text-muted-foreground">Buscando o sindicato da unidade…</p>
           ) : patronal ? (
             <ResumoVinculado
               sindicato={patronal}
@@ -206,30 +215,49 @@ export function SindicatoEnquadramentoField({
               <Label className="text-[11px] text-muted-foreground">
                 A unidade {unidadeNome ? `"${unidadeNome}"` : "selecionada"} ainda não tem sindicato patronal
               </Label>
-              <Select
-                value={undefined}
-                onValueChange={(v) => vincularExistente(v, "patronal")}
-                disabled={vinculando}
-              >
-                <SelectTrigger><SelectValue placeholder="Vincular existente" /></SelectTrigger>
-                <SelectContent>
-                  {patronais.length === 0 ? (
-                    <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                      Nenhum sindicato patronal cadastrado
-                    </div>
-                  ) : (
-                    patronais.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              {patronalSugerido ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] text-muted-foreground">
+                    Sugestão: {patronalSugerido.nome}
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    disabled={vinculando}
+                    onClick={() => vincularExistente(patronalSugerido.id, "patronal")}
+                  >
+                    Vincular à unidade
+                  </Button>
+                </div>
+              ) : (
+                <Select
+                  value={undefined}
+                  onValueChange={(v) => vincularExistente(v, "patronal")}
+                  disabled={vinculando}
+                >
+                  <SelectTrigger><SelectValue placeholder="Vincular existente" /></SelectTrigger>
+                  <SelectContent>
+                    {patronais.length === 0 ? (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                        Nenhum sindicato patronal cadastrado
+                      </div>
+                    ) : (
+                      patronais.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {(!laboral || !patronal) && (
+
+      {!carregando && (!laboral || !patronal) && (
         <div className="flex flex-col gap-2 border-t border-border pt-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[11px] text-amber-600 dark:text-amber-500">
             Sem sindicato o sistema não confere piso salarial, reajustes e contribuições da
