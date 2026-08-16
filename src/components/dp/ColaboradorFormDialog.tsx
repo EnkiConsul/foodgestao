@@ -1208,7 +1208,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               onClick={() => void submit("stay")}
               disabled={upsert.isPending}
             >
-              {upsert.isPending ? "Salvando..." : "Salvar e continuar"}
+              {upsert.isPending
+                ? "Salvando..."
+                : abaSeguinte(tab)
+                  ? "Salvar e continuar"
+                  : "Salvar"}
             </Button>
             <Button onClick={() => void submit("close")} disabled={upsert.isPending}>
               Concluir
