@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { getUtm } from "@/lib/marketing/utm";
 import { trackEvent } from "@/lib/analytics";
-import { formatPhone } from "@/lib/phone";
+import { maskPhone } from "@/lib/phone";
 import { BUSINESS_TYPES, HEADCOUNT_OPTIONS, INTEREST_OPTIONS } from "@/lib/marketing/content";
 import { cn } from "@/lib/utils";
 
@@ -182,7 +182,7 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
             inputMode="tel"
             placeholder="(11) 99999-9999"
             value={form.whatsapp}
-            onChange={(e) => set("whatsapp")(formatPhone(e.target.value))}
+            onChange={(e) => set("whatsapp")(maskPhone(e.target.value))}
             autoComplete="tel"
             aria-invalid={!!errors.whatsapp}
             aria-describedby={errors.whatsapp ? "lead-whatsapp-error" : undefined}
