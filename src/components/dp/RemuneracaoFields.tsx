@@ -518,7 +518,9 @@ export function RemuneracaoFields({
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Quantidade de dias</Label>
+                  <Label>
+                    {value.vale_alimentacao_dias_origem === "fixo" ? "Quantidade de dias" : "Dias simulados no mês"}
+                  </Label>
                   {value.vale_alimentacao_dias_origem === "fixo" ? (
                     <Input
                       inputMode="numeric"
@@ -531,7 +533,7 @@ export function RemuneracaoFields({
                       {diasJornadaMes != null ? (
                         <>
                           <strong>{diasJornadaMes} dias</strong>
-                          <span className="text-muted-foreground"> — {resumoJornada}</span>
+                          <span className="text-muted-foreground"> — {baseSimulacao} · {resumoJornada}</span>
                         </>
                       ) : (
                         <span className="text-muted-foreground">
@@ -541,6 +543,7 @@ export function RemuneracaoFields({
                     </div>
                   )}
                 </div>
+
               </>
             )}
 
