@@ -225,6 +225,13 @@ export function RemuneracaoFields({
   const salarioDoCargo = forma === "mensalista" && !!salarioCargo && salarioCargo > 0;
   const travadoPeloCargo = salarioDoCargo;
 
+  // Cargo remunerado manda no salário do mensalista: espelhamos o valor no campo.
+  useEffect(() => {
+    if (!travadoPeloCargo || salarioCargo == null) return;
+    const alvo = paraBR(salarioCargo);
+    if (value.salario_base !== alvo) onChange({ salario_base: alvo });
+  }, [travadoPeloCargo, salarioCargo, value.salario_base]);
+
   return (
     <div className="col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-2">
