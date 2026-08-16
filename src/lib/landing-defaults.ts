@@ -375,9 +375,10 @@ export const LANDING_DEFAULTS = {
   } satisfies FaqContent,
 
   final_cta: {
-    title: "Pronto para tirar o financeiro do restaurante da planilha?",
-    subtitle: "Primeiro mês grátis. A cada 3 mensalidades pagas, a próxima é por conta do 360° Food.",
-    cta_label: "Começar com o 1º mês grátis",
+    title: "Pronto para tirar o financeiro do seu restaurante da planilha?",
+    subtitle: "Conheça a solução e veja como o 360°FOOD organiza caixa, fornecedores e equipe.",
+    cta_label: "Conheça a solução",
+
   } satisfies FinalCtaContent,
 
 
