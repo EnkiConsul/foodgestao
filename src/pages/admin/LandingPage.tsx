@@ -203,8 +203,11 @@ export default function AdminLandingPage() {
           <TabsTrigger value="persona_cards">Personas</TabsTrigger>
           <TabsTrigger value="features">Recursos</TabsTrigger>
           <TabsTrigger value="guarantee">Garantia</TabsTrigger>
+          <TabsTrigger value="loyalty">Fidelidade 360</TabsTrigger>
           <TabsTrigger value="pricing_intro">Planos (intro)</TabsTrigger>
+          <TabsTrigger value="plan_matrix">Comparativo de planos</TabsTrigger>
           <TabsTrigger value="faq">FAQ</TabsTrigger>
+
           <TabsTrigger value="final_cta">CTA final</TabsTrigger>
           <TabsTrigger value="footer">Rodapé</TabsTrigger>
         </TabsList>
