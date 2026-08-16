@@ -16,7 +16,7 @@ import heroImage from "@/assets/site-gestor-indicadores.jpg";
 
 export default function FinanceiroPage() {
   return (
-    <SiteLayout breadcrumbs={[{ name: "Financeiro 360°", url: "/financeiro" }]}>
+    <SiteLayout breadcrumbs={[{ name: "Financeiro 360°", path: "/financeiro" }]}>
       <SiteSeo
         title="Financeiro 360° — Gestão financeira para bares e restaurantes"
         description="Lançamentos, conciliação bancária com Open Finance, fluxo de caixa e DRE gerencial para bares, restaurantes e redes. Multiempresa e acesso por perfil."
