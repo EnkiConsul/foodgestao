@@ -1,6 +1,6 @@
 import { SiteLayout } from "@/components/marketing/SiteLayout";
 import { SiteSeo } from "@/components/marketing/SiteSeo";
-import { Section, SectionHeading } from "@/components/marketing/primitives";
+import { Eyebrow, Section } from "@/components/marketing/primitives";
 import { PlansSection } from "@/components/marketing/sections/PlansSection";
 import { FaqSection } from "@/components/marketing/FaqSection";
 import { FinalCtaSection } from "@/components/marketing/sections/FinalCtaSection";
