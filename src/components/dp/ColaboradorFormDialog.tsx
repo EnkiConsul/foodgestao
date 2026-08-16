@@ -160,6 +160,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Muda a cada carregamento do colaborador para renovar o marco acima. */
   const [resetKey, setResetKey] = useState(0);
   const [confirmarSaida, setConfirmarSaida] = useState(false);
+  /** Campo pendente sinalizado no formulário (foco + destaque). */
+  const [campoErro, setCampoErro] = useState<string | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+
   /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
   const [criadoId, setCriadoId] = useState<string | null>(null);
   /** Salvamento do horário de trabalho exposto pelo painel da aba. */
