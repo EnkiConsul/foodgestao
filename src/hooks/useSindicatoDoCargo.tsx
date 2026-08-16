@@ -7,6 +7,7 @@ export interface SindicatoResumo {
   tipo: string;
   cnpj: string | null;
   data_base: string | null;
+  ativo?: boolean | null;
 }
 
 export interface NegociacaoResumo {
