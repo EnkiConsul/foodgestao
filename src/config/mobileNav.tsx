@@ -369,7 +369,6 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         accent: "primary",
         items: [
           { icon: BarChart3, label: "Estatísticas", to: "/admin/estatisticas" },
-          { icon: FileText, label: "Landing Page", to: "/admin/landing-page" },
           { icon: ScrollText, label: "Documentos Legais", to: "/admin/documentos-legais" },
           { icon: ScrollText, label: "Auditoria", to: "/admin/auditoria" },
           { icon: Search, label: "Indexação SEO", to: "/admin/seo-indexacao" },

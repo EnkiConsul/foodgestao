@@ -60,16 +60,7 @@ export function ModulosCatalogoCard() {
                       Ativo
                     </label>
                     <label className="flex items-center gap-2 text-xs">
-                      <Switch
-                        checked={m.show_on_landing}
-                        onCheckedChange={(v) =>
-                          update.mutate({ id: m.id, patch: { show_on_landing: v } })
-                        }
-                        aria-label={`Exibir ${m.nome} na Landing Page`}
-                      />
-                      Landing Page
-                    </label>
-                    <label className="flex items-center gap-2 text-xs">
+
                       <Switch
                         checked={m.show_on_hub}
                         onCheckedChange={(v) =>

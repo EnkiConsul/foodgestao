@@ -33,8 +33,7 @@ import { installGlobalErrorHandlers } from "@/lib/logger";
 installGlobalErrorHandlers();
 
 
-// Eager: rotas do primeiro paint (landing/auth/hub/dashboard)
-import Landing from "./pages/Landing";
+// Eager: rotas do primeiro paint (auth/hub/dashboard)
 import Auth from "./pages/Auth";
 const PrimeiroAcesso = lazyWithRetry(() => import("./pages/PrimeiroAcesso"));
 const EsqueciSenha = lazyWithRetry(() => import("./pages/EsqueciSenha"));
@@ -158,7 +157,6 @@ const AdminCadastros = lazyWithRetry(() => import("./pages/admin/Cadastros"));
 const AdminCategoriasPadrao = lazyWithRetry(() => import("./pages/admin/CategoriasPadrao"));
 const AdminContasContabeisPadrao = lazyWithRetry(() => import("./pages/admin/ContasContabeisPadrao"));
 const AdminFormasPagamentoPadrao = lazyWithRetry(() => import("./pages/admin/FormasPagamentoPadrao"));
-const AdminLandingPage = lazyWithRetry(() => import("./pages/admin/LandingPage"));
 const AdminBancos = lazyWithRetry(() => import("./pages/admin/Bancos"));
 const AdminDriftSaldos = lazyWithRetry(() => import("./pages/admin/DriftSaldos"));
 const AdminSaudeSistema = lazyWithRetry(() => import("./pages/admin/SaudeSistema"));
@@ -274,7 +272,7 @@ function RootGate() {
   if (user && isAdminOrOwner) return <Navigate to="/hub" replace />;
   if (user && isColab) return <Navigate to="/dp/meu" replace />;
   if (user) return <Navigate to="/hub" replace />;
-  return <Landing />;
+  return <Navigate to="/auth" replace />;
 }
 
 function PortalProtected({ children }: { children: React.ReactNode }) {
@@ -508,7 +506,6 @@ const AppRoutes = () => (
         <Route path="/admin/perfis-acesso" element={<AdminPerfisAcesso />} />
         <Route path="/admin/auditoria" element={<AdminAuditoria />} />
         <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
-        <Route path="/admin/landing-page" element={<AdminLandingPage />} />
         <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
         <Route path="/admin/bancos" element={<AdminBancos />} />
         <Route path="/admin/auditoria-saldos" element={<AdminDriftSaldos />} />

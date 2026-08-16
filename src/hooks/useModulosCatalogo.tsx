@@ -38,13 +38,12 @@ export interface ModuloCatalogo {
   icone: string;
   ordem: number;
   ativo: boolean;
-  show_on_landing: boolean;
   show_on_hub: boolean;
   Icon: LucideIcon;
 }
 
 const SELECT_COLS =
-  "id, slug, nome, descricao_curta, icone, ordem, ativo, show_on_landing, show_on_hub";
+  "id, slug, nome, descricao_curta, icone, ordem, ativo, show_on_hub";
 
 function mapRows(data: unknown): ModuloCatalogo[] {
   return ((data ?? []) as any[]).map((m) => ({
@@ -86,7 +85,7 @@ export function useModulosCatalogoAdmin() {
 }
 
 export type ModuloCatalogoFlags = Partial<
-  Pick<ModuloCatalogo, "ativo" | "show_on_landing" | "show_on_hub">
+  Pick<ModuloCatalogo, "ativo" | "show_on_hub">
 >;
 
 export function useUpdateModuloCatalogo() {
