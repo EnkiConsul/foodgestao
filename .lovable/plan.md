@@ -18,6 +18,13 @@ Passar a tratar o salário do cargo como **salário por cargo + unidade**, mante
 5. **Enquadramento sindical**: o bloco do colaborador passa a exibir que o piso vem da unidade/patronal, deixando claro que o mesmo laboral não implica o mesmo salário.
 6. **Folha, provisões e rescisão**: os cálculos que hoje leem `dp_cargos.salario_base` passam a usar a resolução por unidade do colaborador (data de referência = competência/desligamento).
 
+## Onde isso aparece nas três telas de cadastro
+
+- **Cargos (`/dp/cadastros/cargos`)**: o campo atual "Salário de referência" passa a ser rotulado como valor padrão da empresa, e a ficha do cargo ganha o bloco "Salário por unidade" (unidade, sindicato patronal, valor, vigência, ações). A aba de vinculados já mostra unidade e salário — passa a sinalizar quando o colaborador está fora do piso da unidade dele.
+- **Sindicatos (`/dp/cadastros/sindicatos` e negociações)**: na negociação coletiva (que já tem `reajuste_pct`, unidade e sindicato laboral) entra a ação "Aplicar aos cargos desta unidade", que cria/atualiza os salários por unidade dos cargos ligados ao sindicato laboral, com vigência iniciando na data-base — sempre em revisão antes de gravar. Na ficha do sindicato laboral, aviso de que o piso é por unidade/patronal.
+- **Colaborador (`ColaboradorFormDialog`)**: aba Remuneração usa o piso da unidade do colaborador; o bloco de Enquadramento sindical mostra laboral (cargo) + patronal (unidade) e o piso vigente aplicado, com atalho para cadastrar o piso quando faltar.
+
+
 ## Detalhes técnicos
 
 - Migração: `dp_cargo_salarios` (`id`, `company_id`, `cargo_id`, `unidade_id`, `salario_base numeric`, `vigencia_inicio date`, `vigencia_fim date null`, `sindicato_patronal_id null`, `observacao`, timestamps), índice único parcial por cargo+unidade+vigência aberta, GRANTs para `authenticated`/`service_role`, RLS por empresa no mesmo padrão das demais tabelas DP.
