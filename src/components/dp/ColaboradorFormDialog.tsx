@@ -804,7 +804,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
     } catch (e) {
-      toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Erro ao salvar", { description: mensagemErro(e) });
     }
   };
 
