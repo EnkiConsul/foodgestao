@@ -129,13 +129,11 @@ const blank = {
 /** Abas do cadastro, na ordem em que o usuário avança. */
 const ABAS = ["dados", "jornada", "remuneracao"] as const;
 type AbaCadastro = (typeof ABAS)[number];
-/** O que fazer depois de salvar: ficar na tela, avançar de aba ou sair. */
-type IntencaoSalvar = "stay" | "next" | "close";
+type IntencaoSalvar = "stay" | "close";
 
 const abaSeguinte = (aba: AbaCadastro): AbaCadastro | null =>
   ABAS[ABAS.indexOf(aba) + 1] ?? null;
-const abaAnterior = (aba: AbaCadastro): AbaCadastro | null =>
-  ABAS.indexOf(aba) > 0 ? ABAS[ABAS.indexOf(aba) - 1] : null;
+
 
 
 export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props) {
