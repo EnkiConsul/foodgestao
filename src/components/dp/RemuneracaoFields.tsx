@@ -169,9 +169,11 @@ export function RemuneracaoFields({
     salario,
   );
 
-  // Dias do mês pela jornada: fonte única do "dias considerados" do VA diário.
-  const diasJornadaMes = diasTrabalhaveisNoMes(diasJornada);
+  // Dias simulados no mês: 30 dias − folgas semanais × 4 − folgas de fim de semana.
+  const diasJornadaMes = diasSimuladosMesComercial({ dias: diasJornada, folgasFimDeSemanaMes });
   const resumoJornada = descreverDiasJornada(diasJornada);
+  const baseSimulacao = descreverBaseSimulacao({ dias: diasJornada, folgasFimDeSemanaMes });
+
 
   const vaInput = {
     vale_alimentacao: value.vale_alimentacao,
