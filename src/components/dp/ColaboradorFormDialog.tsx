@@ -1016,6 +1016,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                   <Input
                     type="date"
                     value={form.data_desligamento}
+                    {...marca("data_desligamento")}
+
                     onChange={(e) => setForm({ ...form, data_desligamento: e.target.value })}
                   />
                 </div>
