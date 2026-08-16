@@ -133,6 +133,8 @@ export function RemuneracaoFields({
   value,
   onChange,
   salarioCargo,
+  cargoNome,
+  onBeforeNavigate,
   cargoInsalubre,
   beneficios,
   regime,
