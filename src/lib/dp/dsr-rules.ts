@@ -61,6 +61,8 @@ export interface DpConfigDp {
   dias_descanso_negociados: number[];
   /** Negociação sindical (ACT/CCT) que embasa o modo acordo coletivo. */
   negociacao_id: string | null;
+  /** Folgas de fim de semana garantidas por mês (sábado ou domingo). */
+  folgas_fds_por_mes: number;
 }
 
 export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id" | "unidade_id"> = {
@@ -76,7 +78,9 @@ export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id" | "unidade_id">
   tipo_descanso_domingo: "legal",
   dias_descanso_negociados: [0],
   negociacao_id: null,
+  folgas_fds_por_mes: 1,
 };
+
 
 /** Intervalo em semanas efetivamente aplicado (regra geral). */
 export function semanasEfetivas(
