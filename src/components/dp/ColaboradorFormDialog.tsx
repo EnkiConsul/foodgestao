@@ -438,10 +438,6 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     const intencao = intencaoRef.current;
     intencaoRef.current = "stay";
     if (intencao === "close") { onOpenChange(false); return; }
-    if (intencao === "next") {
-      const proxima = abaSeguinte(tab);
-      if (proxima) setTab(proxima);
-    }
   };
 
 
