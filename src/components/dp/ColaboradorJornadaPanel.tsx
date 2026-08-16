@@ -152,8 +152,11 @@ export function ColaboradorJornadaPanel({
     }
     setVigenciaModo("base");
     setAlterado(false);
+    // Nova vigência carregada: o horário base pode ser reaplicado.
+    horarioAplicadoRef.current = null;
 
   }, [active, vigente, colaborador?.unidade_id, admissao]);
+
 
   /**
    * O horário principal da tela vem do turno padrão gravado na vigência — e é
