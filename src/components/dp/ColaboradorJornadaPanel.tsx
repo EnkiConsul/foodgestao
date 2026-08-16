@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CalendarOff, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert, CopyPlus } from "lucide-react";
+import { CalendarOff, CalendarRange, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert, CopyPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,6 +101,7 @@ export function ColaboradorJornadaPanel({
   const admissao = colaborador?.data_admissao ?? null;
   const [obs, setObs] = useState("");
   const [copiarOpen, setCopiarOpen] = useState(false);
+  const [gradeOpen, setGradeOpen] = useState(false);
   const [cienciaOpen, setCienciaOpen] = useState(false);
 
 
@@ -873,6 +874,14 @@ export function ColaboradorJornadaPanel({
         unidadeId={unidadeId === "none" ? null : unidadeId}
         turnos={turnosResolvidos}
         onCopiar={onCopiarConfig}
+      />
+
+      <UsarGradeSemanalDialog
+        open={gradeOpen}
+        onOpenChange={setGradeOpen}
+        unidadeId={unidadeId === "none" ? null : unidadeId}
+        turnos={turnosResolvidos}
+        onAplicar={onUsarGrade}
       />
     </div>
   );
