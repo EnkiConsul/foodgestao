@@ -134,20 +134,17 @@ export default function DpCargos() {
   /** Célula de salário: valor único ou faixa por unidade. */
   const salarioResumo = (c: any) => {
     const valores = pisosPorCargo.get(c.id) ?? [];
-    if (valores.length > 0) {
-      const min = Math.min(...valores);
-      const max = Math.max(...valores);
-      return {
-        texto: "por unidade",
-        dica:
-          min === max
-            ? `${valores.length} unidade(s) · ${moedaBR(min)}`
-            : `${valores.length} unidades · ${moedaBR(min)} a ${moedaBR(max)}`,
-      };
+    if (valores.length === 0) {
+      return { texto: "pendente", dica: "Cadastre o piso do sindicato patronal" };
+    }
+    const min = Math.min(...valores);
+    const max = Math.max(...valores);
+    if (min === max) {
+      return { texto: moedaBR(min), dica: `${valores.length} piso(s) cadastrado(s)` };
     }
     return {
-      texto: c.salario_base != null ? moedaBR(Number(c.salario_base)) : "—",
-      dica: "Salário de referência do cargo",
+      texto: `${moedaBR(min)} a ${moedaBR(max)}`,
+      dica: `${valores.length} pisos por sindicato patronal / unidade`,
     };
   };
 
@@ -272,7 +269,7 @@ export default function DpCargos() {
                   <div className="font-bold uppercase truncate">{c.nome}</div>
                   {descricao && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{descricao}</div>}
                   <div className="mt-1 text-xs tabular-nums text-muted-foreground">
-                    Salário base: {salarioResumo(c).texto}
+                    Piso: {salarioResumo(c).texto}
                     <span className="ml-1 normal-case">({salarioResumo(c).dica})</span>
                   </div>
 
@@ -322,25 +319,15 @@ export default function DpCargos() {
                 placeholder="Breve descrição das responsabilidades."
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="cargo-salario">Salário de referência (padrão da empresa) (R$)</Label>
-              <Input
-                id="cargo-salario"
-                inputMode="decimal"
-                value={form.salario_base}
-                onChange={(e) => setForm({ ...form, salario_base: e.target.value })}
-                placeholder="Ex: 2.200,00"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Vale para todas as unidades que não tiverem piso próprio abaixo.
+            {!editing && (
+              <p className="rounded-lg border border-dashed p-3 text-[11px] text-muted-foreground">
+                O salário deste cargo é cadastrado como piso do sindicato patronal (que é da unidade)
+                após salvar o cargo. Patronais diferentes exigem piso próprio.
               </p>
-            </div>
+            )}
             {editing && (
               <div className="rounded-xl border border-border p-3">
-                <CargoSalariosUnidadePanel
-                  cargoId={editing.id}
-                  salarioGeral={(editing as any).salario_base ?? null}
-                />
+                <CargoSalariosUnidadePanel cargoId={editing.id} />
               </div>
             )}
 
@@ -385,12 +372,9 @@ export default function DpCargos() {
               </div>
               <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Salário de referência</Label>
-                  <p className="mt-1 tabular-nums">
-                    {(viewCargo as any).salario_base != null
-                      ? moedaBR(Number((viewCargo as any).salario_base))
-                      : "Não definido"}
-                  </p>
+                  <Label className="text-xs text-muted-foreground">Piso salarial</Label>
+                  <p className="mt-1 tabular-nums">{salarioResumo(viewCargo).texto}</p>
+                  <p className="text-[11px] text-muted-foreground">{salarioResumo(viewCargo).dica}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Insalubridade / periculosidade</Label>
@@ -399,10 +383,7 @@ export default function DpCargos() {
               </div>
 
               <div className="pt-2 border-t border-border">
-                <CargoSalariosUnidadePanel
-                  cargoId={viewCargo.id}
-                  salarioGeral={(viewCargo as any).salario_base ?? null}
-                />
+                <CargoSalariosUnidadePanel cargoId={viewCargo.id} />
               </div>
 
               <div className="pt-2 border-t border-border">
