@@ -17,11 +17,13 @@ export default function HomePage() {
         title="360°FOOD — Gestão financeira e de pessoas para bares e restaurantes"
         description="Organize o financeiro e o departamento pessoal do seu bar, restaurante ou rede em um só ecossistema. Contratação modular, multiempresa e acesso pelo navegador."
         path="/"
-        jsonLd={softwareApplicationLd(
-          "360°FOOD",
-          "Plataforma de gestão financeira e de departamento pessoal para bares, restaurantes e food service.",
-          "/",
-        )}
+        jsonLd={[
+          softwareApplicationLd(
+            "360°FOOD",
+            "Plataforma de gestão financeira e de departamento pessoal para bares, restaurantes e food service.",
+            "/",
+          ),
+        ]}
       />
       <HeroSection />
       <SolutionsSection />
