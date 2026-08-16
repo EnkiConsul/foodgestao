@@ -185,6 +185,18 @@ const DasMei = lazyWithRetry(() => import("./pages/guias/DasMei"));
 const Buscar = lazyWithRetry(() => import("./pages/Buscar"));
 const TrialExpired = lazyWithRetry(() => import("./pages/TrialExpired"));
 
+// Site público (marketing)
+const HomePage = lazyWithRetry(() => import("./pages/marketing/HomePage"));
+const PlanosSitePage = lazyWithRetry(() => import("./pages/marketing/PlanosSitePage"));
+const FinanceiroPage = lazyWithRetry(() => import("./pages/marketing/FinanceiroPage"));
+const DpSitePage = lazyWithRetry(() => import("./pages/marketing/DpPage"));
+const ContatoPage = lazyWithRetry(() => import("./pages/marketing/ContatoPage"));
+const QuemSomosPage = lazyWithRetry(() => import("./pages/marketing/QuemSomosPage"));
+const CasesPage = lazyWithRetry(() => import("./pages/marketing/CasesPage"));
+const CaseDetailPage = lazyWithRetry(() => import("./pages/marketing/CaseDetailPage"));
+const BlogPage = lazyWithRetry(() => import("./pages/marketing/BlogPage"));
+const BlogPostPage = lazyWithRetry(() => import("./pages/marketing/BlogPostPage"));
+
 // Rotas acessíveis mesmo com trial/assinatura expirada
 const TRIAL_EXPIRED_WHITELIST = [
   "/trial-expirado",
