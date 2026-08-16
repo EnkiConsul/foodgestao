@@ -399,6 +399,34 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     return out;
   };
 
+  /** Estado atual das abas, usado para detectar alterações não salvas. */
+  const snapshot = JSON.stringify({ form, rem });
+  const dirty = baseline !== null && snapshot !== baseline;
+
+  /** Sincroniza o marco de "sem alterações" após carregar o colaborador. */
+  useEffect(() => {
+    setBaseline(JSON.stringify({ form, rem }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
+
+  /** Fecha o diálogo conferindo alterações pendentes. */
+  const tentarFechar = () => {
+    if (dirty) { setConfirmarSaida(true); return; }
+    onOpenChange(false);
+  };
+
+  /** Aplica a intenção do botão que disparou o salvamento. */
+  const finalizar = () => {
+    const intencao = intencaoRef.current;
+    intencaoRef.current = "stay";
+    if (intencao === "close") { onOpenChange(false); return; }
+    if (intencao === "next") {
+      const proxima = abaSeguinte(tab);
+      if (proxima) setTab(proxima);
+    }
+  };
+
+
   const submit = async (intencao?: IntencaoSalvar) => {
     if (intencao) intencaoRef.current = intencao;
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
