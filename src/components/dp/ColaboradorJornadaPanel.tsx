@@ -643,8 +643,12 @@ export function ColaboradorJornadaPanel({
             </Button>
             <span className="text-xs tabular-nums text-muted-foreground">{formatarHoras(carga)}/semana</span>
           </div>
-
+        </div>
+        <ul className="divide-y rounded-lg border">
+          {dias.map((dia) => {
+            const h = horarioEfetivoDia(dia, horario);
             const diferente = diaDivergeDoBase(dia, horario);
+
             // Horário diferente que já existe como horário da loja é padrão da
             // operação (ex.: fim de semana), não exceção deste colaborador.
             const daLoja = diferente && diaEhHorarioDaLoja({ ...dia, ...h }, turnosResolvidos);
