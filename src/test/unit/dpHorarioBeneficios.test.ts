@@ -3,8 +3,9 @@ import {
   copiarHorarioEntreDias, definirHorarioNoDia, diaDivergeDoBase, diasPadrao, horarioEfetivoDia,
 } from "@/lib/dp/config-trabalho";
 import {
-  alertaIsonomia, alertasBeneficioAlimentacao, calcularBeneficioMes, descreverDiasJornada,
-  diasTrabalhaveisNoMes, termoDispensaTexto,
+  alertaIsonomia, alertasBeneficioAlimentacao, calcularBeneficioMes, descreverBaseSimulacao,
+  descreverDiasJornada, diasSimuladosMesComercial, diasTrabalhaveisNoMes, termoDispensaTexto,
+
 } from "@/lib/dp/beneficios-regras";
 import { premioAssiduidadeBase, valeAlimentacaoDoMes } from "@/lib/dp/remuneracao";
 
