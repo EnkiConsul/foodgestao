@@ -55,6 +55,29 @@ export type HowItWorksContent = {
   note: string;
 };
 
+export type SolutionTab = {
+  key: string;
+  tab_label: string;
+  badge: string;
+  title: string;
+  subtitle: string;
+  bullets: string[];
+  cta_label: string;
+};
+export type SolutionsContent = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  tabs: SolutionTab[];
+};
+
+export type TrustItem = { title: string; desc: string };
+export type TrustContent = {
+  eyebrow: string;
+  title: string;
+  items: TrustItem[];
+};
+
 export type ComparisonRow = { k: string; a: string; b: string };
 export type ComparisonContent = {
   eyebrow: string;
