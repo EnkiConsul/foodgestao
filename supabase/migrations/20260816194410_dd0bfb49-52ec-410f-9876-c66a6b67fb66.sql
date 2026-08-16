@@ -1,0 +1,1 @@
+DELETE FROM public.landing_content WHERE section NOT LIKE 'legal_%';
