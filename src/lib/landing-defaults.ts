@@ -154,6 +154,8 @@ export const LANDING_DEFAULTS = {
     items: [
       { label: "Início", href: "#" },
       { label: "Soluções", href: "#modulos" },
+      { label: "Como funciona", href: "#como-funciona" },
+
       { label: "Recursos", href: "#recursos" },
       { label: "FAQ", href: "#faq" },
       { label: "Contato", href: "#contato" },
