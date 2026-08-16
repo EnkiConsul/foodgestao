@@ -3,8 +3,9 @@ import {
   copiarHorarioEntreDias, definirHorarioNoDia, diaDivergeDoBase, diasPadrao, horarioEfetivoDia,
 } from "@/lib/dp/config-trabalho";
 import {
-  alertaIsonomia, alertasBeneficioAlimentacao, calcularBeneficioMes, descreverDiasJornada,
-  diasTrabalhaveisNoMes, termoDispensaTexto,
+  alertaIsonomia, alertasBeneficioAlimentacao, calcularBeneficioMes, descreverBaseSimulacao,
+  descreverDiasJornada, diasSimuladosMesComercial, diasTrabalhaveisNoMes, termoDispensaTexto,
+
 } from "@/lib/dp/beneficios-regras";
 import { premioAssiduidadeBase, valeAlimentacaoDoMes } from "@/lib/dp/remuneracao";
 
@@ -144,4 +145,31 @@ describe("dias trabalháveis no mês", () => {
     expect(descreverDiasJornada([])).toBe("jornada não cadastrada");
   });
 });
+
+
+describe("simulação em mês comercial", () => {
+  const seisPorUm = [0, 1, 2, 3, 4, 5, 6].map((dow) => ({ dow, trabalha: dow !== 0 }));
+  const cincoPorDois = [0, 1, 2, 3, 4, 5, 6].map((dow) => ({ dow, trabalha: dow >= 1 && dow <= 5 }));
+  const todosOsDias = [0, 1, 2, 3, 4, 5, 6].map((dow) => ({ dow, trabalha: true }));
+
+  it("desconta folgas semanais × 4 e a folga de fim de semana", () => {
+    expect(diasSimuladosMesComercial({ dias: seisPorUm, folgasFimDeSemanaMes: 1 })).toBe(25);
+    expect(diasSimuladosMesComercial({ dias: cincoPorDois, folgasFimDeSemanaMes: 1 })).toBe(21);
+    expect(diasSimuladosMesComercial({ dias: seisPorUm, folgasFimDeSemanaMes: 0 })).toBe(26);
+    expect(diasSimuladosMesComercial({ dias: todosOsDias, folgasFimDeSemanaMes: 0 })).toBe(30);
+  });
+
+  it("retorna nulo sem jornada cadastrada", () => {
+    expect(diasSimuladosMesComercial({ dias: [], folgasFimDeSemanaMes: 1 })).toBeNull();
+    expect(diasSimuladosMesComercial({ dias: null })).toBeNull();
+  });
+
+  it("descreve a conta da simulação", () => {
+    expect(descreverBaseSimulacao({ dias: seisPorUm, folgasFimDeSemanaMes: 1 }))
+      .toBe("30 dias − 1 folga semanal × 4 − 1 folga de fim de semana");
+    expect(descreverBaseSimulacao({ dias: todosOsDias, folgasFimDeSemanaMes: 0 })).toBe("30 dias");
+    expect(descreverBaseSimulacao({ dias: [] })).toBe("jornada não cadastrada");
+  });
+});
+
 

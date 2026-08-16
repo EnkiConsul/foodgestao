@@ -280,6 +280,59 @@ export function diasTrabalhaveisNoMes(
   return total;
 }
 
+/** Dias do mês comercial usados na simulação de benefícios diários. */
+export const DIAS_MES_COMERCIAL = 30;
+/** Semanas consideradas no mês comercial. */
+export const SEMANAS_MES_COMERCIAL = 4;
+
+export interface SimulacaoDiasInput {
+  /** Dias da semana da jornada do colaborador. */
+  dias: DiaSemanaTrabalho[] | null | undefined;
+  /** Folgas de fim de semana por mês (DSR da unidade/empresa) — sábado ou domingo. */
+  folgasFimDeSemanaMes?: number | null;
+}
+
+/** Quantidade de dias da semana marcados como folga na jornada. */
+export function folgasSemanaisDaJornada(dias: DiaSemanaTrabalho[] | null | undefined): number | null {
+  const lista = (dias ?? []);
+  if (lista.filter((d) => d.trabalha).length === 0) return null;
+  return lista.filter((d) => !d.trabalha).length;
+}
+
+/**
+ * Dias simulados no mês para benefício pago por dia:
+ * 30 dias − (folgas semanais × 4) − folgas de fim de semana no mês.
+ *
+ * Não importa em qual dia da semana a folga cai: conta apenas quantos dias da
+ * semana estão marcados como folga no cadastro do colaborador. A folga de fim
+ * de semana (sábado ou domingo) vem da configuração de DSR.
+ *
+ * Retorna `null` quando a jornada ainda não foi cadastrada.
+ */
+export function diasSimuladosMesComercial(input: SimulacaoDiasInput): number | null {
+  const folgas = folgasSemanaisDaJornada(input.dias);
+  if (folgas == null) return null;
+  const fds = Math.max(0, Math.trunc(num(input.folgasFimDeSemanaMes)));
+  return Math.max(0, DIAS_MES_COMERCIAL - folgas * SEMANAS_MES_COMERCIAL - fds);
+}
+
+/** Texto da conta da simulação — "30 dias − 1 folga semanal × 4 − 1 folga de fim de semana". */
+export function descreverBaseSimulacao(input: SimulacaoDiasInput): string {
+  const folgas = folgasSemanaisDaJornada(input.dias);
+  if (folgas == null) return "jornada não cadastrada";
+  const fds = Math.max(0, Math.trunc(num(input.folgasFimDeSemanaMes)));
+  const partes = [`${DIAS_MES_COMERCIAL} dias`];
+  if (folgas > 0) {
+    partes.push(
+      `${folgas} ${folgas === 1 ? "folga semanal" : "folgas semanais"} × ${SEMANAS_MES_COMERCIAL}`,
+    );
+  }
+  if (fds > 0) {
+    partes.push(`${fds} ${fds === 1 ? "folga de fim de semana" : "folgas de fim de semana"}`);
+  }
+  return partes.join(" − ");
+}
+
 /** Resumo legível da jornada semanal — "seg a sáb, folga domingo". */
 export function descreverDiasJornada(dias: DiaSemanaTrabalho[] | null | undefined): string {
   const trabalha = (dias ?? []).filter((d) => d.trabalha).map((d) => d.dow).sort((a, b) => a - b);
@@ -289,6 +342,7 @@ export function descreverDiasJornada(dias: DiaSemanaTrabalho[] | null | undefine
   const listaTrabalha = trabalha.map((d) => DOW_CURTO_LABEL[d]).join(", ");
   return `${listaTrabalha} — folga ${folgas.map((d) => DOW_CURTO_LABEL[d]).join(", ")}`;
 }
+
 
 /**
  * Dias considerados para o benefício diário, na ordem de precedência:

@@ -23,9 +23,10 @@ import {
 } from "@/lib/dp/remuneracao";
 import {
   alertasBeneficioAlimentacao, DESCONTO_TIPO_LABEL, DIAS_BASE_PADRAO, DIAS_ORIGEM_LABEL,
-  PERIODICIDADE_LABEL, descreverDiasJornada, diasTrabalhaveisNoMes,
+  PERIODICIDADE_LABEL, descreverBaseSimulacao, descreverDiasJornada, diasSimuladosMesComercial,
   type DescontoTipo, type DiaSemanaTrabalho, type DiasOrigem, type Periodicidade,
 } from "@/lib/dp/beneficios-regras";
+
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
 import { formatarBRL } from "@/lib/dp/folha";
@@ -111,6 +112,9 @@ interface Props {
   regime?: string | null;
   /** Dias da semana da jornada do colaborador (aba Horário de Trabalho). */
   diasJornada?: DiaSemanaTrabalho[] | null;
+  /** Folgas de fim de semana por mês (DSR da unidade/empresa). */
+  folgasFimDeSemanaMes?: number | null;
+
 }
 
 /**
@@ -125,7 +129,9 @@ export function RemuneracaoFields({
   beneficios,
   regime,
   diasJornada,
+  folgasFimDeSemanaMes,
 }: Props) {
+
   const forma = value.forma_pagamento;
   const formaOptions = formaPagamentoOptions(regime);
   const usaBase = forma === "horista" || forma === "diarista";
@@ -163,9 +169,11 @@ export function RemuneracaoFields({
     salario,
   );
 
-  // Dias do mês pela jornada: fonte única do "dias considerados" do VA diário.
-  const diasJornadaMes = diasTrabalhaveisNoMes(diasJornada);
+  // Dias simulados no mês: 30 dias − folgas semanais × 4 − folgas de fim de semana.
+  const diasJornadaMes = diasSimuladosMesComercial({ dias: diasJornada, folgasFimDeSemanaMes });
   const resumoJornada = descreverDiasJornada(diasJornada);
+  const baseSimulacao = descreverBaseSimulacao({ dias: diasJornada, folgasFimDeSemanaMes });
+
 
   const vaInput = {
     vale_alimentacao: value.vale_alimentacao,
@@ -510,7 +518,9 @@ export function RemuneracaoFields({
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Quantidade de dias</Label>
+                  <Label>
+                    {value.vale_alimentacao_dias_origem === "fixo" ? "Quantidade de dias" : "Dias simulados no mês"}
+                  </Label>
                   {value.vale_alimentacao_dias_origem === "fixo" ? (
                     <Input
                       inputMode="numeric"
@@ -523,7 +533,7 @@ export function RemuneracaoFields({
                       {diasJornadaMes != null ? (
                         <>
                           <strong>{diasJornadaMes} dias</strong>
-                          <span className="text-muted-foreground"> — {resumoJornada}</span>
+                          <span className="text-muted-foreground"> — {baseSimulacao} · {resumoJornada}</span>
                         </>
                       ) : (
                         <span className="text-muted-foreground">
@@ -533,6 +543,7 @@ export function RemuneracaoFields({
                     </div>
                   )}
                 </div>
+
               </>
             )}
 
@@ -566,11 +577,14 @@ export function RemuneracaoFields({
               </div>
             )}
             <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground md:col-span-2">
+              <div className="font-medium text-foreground">
+                {value.vale_alimentacao_periodicidade === "diario" ? "Simulação do mês" : "Valor do mês"}
+              </div>
               {value.vale_alimentacao_periodicidade === "diario" && (
                 <div>
-                  Conta do mês: {formatarBRL(numeroBR(value.vale_alimentacao_valor))} × {va.dias} dias{" "}
+                  Conta: {formatarBRL(numeroBR(value.vale_alimentacao_valor))} × {va.dias} dias{" "}
                   ({va.diasOrigem === "jornada"
-                    ? "pela jornada"
+                    ? baseSimulacao
                     : va.diasOrigem === "fixo"
                       ? "quantidade fixa"
                       : "referência padrão"})
@@ -581,10 +595,12 @@ export function RemuneracaoFields({
               <div>Custo da empresa: <strong className="text-foreground">{formatarBRL(va.liquido)}</strong></div>
               {value.vale_alimentacao_periodicidade === "diario" && (
                 <p>
-                  Na folha, quando houver ponto apurado no período, valem os dias efetivamente trabalhados.
+                  Este total é uma <strong className="text-foreground">simulação</strong>. O valor efetivo sai na
+                  folha, pelos dias realmente trabalhados no ponto.
                 </p>
               )}
             </div>
+
 
             {alertasVa.map((a) => (
               <p
