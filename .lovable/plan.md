@@ -1,5 +1,10 @@
 Simplificar o rodapé do formulário de colaborador para três ações claras: **Salvar e continuar**, **Concluir** e **Fechar**. A navegação entre abas continua sendo feita pelas próprias abas clicáveis, eliminando a necessidade dos botões Voltar/Próximo.
 
+Decisão de design
+- O botão **Concluir (salvar e fechar)** será o botão primário, destacado na cor laranja da marca (`variant="default"`).
+- **Salvar e continuar** ficará em tom secundário (`variant="secondary"`).
+- **Fechar** ficará em estilo ghost/outline, sem destaque, para evitar cliques acidentais na ação de saída.
+
 Escopo
 - Ajustar `src/components/dp/ColaboradorFormDialog.tsx`.
 - Remover os botões **Voltar** e **Próximo** do rodapé.
@@ -12,8 +17,8 @@ Escopo
 Justificativa de UX
 - Botões Voltar/Próximo são redundantes quando as abas são clicáveis.
 - Um botão **Fechar** explícito no rodapé melhora a descoberta da saída e deixa a ação de cancelar sem salvar sempre visível.
-- **Concluir** passa a ter semântica clara de "salvar e sair", evitando confusão com o botão Cancelar anterior.
-- **Salvar e continuar** mantém a possibilidade de preencher todas as abas antes de finalizar.
+- **Concluir** como primário comunica claramente a finalização do fluxo e reduz a chance de o usuário perder dados ao clicar no X.
+- **Salvar e continuar** mantém a possibilidade de preencher todas as abas antes de finalizar, sem competir visualmente com a ação principal.
 
 Detalhes técnicos
 - **Salvar e continuar**: `submit("stay")` — persiste sem fechar o diálogo e atualiza o `baseline` para detectar alterações pendentes.
