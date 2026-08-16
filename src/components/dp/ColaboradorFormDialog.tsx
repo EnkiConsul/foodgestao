@@ -28,6 +28,8 @@ import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTr
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
+import { SindicatoEnquadramentoField } from "@/components/dp/SindicatoEnquadramentoField";
+
 import { CargoSalarioConflitoDialog } from "@/components/dp/CargoSalarioConflitoDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
