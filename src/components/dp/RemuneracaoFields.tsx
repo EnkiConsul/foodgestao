@@ -143,6 +143,7 @@ export function RemuneracaoFields({
   folgasFimDeSemanaMes,
   campoErro,
 }: Props) {
+  const navigate = useNavigate();
 
   /** Marca o input pendente para foco/destaque automático. */
   const marca = (campo: string, extraClass?: string) => ({
