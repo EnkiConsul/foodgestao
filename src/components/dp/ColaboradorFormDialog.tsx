@@ -129,13 +129,11 @@ const blank = {
 /** Abas do cadastro, na ordem em que o usuário avança. */
 const ABAS = ["dados", "jornada", "remuneracao"] as const;
 type AbaCadastro = (typeof ABAS)[number];
-/** O que fazer depois de salvar: ficar na tela, avançar de aba ou sair. */
-type IntencaoSalvar = "stay" | "next" | "close";
+type IntencaoSalvar = "stay" | "close";
 
 const abaSeguinte = (aba: AbaCadastro): AbaCadastro | null =>
   ABAS[ABAS.indexOf(aba) + 1] ?? null;
-const abaAnterior = (aba: AbaCadastro): AbaCadastro | null =>
-  ABAS.indexOf(aba) > 0 ? ABAS[ABAS.indexOf(aba) - 1] : null;
+
 
 
 export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props) {
@@ -440,10 +438,6 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     const intencao = intencaoRef.current;
     intencaoRef.current = "stay";
     if (intencao === "close") { onOpenChange(false); return; }
-    if (intencao === "next") {
-      const proxima = abaSeguinte(tab);
-      if (proxima) setTab(proxima);
-    }
   };
 
 
@@ -697,11 +691,19 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       }
 
 
-      // Cadastro novo: o registro passa a existir, então a jornada já pode ser
-      // gravada sem sair da tela — levamos o administrador para a aba de turno.
+      // Cadastro novo: o registro passa a existir. Se a intenção for concluir,
+      // fechamos o diálogo; caso contrário, levamos o administrador para a
+      // próxima aba para completar turno e jornada.
       setCriadoId(colaboradorId);
       setBaseline(snapshot);
-      toast.success("Colaborador cadastrado — defina o turno e a jornada");
+      toast.success("Colaborador cadastrado");
+
+      if (intencaoRef.current === "close") {
+        finalizar();
+        return;
+      }
+
+      toast("Defina o turno e a jornada");
       setTab(abaSeguinte(tab) ?? "jornada");
 
 
@@ -1047,32 +1049,25 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
         <DialogFooter className="gap-2 sm:justify-between">
           <div className="flex items-center gap-2">
-            {tab !== "dados" && (
-              <Button variant="outline" onClick={() => setTab(abaAnterior(tab)!)} disabled={upsert.isPending}>
-                Voltar
-              </Button>
-            )}
+            <Button variant="ghost" onClick={tentarFechar} disabled={upsert.isPending}>
+              Fechar
+            </Button>
             <span className="text-xs text-muted-foreground">
               Etapa {ABAS.indexOf(tab) + 1} de {ABAS.length}
               {dirty ? " · alterações não salvas" : ""}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={tentarFechar} disabled={upsert.isPending}>
-              {isEdit || criadoId ? "Concluir" : "Cancelar"}
-            </Button>
             <Button
-              variant={tab === "remuneracao" ? "default" : "secondary"}
+              variant="secondary"
               onClick={() => void submit("stay")}
               disabled={upsert.isPending}
             >
-              {upsert.isPending ? "Salvando..." : isEdit || criadoId ? "Salvar e continuar" : "Criar"}
+              {upsert.isPending ? "Salvando..." : "Salvar e continuar"}
             </Button>
-            {abaSeguinte(tab) && (
-              <Button onClick={() => void submit("next")} disabled={upsert.isPending}>
-                Próximo
-              </Button>
-            )}
+            <Button onClick={() => void submit("close")} disabled={upsert.isPending}>
+              Concluir
+            </Button>
           </div>
         </DialogFooter>
 
