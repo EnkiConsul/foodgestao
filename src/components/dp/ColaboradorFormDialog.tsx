@@ -1059,6 +1059,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                   maxLength={2000}
                   placeholder="Notas internas para futuras avaliações de recontratação..."
                   value={form.observacao_desligamento}
+                  {...marca("observacao_desligamento")}
+
                   onChange={(e) => setForm({ ...form, observacao_desligamento: e.target.value })}
                 />
               </div>
