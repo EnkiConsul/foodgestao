@@ -59,7 +59,10 @@ export default function Landing() {
 
       <PublicFooter />
       <div className="h-16 md:hidden" aria-hidden="true" />
-      <WhatsappButton message="Olá! Vim pelo site e gostaria de saber mais sobre o 360°FOOD." />
+      <WhatsappButton
+        className="hidden md:flex"
+        message="Olá! Vim pelo site e gostaria de saber mais sobre o 360°FOOD."
+      />
     </div>
   );
 }
