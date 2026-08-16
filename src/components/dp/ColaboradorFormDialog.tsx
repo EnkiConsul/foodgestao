@@ -1179,9 +1179,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               )}
             </div>
           </TabsContent>
+          </div>
         </Tabs>
 
-        <DialogFooter className="gap-2 sm:justify-between">
+        <DialogFooter className="shrink-0 gap-2 border-t border-border p-4 sm:justify-between">
+
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={tentarFechar} disabled={upsert.isPending}>
               Fechar
