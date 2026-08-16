@@ -351,6 +351,8 @@ export function RemuneracaoFields({
           <Input
             inputMode="decimal"
             value={value.adicional_percentual}
+            {...marca("adicional_percentual")}
+
             onChange={(e) => onChange({ adicional_percentual: e.target.value })}
             placeholder="0"
           />
