@@ -469,6 +469,8 @@ export function RemuneracaoFields({
               <Input
                 inputMode="decimal"
                 value={value.vale_transporte_valor_dia}
+                {...marca("vale_transporte_valor_dia")}
+
                 onChange={(e) => onChange({ vale_transporte_valor_dia: e.target.value })}
                 placeholder="Ex: 10,40"
               />
