@@ -304,6 +304,22 @@ export default function DpSindicatoNegociacoes() {
                     </div>
                   </div>
                   <div className="flex gap-1 md:justify-end">
+                    {n.unidade_id && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setAplicar({
+                            unidadeId: n.unidade_id!,
+                            unidadeNome: unidadeNome ?? "unidade",
+                            sindicatoPatronalId: n.sindicato_id ?? null,
+                            vigenciaInicio: `${n.ano ?? currentYear}-${String(n.mes ?? 1).padStart(2, "0")}-01`,
+                          })
+                        }
+                      >
+                        Aplicar aos cargos
+                      </Button>
+                    )}
                     <Button size="icon" variant="ghost" onClick={() => openEdit(n)} aria-label="Editar">
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -311,6 +327,7 @@ export default function DpSindicatoNegociacoes() {
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
+
                 </div>
 
                 {n.pdf_path && (
