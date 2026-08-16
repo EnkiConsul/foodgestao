@@ -28,7 +28,9 @@ function HeroMockup() {
         <img
           src={heroDashboard.url}
           alt="Dashboard do 360°FOOD com saldo, receitas, despesas e contas financeiras"
-          loading="lazy"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
           className="block w-full h-auto"
         />
       </Card>
