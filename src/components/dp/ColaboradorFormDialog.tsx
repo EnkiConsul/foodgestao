@@ -112,6 +112,8 @@ const blank = {
   whatsapp: "",
   cargo_id: "",
   unidade_id: "",
+  sindicato_id: "",
+
   data_admissao: "",
   data_nascimento: "",
   data_desligamento: "",
