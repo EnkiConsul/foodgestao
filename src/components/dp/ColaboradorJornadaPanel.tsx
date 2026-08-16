@@ -641,6 +641,9 @@ export function ColaboradorJornadaPanel({
           {dias.map((dia) => {
             const h = horarioEfetivoDia(dia, horario);
             const diferente = diaDivergeDoBase(dia, horario);
+            // Horário diferente que já existe como horário da loja é padrão da
+            // operação (ex.: fim de semana), não exceção deste colaborador.
+            const daLoja = diferente && diaEhHorarioDaLoja({ ...dia, ...h }, turnosResolvidos);
             return (
               <li key={dia.dow} className="space-y-2 p-3">
                 <div className="flex flex-wrap items-center gap-3">
@@ -652,12 +655,17 @@ export function ColaboradorJornadaPanel({
                   <span className="w-24 shrink-0 text-sm font-medium">{DOW_LABEL[dia.dow]}</span>
                   {dia.trabalha ? (
                     <div className="ml-auto flex items-center gap-2">
-                      {diferente && <Badge variant="outline" className="text-[10px]">Horário próprio</Badge>}
+                      {diferente && (
+                        <Badge variant={daLoja ? "secondary" : "outline"} className="text-[10px]">
+                          {daLoja ? "Horário da loja" : "Horário próprio"}
+                        </Badge>
+                      )}
                       <RepetirHorarioPopover
                         dow={dia.dow}
                         onRepetir={(destinos) => repetirHorario(dia.dow, destinos)}
                       />
                     </div>
+
                   ) : (
                     <Badge variant="secondary" className="ml-auto">Folga</Badge>
                   )}
