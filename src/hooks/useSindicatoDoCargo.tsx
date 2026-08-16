@@ -29,10 +29,6 @@ export interface SindicatoEnquadramento {
   negociacaoPatronal: NegociacaoResumo | null;
 }
 
-const VAZIO: SindicatoEnquadramento = {
-  laboral: null, patronal: null, negociacao: null, negociacaoPatronal: null,
-};
-
 const negociacaoVigente = async (sindicatoId: string): Promise<NegociacaoResumo | null> => {
   const { data, error } = await supabase
     .from("dp_sindicato_negociacoes")
@@ -47,13 +43,14 @@ const negociacaoVigente = async (sindicatoId: string): Promise<NegociacaoResumo 
 /**
  * Enquadramento sindical derivado do cargo (laboral) e da unidade (patronal).
  * Usado no cadastro do colaborador para herdar o sindicato sem cadastro paralelo.
+ * Sem `initialData`: a tela precisa distinguir "carregando" de "sem vínculo".
  */
 export function useSindicatoDoCargo(cargoId: string | null, unidadeId: string | null) {
   return useQuery({
     queryKey: ["dp_sindicato_do_cargo", cargoId, unidadeId],
     enabled: !!cargoId || !!unidadeId,
     queryFn: async (): Promise<SindicatoEnquadramento> => {
-      const sel = "dp_sindicatos!inner(id, nome, tipo, cnpj, data_base)";
+      const sel = "dp_sindicatos!inner(id, nome, tipo, cnpj, data_base, ativo)";
 
       const [laboralRes, patronalRes] = await Promise.all([
         cargoId
@@ -70,13 +67,16 @@ export function useSindicatoDoCargo(cargoId: string | null, unidadeId: string | 
       if (laboralRes.error) throw laboralRes.error;
       if (patronalRes.error) throw patronalRes.error;
 
-      const pick = (rows: any[]): SindicatoResumo | null => {
-        const s = (rows ?? [])[0]?.dp_sindicatos;
-        return s ? (s as SindicatoResumo) : null;
+      // Ignora sindicatos inativos; entre os ativos, usa o primeiro vínculo.
+      const pick = (rows: any[], tipo: "laboral" | "patronal"): SindicatoResumo | null => {
+        const lista = (rows ?? [])
+          .map((r) => r?.dp_sindicatos as SindicatoResumo | undefined)
+          .filter((s): s is SindicatoResumo => !!s && s.ativo !== false && s.tipo === tipo);
+        return lista[0] ?? null;
       };
 
-      const laboral = pick(laboralRes.data as any[]);
-      const patronal = pick(patronalRes.data as any[]);
+      const laboral = pick(laboralRes.data as any[], "laboral");
+      const patronal = pick(patronalRes.data as any[], "patronal");
 
       const [negociacao, negociacaoPatronal] = await Promise.all([
         laboral ? negociacaoVigente(laboral.id) : Promise.resolve(null),
@@ -85,6 +85,5 @@ export function useSindicatoDoCargo(cargoId: string | null, unidadeId: string | 
 
       return { laboral, patronal, negociacao, negociacaoPatronal } satisfies SindicatoEnquadramento;
     },
-    initialData: VAZIO,
   });
 }
