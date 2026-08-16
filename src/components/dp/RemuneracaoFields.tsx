@@ -261,14 +261,32 @@ export function RemuneracaoFields({
             <Input
               inputMode="decimal"
               value={value.salario_base}
-              readOnly={bloqueiaValor}
-              {...marca("salario_base", bloqueiaValor ? "bg-muted/60" : undefined)}
+              readOnly={bloqueiaValor || travadoPeloCargo}
+              {...marca("salario_base", bloqueiaValor || travadoPeloCargo ? "bg-muted/60" : undefined)}
               onChange={(e) => onChange({ salario_base: e.target.value })}
               placeholder={salarioCargo ? `Cargo: ${formatarBRL(salarioCargo)}` : "Ex: 2200,00"}
             />
           )}
 
-          {forma === "mensalista" && salarioCargo ? (
+          {travadoPeloCargo ? (
+            <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+              <span>
+                Valor definido pelo cargo{cargoNome ? ` ${cargoNome}` : ""} ({formatarBRL(salarioCargo!)}).
+              </span>
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-[11px]"
+                onClick={() => {
+                  onBeforeNavigate?.();
+                  navigate("/dp/cadastros/cargos");
+                }}
+              >
+                Alterar no cargo
+              </Button>
+            </div>
+          ) : forma === "mensalista" && salarioCargo ? (
             <p className="text-[11px] text-muted-foreground">
               Em branco, a folha usa o salário do cargo ({formatarBRL(salarioCargo)}).
             </p>
