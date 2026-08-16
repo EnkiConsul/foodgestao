@@ -184,6 +184,9 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
             <Field label="Unidade" value={colaborador?.unidade_nome} />
             <Field label="Data de Admissão" value={fmtDate((colaborador as any)?.data_admissao)} />
             <Field label="Folga Fixa Semanal" value={folga != null ? DIAS_SEMANA[String(folga)] : "—"} />
+            <Field label="Sindicato Laboral" value={enquadramento.data?.laboral?.nome} />
+            <Field label="Sindicato Patronal" value={enquadramento.data?.patronal?.nome} />
+
           </Section>
 
           {/* Jornada */}
