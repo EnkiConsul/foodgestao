@@ -1143,6 +1143,39 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Saída com alterações não salvas — sem window.confirm. */}
+      <AlertDialog open={confirmarSaida} onOpenChange={setConfirmarSaida}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair sem salvar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Há alterações que ainda não foram gravadas neste cadastro.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmarSaida(false)}>
+              Continuar editando
+            </AlertDialogCancel>
+            <Button
+              variant="ghost"
+              onClick={() => { setConfirmarSaida(false); onOpenChange(false); }}
+            >
+              Sair sem salvar
+            </Button>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                setConfirmarSaida(false);
+                void submit("close");
+              }}
+            >
+              Salvar e sair
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       {risco && (
         <RegimeRiscoDialog
           open={riscoOpen}
