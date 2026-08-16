@@ -14,7 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useDpSindicatos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { AplicarPisoUnidadeDialog } from "@/components/dp/AplicarPisoUnidadeDialog";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+
 import type { Database } from "@/integrations/supabase/types";
 
 type Negociacao = Database["public"]["Tables"]["dp_sindicato_negociacoes"]["Row"] & {
