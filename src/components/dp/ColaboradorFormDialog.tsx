@@ -421,11 +421,28 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const snapshot = JSON.stringify({ form, rem });
   const dirty = baseline !== null && snapshot !== baseline;
 
+  /** Pendências resumidas por aba, exibidas como indicador nos TabsTrigger. */
+  const dadosPendente =
+    !form.nome.trim() ||
+    form.cpf.replace(/\D/g, "").length !== 11 ||
+    !form.cargo_id ||
+    !form.unidade_id ||
+    !form.data_admissao ||
+    !form.data_nascimento ||
+    (isDesligado && !form.data_desligamento);
+  const remPendente = !!remuneracaoPendente({
+    forma_pagamento: rem.forma_pagamento,
+    salario_base: numeroBR(rem.salario_base) || null,
+    valor_hora: numeroBR(rem.valor_hora) || null,
+    salario_cargo: salarioCargo,
+  });
+
   /** Sincroniza o marco de "sem alterações" após carregar o colaborador. */
   useEffect(() => {
     setBaseline(JSON.stringify({ form, rem }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
+
 
   /** Fecha o diálogo conferindo alterações pendentes. */
   const tentarFechar = () => {
