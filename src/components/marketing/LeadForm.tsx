@@ -110,7 +110,7 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
 
   if (done) {
     return (
-      <div className="rounded-site-lg border border-site-line bg-card p-8 text-center shadow-site-card">
+      <div className="rounded-site-lg border border-site-line bg-card p-8 text-center text-site-ink shadow-site-card">
         <CheckCircle2 className="mx-auto h-11 w-11 text-site-success" />
         <h3 className="mt-4 text-xl font-extrabold text-site-ink">Recebemos seu contato!</h3>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-site-muted">
@@ -142,11 +142,11 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="rounded-site-lg border border-site-line bg-card p-6 shadow-site-card sm:p-8"
+      className="rounded-site-lg border border-site-line bg-card p-6 text-site-ink shadow-site-card sm:p-8"
     >
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <Label htmlFor="lead-name">Nome *</Label>
+          <Label htmlFor="lead-name" className="text-site-ink">Nome *</Label>
           <Input
             id="lead-name"
             value={form.name}
@@ -160,7 +160,7 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
         </div>
 
         <div>
-          <Label htmlFor="lead-email">E-mail corporativo *</Label>
+          <Label htmlFor="lead-email" className="text-site-ink">E-mail corporativo *</Label>
           <Input
             id="lead-email"
             type="email"
@@ -176,7 +176,7 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
         </div>
 
         <div>
-          <Label htmlFor="lead-whatsapp">WhatsApp com DDD *</Label>
+          <Label htmlFor="lead-whatsapp" className="text-site-ink">WhatsApp com DDD *</Label>
           <Input
             id="lead-whatsapp"
             inputMode="tel"
@@ -192,7 +192,7 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
         </div>
 
         <div>
-          <Label htmlFor="lead-company_name">Nome da empresa *</Label>
+          <Label htmlFor="lead-company_name" className="text-site-ink">Nome da empresa *</Label>
           <Input
             id="lead-company_name"
             value={form.company_name}
@@ -206,7 +206,7 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
         </div>
 
         <div>
-          <Label htmlFor="lead-business_type">Tipo de negócio *</Label>
+          <Label htmlFor="lead-business_type" className="text-site-ink">Tipo de negócio *</Label>
           <Select value={form.business_type} onValueChange={set("business_type")}>
             <SelectTrigger id="lead-business_type" className={inputClass("business_type")} aria-invalid={!!errors.business_type}>
               <SelectValue placeholder="Selecione" />
@@ -223,7 +223,7 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
         </div>
 
         <div>
-          <Label htmlFor="lead-cnpj_count">Quantidade de CNPJs</Label>
+          <Label htmlFor="lead-cnpj_count" className="text-site-ink">Quantidade de CNPJs</Label>
           <Input
             id="lead-cnpj_count"
             type="number"
@@ -235,7 +235,7 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
         </div>
 
         <div>
-          <Label htmlFor="lead-unit_count">Quantidade de unidades</Label>
+          <Label htmlFor="lead-unit_count" className="text-site-ink">Quantidade de unidades</Label>
           <Input
             id="lead-unit_count"
             type="number"
@@ -247,7 +247,7 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
         </div>
 
         <div>
-          <Label htmlFor="lead-interest">Solução de interesse *</Label>
+          <Label htmlFor="lead-interest" className="text-site-ink">Solução de interesse *</Label>
           <Select value={form.interest} onValueChange={set("interest")}>
             <SelectTrigger id="lead-interest" className={inputClass("interest")} aria-invalid={!!errors.interest}>
               <SelectValue placeholder="Selecione" />
@@ -264,7 +264,7 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
         </div>
 
         <div>
-          <Label htmlFor="lead-headcount_range">Faixa de colaboradores (opcional)</Label>
+          <Label htmlFor="lead-headcount_range" className="text-site-ink">Faixa de colaboradores (opcional)</Label>
           <Select value={form.headcount_range} onValueChange={set("headcount_range")}>
             <SelectTrigger id="lead-headcount_range">
               <SelectValue placeholder="Selecione" />
@@ -280,7 +280,7 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
         </div>
 
         <div className="sm:col-span-2">
-          <Label htmlFor="lead-message">Mensagem (opcional)</Label>
+          <Label htmlFor="lead-message" className="text-site-ink">Mensagem (opcional)</Label>
           <Textarea
             id="lead-message"
             rows={4}
