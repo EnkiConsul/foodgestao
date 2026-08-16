@@ -285,6 +285,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       whatsapp: c.whatsapp ?? "",
       cargo_id: c.cargo_id ?? "",
       unidade_id: c.unidade_id ?? "",
+      sindicato_id: (c as any).sindicato_id ?? "",
+
       data_admissao: c.data_admissao ?? "",
       data_nascimento: c.data_nascimento ?? "",
       data_desligamento: c.data_desligamento ?? "",
