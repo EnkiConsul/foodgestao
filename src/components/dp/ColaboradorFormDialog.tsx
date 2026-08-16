@@ -993,14 +993,37 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           </TabsContent>
         </Tabs>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={upsert.isPending}>
-            {criadoId ? "Concluir" : "Cancelar"}
-          </Button>
-          <Button onClick={submit} disabled={upsert.isPending}>
-            {upsert.isPending ? "Salvando..." : isEdit || criadoId ? "Atualizar" : "Criar"}
-          </Button>
+        <DialogFooter className="gap-2 sm:justify-between">
+          <div className="flex items-center gap-2">
+            {tab !== "dados" && (
+              <Button variant="outline" onClick={() => setTab(abaAnterior(tab)!)} disabled={upsert.isPending}>
+                Voltar
+              </Button>
+            )}
+            <span className="text-xs text-muted-foreground">
+              Etapa {ABAS.indexOf(tab) + 1} de {ABAS.length}
+              {dirty ? " · alterações não salvas" : ""}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={tentarFechar} disabled={upsert.isPending}>
+              {isEdit || criadoId ? "Concluir" : "Cancelar"}
+            </Button>
+            <Button
+              variant={tab === "remuneracao" ? "default" : "secondary"}
+              onClick={() => void submit("stay")}
+              disabled={upsert.isPending}
+            >
+              {upsert.isPending ? "Salvando..." : isEdit || criadoId ? "Salvar e continuar" : "Criar"}
+            </Button>
+            {abaSeguinte(tab) && (
+              <Button onClick={() => void submit("next")} disabled={upsert.isPending}>
+                Próximo
+              </Button>
+            )}
+          </div>
         </DialogFooter>
+
 
       </DialogContent>
 
