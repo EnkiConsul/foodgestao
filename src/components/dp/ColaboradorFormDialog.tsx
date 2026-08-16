@@ -759,7 +759,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         // Botão único: grava também o horário de trabalho quando houve mudança.
         const salvarJornada = jornadaSalvarRef.current;
         const resultado = salvarJornada ? await salvarJornada() : "nada";
-        if (resultado === "pendente_ciencia") {
+        // Ciência legal cancelada: para sem erro, mantendo a tela aberta na aba.
+        if (resultado === "cancelado" || resultado === "pendente_ciencia") {
           setTab("jornada");
           return;
         }

@@ -51,7 +51,7 @@ export interface JornadaColaborador {
 }
 
 /** Resultado do salvamento acionado de fora (pelo rodapé do cadastro). */
-export type SalvarJornadaResultado = "salvo" | "nada" | "pendente_ciencia" | "erro";
+export type SalvarJornadaResultado = "salvo" | "nada" | "pendente_ciencia" | "cancelado" | "erro";
 
 interface Props {
   colaborador: JornadaColaborador | null;
@@ -103,6 +103,12 @@ export function ColaboradorJornadaPanel({
   const [copiarOpen, setCopiarOpen] = useState(false);
   const [gradeOpen, setGradeOpen] = useState(false);
   const [cienciaOpen, setCienciaOpen] = useState(false);
+  /**
+   * Quando o salvamento vem do rodapé do cadastro, a decisão do diálogo de
+   * ciência precisa devolver o resultado para o fluxo que está aguardando —
+   * assim um único "Concluir" já salva e fecha a tela.
+   */
+  const cienciaPendenteRef = useRef<((r: SalvarJornadaResultado) => void) | null>(null);
 
 
   const { turnos: turnosUnidade, criar: criarTurno } = useDpTurnos(unidadeId === "none" ? null : unidadeId);
@@ -440,18 +446,31 @@ export function ColaboradorJornadaPanel({
 
   const onConfirmarCiencia = async (justificativa: string) => {
     setCienciaOpen(false);
+    const aguardando = cienciaPendenteRef.current;
+    cienciaPendenteRef.current = null;
     try {
       await registrarCiencia(justificativa);
       await persistir();
+      aguardando?.("salvo");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar o horário");
+      aguardando?.("erro");
     }
+  };
+
+  /** Fechar o diálogo sem confirmar cancela o salvamento em andamento. */
+  const onFecharCiencia = (aberto: boolean) => {
+    setCienciaOpen(aberto);
+    if (aberto) return;
+    const aguardando = cienciaPendenteRef.current;
+    cienciaPendenteRef.current = null;
+    aguardando?.("cancelado");
   };
 
   /**
    * Salvamento acionado pelo botão único do cadastro do colaborador.
-   * Devolve "pendente_ciencia" quando ainda falta a confirmação dos avisos —
-   * nesse caso o cadastro permanece aberto nesta aba.
+   * Quando há alerta da CLT, aguarda a ciência do diálogo e só então devolve o
+   * resultado — o cadastro conclui em um único clique.
    */
   const salvarExterno = async (): Promise<SalvarJornadaResultado> => {
     if (!colaborador?.id || !alterado) return "nada";
@@ -464,8 +483,11 @@ export function ColaboradorJornadaPanel({
       return "erro";
     }
     if (temAlertaClt(alertas)) {
+      cienciaPendenteRef.current?.("cancelado");
       setCienciaOpen(true);
-      return "pendente_ciencia";
+      return new Promise<SalvarJornadaResultado>((resolve) => {
+        cienciaPendenteRef.current = resolve;
+      });
     }
     try {
       await persistir();
@@ -863,7 +885,7 @@ export function ColaboradorJornadaPanel({
         titulo="Horário fora da referência da CLT"
         alertas={avisos.map((a) => ({ campo: a.codigo, mensagem: a.mensagem }))}
         confirming={saving}
-        onCancel={() => setCienciaOpen(false)}
+        onCancel={() => onFecharCiencia(false)}
         onConfirm={(j) => void onConfirmarCiencia(j)}
       />
 
