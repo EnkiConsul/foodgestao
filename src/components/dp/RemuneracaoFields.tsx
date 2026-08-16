@@ -106,6 +106,10 @@ interface Props {
   onChange: (patch: Partial<RemuneracaoFormState>) => void;
   /** Salário do cargo selecionado, usado como referência/placeholder. */
   salarioCargo?: number | null;
+  /** Nome do cargo selecionado — usado na explicação do salário travado. */
+  cargoNome?: string | null;
+  /** Executado antes de navegar para o cadastro de cargos (fecha o diálogo). */
+  onBeforeNavigate?: () => void;
   /** Insalubridade/periculosidade marcada no cargo. */
   cargoInsalubre?: boolean;
   beneficios: Beneficio[];
