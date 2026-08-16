@@ -145,10 +145,17 @@ export function SindicatoEnquadramentoField({
           <Scale className="h-4 w-4 text-primary" />
           Enquadramento Sindical
         </div>
-        <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
-          <Link to="/dp/cadastros/sindicatos" target="_blank" rel="noreferrer">
-            Abrir cadastro de sindicatos
-          </Link>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => {
+            onBeforeNavigate?.();
+            navigate("/dp/cadastros/sindicatos");
+          }}
+        >
+          Abrir cadastro de sindicatos
         </Button>
       </div>
 
