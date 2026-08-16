@@ -65,7 +65,7 @@ export const DIFFERENTIALS = [
   },
   {
     title: "Contratação modular",
-    text: "Comece pelo Financeiro, pelo Departamento Pessoal ou pelos dois. Você contrata somente o que precisa.",
+    text: "Comece pelo Financeiro 360°, pelo Pessoas 360° ou pelos dois. Você contrata somente o que precisa.",
   },
   {
     title: "Multiempresa",
