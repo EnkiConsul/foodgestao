@@ -138,11 +138,12 @@ export function RemuneracaoFields({
 }: Props) {
 
   /** Marca o input pendente para foco/destaque automático. */
-  const marca = (campo: string) => ({
+  const marca = (campo: string, extraClass?: string) => ({
     "data-field": campo,
     "aria-invalid": campoErro === campo ? true : undefined,
-    "data-erro": campoErro === campo ? "true" : undefined,
+    className: cn(extraClass, campoErro === campo && "border-destructive ring-1 ring-destructive"),
   });
+
 
 
   const forma = value.forma_pagamento;
