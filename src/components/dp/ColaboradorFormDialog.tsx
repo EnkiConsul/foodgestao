@@ -796,13 +796,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       setBaseline(snapshot);
       toast.success("Colaborador cadastrado");
 
-      if (intencaoRef.current === "close") {
-        finalizar();
-        return;
+      if (intencaoRef.current !== "close" && abaSeguinte(tab)) {
+        toast("Defina o turno e a jornada");
       }
-
-      toast("Defina o turno e a jornada");
-      setTab(abaSeguinte(tab) ?? "jornada");
+      finalizar();
 
 
     } catch (e) {
