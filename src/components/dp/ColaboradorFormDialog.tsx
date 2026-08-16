@@ -28,6 +28,8 @@ import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTr
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
+import { SindicatoEnquadramentoField } from "@/components/dp/SindicatoEnquadramentoField";
+
 import { CargoSalarioConflitoDialog } from "@/components/dp/CargoSalarioConflitoDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -112,6 +114,8 @@ const blank = {
   whatsapp: "",
   cargo_id: "",
   unidade_id: "",
+  sindicato_id: "",
+
   data_admissao: "",
   data_nascimento: "",
   data_desligamento: "",
@@ -283,6 +287,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       whatsapp: c.whatsapp ?? "",
       cargo_id: c.cargo_id ?? "",
       unidade_id: c.unidade_id ?? "",
+      sindicato_id: (c as any).sindicato_id ?? "",
+
       data_admissao: c.data_admissao ?? "",
       data_nascimento: c.data_nascimento ?? "",
       data_desligamento: c.data_desligamento ?? "",
@@ -657,6 +663,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         cargo: cargoNome,
         cargo_id: form.cargo_id,
         unidade_id: form.unidade_id,
+        sindicato_id: form.sindicato_id || null,
+
         regime: regimeSelecionado,
         vinculo_label: form.tipo_vinculo,
         data_admissao: form.data_admissao || null,
@@ -903,6 +911,16 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               </SelectContent>
             </Select>
           </div>
+
+          <SindicatoEnquadramentoField
+            cargoId={form.cargo_id}
+            cargoNome={cargoSelecionado?.nome ?? null}
+            unidadeId={form.unidade_id}
+            value={form.sindicato_id}
+            onChange={(id) => setForm((f) => ({ ...f, sindicato_id: id }))}
+          />
+
+
 
           {/* Datas */}
           <div className="space-y-2">
