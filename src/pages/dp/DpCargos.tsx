@@ -159,7 +159,7 @@ export default function DpCargos() {
       <DpPageHeader
         icon={Briefcase}
         title="Cargos"
-        description="Gerencie os cargos disponíveis na empresa."
+        description="Gerencie os cargos disponíveis na empresa. Pisos diferentes por unidade (convenções patronais distintas) são cadastrados em “Salário por unidade”, dentro da ficha ou da edição do cargo."
         actions={
           <>
             <Button onClick={openNew} className="rounded-full px-6">
