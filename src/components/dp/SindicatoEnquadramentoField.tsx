@@ -161,6 +161,8 @@ export function SindicatoEnquadramentoField({
             <p className="text-[11px] text-muted-foreground">
               Selecione o cargo: o sindicato laboral vem do cargo do colaborador.
             </p>
+          ) : carregando ? (
+            <p className="text-[11px] text-muted-foreground">Buscando o sindicato do cargo…</p>
           ) : laboral ? (
             <ResumoVinculado sindicato={laboral} negociacao={negociacao} origem="cargo" />
           ) : (
