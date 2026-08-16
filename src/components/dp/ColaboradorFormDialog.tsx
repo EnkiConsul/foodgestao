@@ -130,6 +130,9 @@ const blank = {
 const ABAS = ["dados", "jornada", "remuneracao"] as const;
 type AbaCadastro = (typeof ABAS)[number];
 type IntencaoSalvar = "stay" | "close";
+/** Campo pendente apontado pela validação, usado para focar e destacar. */
+type ErroCampo = { campo: string; mensagem: string };
+
 
 const abaSeguinte = (aba: AbaCadastro): AbaCadastro | null =>
   ABAS[ABAS.indexOf(aba) + 1] ?? null;
