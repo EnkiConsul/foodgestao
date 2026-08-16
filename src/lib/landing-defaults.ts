@@ -176,7 +176,7 @@ export const LANDING_DEFAULTS = {
   nav: {
     items: [
       { label: "Início", href: "#" },
-      { label: "Soluções", href: "#modulos" },
+      { label: "Soluções", href: "#solucoes" },
       { label: "Como funciona", href: "#como-funciona" },
 
       { label: "Recursos", href: "#recursos" },
