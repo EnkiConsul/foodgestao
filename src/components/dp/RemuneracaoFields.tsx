@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -106,6 +107,10 @@ interface Props {
   onChange: (patch: Partial<RemuneracaoFormState>) => void;
   /** Salário do cargo selecionado, usado como referência/placeholder. */
   salarioCargo?: number | null;
+  /** Nome do cargo selecionado — usado na explicação do salário travado. */
+  cargoNome?: string | null;
+  /** Executado antes de navegar para o cadastro de cargos (fecha o diálogo). */
+  onBeforeNavigate?: () => void;
   /** Insalubridade/periculosidade marcada no cargo. */
   cargoInsalubre?: boolean;
   beneficios: Beneficio[];
@@ -129,6 +134,8 @@ export function RemuneracaoFields({
   value,
   onChange,
   salarioCargo,
+  cargoNome,
+  onBeforeNavigate,
   cargoInsalubre,
   beneficios,
   regime,
@@ -136,6 +143,7 @@ export function RemuneracaoFields({
   folgasFimDeSemanaMes,
   campoErro,
 }: Props) {
+  const navigate = useNavigate();
 
   /** Marca o input pendente para foco/destaque automático. */
   const marca = (campo: string, extraClass?: string) => ({
@@ -213,6 +221,16 @@ export function RemuneracaoFields({
   const labelValor =
     forma === "horista" ? "Valor da hora *" : forma === "diarista" ? "Valor do dia *" : "Salário base *";
   const bloqueiaValor = usaBase && !value.valor_hora_manual && calculado != null;
+  // Um cargo = um salário: mensalista com cargo remunerado não edita o valor aqui.
+  const salarioDoCargo = forma === "mensalista" && !!salarioCargo && salarioCargo > 0;
+  const travadoPeloCargo = salarioDoCargo;
+
+  // Cargo remunerado manda no salário do mensalista: espelhamos o valor no campo.
+  useEffect(() => {
+    if (!travadoPeloCargo || salarioCargo == null) return;
+    const alvo = paraBR(salarioCargo);
+    if (value.salario_base !== alvo) onChange({ salario_base: alvo });
+  }, [travadoPeloCargo, salarioCargo, value.salario_base]);
 
   return (
     <div className="col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
@@ -252,14 +270,32 @@ export function RemuneracaoFields({
             <Input
               inputMode="decimal"
               value={value.salario_base}
-              readOnly={bloqueiaValor}
-              {...marca("salario_base", bloqueiaValor ? "bg-muted/60" : undefined)}
+              readOnly={bloqueiaValor || travadoPeloCargo}
+              {...marca("salario_base", bloqueiaValor || travadoPeloCargo ? "bg-muted/60" : undefined)}
               onChange={(e) => onChange({ salario_base: e.target.value })}
               placeholder={salarioCargo ? `Cargo: ${formatarBRL(salarioCargo)}` : "Ex: 2200,00"}
             />
           )}
 
-          {forma === "mensalista" && salarioCargo ? (
+          {travadoPeloCargo ? (
+            <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+              <span>
+                Valor definido pelo cargo{cargoNome ? ` ${cargoNome}` : ""} ({formatarBRL(salarioCargo!)}).
+              </span>
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-[11px]"
+                onClick={() => {
+                  onBeforeNavigate?.();
+                  navigate("/dp/cadastros/cargos");
+                }}
+              >
+                Alterar no cargo
+              </Button>
+            </div>
+          ) : forma === "mensalista" && salarioCargo ? (
             <p className="text-[11px] text-muted-foreground">
               Em branco, a folha usa o salário do cargo ({formatarBRL(salarioCargo)}).
             </p>

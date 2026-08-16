@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Building2, CheckCircle2, Lock, Plus, Scale, Users } from "lucide-react";
@@ -20,6 +20,8 @@ interface Props {
   /** Sindicato do colaborador (`dp_colaboradores.sindicato_id`). */
   value: string;
   onChange: (sindicatoId: string) => void;
+  /** Executado antes de navegar para o cadastro de sindicatos (fecha o diálogo). */
+  onBeforeNavigate?: () => void;
 }
 
 const dataBR = (iso: string | null | undefined) =>
@@ -64,8 +66,9 @@ function ResumoVinculado({
  * quando falta, o usuário vincula ou cadastra completo sem sair desta tela.
  */
 export function SindicatoEnquadramentoField({
-  cargoId, cargoNome, unidadeId, value, onChange,
+  cargoId, cargoNome, unidadeId, value, onChange, onBeforeNavigate,
 }: Props) {
+  const navigate = useNavigate();
   const enquadramento = useSindicatoDoCargo(cargoId || null, unidadeId || null);
   const sindicatos = useDpSindicatos();
   const unidades = useDpUnidades();
@@ -143,10 +146,17 @@ export function SindicatoEnquadramentoField({
           <Scale className="h-4 w-4 text-primary" />
           Enquadramento Sindical
         </div>
-        <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
-          <Link to="/dp/cadastros/sindicatos" target="_blank" rel="noreferrer">
-            Abrir cadastro de sindicatos
-          </Link>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => {
+            onBeforeNavigate?.();
+            navigate("/dp/cadastros/sindicatos");
+          }}
+        >
+          Abrir cadastro de sindicatos
         </Button>
       </div>
 

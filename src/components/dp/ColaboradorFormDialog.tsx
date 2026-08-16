@@ -623,6 +623,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         if (pendentes.length > 0) { setTab("remuneracao"); setDispensas(pendentes); return; }
       }
 
+      // Mensalista com cargo remunerado: o salário vem travado do cargo, sem conflito possível.
+      const salarioTravadoNoCargo =
+        rem.forma_pagamento === "mensalista" && !!salarioCargo && salarioCargo > 0;
+      if (salarioTravadoNoCargo) cargoResolvido.current = true;
+
       // Um cargo = um salário: reconcilia o cargo antes de gravar o colaborador.
       if (!cargoResolvido.current) {
         const comparacao = compararSalarioCargo(cargoSelecionado, baseSalarialInformada());
@@ -937,6 +942,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             unidadeId={form.unidade_id}
             value={form.sindicato_id}
             onChange={(id) => setForm((f) => ({ ...f, sindicato_id: id }))}
+            onBeforeNavigate={() => onOpenChange(false)}
           />
 
 
@@ -1148,6 +1154,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 campoErro={campoErro}
 
                 salarioCargo={salarioCargo}
+                cargoNome={cargoSelecionado?.nome ?? null}
+                onBeforeNavigate={() => onOpenChange(false)}
                 cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
                 regime={regimeSelecionado}
                 beneficios={beneficios}
