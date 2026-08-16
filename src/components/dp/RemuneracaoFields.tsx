@@ -244,7 +244,7 @@ export function RemuneracaoFields({
               inputMode="decimal"
               value={value.valor_hora}
               readOnly={bloqueiaValor}
-              className={bloqueiaValor ? "bg-muted/60" : undefined}
+              {...marca("valor_hora", bloqueiaValor ? "bg-muted/60" : undefined)}
               onChange={(e) => onChange({ valor_hora: e.target.value })}
               placeholder="Ex: 18,50"
             />
@@ -253,11 +253,12 @@ export function RemuneracaoFields({
               inputMode="decimal"
               value={value.salario_base}
               readOnly={bloqueiaValor}
-              className={bloqueiaValor ? "bg-muted/60" : undefined}
+              {...marca("salario_base", bloqueiaValor ? "bg-muted/60" : undefined)}
               onChange={(e) => onChange({ salario_base: e.target.value })}
               placeholder={salarioCargo ? `Cargo: ${formatarBRL(salarioCargo)}` : "Ex: 2200,00"}
             />
           )}
+
           {forma === "mensalista" && salarioCargo ? (
             <p className="text-[11px] text-muted-foreground">
               Em branco, a folha usa o salário do cargo ({formatarBRL(salarioCargo)}).
