@@ -1041,32 +1041,25 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
         <DialogFooter className="gap-2 sm:justify-between">
           <div className="flex items-center gap-2">
-            {tab !== "dados" && (
-              <Button variant="outline" onClick={() => setTab(abaAnterior(tab)!)} disabled={upsert.isPending}>
-                Voltar
-              </Button>
-            )}
+            <Button variant="ghost" onClick={tentarFechar} disabled={upsert.isPending}>
+              Fechar
+            </Button>
             <span className="text-xs text-muted-foreground">
               Etapa {ABAS.indexOf(tab) + 1} de {ABAS.length}
               {dirty ? " · alterações não salvas" : ""}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={tentarFechar} disabled={upsert.isPending}>
-              {isEdit || criadoId ? "Concluir" : "Cancelar"}
-            </Button>
             <Button
-              variant={tab === "remuneracao" ? "default" : "secondary"}
+              variant="secondary"
               onClick={() => void submit("stay")}
               disabled={upsert.isPending}
             >
-              {upsert.isPending ? "Salvando..." : isEdit || criadoId ? "Salvar e continuar" : "Criar"}
+              {upsert.isPending ? "Salvando..." : "Salvar e continuar"}
             </Button>
-            {abaSeguinte(tab) && (
-              <Button onClick={() => void submit("next")} disabled={upsert.isPending}>
-                Próximo
-              </Button>
-            )}
+            <Button onClick={() => void submit("close")} disabled={upsert.isPending}>
+              Concluir
+            </Button>
           </div>
         </DialogFooter>
 
