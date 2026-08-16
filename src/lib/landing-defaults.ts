@@ -2,6 +2,13 @@
 // Servem como fallback quando o super admin ainda não salvou um campo,
 // e também como base para o botão "Restaurar padrão".
 
+export type NavItem = { label: string; href: string };
+export type NavContent = {
+  items: NavItem[];
+  cta_login: string;
+  cta_primary: string;
+};
+
 export type HeroContent = {
   badge: string;
   title_prefix: string;
