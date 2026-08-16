@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck, Wallet, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "../primitives";
 import heroImage from "@/assets/site-gestor-indicadores.jpg";
@@ -7,6 +7,28 @@ import { withUtm } from "@/lib/marketing/utm";
 import { trackEvent } from "@/lib/analytics";
 
 const PROOFS = ["Financeiro e Pessoas integrados", "Contratação modular", "Multiempresa", "Acesso pelo navegador"];
+
+const MODULES = [
+  {
+    icon: Wallet,
+    name: "Financeiro 360°",
+    tagline: "O dinheiro do negócio sob controle",
+    bullets: ["Contas a pagar e receber", "Extrato bancário conciliado", "DRE e fluxo de caixa"],
+    to: "/financeiro",
+    cta: "Ver Financeiro 360°",
+    event: "hero_module_financeiro",
+  },
+  {
+    icon: Users,
+    name: "Pessoas 360°",
+    tagline: "A equipe organizada e dentro da lei",
+    bullets: ["Escala, ponto e folgas", "Folha, férias e benefícios", "Documentos e portal do colaborador"],
+    to: "/departamento-pessoal",
+    cta: "Ver Pessoas 360°",
+    event: "hero_module_pessoas",
+  },
+];
+
 
 export function HeroSection() {
   return (
