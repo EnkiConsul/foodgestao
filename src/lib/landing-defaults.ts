@@ -55,6 +55,29 @@ export type HowItWorksContent = {
   note: string;
 };
 
+export type SolutionTab = {
+  key: string;
+  tab_label: string;
+  badge: string;
+  title: string;
+  subtitle: string;
+  bullets: string[];
+  cta_label: string;
+};
+export type SolutionsContent = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  tabs: SolutionTab[];
+};
+
+export type TrustItem = { title: string; desc: string };
+export type TrustContent = {
+  eyebrow: string;
+  title: string;
+  items: TrustItem[];
+};
+
 export type ComparisonRow = { k: string; a: string; b: string };
 export type ComparisonContent = {
   eyebrow: string;
@@ -153,7 +176,7 @@ export const LANDING_DEFAULTS = {
   nav: {
     items: [
       { label: "Início", href: "#" },
-      { label: "Soluções", href: "#modulos" },
+      { label: "Soluções", href: "#solucoes" },
       { label: "Como funciona", href: "#como-funciona" },
 
       { label: "Recursos", href: "#recursos" },
@@ -239,6 +262,60 @@ export const LANDING_DEFAULTS = {
     ],
     note: "Nossa equipe acompanha a configuração inicial junto com você.",
   } satisfies HowItWorksContent,
+
+  solutions: {
+    eyebrow: "As soluções",
+    title: "Duas soluções que conversam entre si",
+    subtitle:
+      "Comece pelo financeiro, pelo Departamento Pessoal, ou use os dois — o custo da equipe entra direto no resultado do mês.",
+    tabs: [
+      {
+        key: "financeiro",
+        tab_label: "Financeiro",
+        badge: "Mais Utilizado",
+        title: "Caixa, fornecedores e resultado no controle",
+        subtitle:
+          "Do boleto do fornecedor ao DRE gerencial, com o extrato do banco chegando automático.",
+        bullets: [
+          "Contas a pagar e a receber com alerta de vencimento",
+          "Banco conectado, conciliação assistida e divisão de lançamentos",
+          "Categorização automática que aprende com os seus lançamentos",
+          "Fluxo de caixa projetado por conta e por unidade",
+          "DRE gerencial e relatórios prontos para sócios e contador",
+          "Acesso separado para a contabilidade, somente leitura",
+        ],
+        cta_label: "Conheça a solução",
+      },
+      {
+        key: "dp",
+        tab_label: "Departamento Pessoal",
+        badge: "",
+        title: "Equipe organizada, sem surpresa na folha",
+        subtitle:
+          "Turnos que mudam toda semana, folga, hora extra e intermitente — tudo registrado do jeito certo.",
+        bullets: [
+          "Cadastro completo do colaborador com jornada e remuneração",
+          "Escala do mês por unidade e operação do dia por turno",
+          "Registro de ponto pelo celular, com ajustes e aprovação",
+          "Apuração de extras, noturno, faltas e DSR para a folha",
+          "Férias, 13º, rescisão e holerite imprimível",
+          "Alertas de compliance trabalhista antes do problema acontecer",
+        ],
+        cta_label: "Conheça a solução",
+      },
+    ],
+  } satisfies SolutionsContent,
+
+  trust: {
+    eyebrow: "Confiança",
+    title: "Seus números seguros e sua operação acompanhada de perto",
+    items: [
+      { title: "Conformidade com a LGPD", desc: "Dados isolados por empresa, acesso por perfil e trilha de auditoria de tudo que acontece." },
+      { title: "Banco conectado com segurança", desc: "Conexão de leitura via Open Finance homologado: nenhuma movimentação é feita pelo sistema." },
+      { title: "Backup automático", desc: "Sua base é copiada continuamente, sem depender de planilha salva no computador." },
+      { title: "Suporte por WhatsApp", desc: "Fala direto com o nosso time, no mesmo canal que você já usa no dia a dia." },
+    ],
+  } satisfies TrustContent,
 
   comparison: {
     eyebrow: "Planilha vs 360°FOOD",
@@ -365,14 +442,15 @@ export const LANDING_DEFAULTS = {
     eyebrow: "Perguntas frequentes",
     title: "Tire suas dúvidas",
     items: [
-      { q: "Como funciona o primeiro mês grátis?", a: "Você escolhe o plano, cadastra o cartão e o acesso é liberado na hora. O cartão é apenas validado e tokenizado — a primeira cobrança acontece 30 dias depois." },
-      { q: "Como ganho os meses gratuitos?", a: "A cada três mensalidades pagas em dia, a próxima mensalidade é gratuita. No ciclo de 12 meses isso acontece nos meses 5 e 9, somados à cortesia do mês 1." },
-      { q: "O valor anual compromete o limite do cartão?", a: "Não. Não fazemos parcelamento do valor anual. São nove cobranças mensais recorrentes, então só o valor da mensalidade do mês ocupa o limite." },
-      { q: "E se o pagamento atrasar ou o cartão for recusado?", a: "Fazemos novas tentativas e avisamos você por WhatsApp. Em caso de atraso persistente o acesso é suspenso parcialmente e reativado automaticamente após a regularização. Meses em atraso não contam para liberar o benefício." },
-      { q: "Posso escolher o mensal flexível?", a: "Sim. O mensal flexível é cobrado mês a mês, sem meses gratuitos, com cancelamento antes da próxima renovação — e você pode migrar para o Fidelidade 360 quando quiser." },
-      { q: "Posso fazer upgrade de plano?", a: "Sim, o upgrade é permitido durante o contrato e passa a valer na cobrança seguinte." },
-      { q: "O módulo de Departamento Pessoal está incluído?", a: "Não. Financeiro e Departamento Pessoal são soluções com cobrança separada. Fale com o nosso time para conhecer as condições do DP." },
-      { q: "Meus dados estão seguros?", a: "Criptografia em trânsito, isolamento por usuário/empresa e conformidade com a LGPD. Não armazenamos o número completo nem o código de segurança do cartão — apenas o token do gateway, a bandeira e os quatro últimos dígitos." },
+      { q: "O 360°FOOD serve para o meu bar ou restaurante?", a: "Sim. O sistema foi desenhado para a operação de bares, restaurantes, pizzarias, hamburguerias, cafeterias e redes com várias unidades." },
+      { q: "Preciso instalar algo?", a: "Não. O 360°FOOD funciona no navegador do computador e do celular, e pode ser instalado como aplicativo na tela inicial." },
+      { q: "Como o extrato do banco entra no sistema?", a: "Você conecta a conta via Open Finance homologado (conexão apenas de leitura) ou importa o extrato. Os lançamentos chegam prontos para conciliar, com sugestão de categoria." },
+      { q: "Consigo separar mais de uma unidade ou empresa?", a: "Sim. Cada unidade ou CNPJ tem os dados isolados e você alterna entre elas em um clique, com visão consolidada do grupo." },
+      { q: "O meu contador consegue acessar?", a: "Sim. Existe um acesso específico para a contabilidade, com permissão somente de leitura dos relatórios e lançamentos." },
+      { q: "Preciso contratar o Departamento Pessoal junto com o financeiro?", a: "Não. Financeiro e Departamento Pessoal são soluções independentes: você contrata uma, a outra, ou as duas integradas." },
+      { q: "Quanto custa?", a: "Os planos estão sendo finalizados. Clique em “Conheça a solução” ou fale com o nosso time pelo WhatsApp para receber as condições atuais." },
+      { q: "Meus dados estão seguros?", a: "Criptografia em trânsito, isolamento por empresa, trilha de auditoria, backup automático e conformidade com a LGPD." },
+
     ],
   } satisfies FaqContent,
 
