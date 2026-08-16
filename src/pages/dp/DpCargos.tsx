@@ -282,7 +282,7 @@ export default function DpCargos() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cargo-salario">Salário de referência (R$)</Label>
+              <Label htmlFor="cargo-salario">Salário de referência (padrão da empresa) (R$)</Label>
               <Input
                 id="cargo-salario"
                 inputMode="decimal"
@@ -291,9 +291,18 @@ export default function DpCargos() {
                 placeholder="Ex: 2.200,00"
               />
               <p className="text-[11px] text-muted-foreground">
-                Usado como base ao cadastrar colaboradores neste cargo.
+                Vale para todas as unidades que não tiverem piso próprio abaixo.
               </p>
             </div>
+            {editing && (
+              <div className="rounded-xl border border-border p-3">
+                <CargoSalariosUnidadePanel
+                  cargoId={editing.id}
+                  salarioGeral={(editing as any).salario_base ?? null}
+                />
+              </div>
+            )}
+
             <div className="flex items-center gap-3 rounded-xl border border-border p-3">
               <Switch
                 id="cargo-insalubre"
