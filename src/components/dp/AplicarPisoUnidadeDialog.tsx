@@ -52,13 +52,14 @@ export function AplicarPisoUnidadeDialog({
     }
   }, [open, vigenciaInicio]);
 
-  const atual = (cargoId: string, salarioGeral: number | null) =>
+  const atual = (cargoId: string) =>
     salarioCargoNaUnidade(
-      salarioGeral,
       (pisos.data ?? []).filter((p) => p.cargo_id === cargoId) as any,
       unidadeId,
+      sindicatoPatronalId ?? null,
       vigencia,
     );
+
 
   const novoValor = (base: number | null) => {
     if (modo === "valor") return numeroBR(valor);
