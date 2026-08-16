@@ -399,7 +399,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     return out;
   };
 
-  const submit = async () => {
+  const submit = async (intencao?: IntencaoSalvar) => {
+    if (intencao) intencaoRef.current = intencao;
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
     if (!isonomiaConfirmada.current) {
       const pendentes = dispensasPendentes();
