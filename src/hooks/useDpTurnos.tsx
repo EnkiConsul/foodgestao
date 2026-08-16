@@ -212,9 +212,15 @@ export function useDpTurnos(unidadeId?: string | null) {
     onSuccess: invalidate,
   });
 
-  const turnos = (query.data ?? []).filter(
-    (t) => !unidadeId || t.unidade_id === unidadeId || t.unidade_id === null,
+  // Memoizado: devolver um novo array a cada render fazia efeitos que dependem
+  // da lista de turnos rodarem sem parar (e sobrescreverem o horário digitado).
+  const turnos = useMemo(
+    () => (query.data ?? []).filter(
+      (t) => !unidadeId || t.unidade_id === unidadeId || t.unidade_id === null,
+    ),
+    [query.data, unidadeId],
   );
 
   return { ...query, turnos, criar, atualizar, novaVersao, alternarAtivo, remover };
+
 }
