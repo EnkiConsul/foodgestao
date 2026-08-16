@@ -871,7 +871,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             <Label>Cargo *</Label>
             <div className="flex gap-2">
               <Select value={form.cargo_id} onValueChange={(v) => setForm({ ...form, cargo_id: v })}>
-                <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
+                <SelectTrigger {...marca("cargo_id", "flex-1")}><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                 <SelectContent>
                   {(cargos.data ?? []).map((c) => {
                     const ref = salarioReferencia(c as any);
