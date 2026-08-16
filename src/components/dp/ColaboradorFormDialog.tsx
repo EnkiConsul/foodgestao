@@ -1086,6 +1086,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               <RemuneracaoFields
                 value={rem}
                 onChange={patchRem}
+                campoErro={campoErro}
+
                 salarioCargo={salarioCargo}
                 cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
                 regime={regimeSelecionado}
