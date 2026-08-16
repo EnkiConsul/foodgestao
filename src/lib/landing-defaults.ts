@@ -263,6 +263,60 @@ export const LANDING_DEFAULTS = {
     note: "Nossa equipe acompanha a configuração inicial junto com você.",
   } satisfies HowItWorksContent,
 
+  solutions: {
+    eyebrow: "As soluções",
+    title: "Duas soluções que conversam entre si",
+    subtitle:
+      "Comece pelo financeiro, pelo Departamento Pessoal, ou use os dois — o custo da equipe entra direto no resultado do mês.",
+    tabs: [
+      {
+        key: "financeiro",
+        tab_label: "Financeiro",
+        badge: "Mais Utilizado",
+        title: "Caixa, fornecedores e resultado no controle",
+        subtitle:
+          "Do boleto do fornecedor ao DRE gerencial, com o extrato do banco chegando automático.",
+        bullets: [
+          "Contas a pagar e a receber com alerta de vencimento",
+          "Banco conectado, conciliação assistida e divisão de lançamentos",
+          "Categorização automática que aprende com os seus lançamentos",
+          "Fluxo de caixa projetado por conta e por unidade",
+          "DRE gerencial e relatórios prontos para sócios e contador",
+          "Acesso separado para a contabilidade, somente leitura",
+        ],
+        cta_label: "Conheça a solução",
+      },
+      {
+        key: "dp",
+        tab_label: "Departamento Pessoal",
+        badge: "",
+        title: "Equipe organizada, sem surpresa na folha",
+        subtitle:
+          "Turnos que mudam toda semana, folga, hora extra e intermitente — tudo registrado do jeito certo.",
+        bullets: [
+          "Cadastro completo do colaborador com jornada e remuneração",
+          "Escala do mês por unidade e operação do dia por turno",
+          "Registro de ponto pelo celular, com ajustes e aprovação",
+          "Apuração de extras, noturno, faltas e DSR para a folha",
+          "Férias, 13º, rescisão e holerite imprimível",
+          "Alertas de compliance trabalhista antes do problema acontecer",
+        ],
+        cta_label: "Conheça a solução",
+      },
+    ],
+  } satisfies SolutionsContent,
+
+  trust: {
+    eyebrow: "Confiança",
+    title: "Seus números seguros e sua operação acompanhada de perto",
+    items: [
+      { title: "Conformidade com a LGPD", desc: "Dados isolados por empresa, acesso por perfil e trilha de auditoria de tudo que acontece." },
+      { title: "Banco conectado com segurança", desc: "Conexão de leitura via Open Finance homologado: nenhuma movimentação é feita pelo sistema." },
+      { title: "Backup automático", desc: "Sua base é copiada continuamente, sem depender de planilha salva no computador." },
+      { title: "Suporte por WhatsApp", desc: "Fala direto com o nosso time, no mesmo canal que você já usa no dia a dia." },
+    ],
+  } satisfies TrustContent,
+
   comparison: {
     eyebrow: "Planilha vs 360°FOOD",
     title: "Saia da planilha sem perder o controle",
