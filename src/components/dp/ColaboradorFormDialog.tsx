@@ -831,6 +831,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             <Label>CPF *</Label>
             <Input
               value={form.cpf}
+              {...marca("cpf")}
+
               onChange={(e) => setForm({ ...form, cpf: maskCpf(e.target.value) })}
               placeholder="000.000.000-00"
               maxLength={14}
