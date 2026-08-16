@@ -123,22 +123,34 @@ export type FooterContent = {
 };
 
 export const LANDING_DEFAULTS = {
+  nav: {
+    items: [
+      { label: "Início", href: "#" },
+      { label: "Soluções", href: "#modulos" },
+      { label: "Recursos", href: "#recursos" },
+      { label: "FAQ", href: "#faq" },
+      { label: "Contato", href: "#contato" },
+    ],
+    cta_login: "Entrar",
+    cta_primary: "Conheça a solução",
+  } satisfies NavContent,
+
   hero: {
-    badge: "1º mês grátis · Programa Fidelidade 360",
-    title_prefix: "A gestão financeira do seu ",
-    title_highlight: "bar, restaurante ou rede",
-    title_suffix: ", sem planilha.",
+    badge: "Gestão feita para bares e restaurantes",
+    title_prefix: "O seu ",
+    title_highlight: "bar ou restaurante",
+    title_suffix: " sob controle, sem planilha.",
     subtitle:
-      "Contas a pagar e receber, lançamentos bancários automáticos, conciliação, fluxo de caixa e DRE gerencial. Comece com o primeiro mês grátis e, a cada 3 mensalidades pagas, a próxima é por conta do 360° Food.",
+      "Contas a pagar e a receber, lançamentos bancários automáticos, conciliação, fluxo de caixa e DRE gerencial — em um só lugar, com a equipe organizada no módulo de Departamento Pessoal.",
     bullets: [
-      "Primeiro mês grátis — cartão validado, sem cobrança",
-      "12 meses de 360° Food pagando apenas 9",
+      "Extrato do banco entrando sozinho e conciliação em poucos cliques",
+      "Fluxo de caixa e DRE gerencial prontos, sem montar planilha",
       "Dados protegidos (LGPD) e em servidores no Brasil",
     ],
-    cta_primary: "Começar com o 1º mês grátis",
-    cta_secondary: "Ver planos",
-    trust_satisfaction: "4.9 em satisfação",
-    trust_users: "Usado por bares e restaurantes",
+    cta_primary: "Conheça a solução",
+    cta_secondary: "Falar com especialista",
+    trust_satisfaction: "Feito com donos de restaurante",
+    trust_users: "Bares, restaurantes e redes",
     trust_devices: "Mobile e desktop",
   } satisfies HeroContent,
 
