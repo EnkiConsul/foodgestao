@@ -468,6 +468,16 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot]);
 
+  /** Atributos do campo pendente: âncora para foco e destaque em vermelho. */
+  const marca = (campo: string, extraClass?: string) => ({
+    "data-field": campo,
+    "aria-invalid": campoErro === campo ? true : undefined,
+    className: [extraClass, campoErro === campo ? "border-destructive ring-1 ring-destructive" : ""]
+      .filter(Boolean)
+      .join(" ") || undefined,
+  });
+
+
 
 
   /** Fecha o diálogo conferindo alterações pendentes. */
