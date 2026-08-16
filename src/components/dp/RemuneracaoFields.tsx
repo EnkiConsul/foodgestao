@@ -574,11 +574,14 @@ export function RemuneracaoFields({
               </div>
             )}
             <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground md:col-span-2">
+              <div className="font-medium text-foreground">
+                {value.vale_alimentacao_periodicidade === "diario" ? "Simulação do mês" : "Valor do mês"}
+              </div>
               {value.vale_alimentacao_periodicidade === "diario" && (
                 <div>
-                  Conta do mês: {formatarBRL(numeroBR(value.vale_alimentacao_valor))} × {va.dias} dias{" "}
+                  Conta: {formatarBRL(numeroBR(value.vale_alimentacao_valor))} × {va.dias} dias{" "}
                   ({va.diasOrigem === "jornada"
-                    ? "pela jornada"
+                    ? baseSimulacao
                     : va.diasOrigem === "fixo"
                       ? "quantidade fixa"
                       : "referência padrão"})
@@ -589,10 +592,12 @@ export function RemuneracaoFields({
               <div>Custo da empresa: <strong className="text-foreground">{formatarBRL(va.liquido)}</strong></div>
               {value.vale_alimentacao_periodicidade === "diario" && (
                 <p>
-                  Na folha, quando houver ponto apurado no período, valem os dias efetivamente trabalhados.
+                  Este total é uma <strong className="text-foreground">simulação</strong>. O valor efetivo sai na
+                  folha, pelos dias realmente trabalhados no ponto.
                 </p>
               )}
             </div>
+
 
             {alertasVa.map((a) => (
               <p
