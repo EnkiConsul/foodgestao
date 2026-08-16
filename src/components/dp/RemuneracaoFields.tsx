@@ -30,6 +30,8 @@ import {
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
 import { formatarBRL } from "@/lib/dp/folha";
+import { cn } from "@/lib/utils";
+
 
 export interface RemuneracaoFormState {
   forma_pagamento: FormaPagamento;
