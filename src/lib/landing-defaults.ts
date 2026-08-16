@@ -28,6 +28,33 @@ export type PersonasStripContent = {
   items: string[];
 };
 
+export type PainContent = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  pain_title: string;
+  pains: string[];
+  gain_title: string;
+  gains: string[];
+};
+
+export type SegmentItem = { title: string; desc: string };
+export type SegmentsContent = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  items: SegmentItem[];
+};
+
+export type HowStep = { title: string; desc: string };
+export type HowItWorksContent = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  steps: HowStep[];
+  note: string;
+};
+
 export type ComparisonRow = { k: string; a: string; b: string };
 export type ComparisonContent = {
   eyebrow: string;
@@ -127,6 +154,8 @@ export const LANDING_DEFAULTS = {
     items: [
       { label: "Início", href: "#" },
       { label: "Soluções", href: "#modulos" },
+      { label: "Como funciona", href: "#como-funciona" },
+
       { label: "Recursos", href: "#recursos" },
       { label: "FAQ", href: "#faq" },
       { label: "Contato", href: "#contato" },
@@ -159,6 +188,57 @@ export const LANDING_DEFAULTS = {
     label: "Feito para",
     items: ["Bares", "Restaurantes", "Pizzarias", "Hamburguerias", "Cafeterias", "Redes e filiais"],
   } satisfies PersonasStripContent,
+
+  pain: {
+    eyebrow: "O dia a dia hoje",
+    title: "O caixa fecha, mas ninguém sabe se o mês fechou no lucro",
+    subtitle:
+      "Bar e restaurante têm dezenas de pagamentos por semana, fornecedor no boleto, maquininha, delivery e equipe girando. A planilha não acompanha esse ritmo.",
+    pain_title: "Sem o 360°FOOD",
+    pains: [
+      "Boletos de fornecedor descobertos só quando já venceram",
+      "Extrato do banco conferido à mão, lançamento por lançamento",
+      "Maquininha, delivery e PIX misturados sem saber o que entrou de verdade",
+      "Custo de equipe estimado no papel: hora extra, folga e ponto sem controle",
+      "Fim do mês sem saber a margem de cada unidade",
+    ],
+    gain_title: "Com o 360°FOOD",
+    gains: [
+      "Contas a pagar e a receber com aviso de vencimento antes de atrasar",
+      "Extrato do banco entrando automático e conciliação em poucos cliques",
+      "Recebimentos separados por forma de pagamento e por unidade",
+      "Ponto, escala e folha organizados no módulo de Departamento Pessoal",
+      "Fluxo de caixa e DRE gerencial prontos, sem montar planilha",
+    ],
+  } satisfies PainContent,
+
+  segments: {
+    eyebrow: "Segmentos",
+    title: "Feito para quem vive o salão e a cozinha",
+    subtitle:
+      "A operação de alimentos fora do lar tem rotina própria — o 360°FOOD já vem preparado para ela.",
+    items: [
+      { title: "Bares e casas noturnas", desc: "Turnos à noite, equipe rotativa e alto volume de pagamentos em cartão e PIX." },
+      { title: "Restaurantes", desc: "Fornecedor no boleto, custo de ficha técnica e controle de margem por período." },
+      { title: "Pizzarias e hamburguerias", desc: "Delivery e salão no mesmo caixa, com recebíveis separados por canal." },
+      { title: "Cafeterias e padarias", desc: "Ticket baixo e muitos lançamentos: categorização automática economiza horas." },
+      { title: "Redes e filiais", desc: "Cada unidade com dados isolados e visão consolidada do grupo." },
+      { title: "Franquias e sócios", desc: "Relatórios prontos para sócios, contador e franqueadora." },
+    ],
+  } satisfies SegmentsContent,
+
+  how_it_works: {
+    eyebrow: "Como funciona",
+    title: "Do cadastro ao primeiro relatório em poucos passos",
+    subtitle: "Sem instalação e sem projeto de implantação. Você usa no celular e no computador.",
+    steps: [
+      { title: "Crie a conta do seu negócio", desc: "Cadastro rápido com os dados do bar ou restaurante e das unidades." },
+      { title: "Conecte o banco ou importe o extrato", desc: "Os lançamentos chegam sozinhos e ficam prontos para conciliar." },
+      { title: "Organize contas e equipe", desc: "Contas a pagar e a receber, categorias e o time no Departamento Pessoal." },
+      { title: "Acompanhe caixa e resultado", desc: "Fluxo de caixa projetado e DRE gerencial atualizados a cada lançamento." },
+    ],
+    note: "Nossa equipe acompanha a configuração inicial junto com você.",
+  } satisfies HowItWorksContent,
 
   comparison: {
     eyebrow: "Planilha vs 360°FOOD",
@@ -212,15 +292,16 @@ export const LANDING_DEFAULTS = {
 
   features: {
     eyebrow: "Recursos",
-    title: "Tudo que você precisa para tirar o financeiro do papel",
+    title: "O que você resolve no 360°FOOD",
     items: [
-      { title: "Contas a pagar e receber unificadas", desc: "Todos os lançamentos com vencimentos, status, recorrências e anexos." },
-      { title: "Dashboard inteligente", desc: "Saldos, evolução mensal e top categorias em tempo real." },
-      { title: "Fluxo de caixa projetado", desc: "Veja o saldo futuro com base nas suas contas e lançamentos previstos." },
-      { title: "Multiusuário e perfis", desc: "Convide sua equipe com permissões granulares por módulo." },
-      { title: "Privacidade e LGPD", desc: "Modo privacidade, dados isolados por usuário/empresa (RLS)." },
-      { title: "Pronto em 2 minutos", desc: "Onboarding guiado: perfil, dados, primeira conta e categorias." },
+      { title: "Contas a pagar e a receber", desc: "Boletos de fornecedor, recebíveis e recorrências com aviso antes de vencer." },
+      { title: "Banco conectado e conciliação", desc: "O extrato entra sozinho, o sistema sugere a categoria e você confirma em poucos cliques." },
+      { title: "Fluxo de caixa projetado", desc: "Veja o saldo dos próximos dias e semanas antes de fechar um pedido grande." },
+      { title: "DRE gerencial por unidade", desc: "Resultado do mês por unidade e por categoria, sem montar planilha." },
+      { title: "Equipe organizada", desc: "Ponto, escala, férias e folha no módulo de Departamento Pessoal." },
+      { title: "Dados protegidos", desc: "Acesso por perfil, dados isolados por empresa e conformidade com a LGPD." },
     ],
+
   } satisfies FeaturesContent,
 
   guarantee: {
@@ -296,9 +377,10 @@ export const LANDING_DEFAULTS = {
   } satisfies FaqContent,
 
   final_cta: {
-    title: "Pronto para tirar o financeiro do restaurante da planilha?",
-    subtitle: "Primeiro mês grátis. A cada 3 mensalidades pagas, a próxima é por conta do 360° Food.",
-    cta_label: "Começar com o 1º mês grátis",
+    title: "Pronto para tirar o financeiro do seu restaurante da planilha?",
+    subtitle: "Conheça a solução e veja como o 360°FOOD organiza caixa, fornecedores e equipe.",
+    cta_label: "Conheça a solução",
+
   } satisfies FinalCtaContent,
 
 
