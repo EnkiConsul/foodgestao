@@ -157,7 +157,7 @@ export const LANDING_DEFAULTS = {
 
   personas_strip: {
     label: "Feito para",
-    items: ["MEI", "Autônomos", "Pequenas empresas", "Famílias", "Casais", "Freelancers"],
+    items: ["Bares", "Restaurantes", "Pizzarias", "Hamburguerias", "Cafeterias", "Redes e filiais"],
   } satisfies PersonasStripContent,
 
   comparison: {
