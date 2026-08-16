@@ -26,10 +26,13 @@ import { verificarAlertasClt, idadeNaData, temAlertaClt, type AlertaClt } from "
 import { tituloSistema } from "@/lib/text/titleCase";
 import {
   cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia, diaDivergeDoBase,
-  diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia, normalizarDias,
-  resumoConfigTexto, turnoDoDia, validarConfigTrabalho,
+  diaEhHorarioDaLoja, diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia,
+  normalizarDias, resumoConfigTexto, semanaDaGrade, turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
+import { UsarGradeSemanalDialog } from "@/components/dp/UsarGradeSemanalDialog";
+import type { GradeSemanal } from "@/hooks/useDpGradesSemanais";
+
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : null);
