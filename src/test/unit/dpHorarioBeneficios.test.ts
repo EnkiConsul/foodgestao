@@ -142,7 +142,9 @@ describe("dias trabalháveis no mês", () => {
     const seisPorUm = [0, 1, 2, 3, 4, 5, 6].map((dow) => ({ dow, trabalha: dow !== 0 }));
     expect(descreverDiasJornada(seisPorUm)).toContain("folga dom");
     expect(descreverDiasJornada([])).toBe("jornada não cadastrada");
+  });
 });
+
 
 describe("simulação em mês comercial", () => {
   const seisPorUm = [0, 1, 2, 3, 4, 5, 6].map((dow) => ({ dow, trabalha: dow !== 0 }));
