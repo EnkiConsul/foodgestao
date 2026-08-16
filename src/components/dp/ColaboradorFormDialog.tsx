@@ -895,7 +895,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           <div className="space-y-2">
             <Label>Unidade *</Label>
             <Select value={form.unidade_id} onValueChange={(v) => setForm({ ...form, unidade_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+              <SelectTrigger {...marca("unidade_id")}><SelectValue placeholder="Nenhuma" /></SelectTrigger>
               <SelectContent>
                 {(unidades.data ?? []).map((u) => (
                   <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
