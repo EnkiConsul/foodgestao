@@ -819,6 +819,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             <Label>Nome Completo *</Label>
             <Input
               value={form.nome}
+              {...marca("nome")}
+
               onChange={(e) => setForm({ ...form, nome: e.target.value })}
               placeholder="Ex: João da Silva"
             />
