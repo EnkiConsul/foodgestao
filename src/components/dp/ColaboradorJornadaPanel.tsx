@@ -155,14 +155,23 @@ export function ColaboradorJornadaPanel({
 
   }, [active, vigente, colaborador?.unidade_id, admissao]);
 
-  // O horário principal da tela vem do turno padrão gravado na vigência.
+  /**
+   * O horário principal da tela vem do turno padrão gravado na vigência — e é
+   * aplicado uma única vez por vigência carregada. Sem esse controle, o efeito
+   * reaplicava o turno antigo a cada render e desfazia o horário copiado de
+   * outro colaborador ou vindo da grade da unidade.
+   */
+  const horarioAplicadoRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!active || !vigente?.turno_padrao_id) return;
-    const t = turnosResolvidos.find((x) => x.id === vigente.turno_padrao_id);
-    if (t?.entrada && t?.saida) {
-      setHorario({ entrada: t.entrada, saida: t.saida, intervalo_minutos: t.intervalo_minutos ?? 0 });
-    }
+    if (!active) return;
+    const id = vigente?.turno_padrao_id ?? null;
+    if (!id || horarioAplicadoRef.current === id) return;
+    const t = turnosResolvidos.find((x) => x.id === id);
+    if (!t?.entrada || !t?.saida) return;
+    horarioAplicadoRef.current = id;
+    setHorario({ entrada: t.entrada, saida: t.saida, intervalo_minutos: t.intervalo_minutos ?? 0 });
   }, [active, vigente?.turno_padrao_id, turnosResolvidos]);
+
 
   /** Turno virtual que representa o horário digitado — só para cálculo na tela. */
   const turnoPadraoTela: TurnoResolvido = useMemo(
