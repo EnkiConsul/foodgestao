@@ -246,11 +246,34 @@ export function useDeleteDpSindicato() {
   });
 }
 
-// ---------------- Salário do cargo por unidade ----------------
-// O piso do cargo pode variar por unidade porque o sindicato patronal é da
-// unidade: cada convenção patronal negocia seu próprio valor.
+// ---------------- Piso do cargo por sindicato patronal ----------------
+// O piso é negociado pelo sindicato patronal (que é da unidade): unidades com
+// o mesmo patronal compartilham o piso; ajustes por unidade são opcionais e
+// precisam ficar acima do piso.
 export type DpCargoSalario = Database["public"]["Tables"]["dp_cargo_salarios"]["Row"];
 export type DpCargoSalarioInsert = Database["public"]["Tables"]["dp_cargo_salarios"]["Insert"];
+
+/** Sindicato patronal vinculado a cada unidade da empresa. */
+export function useDpPatronalPorUnidade() {
+  const { companies } = useCompanyContext();
+  const companyIds = companies.map((c) => c.id);
+  return useQuery({
+    queryKey: ["dp_patronal_por_unidade", companyIds.join(",")],
+    enabled: companyIds.length > 0,
+    queryFn: async (): Promise<Record<string, { id: string; nome: string }>> => {
+      const { data, error } = await supabase
+        .from("dp_sindicato_unidades")
+        .select("unidade_id, sindicato_id, dp_sindicatos!inner(id, nome, tipo)")
+        .eq("dp_sindicatos.tipo", "patronal");
+      if (error) throw error;
+      const map: Record<string, { id: string; nome: string }> = {};
+      for (const row of (data ?? []) as any[]) {
+        if (!map[row.unidade_id]) map[row.unidade_id] = { id: row.sindicato_id, nome: row.dp_sindicatos?.nome ?? "" };
+      }
+      return map;
+    },
+  });
+}
 
 export function useDpCargoSalarios(cargoId?: string | null) {
   const { selectedCompanyId } = useCompanyContext();
@@ -276,8 +299,9 @@ export function useUpsertDpCargoSalario() {
   const { selectedCompanyId } = useCompanyContext();
   return useMutation({
     mutationFn: async (
-      input: Partial<DpCargoSalarioInsert> & { id?: string; cargo_id: string; unidade_id: string; salario_base: number },
+      input: Partial<DpCargoSalarioInsert> & { cargo_id: string; salario_base: number },
     ) => {
+
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
       const payload = { ...input, company_id: selectedCompanyId } as DpCargoSalarioInsert;
       if (input.id) {
