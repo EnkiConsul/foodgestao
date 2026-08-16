@@ -399,6 +399,8 @@ export function RemuneracaoFields({
               <Input
                 inputMode="decimal"
                 value={value.premio_assiduidade_valor}
+                {...marca("premio_assiduidade_valor")}
+
                 onChange={(e) => onChange({ premio_assiduidade_valor: e.target.value })}
                 placeholder={value.premio_assiduidade_tipo === "percentual" ? "Ex: 5" : "Ex: 150,00"}
               />
