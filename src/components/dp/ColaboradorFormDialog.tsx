@@ -297,6 +297,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       possui_folha_ponto: c.possui_folha_ponto ?? false,
       optante_adiantamento: c.optante_adiantamento ?? false,
     });
+    setResetKey((k) => k + 1);
   }, [open, colaborador, atribuicoes]);
 
   useEffect(() => {
