@@ -691,11 +691,19 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       }
 
 
-      // Cadastro novo: o registro passa a existir, então a jornada já pode ser
-      // gravada sem sair da tela — levamos o administrador para a aba de turno.
+      // Cadastro novo: o registro passa a existir. Se a intenção for concluir,
+      // fechamos o diálogo; caso contrário, levamos o administrador para a
+      // próxima aba para completar turno e jornada.
       setCriadoId(colaboradorId);
       setBaseline(snapshot);
-      toast.success("Colaborador cadastrado — defina o turno e a jornada");
+      toast.success("Colaborador cadastrado");
+
+      if (intencaoRef.current === "close") {
+        finalizar();
+        return;
+      }
+
+      toast("Defina o turno e a jornada");
       setTab(abaSeguinte(tab) ?? "jornada");
 
 
