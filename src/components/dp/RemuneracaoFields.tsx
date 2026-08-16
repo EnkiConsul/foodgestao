@@ -30,6 +30,8 @@ import {
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
 import { formatarBRL } from "@/lib/dp/folha";
+import { cn } from "@/lib/utils";
+
 
 export interface RemuneracaoFormState {
   forma_pagamento: FormaPagamento;
@@ -114,6 +116,8 @@ interface Props {
   diasJornada?: DiaSemanaTrabalho[] | null;
   /** Folgas de fim de semana por mês (DSR da unidade/empresa). */
   folgasFimDeSemanaMes?: number | null;
+  /** Campo pendente sinalizado pela validação do formulário. */
+  campoErro?: string | null;
 
 }
 
@@ -130,7 +134,17 @@ export function RemuneracaoFields({
   regime,
   diasJornada,
   folgasFimDeSemanaMes,
+  campoErro,
 }: Props) {
+
+  /** Marca o input pendente para foco/destaque automático. */
+  const marca = (campo: string, extraClass?: string) => ({
+    "data-field": campo,
+    "aria-invalid": campoErro === campo ? true : undefined,
+    className: cn(extraClass, campoErro === campo && "border-destructive ring-1 ring-destructive"),
+  });
+
+
 
   const forma = value.forma_pagamento;
   const formaOptions = formaPagamentoOptions(regime);
@@ -230,7 +244,7 @@ export function RemuneracaoFields({
               inputMode="decimal"
               value={value.valor_hora}
               readOnly={bloqueiaValor}
-              className={bloqueiaValor ? "bg-muted/60" : undefined}
+              {...marca("valor_hora", bloqueiaValor ? "bg-muted/60" : undefined)}
               onChange={(e) => onChange({ valor_hora: e.target.value })}
               placeholder="Ex: 18,50"
             />
@@ -239,11 +253,12 @@ export function RemuneracaoFields({
               inputMode="decimal"
               value={value.salario_base}
               readOnly={bloqueiaValor}
-              className={bloqueiaValor ? "bg-muted/60" : undefined}
+              {...marca("salario_base", bloqueiaValor ? "bg-muted/60" : undefined)}
               onChange={(e) => onChange({ salario_base: e.target.value })}
               placeholder={salarioCargo ? `Cargo: ${formatarBRL(salarioCargo)}` : "Ex: 2200,00"}
             />
           )}
+
           {forma === "mensalista" && salarioCargo ? (
             <p className="text-[11px] text-muted-foreground">
               Em branco, a folha usa o salário do cargo ({formatarBRL(salarioCargo)}).
@@ -336,6 +351,8 @@ export function RemuneracaoFields({
           <Input
             inputMode="decimal"
             value={value.adicional_percentual}
+            {...marca("adicional_percentual")}
+
             onChange={(e) => onChange({ adicional_percentual: e.target.value })}
             placeholder="0"
           />
@@ -382,6 +399,8 @@ export function RemuneracaoFields({
               <Input
                 inputMode="decimal"
                 value={value.premio_assiduidade_valor}
+                {...marca("premio_assiduidade_valor")}
+
                 onChange={(e) => onChange({ premio_assiduidade_valor: e.target.value })}
                 placeholder={value.premio_assiduidade_tipo === "percentual" ? "Ex: 5" : "Ex: 150,00"}
               />
@@ -450,6 +469,8 @@ export function RemuneracaoFields({
               <Input
                 inputMode="decimal"
                 value={value.vale_transporte_valor_dia}
+                {...marca("vale_transporte_valor_dia")}
+
                 onChange={(e) => onChange({ vale_transporte_valor_dia: e.target.value })}
                 placeholder="Ex: 10,40"
               />
@@ -497,6 +518,8 @@ export function RemuneracaoFields({
               <Input
                 inputMode="decimal"
                 value={value.vale_alimentacao_valor}
+                {...marca("vale_alimentacao_valor")}
+
                 onChange={(e) => onChange({ vale_alimentacao_valor: e.target.value })}
                 placeholder="Ex: 25,00"
               />

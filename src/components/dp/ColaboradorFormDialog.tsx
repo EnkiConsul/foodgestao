@@ -130,6 +130,9 @@ const blank = {
 const ABAS = ["dados", "jornada", "remuneracao"] as const;
 type AbaCadastro = (typeof ABAS)[number];
 type IntencaoSalvar = "stay" | "close";
+/** Campo pendente apontado pela validação, usado para focar e destacar. */
+type ErroCampo = { campo: string; mensagem: string };
+
 
 const abaSeguinte = (aba: AbaCadastro): AbaCadastro | null =>
   ABAS[ABAS.indexOf(aba) + 1] ?? null;
@@ -157,6 +160,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Muda a cada carregamento do colaborador para renovar o marco acima. */
   const [resetKey, setResetKey] = useState(0);
   const [confirmarSaida, setConfirmarSaida] = useState(false);
+  /** Campo pendente sinalizado no formulário (foco + destaque). */
+  const [campoErro, setCampoErro] = useState<string | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+
   /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
   const [criadoId, setCriadoId] = useState<string | null>(null);
   /** Salvamento do horário de trabalho exposto pelo painel da aba. */
@@ -443,6 +450,35 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
 
+  /** Leva o usuário até o campo pendente: rola, foca e mantém o destaque. */
+  useEffect(() => {
+    if (!campoErro) return;
+    const t = window.setTimeout(() => {
+      const alvo = contentRef.current?.querySelector<HTMLElement>(`[data-field="${campoErro}"]`);
+      if (!alvo) return;
+      alvo.scrollIntoView({ block: "center", behavior: "smooth" });
+      alvo.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [campoErro, tab]);
+
+  /** Qualquer edição limpa o destaque de pendência. */
+  useEffect(() => {
+    setCampoErro((atual) => (atual ? null : atual));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshot]);
+
+  /** Atributos do campo pendente: âncora para foco e destaque em vermelho. */
+  const marca = (campo: string, extraClass?: string) => ({
+    "data-field": campo,
+    "aria-invalid": campoErro === campo ? true : undefined,
+    className: [extraClass, campoErro === campo ? "border-destructive ring-1 ring-destructive" : ""]
+      .filter(Boolean)
+      .join(" ") || undefined,
+  });
+
+
+
 
   /** Fecha o diálogo conferindo alterações pendentes. */
   const tentarFechar = () => {
@@ -461,6 +497,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const submit = async (intencao?: IntencaoSalvar) => {
     if (intencao) intencaoRef.current = intencao;
     const alvo = intencaoRef.current;
+    setCampoErro(null);
 
     // "Salvar e continuar" é um checkpoint: valida somente a aba aberta.
     // "Concluir" fecha o cadastro: valida todas as abas.
@@ -483,35 +520,41 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       salario_cargo: salarioCargo,
     });
 
-    /** Erros da aba Dados; devolve a primeira mensagem encontrada. */
-    const erroDados = async (): Promise<string | null> => {
-      if (!form.nome.trim()) return "Nome é obrigatório";
-      if (!form.cpf.trim()) return "CPF é obrigatório";
-      if (cpfDigits.length !== 11) return "CPF deve ter 11 dígitos";
-      if (!isValidCpf(cpfDigits)) return "CPF inválido";
-      if (!form.cargo_id) return "Cargo é obrigatório";
-      if (!form.unidade_id) return "Unidade é obrigatória";
-      if (!form.data_admissao) return "Data de admissão é obrigatória";
-      if (!form.data_nascimento) return "Data de nascimento é obrigatória";
+    const erro = (campo: string, mensagem: string): ErroCampo => ({ campo, mensagem });
+
+    /** Erros da aba Dados; devolve o primeiro campo pendente. */
+    const erroDados = async (): Promise<ErroCampo | null> => {
+      if (!form.nome.trim()) return erro("nome", "Nome é obrigatório");
+      if (!form.cpf.trim()) return erro("cpf", "CPF é obrigatório");
+      if (cpfDigits.length !== 11) return erro("cpf", "CPF deve ter 11 dígitos");
+      if (!isValidCpf(cpfDigits)) return erro("cpf", "CPF inválido");
+      if (!form.cargo_id) return erro("cargo_id", "Cargo é obrigatório");
+      if (!form.unidade_id) return erro("unidade_id", "Unidade é obrigatória");
+      if (!form.data_admissao) return erro("data_admissao", "Data de admissão é obrigatória");
+      if (!form.data_nascimento) return erro("data_nascimento", "Data de nascimento é obrigatória");
 
       const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
       const nascimento = new Date(form.data_nascimento + "T00:00:00");
       const admissao = new Date(form.data_admissao + "T00:00:00");
-      if (nascimento >= hoje) return "Data de nascimento deve ser no passado";
+      if (nascimento >= hoje) return erro("data_nascimento", "Data de nascimento deve ser no passado");
 
       const idade = (admissao.getTime() - nascimento.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-      if (idade < 14) return "Colaborador deve ter no mínimo 14 anos na admissão";
-      if (idade > 100) return "Data de nascimento inconsistente com a admissão";
+      if (idade < 14) return erro("data_nascimento", "Colaborador deve ter no mínimo 14 anos na admissão");
+      if (idade > 100) return erro("data_nascimento", "Data de nascimento inconsistente com a admissão");
 
       if (admissao > hoje) {
         // permite admissão futura até 90 dias
         const diffDias = (admissao.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24);
-        if (diffDias > 90) return "Data de admissão muito distante no futuro (máx. 90 dias)";
+        if (diffDias > 90) {
+          return erro("data_admissao", "Data de admissão muito distante no futuro (máx. 90 dias)");
+        }
       }
 
-      if (isDesligado && !form.data_desligamento) return "Informe a data da demissão";
+      if (isDesligado && !form.data_desligamento) {
+        return erro("data_desligamento", "Informe a data da demissão");
+      }
       if (form.observacao_desligamento.length > 2000) {
-        return "Observação do desligamento muito longa (máx. 2000 caracteres)";
+        return erro("observacao_desligamento", "Observação do desligamento muito longa (máx. 2000 caracteres)");
       }
 
       // Duplicidade de CPF na empresa
@@ -522,7 +565,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           .eq("cpf", cpfDigits)
           .maybeSingle();
         if (dup && dup.id !== colaborador?.id) {
-          return "Já existe um colaborador com este CPF nesta empresa";
+          return erro("cpf", "Já existe um colaborador com este CPF nesta empresa");
         }
       } catch { /* silencioso — o banco tem constraint de reserva */ }
 
@@ -530,34 +573,43 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     };
 
     /** Erros da aba Remuneração. */
-    const erroRemuneracao = (): string | null => {
+    const erroRemuneracao = (): ErroCampo | null => {
       // Remuneração é pré-requisito da folha: bloqueia o cadastro novo sem valor.
       // Editando um colaborador existente, a falta não trava — avisamos após gravar.
-      if (pendencia && !isEdit && !criadoId) return pendencia;
-      if (adicionalNum < 0 || adicionalNum > 100) return "Adicional deve estar entre 0% e 100%";
-      if (rem.vale_transporte && vtDiaNum <= 0) return "Informe o valor diário do vale-transporte";
+      if (pendencia && !isEdit && !criadoId) {
+        return erro(rem.forma_pagamento === "horista" ? "valor_hora" : "salario_base", pendencia);
+      }
+      if (adicionalNum < 0 || adicionalNum > 100) {
+        return erro("adicional_percentual", "Adicional deve estar entre 0% e 100%");
+      }
+      if (rem.vale_transporte && vtDiaNum <= 0) {
+        return erro("vale_transporte_valor_dia", "Informe o valor diário do vale-transporte");
+      }
       if (rem.premio_assiduidade && premioNum <= 0) {
-        return rem.premio_assiduidade_tipo === "percentual"
-          ? "Informe o percentual do prêmio de assiduidade"
-          : "Informe o valor do prêmio de assiduidade";
+        return erro(
+          "premio_assiduidade_valor",
+          rem.premio_assiduidade_tipo === "percentual"
+            ? "Informe o percentual do prêmio de assiduidade"
+            : "Informe o valor do prêmio de assiduidade",
+        );
       }
       if (rem.premio_assiduidade && rem.premio_assiduidade_tipo === "percentual" && premioNum > 100) {
-        return "O percentual do prêmio de assiduidade não pode passar de 100%";
+        return erro("premio_assiduidade_valor", "O percentual do prêmio de assiduidade não pode passar de 100%");
       }
       if (rem.vale_alimentacao && numeroBR(rem.vale_alimentacao_valor) <= 0) {
-        return "Informe o valor do vale-alimentação";
+        return erro("vale_alimentacao_valor", "Informe o valor do vale-alimentação");
       }
       return null;
     };
 
     if (validaDados) {
-      const erro = await erroDados();
-      if (erro) { toast.error(erro); setTab("dados"); return; }
+      const e = await erroDados();
+      if (e) { toast.error(e.mensagem); setTab("dados"); setCampoErro(e.campo); return; }
     }
 
     if (validaRem) {
-      const erro = erroRemuneracao();
-      if (erro) { toast.error(erro); setTab("remuneracao"); return; }
+      const e = erroRemuneracao();
+      if (e) { toast.error(e.mensagem); setTab("remuneracao"); setCampoErro(e.campo); return; }
 
       // Benefícios desmarcados exigem ciência de isonomia.
       if (!isonomiaConfirmada.current) {
@@ -592,6 +644,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         return;
       }
     }
+
 
 
 
@@ -734,7 +787,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { tentarFechar(); return; } onOpenChange(true); }}>
-      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
+      <DialogContent ref={contentRef} className="max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Colaborador" : "Novo Colaborador"}</DialogTitle>
         </DialogHeader>
@@ -766,6 +819,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             <Label>Nome Completo *</Label>
             <Input
               value={form.nome}
+              {...marca("nome")}
+
               onChange={(e) => setForm({ ...form, nome: e.target.value })}
               placeholder="Ex: João da Silva"
             />
@@ -776,6 +831,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             <Label>CPF *</Label>
             <Input
               value={form.cpf}
+              {...marca("cpf")}
+
               onChange={(e) => setForm({ ...form, cpf: maskCpf(e.target.value) })}
               placeholder="000.000.000-00"
               maxLength={14}
@@ -814,7 +871,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             <Label>Cargo *</Label>
             <div className="flex gap-2">
               <Select value={form.cargo_id} onValueChange={(v) => setForm({ ...form, cargo_id: v })}>
-                <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
+                <SelectTrigger {...marca("cargo_id", "flex-1")}><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                 <SelectContent>
                   {(cargos.data ?? []).map((c) => {
                     const ref = salarioReferencia(c as any);
@@ -838,7 +895,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           <div className="space-y-2">
             <Label>Unidade *</Label>
             <Select value={form.unidade_id} onValueChange={(v) => setForm({ ...form, unidade_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+              <SelectTrigger {...marca("unidade_id")}><SelectValue placeholder="Nenhuma" /></SelectTrigger>
               <SelectContent>
                 {(unidades.data ?? []).map((u) => (
                   <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
@@ -1043,6 +1100,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               <RemuneracaoFields
                 value={rem}
                 onChange={patchRem}
+                campoErro={campoErro}
+
                 salarioCargo={salarioCargo}
                 cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
                 regime={regimeSelecionado}
