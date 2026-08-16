@@ -256,7 +256,7 @@ export default function DpCargos() {
 
       {/* Criar / Editar */}
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setForm(blankForm); } }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar Cargo" : "Novo Cargo"}</DialogTitle>
           </DialogHeader>
