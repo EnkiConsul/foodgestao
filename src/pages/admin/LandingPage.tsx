@@ -199,18 +199,17 @@ export default function AdminLandingPage() {
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="hero">Hero</TabsTrigger>
           <TabsTrigger value="personas_strip">Faixa</TabsTrigger>
-          <TabsTrigger value="comparison">Comparativo</TabsTrigger>
-          <TabsTrigger value="persona_cards">Personas</TabsTrigger>
+          <TabsTrigger value="pain">Dor & Ganho</TabsTrigger>
+          <TabsTrigger value="segments">Segmentos</TabsTrigger>
+          <TabsTrigger value="solutions">Soluções</TabsTrigger>
           <TabsTrigger value="features">Recursos</TabsTrigger>
-          <TabsTrigger value="guarantee">Garantia</TabsTrigger>
-          <TabsTrigger value="loyalty">Fidelidade 360</TabsTrigger>
-          <TabsTrigger value="pricing_intro">Planos (intro)</TabsTrigger>
-          <TabsTrigger value="plan_matrix">Comparativo de planos</TabsTrigger>
+          <TabsTrigger value="how_it_works">Como funciona</TabsTrigger>
+          <TabsTrigger value="trust">Confiança</TabsTrigger>
           <TabsTrigger value="faq">FAQ</TabsTrigger>
-
           <TabsTrigger value="final_cta">CTA final</TabsTrigger>
           <TabsTrigger value="footer">Rodapé</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="hero">
           <SectionEditor
