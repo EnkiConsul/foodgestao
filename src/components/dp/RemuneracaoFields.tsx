@@ -112,6 +112,9 @@ interface Props {
   regime?: string | null;
   /** Dias da semana da jornada do colaborador (aba Horário de Trabalho). */
   diasJornada?: DiaSemanaTrabalho[] | null;
+  /** Folgas de fim de semana por mês (DSR da unidade/empresa). */
+  folgasFimDeSemanaMes?: number | null;
+
 }
 
 /**
