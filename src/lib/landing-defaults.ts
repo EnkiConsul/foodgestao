@@ -442,14 +442,15 @@ export const LANDING_DEFAULTS = {
     eyebrow: "Perguntas frequentes",
     title: "Tire suas dúvidas",
     items: [
-      { q: "Como funciona o primeiro mês grátis?", a: "Você escolhe o plano, cadastra o cartão e o acesso é liberado na hora. O cartão é apenas validado e tokenizado — a primeira cobrança acontece 30 dias depois." },
-      { q: "Como ganho os meses gratuitos?", a: "A cada três mensalidades pagas em dia, a próxima mensalidade é gratuita. No ciclo de 12 meses isso acontece nos meses 5 e 9, somados à cortesia do mês 1." },
-      { q: "O valor anual compromete o limite do cartão?", a: "Não. Não fazemos parcelamento do valor anual. São nove cobranças mensais recorrentes, então só o valor da mensalidade do mês ocupa o limite." },
-      { q: "E se o pagamento atrasar ou o cartão for recusado?", a: "Fazemos novas tentativas e avisamos você por WhatsApp. Em caso de atraso persistente o acesso é suspenso parcialmente e reativado automaticamente após a regularização. Meses em atraso não contam para liberar o benefício." },
-      { q: "Posso escolher o mensal flexível?", a: "Sim. O mensal flexível é cobrado mês a mês, sem meses gratuitos, com cancelamento antes da próxima renovação — e você pode migrar para o Fidelidade 360 quando quiser." },
-      { q: "Posso fazer upgrade de plano?", a: "Sim, o upgrade é permitido durante o contrato e passa a valer na cobrança seguinte." },
-      { q: "O módulo de Departamento Pessoal está incluído?", a: "Não. Financeiro e Departamento Pessoal são soluções com cobrança separada. Fale com o nosso time para conhecer as condições do DP." },
-      { q: "Meus dados estão seguros?", a: "Criptografia em trânsito, isolamento por usuário/empresa e conformidade com a LGPD. Não armazenamos o número completo nem o código de segurança do cartão — apenas o token do gateway, a bandeira e os quatro últimos dígitos." },
+      { q: "O 360°FOOD serve para o meu bar ou restaurante?", a: "Sim. O sistema foi desenhado para a operação de bares, restaurantes, pizzarias, hamburguerias, cafeterias e redes com várias unidades." },
+      { q: "Preciso instalar algo?", a: "Não. O 360°FOOD funciona no navegador do computador e do celular, e pode ser instalado como aplicativo na tela inicial." },
+      { q: "Como o extrato do banco entra no sistema?", a: "Você conecta a conta via Open Finance homologado (conexão apenas de leitura) ou importa o extrato. Os lançamentos chegam prontos para conciliar, com sugestão de categoria." },
+      { q: "Consigo separar mais de uma unidade ou empresa?", a: "Sim. Cada unidade ou CNPJ tem os dados isolados e você alterna entre elas em um clique, com visão consolidada do grupo." },
+      { q: "O meu contador consegue acessar?", a: "Sim. Existe um acesso específico para a contabilidade, com permissão somente de leitura dos relatórios e lançamentos." },
+      { q: "Preciso contratar o Departamento Pessoal junto com o financeiro?", a: "Não. Financeiro e Departamento Pessoal são soluções independentes: você contrata uma, a outra, ou as duas integradas." },
+      { q: "Quanto custa?", a: "Os planos estão sendo finalizados. Clique em “Conheça a solução” ou fale com o nosso time pelo WhatsApp para receber as condições atuais." },
+      { q: "Meus dados estão seguros?", a: "Criptografia em trânsito, isolamento por empresa, trilha de auditoria, backup automático e conformidade com a LGPD." },
+
     ],
   } satisfies FaqContent,
 
