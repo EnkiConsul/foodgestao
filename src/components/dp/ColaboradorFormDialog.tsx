@@ -777,7 +777,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { tentarFechar(); return; } onOpenChange(true); }}>
-      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
+      <DialogContent ref={contentRef} className="max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Colaborador" : "Novo Colaborador"}</DialogTitle>
         </DialogHeader>
