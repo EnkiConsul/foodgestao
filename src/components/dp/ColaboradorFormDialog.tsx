@@ -804,30 +804,40 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { tentarFechar(); return; } onOpenChange(true); }}>
-      <DialogContent ref={contentRef} className="max-w-4xl max-h-[92vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar Colaborador" : "Novo Colaborador"}</DialogTitle>
-        </DialogHeader>
+      <DialogContent
+        ref={contentRef}
+        className="flex max-h-[92vh] w-full max-w-4xl flex-col gap-0 overflow-hidden p-0"
+      >
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab(v as typeof tab)}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          {/* Cabeçalho e abas fixos: só o conteúdo do formulário rola. */}
+          <div className="shrink-0 space-y-3 border-b border-border bg-background p-6 pb-3">
+            <DialogHeader className="space-y-0 text-left">
+              <DialogTitle>{isEdit ? "Editar Colaborador" : "Novo Colaborador"}</DialogTitle>
+            </DialogHeader>
+            <TabsList className="w-full justify-start overflow-x-auto">
+              <TabsTrigger value="dados" className="gap-2">
+                Dados
+                {dadosPendente && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="jornada">Horário de Trabalho</TabsTrigger>
+              <TabsTrigger value="remuneracao" className="gap-2">
+                Remuneração
+                {remPendente && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full">
-          <TabsList className="w-full justify-start overflow-x-auto">
-            <TabsTrigger value="dados" className="gap-2">
-              Dados
-              {dadosPendente && (
-                <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="jornada">Horário de Trabalho</TabsTrigger>
-            <TabsTrigger value="remuneracao" className="gap-2">
-              Remuneração
-              {remPendente && (
-                <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
-              )}
-            </TabsTrigger>
-
-          </TabsList>
-
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4">
           <TabsContent value="dados" className="mt-0">
+
 
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
