@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLandingSection } from "@/hooks/useLandingContent";
 import heroDashboard from "@/assets/hero-dashboard.png.asset.json";
+import { handleAnchorClick } from "@/lib/landing/scroll";
 import { CtaPrimary } from "./CtaPrimary";
 
 function HeroMockup() {
@@ -78,7 +79,7 @@ export function HeroSection({ utm }: { utm: string }) {
               className="w-full text-base sm:w-auto"
             />
             <Button asChild size="lg" variant="outline" className="w-full text-base sm:w-auto">
-              <a href="#comparativo">{c.cta_secondary}</a>
+              <a href="#contato" onClick={(e) => handleAnchorClick(e, "#contato")}>{c.cta_secondary}</a>
             </Button>
           </div>
 

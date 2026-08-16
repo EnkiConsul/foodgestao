@@ -1,15 +1,10 @@
 import { ContactSection } from "@/components/landing/ContactSection";
 import { FaqSection } from "@/components/landing/FaqSection";
 import { FeaturesGrid } from "@/components/landing/FeaturesGrid";
-import { Fidelidade360Section } from "@/components/landing/Fidelidade360Section";
 import { FinalCta } from "@/components/landing/FinalCta";
-import { GuaranteeStrip } from "@/components/landing/GuaranteeStrip";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { ModulesSection } from "@/components/landing/ModulesSection";
-import { PersonaCards } from "@/components/landing/PersonaCards";
 import { PersonasStrip } from "@/components/landing/PersonasStrip";
-import { PlanMatrixSection } from "@/components/landing/PlanMatrixSection";
-import { PricingSection } from "@/components/landing/PricingSection";
 import { PublicFooter } from "@/components/landing/PublicFooter";
 import { PublicHeader } from "@/components/landing/PublicHeader";
 import { WhatsappButton } from "@/components/WhatsappButton";
@@ -23,13 +18,8 @@ export default function Landing() {
       <main>
         <HeroSection utm={utm} />
         <PersonasStrip />
-        <PersonaCards utm={utm} />
         <FeaturesGrid />
         <ModulesSection />
-        <Fidelidade360Section />
-        <PricingSection utm={utm} />
-        <PlanMatrixSection />
-        <GuaranteeStrip utm={utm} />
         <FaqSection />
         <ContactSection />
         <FinalCta utm={utm} />
