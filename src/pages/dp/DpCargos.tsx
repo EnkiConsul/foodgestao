@@ -205,14 +205,15 @@ export default function DpCargos() {
                   >
                     <td className="p-4 font-bold uppercase truncate" title={c.nome}>{c.nome}</td>
                     <td className="p-4 hidden md:table-cell text-muted-foreground truncate" title={descricao ?? ""}>{descricao || "—"}</td>
-                    <td className="p-4 text-right tabular-nums whitespace-nowrap">
-                      {(c as any).salario_base != null ? moedaBR(Number((c as any).salario_base)) : "—"}
+                    <td className="p-4 text-right tabular-nums whitespace-nowrap" title={salarioResumo(c).dica}>
+                      {salarioResumo(c).texto}
                       {(c as any).insalubre_periculoso && (
                         <span className="ml-2 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
                           insalubre
                         </span>
                       )}
                     </td>
+
                     <td className="p-4 text-center">
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                         <Users className="size-3" /> {c.colaboradores_count}
