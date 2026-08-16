@@ -51,7 +51,7 @@ export interface JornadaColaborador {
 }
 
 /** Resultado do salvamento acionado de fora (pelo rodapé do cadastro). */
-export type SalvarJornadaResultado = "salvo" | "nada" | "pendente_ciencia" | "erro";
+export type SalvarJornadaResultado = "salvo" | "nada" | "pendente_ciencia" | "cancelado" | "erro";
 
 interface Props {
   colaborador: JornadaColaborador | null;
