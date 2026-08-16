@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { DpColaborador } from "@/hooks/useDpColaboradores";
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
+import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import {
   FORMA_PAGAMENTO_LABEL,
@@ -94,6 +95,10 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit }: ColaboradorFichaDialogProps) {
   const { atribuicoes } = useDpBeneficios(colaborador?.id ?? "todos");
+  const enquadramento = useSindicatoDoCargo(
+    (colaborador as any)?.cargo_id ?? null,
+    (colaborador as any)?.unidade_id ?? null,
+  );
 
   const perfil = (colaborador as any)?.perfil_acesso as string | null;
   const isDesligado = !!colaborador?.data_desligamento;
