@@ -22,6 +22,7 @@ export function SectionHeading({
   align = "center",
   tone = "light",
   id,
+  as: Tag = "h2",
 }: {
   eyebrow?: string;
   title: ReactNode;
@@ -29,11 +30,12 @@ export function SectionHeading({
   align?: "center" | "left";
   tone?: "light" | "dark";
   id?: string;
+  as?: "h1" | "h2";
 }) {
   return (
     <div className={cn("max-w-3xl", align === "center" && "mx-auto text-center")}>
       {eyebrow && <Eyebrow tone={tone}>{eyebrow}</Eyebrow>}
-      <h2
+      <Tag
         id={id}
         className={cn(
           "mt-4 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl",
@@ -41,7 +43,7 @@ export function SectionHeading({
         )}
       >
         {title}
-      </h2>
+      </Tag>
       {description && (
         <p className={cn("mt-4 text-base leading-relaxed sm:text-lg", tone === "dark" ? "text-white/75" : "text-site-muted")}>
           {description}

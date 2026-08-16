@@ -26,6 +26,7 @@ export default function ContatoPage() {
           <div>
             <SectionHeading
               id="contato-hero"
+          as="h1"
               align="left"
               eyebrow="Contato"
               title="Vamos entender sua operação"

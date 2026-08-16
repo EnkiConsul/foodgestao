@@ -19,6 +19,7 @@ export default function CasesPage() {
       <Section labelledBy="cases-title">
         <SectionHeading
           id="cases-title"
+          as="h1"
           eyebrow="Cases"
           title="Operações que colocaram a gestão em ordem"
           description="Desafio, solução e resultado de quem usa o 360°FOOD no dia a dia."

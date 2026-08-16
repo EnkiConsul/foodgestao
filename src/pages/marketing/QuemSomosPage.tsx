@@ -16,6 +16,7 @@ export default function QuemSomosPage() {
       <Section variant="navy" labelledBy="quem-hero">
         <SectionHeading
           id="quem-hero"
+          as="h1"
           tone="dark"
           eyebrow="Quem somos"
           title="Tecnologia feita para quem vive o salão e a cozinha"

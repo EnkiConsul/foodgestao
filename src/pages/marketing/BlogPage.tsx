@@ -30,6 +30,7 @@ export default function BlogPage() {
       <Section labelledBy="blog-title">
         <SectionHeading
           id="blog-title"
+          as="h1"
           eyebrow="Blog"
           title="Conteúdo prático para gerir seu negócio de alimentação"
         />
