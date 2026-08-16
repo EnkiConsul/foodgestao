@@ -937,6 +937,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             unidadeId={form.unidade_id}
             value={form.sindicato_id}
             onChange={(id) => setForm((f) => ({ ...f, sindicato_id: id }))}
+            onBeforeNavigate={() => onOpenChange(false)}
           />
 
 
