@@ -273,7 +273,19 @@ function RootGate() {
   if (user && isAdminOrOwner) return <Navigate to="/hub" replace />;
   if (user && isColab) return <Navigate to="/dp/meu" replace />;
   if (user) return <Navigate to="/hub" replace />;
-  return <Navigate to="/auth" replace />;
+  return <HomePage />;
+}
+
+/** /planos: site público para visitantes, planos da conta para usuários logados. */
+function PlanosGate() {
+  const { user, loading } = useAuth();
+  if (loading) return <PageSpinner />;
+  if (!user) return <PlanosSitePage />;
+  return (
+    <ProtectedRoute>
+      <Planos />
+    </ProtectedRoute>
+  );
 }
 
 function PortalProtected({ children }: { children: React.ReactNode }) {
