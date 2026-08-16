@@ -114,6 +114,8 @@ interface Props {
   diasJornada?: DiaSemanaTrabalho[] | null;
   /** Folgas de fim de semana por mês (DSR da unidade/empresa). */
   folgasFimDeSemanaMes?: number | null;
+  /** Campo pendente sinalizado pela validação do formulário. */
+  campoErro?: string | null;
 
 }
 
@@ -130,7 +132,16 @@ export function RemuneracaoFields({
   regime,
   diasJornada,
   folgasFimDeSemanaMes,
+  campoErro,
 }: Props) {
+
+  /** Marca o input pendente para foco/destaque automático. */
+  const marca = (campo: string) => ({
+    "data-field": campo,
+    "aria-invalid": campoErro === campo ? true : undefined,
+    "data-erro": campoErro === campo ? "true" : undefined,
+  });
+
 
   const forma = value.forma_pagamento;
   const formaOptions = formaPagamentoOptions(regime);
