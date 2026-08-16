@@ -166,6 +166,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
   const upsertCargo = useUpsertDpCargo();
+  const upsertCargoSalario = useUpsertDpCargoSalario();
+
   const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
   const [form, setForm] = useState(blank);
   const { selectedCompanyId, companies } = useCompanyContext();
