@@ -14,6 +14,8 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { moedaBR } from "@/lib/dp/cargos";
+import { CargoSalariosUnidadePanel } from "@/components/dp/CargoSalariosUnidadePanel";
+
 import { numeroBR } from "@/components/dp/RemuneracaoFields";
 import { cn } from "@/lib/utils";
 
