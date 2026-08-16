@@ -185,6 +185,18 @@ const DasMei = lazyWithRetry(() => import("./pages/guias/DasMei"));
 const Buscar = lazyWithRetry(() => import("./pages/Buscar"));
 const TrialExpired = lazyWithRetry(() => import("./pages/TrialExpired"));
 
+// Site público (marketing)
+const HomePage = lazyWithRetry(() => import("./pages/marketing/HomePage"));
+const PlanosSitePage = lazyWithRetry(() => import("./pages/marketing/PlanosSitePage"));
+const FinanceiroPage = lazyWithRetry(() => import("./pages/marketing/FinanceiroPage"));
+const DpSitePage = lazyWithRetry(() => import("./pages/marketing/DpPage"));
+const ContatoPage = lazyWithRetry(() => import("./pages/marketing/ContatoPage"));
+const QuemSomosPage = lazyWithRetry(() => import("./pages/marketing/QuemSomosPage"));
+const CasesPage = lazyWithRetry(() => import("./pages/marketing/CasesPage"));
+const CaseDetailPage = lazyWithRetry(() => import("./pages/marketing/CaseDetailPage"));
+const BlogPage = lazyWithRetry(() => import("./pages/marketing/BlogPage"));
+const BlogPostPage = lazyWithRetry(() => import("./pages/marketing/BlogPostPage"));
+
 // Rotas acessíveis mesmo com trial/assinatura expirada
 const TRIAL_EXPIRED_WHITELIST = [
   "/trial-expirado",
@@ -273,7 +285,19 @@ function RootGate() {
   if (user && isAdminOrOwner) return <Navigate to="/hub" replace />;
   if (user && isColab) return <Navigate to="/dp/meu" replace />;
   if (user) return <Navigate to="/hub" replace />;
-  return <Navigate to="/auth" replace />;
+  return <HomePage />;
+}
+
+/** /planos: site público para visitantes, planos da conta para usuários logados. */
+function PlanosGate() {
+  const { user, loading } = useAuth();
+  if (loading) return <PageSpinner />;
+  if (!user) return <PlanosSitePage />;
+  return (
+    <ProtectedRoute>
+      <Planos />
+    </ProtectedRoute>
+  );
 }
 
 function PortalProtected({ children }: { children: React.ReactNode }) {
@@ -532,7 +556,15 @@ const AppRoutes = () => (
       <Route path="/buscar" element={<Buscar />} />
       <Route path="/dpo" element={<Navigate to="/encarregado-dados" replace />} />
       <Route path="/unsubscribe" element={<Unsubscribe />} />
-      <Route path="/planos" element={<ProtectedRoute><Planos /></ProtectedRoute>} />
+      <Route path="/planos" element={<PlanosGate />} />
+      <Route path="/financeiro" element={<FinanceiroPage />} />
+      <Route path="/departamento-pessoal" element={<DpSitePage />} />
+      <Route path="/contato" element={<ContatoPage />} />
+      <Route path="/quem-somos" element={<QuemSomosPage />} />
+      <Route path="/cases" element={<CasesPage />} />
+      <Route path="/cases/:slug" element={<CaseDetailPage />} />
+      <Route path="/blog" element={<BlogPage />} />
+      <Route path="/blog/:slug" element={<BlogPostPage />} />
       <Route path="/checkout/:planSlug" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
       <Route path="/checkout/pagamento/:invoiceId" element={<ProtectedRoute><CheckoutPagamento /></ProtectedRoute>} />
       <Route path="/faturas" element={<ProtectedRoute><Faturas /></ProtectedRoute>} />

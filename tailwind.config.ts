@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ["Epilogue", "Inter", "sans-serif"],
         display: ["Urbanist", "Epilogue", "Inter", "sans-serif"],
+        marketing: ["Manrope", "Inter", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -60,6 +61,18 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        site: {
+          navy: "hsl(var(--site-navy))",
+          "navy-deep": "hsl(var(--site-navy-deep))",
+          "navy-foreground": "hsl(var(--site-navy-foreground))",
+          orange: "hsl(var(--site-orange))",
+          "orange-foreground": "hsl(var(--site-orange-foreground))",
+          surface: "hsl(var(--site-surface))",
+          ink: "hsl(var(--site-ink))",
+          muted: "hsl(var(--site-muted))",
+          line: "hsl(var(--site-line))",
+          success: "hsl(var(--site-success))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -71,7 +84,17 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+      backgroundImage: {
+        "gradient-site-hero": "var(--gradient-site-hero)",
+        "gradient-site-orange": "var(--gradient-site-orange)",
+      },
+      boxShadow: {
+        "site-card": "var(--shadow-site-card)",
+        "site-float": "var(--shadow-site-float)",
+      },
       borderRadius: {
+        "site-lg": "1.25rem",
+        "site-md": "0.875rem",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",

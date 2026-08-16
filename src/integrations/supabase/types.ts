@@ -7393,6 +7393,333 @@ export type Database = {
         }
         Relationships: []
       }
+      mkt_cases: {
+        Row: {
+          body: string | null
+          challenge: string | null
+          company_name: string | null
+          cover_alt: string | null
+          cover_url: string | null
+          created_at: string
+          id: string
+          is_demo: boolean
+          modules: string[]
+          published: boolean
+          published_at: string | null
+          result: string | null
+          segment: string | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          solution: string | null
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          challenge?: string | null
+          company_name?: string | null
+          cover_alt?: string | null
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          is_demo?: boolean
+          modules?: string[]
+          published?: boolean
+          published_at?: string | null
+          result?: string | null
+          segment?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          solution?: string | null
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          challenge?: string | null
+          company_name?: string | null
+          cover_alt?: string | null
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          is_demo?: boolean
+          modules?: string[]
+          published?: boolean
+          published_at?: string | null
+          result?: string | null
+          segment?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          solution?: string | null
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mkt_client_logos: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          id: string
+          logo_url: string
+          name: string
+          published: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          logo_url: string
+          name: string
+          published?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string
+          name?: string
+          published?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mkt_faqs: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          published: boolean
+          question: string
+          scope: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          published?: boolean
+          question: string
+          scope?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          published?: boolean
+          question?: string
+          scope?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mkt_leads: {
+        Row: {
+          business_type: string | null
+          cnpj_count: number | null
+          company_name: string | null
+          consent: boolean
+          created_at: string
+          email: string
+          headcount_range: string | null
+          id: string
+          interest: string | null
+          ip_hash: string | null
+          message: string | null
+          name: string
+          source_page: string | null
+          status: string
+          unit_count: number | null
+          utm: Json
+          whatsapp: string
+        }
+        Insert: {
+          business_type?: string | null
+          cnpj_count?: number | null
+          company_name?: string | null
+          consent?: boolean
+          created_at?: string
+          email: string
+          headcount_range?: string | null
+          id?: string
+          interest?: string | null
+          ip_hash?: string | null
+          message?: string | null
+          name: string
+          source_page?: string | null
+          status?: string
+          unit_count?: number | null
+          utm?: Json
+          whatsapp: string
+        }
+        Update: {
+          business_type?: string | null
+          cnpj_count?: number | null
+          company_name?: string | null
+          consent?: boolean
+          created_at?: string
+          email?: string
+          headcount_range?: string | null
+          id?: string
+          interest?: string | null
+          ip_hash?: string | null
+          message?: string | null
+          name?: string
+          source_page?: string | null
+          status?: string
+          unit_count?: number | null
+          utm?: Json
+          whatsapp?: string
+        }
+        Relationships: []
+      }
+      mkt_posts: {
+        Row: {
+          author_name: string | null
+          body: string | null
+          canonical_url: string | null
+          category: string | null
+          cover_alt: string | null
+          cover_url: string | null
+          created_at: string
+          excerpt: string | null
+          focus_keyword: string | null
+          id: string
+          published: boolean
+          published_at: string | null
+          reviewer_name: string | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+          updated_content_at: string | null
+        }
+        Insert: {
+          author_name?: string | null
+          body?: string | null
+          canonical_url?: string | null
+          category?: string | null
+          cover_alt?: string | null
+          cover_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          focus_keyword?: string | null
+          id?: string
+          published?: boolean
+          published_at?: string | null
+          reviewer_name?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          updated_content_at?: string | null
+        }
+        Update: {
+          author_name?: string | null
+          body?: string | null
+          canonical_url?: string | null
+          category?: string | null
+          cover_alt?: string | null
+          cover_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          focus_keyword?: string | null
+          id?: string
+          published?: boolean
+          published_at?: string | null
+          reviewer_name?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          updated_content_at?: string | null
+        }
+        Relationships: []
+      }
+      mkt_site_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      mkt_testimonials: {
+        Row: {
+          author_name: string
+          author_role: string | null
+          company_name: string | null
+          created_at: string
+          id: string
+          is_demo: boolean
+          module: string | null
+          photo_url: string | null
+          published: boolean
+          quote: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          author_name: string
+          author_role?: string | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          is_demo?: boolean
+          module?: string | null
+          photo_url?: string | null
+          published?: boolean
+          quote: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          author_name?: string
+          author_role?: string | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          is_demo?: boolean
+          module?: string | null
+          photo_url?: string | null
+          published?: boolean
+          quote?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       module_dependencies: {
         Row: {
           created_at: string

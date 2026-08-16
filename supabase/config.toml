@@ -52,3 +52,5 @@ project_id = "grtxmbffgmgnkawlvqhm"
   [functions.orders-outbox-worker]
     verify_jwt = false
 
+  [functions.mkt-lead]
+    verify_jwt = false

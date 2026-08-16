@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -63,6 +63,22 @@
     --dp-birthday-border: 30 55% 85%;
     --dp-birthday-nasc: 340 80% 92%;
     --dp-birthday-contrat: 200 75% 90%;
+
+    /* ===== Site institucional (landing) — tokens de marca ===== */
+    --site-navy: 219 51% 18%;              /* #172A46 */
+    --site-navy-deep: 219 55% 13%;
+    --site-navy-foreground: 0 0% 100%;
+    --site-orange: 17 89% 51%;             /* #F15A16 */
+    --site-orange-foreground: 0 0% 100%;
+    --site-surface: 220 20% 98%;           /* #F7F8FA */
+    --site-ink: 219 45% 14%;
+    --site-muted: 220 12% 46%;             /* #667085 */
+    --site-line: 220 16% 90%;
+    --site-success: 158 75% 36%;           /* #16A36A */
+    --gradient-site-hero: linear-gradient(160deg, hsl(var(--site-navy-deep)) 0%, hsl(var(--site-navy)) 55%, hsl(219 48% 24%) 100%);
+    --gradient-site-orange: linear-gradient(135deg, hsl(var(--site-orange)) 0%, hsl(28 92% 55%) 100%);
+    --shadow-site-card: 0 1px 2px hsl(var(--site-ink) / 0.05), 0 12px 32px -18px hsl(var(--site-ink) / 0.18);
+    --shadow-site-float: 0 24px 60px -24px hsl(var(--site-ink) / 0.35);
   }
 
   /* DP 360° — override de radius mais arredondado (0.75rem) só dentro do módulo DP */
@@ -207,4 +223,31 @@
 
 .animate-fade-in {
   animation: fade-in 0.6s ease-out;
+}
+
+@layer utilities {
+  .font-marketing {
+    font-family: 'Manrope', 'Inter', sans-serif;
+  }
+  .site-container {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-6 lg:px-8;
+  }
+  .site-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.55s ease-out, transform 0.55s ease-out;
+    will-change: opacity, transform;
+  }
+  .site-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .site-reveal,
+    .site-reveal.is-visible {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
 }
