@@ -128,7 +128,7 @@ export default function DpDocumentosHub() {
 
   return (
     <DpPage>
-      <Helmet><title>Documentos — DP 360°</title></Helmet>
+      <Helmet><title>Documentos — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={FileText}
         title="Documentos"

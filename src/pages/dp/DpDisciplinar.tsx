@@ -266,7 +266,7 @@ export default function DpDisciplinar() {
 
   return (
     <DpPage>
-      <Helmet><title>Registros Disciplinares — DP 360°</title></Helmet>
+      <Helmet><title>Registros Disciplinares — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={ShieldAlert}
         title="Registros Disciplinares"

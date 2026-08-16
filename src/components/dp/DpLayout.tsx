@@ -11,7 +11,7 @@ export function DpLayout() {
   if (contextType !== "pj") {
     return (
       <div className="mx-auto max-w-2xl py-10 text-center text-muted-foreground">
-        DP 360° está disponível apenas em contexto Empresa (PJ).
+        Pessoas 360° está disponível apenas em contexto Empresa (PJ).
       </div>
     );
   }

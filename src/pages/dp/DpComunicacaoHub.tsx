@@ -22,7 +22,7 @@ const CARDS = [
 export default function DpComunicacaoHub() {
   return (
     <DpPage narrow>
-      <Helmet><title>Comunicação — DP 360°</title></Helmet>
+      <Helmet><title>Comunicação — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={MessageSquare}
         title="Comunicação"

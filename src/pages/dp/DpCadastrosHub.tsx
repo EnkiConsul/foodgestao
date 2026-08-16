@@ -20,7 +20,7 @@ const items = [
 export default function DpCadastrosHub() {
   return (
     <DpPage>
-      <Helmet><title>Cadastro — DP 360°</title></Helmet>
+      <Helmet><title>Cadastro — Pessoas 360°</title></Helmet>
       <DpPageHeader icon={Users2} title="Cadastro" description="Gerencie colaboradores, cargos, unidades, sindicatos e configurações do DP." />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((it) => (

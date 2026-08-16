@@ -127,7 +127,7 @@ export default function DpModelosMensagem() {
 
   return (
     <DpPage>
-      <Helmet><title>Modelos de mensagem — DP 360°</title></Helmet>
+      <Helmet><title>Modelos de mensagem — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={MessageSquare}
         title="Modelos de mensagem"

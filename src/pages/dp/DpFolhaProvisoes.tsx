@@ -55,7 +55,7 @@ export default function DpFolhaProvisoes() {
   return (
     <DpPage>
       <Helmet>
-        <title>Férias e 13º na Folha | DP 360°FOOD</title>
+        <title>Férias e 13º na Folha | Pessoas 360°FOOD</title>
         <meta
           name="description"
           content="Gere recibos de férias e as parcelas do 13º salário como lançamentos da folha de pagamento."

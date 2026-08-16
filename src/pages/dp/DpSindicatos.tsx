@@ -213,7 +213,7 @@ export default function DpSindicatos() {
 
   return (
     <DpPage>
-      <Helmet><title>Sindicatos — DP 360°</title></Helmet>
+      <Helmet><title>Sindicatos — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={HandshakeIcon}
         title="Sindicatos"

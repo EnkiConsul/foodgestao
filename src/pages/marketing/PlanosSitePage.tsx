@@ -10,7 +10,7 @@ export default function PlanosSitePage() {
     <SiteLayout breadcrumbs={[{ name: "Planos", path: "/planos" }]}>
       <SiteSeo
         title="Planos do 360°FOOD — Financeiro e DP para food service"
-        description="Conheça os planos Essencial, Gestão e Multiempresa do Financeiro 360°, o programa Fidelidade 360 e as condições do DP 360°."
+        description="Conheça os planos Essencial, Gestão e Multiempresa do Financeiro 360°, o programa Fidelidade 360 e as condições do Pessoas 360°."
         path="/planos"
       />
       <Section variant="navy" labelledBy="planos-hero">
@@ -20,7 +20,7 @@ export default function PlanosSitePage() {
             Você contrata só o que a sua operação precisa
           </h1>
           <p className="mt-4 text-base leading-relaxed text-white/75 sm:text-lg">
-            Escolha entre Financeiro 360° e DP 360°, ou combine os dois. Sem pacotes fechados que você não vai usar.
+            Escolha entre Financeiro 360° e Pessoas 360°, ou combine os dois. Sem pacotes fechados que você não vai usar.
           </p>
         </div>
       </Section>

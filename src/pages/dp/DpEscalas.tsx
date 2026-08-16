@@ -289,7 +289,7 @@ export default function DpEscalas() {
   return (
     <DpPage>
       <Helmet>
-        <title>Gerador de escala — DP 360°</title>
+        <title>Gerador de escala — Pessoas 360°</title>
         <meta
           name="description"
           content="Gere a escala mensal de folgas respeitando jornadas, férias, datas bloqueadas e o descanso semanal remunerado."

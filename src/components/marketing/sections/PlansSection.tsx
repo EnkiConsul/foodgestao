@@ -41,7 +41,7 @@ export function PlansSection({
         {(
           [
             { key: "financeiro", label: "Financeiro 360°" },
-            { key: "dp", label: "DP 360°" },
+            { key: "dp", label: "Pessoas 360°" },
           ] as const
         ).map((option) => (
           <button
@@ -188,7 +188,7 @@ export function PlansSection({
       ) : (
         <div className="mx-auto mt-10 max-w-2xl">
           <SiteCard className="text-center">
-            <h3 className="text-xl font-extrabold text-site-ink">Planos do DP 360° sob consulta</h3>
+            <h3 className="text-xl font-extrabold text-site-ink">Planos do Pessoas 360° sob consulta</h3>
             <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-site-muted">
               As condições comerciais do Departamento Pessoal são apresentadas de acordo com o número de colaboradores e
               unidades da sua operação. Fale com nosso time para conhecer os planos.

@@ -92,7 +92,7 @@ export default function DpAnalytics() {
   return (
     <DpPage>
       <Helmet>
-        <title>Analytics de RH — DP 360°</title>
+        <title>Analytics de RH — Pessoas 360°</title>
         <meta name="description" content="Indicadores de headcount, turnover, absenteísmo e custo de folha por unidade." />
       </Helmet>
 

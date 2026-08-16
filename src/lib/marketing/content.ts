@@ -35,7 +35,7 @@ export const SOLUTIONS: SiteSolution[] = [
   },
   {
     key: "dp",
-    name: "DP 360°",
+    name: "Pessoas 360°",
     route: "/departamento-pessoal",
     headline: "Organize sua equipe sem depender de planilhas e grupos de WhatsApp.",
     description:
@@ -48,7 +48,7 @@ export const SOLUTIONS: SiteSolution[] = [
       "Comunicação interna",
       "Portal do Colaborador",
     ],
-    cta: "Conhecer o DP 360°",
+    cta: "Conhecer o Pessoas 360°",
   },
 ];
 
@@ -322,7 +322,7 @@ export const BUSINESS_TYPES = [
 
 export const INTEREST_OPTIONS = [
   { value: "financeiro", label: "Financeiro 360°" },
-  { value: "dp", label: "DP 360°" },
+  { value: "dp", label: "Pessoas 360°" },
   { value: "ambos", label: "Financeiro e DP" },
 ];
 

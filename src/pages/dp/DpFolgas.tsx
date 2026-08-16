@@ -568,7 +568,7 @@ export default function DpFolgas() {
   return (
     <DpPage>
       <Helmet>
-        <title>Calendário Geral — DP 360°</title>
+        <title>Calendário Geral — Pessoas 360°</title>
       </Helmet>
 
       <DpPageHeader

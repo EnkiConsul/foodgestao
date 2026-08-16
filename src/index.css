@@ -54,7 +54,7 @@
     --sidebar-border: 224 45% 25%;
     --sidebar-ring: 18 84% 55%;
 
-    /* DP 360° tokens — só usados dentro de .dp-shell */
+    /* Pessoas 360° tokens — só usados dentro de .dp-shell */
     --dp-canvas: 36 45% 97%;
     --dp-border: 30 25% 88%;
     --dp-pending-bg: 38 90% 96%;
@@ -81,7 +81,7 @@
     --shadow-site-float: 0 24px 60px -24px hsl(var(--site-ink) / 0.35);
   }
 
-  /* DP 360° — override de radius mais arredondado (0.75rem) só dentro do módulo DP */
+  /* Pessoas 360° — override de radius mais arredondado (0.75rem) só dentro do módulo DP */
   .dp-shell {
     --radius: 0.75rem;
 

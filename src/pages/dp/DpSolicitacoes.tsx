@@ -143,7 +143,7 @@ export default function DpSolicitacoes() {
 
   return (
     <DpPage>
-      <Helmet><title>Solicitações — DP 360°</title></Helmet>
+      <Helmet><title>Solicitações — Pessoas 360°</title></Helmet>
 
       <DpPageHeader
         icon={ClipboardList}

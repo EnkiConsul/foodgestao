@@ -122,7 +122,7 @@ export function LeadForm({ defaultInterest }: { defaultInterest?: "financeiro" |
             <Link to="/financeiro">Ver o Financeiro 360°</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link to="/departamento-pessoal">Ver o DP 360°</Link>
+            <Link to="/departamento-pessoal">Ver o Pessoas 360°</Link>
           </Button>
         </div>
       </div>

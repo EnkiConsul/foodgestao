@@ -305,7 +305,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     shortcutOptions: dpShortcuts,
     moreGroups: [
       {
-        label: "DP 360°",
+        label: "Pessoas 360°",
         accent: "primary",
         items: DP_ADMIN_NAV.direct.map(toLeaf),
         subgroups: DP_ADMIN_NAV.groups.map(toSubGroup),
@@ -348,7 +348,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         accent: "primary",
         items: [
           { icon: Home, label: "Financeiro", to: "/dashboard", featured: true },
-          { icon: Users, label: "DP 360°", to: "/dp" },
+          { icon: Users, label: "Pessoas 360°", to: "/dp" },
           { icon: Search, label: "Buscar", to: "/buscar" },
         ],
       },

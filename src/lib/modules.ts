@@ -43,7 +43,7 @@ export const MODULES: ModuleDefinition[] = [
   },
   {
     slug: "dp",
-    name: "DP 360°",
+    name: "Pessoas 360°",
     shortName: "DP",
     description: "Departamento pessoal: colaboradores, solicitações e documentos.",
     icon: Users,

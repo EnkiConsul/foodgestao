@@ -34,7 +34,7 @@ export default function DpAprovacoes() {
 
   return (
     <DpPage narrow>
-      <Helmet><title>Aprovações de cadastro — DP 360°</title></Helmet>
+      <Helmet><title>Aprovações de cadastro — Pessoas 360°</title></Helmet>
 
       <DpPageHeader
         icon={UserCheck}

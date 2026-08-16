@@ -75,7 +75,7 @@ export default function DpBloqueios() {
 
   return (
     <DpPage>
-      <Helmet><title>Datas Bloqueadas — DP 360°</title></Helmet>
+      <Helmet><title>Datas Bloqueadas — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={CalendarX}
         title="Datas Bloqueadas"

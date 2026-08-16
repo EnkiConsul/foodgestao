@@ -114,7 +114,7 @@ export default function DpCargos() {
 
   return (
     <DpPage narrow>
-      <Helmet><title>Cargos — DP 360°</title></Helmet>
+      <Helmet><title>Cargos — Pessoas 360°</title></Helmet>
 
       <DpPageHeader
         icon={Briefcase}

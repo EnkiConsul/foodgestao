@@ -17,7 +17,7 @@ export default function ContatoPage() {
     <SiteLayout breadcrumbs={[{ name: "Contato", path: "/contato" }]}>
       <SiteSeo
         title="Fale com o time 360°FOOD"
-        description="Conte como funciona a gestão do seu bar, restaurante ou rede e receba uma apresentação das soluções Financeiro 360° e DP 360°."
+        description="Conte como funciona a gestão do seu bar, restaurante ou rede e receba uma apresentação das soluções Financeiro 360° e Pessoas 360°."
         path="/contato"
       />
 

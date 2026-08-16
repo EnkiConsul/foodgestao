@@ -29,7 +29,7 @@ export function useActiveModule(): ActiveModule {
 export const MODULE_LABEL: Record<ActiveModule, string> = {
   hub: "Hub",
   financeiro: "Financeiro 360°",
-  dp: "DP 360°",
+  dp: "Pessoas 360°",
   portal_colaborador: "Portal do Colaborador",
   crm: "CRM 360°",
   rh: "RH 360°",

@@ -153,7 +153,7 @@ export default function DpPonto() {
   return (
     <DpPage>
       <Helmet>
-        <title>Espelho de Ponto | DP 360°FOOD</title>
+        <title>Espelho de Ponto | Pessoas 360°FOOD</title>
         <meta
           name="description"
           content="Acompanhe as marcações de ponto do time, compare com o horário previsto e corrija lançamentos."

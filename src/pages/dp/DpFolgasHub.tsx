@@ -209,7 +209,7 @@ export default function DpFolgasHub() {
 
   return (
     <DpPage>
-      <Helmet><title>Dashboard de Folgas — DP 360°</title></Helmet>
+      <Helmet><title>Dashboard de Folgas — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={Shield}
         title="Dashboard de Folgas"

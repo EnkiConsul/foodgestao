@@ -234,7 +234,7 @@ export default function DpAvisos() {
 
   return (
     <DpPage>
-      <Helmet><title>Quadro de Avisos — DP 360°</title></Helmet>
+      <Helmet><title>Quadro de Avisos — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={Bell}
         title="Quadro de Avisos"

@@ -41,7 +41,7 @@ import {
 
 /**
  * ─────────────────────────────────────────────────────────────────────────
- * FONTE ÚNICA DA NAVEGAÇÃO DO DP 360° E DO PORTAL DO COLABORADOR.
+ * FONTE ÚNICA DA NAVEGAÇÃO DO Pessoas 360° E DO PORTAL DO COLABORADOR.
  *
  * `src/config/mobileNav.tsx` (menu "Mais" mobile) e
  * `src/components/dp/DpSidebar.tsx` (sidebar desktop) derivam suas listas
@@ -88,7 +88,7 @@ export type DpNavSurface = {
   extraShortcuts: DpNavItem[];
 };
 
-// ── DP 360° (admin) ──────────────────────────────────────────────────────
+// ── Pessoas 360° (admin) ──────────────────────────────────────────────────────
 
 const ADMIN_GROUPS: DpNavGroup[] = [
   {

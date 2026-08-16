@@ -53,7 +53,7 @@ export default function DpBeneficios() {
 
   return (
     <DpPage>
-      <Helmet><title>Benefícios e auxílios — DP 360°</title></Helmet>
+      <Helmet><title>Benefícios e auxílios — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={Gift}
         title="Benefícios"

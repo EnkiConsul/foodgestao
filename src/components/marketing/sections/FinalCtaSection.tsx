@@ -10,7 +10,7 @@ export function FinalCtaSection({ defaultInterest }: { defaultInterest?: "financ
             Vamos organizar a gestão do seu negócio de alimentação
           </h2>
           <p className="mt-4 max-w-lg text-base leading-relaxed text-white/75">
-            Conte o momento da sua operação e nosso time mostra como o Financeiro 360° e o DP 360° se encaixam na sua
+            Conte o momento da sua operação e nosso time mostra como o Financeiro 360° e o Pessoas 360° se encaixam na sua
             rotina — sem compromisso.
           </p>
         </div>

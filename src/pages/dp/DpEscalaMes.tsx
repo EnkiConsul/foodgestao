@@ -141,7 +141,7 @@ export default function DpEscalaMes() {
   return (
     <DpPage>
       <Helmet>
-        <title>Escala do Mês | DP 360°FOOD</title>
+        <title>Escala do Mês | Pessoas 360°FOOD</title>
         <meta name="description" content="Monte, confira e publique a escala mensal da unidade a partir da configuração de trabalho." />
       </Helmet>
 

@@ -17,7 +17,7 @@ interface ModuloEmDesenvolvimentoScreenProps {
 export function ModuloEmDesenvolvimentoScreen({
   titulo,
   voltarPara = "/dp",
-  voltarLabel = "Voltar ao DP 360°",
+  voltarLabel = "Voltar ao Pessoas 360°",
   descricao,
 }: ModuloEmDesenvolvimentoScreenProps) {
   return (
