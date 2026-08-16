@@ -10888,13 +10888,118 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_cards: {
+        Row: {
+          card_brand: string | null
+          card_last4: string | null
+          card_token: string
+          created_at: string
+          customer_gateway_id: string | null
+          expires_month: number | null
+          expires_year: number | null
+          gateway: string
+          id: string
+          subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          card_brand?: string | null
+          card_last4?: string | null
+          card_token: string
+          created_at?: string
+          customer_gateway_id?: string | null
+          expires_month?: number | null
+          expires_year?: number | null
+          gateway?: string
+          id?: string
+          subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          card_brand?: string | null
+          card_last4?: string | null
+          card_token?: string
+          created_at?: string
+          customer_gateway_id?: string | null
+          expires_month?: number | null
+          expires_year?: number | null
+          gateway?: string
+          id?: string
+          subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_cards_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_cycle_events: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          cycle_month: number
+          detail: string | null
+          discount_cents: number
+          due_date: string | null
+          external_charge_id: string | null
+          id: string
+          kind: string
+          subscription_id: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents?: number
+          created_at?: string
+          cycle_month: number
+          detail?: string | null
+          discount_cents?: number
+          due_date?: string | null
+          external_charge_id?: string | null
+          id?: string
+          kind: string
+          subscription_id: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          cycle_month?: number
+          detail?: string | null
+          discount_cents?: number
+          due_date?: string | null
+          external_charge_id?: string | null
+          id?: string
+          kind?: string
+          subscription_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_cycle_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
+          billing_variant: string
           cancel_at_period_end: boolean
           canceled_at: string | null
+          card_brand: string | null
+          card_last4: string | null
           created_at: string
           current_period_end: string | null
           current_period_start: string
+          cycle_month: number
+          dunning_stage: number
           exempt_reason: string | null
           exempt_until: string | null
           exempted_at: string | null
@@ -10904,7 +11009,13 @@ export type Database = {
           extra_companies: number
           id: string
           is_exempt: boolean
+          last_payment_status: string | null
+          loyalty_started_at: string | null
+          monthly_price_cents: number | null
+          next_charge_date: string | null
+          next_free_month: number | null
           notes: string | null
+          paid_months_count: number
           plan_id: string
           started_at: string
           status: Database["public"]["Enums"]["subscription_status"]
@@ -10913,11 +11024,16 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          billing_variant?: string
           cancel_at_period_end?: boolean
           canceled_at?: string | null
+          card_brand?: string | null
+          card_last4?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string
+          cycle_month?: number
+          dunning_stage?: number
           exempt_reason?: string | null
           exempt_until?: string | null
           exempted_at?: string | null
@@ -10927,7 +11043,13 @@ export type Database = {
           extra_companies?: number
           id?: string
           is_exempt?: boolean
+          last_payment_status?: string | null
+          loyalty_started_at?: string | null
+          monthly_price_cents?: number | null
+          next_charge_date?: string | null
+          next_free_month?: number | null
           notes?: string | null
+          paid_months_count?: number
           plan_id: string
           started_at?: string
           status?: Database["public"]["Enums"]["subscription_status"]
@@ -10936,11 +11058,16 @@ export type Database = {
           user_id: string
         }
         Update: {
+          billing_variant?: string
           cancel_at_period_end?: boolean
           canceled_at?: string | null
+          card_brand?: string | null
+          card_last4?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string
+          cycle_month?: number
+          dunning_stage?: number
           exempt_reason?: string | null
           exempt_until?: string | null
           exempted_at?: string | null
@@ -10950,7 +11077,13 @@ export type Database = {
           extra_companies?: number
           id?: string
           is_exempt?: boolean
+          last_payment_status?: string | null
+          loyalty_started_at?: string | null
+          monthly_price_cents?: number | null
+          next_charge_date?: string | null
+          next_free_month?: number | null
           notes?: string | null
+          paid_months_count?: number
           plan_id?: string
           started_at?: string
           status?: Database["public"]["Enums"]["subscription_status"]
@@ -12139,6 +12272,14 @@ export type Database = {
       expire_orders_trials: { Args: never; Returns: Json }
       expire_transfer_candidates: {
         Args: { _company_id?: string }
+        Returns: number
+      }
+      fidelidade360_is_free_month: {
+        Args: { _cycle_month: number; _paid_months: number }
+        Returns: boolean
+      }
+      fidelidade360_next_free_month: {
+        Args: { _cycle_month: number }
         Returns: number
       }
       fn_cadastrar_empresa_onboarding: {

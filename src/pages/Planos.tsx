@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { formatCents, formatLimit } from "@/lib/billing";
+import { FIDELIDADE_INSTALLMENTS, annualSavingsCents } from "@/lib/billing/fidelidade360";
+
 
 export default function Planos() {
   const navigate = useNavigate();
@@ -62,9 +64,20 @@ export default function Planos() {
                         </p>
                       )}
                     </div>
+                    {p.price_cents > 0 && (
+                      <div className="rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
+                        <p className="font-semibold text-primary">Fidelidade 360</p>
+                        <p className="text-muted-foreground">
+                          {FIDELIDADE_INSTALLMENTS}x de {formatCents(p.price_cents)} em 12 meses ·
+                          1º mês grátis + meses 5 e 9 gratuitos (economia de{" "}
+                          {formatCents(annualSavingsCents(p.price_cents))})
+                        </p>
+                      </div>
+                    )}
                     {p.trial_days > 0 && (
                       <p className="text-xs text-emerald-600">{p.trial_days} dias de trial grátis</p>
                     )}
+
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <ul className="space-y-2 text-sm">

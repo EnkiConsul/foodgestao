@@ -64,7 +64,31 @@ export type PricingIntroContent = {
   eyebrow: string;
   title: string;
   subtitle: string;
+  tab_financeiro: string;
+  tab_dp: string;
+  dp_title: string;
+  dp_subtitle: string;
+  dp_cta_label: string;
+  legal: string;
 };
+
+export type LoyaltyStep = { title: string; desc: string };
+export type LoyaltyContent = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  steps: LoyaltyStep[];
+  timeline_title: string;
+  timeline_note: string;
+};
+
+export type PlanMatrixContent = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  col_resource: string;
+};
+
 
 export type FaqItem = { q: string; a: string };
 export type FaqContent = {
@@ -93,23 +117,24 @@ export type FooterContent = {
 
 export const LANDING_DEFAULTS = {
   hero: {
-    badge: "Teste grátis 7 dias · sem cartão",
-    title_prefix: "Controle financeiro ",
-    title_highlight: "pessoal e da sua empresa",
+    badge: "1º mês grátis · Programa Fidelidade 360",
+    title_prefix: "A gestão financeira do seu ",
+    title_highlight: "bar, restaurante ou rede",
     title_suffix: ", sem planilha.",
     subtitle:
-      "Para MEI, autônomos, pequenas empresas e finanças pessoais. Contas a pagar e receber, fluxo de caixa projetado e relatórios — em uma só conta, com troca de PF/PJ em 1 clique.",
+      "Contas a pagar e receber, lançamentos bancários automáticos, conciliação, fluxo de caixa e DRE gerencial. Comece com o primeiro mês grátis e, a cada 3 mensalidades pagas, a próxima é por conta do 360° Food.",
     bullets: [
-      "Sem cartão de crédito para testar",
-      "Cancele em 1 clique, sem fidelidade",
+      "Primeiro mês grátis — cartão validado, sem cobrança",
+      "12 meses de 360° Food pagando apenas 9",
       "Dados protegidos (LGPD) e em servidores no Brasil",
     ],
-    cta_primary: "Começe Grátis",
-    cta_secondary: "Ver como funciona",
+    cta_primary: "Começar com o 1º mês grátis",
+    cta_secondary: "Ver planos",
     trust_satisfaction: "4.9 em satisfação",
-    trust_users: "Usado por MEIs e PMEs",
+    trust_users: "Usado por bares e restaurantes",
     trust_devices: "Mobile e desktop",
   } satisfies HeroContent,
+
 
   personas_strip: {
     label: "Feito para",
@@ -180,33 +205,83 @@ export const LANDING_DEFAULTS = {
   } satisfies FeaturesContent,
 
   guarantee: {
-    title: "7 dias grátis · sem cartão · cancele quando quiser",
-    subtitle: "Acesso completo durante o teste. Sem letrinhas miúdas.",
-    cta_label: "Começe Grátis",
+    title: "Primeiro mês grátis · cartão validado sem cobrança · cancele quando quiser",
+    subtitle:
+      "Acesso completo desde o primeiro dia. A primeira cobrança acontece somente 30 dias depois.",
+    cta_label: "Começar com o 1º mês grátis",
   } satisfies GuaranteeContent,
+
+  loyalty: {
+    eyebrow: "Programa Fidelidade 360",
+    title: "Seu primeiro mês é grátis. E a cada 3 mensalidades pagas, a próxima é por nossa conta.",
+    subtitle:
+      "12 meses de 360° Food e você paga apenas 9. Cobrança recorrente no cartão, sem parcelar o valor anual e sem comprometer o limite de uma só vez.",
+    steps: [
+      {
+        title: "Cartão validado, sem cobrança",
+        desc: "Na contratação o cartão é validado e tokenizado com segurança pelo gateway. Nada é cobrado no ato.",
+      },
+      {
+        title: "Primeira cobrança em 30 dias",
+        desc: "O primeiro mês é cortesia. A mensalidade só entra no cartão 30 dias após a contratação.",
+      },
+      {
+        title: "Meses 5 e 9 gratuitos",
+        desc: "A cada três mensalidades pagas em dia, o 360° Food libera automaticamente a mensalidade seguinte.",
+      },
+      {
+        title: "Benefício visível na fatura",
+        desc: "Nos meses de cortesia a fatura é emitida com o desconto Fidelidade 360 e total de R$ 0,00.",
+      },
+    ],
+    timeline_title: "Como fica o seu ciclo de 12 meses",
+    timeline_note:
+      "Vigência de 12 meses. Meses gratuitos condicionados ao pagamento em dia das três mensalidades anteriores. Benefício exclusivo para novos clientes, um por CNPJ ou grupo econômico e não cumulativo com outras promoções. Upgrade permitido durante o contrato; renovação e reajuste informados previamente.",
+  } satisfies LoyaltyContent,
 
   pricing_intro: {
     eyebrow: "Planos",
-    title: "Comece grátis. Evolua quando precisar.",
-    subtitle: "Todos os planos pagos incluem 7 dias de teste, sem cartão de crédito.",
+    title: "Um plano para cada momento do seu negócio",
+    subtitle:
+      "Escolha a solução e o plano. No Fidelidade 360 você paga 9 mensalidades em 12 meses; no mensal flexível, cancela quando quiser.",
+    tab_financeiro: "Financeiro",
+    tab_dp: "Departamento Pessoal",
+    dp_title: "Departamento Pessoal com preços em breve",
+    dp_subtitle:
+      "Ponto, escala, férias e folha em um só lugar. A cobrança do módulo DP é separada da do financeiro — fale com o nosso time para condições de lançamento.",
+    dp_cta_label: "Falar com o time",
+    legal:
+      "Preços em reais, por empresa. Fidelidade 360: vigência de 12 meses, 9 mensalidades recorrentes no cartão, meses 1, 5 e 9 gratuitos conforme pagamentos em dia. Mensal flexível: sem meses gratuitos, cancelamento antes da próxima renovação.",
   } satisfies PricingIntroContent,
+
+  plan_matrix: {
+    eyebrow: "Comparativo",
+    title: "Comparativo completo dos planos",
+    subtitle: "Todos os planos incluem lançamentos ilimitados, conciliação automática e agente de IA.",
+    col_resource: "Funcionalidades",
+  } satisfies PlanMatrixContent,
 
   faq: {
     eyebrow: "Perguntas frequentes",
     title: "Tire suas dúvidas",
     items: [
-      { q: "Preciso de cartão de crédito para testar?", a: "Não. O teste de 7 dias é liberado na hora, sem pedir cartão." },
-      { q: "Funciona para MEI e pessoa física na mesma conta?", a: "Sim. Você alterna entre Pessoa Física e Pessoa Jurídica com 1 clique, com dados totalmente isolados." },
-      { q: "Meus dados estão seguros?", a: "Criptografia em trânsito, isolamento por usuário/empresa (RLS) e conformidade com a LGPD. Você pode exportar ou excluir os dados a qualquer momento." },
-      { q: "Posso cancelar quando quiser?", a: "Sim. Sem fidelidade. Cancele em 1 clique nas configurações." },
+      { q: "Como funciona o primeiro mês grátis?", a: "Você escolhe o plano, cadastra o cartão e o acesso é liberado na hora. O cartão é apenas validado e tokenizado — a primeira cobrança acontece 30 dias depois." },
+      { q: "Como ganho os meses gratuitos?", a: "A cada três mensalidades pagas em dia, a próxima mensalidade é gratuita. No ciclo de 12 meses isso acontece nos meses 5 e 9, somados à cortesia do mês 1." },
+      { q: "O valor anual compromete o limite do cartão?", a: "Não. Não fazemos parcelamento do valor anual. São nove cobranças mensais recorrentes, então só o valor da mensalidade do mês ocupa o limite." },
+      { q: "E se o pagamento atrasar ou o cartão for recusado?", a: "Fazemos novas tentativas e avisamos você por WhatsApp. Em caso de atraso persistente o acesso é suspenso parcialmente e reativado automaticamente após a regularização. Meses em atraso não contam para liberar o benefício." },
+      { q: "Posso escolher o mensal flexível?", a: "Sim. O mensal flexível é cobrado mês a mês, sem meses gratuitos, com cancelamento antes da próxima renovação — e você pode migrar para o Fidelidade 360 quando quiser." },
+      { q: "Posso fazer upgrade de plano?", a: "Sim, o upgrade é permitido durante o contrato e passa a valer na cobrança seguinte." },
+      { q: "O módulo de Departamento Pessoal está incluído?", a: "Não. Financeiro e Departamento Pessoal são soluções com cobrança separada. Fale com o nosso time para conhecer as condições do DP." },
+      { q: "Meus dados estão seguros?", a: "Criptografia em trânsito, isolamento por usuário/empresa e conformidade com a LGPD. Não armazenamos o número completo nem o código de segurança do cartão — apenas o token do gateway, a bandeira e os quatro últimos dígitos." },
     ],
   } satisfies FaqContent,
 
   final_cta: {
-    title: "Pronto para tirar o financeiro da planilha?",
-    subtitle: "7 dias grátis. Sem cartão de crédito. Cancele quando quiser.",
-    cta_label: "Começe Grátis",
+    title: "Pronto para tirar o financeiro do restaurante da planilha?",
+    subtitle: "Primeiro mês grátis. A cada 3 mensalidades pagas, a próxima é por conta do 360° Food.",
+    cta_label: "Começar com o 1º mês grátis",
   } satisfies FinalCtaContent,
+
 
   footer: {
     copyright: "© {year} 360°FOOD. Todos os direitos reservados.",

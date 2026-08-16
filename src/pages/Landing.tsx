@@ -1,13 +1,14 @@
 import { ContactSection } from "@/components/landing/ContactSection";
-import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { FaqSection } from "@/components/landing/FaqSection";
 import { FeaturesGrid } from "@/components/landing/FeaturesGrid";
+import { Fidelidade360Section } from "@/components/landing/Fidelidade360Section";
 import { FinalCta } from "@/components/landing/FinalCta";
 import { GuaranteeStrip } from "@/components/landing/GuaranteeStrip";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { ModulesSection } from "@/components/landing/ModulesSection";
 import { PersonaCards } from "@/components/landing/PersonaCards";
 import { PersonasStrip } from "@/components/landing/PersonasStrip";
+import { PlanMatrixSection } from "@/components/landing/PlanMatrixSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { PublicFooter } from "@/components/landing/PublicFooter";
 import { PublicHeader } from "@/components/landing/PublicHeader";
@@ -22,12 +23,13 @@ export default function Landing() {
       <main>
         <HeroSection utm={utm} />
         <PersonasStrip />
-        <ComparisonSection utm={utm} />
         <PersonaCards utm={utm} />
         <FeaturesGrid />
         <ModulesSection />
-        <GuaranteeStrip utm={utm} />
+        <Fidelidade360Section />
         <PricingSection utm={utm} />
+        <PlanMatrixSection />
+        <GuaranteeStrip utm={utm} />
         <FaqSection />
         <ContactSection />
         <FinalCta utm={utm} />
@@ -37,3 +39,4 @@ export default function Landing() {
     </div>
   );
 }
+
