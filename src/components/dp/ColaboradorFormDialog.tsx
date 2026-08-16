@@ -663,6 +663,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         cargo: cargoNome,
         cargo_id: form.cargo_id,
         unidade_id: form.unidade_id,
+        sindicato_id: form.sindicato_id || null,
+
         regime: regimeSelecionado,
         vinculo_label: form.tipo_vinculo,
         data_admissao: form.data_admissao || null,
