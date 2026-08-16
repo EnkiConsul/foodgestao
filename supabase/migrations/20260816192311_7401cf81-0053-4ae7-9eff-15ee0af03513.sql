@@ -1,0 +1,1 @@
+delete from public.landing_content where section = 'final_cta';
