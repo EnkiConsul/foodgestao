@@ -13,7 +13,7 @@ export function PublicFooter() {
           <Logo size="sm" variant="symbol" linkTo="/" className="h-8" />
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
             <Link to="/auth" className="hover:text-foreground">{c.link_login}</Link>
-            <a href="#planos" className="hover:text-foreground">{c.link_plans}</a>
+            <a href="#modulos" className="hover:text-foreground">{c.link_plans}</a>
             <a href="#faq" className="hover:text-foreground">{c.link_faq}</a>
             <a href="#contato" className="hover:text-foreground">Contato</a>
             <a
