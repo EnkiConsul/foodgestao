@@ -370,7 +370,28 @@ export function ColaboradorJornadaPanel({
   };
 
   const persistir = async () => {
-    const turnoPadraoId = await resolverTurnoPadrao();
+    const cache = new Map<string, string>();
+    const turnoPadraoId = await resolverTurno(horario, cache);
+
+    // Cada dia com horário diferente do base aponta para um horário da loja —
+    // horários de fim de semana da unidade deixam de ser "exceção" do colaborador.
+    const diasResolvidos: DiaConfig[] = [];
+    for (const d of dias) {
+      if (!d.trabalha || !diaDivergeDoBase(d, horario)) {
+        diasResolvidos.push({ ...d, turno_id: null, entrada: null, saida: null, intervalo_minutos: null });
+        continue;
+      }
+      const h = horarioEfetivoDia(d, horario);
+      const id = await resolverTurno(h, cache);
+      diasResolvidos.push({
+        ...d,
+        turno_id: id,
+        entrada: h.entrada,
+        saida: h.saida,
+        intervalo_minutos: h.intervalo_minutos ?? 0,
+      });
+    }
+
     await salvar.mutateAsync({
       unidade_id: unidadeId === "none" ? null : unidadeId,
       turno_padrao_id: turnoPadraoId,
@@ -378,8 +399,9 @@ export function ColaboradorJornadaPanel({
       folga_fixa_dow: folgaVariavel || folgas.length !== 1 ? null : folgas[0],
       observacoes: obs.trim() || null,
       vigencia_inicio: inicio,
-      dias: dias.map((d) => ({ ...d, turno_id: null })),
+      dias: diasResolvidos,
     });
+
     // A folga fixa fica em um único lugar: a semana desta tela alimenta também
     // o campo do cadastro, que é lido pela escala e pelo portal.
     if (colaborador?.id) {
