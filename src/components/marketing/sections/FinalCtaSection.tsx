@@ -15,9 +15,7 @@ export function FinalCtaSection({ defaultInterest }: { defaultInterest?: "financ
           </p>
         </div>
 
-        <div className="rounded-site-lg border border-white/12 bg-white/[0.06] p-6 backdrop-blur-sm sm:p-8">
-          <LeadForm defaultInterest={defaultInterest} tone="dark" origin="home" />
-        </div>
+        <LeadForm defaultInterest={defaultInterest} />
       </div>
     </Section>
   );
