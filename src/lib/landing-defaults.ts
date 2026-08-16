@@ -28,6 +28,33 @@ export type PersonasStripContent = {
   items: string[];
 };
 
+export type PainContent = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  pain_title: string;
+  pains: string[];
+  gain_title: string;
+  gains: string[];
+};
+
+export type SegmentItem = { title: string; desc: string };
+export type SegmentsContent = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  items: SegmentItem[];
+};
+
+export type HowStep = { title: string; desc: string };
+export type HowItWorksContent = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  steps: HowStep[];
+  note: string;
+};
+
 export type ComparisonRow = { k: string; a: string; b: string };
 export type ComparisonContent = {
   eyebrow: string;
