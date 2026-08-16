@@ -20,6 +20,8 @@ interface Props {
   /** Sindicato do colaborador (`dp_colaboradores.sindicato_id`). */
   value: string;
   onChange: (sindicatoId: string) => void;
+  /** Executado antes de navegar para o cadastro de sindicatos (fecha o diálogo). */
+  onBeforeNavigate?: () => void;
 }
 
 const dataBR = (iso: string | null | undefined) =>
