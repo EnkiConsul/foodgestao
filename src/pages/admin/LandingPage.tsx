@@ -357,6 +357,32 @@ export default function AdminLandingPage() {
           />
         </TabsContent>
 
+        <TabsContent value="loyalty">
+          <SectionEditor
+            section="loyalty"
+            value={data.loyalty}
+            render={(s, u) => (
+              <>
+                <TextField label="Eyebrow" value={s.eyebrow} onChange={(v) => u("eyebrow", v)} />
+                <TextField label="Título" value={s.title} onChange={(v) => u("title", v)} multiline />
+                <TextField label="Subtítulo" value={s.subtitle} onChange={(v) => u("subtitle", v)} multiline />
+                <ObjectListEditor
+                  label="Passos do programa"
+                  items={s.steps}
+                  onChange={(v) => u("steps", v)}
+                  emptyItem={{ title: "", desc: "" }}
+                  fields={[
+                    { key: "title", label: "Título" },
+                    { key: "desc", label: "Descrição", multiline: true },
+                  ]}
+                />
+                <TextField label="Título da linha do tempo" value={s.timeline_title} onChange={(v) => u("timeline_title", v)} />
+                <TextField label="Aviso legal do programa" value={s.timeline_note} onChange={(v) => u("timeline_note", v)} multiline rows={5} />
+              </>
+            )}
+          />
+        </TabsContent>
+
         <TabsContent value="pricing_intro">
           <SectionEditor
             section="pricing_intro"
@@ -366,6 +392,14 @@ export default function AdminLandingPage() {
                 <TextField label="Eyebrow" value={s.eyebrow} onChange={(v) => u("eyebrow", v)} />
                 <TextField label="Título" value={s.title} onChange={(v) => u("title", v)} />
                 <TextField label="Subtítulo" value={s.subtitle} onChange={(v) => u("subtitle", v)} multiline />
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <TextField label="Aba: Financeiro" value={s.tab_financeiro} onChange={(v) => u("tab_financeiro", v)} />
+                  <TextField label="Aba: Departamento Pessoal" value={s.tab_dp} onChange={(v) => u("tab_dp", v)} />
+                </div>
+                <TextField label="DP — título" value={s.dp_title} onChange={(v) => u("dp_title", v)} />
+                <TextField label="DP — texto" value={s.dp_subtitle} onChange={(v) => u("dp_subtitle", v)} multiline />
+                <TextField label="DP — rótulo do botão" value={s.dp_cta_label} onChange={(v) => u("dp_cta_label", v)} />
+                <TextField label="Aviso legal dos planos" value={s.legal} onChange={(v) => u("legal", v)} multiline rows={4} />
                 <p className="text-xs text-muted-foreground">
                   Os cards de planos são editados em <b>Planos</b>.
                 </p>
@@ -373,6 +407,25 @@ export default function AdminLandingPage() {
             )}
           />
         </TabsContent>
+
+        <TabsContent value="plan_matrix">
+          <SectionEditor
+            section="plan_matrix"
+            value={data.plan_matrix}
+            render={(s, u) => (
+              <>
+                <TextField label="Eyebrow" value={s.eyebrow} onChange={(v) => u("eyebrow", v)} />
+                <TextField label="Título" value={s.title} onChange={(v) => u("title", v)} />
+                <TextField label="Subtítulo" value={s.subtitle} onChange={(v) => u("subtitle", v)} multiline />
+                <TextField label="Cabeçalho da 1ª coluna" value={s.col_resource} onChange={(v) => u("col_resource", v)} />
+                <p className="text-xs text-muted-foreground">
+                  As linhas do comparativo são geradas a partir dos limites cadastrados em <b>Planos</b>.
+                </p>
+              </>
+            )}
+          />
+        </TabsContent>
+
 
         <TabsContent value="faq">
           <SectionEditor
