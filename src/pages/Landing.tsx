@@ -4,6 +4,7 @@ import { FeaturesGrid } from "@/components/landing/FeaturesGrid";
 import { FinalCta } from "@/components/landing/FinalCta";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
+import { MobileCtaBar } from "@/components/landing/MobileCtaBar";
 import { ModulesSection } from "@/components/landing/ModulesSection";
 import { PainSection } from "@/components/landing/PainSection";
 import { PersonasStrip } from "@/components/landing/PersonasStrip";
@@ -32,8 +33,14 @@ export default function Landing() {
         <meta name="twitter:title" content={SEO_TITLE} />
         <meta name="twitter:description" content={SEO_DESC} />
       </Helmet>
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+      >
+        Ir para o conteúdo
+      </a>
       <PublicHeader utm={utm} />
-      <main>
+      <main id="conteudo">
         <HeroSection utm={utm} />
         <PersonasStrip />
         <PainSection />
@@ -47,10 +54,15 @@ export default function Landing() {
         <ContactSection />
         <FinalCta utm={utm} />
       </main>
+      <MobileCtaBar utm={utm} />
 
 
       <PublicFooter />
-      <WhatsappButton message="Olá! Vim pelo site e gostaria de saber mais sobre o 360°FOOD." />
+      <div className="h-16 md:hidden" aria-hidden="true" />
+      <WhatsappButton
+        className="hidden md:flex"
+        message="Olá! Vim pelo site e gostaria de saber mais sobre o 360°FOOD."
+      />
     </div>
   );
 }
