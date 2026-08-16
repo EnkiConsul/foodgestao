@@ -20,13 +20,28 @@ export interface NegociacaoResumo {
 export interface SindicatoEnquadramento {
   /** Sindicato laboral vinculado ao cargo (fonte do enquadramento). */
   laboral: SindicatoResumo | null;
-  /** Sindicato patronal da unidade (informativo, pertence à unidade). */
+  /** Sindicato patronal da unidade. */
   patronal: SindicatoResumo | null;
   /** Negociação coletiva vigente mais recente do sindicato laboral. */
   negociacao: NegociacaoResumo | null;
+  /** Negociação coletiva vigente mais recente do sindicato patronal. */
+  negociacaoPatronal: NegociacaoResumo | null;
 }
 
-const VAZIO: SindicatoEnquadramento = { laboral: null, patronal: null, negociacao: null };
+const VAZIO: SindicatoEnquadramento = {
+  laboral: null, patronal: null, negociacao: null, negociacaoPatronal: null,
+};
+
+const negociacaoVigente = async (sindicatoId: string): Promise<NegociacaoResumo | null> => {
+  const { data, error } = await supabase
+    .from("dp_sindicato_negociacoes")
+    .select("id, tipo_documento, vigencia_inicio, vigencia_fim, reajuste_pct")
+    .eq("sindicato_id", sindicatoId)
+    .order("vigencia_inicio", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return ((data ?? [])[0] as NegociacaoResumo) ?? null;
+};
 
 /**
  * Enquadramento sindical derivado do cargo (laboral) e da unidade (patronal).
@@ -62,19 +77,12 @@ export function useSindicatoDoCargo(cargoId: string | null, unidadeId: string | 
       const laboral = pick(laboralRes.data as any[]);
       const patronal = pick(patronalRes.data as any[]);
 
-      let negociacao: NegociacaoResumo | null = null;
-      if (laboral) {
-        const { data, error } = await supabase
-          .from("dp_sindicato_negociacoes")
-          .select("id, tipo_documento, vigencia_inicio, vigencia_fim, reajuste_pct")
-          .eq("sindicato_id", laboral.id)
-          .order("vigencia_inicio", { ascending: false })
-          .limit(1);
-        if (error) throw error;
-        negociacao = ((data ?? [])[0] as NegociacaoResumo) ?? null;
-      }
+      const [negociacao, negociacaoPatronal] = await Promise.all([
+        laboral ? negociacaoVigente(laboral.id) : Promise.resolve(null),
+        patronal ? negociacaoVigente(patronal.id) : Promise.resolve(null),
+      ]);
 
-      return { laboral, patronal, negociacao } satisfies SindicatoEnquadramento;
+      return { laboral, patronal, negociacao, negociacaoPatronal } satisfies SindicatoEnquadramento;
     },
     initialData: VAZIO,
   });
