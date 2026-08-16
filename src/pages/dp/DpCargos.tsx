@@ -271,8 +271,10 @@ export default function DpCargos() {
                   <div className="font-bold uppercase truncate">{c.nome}</div>
                   {descricao && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{descricao}</div>}
                   <div className="mt-1 text-xs tabular-nums text-muted-foreground">
-                    Salário base: {(c as any).salario_base != null ? moedaBR(Number((c as any).salario_base)) : "—"}
+                    Salário base: {salarioResumo(c).texto}
+                    <span className="ml-1 normal-case">({salarioResumo(c).dica})</span>
                   </div>
+
                 </div>
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary shrink-0">
                   <Users className="size-3" /> {c.colaboradores_count}
