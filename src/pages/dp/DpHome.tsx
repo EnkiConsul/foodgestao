@@ -9,7 +9,7 @@ import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 export default function DpHome() {
   return (
     <DpPage>
-      <Helmet><title>Painel Administrativo — DP 360°</title></Helmet>
+      <Helmet><title>Painel Administrativo — Pessoas 360°</title></Helmet>
 
       <DpPageHeader icon={Bell} title="Painel Administrativo" description="Visão geral e atalhos rápidos." />
 

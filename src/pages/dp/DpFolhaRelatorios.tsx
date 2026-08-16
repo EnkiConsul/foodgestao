@@ -52,7 +52,7 @@ export default function DpFolhaRelatorios() {
   return (
     <DpPage>
       <Helmet>
-        <title>Relatórios da Folha | DP 360°FOOD</title>
+        <title>Relatórios da Folha | Pessoas 360°FOOD</title>
         <meta
           name="description"
           content="Resumo anual e mensal da folha de pagamento com INSS, IRRF, FGTS e rendimentos por colaborador."

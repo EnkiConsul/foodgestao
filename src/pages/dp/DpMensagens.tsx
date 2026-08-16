@@ -166,7 +166,7 @@ export default function DpMensagens() {
 
   return (
     <DpPage>
-      <Helmet><title>Mensagens — DP 360°</title></Helmet>
+      <Helmet><title>Mensagens — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={MessageSquare}
         title="Mensagens"

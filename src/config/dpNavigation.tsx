@@ -41,7 +41,7 @@ import {
 
 /**
  * ─────────────────────────────────────────────────────────────────────────
- * FONTE ÚNICA DA NAVEGAÇÃO DO DP 360° E DO PORTAL DO COLABORADOR.
+ * FONTE ÚNICA DA NAVEGAÇÃO DO Pessoas 360° E DO PORTAL DO COLABORADOR.
  *
  * `src/config/mobileNav.tsx` (menu "Mais" mobile) e
  * `src/components/dp/DpSidebar.tsx` (sidebar desktop) derivam suas listas
@@ -88,7 +88,7 @@ export type DpNavSurface = {
   extraShortcuts: DpNavItem[];
 };
 
-// ── DP 360° (admin) ──────────────────────────────────────────────────────
+// ── Pessoas 360° (admin) ──────────────────────────────────────────────────────
 
 const ADMIN_GROUPS: DpNavGroup[] = [
   {
@@ -228,7 +228,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
 const ADMIN_DIRECT: DpNavItem[] = [
   { label: "SESMT", to: "/dp/conformidade", icon: ShieldCheck, end: true, badge: "Em breve" },
   { label: "Analytics de RH", to: "/dp/analytics", icon: BarChart3, shortcut: true, shortLabel: "Analytics" },
-  { label: "Configurações do DP", to: "/dp/configuracoes", icon: Settings },
+  { label: "Configurações de Pessoas", to: "/dp/configuracoes", icon: Settings },
 ];
 
 export const DP_ADMIN_NAV: DpNavSurface = {

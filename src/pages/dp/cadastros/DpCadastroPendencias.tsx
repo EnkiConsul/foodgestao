@@ -58,7 +58,7 @@ export default function DpCadastroPendencias() {
 
   return (
     <DpPage>
-      <Helmet><title>Pendências — Cadastro — DP 360°</title></Helmet>
+      <Helmet><title>Pendências — Cadastro — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={BellRing}
         title="Prazos de pendências"

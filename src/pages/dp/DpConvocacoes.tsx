@@ -103,7 +103,7 @@ export default function DpConvocacoes() {
 
   return (
     <DpPage>
-      <Helmet><title>Convocações — DP 360°</title></Helmet>
+      <Helmet><title>Convocações — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={BellRing}
         title="Convocações"

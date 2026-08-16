@@ -222,7 +222,7 @@ export default function DpUnidades() {
 
   return (
     <DpPage narrow>
-      <Helmet><title>Unidades — DP 360°</title></Helmet>
+      <Helmet><title>Unidades — Pessoas 360°</title></Helmet>
 
       <DpPageHeader
         icon={Building2}

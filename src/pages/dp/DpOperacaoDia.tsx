@@ -145,7 +145,7 @@ export default function DpOperacaoDia() {
   return (
     <DpPage>
       <Helmet>
-        <title>Operação do Dia | DP 360°FOOD</title>
+        <title>Operação do Dia | Pessoas 360°FOOD</title>
         <meta
           name="description"
           content="Veja quem trabalha hoje por turno, quem está ausente e ajuste a escala do dia na unidade."

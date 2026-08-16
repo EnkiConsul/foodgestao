@@ -628,7 +628,7 @@ export default function DpAdminCalendario() {
   return (
     <DpPage>
       <Helmet>
-        <title>Calendário de folgas — DP 360°</title>
+        <title>Calendário de folgas — Pessoas 360°</title>
       </Helmet>
       <DpPageHeader
         icon={CalendarDays}

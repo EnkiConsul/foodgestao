@@ -249,7 +249,7 @@ export default function DpSindicatoNegociacoes() {
 
   return (
     <DpPage>
-      <Helmet><title>Negociações Coletivas — DP 360°</title></Helmet>
+      <Helmet><title>Negociações Coletivas — Pessoas 360°</title></Helmet>
 
       <DpPageHeader
         icon={FileText}

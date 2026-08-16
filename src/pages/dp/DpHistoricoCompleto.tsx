@@ -341,7 +341,7 @@ export default function DpHistoricoCompleto() {
 
   return (
     <DpPage>
-      <Helmet><title>Histórico Completo — DP 360°</title></Helmet>
+      <Helmet><title>Histórico Completo — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={FileText}
         title="Histórico Completo de Documentos"

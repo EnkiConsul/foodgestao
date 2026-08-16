@@ -60,7 +60,7 @@ export default function DpTrocas() {
 
   return (
     <DpPage>
-      <Helmet><title>Trocas — DP 360°</title></Helmet>
+      <Helmet><title>Trocas — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={ArrowLeftRight}
         title="Histórico de Trocas Inteligentes"

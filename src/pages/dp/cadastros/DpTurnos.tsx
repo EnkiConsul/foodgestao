@@ -136,7 +136,7 @@ export default function DpTurnos() {
   return (
     <DpPage>
       <Helmet>
-        <title>Turnos | DP 360°FOOD</title>
+        <title>Turnos | Pessoas 360°FOOD</title>
         <meta name="description" content="Cadastre os horários mais usados na sua operação e reaproveite em toda a escala." />
       </Helmet>
 

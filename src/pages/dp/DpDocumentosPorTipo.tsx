@@ -231,7 +231,7 @@ export default function DpDocumentosPorTipo({ tipo: tipoProp }: { tipo?: Tipo } 
 
   return (
     <DpPage>
-      <Helmet><title>{cfg.titulo} — DP 360°</title></Helmet>
+      <Helmet><title>{cfg.titulo} — Pessoas 360°</title></Helmet>
 
 
       <DpPageHeader

@@ -146,7 +146,7 @@ export default function DpGradesSemanais() {
   return (
     <DpPage>
       <Helmet>
-        <title>Grades semanais | DP 360°FOOD</title>
+        <title>Grades semanais | Pessoas 360°FOOD</title>
         <meta
           name="description"
           content="Cadastre a semana padrão da operação por unidade e use como base do horário de trabalho dos colaboradores."

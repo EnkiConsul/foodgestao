@@ -35,7 +35,7 @@ export const SOLUTIONS: SiteSolution[] = [
   },
   {
     key: "dp",
-    name: "DP 360°",
+    name: "Pessoas 360°",
     route: "/departamento-pessoal",
     headline: "Organize sua equipe sem depender de planilhas e grupos de WhatsApp.",
     description:
@@ -48,7 +48,7 @@ export const SOLUTIONS: SiteSolution[] = [
       "Comunicação interna",
       "Portal do Colaborador",
     ],
-    cta: "Conhecer o DP 360°",
+    cta: "Conhecer o Pessoas 360°",
   },
 ];
 
@@ -59,7 +59,7 @@ export const DIFFERENTIALS = [
     highlight: true,
   },
   {
-    title: "Financeiro e DP no mesmo ecossistema",
+    title: "Financeiro e Pessoas no mesmo ecossistema",
     text: "Duas frentes críticas da gestão com experiência integrada, no mesmo ambiente e com os mesmos acessos.",
     highlight: true,
   },
@@ -92,7 +92,7 @@ export const DIFFERENTIALS = [
 export const HOW_IT_WORKS = [
   {
     step: "01",
-    title: "Escolha Financeiro, DP ou os dois",
+    title: "Escolha Financeiro, Pessoas ou os dois",
     text: "Você conhece as soluções e decide o que faz sentido para o momento da sua operação.",
   },
   {
@@ -322,8 +322,8 @@ export const BUSINESS_TYPES = [
 
 export const INTEREST_OPTIONS = [
   { value: "financeiro", label: "Financeiro 360°" },
-  { value: "dp", label: "DP 360°" },
-  { value: "ambos", label: "Financeiro e DP" },
+  { value: "dp", label: "Pessoas 360°" },
+  { value: "ambos", label: "Financeiro e Pessoas" },
 ];
 
 export const HEADCOUNT_OPTIONS = [
@@ -338,6 +338,6 @@ export const BLOG_CATEGORIES = [
   "Indicadores e DRE",
   "Fluxo de caixa",
   "Gestão de equipes e escalas",
-  "Legislação e boas práticas de DP",
+  "Legislação e boas práticas de Pessoas",
   "Gestão de redes e operações",
 ];

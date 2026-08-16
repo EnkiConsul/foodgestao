@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
               "X-Connection-Api-Key": RESEND,
             },
             body: JSON.stringify({
-              from: "DP 360°FOOD <onboarding@resend.dev>",
+              from: "Pessoas 360°FOOD <onboarding@resend.dev>",
               to: [to], subject: assunto,
               html: `<p>${body.replace(/\n/g, "<br/>")}</p>`,
             }),

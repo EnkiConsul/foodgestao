@@ -50,7 +50,7 @@ export default function DpNotificacoes() {
 
   return (
     <DpPage>
-      <Helmet><title>Notificações — DP 360°</title></Helmet>
+      <Helmet><title>Notificações — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={Bell}
         title="Central de Notificações"

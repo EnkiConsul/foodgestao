@@ -16,7 +16,7 @@ interface NavigationCardProps {
 
 /**
  * Card padrão para grids de módulos (hubs). Reutilizável nos hubs de
- * Cadastros, Documentos, Comunicação etc. do DP 360°.
+ * Cadastros, Documentos, Comunicação etc. do Pessoas 360°.
  */
 export function NavigationCard({ title, description, to, icon: Icon, count, className }: NavigationCardProps) {
   return (

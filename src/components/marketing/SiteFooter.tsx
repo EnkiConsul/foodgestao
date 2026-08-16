@@ -9,7 +9,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     title: "Soluções",
     links: [
       { label: "Financeiro 360°", to: "/financeiro" },
-      { label: "DP 360°", to: "/departamento-pessoal" },
+      { label: "Pessoas 360°", to: "/departamento-pessoal" },
       { label: "Planos", to: "/planos" },
     ],
   },

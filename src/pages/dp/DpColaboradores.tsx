@@ -263,7 +263,7 @@ export default function DpColaboradores() {
 
   return (
     <DpPage>
-      <Helmet><title>Colaboradores — DP 360°</title></Helmet>
+      <Helmet><title>Colaboradores — Pessoas 360°</title></Helmet>
 
       <DpPageHeader
         icon={Users}

@@ -6,7 +6,7 @@ import heroImage from "@/assets/site-gestor-indicadores.jpg";
 import { withUtm } from "@/lib/marketing/utm";
 import { trackEvent } from "@/lib/analytics";
 
-const PROOFS = ["Financeiro e DP integrados", "Contratação modular", "Multiempresa", "Acesso pelo navegador"];
+const PROOFS = ["Financeiro e Pessoas integrados", "Contratação modular", "Multiempresa", "Acesso pelo navegador"];
 
 export function HeroSection() {
   return (

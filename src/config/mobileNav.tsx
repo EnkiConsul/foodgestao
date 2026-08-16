@@ -183,7 +183,7 @@ const dpShortcuts: NavLeaf[] = surfaceShortcuts(DP_ADMIN_NAV).map(toShortcutLeaf
 const portalHome: NavLeaf = toLeaf(DP_PORTAL_NAV.home);
 const portalShortcuts: NavLeaf[] = [
   { icon: Home, label: "Financeiro", to: "/dashboard" },
-  { icon: Users, label: "DP", to: "/dp" },
+  { icon: Users, label: "Pessoas", to: "/dp" },
   ...surfaceShortcuts(DP_PORTAL_NAV).map(toShortcutLeaf),
 ];
 
@@ -192,7 +192,7 @@ const portalShortcuts: NavLeaf[] = [
 const hubHome: NavLeaf = { icon: LayoutGrid, label: "Módulos", to: "/hub", end: true };
 const hubShortcuts: NavLeaf[] = [
   { icon: Home, label: "Financeiro", to: "/dashboard" },
-  { icon: Users, label: "DP", to: "/dp" },
+  { icon: Users, label: "Pessoas", to: "/dp" },
   { icon: Search, label: "Buscar", to: "/buscar" },
   { icon: Settings, label: "Configurações", to: "/configuracoes" },
 ];
@@ -305,7 +305,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     shortcutOptions: dpShortcuts,
     moreGroups: [
       {
-        label: "DP 360°",
+        label: "Pessoas 360°",
         accent: "primary",
         items: DP_ADMIN_NAV.direct.map(toLeaf),
         subgroups: DP_ADMIN_NAV.groups.map(toSubGroup),
@@ -348,7 +348,7 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
         accent: "primary",
         items: [
           { icon: Home, label: "Financeiro", to: "/dashboard", featured: true },
-          { icon: Users, label: "DP 360°", to: "/dp" },
+          { icon: Users, label: "Pessoas 360°", to: "/dp" },
           { icon: Search, label: "Buscar", to: "/buscar" },
         ],
       },

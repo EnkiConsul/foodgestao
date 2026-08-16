@@ -115,7 +115,7 @@ export default function DpDocumentos() {
 
   return (
     <DpPage>
-      <Helmet><title>{title} — DP 360°</title></Helmet>
+      <Helmet><title>{title} — Pessoas 360°</title></Helmet>
       {filterTipo && (
             <Button asChild variant="ghost" size="sm" className="mb-1 -ml-2">
               <Link to="/dp/documentos"><ArrowLeft className="h-4 w-4 mr-1" /> Categorias</Link>

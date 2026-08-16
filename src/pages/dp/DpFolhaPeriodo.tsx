@@ -95,7 +95,7 @@ export default function DpFolhaPeriodo() {
   return (
     <DpPage>
       <Helmet>
-        <title>Folha {competencia} | DP 360°FOOD</title>
+        <title>Folha {competencia} | Pessoas 360°FOOD</title>
         <meta name="description" content="Lançamentos da folha do período, com proventos, descontos e ciclo de aprovação." />
       </Helmet>
 

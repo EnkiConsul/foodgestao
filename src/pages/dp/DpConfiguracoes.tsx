@@ -108,7 +108,7 @@ export default function DpConfiguracoes() {
 
   return (
     <DpPage>
-      <Helmet><title>Configurações do DP — DP 360°</title></Helmet>
+      <Helmet><title>Configurações do DP — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={Settings}
         title="Configurações do DP"

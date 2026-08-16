@@ -111,7 +111,7 @@ export default function DpFerias() {
 
   return (
     <DpPage>
-      <Helmet><title>Férias — DP 360°</title></Helmet>
+      <Helmet><title>Férias — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={Palmtree}
         title="Férias"

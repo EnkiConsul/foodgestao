@@ -67,7 +67,7 @@ export default function DpConformidade() {
 
   return (
     <DpPage>
-      <Helmet><title>SESMT — saúde e segurança ocupacional — DP 360°</title></Helmet>
+      <Helmet><title>SESMT — saúde e segurança ocupacional — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={ShieldCheck}
         title="SESMT"

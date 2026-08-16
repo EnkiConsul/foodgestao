@@ -266,7 +266,7 @@ export default function DpAtestados() {
 
   return (
     <DpPage>
-      <Helmet><title>Atestados — DP 360°</title></Helmet>
+      <Helmet><title>Atestados — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={FileWarning}
         title="Atestados"

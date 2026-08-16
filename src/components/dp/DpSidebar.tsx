@@ -102,7 +102,7 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
     if (!layout) return variant === "portal" ? PORTAL_ITEMS : ADMIN_ITEMS;
     return buildItems(applyMenuLayout(base, layout));
   }, [variant, layout]);
-  const subtitle = variant === "portal" ? "Portal do Colaborador" : "DP 360°";
+  const subtitle = variant === "portal" ? "Portal do Colaborador" : "Pessoas 360°";
 
   // Toggle exclusivo para grupos do admin (apenas 1 grupo aberto por vez).
   const [openGroup, setOpenGroup] = useState<string | null>(null);
