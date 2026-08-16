@@ -9,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, type DpCargo, type DpCargoWithCount } from "@/hooks/useDpCadastros";
+import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, useDpCargoSalarios, type DpCargo, type DpCargoWithCount } from "@/hooks/useDpCadastros";
+import { pisoVigente } from "@/lib/dp/cargoSalarios";
+
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
@@ -114,6 +116,42 @@ export default function DpCargos() {
     return all.filter((c) => c.nome.toLowerCase().includes(q));
   }, [list.data, busca]);
 
+  // Pisos por unidade da empresa (uma consulta só): usados para mostrar
+  // "por unidade" na lista quando o cargo tem valores distintos.
+  const todosPisos = useDpCargoSalarios();
+  const hojeISO = new Date().toISOString().slice(0, 10);
+  const pisosPorCargo = useMemo(() => {
+    const map = new Map<string, number[]>();
+    for (const p of (todosPisos.data ?? []) as any[]) {
+      if (!pisoVigente(p, hojeISO)) continue;
+      const arr = map.get(p.cargo_id) ?? [];
+      arr.push(Number(p.salario_base));
+      map.set(p.cargo_id, arr);
+    }
+    return map;
+  }, [todosPisos.data, hojeISO]);
+
+  /** Célula de salário: valor único ou faixa por unidade. */
+  const salarioResumo = (c: any) => {
+    const valores = pisosPorCargo.get(c.id) ?? [];
+    if (valores.length > 0) {
+      const min = Math.min(...valores);
+      const max = Math.max(...valores);
+      return {
+        texto: "por unidade",
+        dica:
+          min === max
+            ? `${valores.length} unidade(s) · ${moedaBR(min)}`
+            : `${valores.length} unidades · ${moedaBR(min)} a ${moedaBR(max)}`,
+      };
+    }
+    return {
+      texto: c.salario_base != null ? moedaBR(Number(c.salario_base)) : "—",
+      dica: "Salário de referência do cargo",
+    };
+  };
+
+
   return (
     <DpPage narrow>
       <Helmet><title>Cargos — Pessoas 360°</title></Helmet>
@@ -121,7 +159,7 @@ export default function DpCargos() {
       <DpPageHeader
         icon={Briefcase}
         title="Cargos"
-        description="Gerencie os cargos disponíveis na empresa."
+        description="Gerencie os cargos disponíveis na empresa. Pisos diferentes por unidade (convenções patronais distintas) são cadastrados em “Salário por unidade”, dentro da ficha ou da edição do cargo."
         actions={
           <>
             <Button onClick={openNew} className="rounded-full px-6">
@@ -167,14 +205,15 @@ export default function DpCargos() {
                   >
                     <td className="p-4 font-bold uppercase truncate" title={c.nome}>{c.nome}</td>
                     <td className="p-4 hidden md:table-cell text-muted-foreground truncate" title={descricao ?? ""}>{descricao || "—"}</td>
-                    <td className="p-4 text-right tabular-nums whitespace-nowrap">
-                      {(c as any).salario_base != null ? moedaBR(Number((c as any).salario_base)) : "—"}
+                    <td className="p-4 text-right tabular-nums whitespace-nowrap" title={salarioResumo(c).dica}>
+                      {salarioResumo(c).texto}
                       {(c as any).insalubre_periculoso && (
                         <span className="ml-2 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
                           insalubre
                         </span>
                       )}
                     </td>
+
                     <td className="p-4 text-center">
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                         <Users className="size-3" /> {c.colaboradores_count}
@@ -233,8 +272,10 @@ export default function DpCargos() {
                   <div className="font-bold uppercase truncate">{c.nome}</div>
                   {descricao && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{descricao}</div>}
                   <div className="mt-1 text-xs tabular-nums text-muted-foreground">
-                    Salário base: {(c as any).salario_base != null ? moedaBR(Number((c as any).salario_base)) : "—"}
+                    Salário base: {salarioResumo(c).texto}
+                    <span className="ml-1 normal-case">({salarioResumo(c).dica})</span>
                   </div>
+
                 </div>
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary shrink-0">
                   <Users className="size-3" /> {c.colaboradores_count}
@@ -256,7 +297,7 @@ export default function DpCargos() {
 
       {/* Criar / Editar */}
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setForm(blankForm); } }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar Cargo" : "Novo Cargo"}</DialogTitle>
           </DialogHeader>
@@ -282,7 +323,7 @@ export default function DpCargos() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cargo-salario">Salário de referência (R$)</Label>
+              <Label htmlFor="cargo-salario">Salário de referência (padrão da empresa) (R$)</Label>
               <Input
                 id="cargo-salario"
                 inputMode="decimal"
@@ -291,9 +332,18 @@ export default function DpCargos() {
                 placeholder="Ex: 2.200,00"
               />
               <p className="text-[11px] text-muted-foreground">
-                Usado como base ao cadastrar colaboradores neste cargo.
+                Vale para todas as unidades que não tiverem piso próprio abaixo.
               </p>
             </div>
+            {editing && (
+              <div className="rounded-xl border border-border p-3">
+                <CargoSalariosUnidadePanel
+                  cargoId={editing.id}
+                  salarioGeral={(editing as any).salario_base ?? null}
+                />
+              </div>
+            )}
+
             <div className="flex items-center gap-3 rounded-xl border border-border p-3">
               <Switch
                 id="cargo-insalubre"
