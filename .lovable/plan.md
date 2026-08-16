@@ -1,33 +1,49 @@
-# Sindicato no cadastro do colaborador
+# Sindicato no cadastro do colaborador (cadastro centralizado)
 
 ## Situação atual (verificada)
 
-- O módulo de sindicatos já existe: `/dp/cadastros/sindicatos`, negociações (`dp_sindicato_negociacoes`), vínculo por unidade (`dp_sindicato_unidades`) e por cargo (`dp_sindicato_cargos`).
-- A tabela `dp_colaboradores` já tem a coluna `sindicato_id` (com chave estrangeira para `dp_sindicatos`) — hoje ela nunca é preenchida pela tela.
-- O formulário do colaborador (`Dados`, `Horário De Trabalho`, `Remuneração`) não tem nenhum campo de sindicato.
+- O módulo de sindicatos já existe em `/dp/cadastros/sindicatos`: sindicato **laboral** é vinculado a **cargos** (`dp_sindicato_cargos`) e o **patronal** a **unidades** (`dp_sindicato_unidades`). Campos do cadastro: nome, CNPJ, WhatsApp, tipo e os vínculos.
+- `dp_colaboradores` já tem a coluna `sindicato_id` (FK para `dp_sindicatos`) — hoje nunca preenchida pela tela.
+- O formulário do colaborador (`Dados`, `Horário De Trabalho`, `Remuneração`) não tem nada de sindicato.
 
-Ou seja: falta apenas a ponta de tela. Nenhuma migração nova é necessária.
+Nenhuma migração nova é necessária.
 
 ## O que será feito
 
-Em vez de uma quarta aba (que ficaria com um único campo), o sindicato entra como um **bloco dentro da aba Dados**, logo abaixo de Cargo/Unidade — que é de onde o sindicato é herdado. Se preferir aba separada, é só dizer e eu troco.
+Bloco "Enquadramento sindical" na aba **Dados**, logo abaixo de Cargo/Unidade (é do cargo que vem o sindicato laboral). Um único ponto de verdade: o que for cadastrado aqui aparece imediatamente na tela de Sindicatos, e vice-versa.
 
-O bloco "Enquadramento sindical" terá:
+### 1. Cargo já tem sindicato vinculado → somente leitura
 
-1. **Sindicato representativo** — seleção entre os sindicatos ativos da empresa, gravando em `dp_colaboradores.sindicato_id`.
-2. **Sugestão automática** — ao escolher Unidade e Cargo, o sistema sugere o sindicato vinculado àquela unidade/cargo, com um botão "Usar sugestão". O campo continua editável (exceções existem).
-3. **Contexto da convenção** — quando há sindicato definido, mostra em texto curto: tipo (laboral/patronal), data-base e a negociação vigente (CCT/ACT, vigência e reajuste), com link para a negociação no cadastro de sindicatos.
-4. **Aviso quando vazio** — se a unidade do colaborador tem sindicato vinculado e o colaborador está sem enquadramento, aparece um alerta informativo (não bloqueia o salvamento), no mesmo tom dos avisos jurídicos já usados no cadastro.
+Mostra o sindicato laboral do cargo com aviso claro: "Este cargo já está vinculado ao sindicato X. Para trocar o vínculo, use a tela de Sindicatos." O campo fica desabilitado e com link "Abrir cadastro de sindicatos". O colaborador é enquadrado automaticamente nesse sindicato (`sindicato_id`).
 
-Na **ficha do colaborador** (visualização ao clicar na linha) o sindicato passa a aparecer junto de Cargo/Unidade.
+### 2. Cargo sem sindicato → cadastrar/vincular ali mesmo
+
+Duas opções no mesmo bloco:
+
+- **Vincular um sindicato existente** — seleção entre os sindicatos laborais ativos da empresa; ao confirmar, cria o vínculo `cargo ↔ sindicato` e enquadra o colaborador.
+- **Cadastrar novo sindicato** — abre um diálogo com exatamente os mesmos campos da tela de sindicatos (Nome*, CNPJ, WhatsApp, tipo laboral) e já vincula ao cargo selecionado. O registro nasce completo, aparecendo normalmente em `/dp/cadastros/sindicatos` para edição futura.
+
+Mesmo padrão já usado no botão "Novo cargo" do próprio formulário — nada de cadastro paralelo ou incompleto.
+
+### 3. Contexto e avisos
+
+- Quando há sindicato, mostra tipo (laboral/patronal), data-base e a negociação vigente (CCT/ACT, vigência, reajuste) em texto curto, com link para a negociação.
+- Também mostra, informativo, o sindicato **patronal** da unidade do colaborador (quando existir) — esse sempre em leitura, pois pertence à unidade.
+- Se o cargo não tem sindicato e nenhum foi escolhido, aparece um aviso informativo (não bloqueia salvar).
+
+### 4. Ficha do colaborador
+
+A ficha (ao clicar na linha) passa a exibir "Sindicato" junto de Cargo/Unidade.
 
 ## Fora deste escopo
 
-Motor de piso salarial, validação de reajuste obrigatório e contribuição sindical na folha — isso é a Fase 5 completa, que fica para quando você quiser retomar. Aqui entregamos o enquadramento e a visibilidade.
+Motor de piso salarial, reajuste obrigatório e contribuição sindical na folha — Fase 5 completa, para quando você quiser retomar.
 
 ## Detalhes técnicos
 
-- `src/components/dp/ColaboradorFormDialog.tsx`: novo campo `sindicato_id` no estado do formulário, incluído no insert/update e no snapshot de "alterações não salvas"; bloco de UI na aba Dados com `data-field="sindicato_id"` para o foco automático já implementado.
-- Novo hook `useSindicatoSugestao(unidadeId, cargoId)` (padrão dos hooks em `src/hooks/`): consulta `dp_sindicato_unidades` e `dp_sindicato_cargos` para sugerir o sindicato, e `dp_sindicato_negociacoes` para a negociação vigente. Reaproveita a lógica de `useSindicatoContextoUnidade`.
-- `src/components/dp/ColaboradorFichaDialog.tsx`: linha "Sindicato" na ficha.
-- Consultas escopadas por empresa via os helpers de contexto já usados no DP; nenhuma alteração de RLS ou de schema.
+- `src/components/dp/ColaboradorFormDialog.tsx`: campo `sindicato_id` no estado, no insert/update e no snapshot de "alterações não salvas"; bloco de UI na aba Dados com `data-field="sindicato_id"` para o foco automático já existente.
+- Novo hook `useSindicatoDoCargo(cargoId, unidadeId)`: lê `dp_sindicato_cargos` (laboral do cargo), `dp_sindicato_unidades` (patronal da unidade) e a negociação vigente em `dp_sindicato_negociacoes`. Reaproveita `useSindicatoContextoUnidade`.
+- Novo componente `src/components/dp/SindicatoQuickFormDialog.tsx` com os mesmos campos e validações de `DpSindicatos.tsx` (nome obrigatório, `maskCnpj`, `maskPhone`, dígitos gravados sem máscara), usando `useUpsertDpSindicato` de `useDpCadastros.tsx` e criando o vínculo em `dp_sindicato_cargos`.
+- Invalidação das queries `dp_sindicatos`, `dp_sindicato_vinculos`, `dp_cargos` e `dp_colaboradores` após criar/vincular, garantindo que a tela de Sindicatos reflita a mudança na hora.
+- Bloqueio de troca do vínculo do cargo é apenas de interface (a tela de Sindicatos continua sendo a dona da alteração); nenhuma mudança de RLS ou schema.
+- `src/components/dp/ColaboradorFichaDialog.tsx`: linha "Sindicato".
