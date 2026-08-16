@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { useUpsertDpColaborador, useDpColaboradores, type DpColaborador } from "@/hooks/useDpColaboradores";
 import { alertaIsonomia } from "@/lib/dp/beneficios-regras";
 import { BeneficioDispensaDialog, type DispensaBeneficio } from "@/components/dp/BeneficioDispensaDialog";
-import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, type DpCargo } from "@/hooks/useDpCadastros";
+import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, type DpCargo } from "@/hooks/useDpCadastros";
 import { salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
 
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
