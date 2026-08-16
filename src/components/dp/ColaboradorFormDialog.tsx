@@ -1149,6 +1149,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 campoErro={campoErro}
 
                 salarioCargo={salarioCargo}
+                cargoNome={cargoSelecionado?.nome ?? null}
+                onBeforeNavigate={() => onOpenChange(false)}
                 cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
                 regime={regimeSelecionado}
                 beneficios={beneficios}
