@@ -257,7 +257,7 @@ export function SindicatoEnquadramentoField({
       </div>
 
 
-      {(!laboral || !patronal) && (
+      {!carregando && (!laboral || !patronal) && (
         <div className="flex flex-col gap-2 border-t border-border pt-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[11px] text-amber-600 dark:text-amber-500">
             Sem sindicato o sistema não confere piso salarial, reajustes e contribuições da
