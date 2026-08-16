@@ -66,8 +66,9 @@ function ResumoVinculado({
  * quando falta, o usuário vincula ou cadastra completo sem sair desta tela.
  */
 export function SindicatoEnquadramentoField({
-  cargoId, cargoNome, unidadeId, value, onChange,
+  cargoId, cargoNome, unidadeId, value, onChange, onBeforeNavigate,
 }: Props) {
+  const navigate = useNavigate();
   const enquadramento = useSindicatoDoCargo(cargoId || null, unidadeId || null);
   const sindicatos = useDpSindicatos();
   const unidades = useDpUnidades();
