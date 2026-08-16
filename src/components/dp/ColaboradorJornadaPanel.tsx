@@ -628,6 +628,13 @@ export function ColaboradorJornadaPanel({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-sm font-semibold">{tituloSistema("Dias da Semana")}</h3>
           <div className="flex items-center gap-2">
+            <Button
+              type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
+              onClick={() => setGradeOpen(true)}
+            >
+              <CalendarRange className="h-3.5 w-3.5" aria-hidden="true" />
+              Grade da unidade
+            </Button>
             <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => aplicarEscala("6x1")}>
               6x1
             </Button>
@@ -636,10 +643,7 @@ export function ColaboradorJornadaPanel({
             </Button>
             <span className="text-xs tabular-nums text-muted-foreground">{formatarHoras(carga)}/semana</span>
           </div>
-        </div>
-        <ul className="divide-y rounded-lg border">
-          {dias.map((dia) => {
-            const h = horarioEfetivoDia(dia, horario);
+
             const diferente = diaDivergeDoBase(dia, horario);
             // Horário diferente que já existe como horário da loja é padrão da
             // operação (ex.: fim de semana), não exceção deste colaborador.
