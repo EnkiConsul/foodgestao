@@ -446,18 +446,31 @@ export function ColaboradorJornadaPanel({
 
   const onConfirmarCiencia = async (justificativa: string) => {
     setCienciaOpen(false);
+    const aguardando = cienciaPendenteRef.current;
+    cienciaPendenteRef.current = null;
     try {
       await registrarCiencia(justificativa);
       await persistir();
+      aguardando?.("salvo");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar o horário");
+      aguardando?.("erro");
     }
+  };
+
+  /** Fechar o diálogo sem confirmar cancela o salvamento em andamento. */
+  const onFecharCiencia = (aberto: boolean) => {
+    setCienciaOpen(aberto);
+    if (aberto) return;
+    const aguardando = cienciaPendenteRef.current;
+    cienciaPendenteRef.current = null;
+    aguardando?.("cancelado");
   };
 
   /**
    * Salvamento acionado pelo botão único do cadastro do colaborador.
-   * Devolve "pendente_ciencia" quando ainda falta a confirmação dos avisos —
-   * nesse caso o cadastro permanece aberto nesta aba.
+   * Quando há alerta da CLT, aguarda a ciência do diálogo e só então devolve o
+   * resultado — o cadastro conclui em um único clique.
    */
   const salvarExterno = async (): Promise<SalvarJornadaResultado> => {
     if (!colaborador?.id || !alterado) return "nada";
@@ -470,8 +483,11 @@ export function ColaboradorJornadaPanel({
       return "erro";
     }
     if (temAlertaClt(alertas)) {
+      cienciaPendenteRef.current?.("cancelado");
       setCienciaOpen(true);
-      return "pendente_ciencia";
+      return new Promise<SalvarJornadaResultado>((resolve) => {
+        cienciaPendenteRef.current = resolve;
+      });
     }
     try {
       await persistir();
