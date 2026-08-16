@@ -92,8 +92,42 @@ export function HeroSection() {
             height={960}
             className="w-full rounded-site-lg border border-white/12 object-cover shadow-site-float"
           />
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {MODULES.map((mod) => (
+              <div
+                key={mod.name}
+                className="flex h-full flex-col rounded-site-lg border border-white/12 bg-white/[0.06] p-5 backdrop-blur-sm transition-colors hover:border-site-orange/50 hover:bg-white/[0.09]"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-site-orange/15 text-site-orange">
+                    <mod.icon className="h-4.5 w-4.5" />
+                  </span>
+                  <p className="text-base font-extrabold text-white">{mod.name}</p>
+                </div>
+                <p className="mt-2.5 text-sm font-semibold text-white/70">{mod.tagline}</p>
+                <ul className="mt-3 space-y-1.5 text-sm text-white/70">
+                  {mod.bullets.map((b) => (
+                    <li key={b} className="flex items-start gap-2">
+                      <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-site-orange" />
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to={withUtm(mod.to)}
+                  onClick={() => trackEvent("cta_click", { cta: mod.event })}
+                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-site-orange hover:underline"
+                >
+                  {mod.cta}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
   );
 }
+
