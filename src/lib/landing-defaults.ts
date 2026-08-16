@@ -64,7 +64,31 @@ export type PricingIntroContent = {
   eyebrow: string;
   title: string;
   subtitle: string;
+  tab_financeiro: string;
+  tab_dp: string;
+  dp_title: string;
+  dp_subtitle: string;
+  dp_cta_label: string;
+  legal: string;
 };
+
+export type LoyaltyStep = { title: string; desc: string };
+export type LoyaltyContent = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  steps: LoyaltyStep[];
+  timeline_title: string;
+  timeline_note: string;
+};
+
+export type PlanMatrixContent = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  col_resource: string;
+};
+
 
 export type FaqItem = { q: string; a: string };
 export type FaqContent = {
