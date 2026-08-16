@@ -70,6 +70,10 @@ export default function DpSindicatoNegociacoes() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [toDelete, setToDelete] = useState<Negociacao | null>(null);
+  // Aplicação do piso negociado aos cargos da unidade da negociação.
+  const [aplicar, setAplicar] = useState<{
+    unidadeId: string; unidadeNome: string; sindicatoPatronalId: string | null; vigenciaInicio: string;
+  } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const list = useQuery({
@@ -484,6 +488,16 @@ export default function DpSindicatoNegociacoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {aplicar && (
+        <AplicarPisoUnidadeDialog
+          open
+          onOpenChange={(v) => { if (!v) setAplicar(null); }}
+          unidadeId={aplicar.unidadeId}
+          unidadeNome={aplicar.unidadeNome}
+          sindicatoPatronalId={aplicar.sindicatoPatronalId}
+          vigenciaInicio={aplicar.vigenciaInicio}
+        />
+      )}
     </DpPage>
   );
 }
