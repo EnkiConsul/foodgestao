@@ -741,9 +741,20 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full">
           <TabsList className="w-full justify-start overflow-x-auto">
-            <TabsTrigger value="dados">Dados</TabsTrigger>
+            <TabsTrigger value="dados" className="gap-2">
+              Dados
+              {dadosPendente && (
+                <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
+              )}
+            </TabsTrigger>
             <TabsTrigger value="jornada">Horário de Trabalho</TabsTrigger>
-            <TabsTrigger value="remuneracao">Remuneração</TabsTrigger>
+            <TabsTrigger value="remuneracao" className="gap-2">
+              Remuneração
+              {remPendente && (
+                <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
+              )}
+            </TabsTrigger>
+
           </TabsList>
 
           <TabsContent value="dados" className="mt-0">
