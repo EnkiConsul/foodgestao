@@ -14,13 +14,15 @@ export default function PlanosSitePage() {
         path="/planos"
       />
       <Section variant="navy" labelledBy="planos-hero">
-        <SectionHeading
-          id="planos-hero"
-          tone="dark"
-          eyebrow="Planos e condições"
-          title="Você contrata só o que a sua operação precisa"
-          description="Escolha entre Financeiro 360° e DP 360°, ou combine os dois. Sem pacotes fechados que você não vai usar."
-        />
+        <div className="mx-auto max-w-3xl text-center">
+          <Eyebrow tone="dark">Planos e condições</Eyebrow>
+          <h1 id="planos-hero" className="mt-4 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
+            Você contrata só o que a sua operação precisa
+          </h1>
+          <p className="mt-4 text-base leading-relaxed text-white/75 sm:text-lg">
+            Escolha entre Financeiro 360° e DP 360°, ou combine os dois. Sem pacotes fechados que você não vai usar.
+          </p>
+        </div>
       </Section>
       <PlansSection showComparison />
       <FaqSection scope="planos" />
