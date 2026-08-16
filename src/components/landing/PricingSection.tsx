@@ -33,11 +33,14 @@ const WHATSAPP_URL =
 
 function planHighlights(f: Record<string, unknown>): string[] {
   const n = (k: string) => formatLimit(typeof f[k] === "number" ? (f[k] as number) : null);
+  const num = (k: string) => (typeof f[k] === "number" ? (f[k] as number) : null);
+  const seats = num("max_accountant_seats");
+  const conns = num("max_open_finance_connections");
   return [
-    `${n("max_companies")} ${Number(f.max_companies) === 1 ? "empresa/CNPJ" : "empresas/CNPJs"}`,
+    `${n("max_companies")} ${num("max_companies") === 1 ? "empresa/CNPJ" : "empresas/CNPJs"}`,
     `${n("max_users_per_company")} usuários`,
-    `${n("max_accountant_seats")} acesso gratuito para contador`,
-    `${n("max_open_finance_connections")} conexões Open Finance`,
+    `${n("max_accountant_seats")} ${seats === 1 ? "acesso gratuito" : "acessos gratuitos"} para contador`,
+    `${n("max_open_finance_connections")} ${conns === 1 ? "conexão" : "conexões"} Open Finance`,
     "Lançamentos financeiros ilimitados",
     "Conciliação bancária automática",
     "Fluxo de caixa e DRE gerencial",
@@ -47,6 +50,7 @@ function planHighlights(f: Record<string, unknown>): string[] {
     "Agente de IA e suporte incluídos",
   ];
 }
+
 
 export function PricingSection({ utm }: { utm: string }) {
   const intro = useLandingSection("pricing_intro");
