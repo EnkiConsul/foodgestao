@@ -9,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, type DpCargo, type DpCargoWithCount } from "@/hooks/useDpCadastros";
+import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, useDpCargoSalarios, type DpCargo, type DpCargoWithCount } from "@/hooks/useDpCadastros";
+import { pisoVigente } from "@/lib/dp/cargoSalarios";
+
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
