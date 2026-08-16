@@ -1186,8 +1186,34 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
           <TabsContent value="remuneracao" className="mt-4">
+            {/* Enquadramento salarial: laboral pelo cargo, patronal pela unidade. */}
+            {cargoSelecionado && form.unidade_id && (refSalario.temPisosPorUnidade || refSalario.origem !== "nenhuma") && (
+              <div className="mb-4 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                {refSalario.faltaPisoDaUnidade ? (
+                  <>
+                    <span className="font-medium text-foreground">
+                      {cargoSelecionado.nome} não tem salário definido para {unidadeSelecionada?.nome ?? "esta unidade"}.
+                    </span>{" "}
+                    O sindicato patronal é da unidade, então a convenção pode ter piso diferente.
+                    Informe o salário desta unidade — ele pode ser guardado como referência do cargo nesta unidade.
+                  </>
+                ) : (
+                  <>
+                    Referência salarial de {cargoSelecionado.nome}
+                    {refSalario.origem === "unidade"
+                      ? ` na unidade ${unidadeSelecionada?.nome ?? ""}`
+                      : " (salário geral do cargo)"}
+                    : <span className="font-medium text-foreground">{moedaBR(Number(refSalario.valor ?? 0))}</span>.
+                    {refSalario.origem === "cargo" && refSalario.temPisosPorUnidade
+                      ? " Outras unidades têm piso próprio por negociação patronal distinta."
+                      : ""}
+                  </>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* Remuneração e benefícios — base da folha de pagamento */}
+
               <RemuneracaoFields
                 value={rem}
                 onChange={patchRem}
