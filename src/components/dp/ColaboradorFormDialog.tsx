@@ -126,6 +126,18 @@ const blank = {
   optante_adiantamento: false,
 };
 
+/** Abas do cadastro, na ordem em que o usuário avança. */
+const ABAS = ["dados", "jornada", "remuneracao"] as const;
+type AbaCadastro = (typeof ABAS)[number];
+/** O que fazer depois de salvar: ficar na tela, avançar de aba ou sair. */
+type IntencaoSalvar = "stay" | "next" | "close";
+
+const abaSeguinte = (aba: AbaCadastro): AbaCadastro | null =>
+  ABAS[ABAS.indexOf(aba) + 1] ?? null;
+const abaAnterior = (aba: AbaCadastro): AbaCadastro | null =>
+  ABAS.indexOf(aba) > 0 ? ABAS[ABAS.indexOf(aba) - 1] : null;
+
+
 export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props) {
   const upsert = useUpsertDpColaborador();
   const unidades = useDpUnidades();
@@ -139,7 +151,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const [dispensas, setDispensas] = useState<DispensaBeneficio[]>([]);
   const isonomiaConfirmada = useRef(false);
   const [cienciaAberta, setCienciaAberta] = useState(false);
-  const [tab, setTab] = useState<"dados" | "jornada" | "remuneracao">("dados");
+  const [tab, setTab] = useState<AbaCadastro>("dados");
+  /** Intenção do botão acionado: continuar na tela, avançar de aba ou sair. */
+  const intencaoRef = useRef<IntencaoSalvar>("stay");
+  /** Marco do último estado gravado — base para detectar alterações pendentes. */
+  const [baseline, setBaseline] = useState<string | null>(null);
+  /** Muda a cada carregamento do colaborador para renovar o marco acima. */
+  const [resetKey, setResetKey] = useState(0);
+  const [confirmarSaida, setConfirmarSaida] = useState(false);
   /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
   const [criadoId, setCriadoId] = useState<string | null>(null);
   /** Salvamento do horário de trabalho exposto pelo painel da aba. */
@@ -278,6 +297,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       possui_folha_ponto: c.possui_folha_ponto ?? false,
       optante_adiantamento: c.optante_adiantamento ?? false,
     });
+    setResetKey((k) => k + 1);
   }, [open, colaborador, atribuicoes]);
 
   useEffect(() => {
@@ -399,7 +419,36 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     return out;
   };
 
-  const submit = async () => {
+  /** Estado atual das abas, usado para detectar alterações não salvas. */
+  const snapshot = JSON.stringify({ form, rem });
+  const dirty = baseline !== null && snapshot !== baseline;
+
+  /** Sincroniza o marco de "sem alterações" após carregar o colaborador. */
+  useEffect(() => {
+    setBaseline(JSON.stringify({ form, rem }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
+
+  /** Fecha o diálogo conferindo alterações pendentes. */
+  const tentarFechar = () => {
+    if (dirty) { setConfirmarSaida(true); return; }
+    onOpenChange(false);
+  };
+
+  /** Aplica a intenção do botão que disparou o salvamento. */
+  const finalizar = () => {
+    const intencao = intencaoRef.current;
+    intencaoRef.current = "stay";
+    if (intencao === "close") { onOpenChange(false); return; }
+    if (intencao === "next") {
+      const proxima = abaSeguinte(tab);
+      if (proxima) setTab(proxima);
+    }
+  };
+
+
+  const submit = async (intencao?: IntencaoSalvar) => {
+    if (intencao) intencaoRef.current = intencao;
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
     if (!isonomiaConfirmada.current) {
       const pendentes = dispensasPendentes();
@@ -642,7 +691,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             description: `${pendencia} A folha só é gerada depois disso.`,
           });
         }
-        onOpenChange(false);
+        setBaseline(snapshot);
+        finalizar();
         return;
       }
 
@@ -650,8 +700,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       // Cadastro novo: o registro passa a existir, então a jornada já pode ser
       // gravada sem sair da tela — levamos o administrador para a aba de turno.
       setCriadoId(colaboradorId);
-      setTab("jornada");
+      setBaseline(snapshot);
       toast.success("Colaborador cadastrado — defina o turno e a jornada");
+      setTab(abaSeguinte(tab) ?? "jornada");
+
 
     } catch (e) {
       toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
@@ -660,7 +712,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { tentarFechar(); return; } onOpenChange(true); }}>
       <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Colaborador" : "Novo Colaborador"}</DialogTitle>
@@ -993,14 +1045,37 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           </TabsContent>
         </Tabs>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={upsert.isPending}>
-            {criadoId ? "Concluir" : "Cancelar"}
-          </Button>
-          <Button onClick={submit} disabled={upsert.isPending}>
-            {upsert.isPending ? "Salvando..." : isEdit || criadoId ? "Atualizar" : "Criar"}
-          </Button>
+        <DialogFooter className="gap-2 sm:justify-between">
+          <div className="flex items-center gap-2">
+            {tab !== "dados" && (
+              <Button variant="outline" onClick={() => setTab(abaAnterior(tab)!)} disabled={upsert.isPending}>
+                Voltar
+              </Button>
+            )}
+            <span className="text-xs text-muted-foreground">
+              Etapa {ABAS.indexOf(tab) + 1} de {ABAS.length}
+              {dirty ? " · alterações não salvas" : ""}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={tentarFechar} disabled={upsert.isPending}>
+              {isEdit || criadoId ? "Concluir" : "Cancelar"}
+            </Button>
+            <Button
+              variant={tab === "remuneracao" ? "default" : "secondary"}
+              onClick={() => void submit("stay")}
+              disabled={upsert.isPending}
+            >
+              {upsert.isPending ? "Salvando..." : isEdit || criadoId ? "Salvar e continuar" : "Criar"}
+            </Button>
+            {abaSeguinte(tab) && (
+              <Button onClick={() => void submit("next")} disabled={upsert.isPending}>
+                Próximo
+              </Button>
+            )}
+          </div>
         </DialogFooter>
+
 
       </DialogContent>
 
@@ -1142,6 +1217,39 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Saída com alterações não salvas — sem window.confirm. */}
+      <AlertDialog open={confirmarSaida} onOpenChange={setConfirmarSaida}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair sem salvar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Há alterações que ainda não foram gravadas neste cadastro.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmarSaida(false)}>
+              Continuar editando
+            </AlertDialogCancel>
+            <Button
+              variant="ghost"
+              onClick={() => { setConfirmarSaida(false); onOpenChange(false); }}
+            >
+              Sair sem salvar
+            </Button>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                setConfirmarSaida(false);
+                void submit("close");
+              }}
+            >
+              Salvar e sair
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {risco && (
         <RegimeRiscoDialog
