@@ -1384,9 +1384,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           <AlertDialogHeader>
             <AlertDialogTitle>Definir o salário de referência do cargo?</AlertDialogTitle>
             <AlertDialogDescription>
-              O cargo {cargoSelecionado?.nome ?? ""} ainda não tem salário de referência.
+              O cargo {cargoSelecionado?.nome ?? ""} ainda não tem salário de referência
+              {refSalario.faltaPisoDaUnidade ? ` para ${unidadeSelecionada?.nome ?? "esta unidade"}` : ""}.
               Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como referência para
-              os próximos colaboradores deste cargo?
+              os próximos colaboradores?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1399,7 +1400,36 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             >
               Só para este colaborador
             </AlertDialogCancel>
+            {/* Piso por unidade: cada convenção patronal negocia seu próprio valor. */}
+            {form.unidade_id && (
+              <Button
+                variant="outline"
+                disabled={upsertCargoSalario.isPending}
+                onClick={async () => {
+                  if (!cargoSemSalario || !form.cargo_id) return;
+                  try {
+                    await upsertCargoSalario.mutateAsync({
+                      cargo_id: form.cargo_id,
+                      unidade_id: form.unidade_id,
+                      salario_base: cargoSemSalario.salarioInformado,
+                      vigencia_inicio: form.data_admissao || new Date().toISOString().slice(0, 10),
+                    });
+                  } catch (err) {
+                    toast.error("Não foi possível gravar o salário da unidade", {
+                      description: err instanceof Error ? err.message : String(err),
+                    });
+                    return;
+                  }
+                  cargoResolvido.current = true;
+                  setCargoSemSalario(null);
+                  void submit();
+                }}
+              >
+                Definir para {unidadeSelecionada?.nome ?? "esta unidade"}
+              </Button>
+            )}
             <AlertDialogAction
+
               disabled={upsertCargo.isPending}
               onClick={async (e) => {
                 e.preventDefault();
