@@ -77,6 +77,8 @@ export function SindicatoEnquadramentoField({
   const patronal = enquadramento.data?.patronal ?? null;
   const negociacao = enquadramento.data?.negociacao ?? null;
   const negociacaoPatronal = enquadramento.data?.negociacaoPatronal ?? null;
+  // Enquanto a consulta não responde, não afirmamos que falta vínculo.
+  const carregando = enquadramento.isPending || enquadramento.isLoading;
 
   const unidadeNome = useMemo(
     () => (unidades.data ?? []).find((u) => u.id === unidadeId)?.nome ?? null,
@@ -87,11 +89,14 @@ export function SindicatoEnquadramentoField({
     (sindicatos.data ?? []).filter((s) => (s as any).tipo === tipo && s.ativo !== false);
   const laborais = useMemo(() => porTipo("laboral"), [sindicatos.data]);
   const patronais = useMemo(() => porTipo("patronal"), [sindicatos.data]);
+  /** Único patronal da empresa: sugerimos o vínculo com um clique. */
+  const patronalSugerido = patronais.length === 1 ? patronais[0] : null;
 
   // O cargo é a fonte do enquadramento: mantém o colaborador alinhado ao vínculo.
   useEffect(() => {
+    if (carregando) return;
     if (laboral && value !== laboral.id) onChange(laboral.id);
-  }, [laboral, value, onChange]);
+  }, [carregando, laboral, value, onChange]);
 
   const invalidar = () => {
     for (const key of [
