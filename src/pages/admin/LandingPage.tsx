@@ -252,72 +252,95 @@ export default function AdminLandingPage() {
           />
         </TabsContent>
 
-        <TabsContent value="comparison">
+        <TabsContent value="pain">
           <SectionEditor
-            section="comparison"
-            value={data.comparison}
+            section="pain"
+            value={data.pain}
             render={(s, u) => (
               <>
                 <TextField label="Eyebrow" value={s.eyebrow} onChange={(v) => u("eyebrow", v)} />
                 <TextField label="Título" value={s.title} onChange={(v) => u("title", v)} />
                 <TextField label="Subtítulo" value={s.subtitle} onChange={(v) => u("subtitle", v)} multiline />
-                <div className="grid sm:grid-cols-3 gap-3">
-                  <TextField label="Coluna 1" value={s.col_resource} onChange={(v) => u("col_resource", v)} />
-                  <TextField label="Coluna 2 (Planilha)" value={s.col_spreadsheet} onChange={(v) => u("col_spreadsheet", v)} />
-                  <TextField label="Coluna 3 (Plin)" value={s.col_plin} onChange={(v) => u("col_plin", v)} />
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <TextField label="Título da coluna de dores" value={s.pain_title} onChange={(v) => u("pain_title", v)} />
+                    <StringListEditor label="Dores" items={s.pains} onChange={(v) => u("pains", v)} />
+                  </div>
+                  <div className="space-y-2">
+                    <TextField label="Título da coluna de ganhos" value={s.gain_title} onChange={(v) => u("gain_title", v)} />
+                    <StringListEditor label="Ganhos" items={s.gains} onChange={(v) => u("gains", v)} />
+                  </div>
                 </div>
-                <ObjectListEditor
-                  label="Linhas da tabela"
-                  items={s.rows}
-                  onChange={(v) => u("rows", v)}
-                  emptyItem={{ k: "", a: "", b: "" }}
-                  fields={[
-                    { key: "k", label: "Recurso" },
-                    { key: "a", label: "Planilha" },
-                    { key: "b", label: "360°FOOD" },
-                  ]}
-                />
-                <TextField label="Rótulo do botão" value={s.cta_label} onChange={(v) => u("cta_label", v)} />
               </>
             )}
           />
         </TabsContent>
 
-        <TabsContent value="persona_cards">
+        <TabsContent value="segments">
           <SectionEditor
-            section="persona_cards"
-            value={data.persona_cards}
+            section="segments"
+            value={data.segments}
+            render={(s, u) => (
+              <>
+                <TextField label="Eyebrow" value={s.eyebrow} onChange={(v) => u("eyebrow", v)} />
+                <TextField label="Título" value={s.title} onChange={(v) => u("title", v)} />
+                <TextField label="Subtítulo" value={s.subtitle} onChange={(v) => u("subtitle", v)} multiline />
+                <ObjectListEditor
+                  label="Segmentos"
+                  items={s.items}
+                  onChange={(v) => u("items", v)}
+                  emptyItem={{ title: "", desc: "" }}
+                  fields={[
+                    { key: "title", label: "Título" },
+                    { key: "desc", label: "Descrição", multiline: true },
+                  ]}
+                />
+              </>
+            )}
+          />
+        </TabsContent>
+
+        <TabsContent value="solutions">
+          <SectionEditor
+            section="solutions"
+            value={data.solutions}
             render={(s, u) => (
               <>
                 <TextField label="Eyebrow" value={s.eyebrow} onChange={(v) => u("eyebrow", v)} />
                 <TextField label="Título" value={s.title} onChange={(v) => u("title", v)} />
                 <TextField label="Subtítulo" value={s.subtitle} onChange={(v) => u("subtitle", v)} multiline />
                 <div className="space-y-3">
-                  <Label className="text-xs">Cards (3 personas — não adicione/remova)</Label>
-                  {s.cards.map((card, i) => (
-                    <Card key={i} className="border-border/60">
-                      <CardContent className="space-y-2 p-3">
-                        <div className="text-xs text-muted-foreground">Persona: <b>{card.persona.toUpperCase()}</b></div>
-                        <TextField label="Tag" value={card.tag} onChange={(v) => {
-                          const next = [...s.cards]; next[i] = { ...next[i], tag: v }; u("cards", next);
-                        }} />
-                        <TextField label="Título" value={card.title} onChange={(v) => {
-                          const next = [...s.cards]; next[i] = { ...next[i], title: v }; u("cards", next);
-                        }} />
-                        <StringListEditor label="Bullets" items={card.bullets} onChange={(v) => {
-                          const next = [...s.cards]; next[i] = { ...next[i], bullets: v }; u("cards", next);
-                        }} />
-                        <TextField label="Rótulo do botão" value={card.cta_label} onChange={(v) => {
-                          const next = [...s.cards]; next[i] = { ...next[i], cta_label: v }; u("cards", next);
-                        }} />
-                      </CardContent>
-                    </Card>
-                  ))}
+                  <Label className="text-xs">Abas de solução (não altere a chave técnica)</Label>
+                  {s.tabs.map((tab, i) => {
+                    const setTab = (patch: Partial<typeof tab>) => {
+                      const next = [...s.tabs];
+                      next[i] = { ...next[i], ...patch };
+                      u("tabs", next);
+                    };
+                    return (
+                      <Card key={tab.key} className="border-border/60">
+                        <CardContent className="space-y-2 p-3">
+                          <div className="text-xs text-muted-foreground">
+                            Chave: <b>{tab.key}</b>
+                          </div>
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <TextField label="Rótulo da aba" value={tab.tab_label} onChange={(v) => setTab({ tab_label: v })} />
+                            <TextField label="Badge" value={tab.badge} onChange={(v) => setTab({ badge: v })} />
+                          </div>
+                          <TextField label="Título" value={tab.title} onChange={(v) => setTab({ title: v })} />
+                          <TextField label="Subtítulo" value={tab.subtitle} onChange={(v) => setTab({ subtitle: v })} multiline />
+                          <StringListEditor label="Bullets" items={tab.bullets} onChange={(v) => setTab({ bullets: v })} />
+                          <TextField label="Rótulo do botão" value={tab.cta_label} onChange={(v) => setTab({ cta_label: v })} />
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </>
             )}
           />
         </TabsContent>
+
 
         <TabsContent value="features">
           <SectionEditor
