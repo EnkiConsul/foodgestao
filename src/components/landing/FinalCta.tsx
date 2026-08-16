@@ -1,5 +1,17 @@
+import { Check, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useLandingSection } from "@/hooks/useLandingContent";
 import { CtaPrimary } from "./CtaPrimary";
+
+const WHATSAPP_URL =
+  "https://wa.me/5562992365959?text=" +
+  encodeURIComponent("Olá! Vim pelo site e quero conhecer o 360°FOOD.");
+
+const BULLETS = [
+  "Sem instalação: usa no computador e no celular",
+  "Conexão bancária somente leitura",
+  "Suporte humano por WhatsApp",
+];
 
 export function FinalCta({ utm }: { utm: string }) {
   const c = useLandingSection("final_cta");
@@ -21,14 +33,33 @@ export function FinalCta({ utm }: { utm: string }) {
             <p className="mx-auto mt-3 max-w-xl text-sm text-sidebar-foreground/80 sm:mt-4 sm:text-base">
               {c.subtitle}
             </p>
-            <div className="mt-6 flex justify-center sm:mt-8">
+            <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
               <CtaPrimary
                 utm={utm}
                 source="final_cta"
                 label={c.cta_label}
                 className="w-full text-base sm:w-auto"
               />
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="w-full border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground sm:w-auto"
+              >
+                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="mr-1.5 h-4 w-4" />
+                  Falar no WhatsApp
+                </a>
+              </Button>
             </div>
+            <ul className="mx-auto mt-6 flex max-w-3xl flex-col items-center justify-center gap-2 text-xs text-sidebar-foreground/75 sm:flex-row sm:gap-6 sm:text-sm">
+              {BULLETS.map((b) => (
+                <li key={b} className="flex items-center gap-1.5">
+                  <Check className="h-4 w-4 shrink-0 text-sidebar-primary" />
+                  {b}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
