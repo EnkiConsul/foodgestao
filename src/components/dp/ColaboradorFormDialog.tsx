@@ -443,137 +443,139 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   const submit = async (intencao?: IntencaoSalvar) => {
     if (intencao) intencaoRef.current = intencao;
-    if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
-    if (!isonomiaConfirmada.current) {
-      const pendentes = dispensasPendentes();
-      if (pendentes.length > 0) { setDispensas(pendentes); return; }
-    }
-    if (!form.cpf.trim()) { toast.error("CPF é obrigatório"); return; }
+    const alvo = intencaoRef.current;
+
+    // "Salvar e continuar" é um checkpoint: valida somente a aba aberta.
+    // "Concluir" fecha o cadastro: valida todas as abas.
+    const validaDados = alvo === "close" || tab === "dados";
+    const validaRem = alvo === "close" || tab === "remuneracao";
 
     const cpfDigits = form.cpf.replace(/\D/g, "");
-    if (cpfDigits.length !== 11) { toast.error("CPF deve ter 11 dígitos"); return; }
-    if (!isValidCpf(cpfDigits)) { toast.error("CPF inválido"); return; }
-
-    if (!form.cargo_id) { toast.error("Cargo é obrigatório"); return; }
-    if (!form.unidade_id) { toast.error("Unidade é obrigatória"); return; }
-    if (!form.data_admissao) { toast.error("Data de admissão é obrigatória"); return; }
-    if (!form.data_nascimento) { toast.error("Data de nascimento é obrigatória"); return; }
-
-    // Regras de datas
-    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-    const nascimento = new Date(form.data_nascimento + "T00:00:00");
-    const admissao = new Date(form.data_admissao + "T00:00:00");
-
-    if (nascimento >= hoje) { toast.error("Data de nascimento deve ser no passado"); return; }
-
-    const idade = (admissao.getTime() - nascimento.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-    if (idade < 14) { toast.error("Colaborador deve ter no mínimo 14 anos na admissão"); return; }
-    if (idade > 100) { toast.error("Data de nascimento inconsistente com a admissão"); return; }
-
-    if (admissao > hoje) {
-      // permite admissão futura até 90 dias
-      const diffDias = (admissao.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24);
-      if (diffDias > 90) { toast.error("Data de admissão muito distante no futuro (máx. 90 dias)"); return; }
-    }
-
-
-
-
-    // Duplicidade de CPF na empresa
-    try {
-      const { data: dup } = await (await import("@/integrations/supabase/client")).supabase
-        .from("dp_colaboradores")
-        .select("id")
-        .eq("cpf", cpfDigits)
-        .maybeSingle();
-      if (dup && dup.id !== colaborador?.id) {
-        toast.error("Já existe um colaborador com este CPF nesta empresa");
-        return;
-      }
-    } catch { /* silencioso — o banco tem constraint de reserva */ }
-
-    if (isDesligado && !form.data_desligamento) {
-      toast.error("Informe a data da demissão");
-      return;
-    }
-    if (form.observacao_desligamento.length > 2000) {
-      toast.error("Observação do desligamento muito longa (máx. 2000 caracteres)");
-      return;
-    }
-
     const cargoNome = (cargos.data ?? []).find((c) => c.id === form.cargo_id)?.nome ?? null;
-
-    // Remuneração é pré-requisito da folha: bloqueia o cadastro sem valor.
     const salarioNum = numeroBR(rem.salario_base);
     const valorHoraNum = numeroBR(rem.valor_hora);
+    const adicionalNum = numeroBR(rem.adicional_percentual);
+    const vtDiaNum = numeroBR(rem.vale_transporte_valor_dia);
+    const premioNum = numeroBR(rem.premio_assiduidade_valor);
+    // Base de cálculo só se aplica a horista/diarista.
+    const usaBaseCalculo = rem.forma_pagamento === "horista" || rem.forma_pagamento === "diarista";
     const pendencia = remuneracaoPendente({
       forma_pagamento: rem.forma_pagamento,
       salario_base: salarioNum || null,
       valor_hora: valorHoraNum || null,
       salario_cargo: salarioCargo,
     });
-    // Editando um colaborador existente, a falta de remuneração não pode travar
-    // o salvamento das outras abas: avisamos depois de gravar.
-    if (pendencia && !isEdit && !criadoId) {
-      toast.error(pendencia);
-      setTab("remuneracao");
-      return;
-    }
 
-    const adicionalNum = numeroBR(rem.adicional_percentual);
-    if (adicionalNum < 0 || adicionalNum > 100) {
-      toast.error("Adicional deve estar entre 0% e 100%");
-      return;
-    }
-    const vtDiaNum = numeroBR(rem.vale_transporte_valor_dia);
-    if (rem.vale_transporte && vtDiaNum <= 0) {
-      toast.error("Informe o valor diário do vale-transporte");
-      return;
-    }
+    /** Erros da aba Dados; devolve a primeira mensagem encontrada. */
+    const erroDados = async (): Promise<string | null> => {
+      if (!form.nome.trim()) return "Nome é obrigatório";
+      if (!form.cpf.trim()) return "CPF é obrigatório";
+      if (cpfDigits.length !== 11) return "CPF deve ter 11 dígitos";
+      if (!isValidCpf(cpfDigits)) return "CPF inválido";
+      if (!form.cargo_id) return "Cargo é obrigatório";
+      if (!form.unidade_id) return "Unidade é obrigatória";
+      if (!form.data_admissao) return "Data de admissão é obrigatória";
+      if (!form.data_nascimento) return "Data de nascimento é obrigatória";
 
-    // Base de cálculo só se aplica a horista/diarista.
-    const usaBaseCalculo = rem.forma_pagamento === "horista" || rem.forma_pagamento === "diarista";
-    const premioNum = numeroBR(rem.premio_assiduidade_valor);
-    if (rem.premio_assiduidade && premioNum <= 0) {
-      toast.error(
-        rem.premio_assiduidade_tipo === "percentual"
+      const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+      const nascimento = new Date(form.data_nascimento + "T00:00:00");
+      const admissao = new Date(form.data_admissao + "T00:00:00");
+      if (nascimento >= hoje) return "Data de nascimento deve ser no passado";
+
+      const idade = (admissao.getTime() - nascimento.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+      if (idade < 14) return "Colaborador deve ter no mínimo 14 anos na admissão";
+      if (idade > 100) return "Data de nascimento inconsistente com a admissão";
+
+      if (admissao > hoje) {
+        // permite admissão futura até 90 dias
+        const diffDias = (admissao.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24);
+        if (diffDias > 90) return "Data de admissão muito distante no futuro (máx. 90 dias)";
+      }
+
+      if (isDesligado && !form.data_desligamento) return "Informe a data da demissão";
+      if (form.observacao_desligamento.length > 2000) {
+        return "Observação do desligamento muito longa (máx. 2000 caracteres)";
+      }
+
+      // Duplicidade de CPF na empresa
+      try {
+        const { data: dup } = await (await import("@/integrations/supabase/client")).supabase
+          .from("dp_colaboradores")
+          .select("id")
+          .eq("cpf", cpfDigits)
+          .maybeSingle();
+        if (dup && dup.id !== colaborador?.id) {
+          return "Já existe um colaborador com este CPF nesta empresa";
+        }
+      } catch { /* silencioso — o banco tem constraint de reserva */ }
+
+      return null;
+    };
+
+    /** Erros da aba Remuneração. */
+    const erroRemuneracao = (): string | null => {
+      // Remuneração é pré-requisito da folha: bloqueia o cadastro novo sem valor.
+      // Editando um colaborador existente, a falta não trava — avisamos após gravar.
+      if (pendencia && !isEdit && !criadoId) return pendencia;
+      if (adicionalNum < 0 || adicionalNum > 100) return "Adicional deve estar entre 0% e 100%";
+      if (rem.vale_transporte && vtDiaNum <= 0) return "Informe o valor diário do vale-transporte";
+      if (rem.premio_assiduidade && premioNum <= 0) {
+        return rem.premio_assiduidade_tipo === "percentual"
           ? "Informe o percentual do prêmio de assiduidade"
-          : "Informe o valor do prêmio de assiduidade",
-      );
-      return;
-    }
-    if (rem.premio_assiduidade && rem.premio_assiduidade_tipo === "percentual" && premioNum > 100) {
-      toast.error("O percentual do prêmio de assiduidade não pode passar de 100%");
-      return;
-    }
-    if (rem.vale_alimentacao && numeroBR(rem.vale_alimentacao_valor) <= 0) {
-      toast.error("Informe o valor do vale-alimentação");
-      return;
+          : "Informe o valor do prêmio de assiduidade";
+      }
+      if (rem.premio_assiduidade && rem.premio_assiduidade_tipo === "percentual" && premioNum > 100) {
+        return "O percentual do prêmio de assiduidade não pode passar de 100%";
+      }
+      if (rem.vale_alimentacao && numeroBR(rem.vale_alimentacao_valor) <= 0) {
+        return "Informe o valor do vale-alimentação";
+      }
+      return null;
+    };
+
+    if (validaDados) {
+      const erro = await erroDados();
+      if (erro) { toast.error(erro); setTab("dados"); return; }
     }
 
+    if (validaRem) {
+      const erro = erroRemuneracao();
+      if (erro) { toast.error(erro); setTab("remuneracao"); return; }
 
-    // Um cargo = um salário: reconcilia o cargo antes de gravar o colaborador.
-    if (!cargoResolvido.current) {
-      const comparacao = compararSalarioCargo(cargoSelecionado, baseSalarialInformada());
-      if (comparacao.status === "cargo_sem_salario") {
-        setCargoSemSalario({ salarioInformado: comparacao.salarioInformado });
-        return;
-      } else if (comparacao.status === "divergente") {
-        setConflitoCargo({
-          salarioCargo: comparacao.salarioCargo,
-          salarioInformado: comparacao.salarioInformado,
-        });
-        return;
-      } else {
-        cargoResolvido.current = true;
+      // Benefícios desmarcados exigem ciência de isonomia.
+      if (!isonomiaConfirmada.current) {
+        const pendentes = dispensasPendentes();
+        if (pendentes.length > 0) { setTab("remuneracao"); setDispensas(pendentes); return; }
+      }
+
+      // Um cargo = um salário: reconcilia o cargo antes de gravar o colaborador.
+      if (!cargoResolvido.current) {
+        const comparacao = compararSalarioCargo(cargoSelecionado, baseSalarialInformada());
+        if (comparacao.status === "cargo_sem_salario") {
+          setTab("remuneracao");
+          setCargoSemSalario({ salarioInformado: comparacao.salarioInformado });
+          return;
+        } else if (comparacao.status === "divergente") {
+          setTab("remuneracao");
+          setConflitoCargo({
+            salarioCargo: comparacao.salarioCargo,
+            salarioInformado: comparacao.salarioInformado,
+          });
+          return;
+        } else {
+          cargoResolvido.current = true;
+        }
       }
     }
 
-    // Vínculo sem registro em carteira exige ciência formal do risco jurídico.
-    if (policy.exigeCienciaLegal && !cienciaConfirmada.current) {
-      setCienciaAberta(true);
-      return;
+    if (validaDados) {
+      // Vínculo sem registro em carteira exige ciência formal do risco jurídico.
+      if (policy.exigeCienciaLegal && !cienciaConfirmada.current) {
+        setCienciaAberta(true);
+        return;
+      }
     }
+
 
 
     try {
