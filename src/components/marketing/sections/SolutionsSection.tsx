@@ -14,7 +14,7 @@ export function SolutionsSection() {
         id="solucoes-title"
         eyebrow="Duas soluções, um ecossistema"
         title="Escolha por onde sua gestão começa"
-        description="Comece pelo Financeiro, pelo Departamento Pessoal ou pelos dois. Você contrata somente o que sua empresa precisa."
+        description="Comece pelo Financeiro 360°, pelo Pessoas 360° ou pelos dois. Você contrata somente o que sua empresa precisa."
       />
 
       <div className="mt-12 grid gap-6 lg:grid-cols-2">
