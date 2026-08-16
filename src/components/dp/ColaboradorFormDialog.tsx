@@ -910,6 +910,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             <Input
               type="date"
               value={form.data_admissao}
+              {...marca("data_admissao")}
+
               onChange={(e) => setForm({ ...form, data_admissao: e.target.value })}
             />
           </div>
