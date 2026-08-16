@@ -59,7 +59,7 @@ export const DIFFERENTIALS = [
     highlight: true,
   },
   {
-    title: "Financeiro e DP no mesmo ecossistema",
+    title: "Financeiro e Pessoas no mesmo ecossistema",
     text: "Duas frentes críticas da gestão com experiência integrada, no mesmo ambiente e com os mesmos acessos.",
     highlight: true,
   },
@@ -92,7 +92,7 @@ export const DIFFERENTIALS = [
 export const HOW_IT_WORKS = [
   {
     step: "01",
-    title: "Escolha Financeiro, DP ou os dois",
+    title: "Escolha Financeiro, Pessoas ou os dois",
     text: "Você conhece as soluções e decide o que faz sentido para o momento da sua operação.",
   },
   {
@@ -323,7 +323,7 @@ export const BUSINESS_TYPES = [
 export const INTEREST_OPTIONS = [
   { value: "financeiro", label: "Financeiro 360°" },
   { value: "dp", label: "Pessoas 360°" },
-  { value: "ambos", label: "Financeiro e DP" },
+  { value: "ambos", label: "Financeiro e Pessoas" },
 ];
 
 export const HEADCOUNT_OPTIONS = [
@@ -338,6 +338,6 @@ export const BLOG_CATEGORIES = [
   "Indicadores e DRE",
   "Fluxo de caixa",
   "Gestão de equipes e escalas",
-  "Legislação e boas práticas de DP",
+  "Legislação e boas práticas de Pessoas",
   "Gestão de redes e operações",
 ];

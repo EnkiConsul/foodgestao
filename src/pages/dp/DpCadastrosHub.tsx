@@ -13,7 +13,7 @@ const items = [
   
   { title: "Regras De Folgas", desc: "DSR, folga dominical, sábados, feriados, menores e férias.", url: "/dp/folgas/configuracoes/regras", icon: Scale },
   { title: "Pendências", desc: "Prazos e lembretes do quadro de pendências.", url: "/dp/cadastros/pendencias", icon: BellRing },
-  { title: "Configurações do DP", desc: "Limites de folga, bloqueios e regras gerais.", url: "/dp/configuracoes", icon: Settings },
+  { title: "Configurações de Pessoas", desc: "Limites de folga, bloqueios e regras gerais.", url: "/dp/configuracoes", icon: Settings },
 ];
 
 

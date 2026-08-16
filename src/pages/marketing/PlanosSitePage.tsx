@@ -9,7 +9,7 @@ export default function PlanosSitePage() {
   return (
     <SiteLayout breadcrumbs={[{ name: "Planos", path: "/planos" }]}>
       <SiteSeo
-        title="Planos do 360°FOOD — Financeiro e DP para food service"
+        title="Planos do 360°FOOD — Financeiro e Pessoas para food service"
         description="Conheça os planos Essencial, Gestão e Multiempresa do Financeiro 360°, o programa Fidelidade 360 e as condições do Pessoas 360°."
         path="/planos"
       />
