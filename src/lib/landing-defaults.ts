@@ -290,15 +290,16 @@ export const LANDING_DEFAULTS = {
 
   features: {
     eyebrow: "Recursos",
-    title: "Tudo que você precisa para tirar o financeiro do papel",
+    title: "O que você resolve no 360°FOOD",
     items: [
-      { title: "Contas a pagar e receber unificadas", desc: "Todos os lançamentos com vencimentos, status, recorrências e anexos." },
-      { title: "Dashboard inteligente", desc: "Saldos, evolução mensal e top categorias em tempo real." },
-      { title: "Fluxo de caixa projetado", desc: "Veja o saldo futuro com base nas suas contas e lançamentos previstos." },
-      { title: "Multiusuário e perfis", desc: "Convide sua equipe com permissões granulares por módulo." },
-      { title: "Privacidade e LGPD", desc: "Modo privacidade, dados isolados por usuário/empresa (RLS)." },
-      { title: "Pronto em 2 minutos", desc: "Onboarding guiado: perfil, dados, primeira conta e categorias." },
+      { title: "Contas a pagar e a receber", desc: "Boletos de fornecedor, recebíveis e recorrências com aviso antes de vencer." },
+      { title: "Banco conectado e conciliação", desc: "O extrato entra sozinho, o sistema sugere a categoria e você confirma em poucos cliques." },
+      { title: "Fluxo de caixa projetado", desc: "Veja o saldo dos próximos dias e semanas antes de fechar um pedido grande." },
+      { title: "DRE gerencial por unidade", desc: "Resultado do mês por unidade e por categoria, sem montar planilha." },
+      { title: "Equipe organizada", desc: "Ponto, escala, férias e folha no módulo de Departamento Pessoal." },
+      { title: "Dados protegidos", desc: "Acesso por perfil, dados isolados por empresa e conformidade com a LGPD." },
     ],
+
   } satisfies FeaturesContent,
 
   guarantee: {
