@@ -1192,31 +1192,40 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
           <TabsContent value="remuneracao" className="mt-4">
-            {/* Enquadramento salarial: laboral pelo cargo, patronal pela unidade. */}
-            {cargoSelecionado && form.unidade_id && (refSalario.temPisosPorUnidade || refSalario.origem !== "nenhuma") && (
+            {/* Enquadramento salarial: laboral pelo cargo, piso pelo patronal da unidade. */}
+            {cargoSelecionado && form.unidade_id && (
               <div className="mb-4 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                {refSalario.faltaPisoDaUnidade ? (
+                {refSalario.semPatronalVinculado ? (
                   <>
                     <span className="font-medium text-foreground">
-                      {cargoSelecionado.nome} não tem salário definido para {unidadeSelecionada?.nome ?? "esta unidade"}.
+                      {unidadeSelecionada?.nome ?? "Esta unidade"} não tem sindicato patronal vinculado.
                     </span>{" "}
-                    O sindicato patronal é da unidade, então a convenção pode ter piso diferente.
-                    Informe o salário desta unidade — ele pode ser guardado como referência do cargo nesta unidade.
+                    Vincule o patronal da unidade para o sistema saber qual piso aplicar a {cargoSelecionado.nome}.
+                  </>
+                ) : refSalario.origem === "pendente" ? (
+                  <>
+                    <span className="font-medium text-foreground">
+                      {cargoSelecionado.nome} ainda não tem piso cadastrado no sindicato patronal
+                      {patronalUnidade?.nome ? ` ${patronalUnidade.nome}` : ""}.
+                    </span>{" "}
+                    Cada convenção patronal negocia seu próprio piso, então o valor precisa ser cadastrado
+                    para este patronal — ele passa a valer para todas as unidades que o utilizam.
                   </>
                 ) : (
                   <>
                     Referência salarial de {cargoSelecionado.nome}
                     {refSalario.origem === "unidade"
-                      ? ` na unidade ${unidadeSelecionada?.nome ?? ""}`
-                      : " (salário geral do cargo)"}
+                      ? ` (ajuste da unidade ${unidadeSelecionada?.nome ?? ""})`
+                      : ` (piso do patronal${patronalUnidade?.nome ? ` ${patronalUnidade.nome}` : ""})`}
                     : <span className="font-medium text-foreground">{moedaBR(Number(refSalario.valor ?? 0))}</span>.
-                    {refSalario.origem === "cargo" && refSalario.temPisosPorUnidade
-                      ? " Outras unidades têm piso próprio por negociação patronal distinta."
+                    {refSalario.origem === "unidade" && refSalario.pisoPatronal != null
+                      ? ` Piso do patronal: ${moedaBR(refSalario.pisoPatronal)}.`
                       : ""}
                   </>
                 )}
               </div>
             )}
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* Remuneração e benefícios — base da folha de pagamento */}
 
