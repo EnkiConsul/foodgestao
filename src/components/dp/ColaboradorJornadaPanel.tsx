@@ -28,7 +28,7 @@ import { tituloSistema } from "@/lib/text/titleCase";
 import {
   cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia,
   detalharCargaSemanal, diaDivergeDoBase,
-  diaEhHorarioDaLoja, diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia,
+  colegasNoHorarioDoDia, diaEhHorarioDaLoja, diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia,
   horarioPadraoDaSemana, normalizarDias, preencherDiasComHorario, resumoConfigTexto, semanaDaGrade,
   turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
