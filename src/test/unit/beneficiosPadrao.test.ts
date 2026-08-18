@@ -7,6 +7,7 @@ import {
   padroesIguaisAlgum,
   resolverPadrao,
   type BeneficiosPadraoPayload,
+  padraoParaColunasColaborador,
 } from "@/lib/dp/beneficiosPadrao";
 
 
@@ -78,3 +79,44 @@ describe("padrão de benefícios", () => {
   });
 });
 
+
+describe("padraoParaColunasColaborador", () => {
+  it("converte números BR e respeita as travas de coerência", () => {
+    const cols = padraoParaColunasColaborador({
+      premio_assiduidade: true,
+      premio_assiduidade_valor: "11",
+      premio_assiduidade_tipo: "percentual",
+      assiduidade_criterio: "sem_faltas",
+      assiduidade_tolerancia_min: "10",
+      assiduidade_max_atrasos: "3",
+      assiduidade_considera_atestado: true,
+      assiduidade_max_atestados: "0",
+      vale_alimentacao: true,
+      vale_alimentacao_valor: "24,50",
+      vale_alimentacao_periodicidade: "diario",
+      vale_alimentacao_dias_base: "22",
+      vale_alimentacao_dias_origem: "jornada",
+      vale_alimentacao_desconto_tipo: "nenhum",
+      vale_alimentacao_desconto_valor: "5",
+      vale_transporte: false,
+      vale_transporte_valor_dia: "9",
+      beneficios: {},
+    } as never);
+    expect(cols.assiduidade_max_atrasos).toBe(3);
+    expect(cols.vale_alimentacao_valor).toBe(24.5);
+    expect(cols.vale_alimentacao_desconto_valor).toBe(0);
+    expect(cols.vale_transporte_valor_dia).toBeNull();
+    expect(cols).not.toHaveProperty("beneficios");
+  });
+
+  it("zera critérios de assiduidade quando o prêmio está desligado", () => {
+    const cols = padraoParaColunasColaborador({
+      premio_assiduidade: false,
+      assiduidade_max_atrasos: "5",
+      assiduidade_criterio: "sem_faltas",
+    } as never);
+    expect(cols.assiduidade_max_atrasos).toBeNull();
+    expect(cols.assiduidade_criterio).toBeNull();
+    expect(cols.premio_assiduidade_tipo).toBe("valor");
+  });
+});

@@ -62,10 +62,10 @@ import {
 } from "@/hooks/useDpBeneficiosPadrao";
 import {
   aplicarPadrao, assinaturaPadrao, diferencasPadrao, extrairPadrao, nivelPadrao,
-  padraoTemConteudo, padroesIguaisAlgum, resolverPadrao, type PadraoEscopo,
+  padraoTemConteudo, padroesIguaisAlgum, resolverPadrao,
+  type PadraoAlcance, type PadraoEscopo,
 } from "@/lib/dp/beneficiosPadrao";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
 
 
 
@@ -267,8 +267,20 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Pergunta "usar como padrão?" pendente após gravar. */
   const [perguntarPadrao, setPerguntarPadrao] = useState(false);
   const [escopoPadrao, setEscopoPadrao] = useState<PadraoEscopo>("unidade");
-  /** Ao salvar em escopo amplo, apagar os padrões mais específicos conflitantes. */
-  const [substituirEspecificos, setSubstituirEspecificos] = useState(false);
+  /** Alcance: só os próximos cadastros ou também quem já está cadastrado. */
+  const [alcancePadrao, setAlcancePadrao] = useState<PadraoAlcance>("novos");
+
+  /** Quantos colaboradores ativos seriam atualizados no alcance escolhido. */
+  const colaboradoresNoAlcance = useMemo(() => {
+    if (escopoPadrao === "colaborador") return 0;
+    return (todosColaboradores.data ?? []).filter((c) => {
+      if (!c.ativo || c.data_desligamento) return false;
+      if (c.id === colaborador?.id) return false;
+      if (escopoPadrao !== "empresa" && c.unidade_id !== form.unidade_id) return false;
+      if (escopoPadrao === "cargo" && c.cargo_id !== (form.cargo_id || null)) return false;
+      return true;
+    }).length;
+  }, [todosColaboradores.data, escopoPadrao, form.unidade_id, form.cargo_id, colaborador?.id]);
 
   /** Assinaturas de benefícios já decididas nesta abertura da ficha. */
   const padraoRespondidoRef = useRef<Set<string>>(new Set());
@@ -644,7 +656,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const concluir = (perguntar: boolean) => {
     if (perguntar) {
       setEscopoPadrao(nivelPadrao(padraoAplicavel) ?? "unidade");
-      setSubstituirEspecificos(false);
+      setAlcancePadrao("novos");
       setPerguntarPadrao(true);
       return;
 
@@ -661,11 +673,13 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     padraoRespondidoRef.current.add(assinaturaPadrao(payload));
     if (escopo && escopo !== "colaborador") {
       try {
-        await salvarPadraoBeneficios.mutateAsync({
+        const resultado = await salvarPadraoBeneficios.mutateAsync({
           unidade_id: escopo === "empresa" ? null : form.unidade_id,
           cargo_id: escopo === "cargo" ? form.cargo_id || null : null,
           payload,
-          limparEscoposMaisEspecificos: escopo !== "cargo" && substituirEspecificos,
+          limparEscoposMaisEspecificos: escopo !== "cargo" && alcancePadrao === "todos",
+          alcance: alcancePadrao,
+          ignorarColaboradorId: colaborador?.id ?? null,
         });
 
         toast.success(
@@ -674,7 +688,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             : escopo === "cargo"
               ? "Padrão do cargo atualizado"
               : "Padrão da unidade atualizado",
-          { description: "Os próximos cadastros deste alcance já vêm preenchidos." },
+          {
+            description:
+              alcancePadrao === "todos"
+                ? `${resultado.atualizados} colaborador(es) atualizado(s) com este padrão.`
+                : "Os próximos cadastros deste alcance já vêm preenchidos.",
+          },
         );
       } catch (e) {
         toast.error("Não foi possível salvar o padrão", { description: mensagemErro(e) });
@@ -1759,22 +1778,41 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             </div>
           )}
 
-          {(escopoPadrao === "empresa" || escopoPadrao === "unidade") && (
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-xs">
-              <Checkbox
-                checked={substituirEspecificos}
-                onCheckedChange={(v) => setSubstituirEspecificos(v === true)}
-                className="mt-0.5"
-              />
-              <span>
-                <span className="font-medium text-foreground">Aplicar a todos</span>
-                <span className="block text-muted-foreground">
-                  {escopoPadrao === "empresa"
-                    ? "Apaga os padrões de unidade e de cargo, deixando só este padrão da empresa."
-                    : "Apaga os padrões de cargo desta unidade, deixando só o padrão da unidade."}
-                </span>
-              </span>
-            </label>
+          {escopoPadrao !== "colaborador" && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-foreground">Aplicar a quem?</p>
+              <RadioGroup
+                value={alcancePadrao}
+                onValueChange={(v) => setAlcancePadrao(v as PadraoAlcance)}
+                className="gap-2"
+              >
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-xs">
+                  <RadioGroupItem value="novos" className="mt-0.5" />
+                  <span>
+                    <span className="font-medium text-foreground">Somente novos cadastros</span>
+                    <span className="block text-muted-foreground">
+                      Ninguém já cadastrado é alterado; os próximos nascem preenchidos.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-xs">
+                  <RadioGroupItem value="todos" className="mt-0.5" />
+                  <span>
+                    <span className="font-medium text-foreground">
+                      Todos os colaboradores deste alcance
+                      {colaboradoresNoAlcance > 0 ? ` (${colaboradoresNoAlcance})` : ""}
+                    </span>
+                    <span className="block text-muted-foreground">
+                      Sobrescreve assiduidade, tolerância, vales e ficha de benefícios de quem já
+                      está cadastrado e ativo
+                      {escopoPadrao !== "cargo"
+                        ? ", e apaga os padrões mais específicos que estejam em conflito."
+                        : "."}
+                    </span>
+                  </span>
+                </label>
+              </RadioGroup>
+            </div>
           )}
 
 
