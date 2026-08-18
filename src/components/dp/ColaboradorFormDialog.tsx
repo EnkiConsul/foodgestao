@@ -583,6 +583,47 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     if (proxima) setTab(proxima);
   };
 
+  /**
+   * Vale perguntar se os benefícios deste colaborador viram o padrão da unidade?
+   * Só quando há conteúdo, a unidade está definida e o padrão atual é diferente.
+   */
+  const devePerguntarPadrao = () => {
+    if (!form.unidade_id) return false;
+    if (localStorage.getItem(naoPerguntarKey) === "1") return false;
+    const atual = extrairPadrao(rem);
+    if (!padraoTemConteudo(atual)) return false;
+    const gravado = padraoDaUnidade?.unidade_id === form.unidade_id ? padraoDaUnidade.payload : null;
+    return JSON.stringify(atual) !== JSON.stringify(gravado ?? {});
+  };
+
+  /** Encerra o salvamento: pergunta pelo padrão da unidade antes de sair da tela. */
+  const concluir = (perguntar: boolean) => {
+    if (perguntar) { setPerguntarPadrao(true); return; }
+    finalizar();
+  };
+
+  /** Resposta da pergunta do padrão — depois segue a intenção original do botão. */
+  const responderPadrao = async (usar: boolean, naoPerguntarMais = false) => {
+    setPerguntarPadrao(false);
+    if (naoPerguntarMais) localStorage.setItem(naoPerguntarKey, "1");
+    if (usar && form.unidade_id) {
+      try {
+        await salvarPadraoBeneficios.mutateAsync({
+          unidade_id: form.unidade_id,
+          payload: extrairPadrao(rem),
+        });
+        toast.success("Padrão da unidade atualizado", {
+          description: "Os próximos cadastros desta unidade já vêm preenchidos.",
+        });
+      } catch (e) {
+        toast.error("Não foi possível salvar o padrão", { description: mensagemErro(e) });
+      }
+    }
+    finalizar();
+  };
+
+
+
 
   const submit = async (intencao?: IntencaoSalvar) => {
     if (intencao) intencaoRef.current = intencao;
