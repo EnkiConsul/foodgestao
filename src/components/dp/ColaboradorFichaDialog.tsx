@@ -129,6 +129,8 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
   const assiduidadeCriterio = (colaborador as any)?.assiduidade_criterio as keyof typeof ASSIDUIDADE_CRITERIO_LABEL | null;
   const assiduidadeTolerancia = (colaborador as any)?.assiduidade_tolerancia_min as number | null;
   const assiduidadeMaxAtrasos = (colaborador as any)?.assiduidade_max_atrasos as number | null;
+  const assiduidadeConsideraAtestado = (colaborador as any)?.assiduidade_considera_atestado as boolean | null;
+  const assiduidadeMaxAtestados = (colaborador as any)?.assiduidade_max_atestados as number | null;
 
   if (!colaborador) return null;
 
@@ -237,6 +239,13 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
               <>
                 <Field label="Tolerância de Atraso" value={assiduidadeTolerancia != null ? `${assiduidadeTolerancia} min` : "—"} />
                 <Field label="Máx. Atrasos Tolerados" value={assiduidadeMaxAtrasos ?? "—"} />
+                <Field
+                  label="Atestado Faz Perder o Prêmio"
+                  value={assiduidadeConsideraAtestado === false ? "Não" : "Sim"}
+                />
+                {assiduidadeConsideraAtestado !== false && (
+                  <Field label="Atestados Tolerados no Mês" value={assiduidadeMaxAtestados ?? 0} />
+                )}
               </>
             )}
           </Section>
