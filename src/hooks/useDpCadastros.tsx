@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
+import { diaAnterior } from "@/lib/dp/cargoSalarios";
 
 export type DpUnidade = Database["public"]["Tables"]["dp_unidades"]["Row"];
 export type DpUnidadeInsert = Database["public"]["Tables"]["dp_unidades"]["Insert"];
