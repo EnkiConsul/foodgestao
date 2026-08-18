@@ -1308,9 +1308,16 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           <TabsContent value="remuneracao" className="mt-4">
             {padraoAplicado && !isEdit && (
               <div className="mb-4 rounded-xl border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-                Benefícios sugeridos pelo padrão de {unidadeSelecionada?.nome ?? "unidade"} — pode ajustar.
+                Benefícios sugeridos pelo padrão{" "}
+                {padraoAplicado === "cargo"
+                  ? `de ${cargoSelecionado?.nome ?? "cargo"} em ${unidadeSelecionada?.nome ?? "unidade"}`
+                  : padraoAplicado === "unidade"
+                    ? `de ${unidadeSelecionada?.nome ?? "unidade"}`
+                    : "da empresa"}{" "}
+                — pode ajustar.
               </div>
             )}
+
 
             {/* Enquadramento salarial: laboral pelo cargo, piso pelo patronal da unidade. */}
             {cargoSelecionado && form.unidade_id && (
