@@ -79,7 +79,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
     queryFn: async (): Promise<LinhaFolha[]> => {
       const { data, error } = await supabase
         .from("dp_folha_lancamentos")
-        .select("id, colaborador_id, status, valor_bruto, valor_liquido, descontos, transaction_id, dp_colaboradores:colaborador_id(nome)")
+        .select("id, colaborador_id, status, valor_bruto, valor_liquido, descontos, transaction_id, assiduidade_atestado_abonado, assiduidade_abono_motivo, dp_colaboradores:colaborador_id(nome)")
         .eq("periodo_id", periodoId!);
       if (error) throw error;
       return (data ?? [])
@@ -95,6 +95,9 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
             valor_liquido: valores.liquido,
             detalhe,
             transaction_id: l.transaction_id ?? null,
+            atestado_abonado: !!(l as { assiduidade_atestado_abonado?: boolean | null }).assiduidade_atestado_abonado,
+            atestado_abono_motivo:
+              (l as { assiduidade_abono_motivo?: string | null }).assiduidade_abono_motivo ?? null,
           };
         })
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
@@ -189,6 +192,32 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
     onError: (e: Error) => toast.error(e.message || "Não foi possível salvar as rubricas."),
   });
 
+  /**
+   * Abono de atestado: a empresa pode, por liberalidade e caso a caso, manter o
+   * prêmio de assiduidade mesmo com atestado apresentado no mês.
+   */
+  const abonarAtestado = useMutation({
+    mutationFn: async ({ id, abonado, motivo }: { id: string; abonado: boolean; motivo?: string }) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("dp_folha_lancamentos")
+        .update({
+          assiduidade_atestado_abonado: abonado,
+          assiduidade_abono_motivo: abonado ? (motivo?.trim() || null) : null,
+          assiduidade_abono_por: abonado ? auth.user?.id ?? null : null,
+          assiduidade_abono_em: abonado ? new Date().toISOString() : null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+      return abonado;
+    },
+    onSuccess: (abonado) => {
+      toast.success(abonado ? "Atestado abonado — prêmio mantido." : "Abono removido.");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message || "Não foi possível registrar o abono."),
+  });
+
   /** Fase 14 — gera a despesa consolidada da folha no financeiro (conta a pagar). */
   const gerarDespesa = useMutation({
     mutationFn: async (params: { accountId?: string | null; categoryId?: string | null; dataPagamento?: string | null }) => {
@@ -234,6 +263,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
     isLoading: periodoQuery.isLoading || linhasQuery.isLoading,
     error: periodoQuery.error ?? linhasQuery.error,
     alterarStatus,
+    abonarAtestado,
     cancelarLancamento,
     salvarRubricas,
     gerarDespesa,

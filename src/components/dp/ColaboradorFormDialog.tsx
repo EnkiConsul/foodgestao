@@ -17,7 +17,7 @@ import { useUpsertDpColaborador, useDpColaboradores, type DpColaborador } from "
 import { alertaIsonomia } from "@/lib/dp/beneficios-regras";
 import { BeneficioDispensaDialog, type DispensaBeneficio } from "@/components/dp/BeneficioDispensaDialog";
 import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, type DpCargo } from "@/hooks/useDpCadastros";
-import { salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
+import { salarioCargoNaUnidade, mensagemErroPiso } from "@/lib/dp/cargoSalarios";
 
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { Textarea } from "@/components/ui/textarea";
@@ -337,6 +337,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       assiduidade_criterio: (c.assiduidade_criterio ?? "sem_faltas_sem_atrasos") as AssiduidadeCriterio,
       assiduidade_tolerancia_min: String(c.assiduidade_tolerancia_min ?? 10),
       assiduidade_max_atrasos: String(c.assiduidade_max_atrasos ?? 2),
+      assiduidade_considera_atestado: (c as any).assiduidade_considera_atestado ?? true,
+      assiduidade_max_atestados: String((c as any).assiduidade_max_atestados ?? 0),
       premio_assiduidade_tipo: (c.premio_assiduidade_tipo ?? "valor") as "valor" | "percentual",
       vale_alimentacao: !!c.vale_alimentacao,
       vale_alimentacao_valor:
@@ -435,6 +437,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         form.unidade_id || null,
         patronalUnidade?.id ?? null,
         form.data_admissao || undefined,
+        // Piso já negociado com vigência posterior à admissão continua sendo a
+        // referência do cargo — não faz sentido pedir novo cadastro.
+        { aceitarFuturo: true },
       ),
     [pisosCargo.data, form.unidade_id, patronalUnidade?.id, form.data_admissao],
   );
@@ -869,6 +874,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         premio_assiduidade_valor: rem.premio_assiduidade ? premioNum || null : null,
         assiduidade_criterio: rem.premio_assiduidade ? rem.assiduidade_criterio : null,
         assiduidade_tolerancia_min: Math.max(0, Math.trunc(numeroBR(rem.assiduidade_tolerancia_min))),
+        assiduidade_considera_atestado: rem.premio_assiduidade
+          ? rem.assiduidade_considera_atestado
+          : true,
+        assiduidade_max_atestados: rem.premio_assiduidade && rem.assiduidade_considera_atestado
+          ? Math.max(0, Math.trunc(numeroBR(rem.assiduidade_max_atestados)))
+          : null,
         assiduidade_max_atrasos: rem.premio_assiduidade
           ? Math.max(0, Math.trunc(numeroBR(rem.assiduidade_max_atrasos)))
           : null,
@@ -1582,7 +1593,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                   } catch (err) {
                     setCargoSemSalario(pendente);
                     toast.error("Não foi possível gravar o piso do sindicato patronal", {
-                      description: err instanceof Error ? err.message : String(err),
+                      description: `${mensagemErroPiso(err)} Você pode usar “Só para este colaborador” para salvar o cadastro agora.`,
                     });
                     setSalvandoPiso(false);
                     return;

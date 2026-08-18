@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
-import { Download, Printer, Receipt, Search, SlidersHorizontal, Wallet } from "lucide-react";
+import { Download, HeartHandshake, Printer, Receipt, Search, SlidersHorizontal, Wallet } from "lucide-react";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
@@ -43,7 +43,7 @@ export default function DpFolhaPeriodo() {
   const { id } = useParams<{ id: string }>();
   const {
     periodo, linhas, transactionId, isLoading, error,
-    alterarStatus, cancelarLancamento, gerarDespesa, desfazerDespesa, salvarRubricas,
+    alterarStatus, abonarAtestado, cancelarLancamento, gerarDespesa, desfazerDespesa, salvarRubricas,
   } = useDpFolhaPeriodo(id);
   const [busca, setBusca] = useState("");
   const [confirmar, setConfirmar] = useState<FolhaPeriodoStatus | null>(null);
@@ -51,6 +51,8 @@ export default function DpFolhaPeriodo() {
   const [despesaAberta, setDespesaAberta] = useState(false);
   const [desfazerAberto, setDesfazerAberto] = useState(false);
   const [rubricasDe, setRubricasDe] = useState<string | null>(null);
+  const [abonarDe, setAbonarDe] = useState<string | null>(null);
+  const [abonoMotivo, setAbonoMotivo] = useState("");
 
   const filtradas = useMemo(
     () => linhas.filter((l) => !busca.trim() || l.nome.toLowerCase().includes(busca.trim().toLowerCase())),
@@ -230,6 +232,32 @@ export default function DpFolhaPeriodo() {
                     <p className="text-xs text-muted-foreground">Líquido</p>
                     <p className="text-sm font-semibold">{formatarBRL(l.valor_liquido)}</p>
                   </div>
+                  {l.atestado_abonado && (
+                    <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400">
+                      Atestado abonado
+                    </Badge>
+                  )}
+                  {l.status === "rascunho" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={
+                        l.atestado_abonado
+                          ? `Remover abono de atestado de ${l.nome}`
+                          : `Abonar atestado de ${l.nome}`
+                      }
+                      onClick={() => {
+                        if (l.atestado_abonado) {
+                          abonarAtestado.mutate({ id: l.id, abonado: false });
+                          return;
+                        }
+                        setAbonoMotivo("");
+                        setAbonarDe(l.id);
+                      }}
+                    >
+                      <HeartHandshake className={`h-4 w-4 ${l.atestado_abonado ? "text-emerald-600" : ""}`} />
+                    </Button>
+                  )}
                   {l.status === "rascunho" && (
                     <Button
                       variant="ghost"
@@ -307,6 +335,34 @@ export default function DpFolhaPeriodo() {
               }}
             >
               Cancelar Lançamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!abonarDe} onOpenChange={(o) => !o && setAbonarDe(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Abonar o atestado deste mês?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O prêmio de assiduidade será mantido mesmo com atestado apresentado. O abono é uma
+              liberalidade da empresa e fica registrado com autor, data e motivo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={abonoMotivo}
+            onChange={(e) => setAbonoMotivo(e.target.value)}
+            placeholder="Motivo do abono (ex.: atestado de acompanhamento de filho)"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (abonarDe) abonarAtestado.mutate({ id: abonarDe, abonado: true, motivo: abonoMotivo });
+                setAbonarDe(null);
+              }}
+            >
+              Abonar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

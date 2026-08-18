@@ -55,18 +55,31 @@ export function pisoVigente(p: CargoSalarioLinha, data: string): boolean {
 const maisRecente = (lista: CargoSalarioLinha[]): CargoSalarioLinha | null =>
   [...lista].sort((a, b) => (a.vigencia_inicio < b.vigencia_inicio ? 1 : -1))[0] ?? null;
 
+const maisProxima = (lista: CargoSalarioLinha[]): CargoSalarioLinha | null =>
+  [...lista].sort((a, b) => (a.vigencia_inicio > b.vigencia_inicio ? 1 : -1))[0] ?? null;
+
+/**
+ * Aceitar piso futuro evita pedir cadastro de piso quando a convenção já foi
+ * negociada mas começa depois da data de referência (ex.: admissão antiga).
+ */
+export interface ResolucaoOpts {
+  aceitarFuturo?: boolean;
+}
+
 /** Piso vigente do cargo naquele sindicato patronal. */
 export function pisoDoPatronal(
   linhas: CargoSalarioLinha[] | null | undefined,
   patronalId: string | null | undefined,
   data: string = hoje(),
+  opts?: ResolucaoOpts,
 ): CargoSalarioLinha | null {
   if (!patronalId) return null;
-  return maisRecente(
-    (linhas ?? []).filter(
-      (p) => !p.unidade_id && p.sindicato_patronal_id === patronalId && pisoVigente(p, data),
-    ),
+  const doPatronal = (linhas ?? []).filter(
+    (p) => !p.unidade_id && p.sindicato_patronal_id === patronalId,
   );
+  const vigente = maisRecente(doPatronal.filter((p) => pisoVigente(p, data)));
+  if (vigente || !opts?.aceitarFuturo) return vigente;
+  return maisProxima(doPatronal.filter((p) => statusVigencia(p, data) === "futuro"));
 }
 
 /** Ajuste vigente do cargo naquela unidade. */
@@ -74,9 +87,13 @@ export function ajusteDaUnidade(
   linhas: CargoSalarioLinha[] | null | undefined,
   unidadeId: string | null | undefined,
   data: string = hoje(),
+  opts?: ResolucaoOpts,
 ): CargoSalarioLinha | null {
   if (!unidadeId) return null;
-  return maisRecente((linhas ?? []).filter((p) => p.unidade_id === unidadeId && pisoVigente(p, data)));
+  const daUnidade = (linhas ?? []).filter((p) => p.unidade_id === unidadeId);
+  const vigente = maisRecente(daUnidade.filter((p) => pisoVigente(p, data)));
+  if (vigente || !opts?.aceitarFuturo) return vigente;
+  return maisProxima(daUnidade.filter((p) => statusVigencia(p, data) === "futuro"));
 }
 
 /**
@@ -88,11 +105,12 @@ export function salarioCargoNaUnidade(
   unidadeId: string | null | undefined,
   patronalId: string | null | undefined,
   data: string = hoje(),
+  opts?: ResolucaoOpts,
 ): SalarioResolvido {
   const lista = linhas ?? [];
-  const linhaPatronal = pisoDoPatronal(lista, patronalId, data);
+  const linhaPatronal = pisoDoPatronal(lista, patronalId, data, opts);
   const pisoPatronal = linhaPatronal && linhaPatronal.salario_base > 0 ? Number(linhaPatronal.salario_base) : null;
-  const linhaUnidade = ajusteDaUnidade(lista, unidadeId, data);
+  const linhaUnidade = ajusteDaUnidade(lista, unidadeId, data, opts);
   const semPatronalVinculado = !!unidadeId && !patronalId;
   const faltaPisoPatronal = !!patronalId && pisoPatronal == null;
 
