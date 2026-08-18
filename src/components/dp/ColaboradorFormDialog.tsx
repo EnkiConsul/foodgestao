@@ -319,6 +319,26 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     [rem, padraoAplicavel],
   );
 
+  /** Aviso de divergência do cadastro já existente em relação ao padrão vigente. */
+  const [avisoPadraoDispensado, setAvisoPadraoDispensado] = useState(false);
+  const diferencasDoPadrao = useMemo(() => {
+    if (!isEdit || !colaborador || avisoPadraoDispensado) return [];
+    return divergenciasColaboradorVsPadrao(
+      colaborador as unknown as Record<string, unknown>,
+      padraoAplicavel?.payload,
+    );
+  }, [isEdit, colaborador, padraoAplicavel, avisoPadraoDispensado]);
+  const origemPadrao = () => {
+    const nivel = nivelPadrao(padraoAplicavel);
+    if (nivel === "cargo") {
+      return `de ${cargoSelecionado?.nome ?? "cargo"} em ${unidadeSelecionada?.nome ?? "unidade"}`;
+    }
+    if (nivel === "unidade") return `de ${unidadeSelecionada?.nome ?? "unidade"}`;
+    return "da empresa";
+  };
+
+
+
   const rotulosGruposSelecionados = useMemo(
     () =>
       GRUPOS_PADRAO.filter((g) => gruposPadrao.includes(g))
@@ -336,8 +356,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       padraoAplicadoRef.current = null;
       padraoRespondidoRef.current = new Set();
       setPadraoAplicado(null);
+      setAvisoPadraoDispensado(false);
       return;
     }
+
     if (isEdit) return;
     const unidade = form.unidade_id || null;
     if (!unidade) return;
@@ -1176,12 +1198,19 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 {remPendente && (
                   <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
                 )}
+                {!remPendente && divergenciasIso.length === 0 && diferencasDoPadrao.length > 0 && (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                    aria-label="Cadastro fora do padrão de benefícios"
+                  />
+                )}
                 {!remPendente && divergenciasIso.length > 0 && (
                   <span
                     className="h-1.5 w-1.5 rounded-full bg-amber-500"
                     aria-label="Divergência de benefícios em relação aos colegas"
                   />
                 )}
+
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1495,6 +1524,25 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
           <TabsContent value="remuneracao" className="mt-4">
+            {diferencasDoPadrao.length > 0 && (
+              <PadraoDivergenciaAviso
+                origem={origemPadrao()}
+                diferencas={diferencasDoPadrao.map((d) => ({
+                  rotulo: d.rotulo,
+                  padrao: d.padrao,
+                  atual: d.atual,
+                }))}
+                onAplicar={() => {
+                  setRem((r) => aplicarPadrao(r, padraoAplicavel?.payload));
+                  setAvisoPadraoDispensado(true);
+                  toast.success("Padrão aplicado ao formulário", {
+                    description: "Confira os valores e salve para gravar.",
+                  });
+                }}
+                onDispensar={() => setAvisoPadraoDispensado(true)}
+              />
+            )}
+
             {padraoAplicado && !isEdit && (
               <div className="mb-4 rounded-xl border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
                 Benefícios sugeridos pelo padrão{" "}
@@ -1971,6 +2019,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                     <span className="font-medium text-foreground">Somente novos cadastros</span>
                     <span className="block text-muted-foreground">
                       Ninguém já cadastrado é alterado; os próximos nascem preenchidos.
+                      {divergentesNoAlcance > 0
+                        ? ` Atenção: ${divergentesNoAlcance} colaborador(es) ativo(s) continuam fora destes valores.`
+                        : ""}
                     </span>
                   </span>
                 </label>
@@ -1980,7 +2031,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                     <span className="font-medium text-foreground">
                       Todos os colaboradores deste alcance
                       {colaboradoresNoAlcance > 0 ? ` (${colaboradoresNoAlcance})` : ""}
+                      {divergentesNoAlcance > 0 ? ` — ${divergentesNoAlcance} fora do padrão` : ""}
                     </span>
+
                     <span className="block text-muted-foreground">
                       Sobrescreve {rotulosGruposSelecionados} de quem já está cadastrado e ativo
                       {escopoPadrao !== "cargo"
