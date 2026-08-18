@@ -153,7 +153,7 @@ export function ColaboradorJornadaPanel({
         vistos.add(chave);
         return true;
       })
-      .slice(0, 6);
+      .slice(0, 10);
   }, [modelos, colaborador?.cargo_id]);
 
   useEffect(() => {
