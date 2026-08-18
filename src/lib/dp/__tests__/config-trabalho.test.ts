@@ -95,7 +95,10 @@ describe("aviso de carga semanal", () => {
       turno_padrao_id: turno.id,
       folga_variavel: false,
       folga_fixa_dow: 0,
-      dias: normalizarDias([1, 2, 3, 4].map((dow) => ({ dow, trabalha: true, turno_id: null })), 0),
+      dias: normalizarDias(
+        [0, 1, 2, 3, 4, 5, 6].map((dow) => ({ dow, trabalha: dow >= 1 && dow <= 4, turno_id: null })),
+        0,
+      ),
     };
     return validarConfigTrabalho(c, [turno], { regime: "clt" }).find((v) => v.campo === "carga");
   }
