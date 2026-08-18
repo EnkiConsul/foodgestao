@@ -59,7 +59,13 @@ export function useDpSalarioFamiliaConfig() {
       confirmar?: boolean;
     }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const patch: Record<string, unknown> = {};
+      const patch: {
+        salario_familia_cota?: number | null;
+        salario_familia_teto?: number | null;
+        salario_familia_vigencia?: string | null;
+        salario_familia_confirmado_em?: string | null;
+        adicional_tempo_servico_ativo?: boolean;
+      } = {};
       if (input.cota !== undefined) patch.salario_familia_cota = input.cota;
       if (input.teto !== undefined) patch.salario_familia_teto = input.teto;
       if (input.vigencia !== undefined) patch.salario_familia_vigencia = input.vigencia;
