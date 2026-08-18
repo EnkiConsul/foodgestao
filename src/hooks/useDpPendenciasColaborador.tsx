@@ -4,8 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import {
-  CalendarPlus, FileWarning, Repeat2, Palmtree, Megaphone, UserCog,
+  CalendarPlus, FileWarning, Repeat2, Palmtree, Megaphone, UserCog, FileCheck2,
 } from "lucide-react";
+import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 
 export type PendenciaColaborador = {
   id: string;
@@ -228,6 +229,105 @@ export function useDpPendenciasColaborador() {
         }
       } catch (e) {
         console.warn("pendencias-colab/cadastro:", e);
+      }
+
+      // Documentos exigidos: o colaborador anexa e o DP aprova.
+      try {
+        const { data: colab } = await supabase
+          .from("dp_colaboradores")
+          .select(
+            "id, company_id, data_nascimento, regime, estado_civil, veiculo_proprio, aprendiz, possui_folha_ponto, dp_cargos(exige_cnh, exige_epi)",
+          )
+          .eq("id", colabId as string)
+          .maybeSingle();
+
+        if (colab) {
+          const [reqs, deps, vincs, asos] = await Promise.all([
+            supabase
+              .from("dp_documento_requisitos")
+              .select("*")
+              .eq("company_id", colab.company_id)
+              .neq("obrigatoriedade", "desativado"),
+            supabase
+              .from("dp_dependentes")
+              .select("id, nome, data_nascimento, deficiencia, cessado_em")
+              .eq("colaborador_id", colabId as string)
+              .is("cessado_em", null),
+            supabase
+              .from("dp_colaborador_documentos")
+              .select("*")
+              .eq("colaborador_id", colabId as string),
+            supabase
+              .from("dp_exames_aso")
+              .select("resultado")
+              .eq("colaborador_id", colabId as string)
+              .eq("tipo", "admissional"),
+          ]);
+
+          const itens = resolverChecklist({
+            requisitos: (reqs.data ?? []) as any[],
+            colaborador: {
+              id: colab.id,
+              data_nascimento: colab.data_nascimento,
+              regime: colab.regime,
+              estado_civil: (colab as any).estado_civil,
+              veiculo_proprio: (colab as any).veiculo_proprio,
+              aprendiz: colab.aprendiz,
+              possui_folha_ponto: colab.possui_folha_ponto,
+              cargo_exige_cnh: (colab as any).dp_cargos?.exige_cnh ?? false,
+              cargo_exige_epi: (colab as any).dp_cargos?.exige_epi ?? false,
+            },
+            dependentes: (deps.data ?? []) as any[],
+            vinculos: (vincs.data ?? []) as any[],
+            asoAdmissionalOk: (asos.data ?? []).some(
+              (a: any) => a.resultado === "apto" || a.resultado === "apto_com_restricoes",
+            ),
+          });
+
+          const resumo = resumirChecklist(itens);
+          const paraEnviar = resumo.pendentesObrigatorios.filter((i) => !i.externo);
+          if (paraEnviar.length > 0) {
+            results.push({
+              id: "documentos-exigidos",
+              icon: FileCheck2,
+              titulo: `Enviar ${paraEnviar.length} documento(s) obrigatório(s)`,
+              subtitulo: `${paraEnviar.slice(0, 3).map((i) => tituloItem(i)).join(", ")}${paraEnviar.length > 3 ? "…" : ""}`,
+              tipo: "Documentos",
+              vencimento: null,
+              atrasoDias: 1,
+              url: "/dp/meu/documentos",
+            });
+          }
+          const aceites = itens.filter(
+            (i) => i.requisito.exige_aceite && i.status === "enviado" && !!i.vinculo?.documento_id,
+          );
+          if (aceites.length > 0) {
+            results.push({
+              id: "documentos-aceite",
+              icon: FileCheck2,
+              titulo: `${aceites.length} documento(s) aguardando seu aceite`,
+              subtitulo: aceites.map((i) => tituloItem(i)).slice(0, 3).join(", "),
+              tipo: "Documentos",
+              vencimento: null,
+              atrasoDias: 1,
+              url: "/dp/meu/documentos",
+            });
+          }
+          if (resumo.vencendo.length > 0) {
+            results.push({
+              id: "documentos-vencendo",
+              icon: FileCheck2,
+              titulo: `${resumo.vencendo.length} documento(s) vencendo`,
+              subtitulo: resumo.vencendo.map((i) => tituloItem(i)).slice(0, 3).join(", "),
+              tipo: "Documentos",
+              vencimento: null,
+              atrasoDias: 0,
+              url: "/dp/meu/documentos",
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("pendencias-colab/documentos:", e);
       }
 
       return results.sort((a, b) => b.atrasoDias - a.atrasoDias);
