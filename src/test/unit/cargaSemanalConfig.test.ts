@@ -42,7 +42,8 @@ describe("cargaSemanalConfig", () => {
   });
 
   it("conta o dia que herda o horário base pela faixa do base", () => {
-    expect(formatarHoras(cargaSemanalConfig(rosangela, [BASE]))).toBe("43h24");
+    // 43h25 exatos. A tela mostrava 43h24 porque somava horas já arredondadas por dia.
+    expect(formatarHoras(cargaSemanalConfig(rosangela, [BASE]))).toBe("43h25");
   });
 });
 
