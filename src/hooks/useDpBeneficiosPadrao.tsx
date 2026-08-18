@@ -14,12 +14,13 @@ export function useDpBeneficiosPadroes() {
     queryFn: async (): Promise<BeneficiosPadraoLinha[]> => {
       const { data, error } = await supabase
         .from("dp_beneficios_padroes")
-        .select("id, unidade_id, payload, updated_at")
+        .select("id, unidade_id, cargo_id, payload, updated_at")
         .eq("company_id", selectedCompanyId!);
       if (error) throw error;
       return (data ?? []).map((r: any) => ({
         id: r.id,
         unidade_id: r.unidade_id,
+        cargo_id: r.cargo_id,
         payload: (r.payload ?? {}) as BeneficiosPadraoPayload,
         updated_at: r.updated_at,
       }));
@@ -27,12 +28,20 @@ export function useDpBeneficiosPadroes() {
   });
 }
 
-/** Grava (ou substitui) o padrão da unidade — unidade_id null = padrão da empresa. */
+/**
+ * Grava (ou substitui) o padrão do escopo informado:
+ * unidade + cargo = padrão do cargo na unidade; só unidade = padrão da unidade;
+ * nenhum dos dois = padrão da empresa.
+ */
 export function useSalvarDpBeneficiosPadrao() {
   const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
   return useMutation({
-    mutationFn: async (input: { unidade_id: string | null; payload: BeneficiosPadraoPayload }) => {
+    mutationFn: async (input: {
+      unidade_id: string | null;
+      cargo_id?: string | null;
+      payload: BeneficiosPadraoPayload;
+    }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
       const { data: userData } = await supabase.auth.getUser();
       let q = supabase
@@ -40,6 +49,7 @@ export function useSalvarDpBeneficiosPadrao() {
         .select("id")
         .eq("company_id", selectedCompanyId);
       q = input.unidade_id ? q.eq("unidade_id", input.unidade_id) : q.is("unidade_id", null);
+      q = input.cargo_id ? q.eq("cargo_id", input.cargo_id) : q.is("cargo_id", null);
       const { data: existente, error: erroBusca } = await q.maybeSingle();
       if (erroBusca) throw erroBusca;
 
@@ -56,6 +66,7 @@ export function useSalvarDpBeneficiosPadrao() {
         .insert({
           company_id: selectedCompanyId,
           unidade_id: input.unidade_id,
+          cargo_id: input.cargo_id ?? null,
           payload: input.payload as any,
           created_by: userData.user?.id ?? null,
         })
