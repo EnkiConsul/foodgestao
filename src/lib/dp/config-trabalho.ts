@@ -492,3 +492,59 @@ export function gradeDaSemana(
   });
 }
 
+
+// ------------------------------------------------------------------
+// Horário padrão derivado da semana
+//
+// A tela do colaborador cadastra apenas o horário de cada dia. O "horário
+// padrão" (turno principal gravado na vigência, lido por escala, ponto e folha)
+// passa a ser o horário que mais se repete nos dias trabalhados.
+// ------------------------------------------------------------------
+
+const chaveHorario = (h: HorarioDia) =>
+  `${h.entrada}|${h.saida}|${h.intervalo_minutos ?? 0}`;
+
+/**
+ * Horário que mais se repete nos dias trabalhados. Empate resolvido pelo dia
+ * que aparece primeiro na semana. Sem nenhum dia preenchido, vale o fallback.
+ */
+export function horarioPadraoDaSemana(dias: DiaConfig[], fallback: HorarioDia): HorarioDia {
+  const contagem = new Map<string, { horario: HorarioDia; quantidade: number; ordem: number }>();
+  ORDEM_EXIBICAO.forEach((dow, ordem) => {
+    const dia = dias.find((d) => d.dow === dow);
+    if (!dia?.trabalha || !temHorarioProprio(dia)) return;
+    const h: HorarioDia = {
+      entrada: String(dia.entrada).slice(0, 5),
+      saida: String(dia.saida).slice(0, 5),
+      intervalo_minutos: dia.intervalo_minutos ?? 0,
+    };
+    const chave = chaveHorario(h);
+    const atual = contagem.get(chave);
+    if (atual) atual.quantidade += 1;
+    else contagem.set(chave, { horario: h, quantidade: 1, ordem });
+  });
+  const vencedor = [...contagem.values()].sort(
+    (a, b) => b.quantidade - a.quantidade || a.ordem - b.ordem,
+  )[0];
+  return vencedor?.horario ?? fallback;
+}
+
+/**
+ * Materializa o horário nos dias trabalhados que ainda não têm horário próprio.
+ * Devolve a mesma referência quando não há nada a preencher (evita re-render).
+ */
+export function preencherDiasComHorario(dias: DiaConfig[], base: HorarioDia): DiaConfig[] {
+  if (!base.entrada || !base.saida) return dias;
+  let mudou = false;
+  const out = dias.map((d) => {
+    if (!d.trabalha || temHorarioProprio(d)) return d;
+    mudou = true;
+    return {
+      ...d,
+      entrada: base.entrada,
+      saida: base.saida,
+      intervalo_minutos: base.intervalo_minutos ?? 0,
+    };
+  });
+  return mudou ? out : dias;
+}
