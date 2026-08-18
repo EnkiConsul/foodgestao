@@ -1281,10 +1281,17 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 <SelectTrigger {...marca("cargo_id", "flex-1")}><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                 <SelectContent>
                   {(cargos.data ?? []).map((c) => {
-                    const ref = salarioReferencia(c as any);
+                    const rot = rotuloSalarioCargo(
+                      (pisosPorCargo.get(c.id) ?? []) as any,
+                      {
+                        unidadeId: form.unidade_id || null,
+                        patronalId: patronalUnidade?.id ?? null,
+                        data: form.data_admissao || undefined,
+                      },
+                    );
                     return (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.nome}{ref ? ` — ${moedaBR(ref)}` : ""}
+                        {c.nome} — {rot.texto}
                       </SelectItem>
                     );
                   })}
