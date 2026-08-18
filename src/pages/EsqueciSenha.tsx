@@ -22,6 +22,7 @@ export default function EsqueciSenha() {
   const [identifier, setIdentifier] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileError, setTurnstileError] = useState<string | null>(null);
+  const [turnstileNonce, setTurnstileNonce] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
   // OTP state
@@ -86,6 +87,9 @@ export default function EsqueciSenha() {
       const msg = err?.context?.error ?? err?.message ?? "Falha ao enviar código.";
       toast.error(msg);
     } finally {
+      // Turnstile tokens are single-use, including requests that return an error.
+      setTurnstileToken(null);
+      setTurnstileNonce((nonce) => nonce + 1);
       setSubmitting(false);
     }
   }
@@ -212,6 +216,7 @@ export default function EsqueciSenha() {
 
               {siteKey && (
                 <TurnstileWidget
+                  key={turnstileNonce}
                   siteKey={siteKey}
                   onToken={(t) => { setTurnstileToken(t); setTurnstileError(null); }}
                   onExpire={() => setTurnstileToken(null)}
