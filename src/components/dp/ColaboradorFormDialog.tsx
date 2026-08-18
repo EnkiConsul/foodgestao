@@ -241,6 +241,36 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const [cargoSemSalario, setCargoSemSalario] = useState<{ salarioInformado: number } | null>(null);
   const patchRem = (patch: Partial<RemuneracaoFormState>) => setRem((r) => ({ ...r, ...patch }));
 
+  /**
+   * Padrão de benefícios da unidade: o primeiro cadastro define e os próximos
+   * já nascem preenchidos. Nada é aplicado sobre colaborador já existente.
+   */
+  const padroesBeneficios = useDpBeneficiosPadroes();
+  const salvarPadraoBeneficios = useSalvarDpBeneficiosPadrao();
+  const padraoDaUnidade = useMemo(
+    () => resolverPadrao(padroesBeneficios.data, form.unidade_id || null),
+    [padroesBeneficios.data, form.unidade_id],
+  );
+  /** Unidade cujo padrão já foi aplicado neste cadastro (evita sobrescrever edições). */
+  const padraoAplicadoRef = useRef<string | null>(null);
+  const [padraoAplicado, setPadraoAplicado] = useState(false);
+  /** Pergunta "usar como padrão da unidade?" pendente após gravar. */
+  const [perguntarPadrao, setPerguntarPadrao] = useState(false);
+  const naoPerguntarKey = `dp:beneficios-padrao:nao-perguntar:${selectedCompanyId ?? "sem-empresa"}`;
+
+  useEffect(() => {
+    if (!open) { padraoAplicadoRef.current = null; setPadraoAplicado(false); return; }
+    if (isEditRef.current) return;
+    const unidade = form.unidade_id || null;
+    if (!unidade || padraoAplicadoRef.current === unidade) return;
+    const padrao = resolverPadrao(padroesBeneficios.data, unidade);
+    padraoAplicadoRef.current = unidade;
+    if (!padrao || !padraoTemConteudo(padrao.payload)) { setPadraoAplicado(false); return; }
+    setRem((r) => aplicarPadrao(r, padrao.payload));
+    setPadraoAplicado(true);
+  }, [open, form.unidade_id, padroesBeneficios.data]);
+
+
   useEffect(() => {
     if (!open) return;
     cienciaConfirmada.current = null;
