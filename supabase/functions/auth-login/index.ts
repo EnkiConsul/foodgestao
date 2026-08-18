@@ -21,32 +21,43 @@ function json(status: number, body: unknown) {
   });
 }
 
+async function verifyWithSecret(secret: string, token: string, ip: string | null) {
+  const form = new URLSearchParams();
+  form.set("secret", secret);
+  form.set("response", token);
+  if (ip) form.set("remoteip", ip);
+  const resp = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: form.toString(),
+  });
+  return await resp.json();
+}
+
 async function verifyTurnstile(token: string, ip: string | null): Promise<boolean> {
-  const secret = Deno.env.get("TURNSTILE_SECRET") ?? Deno.env.get("TURNSTILE_SECRET_KEY");
-  if (!secret) {
+  // Two secrets may be configured (legacy + current widget). Try each one so a
+  // mismatch between site key and secret does not lock everyone out.
+  const secrets = [Deno.env.get("TURNSTILE_SECRET"), Deno.env.get("TURNSTILE_SECRET_KEY")]
+    .filter((s): s is string => !!s);
+  if (secrets.length === 0) {
     console.error("[auth-login] TURNSTILE_SECRET not configured");
     return false;
   }
-  try {
-    const form = new URLSearchParams();
-    form.set("secret", secret);
-    form.set("response", token);
-    if (ip) form.set("remoteip", ip);
-    const resp = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: form.toString(),
-    });
-    const data = await resp.json();
-    if (!data.success) {
+  const seen = new Set<string>();
+  for (const secret of secrets) {
+    if (seen.has(secret)) continue;
+    seen.add(secret);
+    try {
+      const data = await verifyWithSecret(secret, token, ip);
+      if (data.success) return true;
       console.warn("[auth-login] Turnstile verify failed:", data["error-codes"]);
+    } catch (e) {
+      console.error("[auth-login] Turnstile verify exception:", e);
     }
-    return !!data.success;
-  } catch (e) {
-    console.error("[auth-login] Turnstile verify exception:", e);
-    return false;
   }
+  return false;
 }
+
 
 async function sha256(text: string): Promise<string> {
   const buf = new TextEncoder().encode(text);

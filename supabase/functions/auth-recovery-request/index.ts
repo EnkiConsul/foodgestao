@@ -48,24 +48,32 @@ function randomOTP6(): string {
 }
 
 async function verifyTurnstile(token: string, ip: string | null): Promise<boolean> {
-  const secret = Deno.env.get("TURNSTILE_SECRET") ?? Deno.env.get("TURNSTILE_SECRET_KEY");
-  if (!secret) return false;
-  try {
-    const form = new URLSearchParams();
-    form.set("secret", secret);
-    form.set("response", token);
-    if (ip) form.set("remoteip", ip);
-    const resp = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: form.toString(),
-    });
-    const data = await resp.json();
-    return !!data.success;
-  } catch {
-    return false;
+  const secrets = [Deno.env.get("TURNSTILE_SECRET"), Deno.env.get("TURNSTILE_SECRET_KEY")]
+    .filter((s): s is string => !!s);
+  const seen = new Set<string>();
+  for (const secret of secrets) {
+    if (seen.has(secret)) continue;
+    seen.add(secret);
+    try {
+      const form = new URLSearchParams();
+      form.set("secret", secret);
+      form.set("response", token);
+      if (ip) form.set("remoteip", ip);
+      const resp = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: form.toString(),
+      });
+      const data = await resp.json();
+      if (data.success) return true;
+      console.warn("[auth-recovery-request] Turnstile verify failed:", data["error-codes"]);
+    } catch (e) {
+      console.error("[auth-recovery-request] Turnstile verify exception:", e);
+    }
   }
+  return false;
 }
+
 
 /**
  * Increment-and-check rate limit using auth_rate_limits.
