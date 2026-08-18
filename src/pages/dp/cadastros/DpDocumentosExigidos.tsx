@@ -199,7 +199,7 @@ export default function DpDocumentosExigidos() {
                       {r.gerado_pelo_sistema && (
                         <Badge variant="outline" className="text-xs">Gerado pelo sistema</Badge>
                       )}
-                      {r.satisfeito_por === "aso" && (
+                      {r.satisfeito_por === "aso_admissional" && (
                         <Badge variant="outline" className="text-xs">Vem do módulo de exames</Badge>
                       )}
                     </div>

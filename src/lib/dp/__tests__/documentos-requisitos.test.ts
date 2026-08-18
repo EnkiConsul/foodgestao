@@ -118,7 +118,7 @@ describe("resolverChecklist", () => {
 
   it("considera o ASO satisfeito pelo módulo de exames", () => {
     const itens = resolverChecklist({
-      requisitos: [req({ codigo: "aso", satisfeito_por: "aso" })],
+      requisitos: [req({ codigo: "aso", satisfeito_por: "aso_admissional" })],
       colaborador: colab(),
       dependentes: [],
       vinculos: [],
