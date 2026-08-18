@@ -99,3 +99,26 @@ export function horarioBaseMaisComum<T extends ModeloHorarioRanking>(
     .sort((a, b) => b.quantidade - a.quantidade || (b.recente ?? "").localeCompare(a.recente ?? ""));
   return contagem[0]?.horario ?? null;
 }
+
+/**
+ * Quantos colaboradores usam cada horário — considerando o horário base e os
+ * horários próprios de cada dia da semana. Cada colaborador conta uma vez por
+ * horário. Serve para dizer se um horário é da loja (vários usam) ou próprio.
+ */
+export function contarHorariosUsados<T extends ModeloHorarioRanking>(modelos: T[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const m of modelos) {
+    const chaves = new Set<string>();
+    if (m.horario?.entrada && m.horario?.saida) chaves.add(chaveHorarioBase(m.horario));
+    for (const d of m.dias ?? []) {
+      if (!d.trabalha || !d.entrada || !d.saida) continue;
+      chaves.add(chaveHorarioBase({
+        entrada: String(d.entrada),
+        saida: String(d.saida),
+        intervalo_minutos: d.intervalo_minutos ?? 0,
+      }));
+    }
+    for (const chave of chaves) out.set(chave, (out.get(chave) ?? 0) + 1);
+  }
+  return out;
+}

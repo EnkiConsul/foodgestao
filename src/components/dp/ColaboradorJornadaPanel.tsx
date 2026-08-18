@@ -18,7 +18,7 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpModelosHorario, type ModeloHorarioColaborador } from "@/hooks/useDpModelosHorario";
-import { chaveHorarioBase, contarHorariosBase, horarioBaseMaisComum, sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
+import { chaveHorarioBase, contarHorariosBase, contarHorariosUsados, horarioBaseMaisComum, sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { formatarFaixaTurno, intervaloAbaixoDoLegal } from "@/lib/dp/turno-utils";
@@ -28,7 +28,7 @@ import { tituloSistema } from "@/lib/text/titleCase";
 import {
   cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia,
   detalharCargaSemanal, diaDivergeDoBase,
-  diaEhHorarioDaLoja, diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia,
+  colegasNoHorarioDoDia, diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia,
   horarioPadraoDaSemana, normalizarDias, preencherDiasComHorario, resumoConfigTexto, semanaDaGrade,
   turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
@@ -200,6 +200,12 @@ export function ColaboradorJornadaPanel({
       })
       .slice(0, 10);
   }, [modelos, colaborador?.cargo_id]);
+
+  /**
+   * Uso real de cada horário entre os colegas da unidade (a lista já exclui a
+   * pessoa em edição): é isso que define se o horário é da loja ou próprio.
+   */
+  const usosPorHorario = useMemo(() => contarHorariosUsados(modelos), [modelos]);
 
 
   /**
@@ -821,9 +827,10 @@ export function ColaboradorJornadaPanel({
           {dias.map((dia) => {
             const h = horarioEfetivoDia(dia, horario);
             const diferente = diaDivergeDoBase(dia, horario);
-            // Horário diferente que já existe como horário da loja é padrão da
-            // operação (ex.: fim de semana), não exceção deste colaborador.
-            const daLoja = diferente && diaEhHorarioDaLoja({ ...dia, ...h }, turnosResolvidos);
+            // Horário da loja é o que outros colegas realmente usam; horário só
+            // desta pessoa continua sendo exceção, mesmo já existindo o turno.
+            const colegas = colegasNoHorarioDoDia({ ...dia, ...h }, usosPorHorario);
+            const daLoja = diferente && colegas >= 1;
             return (
               <li key={dia.dow} className="space-y-2 p-3">
                 <div className="flex flex-wrap items-center gap-3">
@@ -836,10 +843,19 @@ export function ColaboradorJornadaPanel({
                   {dia.trabalha ? (
                     <div className="ml-auto flex items-center gap-2">
                       {diferente && (
-                        <Badge variant={daLoja ? "secondary" : "outline"} className="text-[10px]">
-                          {daLoja ? "Horário da loja" : "Horário próprio"}
+                        <Badge
+                          variant={daLoja ? "secondary" : "outline"}
+                          className="text-[10px]"
+                          title={daLoja
+                            ? `Usado por ${colegas} ${colegas === 1 ? "colega" : "colegas"} da unidade`
+                            : "Nenhum outro colaborador da unidade usa este horário"}
+                        >
+                          {daLoja
+                            ? `Horário da loja · ${colegas} ${colegas === 1 ? "colega" : "colegas"}`
+                            : "Horário próprio"}
                         </Badge>
                       )}
+
                       <RepetirHorarioPopover
                         dow={dia.dow}
                         onRepetir={(destinos) => repetirHorario(dia.dow, destinos)}

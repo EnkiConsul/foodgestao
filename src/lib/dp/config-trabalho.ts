@@ -398,18 +398,31 @@ export function copiarHorarioEntreDias(
 // qual horário vale em cada dia.
 // ------------------------------------------------------------------
 
-/** O horário próprio do dia coincide com um horário da loja já cadastrado? */
-export function diaEhHorarioDaLoja(dia: DiaConfig, turnos: TurnoResolvido[]): boolean {
-  if (!temHorarioProprio(dia)) return false;
+/**
+ * O horário próprio do dia é o horário da loja?
+ *
+ * Não basta existir um turno com esse horário: ao salvar, o sistema cria um
+ * turno para qualquer horário digitado, então a simples existência tornaria
+ * todo horário exclusivo em "horário da loja". Vale o uso real: quantos colegas
+ * da unidade trabalham nesse mesmo horário.
+ */
+export function diaEhHorarioDaLoja(
+  dia: DiaConfig,
+  usosPorHorario: Map<string, number>,
+  minimoColegas = 1,
+): boolean {
+  return colegasNoHorarioDoDia(dia, usosPorHorario) >= minimoColegas;
+}
+
+/** Quantos colegas usam o horário próprio deste dia (0 quando não há horário). */
+export function colegasNoHorarioDoDia(dia: DiaConfig, usosPorHorario: Map<string, number>): number {
+  if (!temHorarioProprio(dia)) return 0;
   const e = String(dia.entrada).slice(0, 5);
   const s = String(dia.saida).slice(0, 5);
-  const i = dia.intervalo_minutos ?? 0;
-  return turnos.some(
-    (t) => String(t.entrada).slice(0, 5) === e
-      && String(t.saida).slice(0, 5) === s
-      && (t.intervalo_minutos ?? 0) === i,
-  );
+  const i = Math.max(0, dia.intervalo_minutos ?? 0);
+  return usosPorHorario.get(`${e}|${s}|${i}`) ?? 0;
 }
+
 
 export interface GradeDiaSemana {
   dow: number;
