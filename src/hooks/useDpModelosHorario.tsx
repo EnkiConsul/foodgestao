@@ -25,38 +25,6 @@ export interface ModeloHorarioColaborador {
 const hoje = () => new Date().toISOString().slice(0, 10);
 
 /**
- * Horários de trabalho vigentes dos colegas — fonte única tanto do diálogo
- * "Copiar de outro colaborador" quanto dos atalhos de horário do painel.
- *
- * Traz os horários próprios de cada dia (exceções), que antes eram perdidos
- * na cópia porque não vinham no select.
- */
-export function useDpModelosHorario(unidadeId?: string | null, excluirColaboradorId?: string | null) {
-  const { selectedCompanyId } = useCompanyContext();
-
-  const query = useQuery({
-    queryKey: ["dp_modelos_horario", selectedCompanyId, unidadeId ?? null],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      let q = supabase
-        .from("dp_colaborador_config_trabalho")
-        .select(
-          "id, colaborador_id, unidade_id, turno_padrao_id, folga_variavel, folga_fixa_dow, vigencia_inicio, vigencia_fim, updated_at," +
-            " dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos," +
-            " turno:dp_turnos(entrada, saida, intervalo_minutos))," +
-            " colaborador:dp_colaboradores(nome, cargo, cargo_id, ativo)," +
-            " turno:dp_turnos!dp_colaborador_config_trabalho_turno_padrao_id_fkey(entrada, saida, intervalo_minutos)",
-        )
-        .eq("company_id", selectedCompanyId!)
-        .order("vigencia_inicio", { ascending: false });
-      if (unidadeId) q = q.eq("unidade_id", unidadeId);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as any[];
-    },
-  });
-
-/**
  * Converte uma linha de configuração vinda do banco no modelo da tela.
  *
  * O horário de cada dia pode estar gravado de duas formas: campos próprios no
@@ -84,15 +52,13 @@ export function mapModeloHorario(c: any): ModeloHorarioColaborador {
     dias: normalizarDias(
       (c.dias ?? []).map((d: any) => {
         const doTurno = d.turno ?? null;
-        const entrada = d.entrada ?? doTurno?.entrada ?? null;
-        const saida = d.saida ?? doTurno?.saida ?? null;
         return {
           dow: d.dow,
           trabalha: d.trabalha,
           // O turno do dia é da unidade de origem: só o horário viaja na cópia.
           turno_id: null,
-          entrada,
-          saida,
+          entrada: d.entrada ?? doTurno?.entrada ?? null,
+          saida: d.saida ?? doTurno?.saida ?? null,
           intervalo_minutos: d.intervalo_minutos ?? doTurno?.intervalo_minutos ?? null,
         };
       }),
@@ -102,10 +68,52 @@ export function mapModeloHorario(c: any): ModeloHorarioColaborador {
   };
 }
 
-export function useDpModelosHorarioMap(rows: any[], excluirColaboradorId?: string | null) {
-  return rows;
-}
+/**
+ * Horários de trabalho vigentes dos colegas — fonte única tanto do diálogo
+ * "Copiar de outro colaborador" quanto dos atalhos de horário do painel.
+ *
+ * Traz o horário de cada dia da semana, inclusive quando o dia usa um turno
+ * próprio da loja.
+ */
+export function useDpModelosHorario(unidadeId?: string | null, excluirColaboradorId?: string | null) {
+  const { selectedCompanyId } = useCompanyContext();
 
+  const query = useQuery({
+    queryKey: ["dp_modelos_horario", selectedCompanyId, unidadeId ?? null],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      let q = supabase
+        .from("dp_colaborador_config_trabalho")
+        .select(
+          "id, colaborador_id, unidade_id, turno_padrao_id, folga_variavel, folga_fixa_dow, vigencia_inicio, vigencia_fim, updated_at," +
+            " dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos," +
+            " turno:dp_turnos(entrada, saida, intervalo_minutos))," +
+            " colaborador:dp_colaboradores(nome, cargo, cargo_id, ativo)," +
+            " turno:dp_turnos!dp_colaborador_config_trabalho_turno_padrao_id_fkey(entrada, saida, intervalo_minutos)",
+        )
+        .eq("company_id", selectedCompanyId!)
+        .order("vigencia_inicio", { ascending: false });
+      if (unidadeId) q = q.eq("unidade_id", unidadeId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const modelos = useMemo<ModeloHorarioColaborador[]>(() => {
+    const vistos = new Set<string>();
+    return (query.data ?? [])
+      .filter((c) => !c.vigencia_fim || c.vigencia_fim >= hoje())
+      .filter((c) => c.colaborador?.ativo !== false)
+      .filter((c) => !excluirColaboradorId || c.colaborador_id !== excluirColaboradorId)
+      .filter((c) => {
+        if (vistos.has(c.colaborador_id)) return false;
+        vistos.add(c.colaborador_id);
+        return true;
+      })
+      .map(mapModeloHorario);
+  }, [query.data, excluirColaboradorId]);
 
   return { modelos, isLoading: query.isLoading, refetch: query.refetch };
 }
+
