@@ -25,7 +25,6 @@ import {
 } from "@/hooks/useDpColaboradores";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
-import { SincronizarPadraoDialog } from "@/components/dp/SincronizarPadraoDialog";
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 import { DesligamentoDialog } from "@/components/dp/DesligamentoDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
