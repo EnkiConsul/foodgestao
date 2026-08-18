@@ -727,65 +727,6 @@ export function ColaboradorJornadaPanel({
         </div>
       </div>
 
-      <section className="space-y-3 rounded-lg border p-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="flex items-center gap-2 text-sm font-semibold">
-            <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
-            {tituloSistema("Horário de Trabalho")}
-          </h3>
-          <span className="text-xs tabular-nums text-muted-foreground">{formatarHoras(cargaDiaria)}/dia</span>
-        </div>
-        <div className="grid gap-2 sm:grid-cols-3">
-          <div className="space-y-1">
-            <Label className="text-xs" htmlFor="ct-entrada">Entrada</Label>
-            <Input
-              id="ct-entrada" type="time" value={horario.entrada}
-              onChange={(e) => definirHorario({ entrada: e.target.value })}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs" htmlFor="ct-saida">Saída</Label>
-            <Input
-              id="ct-saida" type="time" value={horario.saida}
-              onChange={(e) => definirHorario({ saida: e.target.value })}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs" htmlFor="ct-intervalo">Intervalo (min)</Label>
-            <Input
-              id="ct-intervalo" type="number" min={0} inputMode="numeric" value={horario.intervalo_minutos}
-              onChange={(e) => definirHorario({ intervalo_minutos: Number(e.target.value || 0) })}
-            />
-          </div>
-        </div>
-        {atalhosColegas.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground">Copiar o horário de:</span>
-            {atalhosColegas.map((m) => {
-              const diferentes = diasDiferentesDoColega(m);
-              const detalhe = diferentes.length > 0
-                ? ` — dias com horário próprio: ${diferentes.map((d) => DOW_CURTO[d]).join(", ")}`
-                : "";
-              return (
-                <Button
-                  key={m.id} type="button" size="sm" variant="secondary" className="h-7 text-[11px]"
-                  title={`${formatarFaixaTurno(m.horario!)}${detalhe} — clique para copiar a semana inteira`}
-                  onClick={() => copiarSemanaDoColega(m)}
-                >
-                  {m.colaborador_nome.split(" ")[0]}
-                </Button>
-              );
-            })}
-          </div>
-        )}
-        <p className="text-[11px] text-muted-foreground">
-          {policy.horasPorConvocacao
-            ? "Este é o horário habitual de disponibilidade. O que vale para pagamento é o que for efetivamente convocado e trabalhado."
-            : "Este horário vale para os dias trabalhados. Dias de movimento diferente podem ter entrada e saída próprias — ajuste abaixo."}
-        </p>
-
-      </section>
-
       <section className="space-y-2">
         {origemSugestao && (
           <p className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
@@ -794,7 +735,10 @@ export function ColaboradorJornadaPanel({
           </p>
         )}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold">{tituloSistema("Dias da Semana")}</h3>
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
+            {tituloSistema("Horário de Trabalho por Dia")}
+          </h3>
           <div className="flex items-center gap-2">
             <Button
               type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
@@ -843,25 +787,10 @@ export function ColaboradorJornadaPanel({
             </Popover>
           </div>
         </div>
-        {baseDefasado && (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
-            <p className="min-w-0 flex-1 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Horário base diferente da semana. </span>
-              {baseDefasado.diasDominante} dia(s) usam {baseDefasado.entrada} → {baseDefasado.saida},
-              mas o horário base é {baseDefasado.baseEntrada} → {baseDefasado.baseSaida} e vale para{" "}
-              {baseDefasado.diasHerdando.map((d) => DOW_CURTO[d]).join(", ")} — por isso o total da semana fica menor.
-            </p>
-            <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={alinharHorarioBase}>
-              Usar {baseDefasado.entrada} → {baseDefasado.saida} como base
-            </Button>
-          </div>
-        )}
         <ul className="divide-y rounded-lg border">
           {dias.map((dia) => {
             const h = horarioEfetivoDia(dia, horario);
             const diferente = diaDivergeDoBase(dia, horario);
-            const herdaBase = dia.trabalha && !diferente && !dia.entrada && !dia.turno_id;
-
             // Horário diferente que já existe como horário da loja é padrão da
             // operação (ex.: fim de semana), não exceção deste colaborador.
             const daLoja = diferente && diaEhHorarioDaLoja({ ...dia, ...h }, turnosResolvidos);
@@ -876,9 +805,6 @@ export function ColaboradorJornadaPanel({
                   <span className="w-24 shrink-0 text-sm font-medium">{DOW_LABEL[dia.dow]}</span>
                   {dia.trabalha ? (
                     <div className="ml-auto flex items-center gap-2">
-                      {herdaBase && (
-                        <Badge variant="outline" className="text-[10px]">Usa o horário base</Badge>
-                      )}
                       {diferente && (
                         <Badge variant={daLoja ? "secondary" : "outline"} className="text-[10px]">
                           {daLoja ? "Horário da loja" : "Horário próprio"}
