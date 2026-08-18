@@ -20,7 +20,7 @@ import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTr
 import { useDpModelosHorario, type ModeloHorarioColaborador } from "@/hooks/useDpModelosHorario";
 import { chaveHorarioBase, contarHorariosBase, horarioBaseMaisComum, sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
-import { formatarHoras, calcularCargaDia } from "@/lib/dp/jornada-utils";
+import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { formatarFaixaTurno, intervaloAbaixoDoLegal } from "@/lib/dp/turno-utils";
 import { resolverTurnoDoHorario, type HorarioSimples } from "@/lib/dp/turno-resolver";
 import { verificarAlertasClt, idadeNaData, temAlertaClt, type AlertaClt } from "@/lib/dp/clt-alertas";
@@ -644,8 +644,6 @@ export function ColaboradorJornadaPanel({
     return () => onRegistrarSalvar(null);
   }, [onRegistrarSalvar]);
 
-
-  const cargaDiaria = calcularCargaDia(horario);
 
   return (
     <div ref={topoRef} className="space-y-5">
