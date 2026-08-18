@@ -24,9 +24,11 @@ export function useDpAdicionaisTempoServico() {
         .eq("company_id", selectedCompanyId!)
         .order("vigencia_inicio", { ascending: false });
       if (error) throw error;
-      return (data ?? []).map((r) => ({
-        ...(r as unknown as RegraTempoServico),
-        percentual_por_ciclo: Number((r as { percentual_por_ciclo: number }).percentual_por_ciclo),
+      const rows = (data ?? []) as unknown as RegraTempoServico[];
+      return rows.map((r) => ({
+        ...r,
+        percentual_por_ciclo: Number(r.percentual_por_ciclo),
+        ciclo_meses: Number(r.ciclo_meses),
       }));
     },
   });
