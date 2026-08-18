@@ -373,3 +373,205 @@ export function diasConsideradosBeneficio(input: {
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
+
+// ------------------------------------------------------------------
+// Isonomia por enquadramento sindical
+//
+// O grupo comparável mais forte é o sindical: colegas representados pelo mesmo
+// sindicato laboral e sob o mesmo sindicato patronal negociam os mesmos
+// benefícios. Sem sindicato definido, cai para unidade + cargo.
+// ------------------------------------------------------------------
+
+/** Chaves dos benefícios que vivem no cadastro do colaborador. */
+export type BeneficioChave = "vale_alimentacao" | "vale_transporte" | "premio_assiduidade" | string;
+
+export interface ColegaIsonomia {
+  colaborador_id: string;
+  nome: string;
+  cargo_id?: string | null;
+  unidade_id?: string | null;
+  /** Sindicato laboral do colaborador. */
+  sindicato_id?: string | null;
+  /** Sindicato patronal resolvido pela unidade. */
+  patronal_id?: string | null;
+  /** Situação de cada benefício: ativo e, quando houver, valor no mês. */
+  beneficios: Record<BeneficioChave, { ativo: boolean; valorMes?: number | null }>;
+}
+
+export interface AlvoIsonomia {
+  cargo_id?: string | null;
+  unidade_id?: string | null;
+  sindicato_id?: string | null;
+  patronal_id?: string | null;
+}
+
+export type IsonomiaBase = "sindicato" | "cargo_unidade";
+
+export interface GrupoIsonomia {
+  colegas: ColegaIsonomia[];
+  base: IsonomiaBase;
+}
+
+/**
+ * Grupo de colegas em situação equivalente.
+ *
+ * Preferência pelo enquadramento sindical (laboral + patronal, quando ambos
+ * conhecidos); na falta dele, unidade + cargo.
+ */
+export function grupoIsonomia(colegas: ColegaIsonomia[], alvo: AlvoIsonomia): GrupoIsonomia {
+  if (alvo.sindicato_id) {
+    const porSindicato = colegas.filter(
+      (c) => c.sindicato_id === alvo.sindicato_id
+        && (!alvo.patronal_id || !c.patronal_id || c.patronal_id === alvo.patronal_id),
+    );
+    if (porSindicato.length > 0) return { colegas: porSindicato, base: "sindicato" };
+  }
+  const porCargo = colegas.filter(
+    (c) => (!alvo.unidade_id || c.unidade_id === alvo.unidade_id)
+      && (!alvo.cargo_id || c.cargo_id === alvo.cargo_id),
+  );
+  return { colegas: porCargo, base: "cargo_unidade" };
+}
+
+export type DivergenciaTipo = "ausente" | "valor_menor";
+
+export interface DivergenciaIsonomia {
+  chave: BeneficioChave;
+  beneficio_nome: string;
+  tipo: DivergenciaTipo;
+  /** Nomes dos colegas do grupo que recebem o benefício. */
+  colegas: string[];
+  /** Base da comparação usada. */
+  base: IsonomiaBase;
+  /** Nome do sindicato em comum, quando a base é sindical. */
+  sindicato_nome?: string | null;
+  /** Valor mensal predominante no grupo (quando conhecido). */
+  valor_padrao?: number | null;
+  /** Valor mensal deste colaborador (quando o benefício existe com valor menor). */
+  valor_atual?: number | null;
+  titulo: string;
+  mensagem: string;
+  recomendacao: string;
+}
+
+/** Valor predominante (moda) entre os colegas que recebem o benefício. */
+function valorPredominante(valores: number[]): number | null {
+  const validos = valores.filter((v) => Number.isFinite(v) && v > 0);
+  if (validos.length === 0) return null;
+  const contagem = new Map<number, number>();
+  for (const v of validos) contagem.set(v, (contagem.get(v) ?? 0) + 1);
+  let melhor = validos[0];
+  let max = 0;
+  for (const [valor, qtd] of contagem) {
+    if (qtd > max || (qtd === max && valor > melhor)) { melhor = valor; max = qtd; }
+  }
+  return melhor;
+}
+
+export interface BeneficioAlvoIsonomia {
+  chave: BeneficioChave;
+  nome: string;
+  ativo: boolean;
+  /** Valor mensal concedido a este colaborador (quando aplicável). */
+  valorMes?: number | null;
+  /** Comparar também o valor com o do grupo. */
+  compararValor?: boolean;
+}
+
+const BASE_LEGAL =
+  "Benefício concedido de forma habitual a colegas em situação equivalente pode ser exigido " +
+  "judicialmente: isonomia (art. 461 da CLT e art. 7º, XXX da Constituição) e vedação à " +
+  "alteração prejudicial (art. 468 da CLT).";
+
+/**
+ * Divergências de benefício deste colaborador contra o grupo equivalente.
+ *
+ * Vale tanto para cadastro novo quanto para edição: o que importa é o benefício
+ * estar ausente (ou com valor menor) enquanto o grupo recebe.
+ */
+export function divergenciasIsonomia(
+  itens: BeneficioAlvoIsonomia[],
+  colegas: ColegaIsonomia[],
+  alvo: AlvoIsonomia,
+  opcoes?: { sindicatoNome?: string | null; minimoColegas?: number },
+): DivergenciaIsonomia[] {
+  const grupo = grupoIsonomia(colegas, alvo);
+  const minimo = Math.max(1, opcoes?.minimoColegas ?? 1);
+  const sindicatoNome = grupo.base === "sindicato" ? opcoes?.sindicatoNome ?? null : null;
+  const referencia = sindicatoNome
+    ? `representados pelo sindicato ${sindicatoNome}`
+    : "no mesmo cargo e unidade";
+
+  const out: DivergenciaIsonomia[] = [];
+
+  for (const item of itens) {
+    const comBeneficio = grupo.colegas.filter((c) => c.beneficios?.[item.chave]?.ativo);
+    if (comBeneficio.length < minimo) continue;
+
+    const nomes = comBeneficio.map((c) => c.nome);
+    const padrao = valorPredominante(
+      comBeneficio.map((c) => Number(c.beneficios?.[item.chave]?.valorMes ?? 0)),
+    );
+
+    if (!item.ativo) {
+      out.push({
+        chave: item.chave,
+        beneficio_nome: item.nome,
+        tipo: "ausente",
+        colegas: nomes,
+        base: grupo.base,
+        sindicato_nome: sindicatoNome,
+        valor_padrao: padrao,
+        valor_atual: null,
+        titulo: `Colegas ${referencia} recebem ${item.nome}`,
+        mensagem:
+          `${comBeneficio.length} colaborador(es) ${referencia} recebem este benefício e este ` +
+          `cadastro está sem ele. ${BASE_LEGAL}`,
+        recomendacao:
+          "Conceda nas mesmas condições ou registre o motivo objetivo (previsão em norma " +
+          "coletiva, condição do benefício ou opção do colaborador) com termo assinado.",
+      });
+      continue;
+    }
+
+    if (item.compararValor && padrao != null) {
+      const atual = Number(item.valorMes ?? 0);
+      // Diferença acima de 1 centavo evita alarme por arredondamento.
+      if (atual > 0 && padrao - atual > 0.01) {
+        out.push({
+          chave: item.chave,
+          beneficio_nome: item.nome,
+          tipo: "valor_menor",
+          colegas: nomes,
+          base: grupo.base,
+          sindicato_nome: sindicatoNome,
+          valor_padrao: padrao,
+          valor_atual: atual,
+          titulo: `${item.nome} menor que o dos colegas ${referencia}`,
+          mensagem:
+            `O grupo recebe o equivalente a ${padrao.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} ` +
+            `no mês e este cadastro está com ${atual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}. ` +
+            BASE_LEGAL,
+          recomendacao:
+            "Iguale o valor ao praticado no grupo ou registre o motivo objetivo da diferença.",
+        });
+      }
+    }
+  }
+
+  return out;
+}
+
+/** Motivos objetivos aceitos para manter a diferença de benefício. */
+export const MOTIVOS_ISONOMIA = [
+  { valor: "norma_coletiva", label: "Previsão diferente em norma coletiva (CCT/ACT)" },
+  { valor: "condicao_beneficio", label: "Não atende à condição do benefício" },
+  { valor: "opcao_colaborador", label: "Opção do colaborador (não adesão)" },
+  { valor: "outro", label: "Outro motivo (descrever)" },
+] as const;
+
+export type MotivoIsonomia = (typeof MOTIVOS_ISONOMIA)[number]["valor"];
+
+export const MOTIVO_ISONOMIA_LABEL: Record<string, string> = Object.fromEntries(
+  MOTIVOS_ISONOMIA.map((m) => [m.valor, m.label]),
+);
