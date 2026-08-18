@@ -8,6 +8,9 @@ import {
   resolverPadrao,
   type BeneficiosPadraoPayload,
   padraoParaColunasColaborador,
+  filtrarPadraoPorGrupos,
+  mesclarPadrao,
+  gruposComDiferenca,
 } from "@/lib/dp/beneficiosPadrao";
 
 
@@ -118,5 +121,41 @@ describe("padraoParaColunasColaborador", () => {
     expect(cols.assiduidade_max_atrasos).toBeNull();
     expect(cols.assiduidade_criterio).toBeNull();
     expect(cols.premio_assiduidade_tipo).toBe("valor");
+  });
+});
+
+describe("grupos do padrão", () => {
+  const cheio = {
+    premio_assiduidade: true,
+    assiduidade_max_atrasos: "3",
+    vale_alimentacao: true,
+    vale_alimentacao_valor: "24",
+    vale_transporte: true,
+    vale_transporte_valor_dia: "9",
+    beneficios: { b1: true },
+  } as never as BeneficiosPadraoPayload;
+
+  it("filtra apenas os campos dos grupos escolhidos", () => {
+    const so = filtrarPadraoPorGrupos(cheio, ["assiduidade"]);
+    expect(so.assiduidade_max_atrasos).toBe("3");
+    expect(so).not.toHaveProperty("vale_alimentacao_valor");
+    expect(so).not.toHaveProperty("beneficios");
+  });
+
+  it("mescla mantendo os grupos não escolhidos como já estavam", () => {
+    const base = { vale_alimentacao: true, vale_alimentacao_valor: "18" } as BeneficiosPadraoPayload;
+    const out = mesclarPadrao(base, cheio, ["assiduidade"]);
+    expect(out.vale_alimentacao_valor).toBe("18");
+    expect(out.assiduidade_max_atrasos).toBe("3");
+  });
+
+  it("aponta em quais grupos há diferença", () => {
+    const referencia = { ...cheio, assiduidade_max_atrasos: "5" } as BeneficiosPadraoPayload;
+    expect(gruposComDiferenca(cheio, referencia)).toEqual(["assiduidade"]);
+  });
+
+  it("limita as colunas do colaborador aos grupos escolhidos", () => {
+    const cols = padraoParaColunasColaborador(cheio, ["vale_transporte"]);
+    expect(Object.keys(cols).sort()).toEqual(["vale_transporte", "vale_transporte_valor_dia"]);
   });
 });
