@@ -623,8 +623,16 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     if (localStorage.getItem(naoPerguntarKey) === "1") return false;
     const atual = extrairPadrao(rem);
     if (!padraoTemConteudo(atual)) return false;
-    // Igual ao padrão que já vale para este colaborador → nada a perguntar.
-    if (padroesIguais(atual, padraoAplicavel?.payload ?? null)) return false;
+    // Igual a qualquer padrão vigente (cargo, unidade ou empresa) → nada a perguntar.
+    if (
+      padroesIguaisAlgum(atual, padroesBeneficios.data, {
+        unidadeId: form.unidade_id || null,
+        cargoId: form.cargo_id || null,
+      })
+    ) {
+      return false;
+    }
+
     // Mesmo conjunto já decidido nesta abertura da ficha → não repete.
     return !padraoRespondidoRef.current.has(assinaturaPadrao(atual));
   };
