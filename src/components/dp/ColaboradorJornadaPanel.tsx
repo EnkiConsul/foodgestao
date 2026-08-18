@@ -17,7 +17,7 @@ import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
-import { useDpModelosHorario } from "@/hooks/useDpModelosHorario";
+import { useDpModelosHorario, type ModeloHorarioColaborador } from "@/hooks/useDpModelosHorario";
 import { sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { formatarHoras, calcularCargaDia } from "@/lib/dp/jornada-utils";
@@ -39,6 +39,30 @@ const hoje = () => new Date().toISOString().slice(0, 10);
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : null);
 
 const HORARIO_PADRAO: HorarioSimples = { entrada: "08:00", saida: "17:00", intervalo_minutos: 60 };
+
+/**
+ * Identidade da semana de um colega: horário base + horário de cada dia. Usada
+ * para não repetir o mesmo modelo nos atalhos e para saber se o colega tem dias
+ * com horário próprio (padrão da loja em dias de maior demanda).
+ */
+function assinaturaSemana(m: ModeloHorarioColaborador): string {
+  const base = m.horario
+    ? `${m.horario.entrada}-${m.horario.saida}-${m.horario.intervalo_minutos ?? 0}`
+    : "sem-base";
+  const semana = [...m.dias]
+    .sort((a, b) => a.dow - b.dow)
+    .map((d) => (d.trabalha
+      ? `${d.dow}:${d.entrada ?? "="}-${d.saida ?? "="}-${d.intervalo_minutos ?? "="}`
+      : `${d.dow}:folga`))
+    .join("|");
+  return `${base}#${semana}#${m.folga_variavel ? "var" : "fixa"}`;
+}
+
+/** Dias do colega com horário diferente do horário base dele. */
+function diasDiferentesDoColega(m: ModeloHorarioColaborador): number[] {
+  if (!m.horario) return [];
+  return m.dias.filter((d) => d.trabalha && diaDivergeDoBase(d, m.horario!)).map((d) => d.dow);
+}
 
 export interface JornadaColaborador {
   id?: string | null;
@@ -148,13 +172,15 @@ export function ColaboradorJornadaPanel({
     return ordenados
       .filter((m) => !!m.horario)
       .filter((m) => {
-        const chave = `${m.horario!.entrada}-${m.horario!.saida}-${m.horario!.intervalo_minutos ?? 0}`;
-        if (vistos.has(chave)) return false;
-        vistos.add(chave);
+        // A semana inteira entra na chave: dois colegas com o mesmo horário base
+        // podem ter dias com horário diferente (padrão da loja no movimento).
+        if (vistos.has(assinaturaSemana(m))) return false;
+        vistos.add(assinaturaSemana(m));
         return true;
       })
       .slice(0, 10);
   }, [modelos, colaborador?.cargo_id]);
+
 
   useEffect(() => {
     if (!active || vigente || colaborador?.id || !colaborador?.cargo_id || alterado || modelos.length === 0) return;
@@ -331,6 +357,31 @@ export function ColaboradorJornadaPanel({
       });
     }
     toast.success("Horário copiado do colega — revise e salve");
+  };
+
+  /**
+   * Atalho pelo nome do colega: copia a semana inteira, não só o horário base.
+   * Dias com entrada e saída diferentes normalmente são o padrão da loja nos
+   * dias de maior movimento, então precisam viajar junto na cópia.
+   */
+  const copiarSemanaDoColega = (m: ModeloHorarioColaborador) => {
+    marcarAlterado();
+    setFolgaVariavel(m.folga_variavel);
+    setDias(normalizarDias(m.dias));
+    if (m.horario?.entrada && m.horario?.saida) {
+      horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "copiado";
+      setHorario({
+        entrada: m.horario.entrada,
+        saida: m.horario.saida,
+        intervalo_minutos: m.horario.intervalo_minutos ?? 0,
+      });
+    }
+    const diferentes = diasDiferentesDoColega(m);
+    toast.success(
+      diferentes.length > 0
+        ? `Horário de ${m.colaborador_nome.split(" ")[0]} copiado, incluindo ${diferentes.map((d) => DOW_CURTO[d]).join(", ")} — revise e salve`
+        : `Horário de ${m.colaborador_nome.split(" ")[0]} copiado — revise e salve`,
+    );
   };
 
   /** Aplica uma grade semanal da unidade sobre a semana da tela. */
@@ -652,25 +703,27 @@ export function ColaboradorJornadaPanel({
         {atalhosColegas.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] text-muted-foreground">Copiar o horário de:</span>
-            {atalhosColegas.map((m) => (
-              <Button
-                key={m.id} type="button" size="sm" variant="secondary" className="h-7 text-[11px]"
-                title={`${formatarFaixaTurno(m.horario!)} — clique para usar este horário`}
-                onClick={() => definirHorario({
-                  entrada: m.horario!.entrada,
-                  saida: m.horario!.saida,
-                  intervalo_minutos: m.horario!.intervalo_minutos ?? 0,
-                })}
-              >
-                {m.colaborador_nome.split(" ")[0]}
-              </Button>
-            ))}
+            {atalhosColegas.map((m) => {
+              const diferentes = diasDiferentesDoColega(m);
+              const detalhe = diferentes.length > 0
+                ? ` — dias com horário próprio: ${diferentes.map((d) => DOW_CURTO[d]).join(", ")}`
+                : "";
+              return (
+                <Button
+                  key={m.id} type="button" size="sm" variant="secondary" className="h-7 text-[11px]"
+                  title={`${formatarFaixaTurno(m.horario!)}${detalhe} — clique para copiar a semana inteira`}
+                  onClick={() => copiarSemanaDoColega(m)}
+                >
+                  {m.colaborador_nome.split(" ")[0]}
+                </Button>
+              );
+            })}
           </div>
         )}
         <p className="text-[11px] text-muted-foreground">
           {policy.horasPorConvocacao
             ? "Este é o horário habitual de disponibilidade. O que vale para pagamento é o que for efetivamente convocado e trabalhado."
-            : "Este horário vale para todos os dias trabalhados. Dias diferentes ficam como exceção logo abaixo."}
+            : "Este horário vale para os dias trabalhados. Dias de movimento diferente podem ter entrada e saída próprias — ajuste abaixo."}
         </p>
 
       </section>

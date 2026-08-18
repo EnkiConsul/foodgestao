@@ -25,11 +25,55 @@ export interface ModeloHorarioColaborador {
 const hoje = () => new Date().toISOString().slice(0, 10);
 
 /**
+ * Converte uma linha de configuração vinda do banco no modelo da tela.
+ *
+ * O horário de cada dia pode estar gravado de duas formas: campos próprios no
+ * dia ou um turno da loja vinculado ao dia (o padrão para dias de maior
+ * demanda). Nas duas o horário precisa vir preenchido, senão a cópia perde os
+ * dias diferentes e todo mundo cai no horário base.
+ */
+export function mapModeloHorario(c: any): ModeloHorarioColaborador {
+  return {
+    id: c.id,
+    colaborador_id: c.colaborador_id,
+    colaborador_nome: c.colaborador?.nome ?? "Colaborador",
+    cargo: c.colaborador?.cargo ?? null,
+    cargo_id: c.colaborador?.cargo_id ?? null,
+    unidade_id: c.unidade_id ?? null,
+    turno_padrao_id: c.turno_padrao_id ?? null,
+    folga_variavel: !!c.folga_variavel,
+    horario: c.turno?.entrada && c.turno?.saida
+      ? {
+        entrada: String(c.turno.entrada).slice(0, 5),
+        saida: String(c.turno.saida).slice(0, 5),
+        intervalo_minutos: c.turno.intervalo_minutos ?? 0,
+      }
+      : null,
+    dias: normalizarDias(
+      (c.dias ?? []).map((d: any) => {
+        const doTurno = d.turno ?? null;
+        return {
+          dow: d.dow,
+          trabalha: d.trabalha,
+          // O turno do dia é da unidade de origem: só o horário viaja na cópia.
+          turno_id: null,
+          entrada: d.entrada ?? doTurno?.entrada ?? null,
+          saida: d.saida ?? doTurno?.saida ?? null,
+          intervalo_minutos: d.intervalo_minutos ?? doTurno?.intervalo_minutos ?? null,
+        };
+      }),
+      c.folga_fixa_dow ?? null,
+    ),
+    usado_em: c.updated_at ?? c.vigencia_inicio,
+  };
+}
+
+/**
  * Horários de trabalho vigentes dos colegas — fonte única tanto do diálogo
  * "Copiar de outro colaborador" quanto dos atalhos de horário do painel.
  *
- * Traz os horários próprios de cada dia (exceções), que antes eram perdidos
- * na cópia porque não vinham no select.
+ * Traz o horário de cada dia da semana, inclusive quando o dia usa um turno
+ * próprio da loja.
  */
 export function useDpModelosHorario(unidadeId?: string | null, excluirColaboradorId?: string | null) {
   const { selectedCompanyId } = useCompanyContext();
@@ -42,7 +86,8 @@ export function useDpModelosHorario(unidadeId?: string | null, excluirColaborado
         .from("dp_colaborador_config_trabalho")
         .select(
           "id, colaborador_id, unidade_id, turno_padrao_id, folga_variavel, folga_fixa_dow, vigencia_inicio, vigencia_fim, updated_at," +
-            " dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos)," +
+            " dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos," +
+            " turno:dp_turnos(entrada, saida, intervalo_minutos))," +
             " colaborador:dp_colaboradores(nome, cargo, cargo_id, ativo)," +
             " turno:dp_turnos!dp_colaborador_config_trabalho_turno_padrao_id_fkey(entrada, saida, intervalo_minutos)",
         )
@@ -66,36 +111,9 @@ export function useDpModelosHorario(unidadeId?: string | null, excluirColaborado
         vistos.add(c.colaborador_id);
         return true;
       })
-      .map((c) => ({
-        id: c.id,
-        colaborador_id: c.colaborador_id,
-        colaborador_nome: c.colaborador?.nome ?? "Colaborador",
-        cargo: c.colaborador?.cargo ?? null,
-        cargo_id: c.colaborador?.cargo_id ?? null,
-        unidade_id: c.unidade_id ?? null,
-        turno_padrao_id: c.turno_padrao_id ?? null,
-        folga_variavel: !!c.folga_variavel,
-        horario: c.turno?.entrada && c.turno?.saida
-          ? {
-            entrada: String(c.turno.entrada).slice(0, 5),
-            saida: String(c.turno.saida).slice(0, 5),
-            intervalo_minutos: c.turno.intervalo_minutos ?? 0,
-          }
-          : null,
-        dias: normalizarDias(
-          (c.dias ?? []).map((d: any) => ({
-            dow: d.dow,
-            trabalha: d.trabalha,
-            turno_id: d.turno_id ?? null,
-            entrada: d.entrada ?? null,
-            saida: d.saida ?? null,
-            intervalo_minutos: d.intervalo_minutos ?? null,
-          })),
-          c.folga_fixa_dow ?? null,
-        ),
-        usado_em: c.updated_at ?? c.vigencia_inicio,
-      }));
+      .map(mapModeloHorario);
   }, [query.data, excluirColaboradorId]);
 
   return { modelos, isLoading: query.isLoading, refetch: query.refetch };
 }
+
