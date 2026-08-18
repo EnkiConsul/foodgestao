@@ -454,3 +454,55 @@ export function padraoParaColunasColaborador(
   };
   return Object.fromEntries(Object.entries(todas).filter(([k]) => permitidos.has(k)));
 }
+
+/** Uma diferença entre o cadastro gravado do colaborador e o padrão vigente. */
+export interface DivergenciaColaborador {
+  coluna: string;
+  rotulo: string;
+  grupo: GrupoPadrao;
+  padrao: string;
+  atual: string;
+}
+
+/** Compara nulo/zero/"": para o usuário, "não informado" é tudo a mesma coisa. */
+const equivalente = (a: unknown, b: unknown): boolean => {
+  const norm = (v: unknown): unknown => {
+    if (v === null || v === undefined || v === "") return null;
+    if (typeof v === "boolean") return v;
+    const n = Number(String(v).replace(",", "."));
+    if (Number.isFinite(n)) return n === 0 ? null : n;
+    return String(v);
+  };
+  return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+};
+
+/**
+ * Diferenças entre as colunas gravadas de um colaborador e o padrão vigente.
+ * Usa as mesmas regras de coerência da replicação, então o que aparece aqui é
+ * exatamente o que a sincronização vai gravar.
+ */
+export function divergenciasColaboradorVsPadrao(
+  colaborador: Record<string, unknown> | null | undefined,
+  payload: BeneficiosPadraoPayload | null | undefined,
+  grupos: readonly GrupoPadrao[] = GRUPOS_PADRAO,
+): DivergenciaColaborador[] {
+  if (!colaborador || !payload) return [];
+  // A ficha de benefícios vive em outra tabela: não é comparável por coluna.
+  const gruposColunas = grupos.filter((g) => g !== "beneficios");
+  if (!gruposColunas.length) return [];
+  const esperadas = padraoParaColunasColaborador(payload, gruposColunas);
+  const out: DivergenciaColaborador[] = [];
+  for (const [coluna, esperado] of Object.entries(esperadas)) {
+    const atual = colaborador[coluna];
+    if (equivalente(atual, esperado)) continue;
+    const campo = coluna as CampoPadrao;
+    out.push({
+      coluna,
+      rotulo: ROTULOS[campo] ?? coluna,
+      grupo: grupoDoCampo(campo),
+      padrao: paraTexto(esperado ?? null),
+      atual: paraTexto(atual ?? null),
+    });
+  }
+  return out;
+}
