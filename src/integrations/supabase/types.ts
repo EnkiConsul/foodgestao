@@ -13172,6 +13172,10 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_documento_requisitos_seed: {
+        Args: { _company_id: string }
+        Returns: number
+      }
       dp_editar_desligamento: {
         Args: {
           p_colaborador_id: string
