@@ -260,7 +260,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   useEffect(() => {
     if (!open) { padraoAplicadoRef.current = null; setPadraoAplicado(false); return; }
-    if (isEditRef.current) return;
+    if (isEdit) return;
     const unidade = form.unidade_id || null;
     if (!unidade || padraoAplicadoRef.current === unidade) return;
     const padrao = resolverPadrao(padroesBeneficios.data, unidade);
