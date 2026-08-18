@@ -5,10 +5,11 @@
 // benefícios são, na prática, iguais para todo o time de uma unidade (mesma
 // negociação coletiva). O primeiro colaborador cadastrado define o padrão e os
 // próximos já nascem pré-preenchidos. O padrão da unidade tem prioridade sobre
-// o padrão geral da empresa; nada é aplicado a colaborador já existente.
+// o padrão geral da empresa. Ao salvar, o usuário escolhe o alcance: só os
+// próximos cadastros ou também os colaboradores ativos já cadastrados.
 // ------------------------------------------------------------------
 
-import type { RemuneracaoFormState } from "@/components/dp/RemuneracaoFields";
+import { numeroBR, type RemuneracaoFormState } from "@/components/dp/RemuneracaoFields";
 
 /** Campos que fazem parte do padrão (salário/hora nunca entram: são do cargo). */
 export const CAMPOS_PADRAO = [
@@ -273,4 +274,56 @@ export function resumoPadrao(payload: BeneficiosPadraoPayload | null | undefined
   const marcados = Object.values(payload.beneficios ?? {}).filter(Boolean).length;
   if (marcados > 0) itens.push(`${marcados} benefício(s) da ficha`);
   return itens;
+}
+
+/** Alcance da gravação: só os próximos cadastros ou também quem já existe. */
+export type PadraoAlcance = "novos" | "todos";
+
+const inteiro = (v: unknown): number => {
+  const n = numeroBR(String(v ?? ""));
+  return Math.max(0, Math.trunc(Number.isFinite(n) ? n : 0));
+};
+
+const decimal = (v: unknown): number => {
+  const n = numeroBR(String(v ?? ""));
+  return Number.isFinite(n) ? n : 0;
+};
+
+/**
+ * Converte o padrão nas colunas de `dp_colaboradores`, com as mesmas regras de
+ * coerência do formulário (prêmio desligado zera critério/limites, VA desligado
+ * zera valor). `beneficios` não entra aqui: vive em `dp_colaborador_beneficios`.
+ */
+export function padraoParaColunasColaborador(
+  payload: BeneficiosPadraoPayload,
+): Record<string, unknown> {
+  const premio = !!payload.premio_assiduidade;
+  const va = !!payload.vale_alimentacao;
+  const vt = !!payload.vale_transporte;
+  const consideraAtestado = premio ? !!payload.assiduidade_considera_atestado : true;
+  return {
+    vale_transporte: vt,
+    vale_transporte_valor_dia: vt ? decimal(payload.vale_transporte_valor_dia) : null,
+
+    premio_assiduidade: premio,
+    premio_assiduidade_valor: premio ? decimal(payload.premio_assiduidade_valor) || null : null,
+    premio_assiduidade_tipo: premio ? (payload.premio_assiduidade_tipo ?? "valor") : "valor",
+    assiduidade_criterio: premio ? (payload.assiduidade_criterio ?? null) : null,
+    assiduidade_tolerancia_min: inteiro(payload.assiduidade_tolerancia_min),
+    assiduidade_max_atrasos: premio ? inteiro(payload.assiduidade_max_atrasos) : null,
+    assiduidade_considera_atestado: consideraAtestado,
+    assiduidade_max_atestados:
+      premio && consideraAtestado ? inteiro(payload.assiduidade_max_atestados) : null,
+
+    vale_alimentacao: va,
+    vale_alimentacao_valor: va ? decimal(payload.vale_alimentacao_valor) || null : null,
+    vale_alimentacao_periodicidade: payload.vale_alimentacao_periodicidade ?? "mensal",
+    vale_alimentacao_dias_base: inteiro(payload.vale_alimentacao_dias_base) || 22,
+    vale_alimentacao_dias_origem: payload.vale_alimentacao_dias_origem ?? "jornada",
+    vale_alimentacao_desconto_tipo: payload.vale_alimentacao_desconto_tipo ?? "nenhum",
+    vale_alimentacao_desconto_valor:
+      (payload.vale_alimentacao_desconto_tipo ?? "nenhum") === "nenhum"
+        ? 0
+        : decimal(payload.vale_alimentacao_desconto_valor),
+  };
 }
