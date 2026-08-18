@@ -1,14 +1,21 @@
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { DiferencaPadrao } from "@/lib/dp/beneficiosPadrao";
+
+/** Uma linha do aviso: rótulo do campo, valor do padrão e valor deste cadastro. */
+export interface ItemDivergencia {
+  rotulo: string;
+  padrao: string;
+  atual: string;
+}
 
 interface Props {
   /** De onde vem o padrão: "cargo em unidade", "unidade" ou "empresa". */
   origem: string;
-  diferencas: DiferencaPadrao[];
+  diferencas: ItemDivergencia[];
   onAplicar: () => void;
   onDispensar: () => void;
 }
+
 
 /**
  * Cadastro já existente que difere do padrão vigente. Só avisa — nada é
