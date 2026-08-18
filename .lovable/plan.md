@@ -14,15 +14,20 @@ comportamento do benefício em meses com mais ou menos dias trabalhados.
 
 ## O que muda
 
-1. O padrão do grupo passa a ser exibido na periodicidade predominante do grupo:
-   - grupo diário: `Padrão do grupo: R$ 24,00/dia (22 dias ≈ R$ 528,00/mês)`
+1. O padrão do grupo passa a ser exibido na periodicidade predominante do grupo, sem
+   conversão para mês quando o padrão é diário (dias trabalhados variam por colaborador,
+   inclusive por convocação):
+   - grupo diário: `Padrão do grupo: R$ 24,00/dia`
    - grupo mensal: `Padrão do grupo: R$ 528,00/mês`
 2. A mesma frase é usada nos três lugares: banner da aba Remuneração, diálogo de
    confirmação ao salvar e mensagem de divergência de valor.
 3. "Aplicar como os colegas" passa a copiar a configuração nativa do grupo
-   (periodicidade + valor unitário + dias base), não o valor mensal convertido.
-4. Quando o próprio cadastro tem valor menor, a comparação continua sendo mensal (é o único
-   jeito de comparar diário com mensal), mas o texto mostra os dois lados no formato nativo.
+   (periodicidade + valor unitário), não o valor mensal convertido.
+4. Divergência de valor: quando o cadastro e o grupo usam a mesma periodicidade, a
+   comparação e o texto ficam no valor unitário (R$ 22,00/dia contra R$ 24,00/dia). Só
+   quando as periodicidades diferem o motor cai para o equivalente mensal, e o texto diz
+   explicitamente que é uma estimativa mensal.
+
 
 ## Detalhes técnicos
 
