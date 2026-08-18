@@ -32,19 +32,22 @@ comportamento do benefício em meses com mais ou menos dias trabalhados.
 ## Detalhes técnicos
 
 - `src/lib/dp/isonomia-snapshot.ts`: o snapshot de cada colega passa a carregar, além de
-  `valorMes`, os campos nativos do benefício (`valorUnitario`, `periodicidade`, `diasBase`).
+  `valorMes`, os campos nativos do benefício (`valorUnitario`, `periodicidade`).
 - `src/lib/dp/beneficios-regras.ts`:
   - `ColegaIsonomia.beneficios` ganha os campos nativos opcionais.
-  - `DivergenciaIsonomia` ganha `padrao_unitario`, `padrao_periodicidade` e `padrao_dias_base`,
-    derivados da configuração predominante entre os colegas que recebem (mesma lógica de moda
-    já usada em `valorPredominante`, aplicada ao par valor+periodicidade).
-  - Nova função de formatação `descreverPadraoGrupo(divergencia)` que devolve a frase única
-    usada pela UI; a `mensagem` de `valor_menor` usa a mesma função.
+  - `DivergenciaIsonomia` ganha `padrao_unitario` e `padrao_periodicidade`, derivados da
+    configuração predominante entre os colegas que recebem (mesma lógica de moda já usada em
+    `valorPredominante`, aplicada ao par valor+periodicidade).
+  - Nova função `descreverPadraoGrupo(divergencia)` devolve a frase única usada pela UI, sem
+    projeção mensal quando a periodicidade é diária.
+  - Comparação de valor: se `padrao_periodicidade` é igual à do cadastro, compara unitário
+    contra unitário; se diferem, compara o equivalente mensal e o texto sinaliza estimativa.
 - `src/components/dp/BeneficioIsonomiaAviso.tsx` e
   `src/components/dp/BeneficioDispensaDialog.tsx`: trocam o `formatarBRL(valor_padrao)/mês`
   pela nova frase.
 - `src/components/dp/ColaboradorFormDialog.tsx`: `aplicarPadraoIsonomia` usa
-  `padrao_periodicidade`/`padrao_unitario`/`padrao_dias_base` do grupo (fallback para mensal
-  quando o grupo não tiver configuração nativa conhecida).
-- `src/test/unit/`: teste cobrindo grupo diário (24/dia, 22 dias) — a divergência deve
-  reportar unitário 24 diário e mensal 528, e o "aplicar padrão" deve produzir diário 24.
+  `padrao_periodicidade`/`padrao_unitario` do grupo (fallback para mensal quando o grupo não
+  tiver configuração nativa conhecida), mantendo os dias base já configurados no cadastro.
+- `src/test/unit/`: teste cobrindo grupo diário (24/dia) — a divergência deve reportar
+  unitário 24 diário sem citar dias no mês, e o "aplicar padrão" deve produzir diário 24.
+
