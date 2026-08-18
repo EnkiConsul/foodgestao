@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   assinaturaPadrao,
+  diferencasPadrao,
   nivelPadrao,
   padroesIguais,
+  padroesIguaisAlgum,
   resolverPadrao,
   type BeneficiosPadraoPayload,
 } from "@/lib/dp/beneficiosPadrao";
+
 
 const base = {
   vale_transporte: true,
