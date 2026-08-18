@@ -1679,6 +1679,30 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             </AlertDialogDescription>
           </AlertDialogHeader>
 
+          {padraoAplicavel && (
+            <div className="rounded-xl border bg-muted/40 p-3 text-xs">
+              <p className="font-medium text-foreground">
+                Diferenças em relação ao padrão{" "}
+                {nivelPadrao(padraoAplicavel) === "cargo"
+                  ? "do cargo"
+                  : nivelPadrao(padraoAplicavel) === "unidade"
+                    ? "da unidade"
+                    : "da empresa"}
+              </p>
+              <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                {diferencasPadrao(extrairPadrao(rem), padraoAplicavel.payload)
+                  .slice(0, 6)
+                  .map((d) => (
+                    <li key={d.campo}>
+                      {d.rotulo}: {d.padrao} → <span className="text-foreground">{d.atual}</span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
+
+
+
           <RadioGroup
             value={escopoPadrao}
             onValueChange={(v) => setEscopoPadrao(v as PadraoEscopo)}
