@@ -162,40 +162,8 @@ export default function DpAdicionaisTempoServico() {
             sistema voltar a calcular o benefício na folha.
           </p>
         )}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <div className="space-y-2">
-            <Label>Ano de vigência</Label>
-            <Input value={ano} onChange={(e) => setAno(e.target.value)} inputMode="numeric" />
-          </div>
-          <div className="space-y-2">
-            <Label>Cota por dependente (R$)</Label>
-            <Input
-              value={cota}
-              onChange={(e) => setCota(e.target.value)}
-              placeholder={config.cota != null ? moedaBR(config.cota) : "Ex: 65,00"}
-              inputMode="decimal"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Teto de baixa renda (R$)</Label>
-            <Input
-              value={teto}
-              onChange={(e) => setTeto(e.target.value)}
-              placeholder={config.teto != null ? moedaBR(config.teto) : "Ex: 1.900,00"}
-              inputMode="decimal"
-            />
-          </div>
-          <div className="flex items-end">
-            <Button onClick={() => void gravarTabela()} disabled={salvandoConfig} className="w-full">
-              <Check className="mr-2 h-4 w-4" /> Confirmar tabela
-            </Button>
-          </div>
-        </div>
-        {config.confirmadoEm && (
-          <p className="text-xs text-muted-foreground">
-            Última confirmação em {config.confirmadoEm.split("-").reverse().join("/")}.
-          </p>
-        )}
+        <SalarioFamiliaTabelaForm />
+
       </DpContentCard>
 
       {/* Regras de adicional */}
