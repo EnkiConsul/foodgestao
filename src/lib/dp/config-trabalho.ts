@@ -99,13 +99,116 @@ export function turnoDoDia(
   return base;
 }
 
-/** Carga semanal prevista, somando a carga líquida do turno de cada dia trabalhado. */
-export function cargaSemanalConfig(config: ConfigTrabalho, turnos: TurnoResolvido[]): number {
-  const total = config.dias.reduce((acc, dia) => {
+/** De onde saiu o horário que vale para o dia. */
+export type OrigemHorarioDia = "proprio" | "turno_do_dia" | "base";
+
+export interface DetalheCargaDia {
+  dow: number;
+  trabalha: boolean;
+  turno: TurnoResolvido | null;
+  origem: OrigemHorarioDia | null;
+  minutos: number;
+}
+
+/**
+ * Quebra da carga semanal por dia. Existe para o total ser auditável na tela:
+ * um dia sem horário próprio herda o horário base e essa herança precisa ficar
+ * visível, senão a diferença no total fica sem explicação.
+ */
+export function detalharCargaSemanal(
+  config: ConfigTrabalho,
+  turnos: TurnoResolvido[],
+): DetalheCargaDia[] {
+  return config.dias.map((dia) => {
     const turno = turnoDoDia(dia, config.turno_padrao_id, turnos);
-    return turno ? acc + cargaLiquidaHoras(turno) : acc;
-  }, 0);
-  return Math.round(total * 100) / 100;
+    const origem: OrigemHorarioDia | null = !dia.trabalha
+      ? null
+      : temHorarioProprio(dia)
+        ? "proprio"
+        : dia.turno_id
+          ? "turno_do_dia"
+          : "base";
+    return {
+      dow: dia.dow,
+      trabalha: dia.trabalha,
+      turno,
+      origem: turno ? origem : null,
+      minutos: turno ? Math.round(cargaLiquidaHoras(turno) * 60) : 0,
+    };
+  });
+}
+
+/** Carga semanal em minutos — soma sem arredondar dia a dia. */
+export function cargaSemanalMinutos(config: ConfigTrabalho, turnos: TurnoResolvido[]): number {
+  return detalharCargaSemanal(config, turnos).reduce((acc, d) => acc + d.minutos, 0);
+}
+
+/**
+ * Carga semanal prevista em horas. Acumula minutos e arredonda só no fim: somar
+ * horas já arredondadas por dia gerava desvio de minutos no total da semana.
+ */
+export function cargaSemanalConfig(config: ConfigTrabalho, turnos: TurnoResolvido[]): number {
+  return Math.round((cargaSemanalMinutos(config, turnos) / 60) * 100) / 100;
+}
+
+export interface BaseDivergente {
+  /** Faixa usada pela maioria dos dias trabalhados. */
+  entrada: string;
+  saida: string;
+  intervalo_minutos: number;
+  /** Faixa do horário base atual. */
+  baseEntrada: string;
+  baseSaida: string;
+  /** Dias que herdam o horário base e mudariam com o ajuste. */
+  diasHerdando: number[];
+  /** Quantos dias usam a faixa dominante. */
+  diasDominante: number;
+}
+
+/**
+ * O horário base ficou defasado em relação à semana? Acontece quando a loja
+ * mudou de horário, os dias foram atualizados um a um e o base continuou antigo:
+ * o dia que herda o base passa a contar horas a menos sem ninguém perceber.
+ */
+export function baseDivergenteDosDias(
+  config: ConfigTrabalho,
+  turnos: TurnoResolvido[],
+): BaseDivergente | null {
+  const detalhes = detalharCargaSemanal(config, turnos);
+  const herdando = detalhes.filter((d) => d.origem === "base");
+  if (herdando.length === 0) return null;
+
+  const base = herdando[0].turno;
+  if (!base) return null;
+
+  const proprios = detalhes.filter((d) => d.origem && d.origem !== "base" && d.turno);
+  if (proprios.length === 0) return null;
+
+  const contagem = new Map<string, { turno: TurnoResolvido; n: number }>();
+  for (const d of proprios) {
+    const t = d.turno!;
+    const chave = `${t.entrada}-${t.saida}-${t.intervalo_minutos ?? 0}`;
+    const atual = contagem.get(chave);
+    if (atual) atual.n += 1;
+    else contagem.set(chave, { turno: t, n: 1 });
+  }
+  const dominante = [...contagem.values()].sort((a, b) => b.n - a.n)[0];
+  if (!dominante) return null;
+
+  const igual = dominante.turno.entrada === base.entrada
+    && dominante.turno.saida === base.saida
+    && (dominante.turno.intervalo_minutos ?? 0) === (base.intervalo_minutos ?? 0);
+  if (igual) return null;
+
+  return {
+    entrada: dominante.turno.entrada,
+    saida: dominante.turno.saida,
+    intervalo_minutos: dominante.turno.intervalo_minutos ?? 0,
+    baseEntrada: base.entrada,
+    baseSaida: base.saida,
+    diasHerdando: herdando.map((d) => d.dow),
+    diasDominante: dominante.n,
+  };
 }
 
 export function diasTrabalhados(config: ConfigTrabalho): number[] {
