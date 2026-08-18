@@ -25,8 +25,10 @@ import {
 import {
   alertasBeneficioAlimentacao, DESCONTO_TIPO_LABEL, DIAS_BASE_PADRAO, DIAS_ORIGEM_LABEL,
   PERIODICIDADE_LABEL, descreverBaseSimulacao, descreverDiasJornada, diasSimuladosMesComercial,
-  type DescontoTipo, type DiaSemanaTrabalho, type DiasOrigem, type Periodicidade,
+  type DescontoTipo, type DiaSemanaTrabalho, type DiasOrigem, type DivergenciaIsonomia,
+  type Periodicidade,
 } from "@/lib/dp/beneficios-regras";
+import { BeneficioIsonomiaAviso } from "@/components/dp/BeneficioIsonomiaAviso";
 
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
