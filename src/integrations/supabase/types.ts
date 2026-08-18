@@ -3750,7 +3750,9 @@ export type Database = {
           adicional_percentual: number
           aprendiz: boolean
           aprovacao_status: Database["public"]["Enums"]["dp_aprovacao_status"]
+          assiduidade_considera_atestado: boolean
           assiduidade_criterio: string | null
+          assiduidade_max_atestados: number | null
           assiduidade_max_atrasos: number | null
           assiduidade_tolerancia_min: number
           ativo: boolean
@@ -3820,7 +3822,9 @@ export type Database = {
           adicional_percentual?: number
           aprendiz?: boolean
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
+          assiduidade_considera_atestado?: boolean
           assiduidade_criterio?: string | null
+          assiduidade_max_atestados?: number | null
           assiduidade_max_atrasos?: number | null
           assiduidade_tolerancia_min?: number
           ativo?: boolean
@@ -3890,7 +3894,9 @@ export type Database = {
           adicional_percentual?: number
           aprendiz?: boolean
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
+          assiduidade_considera_atestado?: boolean
           assiduidade_criterio?: string | null
+          assiduidade_max_atestados?: number | null
           assiduidade_max_atrasos?: number | null
           assiduidade_tolerancia_min?: number
           ativo?: boolean
@@ -5164,6 +5170,10 @@ export type Database = {
       }
       dp_folha_lancamentos: {
         Row: {
+          assiduidade_abono_em: string | null
+          assiduidade_abono_motivo: string | null
+          assiduidade_abono_por: string | null
+          assiduidade_atestado_abonado: boolean
           colaborador_id: string
           company_id: string
           contracheque_documento_id: string | null
@@ -5182,6 +5192,10 @@ export type Database = {
           valor_liquido: number
         }
         Insert: {
+          assiduidade_abono_em?: string | null
+          assiduidade_abono_motivo?: string | null
+          assiduidade_abono_por?: string | null
+          assiduidade_atestado_abonado?: boolean
           colaborador_id: string
           company_id: string
           contracheque_documento_id?: string | null
@@ -5200,6 +5214,10 @@ export type Database = {
           valor_liquido?: number
         }
         Update: {
+          assiduidade_abono_em?: string | null
+          assiduidade_abono_motivo?: string | null
+          assiduidade_abono_por?: string | null
+          assiduidade_atestado_abonado?: boolean
           colaborador_id?: string
           company_id?: string
           contracheque_documento_id?: string | null
