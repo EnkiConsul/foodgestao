@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useDpAdicionaisTempoServico, type RegraTempoServicoInput } from "@/hooks/useDpAdicionaisTempoServico";
 import { useDpSalarioFamiliaConfig } from "@/hooks/useDpSalarioFamiliaConfig";
+import { SalarioFamiliaTabelaForm } from "@/components/dp/SalarioFamiliaTabelaDialog";
 import { useDpUnidades, useDpCargos, useDpSindicatos } from "@/hooks/useDpCadastros";
 import { moedaBR } from "@/lib/dp/cargos";
 import {
@@ -57,9 +58,6 @@ export default function DpAdicionaisTempoServico() {
   const { data: sindicatos = [] } = useDpSindicatos();
 
   const [form, setForm] = useState<RegraTempoServicoInput | null>(null);
-  const [cota, setCota] = useState<string>("");
-  const [teto, setTeto] = useState<string>("");
-  const [ano, setAno] = useState<string>(String(new Date().getFullYear()));
 
   const laborais = useMemo(
     () => sindicatos.filter((s) => (s as { tipo?: string }).tipo === "laboral"),
@@ -102,29 +100,6 @@ export default function DpAdicionaisTempoServico() {
     }
   };
 
-  const gravarTabela = async () => {
-    const c = numero(cota || String(config.cota ?? 0));
-    const t = numero(teto || String(config.teto ?? 0));
-    if (c <= 0 || t <= 0) {
-      toast.error("Informe a cota e o teto do salário-família");
-      return;
-    }
-    try {
-      await salvarConfig({
-        cota: c,
-        teto: t,
-        vigencia: `${ano}-01-01`,
-        confirmar: true,
-      });
-      toast.success("Tabela do salário-família atualizada");
-      setCota("");
-      setTeto("");
-    } catch (e) {
-      toast.error("Erro ao salvar tabela", {
-        description: e instanceof Error ? e.message : undefined,
-      });
-    }
-  };
 
   return (
     <DpPage>
@@ -162,40 +137,8 @@ export default function DpAdicionaisTempoServico() {
             sistema voltar a calcular o benefício na folha.
           </p>
         )}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <div className="space-y-2">
-            <Label>Ano de vigência</Label>
-            <Input value={ano} onChange={(e) => setAno(e.target.value)} inputMode="numeric" />
-          </div>
-          <div className="space-y-2">
-            <Label>Cota por dependente (R$)</Label>
-            <Input
-              value={cota}
-              onChange={(e) => setCota(e.target.value)}
-              placeholder={config.cota != null ? moedaBR(config.cota) : "Ex: 65,00"}
-              inputMode="decimal"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Teto de baixa renda (R$)</Label>
-            <Input
-              value={teto}
-              onChange={(e) => setTeto(e.target.value)}
-              placeholder={config.teto != null ? moedaBR(config.teto) : "Ex: 1.900,00"}
-              inputMode="decimal"
-            />
-          </div>
-          <div className="flex items-end">
-            <Button onClick={() => void gravarTabela()} disabled={salvandoConfig} className="w-full">
-              <Check className="mr-2 h-4 w-4" /> Confirmar tabela
-            </Button>
-          </div>
-        </div>
-        {config.confirmadoEm && (
-          <p className="text-xs text-muted-foreground">
-            Última confirmação em {config.confirmadoEm.split("-").reverse().join("/")}.
-          </p>
-        )}
+        <SalarioFamiliaTabelaForm />
+
       </DpContentCard>
 
       {/* Regras de adicional */}
