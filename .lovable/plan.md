@@ -1,8 +1,10 @@
-# Restaurar os atalhos "Copiar o horário de..." no Horário de Trabalho
+# Restaurar os atalhos "Copiar o horário de..." no Horário de Trabalho + título do diálogo
 
 ## O que aconteceu
 
 Na remoção do quadro de horário padrão, a fileira de botões com o **nome dos colegas** deixou de ser renderizada na tela de cadastro/edição do colaborador. A lógica de ordenação continua intacta no código (mesmo cargo primeiro, depois horário mais repetido na unidade, depois uso mais recente, com deduplicação da semana inteira e limite de 10 nomes) — só o trecho visual se perdeu.
+
+Além disso, o usuário pediu que o título do diálogo deixe de ser fixo "Editar Colaborador" e passe a mostrar **"Editar: <Nome do Colaborador>"** (ou "Cadastrar: Novo Colaborador" no fluxo de criação).
 
 ## O que será feito
 
