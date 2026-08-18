@@ -1759,6 +1759,25 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             </div>
           )}
 
+          {(escopoPadrao === "empresa" || escopoPadrao === "unidade") && (
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-xs">
+              <Checkbox
+                checked={substituirEspecificos}
+                onCheckedChange={(v) => setSubstituirEspecificos(v === true)}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="font-medium text-foreground">Aplicar a todos</span>
+                <span className="block text-muted-foreground">
+                  {escopoPadrao === "empresa"
+                    ? "Apaga os padrões de unidade e de cargo, deixando só este padrão da empresa."
+                    : "Apaga os padrões de cargo desta unidade, deixando só o padrão da unidade."}
+                </span>
+              </span>
+            </label>
+          )}
+
+
           <AlertDialogFooter>
             <Button variant="ghost" onClick={() => void responderPadrao(null, true)}>
               Não perguntar de novo
