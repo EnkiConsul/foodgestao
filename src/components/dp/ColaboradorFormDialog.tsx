@@ -19,7 +19,7 @@ import { snapshotColegaBeneficios } from "@/lib/dp/isonomia-snapshot";
 import { itensIsonomiaDoCadastro } from "@/hooks/useDpIsonomiaBeneficios";
 import { BeneficioDispensaDialog, type DispensaBeneficio, type MotivoIsonomiaEscolhido } from "@/components/dp/BeneficioDispensaDialog";
 import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, useDpSindicatos, type DpCargo } from "@/hooks/useDpCadastros";
-import { salarioCargoNaUnidade, mensagemErroPiso } from "@/lib/dp/cargoSalarios";
+import { salarioCargoNaUnidade, mensagemErroPiso, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
 
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { Textarea } from "@/components/ui/textarea";
@@ -510,6 +510,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   // unidades com o mesmo patronal compartilham o piso; ajustes por unidade só
   // valem acima dele. Sem patronal ou sem piso, a referência fica pendente.
   const pisosCargo = useDpCargoSalarios(form.cargo_id || null);
+  // Pisos de todos os cargos: alimentam o rótulo de salário na lista de cargos.
+  const todosPisos = useDpCargoSalarios();
+  const pisosPorCargo = useMemo(
+    () => agruparPisosPorCargo((todosPisos.data ?? []) as any[]),
+    [todosPisos.data],
+  );
   const patronalPorUnidade = useDpPatronalPorUnidade();
   const sindicatos = useDpSindicatos();
   const patronalUnidade = form.unidade_id
