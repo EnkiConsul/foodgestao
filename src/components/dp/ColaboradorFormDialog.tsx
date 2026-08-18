@@ -2019,6 +2019,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                     <span className="font-medium text-foreground">Somente novos cadastros</span>
                     <span className="block text-muted-foreground">
                       Ninguém já cadastrado é alterado; os próximos nascem preenchidos.
+                      {divergentesNoAlcance > 0
+                        ? ` Atenção: ${divergentesNoAlcance} colaborador(es) ativo(s) continuam fora destes valores.`
+                        : ""}
                     </span>
                   </span>
                 </label>
@@ -2028,7 +2031,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                     <span className="font-medium text-foreground">
                       Todos os colaboradores deste alcance
                       {colaboradoresNoAlcance > 0 ? ` (${colaboradoresNoAlcance})` : ""}
+                      {divergentesNoAlcance > 0 ? ` — ${divergentesNoAlcance} fora do padrão` : ""}
                     </span>
+
                     <span className="block text-muted-foreground">
                       Sobrescreve {rotulosGruposSelecionados} de quem já está cadastrado e ativo
                       {escopoPadrao !== "cargo"
