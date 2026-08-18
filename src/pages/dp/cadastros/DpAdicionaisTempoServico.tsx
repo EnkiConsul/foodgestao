@@ -103,29 +103,6 @@ export default function DpAdicionaisTempoServico() {
     }
   };
 
-  const gravarTabela = async () => {
-    const c = numero(cota || String(config.cota ?? 0));
-    const t = numero(teto || String(config.teto ?? 0));
-    if (c <= 0 || t <= 0) {
-      toast.error("Informe a cota e o teto do salário-família");
-      return;
-    }
-    try {
-      await salvarConfig({
-        cota: c,
-        teto: t,
-        vigencia: `${ano}-01-01`,
-        confirmar: true,
-      });
-      toast.success("Tabela do salário-família atualizada");
-      setCota("");
-      setTeto("");
-    } catch (e) {
-      toast.error("Erro ao salvar tabela", {
-        description: e instanceof Error ? e.message : undefined,
-      });
-    }
-  };
 
   return (
     <DpPage>
