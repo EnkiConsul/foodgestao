@@ -794,6 +794,26 @@ export function ColaboradorJornadaPanel({
             </Popover>
           </div>
         </div>
+
+        {atalhosColegas.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Copiar o horário de:</span>
+            {atalhosColegas.map((m) => (
+              <Button
+                key={m.colaborador_id}
+                type="button" size="sm" variant="secondary"
+                className="h-7 px-2 text-xs"
+                title={m.horario
+                  ? `${m.colaborador_nome} · ${m.horario.entrada}–${m.horario.saida} (${m.horario.intervalo_minutos ?? 0} min)`
+                  : m.colaborador_nome}
+                onClick={() => copiarSemanaDoColega(m)}
+              >
+                {primeiroNome(m.colaborador_nome)}
+              </Button>
+            ))}
+          </div>
+        )}
+
         <ul className="divide-y rounded-lg border">
           {dias.map((dia) => {
             const h = horarioEfetivoDia(dia, horario);
