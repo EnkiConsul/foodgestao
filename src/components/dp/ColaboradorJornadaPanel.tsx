@@ -359,6 +359,31 @@ export function ColaboradorJornadaPanel({
     toast.success("Horário copiado do colega — revise e salve");
   };
 
+  /**
+   * Atalho pelo nome do colega: copia a semana inteira, não só o horário base.
+   * Dias com entrada e saída diferentes normalmente são o padrão da loja nos
+   * dias de maior movimento, então precisam viajar junto na cópia.
+   */
+  const copiarSemanaDoColega = (m: ModeloHorarioColaborador) => {
+    marcarAlterado();
+    setFolgaVariavel(m.folga_variavel);
+    setDias(normalizarDias(m.dias));
+    if (m.horario?.entrada && m.horario?.saida) {
+      horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "copiado";
+      setHorario({
+        entrada: m.horario.entrada,
+        saida: m.horario.saida,
+        intervalo_minutos: m.horario.intervalo_minutos ?? 0,
+      });
+    }
+    const diferentes = diasDiferentesDoColega(m);
+    toast.success(
+      diferentes.length > 0
+        ? `Horário de ${m.colaborador_nome.split(" ")[0]} copiado, incluindo ${diferentes.map((d) => DOW_CURTO[d]).join(", ")} — revise e salve`
+        : `Horário de ${m.colaborador_nome.split(" ")[0]} copiado — revise e salve`,
+    );
+  };
+
   /** Aplica uma grade semanal da unidade sobre a semana da tela. */
   const onUsarGrade = (grade: GradeSemanal) => {
     marcarAlterado();
