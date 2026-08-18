@@ -144,7 +144,9 @@ export function RegimeRiscoDialog({ open, onOpenChange, tipo, onEscolher }: Prop
             <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
             {tipo === "freelancer"
               ? tituloSistema("Contrato Intermitente: o Caminho Legal")
-              : tituloSistema("PJ e MEI: Riscos e Alternativas")}
+              : tipo === "autonomo"
+                ? tituloSistema("Autônomo: Riscos e Alternativas")
+                : tituloSistema("PJ e MEI: Riscos e Alternativas")}
           </DialogTitle>
           <DialogDescription>
             Orientação para você decidir com segurança. O cadastro não é bloqueado.
