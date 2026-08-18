@@ -11,6 +11,7 @@ import {
   filtrarPadraoPorGrupos,
   mesclarPadrao,
   gruposComDiferenca,
+  divergenciasColaboradorVsPadrao,
 } from "@/lib/dp/beneficiosPadrao";
 
 
@@ -157,5 +158,44 @@ describe("grupos do padrão", () => {
   it("limita as colunas do colaborador aos grupos escolhidos", () => {
     const cols = padraoParaColunasColaborador(cheio, ["vale_transporte"]);
     expect(Object.keys(cols).sort()).toEqual(["vale_transporte", "vale_transporte_valor_dia"]);
+  });
+});
+
+describe("divergenciasColaboradorVsPadrao", () => {
+  const padraoEmpresa: BeneficiosPadraoPayload = {
+    premio_assiduidade: true,
+    premio_assiduidade_tipo: "percentual",
+    premio_assiduidade_valor: "11",
+    assiduidade_criterio: "sem_faltas",
+    assiduidade_tolerancia_min: "10",
+    assiduidade_max_atrasos: "3",
+    assiduidade_considera_atestado: true,
+    assiduidade_max_atestados: "0",
+    vale_alimentacao: true,
+    vale_alimentacao_valor: "24,00",
+    vale_alimentacao_periodicidade: "diario",
+  } as BeneficiosPadraoPayload;
+
+  it("aponta cadastro vazio como fora do padrão da empresa", () => {
+    const divs = divergenciasColaboradorVsPadrao(
+      {
+        premio_assiduidade: false,
+        premio_assiduidade_valor: null,
+        assiduidade_max_atrasos: null,
+        assiduidade_tolerancia_min: 0,
+        vale_alimentacao: false,
+        vale_alimentacao_valor: null,
+      },
+      padraoEmpresa,
+    );
+    const colunas = divs.map((d) => d.coluna);
+    expect(colunas).toContain("premio_assiduidade");
+    expect(colunas).toContain("vale_alimentacao");
+    expect(colunas).toContain("assiduidade_max_atrasos");
+  });
+
+  it("não aponta divergência quando o cadastro já segue o padrão", () => {
+    const colunas = padraoParaColunasColaborador(padraoEmpresa);
+    expect(divergenciasColaboradorVsPadrao(colunas, padraoEmpresa)).toEqual([]);
   });
 });
