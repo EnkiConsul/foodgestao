@@ -276,10 +276,16 @@ export function ColaboradorJornadaPanel({
     [dias, horarioReferencia],
   );
 
-  // Todo dia trabalhado mostra o horário preenchido: nada fica "herdando" em silêncio.
+  /**
+   * Todo dia trabalhado mostra o horário preenchido: nada fica "herdando" em
+   * silêncio. O preenchimento usa a referência (turno da vigência, horário do
+   * colega ou o mais usado na unidade) e só roda depois que ela é resolvida —
+   * senão os dias em branco herdariam o horário provisório da tela.
+   */
   useEffect(() => {
-    setDias((prev) => preencherDiasComHorario(prev, horario));
-  }, [horario]);
+    if (vigente?.turno_padrao_id && !horarioAplicadoRef.current) return;
+    setDias((prev) => preencherDiasComHorario(prev, horarioReferencia));
+  }, [horarioReferencia, vigente?.turno_padrao_id, dias]);
 
   /** Turno virtual que representa o horário digitado — só para cálculo na tela. */
   const turnoPadraoTela: TurnoResolvido = useMemo(
