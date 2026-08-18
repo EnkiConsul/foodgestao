@@ -1,4 +1,4 @@
-// Regras de negócio para folgas — porta do Pakere para 360°FOOD.
+// Regras de negócio para folgas do 360°FOOD.
 
 export type DateStatusKind =
   | "available"

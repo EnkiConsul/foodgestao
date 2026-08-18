@@ -490,7 +490,7 @@ export default function DpUnidades() {
               <Input
                 value={form.nome}
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                placeholder="Ex: Pakerê Garavelo"
+                placeholder="Ex: Unidade Garavelo"
               />
             </div>
             <div className="space-y-2">

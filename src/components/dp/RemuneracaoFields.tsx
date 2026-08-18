@@ -511,7 +511,7 @@ export function RemuneracaoFields({
                 </div>
               )}
               <p className="text-[11px] text-muted-foreground">
-                Muitas convenções (como a da Pakerê) tiram o prêmio quando há atestado. A empresa pode
+                Muitas convenções tiram o prêmio quando há atestado. A empresa pode
                 abonar caso a caso na apuração da folha, mantendo o prêmio do mês.
               </p>
             </div>
