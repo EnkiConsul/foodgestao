@@ -20,6 +20,7 @@ Além disso, o usuário pediu que o título do diálogo deixe de ser fixo "Edita
 
 - Arquivo: `src/components/dp/ColaboradorJornadaPanel.tsx`.
 - Reintroduzir a renderização de `atalhosColegas` (memo já existente, linhas ~170-196) chamando `copiarSemanaDoColega(m)` no clique.
+- Alterar `assinaturaSemana` (usada só na deduplicação dos atalhos) para ignorar o flag de folga e considerar apenas o conjunto de horários dos dias trabalhados; a cópia em si continua trazendo folgas e overrides.
 - Arquivo: `src/components/dp/ColaboradorFormDialog.tsx`.
 - Substituir o título fixo pelo título dinâmico "Editar: <nome>" / "Cadastrar: Novo Colaborador".
 - Sem mudanças em `src/lib/dp/modeloHorarioRanking.ts`, `src/lib/dp/config-trabalho.ts` ou no hook `useDpModelosHorario`.
