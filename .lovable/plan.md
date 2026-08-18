@@ -1,28 +1,65 @@
-# Valor do salário ao lado do cargo na ficha do colaborador
+# Remuneração: valor do cargo, adicional por tempo de serviço e salário-família
 
-## O que está acontecendo
+Três frentes, na ordem em que serão entregues.
 
-Na ficha da Hanna, a lista de cargos mostra "PIZZAIOLO" sem valor, mas mostra "ATENDENTE — R$ 1.750,00" e "MOTOQUEIRO — R$ 1.750,00".
+## 1. Valor do salário ao lado do cargo (correção)
 
-Motivo confirmado nos dados: essa lista lê um campo antigo de salário gravado no próprio cargo. Atendente e Motoqueiro têm esse campo antigo preenchido (herança do modelo anterior); Pizzaiolo não tem. O salário do Pizzaiolo existe e está correto no lugar novo — piso de R$ 1.750,00 do sindicato patronal SINDTUR, vigente desde 18/11/2025, e a unidade da Hanna está vinculada ao SINDTUR. Ou seja: o vínculo existe, a lista só está olhando para a fonte errada.
+Na ficha da Hanna a lista mostra "PIZZAIOLO" sem valor, mas mostra "ATENDENTE — R$ 1.750,00" e "MOTOQUEIRO — R$ 1.750,00".
 
-## O que vai mudar
+Causa confirmada nos dados: essa lista lê um campo antigo de salário gravado no próprio cargo, preenchido em Atendente e Motoqueiro e vazio em Pizzaiolo. O salário do Pizzaiolo existe no lugar certo — piso de R$ 1.750,00 do sindicato patronal SINDTUR, vigente desde 18/11/2025, e a unidade da Hanna é vinculada ao SINDTUR.
 
-1. A lista de cargos da ficha passa a exibir o salário resolvido pela regra oficial: ajuste da unidade do colaborador, senão piso do sindicato patronal daquela unidade, considerando a data de admissão.
-   - Pizzaiolo passa a aparecer como "PIZZAIOLO — R$ 1.750,00".
-2. Quando o cargo não tem piso para o patronal da unidade escolhida, em vez de aparecer sem nada, aparece a indicação "piso a cadastrar" — assim fica claro que falta cadastro, e não que o cargo é sem salário.
-3. Enquanto nenhuma unidade estiver selecionada, o cargo mostra a faixa de pisos cadastrados (ex.: "R$ 1.750,00" ou "R$ 1.750,00 a R$ 1.900,00"), igual à lista da tela de Cargos.
-4. O campo antigo de salário do cargo deixa de ser usado para exibir valor em qualquer tela, para não voltar a mostrar dois números diferentes para o mesmo cargo. Nada é apagado do banco.
+Correção:
+- A lista passa a mostrar o salário resolvido pela regra oficial: ajuste da unidade do colaborador, senão piso do patronal daquela unidade, considerando a data de admissão.
+- Sem piso para o patronal da unidade, aparece "piso a cadastrar" em vez de nada.
+- Sem unidade escolhida ainda, aparece a faixa de pisos do cargo (ex.: "R$ 1.750,00" ou "R$ 1.750,00 a R$ 1.900,00").
+- O campo antigo deixa de ser fonte de exibição em qualquer tela (nada é apagado do banco).
 
-Nenhuma regra de cálculo de folha, piso mínimo ou travas de compliance muda: continua valendo piso do patronal como mínimo e ajuste por unidade só acima dele.
+## 2. Adicional por tempo de serviço (anuênio, triênio, quinquênio)
+
+Hoje não existe nada disso no sistema. Vai ser uma regra cadastrada, não um valor digitado por colaborador.
+
+- Novo cadastro "Adicional por tempo de serviço", dentro de Cadastros do Pessoas 360°, com: tipo do ciclo (anual, bienal, trienal, quinquenal), percentual por ciclo, base de cálculo (salário base do colaborador ou piso do cargo), limite de ciclos (ex.: máximo 6 triênios), forma de acúmulo (soma simples dos ciclos ou percentual único do último ciclo), início de vigência e escopo: empresa, sindicato laboral, unidade ou cargo. O escopo mais específico vence.
+- Na aba Remuneração do colaborador aparece um bloco "Tempo de serviço" mostrando: anos completos desde a admissão, quantos ciclos completou, percentual aplicado, valor em reais e qual regra foi usada. Valor calculado automaticamente, com possibilidade de travar um valor manual quando o caso for atípico (com aviso de que sai da regra).
+- Na folha, entra como provento próprio "Adicional por tempo de serviço", entrando na base de INSS, FGTS e IRRF, aparecendo no holerite e nos relatórios.
+- Alerta de aniversário de ciclo: quando um colaborador completar um novo ciclo no mês, aparece pendência avisando que o adicional muda, antes do fechamento da folha.
+
+## 3. Dependentes e salário-família
+
+Também não existe hoje: há apenas um número de dependentes para o Imposto de Renda, sem nome, idade ou documentos.
+
+- Nova aba "Dependentes" no cadastro do colaborador, com: nome, data de nascimento, parentesco (filho, enteado, tutelado, cônjuge, outro), CPF, se tem deficiência, e duas marcações independentes: conta para o Imposto de Renda e conta para o salário-família. A contagem de dependentes do IR passa a ser calculada a partir dessa lista, em vez de digitada.
+- O salário-família é pago por filho ou equiparado de até 14 anos, ou com deficiência em qualquer idade, para quem tem remuneração até o teto legal. A cota por dependente e o teto de remuneração ficam em Configurações do Pessoas 360°, com vigência, porque mudam a cada ano — assim a atualização anual não exige mexer no sistema.
+- Na folha, entra como provento "Salário-família", fora da base de INSS, FGTS e IRRF (é reembolso previdenciário), com o cálculo mostrando quantos dependentes geraram cota.
+- Rotina de alerta (usa as pendências e o sino já existentes):
+  - comprovante de vacinação pendente para dependente de até 6 anos (checagem anual);
+  - comprovante de frequência escolar pendente para dependente de 7 a 14 anos (checagem semestral);
+  - dependente que completa 14 anos no mês: o benefício cessa, confirmar baixa;
+  - remuneração do colaborador passou do teto: o benefício deve ser suspenso;
+  - cota/teto do ano não atualizados nas configurações;
+  - laudo de deficiência com validade vencida.
+  Os documentos usam o cadastro de documentos do colaborador que já existe, com marcação de tipo e data de validade.
+- Bloqueio de fechamento: a folha avisa (sem travar) quando há dependente com comprovação vencida recebendo cota, para o RH decidir.
 
 ## Detalhes técnicos
 
-- `src/components/dp/ColaboradorFormDialog.tsx` (lista de cargos, linhas ~1283-1291): trocar `salarioReferencia(c)` por um rótulo derivado dos pisos.
-  - Carregar os pisos de todos os cargos da empresa uma única vez com `useDpCargoSalarios()` (sem `cargoId`) e agrupar por `cargo_id`.
-  - Para cada opção, resolver com `salarioCargoNaUnidade(linhasDoCargo, form.unidade_id, patronalUnidade?.id, form.data_admissao, { aceitarFuturo: true })` — mesma chamada já usada em `refSalario`, garantindo que o rótulo e o bloco de enquadramento nunca divirjam.
-  - Sem unidade selecionada: calcular min/max das linhas vigentes (`pisoVigente`) e formatar com `moedaBR`, no mesmo formato de `salarioResumo` em `src/pages/dp/DpCargos.tsx`.
-  - Sem piso resolvido: sufixo textual discreto "— piso a cadastrar".
-- Extrair o formatador para `src/lib/dp/cargoSalarios.ts` (ex.: `rotuloSalarioCargo`) para que `DpCargos.tsx` e a ficha compartilhem a mesma função, com testes unitários em `src/lib/dp/__tests__/cargoSalarios.test.ts` cobrindo: piso único, faixa por patronais distintos, ajuste da unidade acima do piso, piso futuro aceito pela admissão e ausência de piso.
-- `salarioReferencia` em `src/lib/dp/cargos.ts` continua existindo para a comparação "um cargo = um salário", que já recebe o valor resolvido via `cargoParaComparacao`; remover apenas seu uso como fonte de exibição.
-- Verificação: `bunx vitest run src/lib/dp/__tests__` e conferência no preview abrindo a ficha da Hanna (unidade vinculada ao SINDTUR) para ver "PIZZAIOLO — R$ 1.750,00".
+**Cargo (frente 1)**
+- `src/components/dp/ColaboradorFormDialog.tsx` (~1283-1291): substituir `salarioReferencia(c)` por rótulo derivado dos pisos. Carregar `useDpCargoSalarios()` sem `cargoId`, agrupar por `cargo_id` e resolver com `salarioCargoNaUnidade(linhas, form.unidade_id, patronalUnidade?.id, form.data_admissao, { aceitarFuturo: true })` — mesma chamada de `refSalario`, para rótulo e bloco de enquadramento nunca divergirem.
+- Extrair `rotuloSalarioCargo` para `src/lib/dp/cargoSalarios.ts`, compartilhado com `salarioResumo` de `src/pages/dp/DpCargos.tsx`; testes em `src/lib/dp/__tests__/cargoSalarios.test.ts` (piso único, faixa por patronais distintos, ajuste de unidade, piso futuro aceito, sem piso).
+- `salarioReferencia` em `src/lib/dp/cargos.ts` continua só para a comparação "um cargo = um salário" (já recebe o valor resolvido via `cargoParaComparacao`).
+
+**Banco (frentes 2 e 3)**
+- `public.dp_adicionais_tempo_servico`: company_id, escopo (`empresa|sindicato|unidade|cargo`) + sindicato_id/unidade_id/cargo_id opcionais, ciclo_meses, percentual_por_ciclo, base (`salario_base|piso_cargo`), max_ciclos, acumula boolean, vigencia_inicio/fim, observacao. GRANTs (`select` para authenticated, `all` para service_role), RLS: leitura por membro da empresa, escrita por admin/owner (`private.is_company_member` / `private.is_company_admin_or_owner`, padrão das demais tabelas do DP).
+- `public.dp_dependentes`: company_id, colaborador_id, nome, data_nascimento, parentesco, cpf, deficiencia boolean, laudo_validade date, conta_irrf boolean, conta_salario_familia boolean, cessado_em date, observacao. Mesmos GRANTs/RLS; leitura extra do próprio colaborador via `dp_colaborador_of`.
+- `dp_config_dp`: novas colunas `salario_familia_cota`, `salario_familia_teto`, `salario_familia_vigencia`, e `adicional_tempo_servico_ativo`, herdadas por unidade como as demais configs.
+- `dp_colaboradores`: colunas `adicional_tempo_servico_manual` (numeric, opcional) e `adicional_tempo_servico_override` (boolean). `dependentes_irrf` permanece, mas passa a ser recalculado por trigger a partir de `dp_dependentes` quando houver registros.
+- Novos tipos de lançamento na folha (`dp_folha_tipo` ou tabela de rubricas, seguindo o que já existe): `adicional_tempo_servico` (tributável) e `salario_familia` (não tributável, não integra FGTS).
+
+**Domínio e telas**
+- `src/lib/dp/tempoServico.ts`: `resolverRegraTempoServico(regras, {cargo, unidade, sindicato}, data)`, `ciclosCompletos(admissao, ciclo_meses, max)`, `valorAdicional(base, percentual, ciclos, acumula)`; testes com admissão em 29/02, ciclo em curso, limite de ciclos e regra por escopo.
+- `src/lib/dp/salarioFamilia.ts`: `dependentesElegiveis(dependentes, data, config)`, `valorSalarioFamilia(...)`, `pendenciasDependente(dep, hoje)` (vacinação anual, frequência semestral, 14 anos, laudo vencido); testes cobrindo aniversário de 14 anos no mês, deficiência sem limite de idade e remuneração acima do teto.
+- `src/lib/dp/encargos.ts` e `src/lib/dp/folha.ts`: incluir o adicional na base de INSS/FGTS/IRRF e excluir o salário-família dessas bases; `holerite.ts` e `folha-relatorios.ts` ganham as duas rubricas.
+- `src/components/dp/RemuneracaoFields.tsx`: bloco "Tempo de serviço" (somente leitura + travar valor manual) e resumo do salário-família calculado.
+- Nova aba em `ColaboradorFormDialog.tsx` para dependentes, com `src/components/dp/DependentesPanel.tsx` e hook `src/hooks/useDpDependentes.tsx`; nova tela de regras em `src/pages/dp/DpAdicionaisTempoServico.tsx` registrada em `src/config/dpNavigation.tsx` (grupo de Cadastros) e nas rotas.
+- Alertas: estender `src/hooks/useDpPendencias.tsx` com as pendências de dependentes e o aviso de novo ciclo de tempo de serviço, reaproveitando o sino/notificações atuais.
+- Módulo comercial: as duas features entram como parte do módulo Folha (dependência do DP base), respeitando `can_use_module`.
+- Valores legais (cota e teto do salário-família) não ficam no código: entram por configuração, e a tela mostra a vigência cadastrada para o RH confirmar a tabela do ano.
