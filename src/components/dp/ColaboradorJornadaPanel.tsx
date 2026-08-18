@@ -134,10 +134,18 @@ export function ColaboradorJornadaPanel({
    * Atalhos de horário mostrados por nome de colaborador: o empresário reconhece
    * "o horário da Cristiane", não a faixa de horas solta.
    */
-  const { modelos } = useDpModelosHorario(null, colaborador?.id ?? null);
+  const unidadeIdModelo = unidadeId === "none" ? colaborador?.unidade_id ?? null : unidadeId;
+  const { modelos } = useDpModelosHorario(unidadeIdModelo, colaborador?.id ?? null);
   const atalhosColegas = useMemo(() => {
+    const cargoId = colaborador?.cargo_id ?? null;
+    const ordenados = [...modelos].sort((a, b) => {
+      const aMesmoCargo = (a.cargo_id ?? null) === cargoId ? 1 : 0;
+      const bMesmoCargo = (b.cargo_id ?? null) === cargoId ? 1 : 0;
+      if (aMesmoCargo !== bMesmoCargo) return bMesmoCargo - aMesmoCargo;
+      return (b.usado_em ?? "").localeCompare(a.usado_em ?? "");
+    });
     const vistos = new Set<string>();
-    return modelos
+    return ordenados
       .filter((m) => !!m.horario)
       .filter((m) => {
         const chave = `${m.horario!.entrada}-${m.horario!.saida}-${m.horario!.intervalo_minutos ?? 0}`;
@@ -146,7 +154,7 @@ export function ColaboradorJornadaPanel({
         return true;
       })
       .slice(0, 6);
-  }, [modelos]);
+  }, [modelos, colaborador?.cargo_id]);
 
   useEffect(() => {
     if (!active || vigente || colaborador?.id || !colaborador?.cargo_id || alterado || modelos.length === 0) return;
