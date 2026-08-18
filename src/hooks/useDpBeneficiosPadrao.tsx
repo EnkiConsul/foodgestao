@@ -215,3 +215,79 @@ export function useRemoverDpBeneficiosPadrao() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
   });
 }
+
+/**
+ * Sincroniza colaboradores escolhidos a mão com um padrão já gravado.
+ * Usado pela ação "Sincronizar com o padrão" na tela de Colaboradores, onde o
+ * usuário vê quem está divergente e pode deixar exceções de fora.
+ */
+export function useSincronizarPadraoColaboradores() {
+  const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
+  return useMutation({
+    mutationFn: async (input: {
+      ids: string[];
+      payload: BeneficiosPadraoPayload;
+      grupos?: readonly GrupoPadrao[];
+    }): Promise<number> => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      const grupos = input.grupos?.length ? input.grupos : GRUPOS_PADRAO;
+      if (!input.ids.length) return 0;
+
+      const colunas = padraoParaColunasColaborador(input.payload, grupos);
+      if (Object.keys(colunas).length) {
+        const { error } = await supabase
+          .from("dp_colaboradores")
+          .update(colunas as any)
+          .eq("company_id", selectedCompanyId)
+          .in("id", input.ids);
+        if (error) throw error;
+      }
+
+      // Ficha de benefícios: espelha os itens marcados/desmarcados no padrão.
+      const ficha = grupos.includes("beneficios")
+        ? Object.entries(input.payload.beneficios ?? {})
+        : [];
+      if (ficha.length) {
+        const { data: atuais, error: erroFicha } = await supabase
+          .from("dp_colaborador_beneficios")
+          .select("id, colaborador_id, beneficio_id, ativo")
+          .eq("company_id", selectedCompanyId)
+          .in("colaborador_id", input.ids);
+        if (erroFicha) throw erroFicha;
+        const hoje = new Date().toISOString().slice(0, 10);
+        for (const colaboradorId of input.ids) {
+          for (const [beneficioId, marcadoRaw] of ficha) {
+            const marcado = !!marcadoRaw;
+            const atual = (atuais ?? []).find(
+              (a: any) => a.colaborador_id === colaboradorId && a.beneficio_id === beneficioId,
+            ) as any;
+            if (!atual && !marcado) continue;
+            if (atual && !!atual.ativo === marcado) continue;
+            if (atual) {
+              const { error } = await supabase
+                .from("dp_colaborador_beneficios")
+                .update({ ativo: marcado })
+                .eq("id", atual.id);
+              if (error) throw error;
+            } else {
+              const { error } = await supabase.from("dp_colaborador_beneficios").insert({
+                company_id: selectedCompanyId,
+                colaborador_id: colaboradorId,
+                beneficio_id: beneficioId,
+                data_inicio: hoje,
+                ativo: true,
+              } as any);
+              if (error) throw error;
+            }
+          }
+        }
+      }
+      return input.ids.length;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+      void qc.invalidateQueries({ queryKey: ["dp_colaborador_beneficios"] });
+    },
+  });
+}
