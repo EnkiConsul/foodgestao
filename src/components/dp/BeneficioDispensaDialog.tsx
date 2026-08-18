@@ -1,15 +1,31 @@
+import { useEffect, useState } from "react";
 import { AlertTriangle, Printer } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { termoDispensaTexto, type IsonomiaAlerta } from "@/lib/dp/beneficios-regras";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  MOTIVOS_ISONOMIA, MOTIVO_ISONOMIA_LABEL, termoDispensaTexto,
+  type DivergenciaIsonomia, type MotivoIsonomia,
+} from "@/lib/dp/beneficios-regras";
+import { formatarBRL } from "@/lib/dp/folha";
 
 export interface DispensaBeneficio {
   beneficio_id: string;
   beneficio_nome: string;
-  alerta: IsonomiaAlerta;
+  divergencia: DivergenciaIsonomia;
+}
+
+export interface MotivoIsonomiaEscolhido {
+  motivo: MotivoIsonomia;
+  detalhe: string;
+  descricao: string;
 }
 
 interface Props {
@@ -18,7 +34,7 @@ interface Props {
   colaborador: { nome: string; cpf?: string | null; cargo?: string | null };
   empresa: { nome: string; cnpj?: string | null; cidade?: string | null };
   itens: DispensaBeneficio[];
-  onConfirmar: () => void;
+  onConfirmar: (motivo: MotivoIsonomiaEscolhido) => void;
 }
 
 /** Abre o termo de dispensa em uma janela pronta para impressão/assinatura. */
@@ -26,6 +42,7 @@ function imprimirTermo(
   colaborador: Props["colaborador"],
   empresa: Props["empresa"],
   beneficio: string,
+  motivo?: string | null,
 ) {
   const paragrafos = termoDispensaTexto({
     empresa: empresa.nome,
@@ -34,6 +51,7 @@ function imprimirTermo(
     colaboradorCpf: colaborador.cpf,
     cargo: colaborador.cargo,
     beneficio,
+    motivo,
     cidade: empresa.cidade,
   });
   const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
@@ -61,39 +79,55 @@ ${paragrafos.map((t) => `<p>${t}</p>`).join("\n")}
 }
 
 /**
- * Alerta de isonomia ao retirar um benefício de um colaborador e geração do
- * termo de não adesão para assinatura — o cadastro não é bloqueado.
+ * Confirmação de isonomia: colegas em situação equivalente recebem o benefício.
+ * Continuar exige escolher um motivo objetivo, que é registrado no histórico e
+ * pode ser levado ao termo de não adesão assinado pelo colaborador.
  */
 export function BeneficioDispensaDialog({
   open, onOpenChange, colaborador, empresa, itens, onConfirmar,
 }: Props) {
+  const [motivo, setMotivo] = useState<MotivoIsonomia | "">("");
+  const [detalhe, setDetalhe] = useState("");
+
+  useEffect(() => {
+    if (open) { setMotivo(""); setDetalhe(""); }
+  }, [open]);
+
+  const precisaDetalhe = motivo === "outro";
+  const podeConfirmar = !!motivo && (!precisaDetalhe || detalhe.trim().length >= 5);
+  const descricao = motivo
+    ? [MOTIVO_ISONOMIA_LABEL[motivo], detalhe.trim()].filter(Boolean).join(" — ")
+    : "";
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-lg">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-600" aria-hidden="true" />
-            Benefício retirado — atenção à isonomia
+            Isonomia: colegas recebem este benefício
           </AlertDialogTitle>
           <AlertDialogDescription>
-            Colegas em situação equivalente continuam recebendo. Registre o motivo e colha o
-            termo assinado para reduzir o risco trabalhista.
+            Para continuar, informe o motivo objetivo da diferença. O motivo fica registrado no
+            histórico e pode ser impresso no termo de não adesão.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <ul className="max-h-[45vh] space-y-3 overflow-y-auto">
+        <ul className="max-h-[35vh] space-y-3 overflow-y-auto">
           {itens.map((i) => (
-            <li key={i.beneficio_id} className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
-              <p className="font-semibold text-foreground">{i.alerta.titulo}</p>
-              <p className="mt-1 text-muted-foreground">{i.alerta.mensagem}</p>
+            <li key={`${i.beneficio_id}-${i.divergencia.tipo}`} className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+              <p className="font-semibold text-foreground">{i.divergencia.titulo}</p>
+              <p className="mt-1 text-muted-foreground">{i.divergencia.mensagem}</p>
               <p className="mt-1 text-muted-foreground">
-                Mantêm o benefício: {i.alerta.colegas.slice(0, 5).join(", ")}
-                {i.alerta.colegas.length > 5 ? ` e mais ${i.alerta.colegas.length - 5}` : ""}.
+                Recebem: {i.divergencia.colegas.slice(0, 5).join(", ")}
+                {i.divergencia.colegas.length > 5 ? ` e mais ${i.divergencia.colegas.length - 5}` : ""}.
+                {i.divergencia.valor_padrao
+                  ? ` Padrão do grupo: ${formatarBRL(i.divergencia.valor_padrao)}/mês.`
+                  : ""}
               </p>
-              <p className="mt-1 text-muted-foreground">{i.alerta.recomendacao}</p>
               <Button
                 type="button" size="sm" variant="outline" className="mt-2 gap-2"
-                onClick={() => imprimirTermo(colaborador, empresa, i.beneficio_nome)}
+                onClick={() => imprimirTermo(colaborador, empresa, i.beneficio_nome, descricao || null)}
               >
                 <Printer className="h-4 w-4" aria-hidden="true" />
                 Gerar termo de não adesão
@@ -102,9 +136,37 @@ export function BeneficioDispensaDialog({
           ))}
         </ul>
 
+        <div className="space-y-2">
+          <Label>Motivo objetivo da diferença *</Label>
+          <Select value={motivo} onValueChange={(v: MotivoIsonomia) => setMotivo(v)}>
+            <SelectTrigger><SelectValue placeholder="Selecione o motivo" /></SelectTrigger>
+            <SelectContent>
+              {MOTIVOS_ISONOMIA.map((m) => (
+                <SelectItem key={m.valor} value={m.valor}>{m.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {precisaDetalhe && (
+            <Textarea
+              value={detalhe}
+              onChange={(e) => setDetalhe(e.target.value)}
+              placeholder="Descreva o motivo objetivo (mínimo 5 caracteres)"
+              rows={3}
+            />
+          )}
+        </div>
+
         <AlertDialogFooter>
-          <AlertDialogCancel>Manter o benefício</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirmar}>Estou ciente, continuar</AlertDialogAction>
+          <AlertDialogCancel>Conceder o benefício</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={!podeConfirmar}
+            onClick={(e) => {
+              if (!podeConfirmar || !motivo) { e.preventDefault(); return; }
+              onConfirmar({ motivo, detalhe: detalhe.trim(), descricao });
+            }}
+          >
+            Registrar motivo e continuar
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

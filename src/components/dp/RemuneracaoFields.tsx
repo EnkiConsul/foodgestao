@@ -25,8 +25,10 @@ import {
 import {
   alertasBeneficioAlimentacao, DESCONTO_TIPO_LABEL, DIAS_BASE_PADRAO, DIAS_ORIGEM_LABEL,
   PERIODICIDADE_LABEL, descreverBaseSimulacao, descreverDiasJornada, diasSimuladosMesComercial,
-  type DescontoTipo, type DiaSemanaTrabalho, type DiasOrigem, type Periodicidade,
+  type DescontoTipo, type DiaSemanaTrabalho, type DiasOrigem, type DivergenciaIsonomia,
+  type Periodicidade,
 } from "@/lib/dp/beneficios-regras";
+import { BeneficioIsonomiaAviso } from "@/components/dp/BeneficioIsonomiaAviso";
 
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
@@ -129,6 +131,10 @@ interface Props {
   folgasFimDeSemanaMes?: number | null;
   /** Campo pendente sinalizado pela validação do formulário. */
   campoErro?: string | null;
+  /** Divergências de isonomia deste cadastro contra o grupo equivalente. */
+  isonomia?: DivergenciaIsonomia[];
+  /** Iguala o benefício ao padrão do grupo. */
+  onAplicarPadraoIsonomia?: (d: DivergenciaIsonomia) => void;
 
 }
 
@@ -148,6 +154,8 @@ export function RemuneracaoFields({
   diasJornada,
   folgasFimDeSemanaMes,
   campoErro,
+  isonomia,
+  onAplicarPadraoIsonomia,
 }: Props) {
   const navigate = useNavigate();
 
@@ -521,6 +529,9 @@ export function RemuneracaoFields({
           </div>
         )}
       </div>
+
+      {/* Isonomia: divergências contra o grupo sindical/cargo equivalente */}
+      <BeneficioIsonomiaAviso divergencias={isonomia ?? []} onAplicarPadrao={onAplicarPadraoIsonomia} />
 
       {/* Vale-transporte */}
       <div className="space-y-3 rounded-lg border border-border bg-background p-3">

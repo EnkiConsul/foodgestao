@@ -14,9 +14,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useUpsertDpColaborador, useDpColaboradores, type DpColaborador } from "@/hooks/useDpColaboradores";
-import { alertaIsonomia } from "@/lib/dp/beneficios-regras";
-import { BeneficioDispensaDialog, type DispensaBeneficio } from "@/components/dp/BeneficioDispensaDialog";
-import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, type DpCargo } from "@/hooks/useDpCadastros";
+import { divergenciasIsonomia, DIAS_BASE_PADRAO, type DivergenciaIsonomia } from "@/lib/dp/beneficios-regras";
+import { snapshotColegaBeneficios } from "@/lib/dp/isonomia-snapshot";
+import { itensIsonomiaDoCadastro } from "@/hooks/useDpIsonomiaBeneficios";
+import { BeneficioDispensaDialog, type DispensaBeneficio, type MotivoIsonomiaEscolhido } from "@/components/dp/BeneficioDispensaDialog";
+import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, useDpSindicatos, type DpCargo } from "@/hooks/useDpCadastros";
 import { salarioCargoNaUnidade, mensagemErroPiso } from "@/lib/dp/cargoSalarios";
 
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
@@ -192,6 +194,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Benefícios retirados que exigem ciência de isonomia neste salvamento. */
   const [dispensas, setDispensas] = useState<DispensaBeneficio[]>([]);
   const isonomiaConfirmada = useRef(false);
+  /** Motivo objetivo registrado ao aceitar a diferença de benefícios. */
+  const motivoIsonomia = useRef<MotivoIsonomiaEscolhido | null>(null);
   const [cienciaAberta, setCienciaAberta] = useState(false);
   const [tab, setTab] = useState<AbaCadastro>("dados");
   /** Intenção do botão acionado: continuar na tela, avançar de aba ou sair. */
@@ -463,6 +467,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   // valem acima dele. Sem patronal ou sem piso, a referência fica pendente.
   const pisosCargo = useDpCargoSalarios(form.cargo_id || null);
   const patronalPorUnidade = useDpPatronalPorUnidade();
+  const sindicatos = useDpSindicatos();
   const patronalUnidade = form.unidade_id
     ? patronalPorUnidade.data?.[form.unidade_id] ?? null
     : null;
@@ -547,34 +552,103 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     } catch { /* o cadastro não deve falhar por causa do log */ }
   };
 
-  /** Benefícios ativos hoje que o usuário desmarcou e colegas equivalentes mantêm. */
-  const dispensasPendentes = (): DispensaBeneficio[] => {
-    if (!colaborador?.id) return [];
-    const out: DispensaBeneficio[] = [];
-    for (const b of beneficios) {
-      const atual = (atribuicoes ?? []).find(
-        (a: any) => a.colaborador_id === colaborador.id && a.beneficio_id === b.id,
-      ) as any;
-      if (!atual?.ativo || rem.beneficios[b.id]) continue;
-      const colegas = (todosColaboradores.data ?? [])
-        .filter((x: any) => x.id !== colaborador.id && x.ativo !== false)
-        .map((x: any) => ({
-          colaborador_id: x.id,
-          nome: x.nome,
-          cargo_id: x.cargo_id,
-          unidade_id: x.unidade_id,
-          ativo: (atribuicoes ?? []).some(
-            (a: any) => a.colaborador_id === x.id && a.beneficio_id === b.id && a.ativo,
-          ),
-        }));
-      const alerta = alertaIsonomia(b.nome, colegas, {
-        cargo_id: form.cargo_id || null,
-        unidade_id: form.unidade_id || null,
+  /**
+   * Divergências de benefício deste cadastro contra o grupo equivalente.
+   *
+   * O grupo forte é o sindical (laboral + patronal da unidade); sem sindicato,
+   * cai para unidade + cargo. Vale para cadastro novo e para quem nunca teve o
+   * benefício — não apenas para quem teve o benefício retirado.
+   */
+  const divergenciasIso = useMemo<DivergenciaIsonomia[]>(() => {
+    const patronal = patronalPorUnidade.data ?? {};
+    const colegas = (todosColaboradores.data ?? [])
+      .filter((c: any) => c.id !== colaborador?.id && c.ativo !== false && !c.data_desligamento)
+      .map((c: any) =>
+        snapshotColegaBeneficios(
+          c,
+          c.unidade_id ? patronal[c.unidade_id]?.id ?? null : null,
+          atribuicoes as any[],
+        ),
+      );
+
+    // Estado atual do formulário no mesmo formato do motor.
+    const alvoLinha = {
+      id: colaborador?.id ?? "novo",
+      nome: form.nome,
+      cargo_id: form.cargo_id || null,
+      unidade_id: form.unidade_id || null,
+      sindicato_id: form.sindicato_id || null,
+      salario_base: numeroBR(rem.salario_base),
+      base_salarial: numeroBR(rem.base_salarial),
+      vale_alimentacao: rem.vale_alimentacao,
+      vale_alimentacao_valor: numeroBR(rem.vale_alimentacao_valor),
+      vale_alimentacao_periodicidade: rem.vale_alimentacao_periodicidade,
+      vale_alimentacao_dias_base: numeroBR(rem.vale_alimentacao_dias_base),
+      vale_transporte: rem.vale_transporte,
+      vale_transporte_valor_dia: numeroBR(rem.vale_transporte_valor_dia),
+      premio_assiduidade: rem.premio_assiduidade,
+      premio_assiduidade_valor: numeroBR(rem.premio_assiduidade_valor),
+      premio_assiduidade_tipo: rem.premio_assiduidade_tipo,
+    };
+
+    const itens = [
+      ...itensIsonomiaDoCadastro(alvoLinha),
+      // Benefícios do catálogo marcados na ficha do colaborador.
+      ...beneficios.map((b) => ({
+        chave: b.id,
+        nome: b.nome,
+        ativo: !!rem.beneficios[b.id],
+      })),
+    ];
+
+    return divergenciasIsonomia(itens, colegas, {
+      cargo_id: form.cargo_id || null,
+      unidade_id: form.unidade_id || null,
+      sindicato_id: form.sindicato_id || null,
+      patronal_id: patronalUnidade?.id ?? null,
+    }, {
+      sindicatoNome: (sindicatos.data ?? []).find((s) => s.id === form.sindicato_id)?.nome ?? null,
+    });
+  }, [
+    todosColaboradores.data, atribuicoes, patronalPorUnidade.data, patronalUnidade?.id,
+    beneficios, sindicatos.data, colaborador?.id, form.nome, form.cargo_id, form.unidade_id,
+    form.sindicato_id, rem,
+  ]);
+
+  /** Divergências que exigem ciência com motivo objetivo neste salvamento. */
+  const dispensasPendentes = (): DispensaBeneficio[] =>
+    divergenciasIso.map((d) => ({
+      beneficio_id: d.chave,
+      beneficio_nome: d.beneficio_nome,
+      divergencia: d,
+    }));
+
+  /** Iguala o benefício divergente ao padrão praticado no grupo. */
+  const aplicarPadraoIsonomia = (d: DivergenciaIsonomia) => {
+    if (d.chave === "vale_alimentacao") {
+      const mensal = d.valor_padrao ?? 0;
+      patchRem({
+        vale_alimentacao: true,
+        vale_alimentacao_periodicidade: "mensal",
+        vale_alimentacao_valor: mensal > 0 ? mensal.toFixed(2).replace(".", ",") : "",
       });
-      if (alerta) out.push({ beneficio_id: b.id, beneficio_nome: b.nome, alerta });
+      return;
     }
-    return out;
+    if (d.chave === "vale_transporte") {
+      const dia = (d.valor_padrao ?? 0) / DIAS_BASE_PADRAO;
+      patchRem({
+        vale_transporte: true,
+        vale_transporte_valor_dia: dia > 0 ? dia.toFixed(2).replace(".", ",") : "",
+      });
+      return;
+    }
+    if (d.chave === "premio_assiduidade") {
+      patchRem({ premio_assiduidade: true });
+      return;
+    }
+    patchRem({ beneficios: { ...rem.beneficios, [d.chave]: true } });
   };
+
 
   /** Estado atual das abas, usado para detectar alterações não salvas. */
   const snapshot = JSON.stringify({ form, rem });
@@ -1074,6 +1148,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 {remPendente && (
                   <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
                 )}
+                {!remPendente && divergenciasIso.length > 0 && (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                    aria-label="Divergência de benefícios em relação aos colegas"
+                  />
+                )}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1441,7 +1521,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 value={rem}
                 onChange={patchRem}
                 campoErro={campoErro}
-
+                isonomia={divergenciasIso}
+                onAplicarPadraoIsonomia={aplicarPadraoIsonomia}
                 salarioCargo={salarioCargo}
                 cargoNome={cargoSelecionado?.nome ?? null}
                 onBeforeNavigate={() => onOpenChange(false)}
@@ -1535,9 +1616,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         open={dispensas.length > 0}
         onOpenChange={(o) => {
           if (!o) {
-            // Manter o benefício: recoloca as marcações desfeitas.
-            const restaurar = Object.fromEntries(dispensas.map((d) => [d.beneficio_id, true]));
-            patchRem({ beneficios: { ...rem.beneficios, ...restaurar } });
+            // "Conceder o benefício": iguala tudo ao padrão do grupo.
+            dispensas.forEach((d) => aplicarPadraoIsonomia(d.divergencia));
             setDispensas([]);
           }
         }}
@@ -1552,8 +1632,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           cidade: null,
         }}
         itens={dispensas}
-        onConfirmar={async () => {
+        onConfirmar={async (motivo: MotivoIsonomiaEscolhido) => {
           isonomiaConfirmada.current = true;
+          motivoIsonomia.current = motivo;
           setDispensas([]);
           await submit();
         }}
