@@ -603,7 +603,7 @@ export default function DpColaboradores() {
         />
       )}
 
-      <SincronizarPadraoDialog open={sincronizarOpen} onOpenChange={setSincronizarOpen} />
+      
 
       <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
 
