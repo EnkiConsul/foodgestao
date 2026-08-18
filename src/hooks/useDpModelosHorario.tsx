@@ -56,47 +56,56 @@ export function useDpModelosHorario(unidadeId?: string | null, excluirColaborado
     },
   });
 
-  const modelos = useMemo<ModeloHorarioColaborador[]>(() => {
-    const vistos = new Set<string>();
-    return (query.data ?? [])
-      .filter((c) => !c.vigencia_fim || c.vigencia_fim >= hoje())
-      .filter((c) => c.colaborador?.ativo !== false)
-      .filter((c) => !excluirColaboradorId || c.colaborador_id !== excluirColaboradorId)
-      .filter((c) => {
-        if (vistos.has(c.colaborador_id)) return false;
-        vistos.add(c.colaborador_id);
-        return true;
-      })
-      .map((c) => ({
-        id: c.id,
-        colaborador_id: c.colaborador_id,
-        colaborador_nome: c.colaborador?.nome ?? "Colaborador",
-        cargo: c.colaborador?.cargo ?? null,
-        cargo_id: c.colaborador?.cargo_id ?? null,
-        unidade_id: c.unidade_id ?? null,
-        turno_padrao_id: c.turno_padrao_id ?? null,
-        folga_variavel: !!c.folga_variavel,
-        horario: c.turno?.entrada && c.turno?.saida
-          ? {
-            entrada: String(c.turno.entrada).slice(0, 5),
-            saida: String(c.turno.saida).slice(0, 5),
-            intervalo_minutos: c.turno.intervalo_minutos ?? 0,
-          }
-          : null,
-        dias: normalizarDias(
-          (c.dias ?? []).map((d: any) => ({
-            dow: d.dow,
-            trabalha: d.trabalha,
-            turno_id: d.turno_id ?? null,
-            entrada: d.entrada ?? null,
-            saida: d.saida ?? null,
-            intervalo_minutos: d.intervalo_minutos ?? null,
-          })),
-          c.folga_fixa_dow ?? null,
-        ),
-        usado_em: c.updated_at ?? c.vigencia_inicio,
-      }));
-  }, [query.data, excluirColaboradorId]);
+/**
+ * Converte uma linha de configuração vinda do banco no modelo da tela.
+ *
+ * O horário de cada dia pode estar gravado de duas formas: campos próprios no
+ * dia ou um turno da loja vinculado ao dia (o padrão para dias de maior
+ * demanda). Nas duas o horário precisa vir preenchido, senão a cópia perde os
+ * dias diferentes e todo mundo cai no horário base.
+ */
+export function mapModeloHorario(c: any): ModeloHorarioColaborador {
+  return {
+    id: c.id,
+    colaborador_id: c.colaborador_id,
+    colaborador_nome: c.colaborador?.nome ?? "Colaborador",
+    cargo: c.colaborador?.cargo ?? null,
+    cargo_id: c.colaborador?.cargo_id ?? null,
+    unidade_id: c.unidade_id ?? null,
+    turno_padrao_id: c.turno_padrao_id ?? null,
+    folga_variavel: !!c.folga_variavel,
+    horario: c.turno?.entrada && c.turno?.saida
+      ? {
+        entrada: String(c.turno.entrada).slice(0, 5),
+        saida: String(c.turno.saida).slice(0, 5),
+        intervalo_minutos: c.turno.intervalo_minutos ?? 0,
+      }
+      : null,
+    dias: normalizarDias(
+      (c.dias ?? []).map((d: any) => {
+        const doTurno = d.turno ?? null;
+        const entrada = d.entrada ?? doTurno?.entrada ?? null;
+        const saida = d.saida ?? doTurno?.saida ?? null;
+        return {
+          dow: d.dow,
+          trabalha: d.trabalha,
+          // O turno do dia é da unidade de origem: só o horário viaja na cópia.
+          turno_id: null,
+          entrada,
+          saida,
+          intervalo_minutos: d.intervalo_minutos ?? doTurno?.intervalo_minutos ?? null,
+        };
+      }),
+      c.folga_fixa_dow ?? null,
+    ),
+    usado_em: c.updated_at ?? c.vigencia_inicio,
+  };
+}
+
+export function useDpModelosHorarioMap(rows: any[], excluirColaboradorId?: string | null) {
+  return rows;
+}
+
 
   return { modelos, isLoading: query.isLoading, refetch: query.refetch };
 }
