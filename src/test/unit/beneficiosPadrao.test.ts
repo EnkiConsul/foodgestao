@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   assinaturaPadrao,
+  diferencasPadrao,
   nivelPadrao,
   padroesIguais,
+  padroesIguaisAlgum,
   resolverPadrao,
   type BeneficiosPadraoPayload,
 } from "@/lib/dp/beneficiosPadrao";
+
 
 const base = {
   vale_transporte: true,
@@ -43,4 +46,35 @@ describe("padrão de benefícios", () => {
     expect(nivelPadrao(resolverPadrao(linhas, "u1", "c9"))).toBe("unidade");
     expect(nivelPadrao(resolverPadrao(linhas, "u9", "c1"))).toBe("empresa");
   });
+
+  it("não pergunta quando bate com o padrão da empresa, mesmo com padrão de unidade diferente", () => {
+    const daEmpresa = { ...base, assiduidade_max_atrasos: "3" } as BeneficiosPadraoPayload;
+    const daUnidade = { ...base, assiduidade_max_atrasos: "5" } as BeneficiosPadraoPayload;
+    const linhas = [
+      { unidade_id: null, cargo_id: null, payload: daEmpresa },
+      { unidade_id: "u1", cargo_id: null, payload: daUnidade },
+    ];
+    expect(padroesIguaisAlgum(daEmpresa, linhas, { unidadeId: "u1" })).toBe(true);
+    expect(
+      padroesIguaisAlgum({ ...base, assiduidade_max_atrasos: "9" } as BeneficiosPadraoPayload, linhas, {
+        unidadeId: "u1",
+      }),
+    ).toBe(false);
+  });
+
+  it("trata booleano ausente em padrão antigo como não informado", () => {
+    const antigo = { ...base } as BeneficiosPadraoPayload;
+    const novo = { ...base, assiduidade_considera_atestado: false } as BeneficiosPadraoPayload;
+    expect(padroesIguais(antigo, novo)).toBe(true);
+    expect(diferencasPadrao(antigo, novo)).toHaveLength(0);
+  });
+
+  it("lista as diferenças com rótulo em português", () => {
+    const outro = { ...base, vale_alimentacao_valor: "30" } as BeneficiosPadraoPayload;
+    const difs = diferencasPadrao(outro, base);
+    expect(difs).toHaveLength(1);
+    expect(difs[0].rotulo).toBe("Valor do vale-alimentação");
+    expect(difs[0].atual).toBe("30");
+  });
 });
+

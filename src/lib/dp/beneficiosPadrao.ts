@@ -54,6 +54,14 @@ export function extrairPadrao(rem: RemuneracaoFormState): BeneficiosPadraoPayloa
   return out as BeneficiosPadraoPayload;
 }
 
+/** Campos booleanos: ausentes em padrões antigos valem como "não" (e não diferença). */
+const CAMPOS_BOOLEANOS = new Set<CampoPadrao>([
+  "vale_transporte",
+  "premio_assiduidade",
+  "vale_alimentacao",
+  "assiduidade_considera_atestado",
+]);
+
 /**
  * Normaliza um padrão para comparação: vazio/null/zero viram o mesmo "não
  * informado" e números escritos como texto ("24", "24,00") convergem.
@@ -74,6 +82,7 @@ export function normalizarPadrao(
       out[campo] = marcados;
       continue;
     }
+    if (CAMPOS_BOOLEANOS.has(campo)) { out[campo] = !!valor; continue; }
     if (typeof valor === "boolean") { out[campo] = valor; continue; }
     if (valor === undefined || valor === null || valor === "") { out[campo] = null; continue; }
     const texto = String(valor).trim().replace(",", ".");
@@ -121,6 +130,42 @@ export function resolverPadrao(
   return lista.find((l) => !l.unidade_id && !l.cargo_id) ?? null;
 }
 
+/** Todos os padrões que se aplicam a este colaborador (cargo, unidade e empresa). */
+export function padroesAplicaveis(
+  linhas: BeneficiosPadraoLinha[] | null | undefined,
+  unidadeId: string | null | undefined,
+  cargoId?: string | null,
+): BeneficiosPadraoLinha[] {
+  const lista = linhas ?? [];
+  const out: BeneficiosPadraoLinha[] = [];
+  if (unidadeId && cargoId) {
+    const doCargo = lista.find((l) => l.unidade_id === unidadeId && l.cargo_id === cargoId);
+    if (doCargo) out.push(doCargo);
+  }
+  if (unidadeId) {
+    const daUnidade = lista.find((l) => l.unidade_id === unidadeId && !l.cargo_id);
+    if (daUnidade) out.push(daUnidade);
+  }
+  const daEmpresa = lista.find((l) => !l.unidade_id && !l.cargo_id);
+  if (daEmpresa) out.push(daEmpresa);
+  return out;
+}
+
+/**
+ * O conteúdo da tela já bate com algum padrão vigente (cargo, unidade ou
+ * empresa)? Se sim, não há o que perguntar — o usuário está apenas repetindo
+ * uma decisão que já existe em algum nível.
+ */
+export function padroesIguaisAlgum(
+  atual: BeneficiosPadraoPayload | null | undefined,
+  linhas: BeneficiosPadraoLinha[] | null | undefined,
+  escopo: { unidadeId?: string | null; cargoId?: string | null } = {},
+): boolean {
+  return padroesAplicaveis(linhas, escopo.unidadeId, escopo.cargoId).some((l) =>
+    padroesIguais(atual, l.payload),
+  );
+}
+
 /** Nível de onde veio o padrão resolvido, para rótulo na tela. */
 export function nivelPadrao(linha: BeneficiosPadraoLinha | null | undefined): PadraoEscopo | null {
   if (!linha) return null;
@@ -128,6 +173,60 @@ export function nivelPadrao(linha: BeneficiosPadraoLinha | null | undefined): Pa
   if (linha.unidade_id) return "unidade";
   return "empresa";
 }
+
+/** Rótulos em português dos campos do padrão, para explicar diferenças. */
+const ROTULOS: Record<CampoPadrao, string> = {
+  vale_transporte: "Vale-transporte",
+  vale_transporte_valor_dia: "Vale-transporte por dia",
+  premio_assiduidade: "Prêmio de assiduidade",
+  premio_assiduidade_valor: "Valor da assiduidade",
+  premio_assiduidade_tipo: "Tipo da assiduidade",
+  assiduidade_criterio: "Critério da assiduidade",
+  assiduidade_tolerancia_min: "Tolerância (min)",
+  assiduidade_max_atrasos: "Máximo de atrasos",
+  assiduidade_considera_atestado: "Considera atestado",
+  assiduidade_max_atestados: "Máximo de atestados",
+  vale_alimentacao: "Vale-alimentação",
+  vale_alimentacao_valor: "Valor do vale-alimentação",
+  vale_alimentacao_periodicidade: "Periodicidade do VA",
+  vale_alimentacao_dias_base: "Dias base do VA",
+  vale_alimentacao_dias_origem: "Origem dos dias do VA",
+  vale_alimentacao_desconto_tipo: "Tipo de desconto do VA",
+  vale_alimentacao_desconto_valor: "Valor do desconto do VA",
+  beneficios: "Ficha de benefícios",
+};
+
+export interface DiferencaPadrao {
+  campo: CampoPadrao;
+  rotulo: string;
+  padrao: string;
+  atual: string;
+}
+
+const paraTexto = (v: unknown): string => {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "boolean") return v ? "sim" : "não";
+  if (Array.isArray(v)) return v.length ? v.join(", ") : "—";
+  return String(v);
+};
+
+/** Diferenças entre o que está na tela e um padrão gravado. */
+export function diferencasPadrao(
+  atual: BeneficiosPadraoPayload | null | undefined,
+  padrao: BeneficiosPadraoPayload | null | undefined,
+): DiferencaPadrao[] {
+  const na = normalizarPadrao(atual);
+  const np = normalizarPadrao(padrao);
+  return CAMPOS_PADRAO.filter(
+    (campo) => JSON.stringify(na[campo]) !== JSON.stringify(np[campo]),
+  ).map((campo) => ({
+    campo,
+    rotulo: ROTULOS[campo],
+    padrao: paraTexto(np[campo]),
+    atual: paraTexto(na[campo]),
+  }));
+}
+
 
 
 /** Mescla o padrão no formulário, mantendo apenas campos conhecidos. */

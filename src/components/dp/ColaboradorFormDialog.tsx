@@ -61,10 +61,12 @@ import {
   useDpBeneficiosPadroes, useSalvarDpBeneficiosPadrao,
 } from "@/hooks/useDpBeneficiosPadrao";
 import {
-  aplicarPadrao, assinaturaPadrao, extrairPadrao, nivelPadrao, padraoTemConteudo,
-  padroesIguais, resolverPadrao, type PadraoEscopo,
+  aplicarPadrao, assinaturaPadrao, diferencasPadrao, extrairPadrao, nivelPadrao,
+  padraoTemConteudo, padroesIguaisAlgum, resolverPadrao, type PadraoEscopo,
 } from "@/lib/dp/beneficiosPadrao";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+
 
 
 
@@ -265,6 +267,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Pergunta "usar como padrão?" pendente após gravar. */
   const [perguntarPadrao, setPerguntarPadrao] = useState(false);
   const [escopoPadrao, setEscopoPadrao] = useState<PadraoEscopo>("unidade");
+  /** Ao salvar em escopo amplo, apagar os padrões mais específicos conflitantes. */
+  const [substituirEspecificos, setSubstituirEspecificos] = useState(false);
+
   /** Assinaturas de benefícios já decididas nesta abertura da ficha. */
   const padraoRespondidoRef = useRef<Set<string>>(new Set());
   const naoPerguntarKey = `dp:beneficios-padrao:nao-perguntar:${selectedCompanyId ?? "sem-empresa"}`;
@@ -621,8 +626,16 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     if (localStorage.getItem(naoPerguntarKey) === "1") return false;
     const atual = extrairPadrao(rem);
     if (!padraoTemConteudo(atual)) return false;
-    // Igual ao padrão que já vale para este colaborador → nada a perguntar.
-    if (padroesIguais(atual, padraoAplicavel?.payload ?? null)) return false;
+    // Igual a qualquer padrão vigente (cargo, unidade ou empresa) → nada a perguntar.
+    if (
+      padroesIguaisAlgum(atual, padroesBeneficios.data, {
+        unidadeId: form.unidade_id || null,
+        cargoId: form.cargo_id || null,
+      })
+    ) {
+      return false;
+    }
+
     // Mesmo conjunto já decidido nesta abertura da ficha → não repete.
     return !padraoRespondidoRef.current.has(assinaturaPadrao(atual));
   };
@@ -631,8 +644,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const concluir = (perguntar: boolean) => {
     if (perguntar) {
       setEscopoPadrao(nivelPadrao(padraoAplicavel) ?? "unidade");
+      setSubstituirEspecificos(false);
       setPerguntarPadrao(true);
       return;
+
     }
     finalizar();
   };
@@ -650,7 +665,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           unidade_id: escopo === "empresa" ? null : form.unidade_id,
           cargo_id: escopo === "cargo" ? form.cargo_id || null : null,
           payload,
+          limparEscoposMaisEspecificos: escopo !== "cargo" && substituirEspecificos,
         });
+
         toast.success(
           escopo === "empresa"
             ? "Padrão da empresa atualizado"
@@ -1662,6 +1679,30 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             </AlertDialogDescription>
           </AlertDialogHeader>
 
+          {padraoAplicavel && (
+            <div className="rounded-xl border bg-muted/40 p-3 text-xs">
+              <p className="font-medium text-foreground">
+                Diferenças em relação ao padrão{" "}
+                {nivelPadrao(padraoAplicavel) === "cargo"
+                  ? "do cargo"
+                  : nivelPadrao(padraoAplicavel) === "unidade"
+                    ? "da unidade"
+                    : "da empresa"}
+              </p>
+              <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                {diferencasPadrao(extrairPadrao(rem), padraoAplicavel.payload)
+                  .slice(0, 6)
+                  .map((d) => (
+                    <li key={d.campo}>
+                      {d.rotulo}: {d.padrao} → <span className="text-foreground">{d.atual}</span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
+
+
+
           <RadioGroup
             value={escopoPadrao}
             onValueChange={(v) => setEscopoPadrao(v as PadraoEscopo)}
@@ -1717,6 +1758,25 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               critério podem ser questionadas como quebra de isonomia salarial.
             </div>
           )}
+
+          {(escopoPadrao === "empresa" || escopoPadrao === "unidade") && (
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-xs">
+              <Checkbox
+                checked={substituirEspecificos}
+                onCheckedChange={(v) => setSubstituirEspecificos(v === true)}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="font-medium text-foreground">Aplicar a todos</span>
+                <span className="block text-muted-foreground">
+                  {escopoPadrao === "empresa"
+                    ? "Apaga os padrões de unidade e de cargo, deixando só este padrão da empresa."
+                    : "Apaga os padrões de cargo desta unidade, deixando só o padrão da unidade."}
+                </span>
+              </span>
+            </label>
+          )}
+
 
           <AlertDialogFooter>
             <Button variant="ghost" onClick={() => void responderPadrao(null, true)}>

@@ -41,8 +41,11 @@ export function useSalvarDpBeneficiosPadrao() {
       unidade_id: string | null;
       cargo_id?: string | null;
       payload: BeneficiosPadraoPayload;
+      /** Apaga os padrões mais específicos abrangidos por este escopo. */
+      limparEscoposMaisEspecificos?: boolean;
     }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+
       const { data: userData } = await supabase.auth.getUser();
       let q = supabase
         .from("dp_beneficios_padroes")
@@ -52,6 +55,32 @@ export function useSalvarDpBeneficiosPadrao() {
       q = input.cargo_id ? q.eq("cargo_id", input.cargo_id) : q.is("cargo_id", null);
       const { data: existente, error: erroBusca } = await q.maybeSingle();
       if (erroBusca) throw erroBusca;
+
+      // Empresa manda em todos; unidade manda nos cargos dela.
+      if (input.limparEscoposMaisEspecificos) {
+        let del = supabase
+          .from("dp_beneficios_padroes")
+          .delete()
+          .eq("company_id", selectedCompanyId);
+        if (input.unidade_id) {
+          del = del.eq("unidade_id", input.unidade_id).not("cargo_id", "is", null);
+        } else {
+          del = del.not("unidade_id", "is", null);
+        }
+        const { error: erroDel } = await del;
+        if (erroDel) throw erroDel;
+        if (!input.unidade_id) {
+          const { error: erroCargos } = await supabase
+            .from("dp_beneficios_padroes")
+            .delete()
+            .eq("company_id", selectedCompanyId)
+            .is("unidade_id", null)
+            .not("cargo_id", "is", null);
+          if (erroCargos) throw erroCargos;
+        }
+      }
+
+
 
       if (existente?.id) {
         const { error } = await supabase
