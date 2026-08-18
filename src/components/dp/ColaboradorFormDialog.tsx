@@ -14,9 +14,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useUpsertDpColaborador, useDpColaboradores, type DpColaborador } from "@/hooks/useDpColaboradores";
-import { alertaIsonomia } from "@/lib/dp/beneficios-regras";
-import { BeneficioDispensaDialog, type DispensaBeneficio } from "@/components/dp/BeneficioDispensaDialog";
-import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, type DpCargo } from "@/hooks/useDpCadastros";
+import { divergenciasIsonomia, DIAS_BASE_PADRAO, type DivergenciaIsonomia } from "@/lib/dp/beneficios-regras";
+import { snapshotColegaBeneficios } from "@/lib/dp/isonomia-snapshot";
+import { itensIsonomiaDoCadastro } from "@/hooks/useDpIsonomiaBeneficios";
+import { BeneficioDispensaDialog, type DispensaBeneficio, type MotivoIsonomiaEscolhido } from "@/components/dp/BeneficioDispensaDialog";
+import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, useDpSindicatos, type DpCargo } from "@/hooks/useDpCadastros";
 import { salarioCargoNaUnidade, mensagemErroPiso } from "@/lib/dp/cargoSalarios";
 
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
