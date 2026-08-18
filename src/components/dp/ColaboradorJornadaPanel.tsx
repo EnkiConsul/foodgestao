@@ -26,10 +26,11 @@ import { resolverTurnoDoHorario, type HorarioSimples } from "@/lib/dp/turno-reso
 import { verificarAlertasClt, idadeNaData, temAlertaClt, type AlertaClt } from "@/lib/dp/clt-alertas";
 import { tituloSistema } from "@/lib/text/titleCase";
 import {
-  baseDivergenteDosDias, cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia,
+  cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia,
   detalharCargaSemanal, diaDivergeDoBase,
   diaEhHorarioDaLoja, diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia,
-  normalizarDias, resumoConfigTexto, semanaDaGrade, turnoDoDia, validarConfigTrabalho,
+  horarioPadraoDaSemana, normalizarDias, preencherDiasComHorario, resumoConfigTexto, semanaDaGrade,
+  turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
 import { UsarGradeSemanalDialog } from "@/components/dp/UsarGradeSemanalDialog";
@@ -117,7 +118,12 @@ export function ColaboradorJornadaPanel({
 
   const topoRef = useRef<HTMLDivElement | null>(null);
   const [unidadeId, setUnidadeId] = useState<string>("none");
-  const [horario, setHorario] = useState<HorarioSimples>(HORARIO_PADRAO);
+  /**
+   * Referência usada apenas para preencher dias ainda em branco (colaborador
+   * novo, vigência carregada, cópia de colega). O horário padrão de verdade é
+   * derivado dos dias — a tela não tem mais um campo de horário base.
+   */
+  const [horarioReferencia, setHorarioReferencia] = useState<HorarioSimples>(HORARIO_PADRAO);
   const [folgaVariavel, setFolgaVariavel] = useState(false);
   const [dias, setDias] = useState<DiaConfig[]>(diasPadrao());
   const [inicio, setInicio] = useState(hoje());
@@ -201,7 +207,7 @@ export function ColaboradorJornadaPanel({
     const base = horarioBaseMaisComum(modelos, colaborador?.cargo_id ?? null);
     if (!base) return;
     horarioAplicadoRef.current = "base-loja";
-    setHorario(base);
+    setHorarioReferencia(base);
   }, [active, vigente, colaborador?.id, colaborador?.cargo_id, alterado, modelos]);
 
   useEffect(() => {
@@ -212,7 +218,7 @@ export function ColaboradorJornadaPanel({
     if (!modelo?.horario) return;
     sugestaoAplicadaRef.current = chave;
     horarioAplicadoRef.current = "sugestao";
-    setHorario(modelo.horario);
+    setHorarioReferencia(modelo.horario);
     setDias(normalizarDias(modelo.dias));
     setFolgaVariavel(modelo.folga_variavel);
     setAlterado(true);
@@ -257,9 +263,23 @@ export function ColaboradorJornadaPanel({
     const t = turnosResolvidos.find((x) => x.id === id);
     if (!t?.entrada || !t?.saida) return;
     horarioAplicadoRef.current = id;
-    setHorario({ entrada: t.entrada, saida: t.saida, intervalo_minutos: t.intervalo_minutos ?? 0 });
+    setHorarioReferencia({ entrada: t.entrada, saida: t.saida, intervalo_minutos: t.intervalo_minutos ?? 0 });
   }, [active, vigente?.turno_padrao_id, turnosResolvidos]);
 
+
+  /**
+   * Horário padrão do colaborador: o que mais se repete nos dias trabalhados.
+   * É ele que vira o turno principal gravado na vigência.
+   */
+  const horario = useMemo<HorarioSimples>(
+    () => horarioPadraoDaSemana(dias, horarioReferencia),
+    [dias, horarioReferencia],
+  );
+
+  // Todo dia trabalhado mostra o horário preenchido: nada fica "herdando" em silêncio.
+  useEffect(() => {
+    setDias((prev) => preencherDiasComHorario(prev, horario));
+  }, [horario]);
 
   /** Turno virtual que representa o horário digitado — só para cálculo na tela. */
   const turnoPadraoTela: TurnoResolvido = useMemo(
@@ -285,23 +305,6 @@ export function ColaboradorJornadaPanel({
   );
   const detalheCarga = useMemo(() => detalharCargaSemanal(config, turnosTela), [config, turnosTela]);
   const carga = cargaSemanalConfig(config, turnosTela);
-  const baseDefasado = useMemo(() => baseDivergenteDosDias(config, turnosTela), [config, turnosTela]);
-
-  /**
-   * Alinha o horário base à faixa usada pela maioria dos dias. Sem isso, o dia
-   * que herda o base conta horas a menos e o total da semana não fecha.
-   */
-  const alinharHorarioBase = () => {
-    if (!baseDefasado) return;
-    marcarAlterado();
-    horarioAplicadoRef.current = "base-alinhado";
-    setHorario({
-      entrada: baseDefasado.entrada,
-      saida: baseDefasado.saida,
-      intervalo_minutos: baseDefasado.intervalo_minutos,
-    });
-    toast.success(`Horário base ajustado para ${baseDefasado.entrada} → ${baseDefasado.saida}`);
-  };
   const bloqueado = configTemErro(validacoes);
   const folgas = folgaFixaDerivada(dias);
 
@@ -343,7 +346,16 @@ export function ColaboradorJornadaPanel({
   const alternarDia = (dow: number) => {
     marcarAlterado();
     setDias((prev) => prev.map((d) => (d.dow === dow
-      ? { ...d, trabalha: !d.trabalha, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
+      ? (d.trabalha
+        ? { ...d, trabalha: false, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
+        : {
+          ...d,
+          trabalha: true,
+          turno_id: null,
+          entrada: horario.entrada,
+          saida: horario.saida,
+          intervalo_minutos: horario.intervalo_minutos ?? 0,
+        })
       : d)));
   };
 
@@ -370,7 +382,7 @@ export function ColaboradorJornadaPanel({
 
   const definirHorario = (patch: Partial<HorarioSimples>) => {
     marcarAlterado();
-    setHorario((h) => ({ ...h, ...patch }));
+    setHorarioReferencia((h) => ({ ...h, ...patch }));
   };
 
   /** Atalhos de escala: 6x1 folga no domingo e 5x2 folga sábado e domingo. */
@@ -380,7 +392,13 @@ export function ColaboradorJornadaPanel({
     const folgar = modo === "6x1" ? [0] : [0, 6];
     setDias((prev) => prev.map((d) => (folgar.includes(d.dow)
       ? { ...d, trabalha: false, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
-      : { ...d, trabalha: true })));
+      : {
+        ...d,
+        trabalha: true,
+        entrada: d.entrada ?? horario.entrada,
+        saida: d.saida ?? horario.saida,
+        intervalo_minutos: d.intervalo_minutos ?? horario.intervalo_minutos ?? 0,
+      })));
   };
 
   const onCopiarConfig = (c: ConfigCopiada) => {
@@ -390,7 +408,7 @@ export function ColaboradorJornadaPanel({
     if (c.horario?.entrada && c.horario?.saida) {
       // Evita que o efeito de sincronização devolva o horário antigo por cima.
       horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "copiado";
-      setHorario({
+      setHorarioReferencia({
         entrada: c.horario.entrada,
         saida: c.horario.saida,
         intervalo_minutos: c.horario.intervalo_minutos ?? 0,
@@ -410,7 +428,7 @@ export function ColaboradorJornadaPanel({
     setDias(normalizarDias(m.dias));
     if (m.horario?.entrada && m.horario?.saida) {
       horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "copiado";
-      setHorario({
+      setHorarioReferencia({
         entrada: m.horario.entrada,
         saida: m.horario.saida,
         intervalo_minutos: m.horario.intervalo_minutos ?? 0,
@@ -429,7 +447,7 @@ export function ColaboradorJornadaPanel({
     marcarAlterado();
     const { dias: novos, base } = semanaDaGrade(grade.dias, turnosResolvidos, horario);
     horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "grade";
-    setHorario(base);
+    setHorarioReferencia(base);
     setDias(normalizarDias(novos));
     setFolgaVariavel(grade.folga_variavel);
     toast.success(`Grade "${grade.nome}" aplicada — revise e salve`);
