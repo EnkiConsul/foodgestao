@@ -3399,9 +3399,12 @@ export type Database = {
         Row: {
           ativo: boolean
           cbo: string | null
+          cnh_categoria_minima: string | null
           company_id: string
           created_at: string
           descricao: string | null
+          exige_cnh: boolean
+          exige_epi: boolean
           id: string
           insalubre_periculoso: boolean
           nome: string
@@ -3411,9 +3414,12 @@ export type Database = {
         Insert: {
           ativo?: boolean
           cbo?: string | null
+          cnh_categoria_minima?: string | null
           company_id: string
           created_at?: string
           descricao?: string | null
+          exige_cnh?: boolean
+          exige_epi?: boolean
           id?: string
           insalubre_periculoso?: boolean
           nome: string
@@ -3423,9 +3429,12 @@ export type Database = {
         Update: {
           ativo?: boolean
           cbo?: string | null
+          cnh_categoria_minima?: string | null
           company_id?: string
           created_at?: string
           descricao?: string | null
+          exige_cnh?: boolean
+          exige_epi?: boolean
           id?: string
           insalubre_periculoso?: boolean
           nome?: string
@@ -3756,6 +3765,100 @@ export type Database = {
           },
         ]
       }
+      dp_colaborador_documentos: {
+        Row: {
+          aceito_em: string | null
+          colaborador_id: string
+          company_id: string
+          conteudo_hash: string | null
+          created_at: string
+          dependente_id: string | null
+          dispensado: boolean
+          documento_id: string | null
+          id: string
+          motivo_dispensa: string | null
+          requisito_id: string
+          status: string
+          updated_at: string
+          validade: string | null
+        }
+        Insert: {
+          aceito_em?: string | null
+          colaborador_id: string
+          company_id: string
+          conteudo_hash?: string | null
+          created_at?: string
+          dependente_id?: string | null
+          dispensado?: boolean
+          documento_id?: string | null
+          id?: string
+          motivo_dispensa?: string | null
+          requisito_id: string
+          status?: string
+          updated_at?: string
+          validade?: string | null
+        }
+        Update: {
+          aceito_em?: string | null
+          colaborador_id?: string
+          company_id?: string
+          conteudo_hash?: string | null
+          created_at?: string
+          dependente_id?: string | null
+          dispensado?: boolean
+          documento_id?: string | null
+          id?: string
+          motivo_dispensa?: string | null
+          requisito_id?: string
+          status?: string
+          updated_at?: string
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaborador_documentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_documentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_documentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_documentos_dependente_id_fkey"
+            columns: ["dependente_id"]
+            isOneToOne: false
+            referencedRelation: "dp_dependentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_documentos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_documentos_requisito_id_fkey"
+            columns: ["requisito_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documento_requisitos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_colaborador_jornadas: {
         Row: {
           colaborador_id: string
@@ -3855,6 +3958,8 @@ export type Database = {
           base_salarial: number | null
           cargo: string | null
           cargo_id: string | null
+          cnh_categoria: string | null
+          cnh_validade: string | null
           company_id: string
           cpf: string | null
           created_at: string
@@ -3872,6 +3977,7 @@ export type Database = {
           email_contato: string | null
           email_portal: string | null
           endereco: Json | null
+          estado_civil: string | null
           folga_fixa_semana: number | null
           forma_pagamento: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido: boolean
@@ -3885,6 +3991,7 @@ export type Database = {
           observacoes: string | null
           optante_adiantamento: boolean
           perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"]
+          pis_nit: string | null
           possui_folha_ponto: boolean
           premio_assiduidade: boolean
           premio_assiduidade_tipo: string
@@ -3908,6 +4015,7 @@ export type Database = {
           vale_transporte_valor_dia: number | null
           valor_hora: number | null
           valor_hora_manual: boolean
+          veiculo_proprio: boolean
           vinculo_label: string | null
           whatsapp: string | null
         }
@@ -3929,6 +4037,8 @@ export type Database = {
           base_salarial?: number | null
           cargo?: string | null
           cargo_id?: string | null
+          cnh_categoria?: string | null
+          cnh_validade?: string | null
           company_id: string
           cpf?: string | null
           created_at?: string
@@ -3946,6 +4056,7 @@ export type Database = {
           email_contato?: string | null
           email_portal?: string | null
           endereco?: Json | null
+          estado_civil?: string | null
           folga_fixa_semana?: number | null
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido?: boolean
@@ -3959,6 +4070,7 @@ export type Database = {
           observacoes?: string | null
           optante_adiantamento?: boolean
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
+          pis_nit?: string | null
           possui_folha_ponto?: boolean
           premio_assiduidade?: boolean
           premio_assiduidade_tipo?: string
@@ -3982,6 +4094,7 @@ export type Database = {
           vale_transporte_valor_dia?: number | null
           valor_hora?: number | null
           valor_hora_manual?: boolean
+          veiculo_proprio?: boolean
           vinculo_label?: string | null
           whatsapp?: string | null
         }
@@ -4003,6 +4116,8 @@ export type Database = {
           base_salarial?: number | null
           cargo?: string | null
           cargo_id?: string | null
+          cnh_categoria?: string | null
+          cnh_validade?: string | null
           company_id?: string
           cpf?: string | null
           created_at?: string
@@ -4020,6 +4135,7 @@ export type Database = {
           email_contato?: string | null
           email_portal?: string | null
           endereco?: Json | null
+          estado_civil?: string | null
           folga_fixa_semana?: number | null
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido?: boolean
@@ -4033,6 +4149,7 @@ export type Database = {
           observacoes?: string | null
           optante_adiantamento?: boolean
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
+          pis_nit?: string | null
           possui_folha_ponto?: boolean
           premio_assiduidade?: boolean
           premio_assiduidade_tipo?: string
@@ -4056,6 +4173,7 @@ export type Database = {
           vale_transporte_valor_dia?: number | null
           valor_hora?: number | null
           valor_hora_manual?: boolean
+          veiculo_proprio?: boolean
           vinculo_label?: string | null
           whatsapp?: string | null
         }
@@ -4517,6 +4635,161 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_documento_aceites: {
+        Row: {
+          aceito_em: string
+          aceito_por: string | null
+          colaborador_id: string
+          company_id: string
+          conteudo_hash: string
+          documento_id: string | null
+          id: string
+          ip: string | null
+          modelo: string
+          modelo_versao: string
+          requisito_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          aceito_em?: string
+          aceito_por?: string | null
+          colaborador_id: string
+          company_id: string
+          conteudo_hash: string
+          documento_id?: string | null
+          id?: string
+          ip?: string | null
+          modelo: string
+          modelo_versao?: string
+          requisito_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          aceito_em?: string
+          aceito_por?: string | null
+          colaborador_id?: string
+          company_id?: string
+          conteudo_hash?: string
+          documento_id?: string | null
+          id?: string
+          ip?: string | null
+          modelo?: string
+          modelo_versao?: string
+          requisito_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_documento_aceites_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documento_aceites_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documento_aceites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documento_aceites_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documento_aceites_requisito_id_fkey"
+            columns: ["requisito_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documento_requisitos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_documento_requisitos: {
+        Row: {
+          aplica_a: string
+          categoria: string
+          codigo: string
+          company_id: string
+          created_at: string
+          descricao: string | null
+          dias_aviso: number
+          exige_aceite: boolean
+          gerado_pelo_sistema: boolean
+          id: string
+          meses_validade: number | null
+          nome: string
+          obrigatoriedade: string
+          ordem: number
+          periodicidade: string
+          satisfeito_por: string | null
+          sistema: boolean
+          tipo_documento: Database["public"]["Enums"]["dp_documento_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          aplica_a?: string
+          categoria?: string
+          codigo: string
+          company_id: string
+          created_at?: string
+          descricao?: string | null
+          dias_aviso?: number
+          exige_aceite?: boolean
+          gerado_pelo_sistema?: boolean
+          id?: string
+          meses_validade?: number | null
+          nome: string
+          obrigatoriedade?: string
+          ordem?: number
+          periodicidade?: string
+          satisfeito_por?: string | null
+          sistema?: boolean
+          tipo_documento?: Database["public"]["Enums"]["dp_documento_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          aplica_a?: string
+          categoria?: string
+          codigo?: string
+          company_id?: string
+          created_at?: string
+          descricao?: string | null
+          dias_aviso?: number
+          exige_aceite?: boolean
+          gerado_pelo_sistema?: boolean
+          id?: string
+          meses_validade?: number | null
+          nome?: string
+          obrigatoriedade?: string
+          ordem?: number
+          periodicidade?: string
+          satisfeito_por?: string | null
+          sistema?: boolean
+          tipo_documento?: Database["public"]["Enums"]["dp_documento_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_documento_requisitos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -12905,6 +13178,10 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_documento_requisitos_seed: {
+        Args: { _company_id: string }
+        Returns: number
+      }
       dp_editar_desligamento: {
         Args: {
           p_colaborador_id: string
@@ -14396,6 +14673,15 @@ export type Database = {
         | "outros"
         | "sindicato"
         | "ferias"
+        | "admissao"
+        | "identidade"
+        | "residencia"
+        | "bancario"
+        | "cnh"
+        | "crlv"
+        | "seguro_veiculo"
+        | "dependente"
+        | "ficha_registro"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
       dp_escala_item_origem: "gerado" | "manual" | "troca" | "convocacao"
       dp_escala_item_tipo:
@@ -14903,6 +15189,15 @@ export const Constants = {
         "outros",
         "sindicato",
         "ferias",
+        "admissao",
+        "identidade",
+        "residencia",
+        "bancario",
+        "cnh",
+        "crlv",
+        "seguro_veiculo",
+        "dependente",
+        "ficha_registro",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
       dp_escala_item_origem: ["gerado", "manual", "troca", "convocacao"],

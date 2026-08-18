@@ -4,7 +4,8 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap } from "lucide-react";
+import { ClipboardList, FileCheck2, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap } from "lucide-react";
+import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
 
 export type Pendencia = {
@@ -597,6 +598,110 @@ export function useDpPendencias() {
         console.warn("pendencias/dependentes:", e);
       }
 
+      // 13. Documentos obrigatórios de admissão faltando, vencidos ou recusados
+      try {
+        const [reqs, colabs, deps, vincs, asos] = await Promise.all([
+          supabase
+            .from("dp_documento_requisitos")
+            .select("*")
+            .eq("company_id", selectedCompanyId!)
+            .neq("obrigatoriedade", "desativado"),
+          supabase
+            .from("dp_colaboradores")
+            .select(
+              "id, nome, data_nascimento, regime, estado_civil, veiculo_proprio, aprendiz, possui_folha_ponto, dp_cargos(exige_cnh, exige_epi)",
+            )
+            .eq("company_id", selectedCompanyId!)
+            .eq("ativo", true),
+          supabase
+            .from("dp_dependentes")
+            .select("id, colaborador_id, nome, data_nascimento, deficiencia, cessado_em")
+            .eq("company_id", selectedCompanyId!)
+            .is("cessado_em", null),
+          supabase
+            .from("dp_colaborador_documentos")
+            .select("*")
+            .eq("company_id", selectedCompanyId!),
+          supabase
+            .from("dp_exames_aso")
+            .select("colaborador_id, resultado")
+            .eq("company_id", selectedCompanyId!)
+            .eq("tipo", "admissional"),
+        ]);
+
+        const requisitos = (reqs.data ?? []) as any[];
+        if (requisitos.length > 0) {
+          const asoOk = new Set(
+            (asos.data ?? [])
+              .filter((a: any) => a.resultado === "apto" || a.resultado === "apto_com_restricoes")
+              .map((a: any) => a.colaborador_id as string),
+          );
+
+          for (const c of (colabs.data ?? []) as any[]) {
+            const itens = resolverChecklist({
+              requisitos,
+              colaborador: {
+                id: c.id,
+                data_nascimento: c.data_nascimento,
+                regime: c.regime,
+                estado_civil: c.estado_civil,
+                veiculo_proprio: c.veiculo_proprio,
+                aprendiz: c.aprendiz,
+                possui_folha_ponto: c.possui_folha_ponto,
+                cargo_exige_cnh: c.dp_cargos?.exige_cnh ?? false,
+                cargo_exige_epi: c.dp_cargos?.exige_epi ?? false,
+              },
+              dependentes: ((deps.data ?? []) as any[]).filter((d) => d.colaborador_id === c.id),
+              vinculos: ((vincs.data ?? []) as any[]).filter((v) => v.colaborador_id === c.id),
+              asoAdmissionalOk: asoOk.has(c.id),
+            });
+
+            const resumo = resumirChecklist(itens);
+            if (resumo.pendentesObrigatorios.length > 0) {
+              const nomes = resumo.pendentesObrigatorios
+                .slice(0, 3)
+                .map((i) => tituloItem(i))
+                .join(", ");
+              results.push({
+                id: `documentos-${c.id}`,
+                icon: FileCheck2,
+                titulo: `${resumo.pendentesObrigatorios.length} documento(s) obrigatório(s) de ${c.nome}`,
+                subtitulo: `Faltando/irregular: ${nomes}${resumo.pendentesObrigatorios.length > 3 ? "…" : ""}`,
+                tipo: "Documentos",
+                vencimento: null,
+                atrasoDias: 1,
+                url: "/dp/colaboradores",
+              });
+            }
+            if (resumo.aguardandoAprovacao.length > 0) {
+              results.push({
+                id: `documentos-aprovar-${c.id}`,
+                icon: FileCheck2,
+                titulo: `${resumo.aguardandoAprovacao.length} documento(s) de ${c.nome} aguardando aprovação`,
+                subtitulo: "Enviados pelo colaborador — revise e aprove ou recuse.",
+                tipo: "Documentos",
+                vencimento: null,
+                atrasoDias: 0,
+                url: "/dp/colaboradores",
+              });
+            }
+            if (resumo.vencendo.length > 0) {
+              results.push({
+                id: `documentos-vencendo-${c.id}`,
+                icon: FileCheck2,
+                titulo: `${resumo.vencendo.length} documento(s) de ${c.nome} vencendo`,
+                subtitulo: resumo.vencendo.map((i) => tituloItem(i)).slice(0, 3).join(", "),
+                tipo: "Documentos",
+                vencimento: null,
+                atrasoDias: 0,
+                url: "/dp/colaboradores",
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("pendencias/documentos:", e);
+      }
 
 
       // Ordenar: mais atrasado primeiro; empate → vencimento mais próximo

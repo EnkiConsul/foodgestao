@@ -8,6 +8,7 @@ import { toProperName } from "@/lib/text/properName";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { DependentesPanel } from "@/components/dp/DependentesPanel";
 import { AdicionalTempoServicoCard } from "@/components/dp/AdicionalTempoServicoCard";
 import { Input } from "@/components/ui/input";
@@ -1223,6 +1224,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
               </TabsTrigger>
               <TabsTrigger value="dependentes">Dependentes</TabsTrigger>
+              <TabsTrigger value="documentos">Documentos</TabsTrigger>
             </TabsList>
           </div>
 
@@ -1669,6 +1671,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               colaboradorId={colaborador?.id ?? criadoId ?? null}
               remuneracaoMensal={baseSalarialInformada()}
             />
+          </TabsContent>
+
+          <TabsContent value="documentos" className="mt-4">
+            <ColaboradorDocumentosPanel colaboradorId={colaborador?.id ?? criadoId ?? null} />
           </TabsContent>
           </div>
         </Tabs>

@@ -1,4 +1,5 @@
 import {
+  FileCheck2,
   ArrowLeftRight,
   Ban,
   BarChart3,
@@ -221,6 +222,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Grades semanais", to: "/dp/cadastros/grades", icon: CalendarRange },
       { label: "Benefícios", to: "/dp/cadastros/beneficios", icon: Gift },
       { label: "Adicionais e salário-família", to: "/dp/cadastros/adicionais", icon: Gift },
+      { label: "Documentos exigidos", to: "/dp/cadastros/documentos-exigidos", icon: FileCheck2 },
       { label: "Pendências", to: "/dp/cadastros/pendencias", icon: BellRing },
     ],
   },
