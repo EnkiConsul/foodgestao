@@ -182,7 +182,10 @@ export default function DpDocumentosExigidos() {
         </div>
       ) : (
         grupos.map(([categoria, itens]) => (
-          <DpContentCard key={categoria} title={CATEGORIA_LABEL[categoria] ?? categoria}>
+          <DpContentCard key={categoria} contentClassName="p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              {CATEGORIA_LABEL[categoria] ?? categoria}
+            </h3>
             <div className="space-y-2">
               {itens.map((r) => (
                 <div
