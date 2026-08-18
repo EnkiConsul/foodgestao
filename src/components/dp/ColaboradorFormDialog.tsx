@@ -32,6 +32,7 @@ import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
+import { PadraoDivergenciaAviso } from "@/components/dp/PadraoDivergenciaAviso";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
 import { SindicatoEnquadramentoField } from "@/components/dp/SindicatoEnquadramentoField";
