@@ -9,6 +9,10 @@
 // herda o salário geral do cargo: exige o cadastro.
 // ------------------------------------------------------------------
 
+import { moedaBR } from "./cargos";
+
+
+
 export interface CargoSalarioLinha {
   id?: string;
   cargo_id?: string;
