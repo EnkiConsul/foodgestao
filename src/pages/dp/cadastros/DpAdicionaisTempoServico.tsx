@@ -58,9 +58,6 @@ export default function DpAdicionaisTempoServico() {
   const { data: sindicatos = [] } = useDpSindicatos();
 
   const [form, setForm] = useState<RegraTempoServicoInput | null>(null);
-  const [cota, setCota] = useState<string>("");
-  const [teto, setTeto] = useState<string>("");
-  const [ano, setAno] = useState<string>(String(new Date().getFullYear()));
 
   const laborais = useMemo(
     () => sindicatos.filter((s) => (s as { tipo?: string }).tipo === "laboral"),
