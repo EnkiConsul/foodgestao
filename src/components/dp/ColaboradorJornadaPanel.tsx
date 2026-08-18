@@ -678,25 +678,27 @@ export function ColaboradorJornadaPanel({
         {atalhosColegas.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] text-muted-foreground">Copiar o horário de:</span>
-            {atalhosColegas.map((m) => (
-              <Button
-                key={m.id} type="button" size="sm" variant="secondary" className="h-7 text-[11px]"
-                title={`${formatarFaixaTurno(m.horario!)} — clique para usar este horário`}
-                onClick={() => definirHorario({
-                  entrada: m.horario!.entrada,
-                  saida: m.horario!.saida,
-                  intervalo_minutos: m.horario!.intervalo_minutos ?? 0,
-                })}
-              >
-                {m.colaborador_nome.split(" ")[0]}
-              </Button>
-            ))}
+            {atalhosColegas.map((m) => {
+              const diferentes = diasDiferentesDoColega(m);
+              const detalhe = diferentes.length > 0
+                ? ` — dias com horário próprio: ${diferentes.map((d) => DOW_CURTO[d]).join(", ")}`
+                : "";
+              return (
+                <Button
+                  key={m.id} type="button" size="sm" variant="secondary" className="h-7 text-[11px]"
+                  title={`${formatarFaixaTurno(m.horario!)}${detalhe} — clique para copiar a semana inteira`}
+                  onClick={() => copiarSemanaDoColega(m)}
+                >
+                  {m.colaborador_nome.split(" ")[0]}
+                </Button>
+              );
+            })}
           </div>
         )}
         <p className="text-[11px] text-muted-foreground">
           {policy.horasPorConvocacao
             ? "Este é o horário habitual de disponibilidade. O que vale para pagamento é o que for efetivamente convocado e trabalhado."
-            : "Este horário vale para todos os dias trabalhados. Dias diferentes ficam como exceção logo abaixo."}
+            : "Este horário vale para os dias trabalhados. Dias de movimento diferente podem ter entrada e saída próprias — ajuste abaixo."}
         </p>
 
       </section>
