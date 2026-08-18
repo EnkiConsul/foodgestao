@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, useDpCargoSalarios, type DpCargo, type DpCargoWithCount } from "@/hooks/useDpCadastros";
-import { pisoVigente } from "@/lib/dp/cargoSalarios";
+import { pisoVigente, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
 
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
