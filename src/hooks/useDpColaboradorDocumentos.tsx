@@ -304,7 +304,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
         supabase
           .from("dp_colaboradores")
           .select(
-            "nome, cpf, pis_nit, data_nascimento, estado_civil, endereco, data_admissao, salario_base, regime, matricula, dp_cargos(nome), dp_unidades(nome)",
+            "nome, cpf, pis_nit, data_nascimento, estado_civil, endereco, data_admissao, salario_base, regime, matricula, base_horas_mes, dp_cargos(nome), dp_unidades(nome)",
           )
           .eq("id", ctx.colaborador.id)
           .maybeSingle(),
@@ -459,6 +459,8 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     recusar,
     dispensar,
     definirValidade,
+    gerarDocumentoSistema,
+    aceitar,
     abrir,
   };
 }
