@@ -98,21 +98,34 @@ export default function DpColaboradores() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (list.data ?? []).filter((c) => {
-      if (q) {
-        const hit =
-          c.nome.toLowerCase().includes(q) ||
-          (c.cpf ?? "").toLowerCase().includes(q) ||
-          (c.matricula ?? "").toLowerCase().includes(q);
-        if (!hit) return false;
-      }
-      if (unidadeFilter !== "all" && c.unidade_id !== unidadeFilter) return false;
-      if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
-      if (perfilFilter !== "all" && (c as any).perfil_acesso !== perfilFilter) return false;
-      if (statusFilter === "ativos" && !c.ativo) return false;
-      if (statusFilter === "desligados" && c.ativo) return false;
-      return true;
-    });
+    return (list.data ?? [])
+      .filter((c) => {
+        if (q) {
+          const hit =
+            c.nome.toLowerCase().includes(q) ||
+            (c.cpf ?? "").toLowerCase().includes(q) ||
+            (c.matricula ?? "").toLowerCase().includes(q);
+          if (!hit) return false;
+        }
+        if (unidadeFilter !== "all" && c.unidade_id !== unidadeFilter) return false;
+        if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
+        if (perfilFilter !== "all" && (c as any).perfil_acesso !== perfilFilter) return false;
+        if (statusFilter === "ativos" && !c.ativo) return false;
+        if (statusFilter === "desligados" && c.ativo) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const perfilDestaca = (p: string | null) => p === "admin" || p === "gestor";
+        const ga = a.ativo ? (perfilDestaca((a as any).perfil_acesso) ? 0 : 1) : 2;
+        const gb = b.ativo ? (perfilDestaca((b as any).perfil_acesso) ? 0 : 1) : 2;
+        if (ga !== gb) return ga - gb;
+        if (ga < 2) {
+          const ua = a.unidade_id ?? "zzzz";
+          const ub = b.unidade_id ?? "zzzz";
+          if (ua !== ub) return ua.localeCompare(ub);
+        }
+        return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
+      });
   }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, statusFilter]);
 
   const handleDelete = async () => {
