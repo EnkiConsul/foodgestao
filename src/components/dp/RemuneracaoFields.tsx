@@ -522,6 +522,9 @@ export function RemuneracaoFields({
         )}
       </div>
 
+      {/* Isonomia: divergências contra o grupo sindical/cargo equivalente */}
+      <BeneficioIsonomiaAviso divergencias={isonomia ?? []} onAplicarPadrao={onAplicarPadraoIsonomia} />
+
       {/* Vale-transporte */}
       <div className="space-y-3 rounded-lg border border-border bg-background p-3">
         <div className="flex items-center gap-3">
