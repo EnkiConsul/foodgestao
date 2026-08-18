@@ -1515,7 +1515,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 value={rem}
                 onChange={patchRem}
                 campoErro={campoErro}
-
+                isonomia={divergenciasIso}
+                onAplicarPadraoIsonomia={aplicarPadraoIsonomia}
                 salarioCargo={salarioCargo}
                 cargoNome={cargoSelecionado?.nome ?? null}
                 onBeforeNavigate={() => onOpenChange(false)}
