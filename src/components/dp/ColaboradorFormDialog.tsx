@@ -986,7 +986,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           {/* Cabeçalho e abas fixos: só o conteúdo do formulário rola. */}
           <div className="shrink-0 space-y-3 border-b border-border bg-background p-6 pb-3">
             <DialogHeader className="space-y-0 text-left">
-              <DialogTitle>{isEdit ? "Editar Colaborador" : "Novo Colaborador"}</DialogTitle>
+              <DialogTitle>
+                {isEdit
+                  ? `Editar: ${nomeProprio(form.nome.trim()) || "Colaborador"}`
+                  : `Cadastrar: ${nomeProprio(form.nome.trim()) || "Novo Colaborador"}`}
+              </DialogTitle>
             </DialogHeader>
             <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="dados" className="gap-2">
