@@ -3767,8 +3767,10 @@ export type Database = {
       }
       dp_colaborador_documentos: {
         Row: {
+          aceito_em: string | null
           colaborador_id: string
           company_id: string
+          conteudo_hash: string | null
           created_at: string
           dependente_id: string | null
           dispensado: boolean
@@ -3781,8 +3783,10 @@ export type Database = {
           validade: string | null
         }
         Insert: {
+          aceito_em?: string | null
           colaborador_id: string
           company_id: string
+          conteudo_hash?: string | null
           created_at?: string
           dependente_id?: string | null
           dispensado?: boolean
@@ -3795,8 +3799,10 @@ export type Database = {
           validade?: string | null
         }
         Update: {
+          aceito_em?: string | null
           colaborador_id?: string
           company_id?: string
+          conteudo_hash?: string | null
           created_at?: string
           dependente_id?: string | null
           dispensado?: boolean
