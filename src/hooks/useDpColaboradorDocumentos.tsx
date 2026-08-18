@@ -6,6 +6,12 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 import { useAuth } from "@/hooks/useAuth";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 import {
+  MODELO_VERSAO,
+  hashConteudo,
+  montarContratoHtml,
+  montarFichaRegistroHtml,
+} from "@/lib/dp/contratoTemplate";
+import {
   resolverChecklist,
   resumirChecklist,
   type DpColaboradorDocumento,
@@ -298,7 +304,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
         supabase
           .from("dp_colaboradores")
           .select(
-            "nome, cpf, pis_nit, data_nascimento, estado_civil, endereco, data_admissao, salario, regime, matricula, carga_semanal_horas, dp_cargos(nome), dp_unidades(nome)",
+            "nome, cpf, pis_nit, data_nascimento, estado_civil, endereco, data_admissao, salario_base, regime, matricula, dp_cargos(nome), dp_unidades(nome)",
           )
           .eq("id", ctx.colaborador.id)
           .maybeSingle(),
@@ -317,9 +323,9 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
           cargo: (colab as any).dp_cargos?.nome ?? null,
           unidade: (colab as any).dp_unidades?.nome ?? null,
           data_admissao: colab.data_admissao,
-          salario: colab.salario,
+          salario: (colab as any).salario_base,
           regime: colab.regime,
-          jornada: colab.carga_semanal_horas ? `${colab.carga_semanal_horas}h semanais` : null,
+          jornada: (colab as any).base_horas_mes ? `${(colab as any).base_horas_mes}h mensais` : null,
           matricula: (colab as any).matricula,
         },
       };
