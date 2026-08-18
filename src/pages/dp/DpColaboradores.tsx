@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal, RefreshCw } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -25,6 +25,7 @@ import {
 } from "@/hooks/useDpColaboradores";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
+import { SincronizarPadraoDialog } from "@/components/dp/SincronizarPadraoDialog";
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 import { DesligamentoDialog } from "@/components/dp/DesligamentoDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
@@ -59,6 +60,7 @@ const PERFIL_LABEL: Record<string, string> = {
 };
 
 export default function DpColaboradores() {
+  const [sincronizarOpen, setSincronizarOpen] = useState(false);
   const list = useDpColaboradores();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
@@ -271,6 +273,14 @@ export default function DpColaboradores() {
         description="Gerencie a equipe, cargos e acessos ao sistema."
         actions={
           <>
+          <Button
+            size="lg"
+            variant="outline"
+            className="rounded-full font-semibold"
+            onClick={() => setSincronizarOpen(true)}
+          >
+            <RefreshCw className="h-5 w-5 mr-2" /> Sincronizar com o padrão
+          </Button>
           <Button
             size="lg"
             className="rounded-full font-semibold"
@@ -603,6 +613,8 @@ export default function DpColaboradores() {
           }}
         />
       )}
+
+      <SincronizarPadraoDialog open={sincronizarOpen} onOpenChange={setSincronizarOpen} />
 
       <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
 
