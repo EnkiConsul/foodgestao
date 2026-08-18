@@ -17,7 +17,7 @@ import { useUpsertDpColaborador, useDpColaboradores, type DpColaborador } from "
 import { alertaIsonomia } from "@/lib/dp/beneficios-regras";
 import { BeneficioDispensaDialog, type DispensaBeneficio } from "@/components/dp/BeneficioDispensaDialog";
 import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, type DpCargo } from "@/hooks/useDpCadastros";
-import { salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
+import { salarioCargoNaUnidade, mensagemErroPiso } from "@/lib/dp/cargoSalarios";
 
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { Textarea } from "@/components/ui/textarea";
