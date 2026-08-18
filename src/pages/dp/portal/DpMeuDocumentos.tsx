@@ -272,6 +272,8 @@ export default function DpMeuDocumentos() {
       />
 
       {/* Tabs por tipo */}
+      <ColaboradorDocumentosPanel colaboradorId={colaborador?.id ?? null} somenteEnvio ocultarConfig />
+
       <Tabs value={tab} onValueChange={changeTab}>
         <DpFilterCard>
           <div className="-mx-1 overflow-x-auto">
