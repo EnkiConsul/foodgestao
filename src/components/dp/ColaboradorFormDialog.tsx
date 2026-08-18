@@ -1571,7 +1571,37 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       </AlertDialog>
 
 
+
+      {/* Padrão de benefícios da unidade: perguntado uma única vez por salvamento. */}
+      <AlertDialog open={perguntarPadrao} onOpenChange={(o) => { if (!o) void responderPadrao(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Usar estes benefícios como padrão de {unidadeSelecionada?.nome ?? "unidade"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Assiduidade, tolerância, vale-alimentação, vale-transporte e a ficha de benefícios deste
+              colaborador passam a vir pré-preenchidos nos próximos cadastros desta unidade. Você pode
+              ajustar caso a caso.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="ghost" onClick={() => void responderPadrao(false, true)}>
+              Não perguntar de novo
+            </Button>
+            <AlertDialogCancel onClick={() => void responderPadrao(false)}>Agora não</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={salvarPadraoBeneficios.isPending}
+              onClick={(e) => { e.preventDefault(); void responderPadrao(true); }}
+            >
+              Salvar como padrão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {risco && (
+
         <RegimeRiscoDialog
           open={riscoOpen}
           onOpenChange={setRiscoOpen}
