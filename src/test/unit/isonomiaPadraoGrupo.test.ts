@@ -3,6 +3,9 @@ import {
   descreverPadraoGrupo, divergenciasIsonomia, type ColegaIsonomia,
 } from "@/lib/dp/beneficios-regras";
 
+/** Intl usa espaço não separável entre "R$" e o número. */
+const norm = (v?: string | null) => (v ?? "").replace(/\u00a0/g, " ");
+
 /** Colega com vale-alimentação diário de R$ 24,00 (base 22 dias = R$ 528/mês). */
 function colegaDiario(id: string): ColegaIsonomia {
   return {
@@ -37,8 +40,8 @@ describe("isonomia — padrão do grupo na periodicidade cadastrada", () => {
     expect(d.tipo).toBe("ausente");
     expect(d.padrao_unitario).toBe(24);
     expect(d.padrao_periodicidade).toBe("diario");
-    expect(descreverPadraoGrupo(d)).toBe("R$ 24,00/dia");
-    expect(descreverPadraoGrupo(d)).not.toContain("mês");
+    expect(norm(descreverPadraoGrupo(d))).toBe("R$ 24,00/dia");
+    expect(norm(descreverPadraoGrupo(d))).not.toContain("mês");
   });
 
   it("compara valor diário contra diário, sem equivalente mensal no texto", () => {
@@ -53,8 +56,8 @@ describe("isonomia — padrão do grupo na periodicidade cadastrada", () => {
 
     expect(d.tipo).toBe("valor_menor");
     expect(d.atual_unitario).toBe(22);
-    expect(d.mensagem).toContain("R$ 24,00/dia");
-    expect(d.mensagem).toContain("R$ 22,00/dia");
+    expect(norm(d.mensagem)).toContain("R$ 24,00/dia");
+    expect(norm(d.mensagem)).toContain("R$ 22,00/dia");
   });
 
   it("cai para o equivalente mensal quando as periodicidades diferem", () => {
@@ -68,9 +71,9 @@ describe("isonomia — padrão do grupo na periodicidade cadastrada", () => {
     );
 
     expect(d.tipo).toBe("valor_menor");
-    expect(d.mensagem).toContain("estimativa");
+    expect(norm(d.mensagem)).toContain("estimativa");
     // O padrão exibido continua sendo o diário cadastrado pelo grupo.
-    expect(descreverPadraoGrupo(d)).toBe("R$ 24,00/dia");
+    expect(norm(descreverPadraoGrupo(d))).toBe("R$ 24,00/dia");
   });
 
   it("sem periodicidade conhecida no grupo, exibe o valor mensal", () => {
@@ -83,6 +86,6 @@ describe("isonomia — padrão do grupo na periodicidade cadastrada", () => {
       [colega],
       alvo,
     );
-    expect(descreverPadraoGrupo(d)).toBe("R$ 300,00/mês");
+    expect(norm(descreverPadraoGrupo(d))).toBe("R$ 300,00/mês");
   });
 });
