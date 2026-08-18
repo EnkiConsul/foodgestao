@@ -59,7 +59,6 @@ const PERFIL_LABEL: Record<string, string> = {
 };
 
 export default function DpColaboradores() {
-  const [sincronizarOpen, setSincronizarOpen] = useState(false);
   const list = useDpColaboradores();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
