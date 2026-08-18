@@ -271,6 +271,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Alcance: só os próximos cadastros ou também quem já está cadastrado. */
   const [alcancePadrao, setAlcancePadrao] = useState<PadraoAlcance>("novos");
 
+  /** Quantos colaboradores ativos seriam atualizados no alcance escolhido. */
+  const colaboradoresNoAlcance = useMemo(() => {
+    if (escopoPadrao === "colaborador") return 0;
+    return (todosColaboradores.data ?? []).filter((c) => {
+      if (!c.ativo || c.data_desligamento) return false;
+      if (c.id === colaborador?.id) return false;
+      if (escopoPadrao !== "empresa" && c.unidade_id !== form.unidade_id) return false;
+      if (escopoPadrao === "cargo" && c.cargo_id !== (form.cargo_id || null)) return false;
+      return true;
+    }).length;
+  }, [todosColaboradores.data, escopoPadrao, form.unidade_id, form.cargo_id, colaborador?.id]);
+
   /** Assinaturas de benefícios já decididas nesta abertura da ficha. */
   const padraoRespondidoRef = useRef<Set<string>>(new Set());
   const naoPerguntarKey = `dp:beneficios-padrao:nao-perguntar:${selectedCompanyId ?? "sem-empresa"}`;
