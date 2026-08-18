@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useDpAdicionaisTempoServico, type RegraTempoServicoInput } from "@/hooks/useDpAdicionaisTempoServico";
 import { useDpSalarioFamiliaConfig } from "@/hooks/useDpSalarioFamiliaConfig";
+import { SalarioFamiliaTabelaForm } from "@/components/dp/SalarioFamiliaTabelaDialog";
 import { useDpUnidades, useDpCargos, useDpSindicatos } from "@/hooks/useDpCadastros";
 import { moedaBR } from "@/lib/dp/cargos";
 import {
