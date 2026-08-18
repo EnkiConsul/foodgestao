@@ -5,6 +5,7 @@ import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPen
 import { differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import { ClipboardList, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap } from "lucide-react";
+import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
 
 export type Pendencia = {
   id: string;
