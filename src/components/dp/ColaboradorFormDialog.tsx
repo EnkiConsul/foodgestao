@@ -465,6 +465,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   // valem acima dele. Sem patronal ou sem piso, a referência fica pendente.
   const pisosCargo = useDpCargoSalarios(form.cargo_id || null);
   const patronalPorUnidade = useDpPatronalPorUnidade();
+  const sindicatos = useDpSindicatos();
   const patronalUnidade = form.unidade_id
     ? patronalPorUnidade.data?.[form.unidade_id] ?? null
     : null;
