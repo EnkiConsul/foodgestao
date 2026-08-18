@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 import { regimeRisco } from "@/lib/dp/regime-riscos";
 import { RegimeRiscoDialog } from "@/components/dp/RegimeRiscoDialog";
+import { toProperName } from "@/lib/text/properName";
 
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
