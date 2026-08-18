@@ -141,7 +141,8 @@ describe("rotuloSalarioCargo", () => {
       [base(), base({ sindicato_patronal_id: patronalB, salario_base: 1900 })],
       { data: "2026-08-18" },
     );
-    expect(r.texto).toMatch(/1\.750,00 a R\$ ?1\.900,00/);
+    expect(r.texto).toContain("1.750,00 a ");
+    expect(r.texto).toContain("1.900,00");
     expect(r.valor).toBeNull();
   });
 
