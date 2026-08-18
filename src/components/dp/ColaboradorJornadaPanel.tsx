@@ -42,6 +42,9 @@ const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateSt
 
 const HORARIO_PADRAO: HorarioSimples = { entrada: "08:00", saida: "17:00", intervalo_minutos: 60 };
 
+/** Só o primeiro nome cabe no atalho — o nome completo fica no title. */
+const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] || nome;
+
 /**
  * Identidade do horário de um colega, usada só para deduplicar os atalhos.
  *
