@@ -12,7 +12,8 @@ Além disso, o usuário pediu que o título do diálogo deixe de ser fixo "Edita
 - Cada botão continua copiando a **semana completa** do colega: folgas, folga variável e os dias com entrada/saída diferentes (padrão da loja).
 - Manter a regra de ordenação e a deduplicação já existentes, sem alterar nada do motor de horários.
 - O botão "Copiar de Outro Colaborador" (diálogo completo) e os atalhos Grade da unidade / 6x1 / 5x2 permanecem como estão.
-- Conferir na tela, com o colaborador aberto, que os nomes aparecem e que clicar em um deles traz a semana inteira.
+- Alterar o título do diálogo em `ColaboradorFormDialog.tsx` para exibir **"Editar: <Nome>"** quando houver colaborador em edição, ou **"Cadastrar: Novo Colaborador"** (ou equivalente) no cadastro.
+- Conferir na tela, com o colaborador aberto, que os nomes dos colegas aparecem, que clicar em um deles traz a semana inteira e que o título do diálogo mostra o nome do colaborador.
 
 ## Detalhes técnicos
 
