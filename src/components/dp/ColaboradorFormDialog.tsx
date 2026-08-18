@@ -1620,33 +1620,88 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
 
-      {/* Padrão de benefícios da unidade: perguntado uma única vez por salvamento. */}
-      <AlertDialog open={perguntarPadrao} onOpenChange={(o) => { if (!o) void responderPadrao(false); }}>
+      {/* Alcance do padrão de benefícios: perguntado só quando há diferença real. */}
+      <AlertDialog open={perguntarPadrao} onOpenChange={(o) => { if (!o) void responderPadrao(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Usar estes benefícios como padrão de {unidadeSelecionada?.nome ?? "unidade"}?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Onde salvar estes benefícios como padrão?</AlertDialogTitle>
             <AlertDialogDescription>
-              Assiduidade, tolerância, vale-alimentação, vale-transporte e a ficha de benefícios deste
-              colaborador passam a vir pré-preenchidos nos próximos cadastros desta unidade. Você pode
-              ajustar caso a caso.
+              Assiduidade, tolerância, vale-alimentação, vale-transporte e a ficha de benefícios podem
+              virar padrão para os próximos cadastros. Escolha o alcance.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          <RadioGroup
+            value={escopoPadrao}
+            onValueChange={(v) => setEscopoPadrao(v as PadraoEscopo)}
+            className="gap-3 py-2 text-sm"
+          >
+            {form.cargo_id && form.unidade_id && (
+              <label className="flex cursor-pointer items-start gap-3">
+                <RadioGroupItem value="cargo" className="mt-0.5" />
+                <span>
+                  <span className="font-medium">Padrão do cargo</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {cargoSelecionado?.nome ?? "Cargo"} em {unidadeSelecionada?.nome ?? "esta unidade"}
+                  </span>
+                </span>
+              </label>
+            )}
+            {form.unidade_id && (
+              <label className="flex cursor-pointer items-start gap-3">
+                <RadioGroupItem value="unidade" className="mt-0.5" />
+                <span>
+                  <span className="font-medium">Padrão da unidade</span>
+                  <span className="block text-xs text-muted-foreground">
+                    Todos os cargos de {unidadeSelecionada?.nome ?? "esta unidade"}
+                  </span>
+                </span>
+              </label>
+            )}
+            <label className="flex cursor-pointer items-start gap-3">
+              <RadioGroupItem value="empresa" className="mt-0.5" />
+              <span>
+                <span className="font-medium">Padrão da empresa</span>
+                <span className="block text-xs text-muted-foreground">
+                  Vale para as unidades sem padrão próprio
+                </span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3">
+              <RadioGroupItem value="colaborador" className="mt-0.5" />
+              <span>
+                <span className="font-medium">Somente deste colaborador</span>
+                <span className="block text-xs text-muted-foreground">
+                  Não altera nenhum padrão
+                </span>
+              </span>
+            </label>
+          </RadioGroup>
+
+          {escopoPadrao === "colaborador" && (
+            <div className="rounded-xl border border-dashed border-amber-500/50 bg-amber-500/10 p-3 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Princípio da equidade:</span> benefícios
+              diferentes para um colaborador que exerce a mesma função, na mesma unidade, precisam de
+              justificativa objetiva (tempo de casa, produtividade, acordo coletivo). Diferenças sem
+              critério podem ser questionadas como quebra de isonomia salarial.
+            </div>
+          )}
+
           <AlertDialogFooter>
-            <Button variant="ghost" onClick={() => void responderPadrao(false, true)}>
+            <Button variant="ghost" onClick={() => void responderPadrao(null, true)}>
               Não perguntar de novo
             </Button>
-            <AlertDialogCancel onClick={() => void responderPadrao(false)}>Agora não</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => void responderPadrao(null)}>Agora não</AlertDialogCancel>
             <AlertDialogAction
               disabled={salvarPadraoBeneficios.isPending}
-              onClick={(e) => { e.preventDefault(); void responderPadrao(true); }}
+              onClick={(e) => { e.preventDefault(); void responderPadrao(escopoPadrao); }}
             >
-              Salvar como padrão
+              Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       {risco && (
 
