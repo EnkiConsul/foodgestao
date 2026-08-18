@@ -655,13 +655,14 @@ export function ColaboradorJornadaPanel({
             {atalhosColegas.map((m) => (
               <Button
                 key={m.id} type="button" size="sm" variant="secondary" className="h-7 text-[11px]"
+                title={`${formatarFaixaTurno(m.horario!)} — clique para usar este horário`}
                 onClick={() => definirHorario({
                   entrada: m.horario!.entrada,
                   saida: m.horario!.saida,
                   intervalo_minutos: m.horario!.intervalo_minutos ?? 0,
                 })}
               >
-                {m.colaborador_nome.split(" ")[0]} · {formatarFaixaTurno(m.horario!)}
+                {m.colaborador_nome.split(" ")[0]}
               </Button>
             ))}
           </div>
