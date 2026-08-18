@@ -8,6 +8,8 @@ import { toProperName } from "@/lib/text/properName";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DependentesPanel } from "@/components/dp/DependentesPanel";
+import { AdicionalTempoServicoCard } from "@/components/dp/AdicionalTempoServicoCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -171,6 +173,8 @@ const blank = {
 /** Abas do cadastro, na ordem em que o usuário avança. */
 const ABAS = ["dados", "jornada", "remuneracao"] as const;
 type AbaCadastro = (typeof ABAS)[number];
+/** Aba extra, fora do fluxo de avanço automático do cadastro. */
+type AbaVisivel = AbaCadastro | "dependentes";
 type IntencaoSalvar = "stay" | "close";
 /** Campo pendente apontado pela validação, usado para focar e destacar. */
 type ErroCampo = { campo: string; mensagem: string };
@@ -199,7 +203,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Motivo objetivo registrado ao aceitar a diferença de benefícios. */
   const motivoIsonomia = useRef<MotivoIsonomiaEscolhido | null>(null);
   const [cienciaAberta, setCienciaAberta] = useState(false);
-  const [tab, setTab] = useState<AbaCadastro>("dados");
+  const [tab, setTab] = useState<AbaVisivel>("dados");
   /** Intenção do botão acionado: continuar na tela, avançar de aba ou sair. */
   const intencaoRef = useRef<IntencaoSalvar>("stay");
   /** Marco do último estado gravado — base para detectar alterações pendentes. */
@@ -1158,7 +1162,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       setBaseline(snapshot);
       toast.success("Colaborador cadastrado");
 
-      if (intencaoRef.current !== "close" && abaSeguinte(tab)) {
+      if (intencaoRef.current !== "close" && tab !== "dependentes" && abaSeguinte(tab)) {
         toast("Defina o turno e a jornada");
       }
       concluir(perguntar);
@@ -1218,6 +1222,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 )}
 
               </TabsTrigger>
+              <TabsTrigger value="dependentes">Dependentes</TabsTrigger>
             </TabsList>
           </div>
 
@@ -1648,6 +1653,22 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 </p>
               )}
             </div>
+
+            <AdicionalTempoServicoCard
+              admissao={form.data_admissao || null}
+              cargoId={form.cargo_id || null}
+              unidadeId={form.unidade_id || null}
+              sindicatoId={form.sindicato_id || null}
+              base={baseSalarialInformada()}
+              pisoCargo={salarioCargo ?? null}
+            />
+          </TabsContent>
+
+          <TabsContent value="dependentes" className="mt-4">
+            <DependentesPanel
+              colaboradorId={colaborador?.id ?? criadoId ?? null}
+              remuneracaoMensal={baseSalarialInformada()}
+            />
           </TabsContent>
           </div>
         </Tabs>
