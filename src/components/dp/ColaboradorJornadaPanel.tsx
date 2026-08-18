@@ -17,7 +17,7 @@ import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
-import { useDpModelosHorario } from "@/hooks/useDpModelosHorario";
+import { useDpModelosHorario, type ModeloHorarioColaborador } from "@/hooks/useDpModelosHorario";
 import { sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { formatarHoras, calcularCargaDia } from "@/lib/dp/jornada-utils";
