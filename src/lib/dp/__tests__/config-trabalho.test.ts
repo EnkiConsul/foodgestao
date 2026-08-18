@@ -87,3 +87,36 @@ describe("config-trabalho", () => {
     expect(texto).toContain("folga: Dom");
   });
 });
+
+describe("aviso de carga semanal", () => {
+  /** 4 dias de trabalho; o turno define quanto cada dia soma. */
+  function quatroDias(turno: TurnoResolvido) {
+    const c: ConfigTrabalho = {
+      turno_padrao_id: turno.id,
+      folga_variavel: false,
+      folga_fixa_dow: 0,
+      dias: normalizarDias([1, 2, 3, 4].map((dow) => ({ dow, trabalha: true, turno_id: null })), 0),
+    };
+    return validarConfigTrabalho(c, [turno], { regime: "clt" }).find((v) => v.campo === "carga");
+  }
+
+  it("perto do teto mostra quanto falta, sem falar de folga", () => {
+    const v = quatroDias({ id: "x", nome: "43h", entrada: "08:00", saida: "19:45", intervalo_minutos: 60 });
+    expect(v?.nivel).toBe("aviso");
+    expect(v?.mensagem).toContain("faltam 1h para o teto semanal da CLT (44h)");
+    expect(v?.mensagem).not.toContain("folga");
+  });
+
+  it("exatamente no teto avisa que está no limite da CLT", () => {
+    const v = quatroDias({ id: "x", nome: "44h", entrada: "08:00", saida: "20:00", intervalo_minutos: 60 });
+    expect(v?.nivel).toBe("aviso");
+    expect(v?.mensagem).toContain("é o teto da CLT");
+    expect(v?.mensagem).not.toContain("faltam");
+  });
+
+  it("acima do teto bloqueia e mostra o excedente", () => {
+    const v = quatroDias({ id: "x", nome: "46h", entrada: "08:00", saida: "20:30", intervalo_minutos: 60 });
+    expect(v?.nivel).toBe("erro");
+    expect(v?.mensagem).toContain("excede o teto da CLT (44h) em 2h");
+  });
+});
