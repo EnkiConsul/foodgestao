@@ -827,9 +827,10 @@ export function ColaboradorJornadaPanel({
           {dias.map((dia) => {
             const h = horarioEfetivoDia(dia, horario);
             const diferente = diaDivergeDoBase(dia, horario);
-            // Horário diferente que já existe como horário da loja é padrão da
-            // operação (ex.: fim de semana), não exceção deste colaborador.
-            const daLoja = diferente && diaEhHorarioDaLoja({ ...dia, ...h }, turnosResolvidos);
+            // Horário da loja é o que outros colegas realmente usam; horário só
+            // desta pessoa continua sendo exceção, mesmo já existindo o turno.
+            const colegas = colegasNoHorarioDoDia({ ...dia, ...h }, usosPorHorario);
+            const daLoja = diferente && colegas >= 1;
             return (
               <li key={dia.dow} className="space-y-2 p-3">
                 <div className="flex flex-wrap items-center gap-3">
@@ -842,10 +843,19 @@ export function ColaboradorJornadaPanel({
                   {dia.trabalha ? (
                     <div className="ml-auto flex items-center gap-2">
                       {diferente && (
-                        <Badge variant={daLoja ? "secondary" : "outline"} className="text-[10px]">
-                          {daLoja ? "Horário da loja" : "Horário próprio"}
+                        <Badge
+                          variant={daLoja ? "secondary" : "outline"}
+                          className="text-[10px]"
+                          title={daLoja
+                            ? `Usado por ${colegas} ${colegas === 1 ? "colega" : "colegas"} da unidade`
+                            : "Nenhum outro colaborador da unidade usa este horário"}
+                        >
+                          {daLoja
+                            ? `Horário da loja · ${colegas} ${colegas === 1 ? "colega" : "colegas"}`
+                            : "Horário próprio"}
                         </Badge>
                       )}
+
                       <RepetirHorarioPopover
                         dow={dia.dow}
                         onRepetir={(destinos) => repetirHorario(dia.dow, destinos)}
