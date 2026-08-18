@@ -134,6 +134,17 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal }: Props) {
           ) : (
             <Badge variant="outline">Sem valor no mês</Badge>
           )}
+          {podeConfigurar && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="ml-auto h-7"
+              onClick={() => setTabelaAberta(true)}
+            >
+              <Settings2 className="mr-1.5 h-3.5 w-3.5" /> Atualizar tabela
+            </Button>
+          )}
         </div>
         <p className="mt-1">{calculo.motivo}</p>
         <p className="mt-1">
@@ -147,13 +158,31 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal }: Props) {
           {config.cota ? ` · Cota: ${moedaBR(config.cota)}` : ""}
         </p>
         {tabelaVencida && (
-          <p className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-amber-700 dark:text-amber-300">
+          <div className="mt-2 flex flex-wrap items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-amber-700 dark:text-amber-300">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            A tabela do salário-família é reajustada todo ano. Atualize a cota e o teto em
-            Cadastros → Adicionais e salário-família.
-          </p>
+            <p className="min-w-[12rem] flex-1">
+              A tabela do salário-família é reajustada todo ano. Enquanto a cota e o teto do ano
+              vigente não forem confirmados, o benefício não é calculado na folha.
+              {!podeConfigurar && " Peça ao gestor da empresa para atualizar."}
+            </p>
+            {podeConfigurar && (
+              <Button
+                type="button"
+                size="sm"
+                className="h-7"
+                onClick={() => setTabelaAberta(true)}
+              >
+                Configurar agora
+              </Button>
+            )}
+          </div>
         )}
       </div>
+
+      {podeConfigurar && (
+        <SalarioFamiliaTabelaDialog open={tabelaAberta} onOpenChange={setTabelaAberta} />
+      )}
+
 
       {alertas.length > 0 && (
         <div className="space-y-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
