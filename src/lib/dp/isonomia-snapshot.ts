@@ -66,10 +66,16 @@ export function snapshotColegaBeneficios(
     vale_alimentacao: {
       ativo: !!c.vale_alimentacao,
       valorMes: valeAlimentacaoMensal(c),
+      // Valor como foi cadastrado: comparar diário com diário evita projetar
+      // dias no mês, que variam por escala e por convocação.
+      valorUnitario: c.vale_alimentacao ? num(c.vale_alimentacao_valor) : 0,
+      periodicidade: (c.vale_alimentacao_periodicidade ?? "mensal") as Periodicidade,
     },
     vale_transporte: {
       ativo: !!c.vale_transporte,
       valorMes: c.vale_transporte ? num(c.vale_transporte_valor_dia) * DIAS_BASE_PADRAO : 0,
+      valorUnitario: c.vale_transporte ? num(c.vale_transporte_valor_dia) : 0,
+      periodicidade: "diario",
     },
     premio_assiduidade: {
       ativo: !!c.premio_assiduidade,
@@ -82,12 +88,18 @@ export function snapshotColegaBeneficios(
           salario,
         )
         : 0,
+      periodicidade: "mensal",
     },
   };
 
   for (const a of atribuicoes ?? []) {
     if (a.colaborador_id !== c.id) continue;
-    beneficios[a.beneficio_id] = { ativo: !!a.ativo, valorMes: num(a.valor) };
+    beneficios[a.beneficio_id] = {
+      ativo: !!a.ativo,
+      valorMes: num(a.valor),
+      valorUnitario: num(a.valor),
+      periodicidade: "mensal",
+    };
   }
 
   return {
