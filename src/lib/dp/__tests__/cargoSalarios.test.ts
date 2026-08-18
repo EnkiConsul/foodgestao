@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   aplicarReajuste,
+  rotuloSalarioCargo,
   salarioCargoNaUnidade,
   validarOverrideUnidade,
 } from "@/lib/dp/cargoSalarios";
