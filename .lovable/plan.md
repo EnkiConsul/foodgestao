@@ -13,7 +13,7 @@ Hoje a lista vem ordenada apenas por nome. Passa a seguir esta hierarquia:
 ```
 
 - "Admin" usa o perfil de acesso do colaborador (`perfil_acesso`), o mesmo que hoje pinta o badge vermelho na coluna PERFIL.
-- Unidade ordena pelo nome da unidade, com quem está sem unidade no fim.
+- Unidade ordena pelo `unidade_id`, com quem está sem unidade no fim.
 - Comparação de nomes com regras do português (acentos), então "ÁLVARO" fica antes de "ANA".
 - Vale para as três abas (Todos / Ativos / Desligados) e para os cartões da versão mobile.
 - Nada muda nos filtros ou nas contagens das abas.
