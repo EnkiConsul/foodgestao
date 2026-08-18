@@ -3765,6 +3765,94 @@ export type Database = {
           },
         ]
       }
+      dp_colaborador_documentos: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          dependente_id: string | null
+          dispensado: boolean
+          documento_id: string | null
+          id: string
+          motivo_dispensa: string | null
+          requisito_id: string
+          status: string
+          updated_at: string
+          validade: string | null
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          dependente_id?: string | null
+          dispensado?: boolean
+          documento_id?: string | null
+          id?: string
+          motivo_dispensa?: string | null
+          requisito_id: string
+          status?: string
+          updated_at?: string
+          validade?: string | null
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          dependente_id?: string | null
+          dispensado?: boolean
+          documento_id?: string | null
+          id?: string
+          motivo_dispensa?: string | null
+          requisito_id?: string
+          status?: string
+          updated_at?: string
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaborador_documentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_documentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_documentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_documentos_dependente_id_fkey"
+            columns: ["dependente_id"]
+            isOneToOne: false
+            referencedRelation: "dp_dependentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_documentos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_documentos_requisito_id_fkey"
+            columns: ["requisito_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documento_requisitos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_colaborador_jornadas: {
         Row: {
           colaborador_id: string
@@ -4541,6 +4629,161 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_documento_aceites: {
+        Row: {
+          aceito_em: string
+          aceito_por: string | null
+          colaborador_id: string
+          company_id: string
+          conteudo_hash: string
+          documento_id: string | null
+          id: string
+          ip: string | null
+          modelo: string
+          modelo_versao: string
+          requisito_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          aceito_em?: string
+          aceito_por?: string | null
+          colaborador_id: string
+          company_id: string
+          conteudo_hash: string
+          documento_id?: string | null
+          id?: string
+          ip?: string | null
+          modelo: string
+          modelo_versao?: string
+          requisito_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          aceito_em?: string
+          aceito_por?: string | null
+          colaborador_id?: string
+          company_id?: string
+          conteudo_hash?: string
+          documento_id?: string | null
+          id?: string
+          ip?: string | null
+          modelo?: string
+          modelo_versao?: string
+          requisito_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_documento_aceites_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documento_aceites_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documento_aceites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documento_aceites_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documento_aceites_requisito_id_fkey"
+            columns: ["requisito_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documento_requisitos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_documento_requisitos: {
+        Row: {
+          aplica_a: string
+          categoria: string
+          codigo: string
+          company_id: string
+          created_at: string
+          descricao: string | null
+          dias_aviso: number
+          exige_aceite: boolean
+          gerado_pelo_sistema: boolean
+          id: string
+          meses_validade: number | null
+          nome: string
+          obrigatoriedade: string
+          ordem: number
+          periodicidade: string
+          satisfeito_por: string | null
+          sistema: boolean
+          tipo_documento: Database["public"]["Enums"]["dp_documento_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          aplica_a?: string
+          categoria?: string
+          codigo: string
+          company_id: string
+          created_at?: string
+          descricao?: string | null
+          dias_aviso?: number
+          exige_aceite?: boolean
+          gerado_pelo_sistema?: boolean
+          id?: string
+          meses_validade?: number | null
+          nome: string
+          obrigatoriedade?: string
+          ordem?: number
+          periodicidade?: string
+          satisfeito_por?: string | null
+          sistema?: boolean
+          tipo_documento?: Database["public"]["Enums"]["dp_documento_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          aplica_a?: string
+          categoria?: string
+          codigo?: string
+          company_id?: string
+          created_at?: string
+          descricao?: string | null
+          dias_aviso?: number
+          exige_aceite?: boolean
+          gerado_pelo_sistema?: boolean
+          id?: string
+          meses_validade?: number | null
+          nome?: string
+          obrigatoriedade?: string
+          ordem?: number
+          periodicidade?: string
+          satisfeito_por?: string | null
+          sistema?: boolean
+          tipo_documento?: Database["public"]["Enums"]["dp_documento_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_documento_requisitos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
