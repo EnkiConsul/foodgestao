@@ -180,8 +180,8 @@ type IntencaoSalvar = "stay" | "close";
 type ErroCampo = { campo: string; mensagem: string };
 
 
-const abaSeguinte = (aba: AbaCadastro): AbaCadastro | null =>
-  ABAS[ABAS.indexOf(aba) + 1] ?? null;
+const abaSeguinte = (aba: AbaVisivel): AbaCadastro | null =>
+  ABAS[ABAS.indexOf(aba as AbaCadastro) + 1] ?? null;
 
 
 
