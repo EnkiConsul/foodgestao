@@ -5,6 +5,7 @@ import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPen
 import { differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import { ClipboardList, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap } from "lucide-react";
+import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
 
 export type Pendencia = {
   id: string;
@@ -531,6 +532,72 @@ export function useDpPendencias() {
       } catch (e) {
         console.warn("pendencias/lotes-unidade:", e);
       }
+
+      // 11. Tabela anual do salário-família (INSS reajusta todo ano)
+      try {
+        const { data: cfgSf } = await supabase
+          .from("dp_config_dp")
+          .select(
+            "salario_familia_cota, salario_familia_teto, salario_familia_vigencia, salario_familia_confirmado_em",
+          )
+          .eq("company_id", selectedCompanyId!)
+          .is("unidade_id", null)
+          .maybeSingle();
+        const sfConfig = {
+          cota: cfgSf?.salario_familia_cota != null ? Number(cfgSf.salario_familia_cota) : null,
+          teto: cfgSf?.salario_familia_teto != null ? Number(cfgSf.salario_familia_teto) : null,
+          vigencia: cfgSf?.salario_familia_vigencia ?? null,
+          confirmadoEm: cfgSf?.salario_familia_confirmado_em ?? null,
+        };
+        if (tabelaSalarioFamiliaVencida(sfConfig, ymd(today))) {
+          // Prazo prático: primeira folha do ano (fim de janeiro).
+          const prazo = new Date(anoVigente, 0, 31);
+          results.push({
+            id: `salario-familia-${anoVigente}`,
+            icon: Coins,
+            titulo: "Atualizar Tabela Do Salário-Família",
+            subtitulo: sfConfig.vigencia
+              ? `Valores de ${sfConfig.vigencia.slice(0, 4)} — confirme a cota e o teto de ${anoVigente}`
+              : "Cadastre a cota por dependente e o teto de baixa renda",
+            tipo: "Salário-família",
+            vencimento: ymd(prazo),
+            atrasoDias: differenceInCalendarDays(today, prazo),
+            url: "/dp/cadastros/adicionais",
+          });
+        }
+      } catch (e) {
+        console.warn("pendencias/salario-familia:", e);
+      }
+
+      // 12. Documentos de dependentes (vacinação, frequência escolar, laudo)
+      try {
+        const { data: deps } = await supabase
+          .from("dp_dependentes")
+          .select(
+            "id, colaborador_id, nome, data_nascimento, parentesco, cpf, deficiencia, laudo_validade, conta_irrf, conta_salario_familia, vacinacao_em, frequencia_escolar_em, cessado_em, observacao, dp_colaboradores(nome)",
+          )
+          .eq("company_id", selectedCompanyId!)
+          .is("cessado_em", null);
+        const porId = new Map(
+          (deps ?? []).map((d: any) => [d.id as string, d.dp_colaboradores?.nome ?? "Colaborador"]),
+        );
+        alertasDependentes((deps ?? []) as any, ymd(today)).forEach((a) => {
+          results.push({
+            id: `dependente-${a.dependenteId}-${a.tipo}`,
+            icon: Users,
+            titulo: a.titulo,
+            subtitulo: `${a.nome} — dependente de ${porId.get(a.dependenteId) ?? "colaborador"}. ${a.descricao}`,
+            tipo: "Dependente",
+            vencimento: null,
+            atrasoDias: a.severidade === "alta" ? 1 : 0,
+            url: "/dp/colaboradores",
+          });
+        });
+      } catch (e) {
+        console.warn("pendencias/dependentes:", e);
+      }
+
+
 
       // Ordenar: mais atrasado primeiro; empate → vencimento mais próximo
       results.sort((a, b) => {

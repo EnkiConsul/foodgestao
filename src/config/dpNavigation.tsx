@@ -220,6 +220,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Turnos", to: "/dp/cadastros/turnos", icon: Clock },
       { label: "Grades semanais", to: "/dp/cadastros/grades", icon: CalendarRange },
       { label: "Benefícios", to: "/dp/cadastros/beneficios", icon: Gift },
+      { label: "Adicionais e salário-família", to: "/dp/cadastros/adicionais", icon: Gift },
       { label: "Pendências", to: "/dp/cadastros/pendencias", icon: BellRing },
     ],
   },

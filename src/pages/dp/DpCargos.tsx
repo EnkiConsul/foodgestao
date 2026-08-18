@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, useDpCargoSalarios, type DpCargo, type DpCargoWithCount } from "@/hooks/useDpCadastros";
-import { pisoVigente } from "@/lib/dp/cargoSalarios";
+import { pisoVigente, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
 
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
@@ -120,33 +120,15 @@ export default function DpCargos() {
   // "por unidade" na lista quando o cargo tem valores distintos.
   const todosPisos = useDpCargoSalarios();
   const hojeISO = new Date().toISOString().slice(0, 10);
-  const pisosPorCargo = useMemo(() => {
-    const map = new Map<string, number[]>();
-    for (const p of (todosPisos.data ?? []) as any[]) {
-      if (!pisoVigente(p, hojeISO)) continue;
-      const arr = map.get(p.cargo_id) ?? [];
-      arr.push(Number(p.salario_base));
-      map.set(p.cargo_id, arr);
-    }
-    return map;
-  }, [todosPisos.data, hojeISO]);
+  const pisosPorCargo = useMemo(
+    () => agruparPisosPorCargo((todosPisos.data ?? []) as any[]),
+    [todosPisos.data],
+  );
 
-  /** Célula de salário: valor único ou faixa por unidade. */
-  const salarioResumo = (c: any) => {
-    const valores = pisosPorCargo.get(c.id) ?? [];
-    if (valores.length === 0) {
-      return { texto: "pendente", dica: "Cadastre o piso do sindicato patronal" };
-    }
-    const min = Math.min(...valores);
-    const max = Math.max(...valores);
-    if (min === max) {
-      return { texto: moedaBR(min), dica: `${valores.length} piso(s) cadastrado(s)` };
-    }
-    return {
-      texto: `${moedaBR(min)} a ${moedaBR(max)}`,
-      dica: `${valores.length} pisos por sindicato patronal / unidade`,
-    };
-  };
+  /** Célula de salário: valor único ou faixa por sindicato patronal / unidade. */
+  const salarioResumo = (c: any) =>
+    rotuloSalarioCargo((pisosPorCargo.get(c.id) ?? []) as any, { data: hojeISO });
+
 
 
   return (

@@ -8,6 +8,8 @@ import { toProperName } from "@/lib/text/properName";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DependentesPanel } from "@/components/dp/DependentesPanel";
+import { AdicionalTempoServicoCard } from "@/components/dp/AdicionalTempoServicoCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -19,7 +21,7 @@ import { snapshotColegaBeneficios } from "@/lib/dp/isonomia-snapshot";
 import { itensIsonomiaDoCadastro } from "@/hooks/useDpIsonomiaBeneficios";
 import { BeneficioDispensaDialog, type DispensaBeneficio, type MotivoIsonomiaEscolhido } from "@/components/dp/BeneficioDispensaDialog";
 import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, useDpSindicatos, type DpCargo } from "@/hooks/useDpCadastros";
-import { salarioCargoNaUnidade, mensagemErroPiso } from "@/lib/dp/cargoSalarios";
+import { salarioCargoNaUnidade, mensagemErroPiso, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
 
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { Textarea } from "@/components/ui/textarea";
@@ -171,13 +173,15 @@ const blank = {
 /** Abas do cadastro, na ordem em que o usuário avança. */
 const ABAS = ["dados", "jornada", "remuneracao"] as const;
 type AbaCadastro = (typeof ABAS)[number];
+/** Aba extra, fora do fluxo de avanço automático do cadastro. */
+type AbaVisivel = AbaCadastro | "dependentes";
 type IntencaoSalvar = "stay" | "close";
 /** Campo pendente apontado pela validação, usado para focar e destacar. */
 type ErroCampo = { campo: string; mensagem: string };
 
 
-const abaSeguinte = (aba: AbaCadastro): AbaCadastro | null =>
-  ABAS[ABAS.indexOf(aba) + 1] ?? null;
+const abaSeguinte = (aba: AbaVisivel): AbaCadastro | null =>
+  ABAS[ABAS.indexOf(aba as AbaCadastro) + 1] ?? null;
 
 
 
@@ -199,7 +203,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Motivo objetivo registrado ao aceitar a diferença de benefícios. */
   const motivoIsonomia = useRef<MotivoIsonomiaEscolhido | null>(null);
   const [cienciaAberta, setCienciaAberta] = useState(false);
-  const [tab, setTab] = useState<AbaCadastro>("dados");
+  const [tab, setTab] = useState<AbaVisivel>("dados");
   /** Intenção do botão acionado: continuar na tela, avançar de aba ou sair. */
   const intencaoRef = useRef<IntencaoSalvar>("stay");
   /** Marco do último estado gravado — base para detectar alterações pendentes. */
@@ -510,6 +514,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   // unidades com o mesmo patronal compartilham o piso; ajustes por unidade só
   // valem acima dele. Sem patronal ou sem piso, a referência fica pendente.
   const pisosCargo = useDpCargoSalarios(form.cargo_id || null);
+  // Pisos de todos os cargos: alimentam o rótulo de salário na lista de cargos.
+  const todosPisos = useDpCargoSalarios();
+  const pisosPorCargo = useMemo(
+    () => agruparPisosPorCargo((todosPisos.data ?? []) as any[]),
+    [todosPisos.data],
+  );
   const patronalPorUnidade = useDpPatronalPorUnidade();
   const sindicatos = useDpSindicatos();
   const patronalUnidade = form.unidade_id
@@ -1152,7 +1162,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       setBaseline(snapshot);
       toast.success("Colaborador cadastrado");
 
-      if (intencaoRef.current !== "close" && abaSeguinte(tab)) {
+      if (intencaoRef.current !== "close" && tab !== "dependentes" && abaSeguinte(tab)) {
         toast("Defina o turno e a jornada");
       }
       concluir(perguntar);
@@ -1212,6 +1222,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 )}
 
               </TabsTrigger>
+              <TabsTrigger value="dependentes">Dependentes</TabsTrigger>
             </TabsList>
           </div>
 
@@ -1281,10 +1292,17 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 <SelectTrigger {...marca("cargo_id", "flex-1")}><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                 <SelectContent>
                   {(cargos.data ?? []).map((c) => {
-                    const ref = salarioReferencia(c as any);
+                    const rot = rotuloSalarioCargo(
+                      (pisosPorCargo.get(c.id) ?? []) as any,
+                      {
+                        unidadeId: form.unidade_id || null,
+                        patronalId: patronalUnidade?.id ?? null,
+                        data: form.data_admissao || undefined,
+                      },
+                    );
                     return (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.nome}{ref ? ` — ${moedaBR(ref)}` : ""}
+                        {c.nome} — {rot.texto}
                       </SelectItem>
                     );
                   })}
@@ -1635,6 +1653,22 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 </p>
               )}
             </div>
+
+            <AdicionalTempoServicoCard
+              admissao={form.data_admissao || null}
+              cargoId={form.cargo_id || null}
+              unidadeId={form.unidade_id || null}
+              sindicatoId={form.sindicato_id || null}
+              base={baseSalarialInformada()}
+              pisoCargo={salarioCargo ?? null}
+            />
+          </TabsContent>
+
+          <TabsContent value="dependentes" className="mt-4">
+            <DependentesPanel
+              colaboradorId={colaborador?.id ?? criadoId ?? null}
+              remuneracaoMensal={baseSalarialInformada()}
+            />
           </TabsContent>
           </div>
         </Tabs>
@@ -1646,7 +1680,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               Fechar
             </Button>
             <span className="text-xs text-muted-foreground">
-              Etapa {ABAS.indexOf(tab) + 1} de {ABAS.length}
+              {tab === "dependentes"
+                ? "Dependentes"
+                : `Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
               {dirty ? " · alterações não salvas" : ""}
             </span>
           </div>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   aplicarReajuste,
+  rotuloSalarioCargo,
   salarioCargoNaUnidade,
   validarOverrideUnidade,
 } from "@/lib/dp/cargoSalarios";
@@ -88,5 +89,64 @@ describe("aplicarReajuste", () => {
   it("arredonda em centavos", () => {
     expect(aplicarReajuste(1500, 5.5)).toBe(1582.5);
     expect(aplicarReajuste(1412.35, 4.13)).toBe(1470.68);
+  });
+});
+
+describe("rotuloSalarioCargo", () => {
+  const patronalA = "pat-a";
+  const patronalB = "pat-b";
+  const uni = "uni-1";
+  const base = (over: Partial<any> = {}) => ({
+    cargo_id: "c1",
+    unidade_id: null,
+    sindicato_patronal_id: patronalA,
+    salario_base: 1750,
+    vigencia_inicio: "2025-01-01",
+    vigencia_fim: null,
+    ...over,
+  });
+
+  it("mostra o piso do patronal da unidade", () => {
+    const r = rotuloSalarioCargo([base()], { unidadeId: uni, patronalId: patronalA, data: "2026-08-18" });
+    expect(r.valor).toBe(1750);
+    expect(r.texto).toContain("1.750");
+  });
+
+  it("prefere o ajuste da unidade", () => {
+    const r = rotuloSalarioCargo(
+      [base(), base({ unidade_id: uni, sindicato_patronal_id: null, salario_base: 1900 })],
+      { unidadeId: uni, patronalId: patronalA, data: "2026-08-18" },
+    );
+    expect(r.valor).toBe(1900);
+    expect(r.dica).toMatch(/unidade/i);
+  });
+
+  it("aceita piso com vigência futura à data de referência", () => {
+    const r = rotuloSalarioCargo([base({ vigencia_inicio: "2026-01-01" })], {
+      unidadeId: uni,
+      patronalId: patronalA,
+      data: "2025-11-18",
+    });
+    expect(r.valor).toBe(1750);
+  });
+
+  it("sinaliza piso a cadastrar quando o patronal da unidade não tem piso", () => {
+    const r = rotuloSalarioCargo([base()], { unidadeId: uni, patronalId: patronalB, data: "2026-08-18" });
+    expect(r.valor).toBeNull();
+    expect(r.texto).toBe("piso a cadastrar");
+  });
+
+  it("sem unidade, mostra faixa entre patronais distintos", () => {
+    const r = rotuloSalarioCargo(
+      [base(), base({ sindicato_patronal_id: patronalB, salario_base: 1900 })],
+      { data: "2026-08-18" },
+    );
+    expect(r.texto).toContain("1.750,00 a ");
+    expect(r.texto).toContain("1.900,00");
+    expect(r.valor).toBeNull();
+  });
+
+  it("sem pisos, pede cadastro", () => {
+    expect(rotuloSalarioCargo([], {}).texto).toBe("piso a cadastrar");
   });
 });

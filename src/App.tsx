@@ -108,6 +108,7 @@ const DpRescisoes = lazyWithRetry(() => import("./pages/dp/DpRescisoes"));
 const DpFolhaRelatorios = lazyWithRetry(() => import("./pages/dp/DpFolhaRelatorios"));
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
+const DpAdicionaisTempoServico = lazyWithRetry(() => import("./pages/dp/cadastros/DpAdicionaisTempoServico"));
 const DpSindicatos = lazyWithRetry(() => import("./pages/dp/DpSindicatos"));
 const DpSindicatoNegociacoes = lazyWithRetry(() => import("./pages/dp/DpSindicatoNegociacoes"));
 const DpAprovacoes = lazyWithRetry(() => import("./pages/dp/DpAprovacoes"));
@@ -471,6 +472,7 @@ const AppRoutes = () => (
         <Route path="cadastros" element={<DpCadastrosHub />} />
         <Route path="cadastros/unidades" element={<DpUnidades />} />
         <Route path="cadastros/cargos" element={<DpCargos />} />
+        <Route path="cadastros/adicionais" element={<DpAdicionaisTempoServico />} />
         <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
         <Route path="cadastros/pendencias" element={<DpCadastroPendencias />} />
         <Route path="cadastros/beneficios" element={<DpBeneficios />} />

@@ -2482,6 +2482,98 @@ export type Database = {
           },
         ]
       }
+      dp_adicionais_tempo_servico: {
+        Row: {
+          acumula: boolean
+          ativo: boolean
+          base: string
+          cargo_id: string | null
+          ciclo_meses: number
+          company_id: string
+          created_at: string
+          escopo: string
+          id: string
+          max_ciclos: number | null
+          nome: string
+          observacao: string | null
+          percentual_por_ciclo: number
+          sindicato_id: string | null
+          unidade_id: string | null
+          updated_at: string
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          acumula?: boolean
+          ativo?: boolean
+          base?: string
+          cargo_id?: string | null
+          ciclo_meses?: number
+          company_id: string
+          created_at?: string
+          escopo?: string
+          id?: string
+          max_ciclos?: number | null
+          nome?: string
+          observacao?: string | null
+          percentual_por_ciclo?: number
+          sindicato_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Update: {
+          acumula?: boolean
+          ativo?: boolean
+          base?: string
+          cargo_id?: string | null
+          ciclo_meses?: number
+          company_id?: string
+          created_at?: string
+          escopo?: string
+          id?: string
+          max_ciclos?: number | null
+          nome?: string
+          observacao?: string | null
+          percentual_por_ciclo?: number
+          sindicato_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_adicionais_tempo_servico_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_adicionais_tempo_servico_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_adicionais_tempo_servico_sindicato_id_fkey"
+            columns: ["sindicato_id"]
+            isOneToOne: false
+            referencedRelation: "dp_sindicatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_adicionais_tempo_servico_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_avisos: {
         Row: {
           arquivo_mime: string | null
@@ -3748,6 +3840,8 @@ export type Database = {
         Row: {
           acesso_portal_ate: string | null
           adicional_percentual: number
+          adicional_tempo_servico_manual: number | null
+          adicional_tempo_servico_override: boolean
           aprendiz: boolean
           aprovacao_status: Database["public"]["Enums"]["dp_aprovacao_status"]
           assiduidade_considera_atestado: boolean
@@ -3820,6 +3914,8 @@ export type Database = {
         Insert: {
           acesso_portal_ate?: string | null
           adicional_percentual?: number
+          adicional_tempo_servico_manual?: number | null
+          adicional_tempo_servico_override?: boolean
           aprendiz?: boolean
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
           assiduidade_considera_atestado?: boolean
@@ -3892,6 +3988,8 @@ export type Database = {
         Update: {
           acesso_portal_ate?: string | null
           adicional_percentual?: number
+          adicional_tempo_servico_manual?: number | null
+          adicional_tempo_servico_override?: boolean
           aprendiz?: boolean
           aprovacao_status?: Database["public"]["Enums"]["dp_aprovacao_status"]
           assiduidade_considera_atestado?: boolean
@@ -3994,6 +4092,7 @@ export type Database = {
       }
       dp_config_dp: {
         Row: {
+          adicional_tempo_servico_ativo: boolean
           company_id: string
           created_at: string
           dias_descanso_negociados: number[]
@@ -4011,6 +4110,10 @@ export type Database = {
           politica_feriado: Database["public"]["Enums"]["dp_politica_feriado"]
           politica_sabado: Database["public"]["Enums"]["dp_politica_sabado"]
           regra_dsr: Database["public"]["Enums"]["dp_regra_dsr"]
+          salario_familia_confirmado_em: string | null
+          salario_familia_cota: number | null
+          salario_familia_teto: number | null
+          salario_familia_vigencia: string | null
           setor_comercio: boolean
           tipo_descanso_domingo: string
           turno_categoria_labels: Json
@@ -4018,6 +4121,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          adicional_tempo_servico_ativo?: boolean
           company_id: string
           created_at?: string
           dias_descanso_negociados?: number[]
@@ -4035,6 +4139,10 @@ export type Database = {
           politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
           politica_sabado?: Database["public"]["Enums"]["dp_politica_sabado"]
           regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
+          salario_familia_confirmado_em?: string | null
+          salario_familia_cota?: number | null
+          salario_familia_teto?: number | null
+          salario_familia_vigencia?: string | null
           setor_comercio?: boolean
           tipo_descanso_domingo?: string
           turno_categoria_labels?: Json
@@ -4042,6 +4150,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          adicional_tempo_servico_ativo?: boolean
           company_id?: string
           created_at?: string
           dias_descanso_negociados?: number[]
@@ -4059,6 +4168,10 @@ export type Database = {
           politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
           politica_sabado?: Database["public"]["Enums"]["dp_politica_sabado"]
           regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
+          salario_familia_confirmado_em?: string | null
+          salario_familia_cota?: number | null
+          salario_familia_teto?: number | null
+          salario_familia_vigencia?: string | null
           setor_comercio?: boolean
           tipo_descanso_domingo?: string
           turno_categoria_labels?: Json
@@ -4271,6 +4384,88 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_dependentes: {
+        Row: {
+          cessado_em: string | null
+          colaborador_id: string
+          company_id: string
+          conta_irrf: boolean
+          conta_salario_familia: boolean
+          cpf: string | null
+          created_at: string
+          data_nascimento: string | null
+          deficiencia: boolean
+          frequencia_escolar_em: string | null
+          id: string
+          laudo_validade: string | null
+          nome: string
+          observacao: string | null
+          parentesco: string
+          updated_at: string
+          vacinacao_em: string | null
+        }
+        Insert: {
+          cessado_em?: string | null
+          colaborador_id: string
+          company_id: string
+          conta_irrf?: boolean
+          conta_salario_familia?: boolean
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          deficiencia?: boolean
+          frequencia_escolar_em?: string | null
+          id?: string
+          laudo_validade?: string | null
+          nome: string
+          observacao?: string | null
+          parentesco?: string
+          updated_at?: string
+          vacinacao_em?: string | null
+        }
+        Update: {
+          cessado_em?: string | null
+          colaborador_id?: string
+          company_id?: string
+          conta_irrf?: boolean
+          conta_salario_familia?: boolean
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          deficiencia?: boolean
+          frequencia_escolar_em?: string | null
+          id?: string
+          laudo_validade?: string | null
+          nome?: string
+          observacao?: string | null
+          parentesco?: string
+          updated_at?: string
+          vacinacao_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_dependentes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_dependentes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_dependentes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -12665,6 +12860,7 @@ export type Database = {
       dp_config_resolvida: {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: {
+          adicional_tempo_servico_ativo: boolean
           company_id: string
           created_at: string
           dias_descanso_negociados: number[]
@@ -12682,6 +12878,10 @@ export type Database = {
           politica_feriado: Database["public"]["Enums"]["dp_politica_feriado"]
           politica_sabado: Database["public"]["Enums"]["dp_politica_sabado"]
           regra_dsr: Database["public"]["Enums"]["dp_regra_dsr"]
+          salario_familia_confirmado_em: string | null
+          salario_familia_cota: number | null
+          salario_familia_teto: number | null
+          salario_familia_vigencia: string | null
           setor_comercio: boolean
           tipo_descanso_domingo: string
           turno_categoria_labels: Json
