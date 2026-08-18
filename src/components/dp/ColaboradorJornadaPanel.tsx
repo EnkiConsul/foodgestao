@@ -148,13 +148,15 @@ export function ColaboradorJornadaPanel({
     return ordenados
       .filter((m) => !!m.horario)
       .filter((m) => {
-        const chave = `${m.horario!.entrada}-${m.horario!.saida}-${m.horario!.intervalo_minutos ?? 0}`;
-        if (vistos.has(chave)) return false;
-        vistos.add(chave);
+        // A semana inteira entra na chave: dois colegas com o mesmo horário base
+        // podem ter dias com horário diferente (padrão da loja no movimento).
+        if (vistos.has(assinaturaSemana(m))) return false;
+        vistos.add(assinaturaSemana(m));
         return true;
       })
       .slice(0, 10);
   }, [modelos, colaborador?.cargo_id]);
+
 
   useEffect(() => {
     if (!active || vigente || colaborador?.id || !colaborador?.cargo_id || alterado || modelos.length === 0) return;
