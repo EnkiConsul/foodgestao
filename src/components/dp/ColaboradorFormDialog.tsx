@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 import { regimeRisco } from "@/lib/dp/regime-riscos";
 import { RegimeRiscoDialog } from "@/components/dp/RegimeRiscoDialog";
@@ -31,6 +32,7 @@ import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
 import { SindicatoEnquadramentoField } from "@/components/dp/SindicatoEnquadramentoField";
+import { UnidadeAdiantamentoDialog } from "@/components/dp/UnidadeAdiantamentoDialog";
 
 import { CargoSalarioConflitoDialog } from "@/components/dp/CargoSalarioConflitoDialog";
 import {
@@ -173,6 +175,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const cargos = useDpCargos();
   const upsertCargo = useUpsertDpCargo();
   const upsertCargoSalario = useUpsertDpCargoSalario();
+  const queryClient = useQueryClient();
 
   const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
   const [form, setForm] = useState(blank);
@@ -239,6 +242,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const [rem, setRem] = useState<RemuneracaoFormState>(remuneracaoBlank);
   /** Cargo ainda sem salário de referência — decisão feita dentro do sistema. */
   const [cargoSemSalario, setCargoSemSalario] = useState<{ salarioInformado: number } | null>(null);
+  const [salvandoPiso, setSalvandoPiso] = useState(false);
+  const [adiantamentoOpen, setAdiantamentoOpen] = useState(false);
   const patchRem = (patch: Partial<RemuneracaoFormState>) => setRem((r) => ({ ...r, ...patch }));
 
   /**
@@ -1261,6 +1266,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 nome: form.nome,
                 regime: regimeSelecionado,
                 unidade_id: form.unidade_id || null,
+                cargo_id: form.cargo_id || null,
                 data_admissao: form.data_admissao || null,
                 data_nascimento: form.data_nascimento || null,
               }}
@@ -1334,18 +1340,21 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
               {/* Adiantamento — apenas para contratos com salário mensal em folha */}
               {permiteAdiantamento ? (
-                <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
+                <div className="col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-border p-3">
                   <Switch
                     id="optante_adiantamento"
                     checked={form.optante_adiantamento}
                     onCheckedChange={(v) => setForm({ ...form, optante_adiantamento: v })}
                   />
                   <Label htmlFor="optante_adiantamento" className="cursor-pointer">Opta por Adiantamento Salarial</Label>
-                  {unidadeSelecionada?.tem_adiantamento && unidadeSelecionada?.dia_adiantamento && (
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      Dia do adiantamento: {unidadeSelecionada.dia_adiantamento}
-                    </span>
-                  )}
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {unidadeSelecionada?.tem_adiantamento && unidadeSelecionada?.dia_adiantamento
+                      ? `Dia do adiantamento: ${unidadeSelecionada.dia_adiantamento}`
+                      : "Adiantamento não configurado"}
+                  </span>
+                  {unidadeSelecionada && <Button type="button" size="sm" variant="outline" onClick={() => setAdiantamentoOpen(true)}>
+                    Editar regra da unidade
+                  </Button>}
                 </div>
               ) : (
                 <p className="col-span-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
@@ -1507,36 +1516,48 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             {/* O piso é do sindicato patronal: unidades com o mesmo patronal compartilham. */}
             {patronalUnidade?.id && (
               <AlertDialogAction
-                disabled={upsertCargoSalario.isPending}
+                disabled={salvandoPiso || upsertCargoSalario.isPending}
                 onClick={async (e) => {
                   e.preventDefault();
-                  if (!cargoSemSalario || !form.cargo_id) return;
+                  if (!cargoSemSalario || !form.cargo_id || salvandoPiso) return;
+                  const pendente = cargoSemSalario;
+                  setSalvandoPiso(true);
+                  setCargoSemSalario(null);
                   try {
                     await upsertCargoSalario.mutateAsync({
                       cargo_id: form.cargo_id,
                       unidade_id: null,
                       sindicato_patronal_id: patronalUnidade.id,
-                      salario_base: cargoSemSalario.salarioInformado,
+                      salario_base: pendente.salarioInformado,
                       vigencia_inicio: form.data_admissao || new Date().toISOString().slice(0, 10),
                     });
+                    await queryClient.refetchQueries({ queryKey: ["dp_cargo_salarios"] });
                   } catch (err) {
+                    setCargoSemSalario(pendente);
                     toast.error("Não foi possível gravar o piso do sindicato patronal", {
                       description: err instanceof Error ? err.message : String(err),
                     });
+                    setSalvandoPiso(false);
                     return;
                   }
                   cargoResolvido.current = true;
-                  setCargoSemSalario(null);
-                  void submit();
+                  setSalvandoPiso(false);
+                  await submit();
                 }}
               >
-                Definir piso do patronal
+                {salvandoPiso ? "Salvando..." : "Definir piso do patronal"}
               </AlertDialogAction>
             )}
 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <UnidadeAdiantamentoDialog
+        unidade={unidadeSelecionada ?? null}
+        open={adiantamentoOpen}
+        onOpenChange={setAdiantamentoOpen}
+      />
 
       {/* Saída com alterações não salvas — sem window.confirm. */}
       <AlertDialog open={confirmarSaida} onOpenChange={setConfirmarSaida}>
