@@ -880,6 +880,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         });
       }
 
+      // A pergunta do padrão só cabe quando a aba de remuneração foi validada.
+      const perguntar = validaRem && devePerguntarPadrao();
+
       if (isEdit || criadoId) {
         // Botão único: grava também o horário de trabalho quando houve mudança.
         const salvarJornada = jornadaSalvarRef.current;
@@ -906,7 +909,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           });
         }
         setBaseline(snapshot);
-        finalizar();
+        concluir(perguntar);
         return;
       }
 
@@ -921,7 +924,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       if (intencaoRef.current !== "close" && abaSeguinte(tab)) {
         toast("Defina o turno e a jornada");
       }
-      finalizar();
+      concluir(perguntar);
+
 
 
     } catch (e) {
