@@ -33,7 +33,8 @@ export function PadraoDivergenciaAviso({ origem, diferencas, onAplicar, onDispen
           </p>
           <ul className="space-y-0.5 text-xs text-muted-foreground">
             {diferencas.map((d) => (
-              <li key={d.campo}>
+              <li key={d.rotulo}>
+
                 <span className="text-foreground">{d.rotulo}:</span> padrão {d.padrao} • neste
                 cadastro {d.atual}
               </li>
