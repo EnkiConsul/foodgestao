@@ -35,7 +35,7 @@ Também não existe hoje: há apenas um número de dependentes para o Imposto de
   - comprovante de frequência escolar pendente para dependente de 7 a 14 anos (checagem semestral);
   - dependente que completa 14 anos no mês: o benefício cessa, confirmar baixa;
   - remuneração do colaborador passou do teto: o benefício deve ser suspenso;
-  - cota/teto do ano não atualizados nas configurações;
+  - **atualização anual obrigatória da tabela**: toda virada de ano, se a cota e o teto cadastrados ainda tiverem vigência do ano anterior, aparece pendência para o gestor atualizar os valores (reaparece até ser resolvida, com destaque maior quando já houver folha do ano novo em aberto);
   - laudo de deficiência com validade vencida.
   Os documentos usam o cadastro de documentos do colaborador que já existe, com marcação de tipo e data de validade.
 - Bloqueio de fechamento: a folha avisa (sem travar) quando há dependente com comprovação vencida recebendo cota, para o RH decidir.
@@ -50,7 +50,7 @@ Também não existe hoje: há apenas um número de dependentes para o Imposto de
 **Banco (frentes 2 e 3)**
 - `public.dp_adicionais_tempo_servico`: company_id, escopo (`empresa|sindicato|unidade|cargo`) + sindicato_id/unidade_id/cargo_id opcionais, ciclo_meses, percentual_por_ciclo, base (`salario_base|piso_cargo`), max_ciclos, acumula boolean, vigencia_inicio/fim, observacao. GRANTs (`select` para authenticated, `all` para service_role), RLS: leitura por membro da empresa, escrita por admin/owner (`private.is_company_member` / `private.is_company_admin_or_owner`, padrão das demais tabelas do DP).
 - `public.dp_dependentes`: company_id, colaborador_id, nome, data_nascimento, parentesco, cpf, deficiencia boolean, laudo_validade date, conta_irrf boolean, conta_salario_familia boolean, cessado_em date, observacao. Mesmos GRANTs/RLS; leitura extra do próprio colaborador via `dp_colaborador_of`.
-- `dp_config_dp`: novas colunas `salario_familia_cota`, `salario_familia_teto`, `salario_familia_vigencia`, e `adicional_tempo_servico_ativo`, herdadas por unidade como as demais configs.
+- `dp_config_dp`: novas colunas `salario_familia_cota`, `salario_familia_teto`, `salario_familia_vigencia` (ano/data de referência da tabela cadastrada), `salario_familia_confirmado_em` (para dispensar a pendência quando o gestor confirma que os valores seguem válidos) e `adicional_tempo_servico_ativo`, herdadas por unidade como as demais configs.
 - `dp_colaboradores`: colunas `adicional_tempo_servico_manual` (numeric, opcional) e `adicional_tempo_servico_override` (boolean). `dependentes_irrf` permanece, mas passa a ser recalculado por trigger a partir de `dp_dependentes` quando houver registros.
 - Novos tipos de lançamento na folha (`dp_folha_tipo` ou tabela de rubricas, seguindo o que já existe): `adicional_tempo_servico` (tributável) e `salario_familia` (não tributável, não integra FGTS).
 
