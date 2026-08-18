@@ -1196,12 +1196,19 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 {remPendente && (
                   <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
                 )}
+                {!remPendente && divergenciasIso.length === 0 && diferencasDoPadrao.length > 0 && (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                    aria-label="Cadastro fora do padrão de benefícios"
+                  />
+                )}
                 {!remPendente && divergenciasIso.length > 0 && (
                   <span
                     className="h-1.5 w-1.5 rounded-full bg-amber-500"
                     aria-label="Divergência de benefícios em relação aos colegas"
                   />
                 )}
+
               </TabsTrigger>
             </TabsList>
           </div>
