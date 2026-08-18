@@ -56,6 +56,10 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal }: Props) {
     useDpDependentes(colaboradorId);
   const { config } = useDpSalarioFamiliaConfig();
   const [form, setForm] = useState<DependenteInput | null>(null);
+  const [tabelaAberta, setTabelaAberta] = useState(false);
+  const { role, isPersonal } = useCompanyPermissions();
+  // Só quem administra a empresa pode confirmar a tabela anual do INSS.
+  const podeConfigurar = !isPersonal && (role === "owner" || role === "admin");
 
   const calculo = useMemo(
     () =>
