@@ -49,10 +49,15 @@ describe("requisitoAplicaColaborador", () => {
     expect(requisitoAplicaColaborador(r, colab({ cargo_exige_cnh: true }))).toBe(true);
   });
 
-  it("exige documentos de veículo apenas com veículo próprio", () => {
+  it("exige documentos de veículo só para quem dirige com veículo próprio", () => {
     const r = req({ aplica_a: "veiculo_proprio" });
-    expect(requisitoAplicaColaborador(r, colab())).toBe(false);
-    expect(requisitoAplicaColaborador(r, colab({ veiculo_proprio: true }))).toBe(true);
+    expect(requisitoAplicaColaborador(r, colab({ veiculo_proprio: true }))).toBe(false);
+    expect(
+      requisitoAplicaColaborador(r, colab({ cargo_exige_cnh: true, veiculo_proprio: true })),
+    ).toBe(true);
+    expect(
+      requisitoAplicaColaborador(req({ aplica_a: "veiculo_empresa" }), colab({ cargo_exige_cnh: true })),
+    ).toBe(true);
   });
 
   it("trata menor de 18 e aprendiz", () => {
