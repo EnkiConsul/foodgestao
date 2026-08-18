@@ -927,6 +927,7 @@ export function ColaboradorJornadaPanel({
         onOpenChange={setCopiarOpen}
         colaboradorId={colaborador?.id ?? undefined}
         unidadeId={unidadeId === "none" ? null : unidadeId}
+        cargoId={colaborador?.cargo_id ?? null}
         turnos={turnosResolvidos}
         onCopiar={onCopiarConfig}
       />
