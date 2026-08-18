@@ -21,11 +21,23 @@ export function assinaturaModeloHorario(modelo: ModeloHorarioRanking): string {
   });
 }
 
-/** Mais frequente no cargo; sem histórico no cargo, mais frequente na empresa. */
+/**
+ * Mais frequente no cargo; sem histórico no cargo, mais frequente na lista.
+ *
+ * O desempate começa pelo horário base mais repetido entre os colaboradores —
+ * dois colegas com o mesmo horário base e escalas diárias diferentes não podem
+ * fazer o mais recente ganhar do horário que a loja realmente usa.
+ */
 export function sugerirModeloHorario<T extends ModeloHorarioRanking>(modelos: T[], cargoId?: string | null): T | null {
   const candidatosCargo = cargoId ? modelos.filter((m) => m.cargo_id === cargoId) : [];
-  const candidatos = candidatosCargo.length > 0 ? candidatosCargo : modelos;
+  const todos = candidatosCargo.length > 0 ? candidatosCargo : modelos;
+  const baseComum = horarioBaseMaisComum(todos);
+  const noBase = baseComum
+    ? todos.filter((m) => m.horario && chaveHorarioBase(m.horario) === chaveHorarioBase(baseComum))
+    : [];
+  const candidatos = noBase.length > 0 ? noBase : todos;
   const grupos = new Map<string, { quantidade: number; recente: string; modelo: T }>();
+
   for (const modelo of candidatos) {
     if (!modelo.horario) continue;
     const assinatura = assinaturaModeloHorario(modelo);
