@@ -26,7 +26,8 @@ import { resolverTurnoDoHorario, type HorarioSimples } from "@/lib/dp/turno-reso
 import { verificarAlertasClt, idadeNaData, temAlertaClt, type AlertaClt } from "@/lib/dp/clt-alertas";
 import { tituloSistema } from "@/lib/text/titleCase";
 import {
-  cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia, diaDivergeDoBase,
+  baseDivergenteDosDias, cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia,
+  detalharCargaSemanal, diaDivergeDoBase,
   diaEhHorarioDaLoja, diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia,
   normalizarDias, resumoConfigTexto, semanaDaGrade, turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
@@ -261,7 +262,25 @@ export function ColaboradorJornadaPanel({
     () => validarConfigTrabalho(config, turnosTela, { regime: colaborador?.regime, vigenciaInicio: inicio }),
     [config, turnosTela, colaborador?.regime, inicio],
   );
+  const detalheCarga = useMemo(() => detalharCargaSemanal(config, turnosTela), [config, turnosTela]);
   const carga = cargaSemanalConfig(config, turnosTela);
+  const baseDefasado = useMemo(() => baseDivergenteDosDias(config, turnosTela), [config, turnosTela]);
+
+  /**
+   * Alinha o horário base à faixa usada pela maioria dos dias. Sem isso, o dia
+   * que herda o base conta horas a menos e o total da semana não fecha.
+   */
+  const alinharHorarioBase = () => {
+    if (!baseDefasado) return;
+    marcarAlterado();
+    horarioAplicadoRef.current = "base-alinhado";
+    setHorario({
+      entrada: baseDefasado.entrada,
+      saida: baseDefasado.saida,
+      intervalo_minutos: baseDefasado.intervalo_minutos,
+    });
+    toast.success(`Horário base ajustado para ${baseDefasado.entrada} → ${baseDefasado.saida}`);
+  };
   const bloqueado = configTemErro(validacoes);
   const folgas = folgaFixaDerivada(dias);
 
@@ -751,13 +770,58 @@ export function ColaboradorJornadaPanel({
             <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => aplicarEscala("5x2")}>
               5x2
             </Button>
-            <span className="text-xs tabular-nums text-muted-foreground">{formatarHoras(carga)}/semana</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button" size="sm" variant="ghost"
+                  className="h-8 gap-1 text-xs tabular-nums text-muted-foreground"
+                  title="Ver como o total da semana foi calculado"
+                >
+                  {formatarHoras(carga)}/semana
+                  <Info className="h-3.5 w-3.5" aria-hidden="true" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80">
+                <p className="mb-2 text-xs font-medium">Como o total da semana é calculado</p>
+                <ul className="space-y-1 text-[11px]">
+                  {detalheCarga.map((d) => (
+                    <li key={d.dow} className="flex items-baseline justify-between gap-2">
+                      <span className="w-16 shrink-0 text-muted-foreground">{DOW_LABEL[d.dow]}</span>
+                      <span className="min-w-0 flex-1 truncate">
+                        {d.trabalha && d.turno
+                          ? `${formatarFaixaTurno(d.turno)} · ${d.turno.intervalo_minutos ?? 0} min${d.origem === "base" ? " · usa o horário base" : ""}`
+                          : d.trabalha ? "Sem horário definido" : "Folga"}
+                      </span>
+                      <span className="shrink-0 tabular-nums">{formatarHoras(d.minutos / 60)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-2 flex items-baseline justify-between border-t pt-2 text-xs font-medium">
+                  <span>Total</span>
+                  <span className="tabular-nums">{formatarHoras(carga)}</span>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
+        {baseDefasado && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+            <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Horário base diferente da semana. </span>
+              {baseDefasado.diasDominante} dia(s) usam {baseDefasado.entrada} → {baseDefasado.saida},
+              mas o horário base é {baseDefasado.baseEntrada} → {baseDefasado.baseSaida} e vale para{" "}
+              {baseDefasado.diasHerdando.map((d) => DOW_CURTO[d]).join(", ")} — por isso o total da semana fica menor.
+            </p>
+            <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={alinharHorarioBase}>
+              Usar {baseDefasado.entrada} → {baseDefasado.saida} como base
+            </Button>
+          </div>
+        )}
         <ul className="divide-y rounded-lg border">
           {dias.map((dia) => {
             const h = horarioEfetivoDia(dia, horario);
             const diferente = diaDivergeDoBase(dia, horario);
+            const herdaBase = dia.trabalha && !diferente && !dia.entrada && !dia.turno_id;
 
             // Horário diferente que já existe como horário da loja é padrão da
             // operação (ex.: fim de semana), não exceção deste colaborador.
@@ -773,6 +837,9 @@ export function ColaboradorJornadaPanel({
                   <span className="w-24 shrink-0 text-sm font-medium">{DOW_LABEL[dia.dow]}</span>
                   {dia.trabalha ? (
                     <div className="ml-auto flex items-center gap-2">
+                      {herdaBase && (
+                        <Badge variant="outline" className="text-[10px]">Usa o horário base</Badge>
+                      )}
                       {diferente && (
                         <Badge variant={daLoja ? "secondary" : "outline"} className="text-[10px]">
                           {daLoja ? "Horário da loja" : "Horário próprio"}
