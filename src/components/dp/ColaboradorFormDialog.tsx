@@ -267,6 +267,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Pergunta "usar como padrão?" pendente após gravar. */
   const [perguntarPadrao, setPerguntarPadrao] = useState(false);
   const [escopoPadrao, setEscopoPadrao] = useState<PadraoEscopo>("unidade");
+  /** Ao salvar em escopo amplo, apagar os padrões mais específicos conflitantes. */
+  const [substituirEspecificos, setSubstituirEspecificos] = useState(false);
+
   /** Assinaturas de benefícios já decididas nesta abertura da ficha. */
   const padraoRespondidoRef = useRef<Set<string>>(new Set());
   const naoPerguntarKey = `dp:beneficios-padrao:nao-perguntar:${selectedCompanyId ?? "sem-empresa"}`;
