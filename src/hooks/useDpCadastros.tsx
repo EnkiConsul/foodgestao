@@ -314,9 +314,45 @@ export function useUpsertDpCargoSalario() {
         if (error) throw error;
         return data as DpCargoSalario;
       }
+
+      // Só existe um valor em aberto por escopo (cargo + patronal, ou cargo +
+      // unidade): o novo piso sucede o anterior, encerrando sua vigência.
+      const inicio = (payload.vigencia_inicio as string) || new Date().toISOString().slice(0, 10);
+      if (!payload.vigencia_fim) {
+        let q = supabase
+          .from("dp_cargo_salarios")
+          .select("id, vigencia_inicio")
+          .eq("company_id", selectedCompanyId)
+          .eq("cargo_id", payload.cargo_id)
+          .is("vigencia_fim", null);
+        q = payload.unidade_id
+          ? q.eq("unidade_id", payload.unidade_id)
+          : q.is("unidade_id", null).eq("sindicato_patronal_id", payload.sindicato_patronal_id!);
+        const { data: abertos, error: abertosErr } = await q;
+        if (abertosErr) throw abertosErr;
+        for (const linha of abertos ?? []) {
+          if (linha.vigencia_inicio >= inicio) {
+            // Mesma vigência (ou posterior): atualiza a linha existente.
+            const { data, error } = await supabase
+              .from("dp_cargo_salarios")
+              .update({ ...payload, vigencia_inicio: inicio })
+              .eq("id", linha.id)
+              .select("*")
+              .single();
+            if (error) throw error;
+            return data as DpCargoSalario;
+          }
+          const { error } = await supabase
+            .from("dp_cargo_salarios")
+            .update({ vigencia_fim: diaAnterior(inicio) })
+            .eq("id", linha.id);
+          if (error) throw error;
+        }
+      }
+
       const { data, error } = await supabase
         .from("dp_cargo_salarios")
-        .insert(payload)
+        .insert({ ...payload, vigencia_inicio: inicio })
         .select("*")
         .single();
       if (error) throw error;
