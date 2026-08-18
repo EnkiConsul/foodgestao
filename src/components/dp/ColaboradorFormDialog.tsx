@@ -1522,6 +1522,25 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
           <TabsContent value="remuneracao" className="mt-4">
+            {diferencasDoPadrao.length > 0 && (
+              <PadraoDivergenciaAviso
+                origem={origemPadrao()}
+                diferencas={diferencasDoPadrao.map((d) => ({
+                  rotulo: d.rotulo,
+                  padrao: d.padrao,
+                  atual: d.atual,
+                }))}
+                onAplicar={() => {
+                  setRem((r) => aplicarPadrao(r, padraoAplicavel?.payload));
+                  setAvisoPadraoDispensado(true);
+                  toast.success("Padrão aplicado ao formulário", {
+                    description: "Confira os valores e salve para gravar.",
+                  });
+                }}
+                onDispensar={() => setAvisoPadraoDispensado(true)}
+              />
+            )}
+
             {padraoAplicado && !isEdit && (
               <div className="mb-4 rounded-xl border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
                 Benefícios sugeridos pelo padrão{" "}
