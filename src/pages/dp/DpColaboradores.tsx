@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -25,7 +25,6 @@ import {
 } from "@/hooks/useDpColaboradores";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
-import { SincronizarPadraoDialog } from "@/components/dp/SincronizarPadraoDialog";
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 import { DesligamentoDialog } from "@/components/dp/DesligamentoDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
@@ -60,7 +59,6 @@ const PERFIL_LABEL: Record<string, string> = {
 };
 
 export default function DpColaboradores() {
-  const [sincronizarOpen, setSincronizarOpen] = useState(false);
   const list = useDpColaboradores();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
@@ -100,21 +98,34 @@ export default function DpColaboradores() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (list.data ?? []).filter((c) => {
-      if (q) {
-        const hit =
-          c.nome.toLowerCase().includes(q) ||
-          (c.cpf ?? "").toLowerCase().includes(q) ||
-          (c.matricula ?? "").toLowerCase().includes(q);
-        if (!hit) return false;
-      }
-      if (unidadeFilter !== "all" && c.unidade_id !== unidadeFilter) return false;
-      if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
-      if (perfilFilter !== "all" && (c as any).perfil_acesso !== perfilFilter) return false;
-      if (statusFilter === "ativos" && !c.ativo) return false;
-      if (statusFilter === "desligados" && c.ativo) return false;
-      return true;
-    });
+    return (list.data ?? [])
+      .filter((c) => {
+        if (q) {
+          const hit =
+            c.nome.toLowerCase().includes(q) ||
+            (c.cpf ?? "").toLowerCase().includes(q) ||
+            (c.matricula ?? "").toLowerCase().includes(q);
+          if (!hit) return false;
+        }
+        if (unidadeFilter !== "all" && c.unidade_id !== unidadeFilter) return false;
+        if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
+        if (perfilFilter !== "all" && (c as any).perfil_acesso !== perfilFilter) return false;
+        if (statusFilter === "ativos" && !c.ativo) return false;
+        if (statusFilter === "desligados" && c.ativo) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const perfilDestaca = (p: string | null) => p === "admin" || p === "gestor";
+        const ga = a.ativo ? (perfilDestaca((a as any).perfil_acesso) ? 0 : 1) : 2;
+        const gb = b.ativo ? (perfilDestaca((b as any).perfil_acesso) ? 0 : 1) : 2;
+        if (ga !== gb) return ga - gb;
+        if (ga < 2) {
+          const ua = a.unidade_id ?? "zzzz";
+          const ub = b.unidade_id ?? "zzzz";
+          if (ua !== ub) return ua.localeCompare(ub);
+        }
+        return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
+      });
   }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, statusFilter]);
 
   const handleDelete = async () => {
@@ -272,15 +283,6 @@ export default function DpColaboradores() {
         title="Colaboradores"
         description="Gerencie a equipe, cargos e acessos ao sistema."
         actions={
-          <>
-          <Button
-            size="lg"
-            variant="outline"
-            className="rounded-full font-semibold"
-            onClick={() => setSincronizarOpen(true)}
-          >
-            <RefreshCw className="h-5 w-5 mr-2" /> Sincronizar com o padrão
-          </Button>
           <Button
             size="lg"
             className="rounded-full font-semibold"
@@ -288,7 +290,6 @@ export default function DpColaboradores() {
           >
             <Plus className="h-5 w-5 mr-2" /> Novo Colaborador
           </Button>
-          </>
         }
       />
 
@@ -614,7 +615,7 @@ export default function DpColaboradores() {
         />
       )}
 
-      <SincronizarPadraoDialog open={sincronizarOpen} onOpenChange={setSincronizarOpen} />
+      
 
       <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
 
