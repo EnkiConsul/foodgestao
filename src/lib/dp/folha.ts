@@ -171,6 +171,10 @@ export interface LinhaFolha {
   detalhe: DetalheFolha;
   /** Fase 14 — despesa gerada no financeiro (quando houver). */
   transaction_id?: string | null;
+  /** Atestado do mês abonado pela empresa — mantém o prêmio de assiduidade. */
+  atestado_abonado?: boolean;
+  /** Motivo registrado no abono do atestado. */
+  atestado_abono_motivo?: string | null;
 }
 
 /** Fase 14 — a despesa da folha só pode ser gerada após aprovação do financeiro. */

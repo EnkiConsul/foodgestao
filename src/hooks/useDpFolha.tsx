@@ -79,7 +79,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
     queryFn: async (): Promise<LinhaFolha[]> => {
       const { data, error } = await supabase
         .from("dp_folha_lancamentos")
-        .select("id, colaborador_id, status, valor_bruto, valor_liquido, descontos, transaction_id, dp_colaboradores:colaborador_id(nome)")
+        .select("id, colaborador_id, status, valor_bruto, valor_liquido, descontos, transaction_id, assiduidade_atestado_abonado, assiduidade_abono_motivo, dp_colaboradores:colaborador_id(nome)")
         .eq("periodo_id", periodoId!);
       if (error) throw error;
       return (data ?? [])
@@ -95,6 +95,9 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
             valor_liquido: valores.liquido,
             detalhe,
             transaction_id: l.transaction_id ?? null,
+            atestado_abonado: !!(l as { assiduidade_atestado_abonado?: boolean | null }).assiduidade_atestado_abonado,
+            atestado_abono_motivo:
+              (l as { assiduidade_abono_motivo?: string | null }).assiduidade_abono_motivo ?? null,
           };
         })
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
