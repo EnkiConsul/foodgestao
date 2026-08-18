@@ -142,6 +142,11 @@ export function DocumentoRequisitoRow({
               </Button>
             </>
           )}
+          {somenteEnvio && temArquivo && item.requisito.exige_aceite && item.status === "enviado" && (
+            <Button size="sm" disabled={ocupado} onClick={() => onAprovar?.(null)}>
+              <Check className="mr-1 size-4" /> Li e aceito
+            </Button>
+          )}
           {!somenteEnvio && temArquivo && item.status !== "aprovado" && (
             <Button size="sm" onClick={() => onAprovar?.(validade || null)}>
               <Check className="mr-1 size-4" /> Aprovar
