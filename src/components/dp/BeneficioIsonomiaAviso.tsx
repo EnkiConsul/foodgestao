@@ -1,7 +1,6 @@
 import { AlertTriangle, Scale, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatarBRL } from "@/lib/dp/folha";
-import type { DivergenciaIsonomia } from "@/lib/dp/beneficios-regras";
+import { descreverPadraoGrupo, type DivergenciaIsonomia } from "@/lib/dp/beneficios-regras";
 
 interface Props {
   divergencias: DivergenciaIsonomia[];
@@ -42,7 +41,7 @@ export function BeneficioIsonomiaAviso({ divergencias, onAplicarPadrao }: Props)
             <p className="mt-1 text-muted-foreground">
               Recebem: {d.colegas.slice(0, 4).join(", ")}
               {d.colegas.length > 4 ? ` e mais ${d.colegas.length - 4}` : ""}.
-              {d.valor_padrao ? ` Padrão do grupo: ${formatarBRL(d.valor_padrao)}/mês.` : ""}
+              {descreverPadraoGrupo(d) ? ` Padrão do grupo: ${descreverPadraoGrupo(d)}.` : ""}
             </p>
             <p className="mt-1 text-muted-foreground">{d.recomendacao}</p>
             {onAplicarPadrao && (
