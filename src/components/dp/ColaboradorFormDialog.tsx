@@ -61,10 +61,12 @@ import {
   useDpBeneficiosPadroes, useSalvarDpBeneficiosPadrao,
 } from "@/hooks/useDpBeneficiosPadrao";
 import {
-  aplicarPadrao, assinaturaPadrao, extrairPadrao, nivelPadrao, padraoTemConteudo,
-  padroesIguais, resolverPadrao, type PadraoEscopo,
+  aplicarPadrao, assinaturaPadrao, diferencasPadrao, extrairPadrao, nivelPadrao,
+  padraoTemConteudo, padroesIguaisAlgum, resolverPadrao, type PadraoEscopo,
 } from "@/lib/dp/beneficiosPadrao";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+
 
 
 
