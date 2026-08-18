@@ -4,7 +4,7 @@
  *
  * - Primeira palavra do título sempre capitalizada.
  * - Siglas em maiúscula permanecem em maiúscula (PF, PJ, DP, CPF, CNPJ, ACT, CCT, PIX, IA).
- * - Marcas preservadas: 360°FOOD, Pakerê, Lovable.
+ * - Marcas preservadas: 360°FOOD, Lovable.
  */
 
 const LOWER = new Set([
@@ -17,8 +17,6 @@ const LOWER = new Set([
 const BRANDS: Record<string, string> = {
   "360°food": "360°FOOD",
   "360food": "360°FOOD",
-  "pakerê": "Pakerê",
-  "pakere": "Pakerê",
   "lovable": "Lovable",
 };
 

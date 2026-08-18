@@ -45,7 +45,7 @@ const CHIP_STYLE: Record<OccupantType, string> = {
 /**
  * Variante mobile em lista vertical para os calendários do DP (admin e portal).
  * Mostra uma linha por dia do mês com chips coloridos para folgas, pendências
- * e bloqueios — inspirada no calendário do Portal do Colaborador Pakerê.
+ * e bloqueios — inspirada no calendário do Portal do Colaborador.
  */
 export function CalendarioMobileLista({
   year,

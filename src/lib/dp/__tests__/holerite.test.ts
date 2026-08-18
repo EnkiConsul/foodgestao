@@ -9,7 +9,7 @@ import {
 } from "@/lib/dp/holerite";
 
 const base = (over: Partial<HoleriteDados> = {}): HoleriteDados => ({
-  empresa: "Pakerê <Garavelo>",
+  empresa: "360°FOOD <Garavelo>",
   colaborador: "Karine",
   cargo: "Atendente",
   competencia: "2026-06",
@@ -53,7 +53,7 @@ describe("holerite", () => {
 
   it("escapa HTML e gera um documento por colaborador", () => {
     const html = holeriteDocumento("Folha", [base(), base({ colaborador: "João" })]);
-    expect(html).toContain("Pakerê &lt;Garavelo&gt;");
+    expect(html).toContain("360°FOOD &lt;Garavelo&gt;");
     expect(html).not.toContain("<Garavelo>");
     expect(html.match(/class="holerite"/g)).toHaveLength(2);
   });

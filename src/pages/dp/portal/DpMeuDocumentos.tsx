@@ -40,7 +40,7 @@ const TIPO_ICON: Record<UnifiedTipo, any> = {
 
 const MESES = ["Todos", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-// Tabs types (ordem estilo Pakere)
+// Tabs types (ordem padrão do portal)
 const ALL_TABS: { key: "all" | UnifiedTipo; label: string; requiresPonto?: boolean; hasEnvio?: boolean }[] = [
   { key: "all", label: "Todos" },
   { key: "contracheque", label: "Contracheques" },
