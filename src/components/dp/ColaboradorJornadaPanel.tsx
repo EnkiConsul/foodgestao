@@ -18,6 +18,7 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpModelosHorario } from "@/hooks/useDpModelosHorario";
+import { sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { formatarHoras, calcularCargaDia } from "@/lib/dp/jornada-utils";
 import { formatarFaixaTurno, intervaloAbaixoDoLegal } from "@/lib/dp/turno-utils";
@@ -44,6 +45,7 @@ export interface JornadaColaborador {
   nome?: string | null;
   regime?: string | null;
   unidade_id?: string | null;
+  cargo_id?: string | null;
   /** Base da vigência inicial da jornada. */
   data_admissao?: string | null;
   /** Usada apenas para os alertas de menor de 18 anos. */
@@ -109,6 +111,8 @@ export function ColaboradorJornadaPanel({
    * assim um único "Concluir" já salva e fecha a tela.
    */
   const cienciaPendenteRef = useRef<((r: SalvarJornadaResultado) => void) | null>(null);
+  const sugestaoAplicadaRef = useRef<string | null>(null);
+  const [origemSugestao, setOrigemSugestao] = useState<"cargo" | "empresa" | null>(null);
 
 
   const { turnos: turnosUnidade, criar: criarTurno } = useDpTurnos(unidadeId === "none" ? null : unidadeId);
@@ -130,7 +134,7 @@ export function ColaboradorJornadaPanel({
    * Atalhos de horário mostrados por nome de colaborador: o empresário reconhece
    * "o horário da Cristiane", não a faixa de horas solta.
    */
-  const { modelos } = useDpModelosHorario(unidadeId === "none" ? null : unidadeId, colaborador?.id ?? null);
+  const { modelos } = useDpModelosHorario(null, colaborador?.id ?? null);
   const atalhosColegas = useMemo(() => {
     const vistos = new Set<string>();
     return modelos
@@ -143,6 +147,21 @@ export function ColaboradorJornadaPanel({
       })
       .slice(0, 6);
   }, [modelos]);
+
+  useEffect(() => {
+    if (!active || vigente || colaborador?.id || alterado || modelos.length === 0) return;
+    const chave = `${colaborador?.cargo_id ?? "sem-cargo"}:${colaborador?.unidade_id ?? "sem-unidade"}`;
+    if (sugestaoAplicadaRef.current === chave) return;
+    const modelo = sugerirModeloHorario(modelos, colaborador?.cargo_id);
+    if (!modelo?.horario) return;
+    sugestaoAplicadaRef.current = chave;
+    horarioAplicadoRef.current = "sugestao";
+    setHorario(modelo.horario);
+    setDias(normalizarDias(modelo.dias));
+    setFolgaVariavel(modelo.folga_variavel);
+    setAlterado(true);
+    setOrigemSugestao(modelo.cargo_id === colaborador?.cargo_id ? "cargo" : "empresa");
+  }, [active, vigente, colaborador?.id, colaborador?.cargo_id, colaborador?.unidade_id, alterado, modelos]);
 
   // Recarrega o formulário com a configuração vigente sempre que o painel ativa.
   useEffect(() => {
@@ -648,6 +667,12 @@ export function ColaboradorJornadaPanel({
       </section>
 
       <section className="space-y-2">
+        {origemSugestao && (
+          <p className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
+            Horário sugerido com base no {origemSugestao === "cargo" ? "cargo" : "uso da empresa"} — pode ajustar.
+          </p>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-sm font-semibold">{tituloSistema("Dias da Semana")}</h3>
           <div className="flex items-center gap-2">

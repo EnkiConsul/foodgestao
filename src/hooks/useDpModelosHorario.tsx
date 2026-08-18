@@ -11,6 +11,7 @@ export interface ModeloHorarioColaborador {
   colaborador_id: string;
   colaborador_nome: string;
   cargo: string | null;
+  cargo_id: string | null;
   unidade_id: string | null;
   turno_padrao_id: string | null;
   folga_variavel: boolean;
@@ -18,6 +19,7 @@ export interface ModeloHorarioColaborador {
   horario: HorarioSimples | null;
   /** Semana completa, já com as exceções de horário por dia. */
   dias: DiaConfig[];
+  usado_em: string;
 }
 
 const hoje = () => new Date().toISOString().slice(0, 10);
@@ -41,7 +43,7 @@ export function useDpModelosHorario(unidadeId?: string | null, excluirColaborado
         .select(
           "id, colaborador_id, unidade_id, turno_padrao_id, folga_variavel, folga_fixa_dow, vigencia_inicio, vigencia_fim," +
             " dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos)," +
-            " colaborador:dp_colaboradores(nome, cargo, ativo)," +
+            " colaborador:dp_colaboradores(nome, cargo, cargo_id, ativo)," +
             " turno:dp_turnos!dp_colaborador_config_trabalho_turno_padrao_id_fkey(entrada, saida, intervalo_minutos)",
         )
         .eq("company_id", selectedCompanyId!)
@@ -69,6 +71,7 @@ export function useDpModelosHorario(unidadeId?: string | null, excluirColaborado
         colaborador_id: c.colaborador_id,
         colaborador_nome: c.colaborador?.nome ?? "Colaborador",
         cargo: c.colaborador?.cargo ?? null,
+        cargo_id: c.colaborador?.cargo_id ?? null,
         unidade_id: c.unidade_id ?? null,
         turno_padrao_id: c.turno_padrao_id ?? null,
         folga_variavel: !!c.folga_variavel,
@@ -90,6 +93,7 @@ export function useDpModelosHorario(unidadeId?: string | null, excluirColaborado
           })),
           c.folga_fixa_dow ?? null,
         ),
+        usado_em: c.updated_at ?? c.vigencia_inicio,
       }));
   }, [query.data, excluirColaboradorId]);
 
