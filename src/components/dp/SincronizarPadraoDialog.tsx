@@ -14,7 +14,6 @@ import {
   padraoTemConteudo, resolverPadrao,
   type BeneficiosPadraoLinha, type DivergenciaColaborador, type GrupoPadrao,
 } from "@/lib/dp/beneficiosPadrao";
-import { mensagemErro } from "@/lib/dp/erros";
 
 interface Props {
   open: boolean;
@@ -93,7 +92,7 @@ export function SincronizarPadraoDialog({ open, onOpenChange }: Props) {
       });
       onOpenChange(false);
     } catch (e) {
-      toast.error("Não foi possível sincronizar", { description: mensagemErro(e) });
+      toast.error("Não foi possível sincronizar", { description: e instanceof Error ? e.message : "Erro inesperado." });
     }
   };
 
