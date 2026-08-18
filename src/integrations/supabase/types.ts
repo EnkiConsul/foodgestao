@@ -2780,6 +2780,7 @@ export type Database = {
       }
       dp_beneficios_padroes: {
         Row: {
+          cargo_id: string | null
           company_id: string
           created_at: string
           created_by: string | null
@@ -2789,6 +2790,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cargo_id?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -2798,6 +2800,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cargo_id?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
@@ -2807,6 +2810,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dp_beneficios_padroes_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dp_beneficios_padroes_company_id_fkey"
             columns: ["company_id"]
