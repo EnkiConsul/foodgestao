@@ -1986,6 +1986,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                       {escopoPadrao !== "cargo"
                         ? ", e apaga os padrões mais específicos que estejam em conflito."
                         : "."}
+                      {divergentesNoAlcance > 0
+                        ? ` ${divergentesNoAlcance} está(ão) hoje fora destes valores.`
+                        : ""}
                     </span>
                   </span>
                 </label>
