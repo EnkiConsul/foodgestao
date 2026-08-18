@@ -41,8 +41,11 @@ export function useSalvarDpBeneficiosPadrao() {
       unidade_id: string | null;
       cargo_id?: string | null;
       payload: BeneficiosPadraoPayload;
+      /** Apaga os padrões mais específicos abrangidos por este escopo. */
+      limparEscoposMaisEspecificos?: boolean;
     }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+
       const { data: userData } = await supabase.auth.getUser();
       let q = supabase
         .from("dp_beneficios_padroes")
