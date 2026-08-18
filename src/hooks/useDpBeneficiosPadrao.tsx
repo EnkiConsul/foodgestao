@@ -176,7 +176,7 @@ export function useSalvarDpBeneficiosPadrao() {
       if (existente?.id) {
         const { error } = await supabase
           .from("dp_beneficios_padroes")
-          .update({ payload: input.payload as any })
+          .update({ payload: payloadFinal as any })
           .eq("id", existente.id);
         if (error) throw error;
         const atualizados = await aplicarAosColaboradores();
@@ -188,7 +188,7 @@ export function useSalvarDpBeneficiosPadrao() {
           company_id: selectedCompanyId,
           unidade_id: input.unidade_id,
           cargo_id: input.cargo_id ?? null,
-          payload: input.payload as any,
+          payload: payloadFinal as any,
           created_by: userData.user?.id ?? null,
         })
         .select("id")
