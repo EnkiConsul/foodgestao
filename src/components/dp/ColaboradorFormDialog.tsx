@@ -54,6 +54,12 @@ import {
   type FormaPagamento,
   type AssiduidadeCriterio,
 } from "@/lib/dp/remuneracao";
+import {
+  useDpBeneficiosPadroes, useSalvarDpBeneficiosPadrao,
+} from "@/hooks/useDpBeneficiosPadrao";
+import {
+  aplicarPadrao, extrairPadrao, padraoTemConteudo, resolverPadrao,
+} from "@/lib/dp/beneficiosPadrao";
 
 
 
