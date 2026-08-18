@@ -663,7 +663,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           unidade_id: escopo === "empresa" ? null : form.unidade_id,
           cargo_id: escopo === "cargo" ? form.cargo_id || null : null,
           payload,
+          limparEscoposMaisEspecificos: escopo !== "cargo" && substituirEspecificos,
         });
+
         toast.success(
           escopo === "empresa"
             ? "Padrão da empresa atualizado"
