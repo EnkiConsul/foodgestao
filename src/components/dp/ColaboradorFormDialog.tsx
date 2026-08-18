@@ -60,8 +60,10 @@ import {
   useDpBeneficiosPadroes, useSalvarDpBeneficiosPadrao,
 } from "@/hooks/useDpBeneficiosPadrao";
 import {
-  aplicarPadrao, extrairPadrao, padraoTemConteudo, resolverPadrao,
+  aplicarPadrao, assinaturaPadrao, extrairPadrao, nivelPadrao, padraoTemConteudo,
+  padroesIguais, resolverPadrao, type PadraoEscopo,
 } from "@/lib/dp/beneficiosPadrao";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 
 
@@ -252,28 +254,38 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
    */
   const padroesBeneficios = useDpBeneficiosPadroes();
   const salvarPadraoBeneficios = useSalvarDpBeneficiosPadrao();
-  const padraoDaUnidade = useMemo(
-    () => resolverPadrao(padroesBeneficios.data, form.unidade_id || null),
-    [padroesBeneficios.data, form.unidade_id],
+  const padraoAplicavel = useMemo(
+    () => resolverPadrao(padroesBeneficios.data, form.unidade_id || null, form.cargo_id || null),
+    [padroesBeneficios.data, form.unidade_id, form.cargo_id],
   );
-  /** Unidade cujo padrão já foi aplicado neste cadastro (evita sobrescrever edições). */
+  /** Escopo cujo padrão já foi aplicado neste cadastro (evita sobrescrever edições). */
   const padraoAplicadoRef = useRef<string | null>(null);
-  const [padraoAplicado, setPadraoAplicado] = useState(false);
-  /** Pergunta "usar como padrão da unidade?" pendente após gravar. */
+  const [padraoAplicado, setPadraoAplicado] = useState<PadraoEscopo | null>(null);
+  /** Pergunta "usar como padrão?" pendente após gravar. */
   const [perguntarPadrao, setPerguntarPadrao] = useState(false);
+  const [escopoPadrao, setEscopoPadrao] = useState<PadraoEscopo>("unidade");
+  /** Assinaturas de benefícios já decididas nesta abertura da ficha. */
+  const padraoRespondidoRef = useRef<Set<string>>(new Set());
   const naoPerguntarKey = `dp:beneficios-padrao:nao-perguntar:${selectedCompanyId ?? "sem-empresa"}`;
 
   useEffect(() => {
-    if (!open) { padraoAplicadoRef.current = null; setPadraoAplicado(false); return; }
+    if (!open) {
+      padraoAplicadoRef.current = null;
+      padraoRespondidoRef.current = new Set();
+      setPadraoAplicado(null);
+      return;
+    }
     if (isEdit) return;
     const unidade = form.unidade_id || null;
-    if (!unidade || padraoAplicadoRef.current === unidade) return;
-    const padrao = resolverPadrao(padroesBeneficios.data, unidade);
-    padraoAplicadoRef.current = unidade;
-    if (!padrao || !padraoTemConteudo(padrao.payload)) { setPadraoAplicado(false); return; }
+    if (!unidade) return;
+    const chave = `${unidade}:${form.cargo_id || ""}`;
+    if (padraoAplicadoRef.current === chave) return;
+    const padrao = resolverPadrao(padroesBeneficios.data, unidade, form.cargo_id || null);
+    padraoAplicadoRef.current = chave;
+    if (!padrao || !padraoTemConteudo(padrao.payload)) { setPadraoAplicado(null); return; }
     setRem((r) => aplicarPadrao(r, padrao.payload));
-    setPadraoAplicado(true);
-  }, [open, form.unidade_id, padroesBeneficios.data]);
+    setPadraoAplicado(nivelPadrao(padrao));
+  }, [open, form.unidade_id, form.cargo_id, padroesBeneficios.data]);
 
 
   useEffect(() => {
@@ -597,29 +609,44 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     if (localStorage.getItem(naoPerguntarKey) === "1") return false;
     const atual = extrairPadrao(rem);
     if (!padraoTemConteudo(atual)) return false;
-    const gravado = padraoDaUnidade?.unidade_id === form.unidade_id ? padraoDaUnidade.payload : null;
-    return JSON.stringify(atual) !== JSON.stringify(gravado ?? {});
+    // Igual ao padrão que já vale para este colaborador → nada a perguntar.
+    if (padroesIguais(atual, padraoAplicavel?.payload ?? null)) return false;
+    // Mesmo conjunto já decidido nesta abertura da ficha → não repete.
+    return !padraoRespondidoRef.current.has(assinaturaPadrao(atual));
   };
 
   /** Encerra o salvamento: pergunta pelo padrão da unidade antes de sair da tela. */
   const concluir = (perguntar: boolean) => {
-    if (perguntar) { setPerguntarPadrao(true); return; }
+    if (perguntar) {
+      setEscopoPadrao(nivelPadrao(padraoAplicavel) ?? "unidade");
+      setPerguntarPadrao(true);
+      return;
+    }
     finalizar();
   };
 
   /** Resposta da pergunta do padrão — depois segue a intenção original do botão. */
-  const responderPadrao = async (usar: boolean, naoPerguntarMais = false) => {
+  const responderPadrao = async (escopo: PadraoEscopo | null, naoPerguntarMais = false) => {
     setPerguntarPadrao(false);
     if (naoPerguntarMais) localStorage.setItem(naoPerguntarKey, "1");
-    if (usar && form.unidade_id) {
+    const payload = extrairPadrao(rem);
+    // Registra a decisão para não repetir a pergunta no mesmo conjunto de valores.
+    padraoRespondidoRef.current.add(assinaturaPadrao(payload));
+    if (escopo && escopo !== "colaborador") {
       try {
         await salvarPadraoBeneficios.mutateAsync({
-          unidade_id: form.unidade_id,
-          payload: extrairPadrao(rem),
+          unidade_id: escopo === "empresa" ? null : form.unidade_id,
+          cargo_id: escopo === "cargo" ? form.cargo_id || null : null,
+          payload,
         });
-        toast.success("Padrão da unidade atualizado", {
-          description: "Os próximos cadastros desta unidade já vêm preenchidos.",
-        });
+        toast.success(
+          escopo === "empresa"
+            ? "Padrão da empresa atualizado"
+            : escopo === "cargo"
+              ? "Padrão do cargo atualizado"
+              : "Padrão da unidade atualizado",
+          { description: "Os próximos cadastros deste alcance já vêm preenchidos." },
+        );
       } catch (e) {
         toast.error("Não foi possível salvar o padrão", { description: mensagemErro(e) });
       }
