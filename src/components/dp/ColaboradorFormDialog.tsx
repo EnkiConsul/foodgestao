@@ -64,7 +64,8 @@ import {
   useDpBeneficiosPadroes, useSalvarDpBeneficiosPadrao,
 } from "@/hooks/useDpBeneficiosPadrao";
 import {
-  aplicarPadrao, assinaturaPadrao, diferencasPadrao, extrairPadrao, nivelPadrao,
+  aplicarPadrao, assinaturaPadrao, diferencasPadrao, divergenciasColaboradorVsPadrao,
+  extrairPadrao, nivelPadrao,
   padraoTemConteudo, padroesIguaisAlgum, resolverPadrao,
   GRUPOS_PADRAO, ROTULOS_GRUPO, gruposComDiferenca, resumoGrupo,
   type GrupoPadrao, type PadraoAlcance, type PadraoEscopo,
@@ -291,6 +292,26 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       return true;
     }).length;
   }, [todosColaboradores.data, escopoPadrao, form.unidade_id, form.cargo_id, colaborador?.id]);
+
+  /**
+   * Quantos desses colaboradores estão fora dos valores desta tela. Se existe
+   * alguém divergente, "todos" é o alcance que o usuário quase sempre quer.
+   */
+  const divergentesNoAlcance = useMemo(() => {
+    if (escopoPadrao === "colaborador") return 0;
+    const payload = extrairPadrao(rem);
+    return (todosColaboradores.data ?? []).filter((c) => {
+      if (!c.ativo || c.data_desligamento) return false;
+      if (c.id === colaborador?.id) return false;
+      if (escopoPadrao !== "empresa" && c.unidade_id !== form.unidade_id) return false;
+      if (escopoPadrao === "cargo" && c.cargo_id !== (form.cargo_id || null)) return false;
+      return divergenciasColaboradorVsPadrao(
+        c as unknown as Record<string, unknown>,
+        payload,
+        gruposPadrao,
+      ).length > 0;
+    }).length;
+  }, [todosColaboradores.data, escopoPadrao, form.unidade_id, form.cargo_id, colaborador?.id, rem, gruposPadrao]);
 
   /** Grupos que divergem do padrão de referência aplicável. */
   const gruposDiferentes = useMemo(
@@ -753,7 +774,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const concluir = (perguntar: boolean) => {
     if (perguntar) {
       setEscopoPadrao(nivelPadrao(padraoAplicavel) ?? "unidade");
-      setAlcancePadrao("novos");
+      // Já existe gente fora do padrão? Então "todos" é o alcance esperado.
+      setAlcancePadrao(divergentesNoAlcance > 0 ? "todos" : "novos");
       setGruposPadrao([...GRUPOS_PADRAO]);
       setPerguntarPadrao(true);
       return;
@@ -789,9 +811,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               : "Padrão da unidade atualizado",
           {
             description:
-              alcancePadrao === "todos"
-                ? `${resultado.atualizados} colaborador(es) atualizado(s) com este padrão.`
-                : "Os próximos cadastros deste alcance já vêm preenchidos.",
+              alcancePadrao !== "todos"
+                ? "Os próximos cadastros deste alcance já vêm preenchidos."
+                : resultado.atualizados > 0
+                  ? `${resultado.atualizados} colaborador(es) atualizado(s) com este padrão.`
+                  : "Nenhum colaborador foi alterado — não havia ninguém ativo neste alcance.",
           },
         );
       } catch (e) {
