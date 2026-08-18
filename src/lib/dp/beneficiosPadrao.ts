@@ -37,6 +37,78 @@ export type CampoPadrao = (typeof CAMPOS_PADRAO)[number];
 
 export type BeneficiosPadraoPayload = Partial<Pick<RemuneracaoFormState, CampoPadrao>>;
 
+/** Grupos que o usuário pode escolher replicar (ou não) ao salvar o padrão. */
+export type GrupoPadrao = "assiduidade" | "vale_alimentacao" | "vale_transporte" | "beneficios";
+
+export const GRUPOS_PADRAO: readonly GrupoPadrao[] = [
+  "assiduidade",
+  "vale_alimentacao",
+  "vale_transporte",
+  "beneficios",
+] as const;
+
+export const ROTULOS_GRUPO: Record<GrupoPadrao, string> = {
+  assiduidade: "Prêmio de assiduidade",
+  vale_alimentacao: "Vale-alimentação",
+  vale_transporte: "Vale-transporte",
+  beneficios: "Ficha de benefícios",
+};
+
+/** Quais campos do padrão pertencem a cada grupo. */
+export const CAMPOS_POR_GRUPO: Record<GrupoPadrao, readonly CampoPadrao[]> = {
+  assiduidade: [
+    "premio_assiduidade",
+    "premio_assiduidade_valor",
+    "premio_assiduidade_tipo",
+    "assiduidade_criterio",
+    "assiduidade_tolerancia_min",
+    "assiduidade_max_atrasos",
+    "assiduidade_considera_atestado",
+    "assiduidade_max_atestados",
+  ],
+  vale_alimentacao: [
+    "vale_alimentacao",
+    "vale_alimentacao_valor",
+    "vale_alimentacao_periodicidade",
+    "vale_alimentacao_dias_base",
+    "vale_alimentacao_dias_origem",
+    "vale_alimentacao_desconto_tipo",
+    "vale_alimentacao_desconto_valor",
+  ],
+  vale_transporte: ["vale_transporte", "vale_transporte_valor_dia"],
+  beneficios: ["beneficios"],
+};
+
+const grupoDoCampo = (campo: CampoPadrao): GrupoPadrao =>
+  (GRUPOS_PADRAO.find((g) => CAMPOS_POR_GRUPO[g].includes(campo)) ?? "beneficios");
+
+/** Recorta o padrão deixando apenas os campos dos grupos escolhidos. */
+export function filtrarPadraoPorGrupos(
+  payload: BeneficiosPadraoPayload,
+  grupos: readonly GrupoPadrao[],
+): BeneficiosPadraoPayload {
+  const permitidos = new Set(grupos.flatMap((g) => CAMPOS_POR_GRUPO[g]));
+  const out: Record<string, unknown> = {};
+  for (const campo of CAMPOS_PADRAO) {
+    if (!permitidos.has(campo)) continue;
+    out[campo] = (payload as Record<string, unknown>)[campo];
+  }
+  return out as BeneficiosPadraoPayload;
+}
+
+/**
+ * Mescla no padrão gravado apenas os grupos escolhidos: o que não foi marcado
+ * continua exatamente como já estava naquele escopo.
+ */
+export function mesclarPadrao(
+  base: BeneficiosPadraoPayload | null | undefined,
+  novo: BeneficiosPadraoPayload,
+  grupos: readonly GrupoPadrao[],
+): BeneficiosPadraoPayload {
+  return { ...(base ?? {}), ...filtrarPadraoPorGrupos(novo, grupos) };
+}
+
+
 export interface BeneficiosPadraoLinha {
   id?: string;
   unidade_id?: string | null;
@@ -230,6 +302,58 @@ export function diferencasPadrao(
 
 
 
+/** Grupos em que a tela divergiu do padrão de referência. */
+export function gruposComDiferenca(
+  atual: BeneficiosPadraoPayload | null | undefined,
+  referencia: BeneficiosPadraoPayload | null | undefined,
+): GrupoPadrao[] {
+  const grupos = new Set<GrupoPadrao>();
+  for (const d of diferencasPadrao(atual, referencia)) grupos.add(grupoDoCampo(d.campo));
+  return GRUPOS_PADRAO.filter((g) => grupos.has(g));
+}
+
+/** Resumo curto do que será gravado em um grupo, para mostrar no diálogo. */
+export function resumoGrupo(
+  payload: BeneficiosPadraoPayload | null | undefined,
+  grupo: GrupoPadrao,
+): string {
+  const p = payload ?? {};
+  if (grupo === "assiduidade") {
+    if (!p.premio_assiduidade) return "Sem prêmio";
+    const unidade = p.premio_assiduidade_tipo === "percentual" ? "%" : "R$";
+    const partes = [`Prêmio ${unidade} ${p.premio_assiduidade_valor || "0"}`];
+    if (p.assiduidade_criterio) partes.push(String(p.assiduidade_criterio).replace(/_/g, " "));
+    if (p.assiduidade_max_atrasos) partes.push(`${p.assiduidade_max_atrasos} atraso(s)`);
+    if (p.assiduidade_tolerancia_min) partes.push(`tolerância ${p.assiduidade_tolerancia_min} min`);
+    if (p.assiduidade_considera_atestado) {
+      partes.push(`atestado conta (máx. ${p.assiduidade_max_atestados || 0})`);
+    }
+    return partes.join(" • ");
+  }
+  if (grupo === "vale_alimentacao") {
+    if (!p.vale_alimentacao) return "Sem vale-alimentação";
+    const per = p.vale_alimentacao_periodicidade === "diario" ? "por dia" : "por mês";
+    const partes = [`R$ ${p.vale_alimentacao_valor || "0,00"} ${per}`];
+    if (p.vale_alimentacao_periodicidade === "diario") {
+      partes.push(
+        p.vale_alimentacao_dias_origem === "jornada"
+          ? "dias pela jornada"
+          : `${p.vale_alimentacao_dias_base || 22} dias fixos`,
+      );
+    }
+    if ((p.vale_alimentacao_desconto_tipo ?? "nenhum") !== "nenhum") {
+      partes.push(`desconto ${p.vale_alimentacao_desconto_valor || 0}`);
+    }
+    return partes.join(" • ");
+  }
+  if (grupo === "vale_transporte") {
+    if (!p.vale_transporte) return "Sem vale-transporte";
+    return `R$ ${p.vale_transporte_valor_dia || "0,00"} por dia`;
+  }
+  const marcados = Object.values(p.beneficios ?? {}).filter(Boolean).length;
+  return marcados ? `${marcados} benefício(s) marcado(s)` : "Nenhum benefício marcado";
+}
+
 /** Mescla o padrão no formulário, mantendo apenas campos conhecidos. */
 export function aplicarPadrao(
   rem: RemuneracaoFormState,
@@ -296,12 +420,14 @@ const decimal = (v: unknown): number => {
  */
 export function padraoParaColunasColaborador(
   payload: BeneficiosPadraoPayload,
+  grupos: readonly GrupoPadrao[] = GRUPOS_PADRAO,
 ): Record<string, unknown> {
   const premio = !!payload.premio_assiduidade;
   const va = !!payload.vale_alimentacao;
   const vt = !!payload.vale_transporte;
   const consideraAtestado = premio ? !!payload.assiduidade_considera_atestado : true;
-  return {
+  const permitidos = new Set(grupos.flatMap((g) => CAMPOS_POR_GRUPO[g] as readonly string[]));
+  const todas: Record<string, unknown> = {
     vale_transporte: vt,
     vale_transporte_valor_dia: vt ? decimal(payload.vale_transporte_valor_dia) : null,
 
@@ -326,4 +452,5 @@ export function padraoParaColunasColaborador(
         ? 0
         : decimal(payload.vale_alimentacao_desconto_valor),
   };
+  return Object.fromEntries(Object.entries(todas).filter(([k]) => permitidos.has(k)));
 }
