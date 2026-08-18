@@ -271,15 +271,6 @@ export default function DpColaboradores() {
         title="Colaboradores"
         description="Gerencie a equipe, cargos e acessos ao sistema."
         actions={
-          <>
-          <Button
-            size="lg"
-            variant="outline"
-            className="rounded-full font-semibold"
-            onClick={() => setSincronizarOpen(true)}
-          >
-            <RefreshCw className="h-5 w-5 mr-2" /> Sincronizar com o padrão
-          </Button>
           <Button
             size="lg"
             className="rounded-full font-semibold"
@@ -287,7 +278,6 @@ export default function DpColaboradores() {
           >
             <Plus className="h-5 w-5 mr-2" /> Novo Colaborador
           </Button>
-          </>
         }
       />
 
