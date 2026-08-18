@@ -234,3 +234,99 @@ export function mensagemErroPiso(e: unknown): string {
   return bruto;
 }
 
+
+// ------------------------------------------------------------------
+// Rótulo do salário do cargo (compartilhado entre a tela de Cargos e a
+// ficha do colaborador). Nunca lê o campo legado `dp_cargos.salario_base`:
+// o valor vem sempre dos pisos por sindicato patronal / unidade.
+// ------------------------------------------------------------------
+
+export interface RotuloSalarioCargo {
+  /** Texto curto para exibir ao lado do nome do cargo. */
+  texto: string;
+  /** Explicação de onde o valor veio (tooltip). */
+  dica: string;
+  /** Valor resolvido quando há escopo definido (null em faixa ou pendente). */
+  valor: number | null;
+}
+
+export interface EscopoRotuloSalario {
+  unidadeId?: string | null;
+  patronalId?: string | null;
+  data?: string;
+}
+
+const PENDENTE = "piso a cadastrar";
+
+export function rotuloSalarioCargo(
+  linhas: CargoSalarioLinha[] | null | undefined,
+  escopo: EscopoRotuloSalario = {},
+): RotuloSalarioCargo {
+  const lista = linhas ?? [];
+  const data = escopo.data || hoje();
+
+  // Com unidade escolhida, o salário é único: ajuste da unidade → piso do patronal.
+  if (escopo.unidadeId) {
+    const r = salarioCargoNaUnidade(lista, escopo.unidadeId, escopo.patronalId ?? null, data, {
+      aceitarFuturo: true,
+    });
+    if (r.valor == null) {
+      return {
+        texto: PENDENTE,
+        dica: r.semPatronalVinculado
+          ? "A unidade não tem sindicato patronal vinculado"
+          : "Cadastre o piso do sindicato patronal desta unidade",
+        valor: null,
+      };
+    }
+    return {
+      texto: moedaBR(r.valor),
+      dica:
+        r.origem === "unidade"
+          ? "Ajuste desta unidade"
+          : "Piso do sindicato patronal da unidade",
+      valor: r.valor,
+    };
+  }
+
+  // Sem unidade: mostra a faixa dos pisos aplicáveis (vigentes ou já negociados).
+  const valores = lista
+    .filter((p) => {
+      const st = statusVigencia(p, data);
+      return st === "vigente" || st === "futuro";
+    })
+    .map((p) => Number(p.salario_base))
+    .filter((v) => Number.isFinite(v) && v > 0);
+
+  if (valores.length === 0) {
+    return { texto: PENDENTE, dica: "Cadastre o piso do sindicato patronal", valor: null };
+  }
+  const min = Math.min(...valores);
+  const max = Math.max(...valores);
+  if (min === max) {
+    return {
+      texto: moedaBR(min),
+      dica: `${valores.length} piso(s) cadastrado(s)`,
+      valor: min,
+    };
+  }
+  return {
+    texto: `${moedaBR(min)} a ${moedaBR(max)}`,
+    dica: `${valores.length} pisos por sindicato patronal / unidade`,
+    valor: null,
+  };
+}
+
+/** Agrupa linhas de piso por cargo (uma consulta só para vários cargos). */
+export function agruparPisosPorCargo<T extends { cargo_id?: string | null }>(
+  linhas: T[] | null | undefined,
+): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const p of linhas ?? []) {
+    if (!p.cargo_id) continue;
+    const arr = map.get(p.cargo_id) ?? [];
+    arr.push(p);
+    map.set(p.cargo_id, arr);
+  }
+  return map;
+}
