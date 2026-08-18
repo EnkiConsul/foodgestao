@@ -7,7 +7,7 @@
 // Função pura — sem React, sem Supabase.
 // ------------------------------------------------------------------
 
-export type RegimeRiscoTipo = "freelancer" | "pj";
+export type RegimeRiscoTipo = "freelancer" | "pj" | "socio" | "autonomo";
 
 export interface RegimeRiscoAtalho {
   /** Regime de destino ao aceitar a sugestão. */
@@ -22,11 +22,16 @@ export interface RegimeRisco {
   /** Linha extra quando o próprio cadastro contradiz a tese de autonomia. */
   reforco: string | null;
   atalhos: RegimeRiscoAtalho[];
-  verMaisLabel: string;
+  verMaisLabel?: string;
 }
 
 export interface EntradaRegimeRisco {
   regime?: string | null;
+  /**
+   * Rótulo do vínculo escolhido no cadastro (`PJ`, `Socio`, `Autonomo`…).
+   * Necessário porque PJ, Sócio e Autônomo compartilham o regime `pj` no banco.
+   */
+  vinculo?: string | null;
   /** O cadastro define horário/dias fixos ou participa de escala e ponto. */
   temHorarioDefinido?: boolean;
 }
@@ -40,8 +45,9 @@ const REFORCO_PEJOTIZACAO =
  */
 export function regimeRisco(input: EntradaRegimeRisco): RegimeRisco | null {
   const regime = (input.regime ?? "").toLowerCase();
+  const vinculo = (input.vinculo ?? "").toLowerCase();
 
-  if (regime === "freelancer") {
+  if (regime === "freelancer" || vinculo === "freelancer") {
     return {
       tipo: "freelancer",
       titulo: "Freelancer não é um vínculo previsto na lei trabalhista.",
@@ -50,6 +56,36 @@ export function regimeRisco(input: EntradaRegimeRisco): RegimeRisco | null {
       reforco: input.temHorarioDefinido ? REFORCO_PEJOTIZACAO : null,
       atalhos: [{ regime: "intermitente", label: "Mudar para Intermitente" }],
       verMaisLabel: "Ver como funciona o intermitente",
+    };
+  }
+
+  // Sócio não é caso de pejotização: a remuneração é pró-labore/lucros e ele
+  // não entra na folha CLT. O ponto de atenção é o "sócio só no papel".
+  if (vinculo === "socio") {
+    return {
+      tipo: "socio",
+      titulo: "Sócio é remunerado por pró-labore, não por folha CLT.",
+      mensagem:
+        "Este cadastro serve para controle interno de escala e operação: o sócio recebe pró-labore e distribuição de lucros, sem férias, 13º ou FGTS. Atenção ao “sócio só no papel” — pessoa sem poder de gestão nem participação real nos resultados, cumprindo horário e ordens como empregada: nesse caso a Justiça do Trabalho pode reconhecer vínculo de emprego. Se ela atua como empregada, o registro correto é CLT.",
+      reforco: input.temHorarioDefinido
+        ? "Este cadastro tem horário e escala definidos — verifique se há de fato autonomia de gestão."
+        : null,
+      atalhos: [],
+    };
+  }
+
+  if (vinculo === "autonomo") {
+    return {
+      tipo: "autonomo",
+      titulo: "Autônomo só se sustenta com autonomia real.",
+      mensagem:
+        "O trabalho autônomo pressupõe que a pessoa decide como e quando executa o serviço, atende outros clientes e não se submete a escala nem a ordens diretas. Se houver pessoalidade, subordinação e habitualidade, a Justiça do Trabalho pode reconhecer vínculo de emprego — com registro retroativo, férias, 13º, FGTS + 40% e INSS. Para quem trabalha em escala na sua operação, o caminho seguro é CLT (fixo) ou intermitente (por convocação).",
+      reforco: input.temHorarioDefinido ? REFORCO_PEJOTIZACAO : null,
+      atalhos: [
+        { regime: "intermitente", label: "Mudar para Intermitente" },
+        { regime: "clt", label: "Mudar para CLT" },
+      ],
+      verMaisLabel: "Ver os riscos e alternativas",
     };
   }
 
@@ -70,3 +106,4 @@ export function regimeRisco(input: EntradaRegimeRisco): RegimeRisco | null {
 
   return null;
 }
+
