@@ -8,8 +8,8 @@ Hoje a lista vem ordenada apenas por nome. Passa a seguir esta hierarquia:
 
 ```text
 1. Admins e gestores ativos  -> por nome
-2. Colaboradores ativos      -> por unidade, depois por nome
-3. Desligados                -> por unidade, depois por nome
+2. Colaboradores ativos      -> por unidade (id), depois por nome
+3. Desligados                -> por unidade (id), depois por nome
 ```
 
 - "Admin" usa o perfil de acesso do colaborador (`perfil_acesso`), o mesmo que hoje pinta o badge vermelho na coluna PERFIL.
