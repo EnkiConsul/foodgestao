@@ -18,7 +18,7 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpModelosHorario, type ModeloHorarioColaborador } from "@/hooks/useDpModelosHorario";
-import { sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
+import { chaveHorarioBase, contarHorariosBase, horarioBaseMaisComum, sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { formatarHoras, calcularCargaDia } from "@/lib/dp/jornada-utils";
 import { formatarFaixaTurno, intervaloAbaixoDoLegal } from "@/lib/dp/turno-utils";
@@ -163,10 +163,17 @@ export function ColaboradorJornadaPanel({
   const { modelos } = useDpModelosHorario(unidadeIdModelo, colaborador?.id ?? null);
   const atalhosColegas = useMemo(() => {
     const cargoId = colaborador?.cargo_id ?? null;
+    // Quantos colegas usam cada horário base: o horário da loja é o mais
+    // repetido, não o primeiro que foi cadastrado.
+    const contagem = contarHorariosBase(modelos);
+    const usos = (m: typeof modelos[number]) => (m.horario
+      ? contagem.get(chaveHorarioBase(m.horario))?.quantidade ?? 0
+      : 0);
     const ordenados = [...modelos].sort((a, b) => {
       const aMesmoCargo = (a.cargo_id ?? null) === cargoId ? 1 : 0;
       const bMesmoCargo = (b.cargo_id ?? null) === cargoId ? 1 : 0;
       if (aMesmoCargo !== bMesmoCargo) return bMesmoCargo - aMesmoCargo;
+      if (usos(a) !== usos(b)) return usos(b) - usos(a);
       return (b.usado_em ?? "").localeCompare(a.usado_em ?? "");
     });
     const vistos = new Set<string>();
@@ -182,6 +189,20 @@ export function ColaboradorJornadaPanel({
       .slice(0, 10);
   }, [modelos, colaborador?.cargo_id]);
 
+
+  /**
+   * Colaborador novo sem histórico de jornada abre com o horário base mais
+   * usado pelos colegas (unidade e, quando houver, o mesmo cargo) em vez do
+   * 08:00–17:00 fixo — inclusive quando o cargo ainda não foi escolhido.
+   */
+  useEffect(() => {
+    if (!active || vigente || colaborador?.id || alterado || modelos.length === 0) return;
+    if (horarioAplicadoRef.current) return;
+    const base = horarioBaseMaisComum(modelos, colaborador?.cargo_id ?? null);
+    if (!base) return;
+    horarioAplicadoRef.current = "base-loja";
+    setHorario(base);
+  }, [active, vigente, colaborador?.id, colaborador?.cargo_id, alterado, modelos]);
 
   useEffect(() => {
     if (!active || vigente || colaborador?.id || !colaborador?.cargo_id || alterado || modelos.length === 0) return;
@@ -322,7 +343,7 @@ export function ColaboradorJornadaPanel({
   const alternarDia = (dow: number) => {
     marcarAlterado();
     setDias((prev) => prev.map((d) => (d.dow === dow
-      ? { ...d, trabalha: !d.trabalha, entrada: null, saida: null, intervalo_minutos: null }
+      ? { ...d, trabalha: !d.trabalha, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
       : d)));
   };
 
@@ -358,7 +379,7 @@ export function ColaboradorJornadaPanel({
     setFolgaVariavel(false);
     const folgar = modo === "6x1" ? [0] : [0, 6];
     setDias((prev) => prev.map((d) => (folgar.includes(d.dow)
-      ? { ...d, trabalha: false, entrada: null, saida: null, intervalo_minutos: null }
+      ? { ...d, trabalha: false, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
       : { ...d, trabalha: true })));
   };
 
