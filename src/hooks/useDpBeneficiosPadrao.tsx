@@ -56,6 +56,32 @@ export function useSalvarDpBeneficiosPadrao() {
       const { data: existente, error: erroBusca } = await q.maybeSingle();
       if (erroBusca) throw erroBusca;
 
+      // Empresa manda em todos; unidade manda nos cargos dela.
+      if (input.limparEscoposMaisEspecificos) {
+        let del = supabase
+          .from("dp_beneficios_padroes")
+          .delete()
+          .eq("company_id", selectedCompanyId);
+        if (input.unidade_id) {
+          del = del.eq("unidade_id", input.unidade_id).not("cargo_id", "is", null);
+        } else {
+          del = del.not("unidade_id", "is", null);
+        }
+        const { error: erroDel } = await del;
+        if (erroDel) throw erroDel;
+        if (!input.unidade_id) {
+          const { error: erroCargos } = await supabase
+            .from("dp_beneficios_padroes")
+            .delete()
+            .eq("company_id", selectedCompanyId)
+            .is("unidade_id", null)
+            .not("cargo_id", "is", null);
+          if (erroCargos) throw erroCargos;
+        }
+      }
+
+
+
       if (existente?.id) {
         const { error } = await supabase
           .from("dp_beneficios_padroes")
