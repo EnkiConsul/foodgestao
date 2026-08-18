@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Baby, Plus, Trash2, AlertTriangle, Pencil, X } from "lucide-react";
+import { Baby, Plus, Trash2, AlertTriangle, Pencil, X, Settings2 } from "lucide-react";
+import { SalarioFamiliaTabelaDialog } from "@/components/dp/SalarioFamiliaTabelaDialog";
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
