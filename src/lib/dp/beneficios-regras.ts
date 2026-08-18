@@ -394,8 +394,17 @@ export interface ColegaIsonomia {
   sindicato_id?: string | null;
   /** Sindicato patronal resolvido pela unidade. */
   patronal_id?: string | null;
-  /** Situação de cada benefício: ativo e, quando houver, valor no mês. */
-  beneficios: Record<BeneficioChave, { ativo: boolean; valorMes?: number | null }>;
+  /**
+   * Situação de cada benefício. `valorMes` é o equivalente mensal usado para
+   * comparar periodicidades diferentes; `valorUnitario` + `periodicidade`
+   * guardam o valor como ele foi cadastrado (ex.: R$ 24,00 por dia).
+   */
+  beneficios: Record<BeneficioChave, {
+    ativo: boolean;
+    valorMes?: number | null;
+    valorUnitario?: number | null;
+    periodicidade?: Periodicidade | null;
+  }>;
 }
 
 export interface AlvoIsonomia {
