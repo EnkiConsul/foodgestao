@@ -150,7 +150,7 @@ export function ColaboradorJornadaPanel({
 
   useEffect(() => {
     if (!active || vigente || colaborador?.id || !colaborador?.cargo_id || alterado || modelos.length === 0) return;
-    const chave = `${colaborador?.cargo_id ?? "sem-cargo"}:${colaborador?.unidade_id ?? "sem-unidade"}`;
+    const chave = `${colaborador?.nome ?? "novo"}:${colaborador?.cargo_id}:${colaborador?.unidade_id ?? "sem-unidade"}:${admissao ?? "sem-admissao"}`;
     if (sugestaoAplicadaRef.current === chave) return;
     const modelo = sugerirModeloHorario(modelos, colaborador?.cargo_id);
     if (!modelo?.horario) return;
@@ -161,7 +161,7 @@ export function ColaboradorJornadaPanel({
     setFolgaVariavel(modelo.folga_variavel);
     setAlterado(true);
     setOrigemSugestao(modelo.cargo_id === colaborador?.cargo_id ? "cargo" : "empresa");
-  }, [active, vigente, colaborador?.id, colaborador?.cargo_id, colaborador?.unidade_id, alterado, modelos]);
+  }, [active, vigente, colaborador?.id, colaborador?.nome, colaborador?.cargo_id, colaborador?.unidade_id, admissao, alterado, modelos]);
 
   // Recarrega o formulário com a configuração vigente sempre que o painel ativa.
   useEffect(() => {
