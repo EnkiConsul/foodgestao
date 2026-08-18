@@ -12,14 +12,16 @@ Por isso a Alessandra continuou com 5 atrasos tolerados: o padrão da empresa vi
 
 ## O que vamos construir
 
-1. **Propagação real.** Quando o usuário marcar "Aplicar a todos", além de limpar padrões mais específicos, o sistema atualiza os colaboradores **ativos** no escopo escolhido (empresa inteira, ou apenas a unidade) com os campos do padrão: assiduidade (critério, tolerância, máximo de atrasos, atestado e máximo de atestados), prêmio, vale-transporte, vale-alimentação e a ficha de benefícios marcados.
-2. **Transparência antes de aplicar.** O texto do checkbox passa a dizer claramente que colaboradores já cadastrados serão atualizados, e o diálogo mostra quantos colaboradores serão afetados antes da confirmação.
-3. **Sem surpresa silenciosa.** O colaborador que está sendo editado/cadastrado naquele momento continua com o que está na tela; os demais recebem o padrão. Colaboradores desligados não são alterados.
-4. **Feedback.** Após confirmar, o toast informa o padrão gravado e o número de colaboradores atualizados.
+1. **Duas opções explícitas de alcance** no diálogo, logo abaixo da escolha de escopo (empresa/unidade/cargo):
+   - **Somente novos cadastros** (selecionada por padrão): grava o padrão e não toca em ninguém já cadastrado — é o comportamento atual, agora nomeado com clareza.
+   - **Todos os colaboradores do escopo**: grava o padrão, limpa os padrões mais específicos que conflitam e **atualiza os colaboradores ativos** do escopo com os campos do padrão: assiduidade (critério, tolerância, máximo de atrasos, atestado e máximo de atestados), prêmio, vale-transporte, vale-alimentação e a ficha de benefícios marcados.
+2. **Transparência antes de aplicar.** Com "Todos" marcado, o diálogo mostra quantos colaboradores serão atualizados e avisa que valores individuais serão sobrescritos.
+3. **Sem surpresa silenciosa.** O colaborador aberto na tela mantém o que está no formulário; desligados não são alterados; escopo cargo atualiza só quem tem aquele cargo (na unidade, quando houver).
+4. **Feedback.** O toast informa o padrão gravado e, quando aplicável, quantos colaboradores foram atualizados.
 
 ## Detalhes técnicos
 
 - `src/lib/dp/beneficiosPadrao.ts`: nova função para converter `BeneficiosPadraoPayload` nas colunas de `dp_colaboradores` (os nomes coincidem com `CAMPOS_PADRAO`, exceto `beneficios`, que vive em `dp_colaborador_beneficios`). Atualizar o comentário de cabeçalho, que hoje afirma o comportamento antigo.
-- `src/hooks/useDpBeneficiosPadrao.tsx`: na mutation, novo parâmetro `aplicarAosColaboradores` + `ignorarColaboradorId`. Ela consulta os colaboradores ativos do escopo (`company_id`, e `unidade_id` quando o escopo é unidade; cargo quando escopo cargo não propaga), faz o `update` das colunas de remuneração e sincroniza `dp_colaborador_beneficios` (insere/remove conforme os benefícios marcados no padrão). Retorna a contagem de atualizados e invalida as queries de colaboradores.
-- `src/components/dp/ColaboradorFormDialog.tsx`: reaproveitar o checkbox `substituirEspecificos` como "Aplicar a todos" real (limpar padrões + propagar), atualizar copy, exibir contagem estimada de colaboradores no escopo e mostrar a contagem aplicada no toast.
+- `src/hooks/useDpBeneficiosPadrao.tsx`: na mutation, novo parâmetro `alcance: "novos" | "todos"` + `ignorarColaboradorId`. Com `"todos"`, consulta os colaboradores ativos do escopo (`company_id`, mais `unidade_id`/`cargo_id` conforme o escopo), faz o `update` das colunas de remuneração, sincroniza `dp_colaborador_beneficios` e mantém a limpeza dos padrões mais específicos. Retorna a contagem de atualizados e invalida as queries de colaboradores.
+- `src/components/dp/ColaboradorFormDialog.tsx`: substituir o checkbox `substituirEspecificos` por um RadioGroup de alcance ("Somente novos cadastros" / "Todos do escopo"), exibir contagem estimada quando "Todos" e mostrar a contagem aplicada no toast.
 - Testes unitários em `src/test/unit/beneficiosPadrao.test.ts` cobrindo o mapeamento padrão → colunas do colaborador.
