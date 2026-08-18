@@ -54,6 +54,12 @@ import {
   type FormaPagamento,
   type AssiduidadeCriterio,
 } from "@/lib/dp/remuneracao";
+import {
+  useDpBeneficiosPadroes, useSalvarDpBeneficiosPadrao,
+} from "@/hooks/useDpBeneficiosPadrao";
+import {
+  aplicarPadrao, extrairPadrao, padraoTemConteudo, resolverPadrao,
+} from "@/lib/dp/beneficiosPadrao";
 
 
 
@@ -234,6 +240,36 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Cargo ainda sem salário de referência — decisão feita dentro do sistema. */
   const [cargoSemSalario, setCargoSemSalario] = useState<{ salarioInformado: number } | null>(null);
   const patchRem = (patch: Partial<RemuneracaoFormState>) => setRem((r) => ({ ...r, ...patch }));
+
+  /**
+   * Padrão de benefícios da unidade: o primeiro cadastro define e os próximos
+   * já nascem preenchidos. Nada é aplicado sobre colaborador já existente.
+   */
+  const padroesBeneficios = useDpBeneficiosPadroes();
+  const salvarPadraoBeneficios = useSalvarDpBeneficiosPadrao();
+  const padraoDaUnidade = useMemo(
+    () => resolverPadrao(padroesBeneficios.data, form.unidade_id || null),
+    [padroesBeneficios.data, form.unidade_id],
+  );
+  /** Unidade cujo padrão já foi aplicado neste cadastro (evita sobrescrever edições). */
+  const padraoAplicadoRef = useRef<string | null>(null);
+  const [padraoAplicado, setPadraoAplicado] = useState(false);
+  /** Pergunta "usar como padrão da unidade?" pendente após gravar. */
+  const [perguntarPadrao, setPerguntarPadrao] = useState(false);
+  const naoPerguntarKey = `dp:beneficios-padrao:nao-perguntar:${selectedCompanyId ?? "sem-empresa"}`;
+
+  useEffect(() => {
+    if (!open) { padraoAplicadoRef.current = null; setPadraoAplicado(false); return; }
+    if (isEdit) return;
+    const unidade = form.unidade_id || null;
+    if (!unidade || padraoAplicadoRef.current === unidade) return;
+    const padrao = resolverPadrao(padroesBeneficios.data, unidade);
+    padraoAplicadoRef.current = unidade;
+    if (!padrao || !padraoTemConteudo(padrao.payload)) { setPadraoAplicado(false); return; }
+    setRem((r) => aplicarPadrao(r, padrao.payload));
+    setPadraoAplicado(true);
+  }, [open, form.unidade_id, padroesBeneficios.data]);
+
 
   useEffect(() => {
     if (!open) return;
@@ -547,6 +583,47 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     if (proxima) setTab(proxima);
   };
 
+  /**
+   * Vale perguntar se os benefícios deste colaborador viram o padrão da unidade?
+   * Só quando há conteúdo, a unidade está definida e o padrão atual é diferente.
+   */
+  const devePerguntarPadrao = () => {
+    if (!form.unidade_id) return false;
+    if (localStorage.getItem(naoPerguntarKey) === "1") return false;
+    const atual = extrairPadrao(rem);
+    if (!padraoTemConteudo(atual)) return false;
+    const gravado = padraoDaUnidade?.unidade_id === form.unidade_id ? padraoDaUnidade.payload : null;
+    return JSON.stringify(atual) !== JSON.stringify(gravado ?? {});
+  };
+
+  /** Encerra o salvamento: pergunta pelo padrão da unidade antes de sair da tela. */
+  const concluir = (perguntar: boolean) => {
+    if (perguntar) { setPerguntarPadrao(true); return; }
+    finalizar();
+  };
+
+  /** Resposta da pergunta do padrão — depois segue a intenção original do botão. */
+  const responderPadrao = async (usar: boolean, naoPerguntarMais = false) => {
+    setPerguntarPadrao(false);
+    if (naoPerguntarMais) localStorage.setItem(naoPerguntarKey, "1");
+    if (usar && form.unidade_id) {
+      try {
+        await salvarPadraoBeneficios.mutateAsync({
+          unidade_id: form.unidade_id,
+          payload: extrairPadrao(rem),
+        });
+        toast.success("Padrão da unidade atualizado", {
+          description: "Os próximos cadastros desta unidade já vêm preenchidos.",
+        });
+      } catch (e) {
+        toast.error("Não foi possível salvar o padrão", { description: mensagemErro(e) });
+      }
+    }
+    finalizar();
+  };
+
+
+
 
   const submit = async (intencao?: IntencaoSalvar) => {
     if (intencao) intencaoRef.current = intencao;
@@ -803,6 +880,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         });
       }
 
+      // A pergunta do padrão só cabe quando a aba de remuneração foi validada.
+      const perguntar = validaRem && devePerguntarPadrao();
+
       if (isEdit || criadoId) {
         // Botão único: grava também o horário de trabalho quando houve mudança.
         const salvarJornada = jornadaSalvarRef.current;
@@ -829,7 +909,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           });
         }
         setBaseline(snapshot);
-        finalizar();
+        concluir(perguntar);
         return;
       }
 
@@ -844,7 +924,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       if (intencaoRef.current !== "close" && abaSeguinte(tab)) {
         toast("Defina o turno e a jornada");
       }
-      finalizar();
+      concluir(perguntar);
+
 
 
     } catch (e) {
@@ -1192,6 +1273,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
 
           <TabsContent value="remuneracao" className="mt-4">
+            {padraoAplicado && !isEdit && (
+              <div className="mb-4 rounded-xl border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Benefícios sugeridos pelo padrão de {unidadeSelecionada?.nome ?? "unidade"} — pode ajustar.
+              </div>
+            )}
+
             {/* Enquadramento salarial: laboral pelo cargo, piso pelo patronal da unidade. */}
             {cargoSelecionado && form.unidade_id && (
               <div className="mb-4 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
@@ -1484,7 +1571,37 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       </AlertDialog>
 
 
+
+      {/* Padrão de benefícios da unidade: perguntado uma única vez por salvamento. */}
+      <AlertDialog open={perguntarPadrao} onOpenChange={(o) => { if (!o) void responderPadrao(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Usar estes benefícios como padrão de {unidadeSelecionada?.nome ?? "unidade"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Assiduidade, tolerância, vale-alimentação, vale-transporte e a ficha de benefícios deste
+              colaborador passam a vir pré-preenchidos nos próximos cadastros desta unidade. Você pode
+              ajustar caso a caso.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="ghost" onClick={() => void responderPadrao(false, true)}>
+              Não perguntar de novo
+            </Button>
+            <AlertDialogCancel onClick={() => void responderPadrao(false)}>Agora não</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={salvarPadraoBeneficios.isPending}
+              onClick={(e) => { e.preventDefault(); void responderPadrao(true); }}
+            >
+              Salvar como padrão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {risco && (
+
         <RegimeRiscoDialog
           open={riscoOpen}
           onOpenChange={setRiscoOpen}

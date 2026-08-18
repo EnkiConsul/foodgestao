@@ -158,3 +158,61 @@ export function aplicarReajuste(valor: number, percentual: number): number {
   const p = Number.isFinite(percentual) ? percentual : 0;
   return Math.round(valor * (1 + p / 100) * 100) / 100;
 }
+
+/** Dia anterior a uma data YYYY-MM-DD — fim de vigência do piso substituído. */
+export function diaAnterior(data: string): string {
+  const d = new Date(`${data}T12:00:00`);
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+export type StatusVigencia = "vigente" | "futuro" | "encerrado";
+
+/** Situação da linha em relação à data de referência. */
+export function statusVigencia(p: CargoSalarioLinha, data: string = hoje()): StatusVigencia {
+  if (p.vigencia_inicio && p.vigencia_inicio > data) return "futuro";
+  if (p.vigencia_fim && p.vigencia_fim < data) return "encerrado";
+  return "vigente";
+}
+
+/** Linha em aberto (sem fim de vigência) do cargo naquele escopo. */
+export function linhaEmAberto(
+  linhas: CargoSalarioLinha[] | null | undefined,
+  escopo: { patronalId?: string | null; unidadeId?: string | null },
+): CargoSalarioLinha | null {
+  const lista = linhas ?? [];
+  if (escopo.unidadeId) {
+    return lista.find((p) => p.unidade_id === escopo.unidadeId && !p.vigencia_fim) ?? null;
+  }
+  if (escopo.patronalId) {
+    return (
+      lista.find(
+        (p) => !p.unidade_id && p.sindicato_patronal_id === escopo.patronalId && !p.vigencia_fim,
+      ) ?? null
+    );
+  }
+  return null;
+}
+
+/** Mensagem em português para erros do banco ao gravar o piso. */
+export function mensagemErroPiso(e: unknown): string {
+  const any = e as any;
+  const bruto: string =
+    (typeof any?.message === "string" && any.message) ||
+    (typeof any?.details === "string" && any.details) ||
+    (typeof e === "string" ? e : "") ||
+    "Erro desconhecido.";
+  if (/duplicate key|already exists|uniq/i.test(bruto)) {
+    return "Já existe um valor em aberto para este cargo neste escopo. Use “Novo reajuste” para substituir o valor anterior mantendo o histórico.";
+  }
+  if (/vigencia_fim|dp_cargo_salarios_check/i.test(bruto)) {
+    return "A data de fim de vigência não pode ser anterior ao início.";
+  }
+  if (/salario_base_check/i.test(bruto)) return "O salário informado deve ser maior que zero.";
+  if (/row-level security|permission/i.test(bruto)) {
+    return "Você não tem permissão para alterar salários nesta empresa.";
+  }
+  if (/mesma empresa/i.test(bruto)) return bruto;
+  return bruto;
+}
+

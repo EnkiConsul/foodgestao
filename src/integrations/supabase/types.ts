@@ -2778,6 +2778,51 @@ export type Database = {
           },
         ]
       }
+      dp_beneficios_padroes: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          payload: Json
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payload?: Json
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payload?: Json
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_beneficios_padroes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_beneficios_padroes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_bloqueio_regra_unidades: {
         Row: {
           regra_id: string
