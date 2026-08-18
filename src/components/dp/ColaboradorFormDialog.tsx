@@ -644,8 +644,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const concluir = (perguntar: boolean) => {
     if (perguntar) {
       setEscopoPadrao(nivelPadrao(padraoAplicavel) ?? "unidade");
+      setSubstituirEspecificos(false);
       setPerguntarPadrao(true);
       return;
+
     }
     finalizar();
   };
