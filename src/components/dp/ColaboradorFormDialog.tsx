@@ -435,6 +435,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         form.unidade_id || null,
         patronalUnidade?.id ?? null,
         form.data_admissao || undefined,
+        // Piso já negociado com vigência posterior à admissão continua sendo a
+        // referência do cargo — não faz sentido pedir novo cadastro.
+        { aceitarFuturo: true },
       ),
     [pisosCargo.data, form.unidade_id, patronalUnidade?.id, form.data_admissao],
   );
@@ -1582,7 +1585,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                   } catch (err) {
                     setCargoSemSalario(pendente);
                     toast.error("Não foi possível gravar o piso do sindicato patronal", {
-                      description: err instanceof Error ? err.message : String(err),
+                      description: `${mensagemErroPiso(err)} Você pode usar “Só para este colaborador” para salvar o cadastro agora.`,
                     });
                     setSalvandoPiso(false);
                     return;
