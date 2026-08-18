@@ -192,6 +192,32 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
     onError: (e: Error) => toast.error(e.message || "Não foi possível salvar as rubricas."),
   });
 
+  /**
+   * Abono de atestado: a empresa pode, por liberalidade e caso a caso, manter o
+   * prêmio de assiduidade mesmo com atestado apresentado no mês.
+   */
+  const abonarAtestado = useMutation({
+    mutationFn: async ({ id, abonado, motivo }: { id: string; abonado: boolean; motivo?: string }) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("dp_folha_lancamentos")
+        .update({
+          assiduidade_atestado_abonado: abonado,
+          assiduidade_abono_motivo: abonado ? (motivo?.trim() || null) : null,
+          assiduidade_abono_por: abonado ? auth.user?.id ?? null : null,
+          assiduidade_abono_em: abonado ? new Date().toISOString() : null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+      return abonado;
+    },
+    onSuccess: (abonado) => {
+      toast.success(abonado ? "Atestado abonado — prêmio mantido." : "Abono removido.");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message || "Não foi possível registrar o abono."),
+  });
+
   /** Fase 14 — gera a despesa consolidada da folha no financeiro (conta a pagar). */
   const gerarDespesa = useMutation({
     mutationFn: async (params: { accountId?: string | null; categoryId?: string | null; dataPagamento?: string | null }) => {
@@ -237,6 +263,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
     isLoading: periodoQuery.isLoading || linhasQuery.isLoading,
     error: periodoQuery.error ?? linhasQuery.error,
     alterarStatus,
+    abonarAtestado,
     cancelarLancamento,
     salvarRubricas,
     gerarDespesa,
