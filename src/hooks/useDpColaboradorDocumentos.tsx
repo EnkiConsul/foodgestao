@@ -282,6 +282,148 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar a validade"),
   });
 
+  /** Gera contrato ou ficha de registro pelo sistema e envia para aceite do colaborador. */
+  const gerarDocumentoSistema = useMutation({
+    mutationFn: async ({ item }: { item: ItemChecklist }) => {
+      const ctx = base.data;
+      if (!ctx) throw new Error("Checklist não carregado");
+      const modelo = item.requisito.tipo_documento === "contrato" ? "contrato" : "ficha_registro";
+
+      const [{ data: empresa }, { data: colab }] = await Promise.all([
+        supabase
+          .from("companies")
+          .select("name, cnpj, address")
+          .eq("id", ctx.colaborador.company_id)
+          .maybeSingle(),
+        supabase
+          .from("dp_colaboradores")
+          .select(
+            "nome, cpf, pis_nit, data_nascimento, estado_civil, endereco, data_admissao, salario, regime, matricula, carga_semanal_horas, dp_cargos(nome), dp_unidades(nome)",
+          )
+          .eq("id", ctx.colaborador.id)
+          .maybeSingle(),
+      ]);
+      if (!empresa || !colab) throw new Error("Dados insuficientes para gerar o documento");
+
+      const contexto = {
+        empresa: { nome: empresa.name, cnpj: (empresa as any).cnpj, endereco: (empresa as any).address },
+        colaborador: {
+          nome: colab.nome,
+          cpf: colab.cpf,
+          pis_nit: (colab as any).pis_nit,
+          data_nascimento: colab.data_nascimento,
+          estado_civil: (colab as any).estado_civil,
+          endereco: (colab as any).endereco,
+          cargo: (colab as any).dp_cargos?.nome ?? null,
+          unidade: (colab as any).dp_unidades?.nome ?? null,
+          data_admissao: colab.data_admissao,
+          salario: colab.salario,
+          regime: colab.regime,
+          jornada: colab.carga_semanal_horas ? `${colab.carga_semanal_horas}h semanais` : null,
+          matricula: (colab as any).matricula,
+        },
+      };
+
+      const html =
+        modelo === "contrato" ? montarContratoHtml(contexto) : montarFichaRegistroHtml(contexto);
+      const hash = await hashConteudo(html);
+      const blob = new Blob([html], { type: "text/html" });
+      const path = `${ctx.colaborador.company_id}/${ctx.colaborador.id}/gerados/${modelo}-${MODELO_VERSAO}-${Date.now()}.html`;
+
+      const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, blob, {
+        contentType: "text/html",
+        upsert: false,
+      });
+      if (up.error) throw up.error;
+
+      const { data: doc, error: eDoc } = await supabase
+        .from("dp_documentos")
+        .insert({
+          company_id: ctx.colaborador.company_id,
+          colaborador_id: ctx.colaborador.id,
+          tipo: item.requisito.tipo_documento,
+          titulo: item.requisito.nome,
+          descricao: `Gerado pelo sistema (modelo ${MODELO_VERSAO}) — aguardando aceite eletrônico`,
+          file_path: path,
+          file_name: `${modelo}.html`,
+          file_size: blob.size,
+          mime_type: "text/html",
+          uploaded_by: user?.id,
+          aprovacao_status: "pendente",
+        })
+        .select("id")
+        .single();
+      if (eDoc) throw eDoc;
+
+      const payload = {
+        company_id: ctx.colaborador.company_id,
+        colaborador_id: ctx.colaborador.id,
+        requisito_id: item.requisito.id,
+        documento_id: doc.id,
+        status: "enviado" as const,
+        conteudo_hash: hash,
+        dispensado: false,
+      };
+      if (item.vinculo) {
+        const { error } = await supabase
+          .from("dp_colaborador_documentos")
+          .update(payload)
+          .eq("id", item.vinculo.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("dp_colaborador_documentos").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Documento gerado e enviado para aceite do colaborador");
+      invalidar();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao gerar o documento"),
+  });
+
+  /** Aceite eletrônico do colaborador, com hash e trilha de auditoria. */
+  const aceitar = useMutation({
+    mutationFn: async ({ item }: { item: ItemChecklist }) => {
+      const ctx = base.data;
+      if (!ctx || !item.vinculo) throw new Error("Documento não disponível para aceite");
+      const modelo = item.requisito.tipo_documento === "contrato" ? "contrato" : "ficha_registro";
+
+      const { error: eAceite } = await supabase.from("dp_documento_aceites").insert({
+        company_id: ctx.colaborador.company_id,
+        colaborador_id: ctx.colaborador.id,
+        requisito_id: item.requisito.id,
+        documento_id: item.vinculo.documento_id,
+        modelo,
+        modelo_versao: MODELO_VERSAO,
+        conteudo_hash: (item.vinculo as any).conteudo_hash ?? "",
+        aceito_por: user?.id ?? null,
+        user_agent: navigator.userAgent.slice(0, 500),
+      });
+      if (eAceite) throw eAceite;
+
+      const { error } = await supabase
+        .from("dp_colaborador_documentos")
+        .update({ status: "aprovado", aceito_em: new Date().toISOString() })
+        .eq("id", item.vinculo.id);
+      if (error) throw error;
+
+      if (item.vinculo.documento_id) {
+        await supabase
+          .from("dp_documentos")
+          .update({ aprovacao_status: "aprovado" })
+          .eq("id", item.vinculo.documento_id);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Aceite registrado com data, hora e dispositivo");
+      invalidar();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao registrar o aceite"),
+  });
+
+
+
   /** Gera link assinado e abre o arquivo. */
   const abrir = async (item: ItemChecklist) => {
     const doc = arquivoDoItem(item);
