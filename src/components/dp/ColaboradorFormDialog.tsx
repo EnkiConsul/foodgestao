@@ -1607,9 +1607,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         open={dispensas.length > 0}
         onOpenChange={(o) => {
           if (!o) {
-            // Manter o benefício: recoloca as marcações desfeitas.
-            const restaurar = Object.fromEntries(dispensas.map((d) => [d.beneficio_id, true]));
-            patchRem({ beneficios: { ...rem.beneficios, ...restaurar } });
+            // "Conceder o benefício": iguala tudo ao padrão do grupo.
+            dispensas.forEach((d) => aplicarPadraoIsonomia(d.divergencia));
             setDispensas([]);
           }
         }}
@@ -1624,8 +1623,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           cidade: null,
         }}
         itens={dispensas}
-        onConfirmar={async () => {
+        onConfirmar={async (motivo: MotivoIsonomiaEscolhido) => {
           isonomiaConfirmada.current = true;
+          motivoIsonomia.current = motivo;
           setDispensas([]);
           await submit();
         }}
