@@ -261,7 +261,25 @@ export function ColaboradorJornadaPanel({
     () => validarConfigTrabalho(config, turnosTela, { regime: colaborador?.regime, vigenciaInicio: inicio }),
     [config, turnosTela, colaborador?.regime, inicio],
   );
+  const detalheCarga = useMemo(() => detalharCargaSemanal(config, turnosTela), [config, turnosTela]);
   const carga = cargaSemanalConfig(config, turnosTela);
+  const baseDefasado = useMemo(() => baseDivergenteDosDias(config, turnosTela), [config, turnosTela]);
+
+  /**
+   * Alinha o horário base à faixa usada pela maioria dos dias. Sem isso, o dia
+   * que herda o base conta horas a menos e o total da semana não fecha.
+   */
+  const alinharHorarioBase = () => {
+    if (!baseDefasado) return;
+    marcarAlterado();
+    horarioAplicadoRef.current = "base-alinhado";
+    setHorario({
+      entrada: baseDefasado.entrada,
+      saida: baseDefasado.saida,
+      intervalo_minutos: baseDefasado.intervalo_minutos,
+    });
+    toast.success(`Horário base ajustado para ${baseDefasado.entrada} → ${baseDefasado.saida}`);
+  };
   const bloqueado = configTemErro(validacoes);
   const folgas = folgaFixaDerivada(dias);
 
