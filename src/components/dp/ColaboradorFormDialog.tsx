@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 import { regimeRisco } from "@/lib/dp/regime-riscos";
 import { RegimeRiscoDialog } from "@/components/dp/RegimeRiscoDialog";
+import { toProperName } from "@/lib/text/properName";
 
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -986,7 +987,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           {/* Cabeçalho e abas fixos: só o conteúdo do formulário rola. */}
           <div className="shrink-0 space-y-3 border-b border-border bg-background p-6 pb-3">
             <DialogHeader className="space-y-0 text-left">
-              <DialogTitle>{isEdit ? "Editar Colaborador" : "Novo Colaborador"}</DialogTitle>
+              <DialogTitle>
+                {isEdit
+                  ? `Editar: ${toProperName(form.nome.trim()) || "Colaborador"}`
+                  : `Cadastrar: ${toProperName(form.nome.trim()) || "Novo Colaborador"}`}
+              </DialogTitle>
             </DialogHeader>
             <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="dados" className="gap-2">

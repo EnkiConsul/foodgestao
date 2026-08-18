@@ -42,23 +42,29 @@ const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateSt
 
 const HORARIO_PADRAO: HorarioSimples = { entrada: "08:00", saida: "17:00", intervalo_minutos: 60 };
 
+/** Só o primeiro nome cabe no atalho — o nome completo fica no title. */
+const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] || nome;
+
 /**
- * Identidade da semana de um colega: horário base + horário de cada dia. Usada
- * para não repetir o mesmo modelo nos atalhos e para saber se o colega tem dias
- * com horário próprio (padrão da loja em dias de maior demanda).
+ * Identidade do horário de um colega, usada só para deduplicar os atalhos.
+ *
+ * Compara apenas horários (base + as variações de entrada/saída/intervalo dos
+ * dias trabalhados) e ignora quais dias são folga: dois colegas com exatamente
+ * o mesmo horário aparecem uma única vez na fileira, mesmo folgando em dias
+ * diferentes. A cópia em si continua trazendo folgas e overrides.
  */
 function assinaturaSemana(m: ModeloHorarioColaborador): string {
   const base = m.horario
     ? `${m.horario.entrada}-${m.horario.saida}-${m.horario.intervalo_minutos ?? 0}`
     : "sem-base";
-  const semana = [...m.dias]
-    .sort((a, b) => a.dow - b.dow)
-    .map((d) => (d.trabalha
-      ? `${d.dow}:${d.entrada ?? "="}-${d.saida ?? "="}-${d.intervalo_minutos ?? "="}`
-      : `${d.dow}:folga`))
-    .join("|");
-  return `${base}#${semana}#${m.folga_variavel ? "var" : "fixa"}`;
+  const variacoes = [...new Set(
+    m.dias
+      .filter((d) => d.trabalha && (d.entrada || d.saida))
+      .map((d) => `${d.entrada ?? "="}-${d.saida ?? "="}-${d.intervalo_minutos ?? "="}`),
+  )].sort().join("|");
+  return `${base}#${variacoes}`;
 }
+
 
 /** Dias do colega com horário diferente do horário base dele. */
 function diasDiferentesDoColega(m: ModeloHorarioColaborador): number[] {
@@ -791,6 +797,26 @@ export function ColaboradorJornadaPanel({
             </Popover>
           </div>
         </div>
+
+        {atalhosColegas.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Copiar o horário de:</span>
+            {atalhosColegas.map((m) => (
+              <Button
+                key={m.colaborador_id}
+                type="button" size="sm" variant="secondary"
+                className="h-7 px-2 text-xs"
+                title={m.horario
+                  ? `${m.colaborador_nome} · ${m.horario.entrada}–${m.horario.saida} (${m.horario.intervalo_minutos ?? 0} min)`
+                  : m.colaborador_nome}
+                onClick={() => copiarSemanaDoColega(m)}
+              >
+                {primeiroNome(m.colaborador_nome)}
+              </Button>
+            ))}
+          </div>
+        )}
+
         <ul className="divide-y rounded-lg border">
           {dias.map((dia) => {
             const h = horarioEfetivoDia(dia, horario);
