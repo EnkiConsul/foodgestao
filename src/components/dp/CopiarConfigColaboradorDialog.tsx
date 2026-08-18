@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDpModelosHorario } from "@/hooks/useDpModelosHorario";
 import { resumoConfigTexto, type DiaConfig, type TurnoResolvido } from "@/lib/dp/config-trabalho";
 import type { HorarioSimples } from "@/lib/dp/turno-resolver";
+import { useMemo } from "react";
 
 export interface ConfigCopiada {
   turno_padrao_id: string | null;
@@ -23,6 +24,8 @@ interface Props {
   colaboradorId?: string | null;
   /** Unidade atual — restringe a lista a colegas da mesma unidade. */
   unidadeId?: string | null;
+  /** Cargo atual — coloca colegas do mesmo cargo no topo. */
+  cargoId?: string | null;
   turnos: TurnoResolvido[];
   onCopiar: (config: ConfigCopiada) => void;
 }
@@ -33,9 +36,18 @@ interface Props {
  * reconfigurar tudo a cada novo colaborador.
  */
 export function CopiarConfigColaboradorDialog({
-  open, onOpenChange, colaboradorId, unidadeId, turnos, onCopiar,
+  open, onOpenChange, colaboradorId, unidadeId, cargoId, turnos, onCopiar,
 }: Props) {
   const { modelos, isLoading } = useDpModelosHorario(unidadeId, colaboradorId);
+
+  const modelosOrdenados = useMemo(() => {
+    return [...modelos].sort((a, b) => {
+      const aMesmoCargo = (a.cargo_id ?? null) === cargoId ? 1 : 0;
+      const bMesmoCargo = (b.cargo_id ?? null) === cargoId ? 1 : 0;
+      if (aMesmoCargo !== bMesmoCargo) return bMesmoCargo - aMesmoCargo;
+      return (b.usado_em ?? "").localeCompare(a.usado_em ?? "");
+    });
+  }, [modelos, cargoId]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -52,14 +64,14 @@ export function CopiarConfigColaboradorDialog({
 
         {isLoading ? (
           <Skeleton className="h-24 w-full" />
-        ) : modelos.length === 0 ? (
+        ) : modelosOrdenados.length === 0 ? (
           <p className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
             <CalendarOff className="h-4 w-4" aria-hidden="true" />
             Nenhum colaborador desta unidade tem horário de trabalho cadastrado ainda.
           </p>
         ) : (
           <ul className="max-h-[50vh] divide-y overflow-y-auto rounded-lg border">
-            {modelos.map((m) => (
+            {modelosOrdenados.map((m) => (
               <li key={m.id} className="flex items-center gap-3 p-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{m.colaborador_nome}</p>
