@@ -547,34 +547,103 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     } catch { /* o cadastro não deve falhar por causa do log */ }
   };
 
-  /** Benefícios ativos hoje que o usuário desmarcou e colegas equivalentes mantêm. */
-  const dispensasPendentes = (): DispensaBeneficio[] => {
-    if (!colaborador?.id) return [];
-    const out: DispensaBeneficio[] = [];
-    for (const b of beneficios) {
-      const atual = (atribuicoes ?? []).find(
-        (a: any) => a.colaborador_id === colaborador.id && a.beneficio_id === b.id,
-      ) as any;
-      if (!atual?.ativo || rem.beneficios[b.id]) continue;
-      const colegas = (todosColaboradores.data ?? [])
-        .filter((x: any) => x.id !== colaborador.id && x.ativo !== false)
-        .map((x: any) => ({
-          colaborador_id: x.id,
-          nome: x.nome,
-          cargo_id: x.cargo_id,
-          unidade_id: x.unidade_id,
-          ativo: (atribuicoes ?? []).some(
-            (a: any) => a.colaborador_id === x.id && a.beneficio_id === b.id && a.ativo,
-          ),
-        }));
-      const alerta = alertaIsonomia(b.nome, colegas, {
-        cargo_id: form.cargo_id || null,
-        unidade_id: form.unidade_id || null,
+  /**
+   * Divergências de benefício deste cadastro contra o grupo equivalente.
+   *
+   * O grupo forte é o sindical (laboral + patronal da unidade); sem sindicato,
+   * cai para unidade + cargo. Vale para cadastro novo e para quem nunca teve o
+   * benefício — não apenas para quem teve o benefício retirado.
+   */
+  const divergenciasIso = useMemo<DivergenciaIsonomia[]>(() => {
+    const patronal = patronalPorUnidade.data ?? {};
+    const colegas = (todosColaboradores.data ?? [])
+      .filter((c: any) => c.id !== colaborador?.id && c.ativo !== false && !c.data_desligamento)
+      .map((c: any) =>
+        snapshotColegaBeneficios(
+          c,
+          c.unidade_id ? patronal[c.unidade_id]?.id ?? null : null,
+          atribuicoes as any[],
+        ),
+      );
+
+    // Estado atual do formulário no mesmo formato do motor.
+    const alvoLinha = {
+      id: colaborador?.id ?? "novo",
+      nome: form.nome,
+      cargo_id: form.cargo_id || null,
+      unidade_id: form.unidade_id || null,
+      sindicato_id: form.sindicato_id || null,
+      salario_base: numeroBR(rem.salario_base),
+      base_salarial: numeroBR(rem.base_salarial),
+      vale_alimentacao: rem.vale_alimentacao,
+      vale_alimentacao_valor: numeroBR(rem.vale_alimentacao_valor),
+      vale_alimentacao_periodicidade: rem.vale_alimentacao_periodicidade,
+      vale_alimentacao_dias_base: numeroBR(rem.vale_alimentacao_dias_base),
+      vale_transporte: rem.vale_transporte,
+      vale_transporte_valor_dia: numeroBR(rem.vale_transporte_valor_dia),
+      premio_assiduidade: rem.premio_assiduidade,
+      premio_assiduidade_valor: numeroBR(rem.premio_assiduidade_valor),
+      premio_assiduidade_tipo: rem.premio_assiduidade_tipo,
+    };
+
+    const itens = [
+      ...itensIsonomiaDoCadastro(alvoLinha),
+      // Benefícios do catálogo marcados na ficha do colaborador.
+      ...beneficios.map((b) => ({
+        chave: b.id,
+        nome: b.nome,
+        ativo: !!rem.beneficios[b.id],
+      })),
+    ];
+
+    return divergenciasIsonomia(itens, colegas, {
+      cargo_id: form.cargo_id || null,
+      unidade_id: form.unidade_id || null,
+      sindicato_id: form.sindicato_id || null,
+      patronal_id: patronalUnidade?.id ?? null,
+    }, {
+      sindicatoNome: (sindicatos.data ?? []).find((s) => s.id === form.sindicato_id)?.nome ?? null,
+    });
+  }, [
+    todosColaboradores.data, atribuicoes, patronalPorUnidade.data, patronalUnidade?.id,
+    beneficios, sindicatos.data, colaborador?.id, form.nome, form.cargo_id, form.unidade_id,
+    form.sindicato_id, rem,
+  ]);
+
+  /** Divergências que exigem ciência com motivo objetivo neste salvamento. */
+  const dispensasPendentes = (): DispensaBeneficio[] =>
+    divergenciasIso.map((d) => ({
+      beneficio_id: d.chave,
+      beneficio_nome: d.beneficio_nome,
+      divergencia: d,
+    }));
+
+  /** Iguala o benefício divergente ao padrão praticado no grupo. */
+  const aplicarPadraoIsonomia = (d: DivergenciaIsonomia) => {
+    if (d.chave === "vale_alimentacao") {
+      const mensal = d.valor_padrao ?? 0;
+      patchRem({
+        vale_alimentacao: true,
+        vale_alimentacao_periodicidade: "mensal",
+        vale_alimentacao_valor: mensal > 0 ? mensal.toFixed(2).replace(".", ",") : "",
       });
-      if (alerta) out.push({ beneficio_id: b.id, beneficio_nome: b.nome, alerta });
+      return;
     }
-    return out;
+    if (d.chave === "vale_transporte") {
+      const dia = (d.valor_padrao ?? 0) / DIAS_BASE_PADRAO;
+      patchRem({
+        vale_transporte: true,
+        vale_transporte_valor_dia: dia > 0 ? dia.toFixed(2).replace(".", ",") : "",
+      });
+      return;
+    }
+    if (d.chave === "premio_assiduidade") {
+      patchRem({ premio_assiduidade: true });
+      return;
+    }
+    patchRem({ beneficios: { ...rem.beneficios, [d.chave]: true } });
   };
+
 
   /** Estado atual das abas, usado para detectar alterações não salvas. */
   const snapshot = JSON.stringify({ form, rem });
