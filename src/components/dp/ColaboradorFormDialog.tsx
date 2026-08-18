@@ -328,14 +328,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       padraoAplicavel?.payload,
     );
   }, [isEdit, colaborador, padraoAplicavel, avisoPadraoDispensado]);
-  const origemPadrao = useMemo(() => {
+  const origemPadrao = () => {
     const nivel = nivelPadrao(padraoAplicavel);
     if (nivel === "cargo") {
       return `de ${cargoSelecionado?.nome ?? "cargo"} em ${unidadeSelecionada?.nome ?? "unidade"}`;
     }
     if (nivel === "unidade") return `de ${unidadeSelecionada?.nome ?? "unidade"}`;
     return "da empresa";
-  }, [padraoAplicavel, cargoSelecionado, unidadeSelecionada]);
+  };
+
 
 
   const rotulosGruposSelecionados = useMemo(
