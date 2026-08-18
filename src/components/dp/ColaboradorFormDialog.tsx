@@ -356,7 +356,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       padraoAplicadoRef.current = null;
       padraoRespondidoRef.current = new Set();
       setPadraoAplicado(null);
-      return;
+      setAvisoPadraoDispensado(false);
+
     }
     if (isEdit) return;
     const unidade = form.unidade_id || null;
