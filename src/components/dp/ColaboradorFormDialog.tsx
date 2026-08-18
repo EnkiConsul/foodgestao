@@ -319,6 +319,25 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     [rem, padraoAplicavel],
   );
 
+  /** Aviso de divergência do cadastro já existente em relação ao padrão vigente. */
+  const [avisoPadraoDispensado, setAvisoPadraoDispensado] = useState(false);
+  const diferencasDoPadrao = useMemo(() => {
+    if (!isEdit || !colaborador || avisoPadraoDispensado) return [];
+    return divergenciasColaboradorVsPadrao(
+      colaborador as unknown as Record<string, unknown>,
+      padraoAplicavel?.payload,
+    );
+  }, [isEdit, colaborador, padraoAplicavel, avisoPadraoDispensado]);
+  const origemPadrao = useMemo(() => {
+    const nivel = nivelPadrao(padraoAplicavel);
+    if (nivel === "cargo") {
+      return `de ${cargoSelecionado?.nome ?? "cargo"} em ${unidadeSelecionada?.nome ?? "unidade"}`;
+    }
+    if (nivel === "unidade") return `de ${unidadeSelecionada?.nome ?? "unidade"}`;
+    return "da empresa";
+  }, [padraoAplicavel, cargoSelecionado, unidadeSelecionada]);
+
+
   const rotulosGruposSelecionados = useMemo(
     () =>
       GRUPOS_PADRAO.filter((g) => gruposPadrao.includes(g))
