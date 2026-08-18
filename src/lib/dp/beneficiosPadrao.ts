@@ -20,6 +20,8 @@ export const CAMPOS_PADRAO = [
   "assiduidade_criterio",
   "assiduidade_tolerancia_min",
   "assiduidade_max_atrasos",
+  "assiduidade_considera_atestado",
+  "assiduidade_max_atestados",
   "vale_alimentacao",
   "vale_alimentacao_valor",
   "vale_alimentacao_periodicidade",

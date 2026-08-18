@@ -54,6 +54,10 @@ export interface RemuneracaoFormState {
   assiduidade_criterio: AssiduidadeCriterio;
   assiduidade_tolerancia_min: string;
   assiduidade_max_atrasos: string;
+  /** Atestado também faz perder o prêmio (regra sindical comum). */
+  assiduidade_considera_atestado: boolean;
+  /** Atestados tolerados no mês antes de perder o prêmio. */
+  assiduidade_max_atestados: string;
   /** Prêmio em valor fixo ou percentual do salário. */
   premio_assiduidade_tipo: PremioTipo;
   /** Vale-alimentação / refeição. */
@@ -85,6 +89,8 @@ export const remuneracaoBlank: RemuneracaoFormState = {
   assiduidade_criterio: "sem_faltas_sem_atrasos",
   assiduidade_tolerancia_min: "10",
   assiduidade_max_atrasos: "2",
+  assiduidade_considera_atestado: true,
+  assiduidade_max_atestados: "0",
   premio_assiduidade_tipo: "valor",
   vale_alimentacao: false,
   vale_alimentacao_valor: "",
@@ -479,6 +485,34 @@ export function RemuneracaoFields({
               />
               <p className="text-[11px] text-muted-foreground">
                 Limite definido pela empresa — 0 exige pontualidade integral no mês.
+              </p>
+            </div>
+            <div className="space-y-2 rounded-lg border border-border/70 bg-muted/30 p-3 md:col-span-2">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="assiduidade_considera_atestado"
+                  checked={value.assiduidade_considera_atestado}
+                  onCheckedChange={(v) => onChange({ assiduidade_considera_atestado: v })}
+                />
+                <Label htmlFor="assiduidade_considera_atestado" className="cursor-pointer">
+                  Atestado também faz perder o prêmio
+                </Label>
+              </div>
+              {value.assiduidade_considera_atestado && (
+                <div className="space-y-2">
+                  <Label>Atestados tolerados no mês</Label>
+                  <Input
+                    inputMode="numeric"
+                    className="max-w-[160px]"
+                    value={value.assiduidade_max_atestados}
+                    onChange={(e) => onChange({ assiduidade_max_atestados: e.target.value.replace(/\D/g, "") })}
+                    placeholder="0"
+                  />
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                Muitas convenções (como a da Pakerê) tiram o prêmio quando há atestado. A empresa pode
+                abonar caso a caso na apuração da folha, mantendo o prêmio do mês.
               </p>
             </div>
             <p className="text-[11px] text-muted-foreground md:col-span-2">

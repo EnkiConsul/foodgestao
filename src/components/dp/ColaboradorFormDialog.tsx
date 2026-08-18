@@ -337,6 +337,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       assiduidade_criterio: (c.assiduidade_criterio ?? "sem_faltas_sem_atrasos") as AssiduidadeCriterio,
       assiduidade_tolerancia_min: String(c.assiduidade_tolerancia_min ?? 10),
       assiduidade_max_atrasos: String(c.assiduidade_max_atrasos ?? 2),
+      assiduidade_considera_atestado: (c as any).assiduidade_considera_atestado ?? true,
+      assiduidade_max_atestados: String((c as any).assiduidade_max_atestados ?? 0),
       premio_assiduidade_tipo: (c.premio_assiduidade_tipo ?? "valor") as "valor" | "percentual",
       vale_alimentacao: !!c.vale_alimentacao,
       vale_alimentacao_valor:
@@ -872,6 +874,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         premio_assiduidade_valor: rem.premio_assiduidade ? premioNum || null : null,
         assiduidade_criterio: rem.premio_assiduidade ? rem.assiduidade_criterio : null,
         assiduidade_tolerancia_min: Math.max(0, Math.trunc(numeroBR(rem.assiduidade_tolerancia_min))),
+        assiduidade_considera_atestado: rem.premio_assiduidade
+          ? rem.assiduidade_considera_atestado
+          : true,
+        assiduidade_max_atestados: rem.premio_assiduidade && rem.assiduidade_considera_atestado
+          ? Math.max(0, Math.trunc(numeroBR(rem.assiduidade_max_atestados)))
+          : null,
         assiduidade_max_atrasos: rem.premio_assiduidade
           ? Math.max(0, Math.trunc(numeroBR(rem.assiduidade_max_atrasos)))
           : null,
