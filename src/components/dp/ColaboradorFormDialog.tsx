@@ -194,6 +194,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   /** Benefícios retirados que exigem ciência de isonomia neste salvamento. */
   const [dispensas, setDispensas] = useState<DispensaBeneficio[]>([]);
   const isonomiaConfirmada = useRef(false);
+  /** Motivo objetivo registrado ao aceitar a diferença de benefícios. */
+  const motivoIsonomia = useRef<MotivoIsonomiaEscolhido | null>(null);
   const [cienciaAberta, setCienciaAberta] = useState(false);
   const [tab, setTab] = useState<AbaCadastro>("dados");
   /** Intenção do botão acionado: continuar na tela, avançar de aba ou sair. */
