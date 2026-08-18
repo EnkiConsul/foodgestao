@@ -988,8 +988,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             <DialogHeader className="space-y-0 text-left">
               <DialogTitle>
                 {isEdit
-                  ? `Editar: ${nomeProprio(form.nome.trim()) || "Colaborador"}`
-                  : `Cadastrar: ${nomeProprio(form.nome.trim()) || "Novo Colaborador"}`}
+                  ? `Editar: ${toProperName(form.nome.trim()) || "Colaborador"}`
+                  : `Cadastrar: ${toProperName(form.nome.trim()) || "Novo Colaborador"}`}
               </DialogTitle>
             </DialogHeader>
             <TabsList className="w-full justify-start overflow-x-auto">
