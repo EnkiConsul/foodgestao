@@ -153,7 +153,7 @@ export function ColaboradorJornadaPanel({
         vistos.add(chave);
         return true;
       })
-      .slice(0, 6);
+      .slice(0, 10);
   }, [modelos, colaborador?.cargo_id]);
 
   useEffect(() => {
@@ -655,13 +655,14 @@ export function ColaboradorJornadaPanel({
             {atalhosColegas.map((m) => (
               <Button
                 key={m.id} type="button" size="sm" variant="secondary" className="h-7 text-[11px]"
+                title={`${formatarFaixaTurno(m.horario!)} — clique para usar este horário`}
                 onClick={() => definirHorario({
                   entrada: m.horario!.entrada,
                   saida: m.horario!.saida,
                   intervalo_minutos: m.horario!.intervalo_minutos ?? 0,
                 })}
               >
-                {m.colaborador_nome.split(" ")[0]} · {formatarFaixaTurno(m.horario!)}
+                {m.colaborador_nome.split(" ")[0]}
               </Button>
             ))}
           </div>
