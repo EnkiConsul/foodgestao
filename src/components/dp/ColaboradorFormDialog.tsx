@@ -625,21 +625,24 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   /** Iguala o benefício divergente ao padrão praticado no grupo. */
   const aplicarPadraoIsonomia = (d: DivergenciaIsonomia) => {
+    const emBR = (v: number) => (v > 0 ? v.toFixed(2).replace(".", ",") : "");
     if (d.chave === "vale_alimentacao") {
-      const mensal = d.valor_padrao ?? 0;
+      // Copia a configuração nativa do grupo (ex.: R$ 24,00 por dia); só usa o
+      // equivalente mensal quando o grupo não tem periodicidade conhecida.
+      const periodicidade = d.padrao_periodicidade ?? "mensal";
+      const valor = d.padrao_unitario ?? d.valor_padrao ?? 0;
       patchRem({
         vale_alimentacao: true,
-        vale_alimentacao_periodicidade: "mensal",
-        vale_alimentacao_valor: mensal > 0 ? mensal.toFixed(2).replace(".", ",") : "",
+        vale_alimentacao_periodicidade: periodicidade,
+        vale_alimentacao_valor: emBR(valor),
       });
       return;
     }
     if (d.chave === "vale_transporte") {
-      const dia = (d.valor_padrao ?? 0) / DIAS_BASE_PADRAO;
-      patchRem({
-        vale_transporte: true,
-        vale_transporte_valor_dia: dia > 0 ? dia.toFixed(2).replace(".", ",") : "",
-      });
+      const dia = d.padrao_periodicidade === "diario"
+        ? d.padrao_unitario ?? 0
+        : (d.valor_padrao ?? 0) / DIAS_BASE_PADRAO;
+      patchRem({ vale_transporte: true, vale_transporte_valor_dia: emBR(dia) });
       return;
     }
     if (d.chave === "premio_assiduidade") {

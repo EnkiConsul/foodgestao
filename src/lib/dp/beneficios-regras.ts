@@ -394,8 +394,17 @@ export interface ColegaIsonomia {
   sindicato_id?: string | null;
   /** Sindicato patronal resolvido pela unidade. */
   patronal_id?: string | null;
-  /** Situação de cada benefício: ativo e, quando houver, valor no mês. */
-  beneficios: Record<BeneficioChave, { ativo: boolean; valorMes?: number | null }>;
+  /**
+   * Situação de cada benefício. `valorMes` é o equivalente mensal usado para
+   * comparar periodicidades diferentes; `valorUnitario` + `periodicidade`
+   * guardam o valor como ele foi cadastrado (ex.: R$ 24,00 por dia).
+   */
+  beneficios: Record<BeneficioChave, {
+    ativo: boolean;
+    valorMes?: number | null;
+    valorUnitario?: number | null;
+    periodicidade?: Periodicidade | null;
+  }>;
 }
 
 export interface AlvoIsonomia {
@@ -449,6 +458,14 @@ export interface DivergenciaIsonomia {
   valor_padrao?: number | null;
   /** Valor mensal deste colaborador (quando o benefício existe com valor menor). */
   valor_atual?: number | null;
+  /** Valor do padrão do grupo como foi cadastrado (por dia ou por mês). */
+  padrao_unitario?: number | null;
+  /** Periodicidade predominante no grupo. */
+  padrao_periodicidade?: Periodicidade | null;
+  /** Valor deste cadastro na periodicidade dele. */
+  atual_unitario?: number | null;
+  /** Periodicidade deste cadastro. */
+  atual_periodicidade?: Periodicidade | null;
   titulo: string;
   mensagem: string;
   recomendacao: string;
@@ -468,12 +485,65 @@ function valorPredominante(valores: number[]): number | null {
   return melhor;
 }
 
+/** Configuração nativa predominante (valor + periodicidade) entre os colegas. */
+function configuracaoPredominante(
+  configs: { valor: number; periodicidade: Periodicidade }[],
+): { valor: number; periodicidade: Periodicidade } | null {
+  const validos = configs.filter((c) => Number.isFinite(c.valor) && c.valor > 0);
+  if (validos.length === 0) return null;
+  const contagem = new Map<string, { qtd: number; cfg: { valor: number; periodicidade: Periodicidade } }>();
+  for (const c of validos) {
+    const chave = `${c.periodicidade}:${c.valor}`;
+    const atual = contagem.get(chave);
+    if (atual) atual.qtd += 1;
+    else contagem.set(chave, { qtd: 1, cfg: c });
+  }
+  let melhor = validos[0];
+  let max = 0;
+  for (const { qtd, cfg } of contagem.values()) {
+    if (qtd > max || (qtd === max && cfg.valor > melhor.valor)) { melhor = cfg; max = qtd; }
+  }
+  return melhor;
+}
+
+const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/**
+ * Frase única do padrão do grupo, na periodicidade em que ele foi cadastrado.
+ *
+ * Padrão diário não é projetado para o mês: a quantidade de dias trabalhados
+ * varia por colaborador (escala, folgas, convocação de intermitente).
+ */
+export function descreverPadraoGrupo(d: DivergenciaIsonomia): string | null {
+  if (d.padrao_unitario != null && d.padrao_unitario > 0) {
+    return d.padrao_periodicidade === "diario"
+      ? `${brl(d.padrao_unitario)}/dia`
+      : `${brl(d.padrao_unitario)}/mês`;
+  }
+  if (d.valor_padrao != null && d.valor_padrao > 0) return `${brl(d.valor_padrao)}/mês`;
+  return null;
+}
+
+/** Valor deste cadastro na periodicidade dele, para o texto de divergência. */
+export function descreverValorAtual(d: DivergenciaIsonomia): string | null {
+  if (d.atual_unitario != null && d.atual_unitario > 0) {
+    return d.atual_periodicidade === "diario"
+      ? `${brl(d.atual_unitario)}/dia`
+      : `${brl(d.atual_unitario)}/mês`;
+  }
+  if (d.valor_atual != null && d.valor_atual > 0) return `${brl(d.valor_atual)}/mês`;
+  return null;
+}
+
 export interface BeneficioAlvoIsonomia {
   chave: BeneficioChave;
   nome: string;
   ativo: boolean;
   /** Valor mensal concedido a este colaborador (quando aplicável). */
   valorMes?: number | null;
+  /** Valor como cadastrado neste colaborador. */
+  valorUnitario?: number | null;
+  periodicidade?: Periodicidade | null;
   /** Comparar também o valor com o do grupo. */
   compararValor?: boolean;
 }
@@ -512,6 +582,13 @@ export function divergenciasIsonomia(
     const padrao = valorPredominante(
       comBeneficio.map((c) => Number(c.beneficios?.[item.chave]?.valorMes ?? 0)),
     );
+    // Configuração como o grupo cadastrou (ex.: R$ 24,00 por dia).
+    const cfgPadrao = configuracaoPredominante(
+      comBeneficio.map((c) => ({
+        valor: Number(c.beneficios?.[item.chave]?.valorUnitario ?? 0),
+        periodicidade: (c.beneficios?.[item.chave]?.periodicidade ?? "mensal") as Periodicidade,
+      })),
+    );
 
     if (!item.ativo) {
       out.push({
@@ -523,6 +600,8 @@ export function divergenciasIsonomia(
         sindicato_nome: sindicatoNome,
         valor_padrao: padrao,
         valor_atual: null,
+        padrao_unitario: cfgPadrao?.valor ?? null,
+        padrao_periodicidade: cfgPadrao?.periodicidade ?? null,
         titulo: `Colegas ${referencia} recebem ${item.nome}`,
         mensagem:
           `${comBeneficio.length} colaborador(es) ${referencia} recebem este benefício e este ` +
@@ -534,10 +613,25 @@ export function divergenciasIsonomia(
       continue;
     }
 
-    if (item.compararValor && padrao != null) {
-      const atual = Number(item.valorMes ?? 0);
-      // Diferença acima de 1 centavo evita alarme por arredondamento.
-      if (atual > 0 && padrao - atual > 0.01) {
+    if (item.compararValor) {
+      const atualPeriodicidade = (item.periodicidade ?? null) as Periodicidade | null;
+      const atualUnitario = Number(item.valorUnitario ?? 0);
+      // Mesma periodicidade: compara o valor como está cadastrado — projetar o
+      // diário para o mês distorce (dias trabalhados variam por colaborador).
+      const mesmaPeriodicidade =
+        !!cfgPadrao && !!atualPeriodicidade && cfgPadrao.periodicidade === atualPeriodicidade;
+
+      const alvoValor = mesmaPeriodicidade ? atualUnitario : Number(item.valorMes ?? 0);
+      const refValor = mesmaPeriodicidade ? cfgPadrao!.valor : padrao;
+
+      if (refValor != null && alvoValor > 0 && refValor - alvoValor > 0.01) {
+        const grupoTexto = mesmaPeriodicidade
+          ? `${brl(cfgPadrao!.valor)}${cfgPadrao!.periodicidade === "diario" ? "/dia" : "/mês"}`
+          : `o equivalente a ${brl(refValor)} no mês`;
+        const atualTexto = mesmaPeriodicidade
+          ? `${brl(atualUnitario)}${atualPeriodicidade === "diario" ? "/dia" : "/mês"}`
+          : `${brl(alvoValor)} no mês (estimativa, periodicidades diferentes)`;
+
         out.push({
           chave: item.chave,
           beneficio_nome: item.nome,
@@ -546,12 +640,14 @@ export function divergenciasIsonomia(
           base: grupo.base,
           sindicato_nome: sindicatoNome,
           valor_padrao: padrao,
-          valor_atual: atual,
+          valor_atual: Number(item.valorMes ?? 0) || null,
+          padrao_unitario: cfgPadrao?.valor ?? null,
+          padrao_periodicidade: cfgPadrao?.periodicidade ?? null,
+          atual_unitario: atualUnitario || null,
+          atual_periodicidade: atualPeriodicidade,
           titulo: `${item.nome} menor que o dos colegas ${referencia}`,
           mensagem:
-            `O grupo recebe o equivalente a ${padrao.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} ` +
-            `no mês e este cadastro está com ${atual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}. ` +
-            BASE_LEGAL,
+            `O grupo recebe ${grupoTexto} e este cadastro está com ${atualTexto}. ${BASE_LEGAL}`,
           recomendacao:
             "Iguale o valor ao praticado no grupo ou registre o motivo objetivo da diferença.",
         });

@@ -11,10 +11,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  MOTIVOS_ISONOMIA, MOTIVO_ISONOMIA_LABEL, termoDispensaTexto,
+  MOTIVOS_ISONOMIA, MOTIVO_ISONOMIA_LABEL, descreverPadraoGrupo, termoDispensaTexto,
   type DivergenciaIsonomia, type MotivoIsonomia,
 } from "@/lib/dp/beneficios-regras";
-import { formatarBRL } from "@/lib/dp/folha";
 
 export interface DispensaBeneficio {
   beneficio_id: string;
@@ -121,8 +120,8 @@ export function BeneficioDispensaDialog({
               <p className="mt-1 text-muted-foreground">
                 Recebem: {i.divergencia.colegas.slice(0, 5).join(", ")}
                 {i.divergencia.colegas.length > 5 ? ` e mais ${i.divergencia.colegas.length - 5}` : ""}.
-                {i.divergencia.valor_padrao
-                  ? ` Padrão do grupo: ${formatarBRL(i.divergencia.valor_padrao)}/mês.`
+                {descreverPadraoGrupo(i.divergencia)
+                  ? ` Padrão do grupo: ${descreverPadraoGrupo(i.divergencia)}.`
                   : ""}
               </p>
               <Button

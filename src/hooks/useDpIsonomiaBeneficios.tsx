@@ -26,6 +26,8 @@ export function itensIsonomiaDoCadastro(c: LinhaColaboradorBeneficios): Benefici
       nome: BENEFICIO_CADASTRO_LABEL.vale_alimentacao,
       ativo: snap.beneficios.vale_alimentacao.ativo,
       valorMes: snap.beneficios.vale_alimentacao.valorMes,
+      valorUnitario: snap.beneficios.vale_alimentacao.valorUnitario,
+      periodicidade: snap.beneficios.vale_alimentacao.periodicidade,
       compararValor: true,
     },
     {
@@ -33,12 +35,16 @@ export function itensIsonomiaDoCadastro(c: LinhaColaboradorBeneficios): Benefici
       nome: BENEFICIO_CADASTRO_LABEL.vale_transporte,
       ativo: snap.beneficios.vale_transporte.ativo,
       valorMes: snap.beneficios.vale_transporte.valorMes,
+      valorUnitario: snap.beneficios.vale_transporte.valorUnitario,
+      periodicidade: snap.beneficios.vale_transporte.periodicidade,
     },
     {
       chave: "premio_assiduidade",
       nome: BENEFICIO_CADASTRO_LABEL.premio_assiduidade,
       ativo: snap.beneficios.premio_assiduidade.ativo,
       valorMes: snap.beneficios.premio_assiduidade.valorMes,
+      valorUnitario: snap.beneficios.premio_assiduidade.valorUnitario,
+      periodicidade: snap.beneficios.premio_assiduidade.periodicidade,
     },
   ];
 }
