@@ -268,16 +268,23 @@ export function validarConfigTrabalho(
       out.push({
         campo: "carga",
         nivel: "erro",
-        mensagem: `Carga semanal de ${formatarHoras(carga)} excede o limite de ${LIMITE_SEMANAL}h.`,
+        mensagem: `Carga semanal de ${formatarHoras(carga)} excede o teto da CLT (${LIMITE_SEMANAL}h) em ${formatarHoras(carga - LIMITE_SEMANAL)}.`,
+      });
+    } else if (carga === LIMITE_SEMANAL) {
+      out.push({
+        campo: "carga",
+        nivel: "aviso",
+        mensagem: `Carga semanal de ${formatarHoras(carga)}: é o teto da CLT. Qualquer hora além disso vira hora extra.`,
       });
     } else if (carga > LIMITE_SEMANAL - 4) {
       out.push({
         campo: "carga",
         nivel: "aviso",
-        mensagem: `Carga semanal de ${formatarHoras(carga)} — pouca folga até o limite de ${LIMITE_SEMANAL}h.`,
+        mensagem: `Carga semanal de ${formatarHoras(carga)}: faltam ${formatarHoras(LIMITE_SEMANAL - carga)} para o teto semanal da CLT (${LIMITE_SEMANAL}h).`,
       });
     }
   }
+
 
   if (opts?.vigenciaInicio && opts?.vigenciaFim && opts.vigenciaFim < opts.vigenciaInicio) {
     out.push({ campo: "vigencia", nivel: "erro", mensagem: "O fim da vigência é anterior ao início." });
