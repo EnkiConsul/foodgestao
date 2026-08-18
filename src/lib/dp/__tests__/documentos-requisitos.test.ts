@@ -77,13 +77,29 @@ describe("requisitoAplicaDependente", () => {
 });
 
 describe("calcularValidade", () => {
+  const vinculo = (over: Partial<any> = {}): any => ({
+    id: "v1",
+    requisito_id: "r1",
+    colaborador_id: "col1",
+    dependente_id: null,
+    documento_id: "doc1",
+    status: "aprovado",
+    validade: null,
+    dispensado: false,
+    created_at: "2026-01-10T12:00:00Z",
+    ...over,
+  });
+
   it("soma os meses de validade para periodicidade anual", () => {
-    expect(calcularValidade(req({ periodicidade: "anual", meses_validade: 12 }), "2026-01-10")).toBe(
-      "2027-01-10",
-    );
+    expect(
+      calcularValidade(req({ periodicidade: "anual", meses_validade: 12 }), vinculo()),
+    ).toBe("2027-01-10");
+  });
+  it("prioriza a validade informada manualmente", () => {
+    expect(calcularValidade(req(), vinculo({ validade: "2026-12-31" }))).toBe("2026-12-31");
   });
   it("não calcula validade para documento único", () => {
-    expect(calcularValidade(req(), "2026-01-10")).toBeNull();
+    expect(calcularValidade(req(), vinculo())).toBeNull();
   });
 });
 
