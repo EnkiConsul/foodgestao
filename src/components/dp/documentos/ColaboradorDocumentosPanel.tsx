@@ -84,20 +84,20 @@ export function ColaboradorDocumentosPanel({
               {resumo.aprovados} em conformidade
             </Badge>
             <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300" variant="outline">
-              {resumo.aguardandoAprovacao} aguardando aprovação
+              {resumo.aguardandoAprovacao.length} aguardando aprovação
             </Badge>
             <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300" variant="outline">
-              {resumo.vencendo} vencendo
+              {resumo.vencendo.length} vencendo
             </Badge>
             <Badge variant="outline" className="bg-destructive/15 text-destructive">
-              {resumo.pendentesObrigatorios + resumo.vencidos + resumo.recusados} pendências
+              {resumo.pendentesObrigatorios.length} pendências
             </Badge>
           </div>
-          {resumo.pendentesObrigatorios > 0 && (
+          {resumo.pendentesObrigatorios.length > 0 && (
             <Alert>
               <AlertTriangle className="size-4" />
               <AlertDescription>
-                Faltam {resumo.pendentesObrigatorios} documento(s) obrigatório(s). O cadastro pode ser
+                Faltam {resumo.pendentesObrigatorios.length} documento(s) obrigatório(s). O cadastro pode ser
                 salvo, mas a pendência aparece no painel do gestor e no acesso do colaborador.
               </AlertDescription>
             </Alert>
