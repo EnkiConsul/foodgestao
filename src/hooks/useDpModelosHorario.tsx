@@ -42,7 +42,8 @@ export function useDpModelosHorario(unidadeId?: string | null, excluirColaborado
         .from("dp_colaborador_config_trabalho")
         .select(
           "id, colaborador_id, unidade_id, turno_padrao_id, folga_variavel, folga_fixa_dow, vigencia_inicio, vigencia_fim, updated_at," +
-            " dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos)," +
+            " dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos," +
+            " turno:dp_turnos(entrada, saida, intervalo_minutos))," +
             " colaborador:dp_colaboradores(nome, cargo, cargo_id, ativo)," +
             " turno:dp_turnos!dp_colaborador_config_trabalho_turno_padrao_id_fkey(entrada, saida, intervalo_minutos)",
         )
