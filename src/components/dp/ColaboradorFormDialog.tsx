@@ -391,11 +391,17 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   const regimeSelecionado = VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt";
 
-  // Orientação jurídica: vínculos sem previsão legal (freelancer) ou de risco
-  // de pejotização (PJ/MEI) ganham faixa de alerta com caminhos seguros.
+  // Orientação jurídica: vínculos sem previsão legal (freelancer), de risco de
+  // pejotização (PJ/MEI) ou de sócio sem gestão ganham faixa de alerta.
+  // O rótulo do vínculo entra na conta porque PJ, Sócio e Autônomo compartilham
+  // o mesmo regime `pj` no banco e a orientação de cada um é diferente.
   const risco = useMemo(
-    () => regimeRisco({ regime: regimeSelecionado, temHorarioDefinido: true }),
-    [regimeSelecionado],
+    () => regimeRisco({
+      regime: regimeSelecionado,
+      vinculo: form.tipo_vinculo,
+      temHorarioDefinido: true,
+    }),
+    [regimeSelecionado, form.tipo_vinculo],
   );
   const [riscoOpen, setRiscoOpen] = useState(false);
 
@@ -1164,12 +1170,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                       {a.label}
                     </Button>
                   ))}
-                  <Button
-                    type="button" size="sm" variant="link" className="h-7 p-0 text-xs"
-                    onClick={() => setRiscoOpen(true)}
-                  >
-                    {risco.verMaisLabel}
-                  </Button>
+                  {risco.verMaisLabel && (
+                    <Button
+                      type="button" size="sm" variant="link" className="h-7 p-0 text-xs"
+                      onClick={() => setRiscoOpen(true)}
+                    >
+                      {risco.verMaisLabel}
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -1710,7 +1718,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       </AlertDialog>
 
 
-      {risco && (
+      {risco && risco.verMaisLabel && (
 
         <RegimeRiscoDialog
           open={riscoOpen}
