@@ -26,7 +26,8 @@ import { resolverTurnoDoHorario, type HorarioSimples } from "@/lib/dp/turno-reso
 import { verificarAlertasClt, idadeNaData, temAlertaClt, type AlertaClt } from "@/lib/dp/clt-alertas";
 import { tituloSistema } from "@/lib/text/titleCase";
 import {
-  cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia, diaDivergeDoBase,
+  baseDivergenteDosDias, cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia,
+  detalharCargaSemanal, diaDivergeDoBase,
   diaEhHorarioDaLoja, diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia,
   normalizarDias, resumoConfigTexto, semanaDaGrade, turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
