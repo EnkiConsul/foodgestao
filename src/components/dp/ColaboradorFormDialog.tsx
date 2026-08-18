@@ -1680,7 +1680,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               Fechar
             </Button>
             <span className="text-xs text-muted-foreground">
-              Etapa {ABAS.indexOf(tab) + 1} de {ABAS.length}
+              {tab === "dependentes"
+                ? "Dependentes"
+                : `Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
               {dirty ? " · alterações não salvas" : ""}
             </span>
           </div>
