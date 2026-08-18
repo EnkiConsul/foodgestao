@@ -129,6 +129,10 @@ interface Props {
   folgasFimDeSemanaMes?: number | null;
   /** Campo pendente sinalizado pela validação do formulário. */
   campoErro?: string | null;
+  /** Divergências de isonomia deste cadastro contra o grupo equivalente. */
+  isonomia?: DivergenciaIsonomia[];
+  /** Iguala o benefício ao padrão do grupo. */
+  onAplicarPadraoIsonomia?: (d: DivergenciaIsonomia) => void;
 
 }
 
@@ -148,6 +152,8 @@ export function RemuneracaoFields({
   diasJornada,
   folgasFimDeSemanaMes,
   campoErro,
+  isonomia,
+  onAplicarPadraoIsonomia,
 }: Props) {
   const navigate = useNavigate();
 
