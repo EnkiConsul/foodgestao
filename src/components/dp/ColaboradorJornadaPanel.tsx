@@ -149,7 +149,7 @@ export function ColaboradorJornadaPanel({
   }, [modelos]);
 
   useEffect(() => {
-    if (!active || vigente || colaborador?.id || alterado || modelos.length === 0) return;
+    if (!active || vigente || colaborador?.id || !colaborador?.cargo_id || alterado || modelos.length === 0) return;
     const chave = `${colaborador?.cargo_id ?? "sem-cargo"}:${colaborador?.unidade_id ?? "sem-unidade"}`;
     if (sugestaoAplicadaRef.current === chave) return;
     const modelo = sugerirModeloHorario(modelos, colaborador?.cargo_id);

@@ -41,7 +41,7 @@ export function useDpModelosHorario(unidadeId?: string | null, excluirColaborado
       let q = supabase
         .from("dp_colaborador_config_trabalho")
         .select(
-          "id, colaborador_id, unidade_id, turno_padrao_id, folga_variavel, folga_fixa_dow, vigencia_inicio, vigencia_fim," +
+          "id, colaborador_id, unidade_id, turno_padrao_id, folga_variavel, folga_fixa_dow, vigencia_inicio, vigencia_fim, updated_at," +
             " dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos)," +
             " colaborador:dp_colaboradores(nome, cargo, cargo_id, ativo)," +
             " turno:dp_turnos!dp_colaborador_config_trabalho_turno_padrao_id_fkey(entrada, saida, intervalo_minutos)",
