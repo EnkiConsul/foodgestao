@@ -2,9 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
+  GRUPOS_PADRAO,
+  mesclarPadrao,
   padraoParaColunasColaborador,
   type BeneficiosPadraoLinha,
   type BeneficiosPadraoPayload,
+  type GrupoPadrao,
   type PadraoAlcance,
 } from "@/lib/dp/beneficiosPadrao";
 
@@ -52,18 +55,28 @@ export function useSalvarDpBeneficiosPadrao() {
       alcance?: PadraoAlcance;
       /** Colaborador aberto na tela: mantém o que está no formulário. */
       ignorarColaboradorId?: string | null;
+      /** Quais grupos replicar; os demais ficam como já estavam. */
+      grupos?: readonly GrupoPadrao[];
     }): Promise<{ id: string; atualizados: number }> => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
 
       const { data: userData } = await supabase.auth.getUser();
       let q = supabase
         .from("dp_beneficios_padroes")
-        .select("id")
+        .select("id, payload")
         .eq("company_id", selectedCompanyId);
       q = input.unidade_id ? q.eq("unidade_id", input.unidade_id) : q.is("unidade_id", null);
       q = input.cargo_id ? q.eq("cargo_id", input.cargo_id) : q.is("cargo_id", null);
       const { data: existente, error: erroBusca } = await q.maybeSingle();
       if (erroBusca) throw erroBusca;
+
+      const grupos = input.grupos?.length ? input.grupos : GRUPOS_PADRAO;
+      // Só os grupos escolhidos são sobrescritos no padrão gravado.
+      const payloadFinal = mesclarPadrao(
+        (existente as any)?.payload as BeneficiosPadraoPayload | undefined,
+        input.payload,
+        grupos,
+      );
 
       // Empresa manda em todos; unidade manda nos cargos dela.
       if (input.limparEscoposMaisEspecificos) {
@@ -114,12 +127,14 @@ export function useSalvarDpBeneficiosPadrao() {
 
         const { error: erroUpdate } = await supabase
           .from("dp_colaboradores")
-          .update(padraoParaColunasColaborador(input.payload) as any)
+          .update(padraoParaColunasColaborador(input.payload, grupos) as any)
           .in("id", ids);
         if (erroUpdate) throw erroUpdate;
 
         // Ficha de benefícios: espelha os itens marcados/desmarcados no padrão.
-        const ficha = Object.entries(input.payload.beneficios ?? {});
+        const ficha = grupos.includes("beneficios")
+          ? Object.entries(input.payload.beneficios ?? {})
+          : [];
         if (ficha.length) {
           const { data: atuais, error: erroFicha } = await supabase
             .from("dp_colaborador_beneficios")
@@ -161,7 +176,7 @@ export function useSalvarDpBeneficiosPadrao() {
       if (existente?.id) {
         const { error } = await supabase
           .from("dp_beneficios_padroes")
-          .update({ payload: input.payload as any })
+          .update({ payload: payloadFinal as any })
           .eq("id", existente.id);
         if (error) throw error;
         const atualizados = await aplicarAosColaboradores();
@@ -173,7 +188,7 @@ export function useSalvarDpBeneficiosPadrao() {
           company_id: selectedCompanyId,
           unidade_id: input.unidade_id,
           cargo_id: input.cargo_id ?? null,
-          payload: input.payload as any,
+          payload: payloadFinal as any,
           created_by: userData.user?.id ?? null,
         })
         .select("id")

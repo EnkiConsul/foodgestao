@@ -63,9 +63,12 @@ import {
 import {
   aplicarPadrao, assinaturaPadrao, diferencasPadrao, extrairPadrao, nivelPadrao,
   padraoTemConteudo, padroesIguaisAlgum, resolverPadrao,
-  type PadraoAlcance, type PadraoEscopo,
+  GRUPOS_PADRAO, ROTULOS_GRUPO, gruposComDiferenca, resumoGrupo,
+  type GrupoPadrao, type PadraoAlcance, type PadraoEscopo,
 } from "@/lib/dp/beneficiosPadrao";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 
 
@@ -269,6 +272,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const [escopoPadrao, setEscopoPadrao] = useState<PadraoEscopo>("unidade");
   /** Alcance: só os próximos cadastros ou também quem já está cadastrado. */
   const [alcancePadrao, setAlcancePadrao] = useState<PadraoAlcance>("novos");
+  /** Quais grupos de regras o usuário quer replicar neste padrão. */
+  const [gruposPadrao, setGruposPadrao] = useState<GrupoPadrao[]>([...GRUPOS_PADRAO]);
 
   /** Quantos colaboradores ativos seriam atualizados no alcance escolhido. */
   const colaboradoresNoAlcance = useMemo(() => {
@@ -281,6 +286,20 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       return true;
     }).length;
   }, [todosColaboradores.data, escopoPadrao, form.unidade_id, form.cargo_id, colaborador?.id]);
+
+  /** Grupos que divergem do padrão de referência aplicável. */
+  const gruposDiferentes = useMemo(
+    () => gruposComDiferenca(extrairPadrao(rem), padraoAplicavel?.payload),
+    [rem, padraoAplicavel],
+  );
+
+  const rotulosGruposSelecionados = useMemo(
+    () =>
+      GRUPOS_PADRAO.filter((g) => gruposPadrao.includes(g))
+        .map((g) => ROTULOS_GRUPO[g].toLowerCase())
+        .join(", ") || "nenhum item",
+    [gruposPadrao],
+  );
 
   /** Assinaturas de benefícios já decididas nesta abertura da ficha. */
   const padraoRespondidoRef = useRef<Set<string>>(new Set());
@@ -657,6 +676,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     if (perguntar) {
       setEscopoPadrao(nivelPadrao(padraoAplicavel) ?? "unidade");
       setAlcancePadrao("novos");
+      setGruposPadrao([...GRUPOS_PADRAO]);
       setPerguntarPadrao(true);
       return;
 
@@ -679,6 +699,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           payload,
           limparEscoposMaisEspecificos: escopo !== "cargo" && alcancePadrao === "todos",
           alcance: alcancePadrao,
+          grupos: gruposPadrao,
           ignorarColaboradorId: colaborador?.id ?? null,
         });
 
@@ -1780,6 +1801,55 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
           {escopoPadrao !== "colaborador" && (
             <div className="space-y-2">
+              <p className="text-xs font-medium text-foreground">O que replicar?</p>
+              <div className="space-y-2">
+                {GRUPOS_PADRAO.map((grupo) => {
+                  const marcado = gruposPadrao.includes(grupo);
+                  return (
+                    <label
+                      key={grupo}
+                      className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-xs"
+                    >
+                      <Checkbox
+                        checked={marcado}
+                        onCheckedChange={(v) =>
+                          setGruposPadrao((atual) =>
+                            v === true
+                              ? GRUPOS_PADRAO.filter((g) => g === grupo || atual.includes(g))
+                              : atual.filter((g) => g !== grupo),
+                          )
+                        }
+                        className="mt-0.5"
+                      />
+                      <span className="min-w-0">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium text-foreground">
+                            {ROTULOS_GRUPO[grupo]}
+                          </span>
+                          {gruposDiferentes.includes(grupo) && (
+                            <Badge variant="outline" className="text-[10px]">
+                              diferente do padrão atual
+                            </Badge>
+                          )}
+                        </span>
+                        <span className="block text-muted-foreground">
+                          {resumoGrupo(extrairPadrao(rem), grupo)}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              {!gruposPadrao.length && (
+                <p className="text-xs text-destructive">
+                  Marque ao menos um item para salvar como padrão.
+                </p>
+              )}
+            </div>
+          )}
+
+          {escopoPadrao !== "colaborador" && (
+            <div className="space-y-2">
               <p className="text-xs font-medium text-foreground">Aplicar a quem?</p>
               <RadioGroup
                 value={alcancePadrao}
@@ -1803,8 +1873,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                       {colaboradoresNoAlcance > 0 ? ` (${colaboradoresNoAlcance})` : ""}
                     </span>
                     <span className="block text-muted-foreground">
-                      Sobrescreve assiduidade, tolerância, vales e ficha de benefícios de quem já
-                      está cadastrado e ativo
+                      Sobrescreve {rotulosGruposSelecionados} de quem já está cadastrado e ativo
                       {escopoPadrao !== "cargo"
                         ? ", e apaga os padrões mais específicos que estejam em conflito."
                         : "."}
@@ -1822,7 +1891,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
             </Button>
             <AlertDialogCancel onClick={() => void responderPadrao(null)}>Agora não</AlertDialogCancel>
             <AlertDialogAction
-              disabled={salvarPadraoBeneficios.isPending}
+              disabled={
+                salvarPadraoBeneficios.isPending ||
+                (escopoPadrao !== "colaborador" && !gruposPadrao.length)
+              }
               onClick={(e) => { e.preventDefault(); void responderPadrao(escopoPadrao); }}
             >
               Confirmar
