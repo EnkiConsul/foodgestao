@@ -3399,9 +3399,12 @@ export type Database = {
         Row: {
           ativo: boolean
           cbo: string | null
+          cnh_categoria_minima: string | null
           company_id: string
           created_at: string
           descricao: string | null
+          exige_cnh: boolean
+          exige_epi: boolean
           id: string
           insalubre_periculoso: boolean
           nome: string
@@ -3411,9 +3414,12 @@ export type Database = {
         Insert: {
           ativo?: boolean
           cbo?: string | null
+          cnh_categoria_minima?: string | null
           company_id: string
           created_at?: string
           descricao?: string | null
+          exige_cnh?: boolean
+          exige_epi?: boolean
           id?: string
           insalubre_periculoso?: boolean
           nome: string
@@ -3423,9 +3429,12 @@ export type Database = {
         Update: {
           ativo?: boolean
           cbo?: string | null
+          cnh_categoria_minima?: string | null
           company_id?: string
           created_at?: string
           descricao?: string | null
+          exige_cnh?: boolean
+          exige_epi?: boolean
           id?: string
           insalubre_periculoso?: boolean
           nome?: string
@@ -3855,6 +3864,8 @@ export type Database = {
           base_salarial: number | null
           cargo: string | null
           cargo_id: string | null
+          cnh_categoria: string | null
+          cnh_validade: string | null
           company_id: string
           cpf: string | null
           created_at: string
@@ -3872,6 +3883,7 @@ export type Database = {
           email_contato: string | null
           email_portal: string | null
           endereco: Json | null
+          estado_civil: string | null
           folga_fixa_semana: number | null
           forma_pagamento: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido: boolean
@@ -3885,6 +3897,7 @@ export type Database = {
           observacoes: string | null
           optante_adiantamento: boolean
           perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"]
+          pis_nit: string | null
           possui_folha_ponto: boolean
           premio_assiduidade: boolean
           premio_assiduidade_tipo: string
@@ -3908,6 +3921,7 @@ export type Database = {
           vale_transporte_valor_dia: number | null
           valor_hora: number | null
           valor_hora_manual: boolean
+          veiculo_proprio: boolean
           vinculo_label: string | null
           whatsapp: string | null
         }
@@ -3929,6 +3943,8 @@ export type Database = {
           base_salarial?: number | null
           cargo?: string | null
           cargo_id?: string | null
+          cnh_categoria?: string | null
+          cnh_validade?: string | null
           company_id: string
           cpf?: string | null
           created_at?: string
@@ -3946,6 +3962,7 @@ export type Database = {
           email_contato?: string | null
           email_portal?: string | null
           endereco?: Json | null
+          estado_civil?: string | null
           folga_fixa_semana?: number | null
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido?: boolean
@@ -3959,6 +3976,7 @@ export type Database = {
           observacoes?: string | null
           optante_adiantamento?: boolean
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
+          pis_nit?: string | null
           possui_folha_ponto?: boolean
           premio_assiduidade?: boolean
           premio_assiduidade_tipo?: string
@@ -3982,6 +4000,7 @@ export type Database = {
           vale_transporte_valor_dia?: number | null
           valor_hora?: number | null
           valor_hora_manual?: boolean
+          veiculo_proprio?: boolean
           vinculo_label?: string | null
           whatsapp?: string | null
         }
@@ -4003,6 +4022,8 @@ export type Database = {
           base_salarial?: number | null
           cargo?: string | null
           cargo_id?: string | null
+          cnh_categoria?: string | null
+          cnh_validade?: string | null
           company_id?: string
           cpf?: string | null
           created_at?: string
@@ -4020,6 +4041,7 @@ export type Database = {
           email_contato?: string | null
           email_portal?: string | null
           endereco?: Json | null
+          estado_civil?: string | null
           folga_fixa_semana?: number | null
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido?: boolean
@@ -4033,6 +4055,7 @@ export type Database = {
           observacoes?: string | null
           optante_adiantamento?: boolean
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
+          pis_nit?: string | null
           possui_folha_ponto?: boolean
           premio_assiduidade?: boolean
           premio_assiduidade_tipo?: string
@@ -4056,6 +4079,7 @@ export type Database = {
           vale_transporte_valor_dia?: number | null
           valor_hora?: number | null
           valor_hora_manual?: boolean
+          veiculo_proprio?: boolean
           vinculo_label?: string | null
           whatsapp?: string | null
         }
@@ -14396,6 +14420,15 @@ export type Database = {
         | "outros"
         | "sindicato"
         | "ferias"
+        | "admissao"
+        | "identidade"
+        | "residencia"
+        | "bancario"
+        | "cnh"
+        | "crlv"
+        | "seguro_veiculo"
+        | "dependente"
+        | "ficha_registro"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
       dp_escala_item_origem: "gerado" | "manual" | "troca" | "convocacao"
       dp_escala_item_tipo:
@@ -14903,6 +14936,15 @@ export const Constants = {
         "outros",
         "sindicato",
         "ferias",
+        "admissao",
+        "identidade",
+        "residencia",
+        "bancario",
+        "cnh",
+        "crlv",
+        "seguro_veiculo",
+        "dependente",
+        "ficha_registro",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
       dp_escala_item_origem: ["gerado", "manual", "troca", "convocacao"],
