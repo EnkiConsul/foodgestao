@@ -1792,7 +1792,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 nome,
                 cbo: cargoSelecionado?.cbo ?? null,
                 insalubre_periculoso:
-                  !!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade,
+                  !!cargoSelecionado?.insalubre_periculoso ||
+                  !!cargoSelecionado?.insalubre ||
+                  !!cargoSelecionado?.perigoso,
                 salario_base: conflitoCargo.salarioInformado,
               } as Parameters<typeof upsertCargo.mutateAsync>[0]);
               selecionarCargo(cargo);
