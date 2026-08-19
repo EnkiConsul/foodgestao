@@ -40,6 +40,7 @@ export function AdminPlans() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {plans.map((p: any) => {
             const f = p.features || {};
+            const subs = subCounts[p.id] ?? 0;
             return (
               <Card key={p.id} className={!p.is_active ? "opacity-60" : ""}>
                 <CardHeader className="pb-3">
@@ -52,12 +53,31 @@ export function AdminPlans() {
                       <Button size="icon" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setConfirmDel(p.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                disabled={subs > 0}
+                                onClick={() => setConfirmPlan(p)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {subs > 0
+                              ? `Plano com ${subs} assinatura${subs > 1 ? "s" : ""} — desative em vez de excluir`
+                              : "Excluir plano"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
                 </CardHeader>
+
                 <CardContent className="space-y-3">
                   <div>
                     <p className="text-2xl font-bold">{formatCents(p.price_cents)}</p>
