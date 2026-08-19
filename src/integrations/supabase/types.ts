@@ -4737,6 +4737,7 @@ export type Database = {
           obrigatoriedade: string
           ordem: number
           periodicidade: string
+          permite_multiplos: boolean
           satisfeito_por: string | null
           sistema: boolean
           tipo_documento: Database["public"]["Enums"]["dp_documento_tipo"]
@@ -4758,6 +4759,7 @@ export type Database = {
           obrigatoriedade?: string
           ordem?: number
           periodicidade?: string
+          permite_multiplos?: boolean
           satisfeito_por?: string | null
           sistema?: boolean
           tipo_documento?: Database["public"]["Enums"]["dp_documento_tipo"]
@@ -4779,6 +4781,7 @@ export type Database = {
           obrigatoriedade?: string
           ordem?: number
           periodicidade?: string
+          permite_multiplos?: boolean
           satisfeito_por?: string | null
           sistema?: boolean
           tipo_documento?: Database["public"]["Enums"]["dp_documento_tipo"]
