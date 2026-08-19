@@ -653,7 +653,6 @@ export function useDpPendencias() {
               },
               dependentes: ((deps.data ?? []) as any[]).filter((d) => d.colaborador_id === c.id),
               vinculos: ((vincs.data ?? []) as any[]).filter((v) => v.colaborador_id === c.id),
-              asoAdmissionalOk: asoOk.has(c.id),
             });
 
             const resumo = resumirChecklist(itens);

@@ -279,13 +279,10 @@ export function useDpPendenciasColaborador() {
             },
             dependentes: (deps.data ?? []) as any[],
             vinculos: (vincs.data ?? []) as any[],
-            asoAdmissionalOk: (asos.data ?? []).some(
-              (a: any) => a.resultado === "apto" || a.resultado === "apto_com_restricoes",
-            ),
           });
 
           const resumo = resumirChecklist(itens);
-          const paraEnviar = resumo.pendentesObrigatorios.filter((i) => !i.externo);
+          const paraEnviar = resumo.pendentesObrigatorios;
           if (paraEnviar.length > 0) {
             results.push({
               id: "documentos-exigidos",
