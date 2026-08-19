@@ -40,7 +40,11 @@ import type { GradeSemanal } from "@/hooks/useDpGradesSemanais";
 const hoje = () => new Date().toISOString().slice(0, 10);
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : null);
 
-const HORARIO_PADRAO: HorarioSimples = { entrada: "08:00", saida: "17:00", intervalo_minutos: 60 };
+/**
+ * Sem horário compatível no cargo/unidade a tela abre vazia: preencher com
+ * 08:00–17:00 fazia o cadastro nascer com um horário que a loja não usa.
+ */
+const HORARIO_VAZIO: HorarioSimples = { entrada: "", saida: "", intervalo_minutos: 0 };
 
 /** Só o primeiro nome cabe no atalho — o nome completo fica no title. */
 const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] || nome;
@@ -129,7 +133,7 @@ export function ColaboradorJornadaPanel({
    * novo, vigência carregada, cópia de colega). O horário padrão de verdade é
    * derivado dos dias — a tela não tem mais um campo de horário base.
    */
-  const [horarioReferencia, setHorarioReferencia] = useState<HorarioSimples>(HORARIO_PADRAO);
+  const [horarioReferencia, setHorarioReferencia] = useState<HorarioSimples>(HORARIO_VAZIO);
   const [folgaVariavel, setFolgaVariavel] = useState(false);
   const [dias, setDias] = useState<DiaConfig[]>(diasPadrao());
   const [inicio, setInicio] = useState(hoje());
@@ -149,7 +153,7 @@ export function ColaboradorJornadaPanel({
    */
   const cienciaPendenteRef = useRef<((r: SalvarJornadaResultado) => void) | null>(null);
   const sugestaoAplicadaRef = useRef<string | null>(null);
-  const [origemSugestao, setOrigemSugestao] = useState<"cargo" | "empresa" | null>(null);
+  const [origemSugestao, setOrigemSugestao] = useState<"cargo" | "sem_compativel" | null>(null);
 
 
   const { turnos: turnosUnidade, criar: criarTurno } = useDpTurnos(unidadeId === "none" ? null : unidadeId);
@@ -213,29 +217,43 @@ export function ColaboradorJornadaPanel({
    * usado pelos colegas (unidade e, quando houver, o mesmo cargo) em vez do
    * 08:00–17:00 fixo — inclusive quando o cargo ainda não foi escolhido.
    */
-  useEffect(() => {
-    if (!active || vigente || colaborador?.id || alterado || modelos.length === 0) return;
-    if (horarioAplicadoRef.current) return;
-    const base = horarioBaseMaisComum(modelos, colaborador?.cargo_id ?? null);
-    if (!base) return;
-    horarioAplicadoRef.current = "base-loja";
-    setHorarioReferencia(base);
-  }, [active, vigente, colaborador?.id, colaborador?.cargo_id, alterado, modelos]);
+  /**
+   * A sugestão só vale entre colegas do MESMO cargo na unidade. Sem colega no
+   * cargo, o horário fica em branco: um motoqueiro noturno não pode herdar o
+   * horário diurno de outro cargo só porque é o mais usado na loja.
+   */
+  const modelosDoCargo = useMemo(
+    () => (colaborador?.cargo_id ? modelos.filter((m) => m.cargo_id === colaborador.cargo_id) : []),
+    [modelos, colaborador?.cargo_id],
+  );
 
   useEffect(() => {
-    if (!active || vigente || colaborador?.id || !colaborador?.cargo_id || alterado || modelos.length === 0) return;
+    if (!active || vigente || colaborador?.id || alterado) return;
+    if (horarioAplicadoRef.current) return;
+    if (modelosDoCargo.length === 0) return;
+    const base = horarioBaseMaisComum(modelosDoCargo, colaborador?.cargo_id ?? null);
+    if (!base) return;
+    horarioAplicadoRef.current = "base-cargo";
+    setHorarioReferencia(base);
+  }, [active, vigente, colaborador?.id, colaborador?.cargo_id, alterado, modelosDoCargo]);
+
+  useEffect(() => {
+    if (!active || vigente || colaborador?.id || !colaborador?.cargo_id || alterado) return;
     const chave = `${colaborador?.nome ?? "novo"}:${colaborador?.cargo_id}:${colaborador?.unidade_id ?? "sem-unidade"}:${admissao ?? "sem-admissao"}`;
     if (sugestaoAplicadaRef.current === chave) return;
-    const modelo = sugerirModeloHorario(modelos, colaborador?.cargo_id);
-    if (!modelo?.horario) return;
+    const modelo = sugerirModeloHorario(modelosDoCargo, colaborador?.cargo_id);
     sugestaoAplicadaRef.current = chave;
+    if (!modelo?.horario) {
+      setOrigemSugestao("sem_compativel");
+      return;
+    }
     horarioAplicadoRef.current = "sugestao";
     setHorarioReferencia(modelo.horario);
     setDias(normalizarDias(modelo.dias));
     setFolgaVariavel(modelo.folga_variavel);
     setAlterado(true);
-    setOrigemSugestao(modelo.cargo_id === colaborador?.cargo_id ? "cargo" : "empresa");
-  }, [active, vigente, colaborador?.id, colaborador?.nome, colaborador?.cargo_id, colaborador?.unidade_id, admissao, alterado, modelos]);
+    setOrigemSugestao("cargo");
+  }, [active, vigente, colaborador?.id, colaborador?.nome, colaborador?.cargo_id, colaborador?.unidade_id, admissao, alterado, modelosDoCargo]);
 
   // Recarrega o formulário com a configuração vigente sempre que o painel ativa.
   useEffect(() => {
@@ -744,10 +762,17 @@ export function ColaboradorJornadaPanel({
       </div>
 
       <section className="space-y-2">
-        {origemSugestao && (
+        {origemSugestao === "cargo" && (
           <p className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
             <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-            Horário sugerido com base no {origemSugestao === "cargo" ? "cargo" : "uso da empresa"} — pode ajustar.
+            Horário sugerido pelos colegas do mesmo cargo nesta unidade — pode ajustar.
+          </p>
+        )}
+        {origemSugestao === "sem_compativel" && (
+          <p className="flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-500">
+            <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
+            Nenhum horário compatível encontrado para este cargo nesta unidade — informe o horário
+            ou copie o de um colega.
           </p>
         )}
         <div className="flex flex-wrap items-center justify-between gap-3">
