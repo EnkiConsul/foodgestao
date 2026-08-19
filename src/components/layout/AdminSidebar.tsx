@@ -21,6 +21,7 @@ import {
   Activity,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar,
@@ -35,6 +36,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { SidebarToggleButton } from "./SidebarToggleButton";
 
 const overviewItems = [
   { title: "Estatísticas", url: "/admin/estatisticas", icon: BarChart3 },
@@ -42,6 +44,7 @@ const overviewItems = [
   { title: "Auditoria", url: "/admin/auditoria", icon: ScrollText },
   { title: "Indexação SEO", url: "/admin/seo-indexacao", icon: Search },
 ];
+
 
 const billingItems = [
   { title: "Planos", url: "/admin/planos", icon: Sparkles },

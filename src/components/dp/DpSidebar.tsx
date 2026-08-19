@@ -117,19 +117,21 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
 
   return (
     <Sidebar collapsible="icon" className="border-r border-[hsl(var(--dp-border))] bg-white">
-      <SidebarHeader className="p-4 border-b border-[hsl(var(--dp-border))] bg-white">
-        <div className="flex items-center gap-2">
+      <SidebarHeader className={cn("border-b border-[hsl(var(--dp-border))] bg-white", collapsed ? "px-1 py-2" : "p-4")}>
+        <div className={cn("flex w-full", collapsed ? "flex-col items-center justify-center gap-1" : "flex-row items-center justify-between gap-2")}>
           <img
             src={collapsed ? symbol360.url : assinatura360.url}
             alt="360°FOOD"
-            className={collapsed ? "h-8 w-auto object-contain" : "h-10 w-auto object-contain"}
+            className={cn("object-contain", collapsed ? "h-6 w-auto max-w-full" : "h-10 w-auto")}
             draggable={false}
           />
+          <SidebarToggleButton className={collapsed ? "h-6 w-6 p-1" : "h-7 w-7 p-0"} />
         </div>
         {!collapsed && (
           <p className="text-xs text-muted-foreground mt-1 ml-1">{subtitle}</p>
         )}
       </SidebarHeader>
+
 
       <SidebarContent className="bg-white px-2 py-3">
         <SidebarGroup>
