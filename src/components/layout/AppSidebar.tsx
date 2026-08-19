@@ -55,20 +55,21 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r-0" collapsible="icon">
-      <SidebarHeader className="p-3 border-b border-sidebar-border mb-2 overflow-hidden">
-        <div className="flex items-center justify-center w-full">
+      <SidebarHeader className={cn("border-b border-sidebar-border mb-2 overflow-hidden", collapsed ? "px-1 py-2" : "p-3")}>
+        <div className={cn("flex w-full", collapsed ? "flex-col items-center justify-center gap-1" : "flex-row items-center justify-between")}>
           <img
             src={collapsed ? symbol360.url : assinatura360.url}
             alt="360°FOOD"
-            className={
-              collapsed
-                ? "h-8 w-auto max-w-full object-contain select-none"
-                : "h-12 w-auto max-w-full object-contain select-none"
-            }
+            className={cn(
+              "object-contain select-none",
+              collapsed ? "h-6 w-auto max-w-full" : "h-12 w-auto max-w-full"
+            )}
             draggable={false}
           />
+          <SidebarToggleButton className={collapsed ? "h-6 w-6 p-1" : "h-7 w-7 p-0"} />
         </div>
       </SidebarHeader>
+
 
       <SidebarContent>
         {/* Hub link — presente em todos os módulos exceto no portal do colaborador (que não tem acesso ao hub) */}
