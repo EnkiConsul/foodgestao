@@ -3767,6 +3767,7 @@ export type Database = {
       }
       dp_colaborador_documentos: {
         Row: {
+          aceite_solicitado_em: string | null
           aceito_em: string | null
           colaborador_id: string
           company_id: string
@@ -3783,6 +3784,7 @@ export type Database = {
           validade: string | null
         }
         Insert: {
+          aceite_solicitado_em?: string | null
           aceito_em?: string | null
           colaborador_id: string
           company_id: string
@@ -3799,6 +3801,7 @@ export type Database = {
           validade?: string | null
         }
         Update: {
+          aceite_solicitado_em?: string | null
           aceito_em?: string | null
           colaborador_id?: string
           company_id?: string
