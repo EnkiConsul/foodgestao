@@ -149,7 +149,7 @@ export function AdminSubscriptions() {
                       <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {plans.map((p: any) => (
-                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          <SelectItem key={p.id} value={p.id}>{planLabel(p)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -251,7 +251,7 @@ export function AdminSubscriptions() {
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {plans.map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      <SelectItem key={p.id} value={p.id}>{planLabel(p)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
