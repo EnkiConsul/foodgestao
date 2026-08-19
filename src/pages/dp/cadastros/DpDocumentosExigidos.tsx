@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -225,6 +226,22 @@ export default function DpDocumentosExigidos() {
                         }
                       />
                     )}
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Switch
+                        checked={!!r.permite_multiplos}
+                        onCheckedChange={(v) => salvar.mutate({ id: r.id, patch: { permite_multiplos: v } })}
+                        aria-label="Permitir vários arquivos"
+                      />
+                      Vários arquivos
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Switch
+                        checked={!!r.exige_aceite}
+                        onCheckedChange={(v) => salvar.mutate({ id: r.id, patch: { exige_aceite: v } })}
+                        aria-label="Permitir aceite digital"
+                      />
+                      Aceite digital
+                    </label>
                     <Select
                       value={r.obrigatoriedade}
                       onValueChange={(v) => salvar.mutate({ id: r.id, patch: { obrigatoriedade: v } })}
