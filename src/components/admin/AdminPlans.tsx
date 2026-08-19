@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { usePlans, useUpsertPlan, useDeletePlan } from "@/hooks/usePlans";
+import { usePlans, useUpsertPlan, useDeletePlan, usePlanSubscriptionCounts } from "@/hooks/usePlans";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { PlanEditorDialog } from "./PlanEditorDialog";
 import { formatCents, formatLimit } from "@/lib/billing";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -13,11 +14,14 @@ import {
 
 export function AdminPlans() {
   const { data: plans = [], isLoading } = usePlans();
+  const { data: subCounts = {} } = usePlanSubscriptionCounts();
   const upsert = useUpsertPlan();
   const del = useDeletePlan();
   const [editing, setEditing] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
-  const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const [confirmPlan, setConfirmPlan] = useState<any | null>(null);
+  const confirmSubs = confirmPlan ? (subCounts[confirmPlan.id] ?? 0) : 0;
+
 
   return (
     <div className="space-y-4">
