@@ -39,8 +39,18 @@ const actionLabels: Record<string, { label: string; variant: "default" | "second
 const ALL_ACTIONS = "all";
 const PAGE_SIZE = 20;
 
-// Lista fixa para o filtro (evita query separada de "ações distintas")
-const ACTION_OPTIONS = Object.keys(actionLabels);
+/** Rótulo legível para ações sem tradução cadastrada (snake_case → Texto). */
+function humanizeAction(action: string) {
+  return action
+    .split("_")
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function actionInfoOf(action: string) {
+  return actionLabels[action] ?? { label: humanizeAction(action), variant: "outline" as const };
+}
 
 export function AdminAuditLogs() {
   const [searchInput, setSearchInput] = useState("");
@@ -58,6 +68,23 @@ export function AdminAuditLogs() {
     }, 300);
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  // Ações existentes no banco (para não limitar o filtro a uma lista fixa)
+  const { data: actionOptions } = useQuery({
+    queryKey: ["admin-audit-log-actions"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("audit_logs")
+        .select("action")
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      if (error) throw error;
+      const set = new Set<string>([...Object.keys(actionLabels), ...(data ?? []).map((r) => r.action)]);
+      return Array.from(set).sort((a, b) => actionInfoOf(a).label.localeCompare(actionInfoOf(b).label, "pt-BR"));
+    },
+  });
+
 
   const queryKey = [
     "admin-audit-logs",
@@ -86,7 +113,9 @@ export function AdminAuditLogs() {
       if (search) {
         // busca em user_name, action e entity_type
         const term = `%${search}%`;
-        q = q.or(`user_name.ilike.${term},action.ilike.${term},entity_type.ilike.${term}`);
+        q = q.or(
+          `user_name.ilike.${term},action.ilike.${term},entity_type.ilike.${term},entity_id.ilike.${term}`,
+        );
       }
 
       const { data, error, count } = await q;
@@ -130,9 +159,9 @@ export function AdminAuditLogs() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL_ACTIONS}>Todas as ações</SelectItem>
-            {ACTION_OPTIONS.map((action) => (
+            {(actionOptions ?? Object.keys(actionLabels)).map((action) => (
               <SelectItem key={action} value={action}>
-                {actionLabels[action]?.label ?? action}
+                {actionInfoOf(action).label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -200,7 +229,7 @@ export function AdminAuditLogs() {
               </TableRow>
             ) : (
               rows.map((log) => {
-                const actionInfo = actionLabels[log.action] ?? { label: log.action, variant: "outline" as const };
+                const actionInfo = actionInfoOf(log.action);
                 const details = log.details as Record<string, string> | null;
                 return (
                   <TableRow key={log.id}>
@@ -233,7 +262,7 @@ export function AdminAuditLogs() {
           <p className="text-center text-sm text-muted-foreground py-8">Nenhum log encontrado</p>
         ) : (
           rows.map((log) => {
-            const actionInfo = actionLabels[log.action] ?? { label: log.action, variant: "outline" as const };
+            const actionInfo = actionInfoOf(log.action);
             const details = log.details as Record<string, string> | null;
             return (
               <div key={log.id} className="rounded-md border p-3 space-y-1.5">
