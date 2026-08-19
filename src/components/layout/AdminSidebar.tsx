@@ -96,13 +96,11 @@ export function AdminSidebar() {
 
   return (
     <Sidebar className="border-r-0" collapsible="icon">
-      <SidebarHeader className="p-5 border-b border-sidebar-border mb-2">
-        <div className="flex items-center justify-center gap-2">
-          {collapsed ? (
-            <ShieldCheck className="h-7 w-7 text-sidebar-primary" />
-          ) : (
-            <>
-              <ShieldCheck className="h-7 w-7 text-sidebar-primary shrink-0" />
+      <SidebarHeader className={cn("border-b border-sidebar-border mb-2", collapsed ? "px-1 py-2" : "p-5")}>
+        <div className={cn("flex w-full", collapsed ? "flex-col items-center justify-center gap-1" : "flex-row items-center justify-between gap-2")}>
+          <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-2")}>
+            <ShieldCheck className={cn("text-sidebar-primary", collapsed ? "h-6 w-6" : "h-7 w-7 shrink-0")} />
+            {!collapsed && (
               <div className="flex items-baseline gap-1">
                 <span className="text-xl font-bold tracking-tight text-sidebar-foreground">Gestor</span>
                 <span className="text-xl font-bold tracking-tight text-sidebar-primary">Plin</span>
@@ -110,10 +108,12 @@ export function AdminSidebar() {
                   Admin
                 </span>
               </div>
-            </>
-          )}
+            )}
+          </div>
+          <SidebarToggleButton className={collapsed ? "h-6 w-6 p-1" : "h-7 w-7 p-0"} />
         </div>
       </SidebarHeader>
+
 
       <SidebarContent>
         <SidebarGroup>
