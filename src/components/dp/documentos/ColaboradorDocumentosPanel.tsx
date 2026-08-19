@@ -58,8 +58,10 @@ export function ColaboradorDocumentosPanel({
     doc.aprovar.isPending ||
     doc.recusar.isPending ||
     doc.dispensar.isPending ||
-    doc.gerarDocumentoSistema.isPending ||
+    doc.excluirAnexo.isPending ||
+    doc.pedirAceite.isPending ||
     doc.aceitar.isPending;
+
 
   return (
     <div className="space-y-4">
@@ -118,13 +120,20 @@ export function ColaboradorDocumentosPanel({
                 somenteEnvio={somenteEnvio}
                 ocupado={ocupado}
                 onEnviar={(file, validade) => doc.enviar.mutate({ item, file, validade })}
-                onAbrir={() => doc.abrir(item)}
-                onAprovar={(validade) =>
-                  somenteEnvio ? doc.aceitar.mutate({ item }) : doc.aprovar.mutate({ item, validade })
-                }
-                onRecusar={(motivo) => doc.recusar.mutate({ item, motivo })}
+                onAbrir={(anexo) => doc.abrirArquivo(anexo)}
+                onAprovar={(anexo, validade) => doc.aprovar.mutate({ item, anexo, validade })}
+                onRecusar={(anexo, motivo) => doc.recusar.mutate({ item, anexo, motivo })}
                 onDispensar={(motivo) => doc.dispensar.mutate({ item, motivo })}
-                onGerar={() => doc.gerarDocumentoSistema.mutate({ item })}
+                onAceitar={(anexo) => doc.aceitar.mutate({ item, anexo })}
+                {...(somenteEnvio
+                  ? {}
+                  : {
+                      onExcluir: (anexo) => doc.excluirAnexo.mutate({ anexo }),
+                      onPedirAceite: item.requisito.exige_aceite
+                        ? (anexo) => doc.pedirAceite.mutate({ anexo })
+                        : undefined,
+                    })}
+
               />
             ))}
           </div>

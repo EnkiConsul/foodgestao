@@ -600,7 +600,7 @@ export function useDpPendencias() {
 
       // 13. Documentos obrigatórios de admissão faltando, vencidos ou recusados
       try {
-        const [reqs, colabs, deps, vincs, asos] = await Promise.all([
+        const [reqs, colabs, deps, vincs] = await Promise.all([
           supabase
             .from("dp_documento_requisitos")
             .select("*")
@@ -622,21 +622,10 @@ export function useDpPendencias() {
             .from("dp_colaborador_documentos")
             .select("*")
             .eq("company_id", selectedCompanyId!),
-          supabase
-            .from("dp_exames_aso")
-            .select("colaborador_id, resultado")
-            .eq("company_id", selectedCompanyId!)
-            .eq("tipo", "admissional"),
         ]);
 
         const requisitos = (reqs.data ?? []) as any[];
         if (requisitos.length > 0) {
-          const asoOk = new Set(
-            (asos.data ?? [])
-              .filter((a: any) => a.resultado === "apto" || a.resultado === "apto_com_restricoes")
-              .map((a: any) => a.colaborador_id as string),
-          );
-
           for (const c of (colabs.data ?? []) as any[]) {
             const itens = resolverChecklist({
               requisitos,
@@ -653,7 +642,6 @@ export function useDpPendencias() {
               },
               dependentes: ((deps.data ?? []) as any[]).filter((d) => d.colaborador_id === c.id),
               vinculos: ((vincs.data ?? []) as any[]).filter((v) => v.colaborador_id === c.id),
-              asoAdmissionalOk: asoOk.has(c.id),
             });
 
             const resumo = resumirChecklist(itens);

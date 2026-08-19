@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -196,11 +197,11 @@ export default function DpDocumentosExigidos() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium">{r.nome}</span>
                       {r.sistema && <Badge variant="secondary" className="text-xs">Padrão</Badge>}
-                      {r.gerado_pelo_sistema && (
-                        <Badge variant="outline" className="text-xs">Gerado pelo sistema</Badge>
+                      {r.permite_multiplos && (
+                        <Badge variant="outline" className="text-xs">Vários arquivos</Badge>
                       )}
-                      {r.satisfeito_por === "aso_admissional" && (
-                        <Badge variant="outline" className="text-xs">Vem do módulo de exames</Badge>
+                      {r.exige_aceite && (
+                        <Badge variant="outline" className="text-xs">Aceite digital opcional</Badge>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -225,6 +226,22 @@ export default function DpDocumentosExigidos() {
                         }
                       />
                     )}
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Switch
+                        checked={!!r.permite_multiplos}
+                        onCheckedChange={(v) => salvar.mutate({ id: r.id, patch: { permite_multiplos: v } })}
+                        aria-label="Permitir vários arquivos"
+                      />
+                      Vários arquivos
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Switch
+                        checked={!!r.exige_aceite}
+                        onCheckedChange={(v) => salvar.mutate({ id: r.id, patch: { exige_aceite: v } })}
+                        aria-label="Permitir aceite digital"
+                      />
+                      Aceite digital
+                    </label>
                     <Select
                       value={r.obrigatoriedade}
                       onValueChange={(v) => salvar.mutate({ id: r.id, patch: { obrigatoriedade: v } })}

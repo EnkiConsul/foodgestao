@@ -23,6 +23,8 @@ const req = (over: Partial<any> = {}): any => ({
   gerado_pelo_sistema: over.gerado_pelo_sistema ?? false,
   exige_aceite: over.exige_aceite ?? false,
   satisfeito_por: over.satisfeito_por ?? null,
+  permite_multiplos: over.permite_multiplos ?? false,
+
   sistema: true,
   ordem: 100,
   created_at: "",
@@ -121,17 +123,22 @@ describe("resolverChecklist", () => {
     expect(resumirChecklist(itens).pendentesObrigatorios).toHaveLength(1);
   });
 
-  it("considera o ASO satisfeito pelo módulo de exames", () => {
+  it("agrega vários anexos no mesmo item e prioriza o aprovado", () => {
     const itens = resolverChecklist({
-      requisitos: [req({ codigo: "aso", satisfeito_por: "aso_admissional" })],
+      requisitos: [req({ codigo: "contrato", permite_multiplos: true })],
       colaborador: colab(),
       dependentes: [],
-      vinculos: [],
-      asoAdmissionalOk: true,
+      vinculos: [
+        { id: "v1", requisito_id: "r1", colaborador_id: "col1", dependente_id: null, documento_id: "d1", status: "enviado", dispensado: false } as any,
+        { id: "v2", requisito_id: "r1", colaborador_id: "col1", dependente_id: null, documento_id: "d2", status: "aprovado", dispensado: false } as any,
+      ],
     });
+    expect(itens).toHaveLength(1);
+    expect(itens[0].anexos).toHaveLength(2);
     expect(itens[0].status).toBe("aprovado");
-    expect(itens[0].externo).toBe(true);
+    expect(itens[0].multiplos).toBe(true);
   });
+
 
   it("marca documento com validade expirada como vencido", () => {
     const itens = resolverChecklist({

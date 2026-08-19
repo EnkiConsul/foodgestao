@@ -242,7 +242,7 @@ export function useDpPendenciasColaborador() {
           .maybeSingle();
 
         if (colab) {
-          const [reqs, deps, vincs, asos] = await Promise.all([
+          const [reqs, deps, vincs] = await Promise.all([
             supabase
               .from("dp_documento_requisitos")
               .select("*")
@@ -257,11 +257,6 @@ export function useDpPendenciasColaborador() {
               .from("dp_colaborador_documentos")
               .select("*")
               .eq("colaborador_id", colabId as string),
-            supabase
-              .from("dp_exames_aso")
-              .select("resultado")
-              .eq("colaborador_id", colabId as string)
-              .eq("tipo", "admissional"),
           ]);
 
           const itens = resolverChecklist({
@@ -279,13 +274,10 @@ export function useDpPendenciasColaborador() {
             },
             dependentes: (deps.data ?? []) as any[],
             vinculos: (vincs.data ?? []) as any[],
-            asoAdmissionalOk: (asos.data ?? []).some(
-              (a: any) => a.resultado === "apto" || a.resultado === "apto_com_restricoes",
-            ),
           });
 
           const resumo = resumirChecklist(itens);
-          const paraEnviar = resumo.pendentesObrigatorios.filter((i) => !i.externo);
+          const paraEnviar = resumo.pendentesObrigatorios;
           if (paraEnviar.length > 0) {
             results.push({
               id: "documentos-exigidos",
@@ -298,8 +290,8 @@ export function useDpPendenciasColaborador() {
               url: "/dp/meu/documentos",
             });
           }
-          const aceites = itens.filter(
-            (i) => i.requisito.exige_aceite && i.status === "enviado" && !!i.vinculo?.documento_id,
+          const aceites = itens.filter((i) =>
+            (i.anexos ?? []).some((a: any) => a.aceite_solicitado_em && !a.aceito_em),
           );
           if (aceites.length > 0) {
             results.push({
