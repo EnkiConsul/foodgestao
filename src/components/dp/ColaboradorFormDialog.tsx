@@ -31,6 +31,11 @@ import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/des
 import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
+import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
+import { ColaboradorAcessoPanel } from "./ColaboradorAcessoPanel";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreVertical, Trash2 } from "lucide-react";
+import { useDeleteDpColaborador } from "@/hooks/useDpColaboradores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 
@@ -176,7 +181,7 @@ const blank = {
 const ABAS = ["dados", "jornada", "remuneracao"] as const;
 type AbaCadastro = (typeof ABAS)[number];
 /** Aba extra, fora do fluxo de avanço automático do cadastro. */
-type AbaVisivel = AbaCadastro | "dependentes";
+type AbaVisivel = AbaCadastro | "dependentes" | "documentos" | "desligamento" | "acesso";
 type IntencaoSalvar = "stay" | "close";
 /** Campo pendente apontado pela validação, usado para focar e destacar. */
 type ErroCampo = { campo: string; mensagem: string };
@@ -193,6 +198,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   const cargos = useDpCargos();
   const upsertCargo = useUpsertDpCargo();
   const upsertCargoSalario = useUpsertDpCargoSalario();
+  const removerColaborador = useDeleteDpColaborador();
+  const [confirmarRemocao, setConfirmarRemocao] = useState(false);
   const queryClient = useQueryClient();
 
   const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
@@ -1201,11 +1208,36 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           {/* Cabeçalho e abas fixos: só o conteúdo do formulário rola. */}
           <div className="shrink-0 space-y-3 border-b border-border bg-background p-6 pb-3">
             <DialogHeader className="space-y-0 text-left">
-              <DialogTitle>
-                {isEdit
-                  ? `Editar: ${toProperName(form.nome.trim()) || "Colaborador"}`
-                  : `Cadastrar: ${toProperName(form.nome.trim()) || "Novo Colaborador"}`}
-              </DialogTitle>
+              <div className="flex items-start justify-between gap-2">
+                <DialogTitle>
+                  {isEdit
+                    ? `Editar: ${toProperName(form.nome.trim()) || "Colaborador"}`
+                    : `Cadastrar: ${toProperName(form.nome.trim()) || "Novo Colaborador"}`}
+                </DialogTitle>
+                {(isEdit || criadoId) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="mr-8 h-8 w-8" aria-label="Mais ações do cadastro">
+                        <MoreVertical className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => setTab("desligamento")}>
+                        Registrar desligamento
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setTab("acesso")}>
+                        Acesso ao portal
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onSelect={() => setConfirmarRemocao(true)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Remover cadastro
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </DialogHeader>
             <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="dados" className="gap-2">
@@ -1236,6 +1268,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               </TabsTrigger>
               <TabsTrigger value="dependentes">Dependentes</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
+              {(isEdit || criadoId) && <TabsTrigger value="acesso">Acesso ao portal</TabsTrigger>}
+              {(isEdit || criadoId) && (
+                <TabsTrigger value="desligamento" className="gap-2">
+                  Desligamento
+                  {isDesligado && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Colaborador desligado" />
+                  )}
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
