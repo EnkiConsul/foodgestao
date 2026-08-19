@@ -113,7 +113,9 @@ export function AdminAuditLogs() {
       if (search) {
         // busca em user_name, action e entity_type
         const term = `%${search}%`;
-        q = q.or(`user_name.ilike.${term},action.ilike.${term},entity_type.ilike.${term}`);
+        q = q.or(
+          `user_name.ilike.${term},action.ilike.${term},entity_type.ilike.${term},entity_id.ilike.${term}`,
+        );
       }
 
       const { data, error, count } = await q;
@@ -227,7 +229,7 @@ export function AdminAuditLogs() {
               </TableRow>
             ) : (
               rows.map((log) => {
-                const actionInfo = actionLabels[log.action] ?? { label: log.action, variant: "outline" as const };
+                const actionInfo = actionInfoOf(log.action);
                 const details = log.details as Record<string, string> | null;
                 return (
                   <TableRow key={log.id}>
@@ -260,7 +262,7 @@ export function AdminAuditLogs() {
           <p className="text-center text-sm text-muted-foreground py-8">Nenhum log encontrado</p>
         ) : (
           rows.map((log) => {
-            const actionInfo = actionLabels[log.action] ?? { label: log.action, variant: "outline" as const };
+            const actionInfo = actionInfoOf(log.action);
             const details = log.details as Record<string, string> | null;
             return (
               <div key={log.id} className="rounded-md border p-3 space-y-1.5">
