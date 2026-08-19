@@ -226,6 +226,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
   const [criadoId, setCriadoId] = useState<string | null>(null);
+  /** Registro salvo do colaborador em edição — base das abas Acesso e Desligamento. */
+  const colaboradorAtual = useMemo(() => {
+    const id = colaborador?.id ?? criadoId;
+    if (!id) return null;
+    return (todosColaboradores.data ?? []).find((c) => c.id === id) ?? colaborador ?? null;
+  }, [colaborador, criadoId, todosColaboradores.data]);
   /** Salvamento do horário de trabalho exposto pelo painel da aba. */
   const jornadaSalvarRef = useRef<(() => Promise<SalvarJornadaResultado>) | null>(null);
 
