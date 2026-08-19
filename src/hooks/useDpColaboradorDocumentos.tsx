@@ -6,12 +6,6 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 import { useAuth } from "@/hooks/useAuth";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 import {
-  MODELO_VERSAO,
-  hashConteudo,
-  montarContratoHtml,
-  montarFichaRegistroHtml,
-} from "@/lib/dp/contratoTemplate";
-import {
   resolverChecklist,
   resumirChecklist,
   type DpColaboradorDocumento,
@@ -24,9 +18,20 @@ type Opcoes = {
   comoColaborador?: boolean;
 };
 
+type Anexo = DpColaboradorDocumento & { dp_documentos?: any };
+
+/** SHA-256 do arquivo enviado, usado como prova de integridade no aceite. */
+async function hashArquivo(file: File): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 /**
  * Checklist de documentos de um colaborador: requisitos da empresa resolvidos
- * contra o que já foi enviado, com upload, aprovação e dispensa.
+ * contra o que já foi enviado, com upload (um ou vários arquivos por item),
+ * aprovação, dispensa e aceite eletrônico opcional.
  */
 export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes: Opcoes = {}) {
   const { comoColaborador = false } = opcoes;
@@ -47,7 +52,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       if (e1) throw e1;
       if (!colab) throw new Error("Colaborador não encontrado");
 
-      const [reqs, vincs, deps, aso] = await Promise.all([
+      const [reqs, vincs, deps] = await Promise.all([
         supabase
           .from("dp_documento_requisitos")
           .select("*")
@@ -61,19 +66,10 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
           .from("dp_dependentes")
           .select("id, nome, data_nascimento, deficiencia, cessado_em")
           .eq("colaborador_id", colaboradorId!),
-        supabase
-          .from("dp_exames_aso")
-          .select("id, tipo, resultado")
-          .eq("colaborador_id", colaboradorId!)
-          .eq("tipo", "admissional"),
       ]);
       if (reqs.error) throw reqs.error;
       if (vincs.error) throw vincs.error;
       if (deps.error) throw deps.error;
-
-      const asoOk = (aso.data ?? []).some(
-        (a: any) => a.resultado === "apto" || a.resultado === "apto_com_restricoes",
-      );
 
       return {
         colaborador: {
@@ -89,9 +85,8 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
           cargo_exige_epi: (colab as any).dp_cargos?.exige_epi ?? false,
         },
         requisitos: (reqs.data ?? []) as DpDocumentoRequisito[],
-        vinculos: (vincs.data ?? []) as (DpColaboradorDocumento & { dp_documentos?: any })[],
+        vinculos: (vincs.data ?? []) as Anexo[],
         dependentes: (deps.data ?? []) as any[],
-        asoAdmissionalOk: asoOk,
       };
     },
   });
@@ -103,7 +98,6 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       colaborador: base.data.colaborador,
       dependentes: base.data.dependentes,
       vinculos: base.data.vinculos,
-      asoAdmissionalOk: base.data.asoAdmissionalOk,
     });
   }, [base.data]);
 
@@ -116,10 +110,12 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     qc.invalidateQueries({ queryKey: ["dp_pendencias_colaborador"] });
   };
 
-  const arquivoDoItem = (item: ItemChecklist) =>
-    (item.vinculo as any)?.dp_documentos ?? null;
+  const arquivoDoAnexo = (anexo?: DpColaboradorDocumento | null) =>
+    (anexo as any)?.dp_documentos ?? null;
 
-  /** Envia (ou reenvia) o arquivo de um requisito. */
+  const arquivoDoItem = (item: ItemChecklist) => arquivoDoAnexo(item.vinculo);
+
+  /** Anexa um arquivo ao requisito. Itens com vários arquivos criam nova linha. */
   const enviar = useMutation({
     mutationFn: async ({
       item,
@@ -134,6 +130,8 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
         upsert: false,
       });
       if (up.error) throw up.error;
+
+      const hash = await hashArquivo(file);
 
       const titulo = item.dependente
         ? `${item.requisito.nome} — ${item.dependente.nome}`
@@ -168,15 +166,20 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
         documento_id: doc.id,
         status: comoColaborador ? "enviado" : "aprovado",
         validade: validade ?? null,
+        conteudo_hash: hash,
         dispensado: false,
         motivo_dispensa: null,
+        aceite_solicitado_em: null,
+        aceito_em: null,
       };
 
-      if (item.vinculo) {
+      // Substitui a linha existente apenas quando o item aceita um único arquivo.
+      const substituir = !item.multiplos && item.vinculo;
+      if (substituir) {
         const { error } = await supabase
           .from("dp_colaborador_documentos")
           .update(payload)
-          .eq("id", item.vinculo.id);
+          .eq("id", item.vinculo!.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("dp_colaborador_documentos").insert(payload);
@@ -191,14 +194,19 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
   });
 
   const aprovar = useMutation({
-    mutationFn: async ({ item, validade }: { item: ItemChecklist; validade?: string | null }) => {
-      if (!item.vinculo) throw new Error("Nenhum documento enviado");
+    mutationFn: async ({
+      item,
+      anexo,
+      validade,
+    }: { item: ItemChecklist; anexo?: DpColaboradorDocumento | null; validade?: string | null }) => {
+      const alvo = anexo ?? item.vinculo;
+      if (!alvo) throw new Error("Nenhum documento enviado");
       const { error } = await supabase
         .from("dp_colaborador_documentos")
-        .update({ status: "aprovado", validade: validade ?? item.vinculo.validade })
-        .eq("id", item.vinculo.id);
+        .update({ status: "aprovado", validade: validade ?? alvo.validade })
+        .eq("id", alvo.id);
       if (error) throw error;
-      if (item.vinculo.documento_id) {
+      if (alvo.documento_id) {
         await supabase
           .from("dp_documentos")
           .update({
@@ -207,7 +215,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
             revisado_em: new Date().toISOString(),
             motivo_recusao: null,
           })
-          .eq("id", item.vinculo.documento_id);
+          .eq("id", alvo.documento_id);
       }
     },
     onSuccess: () => {
@@ -218,14 +226,19 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
   });
 
   const recusar = useMutation({
-    mutationFn: async ({ item, motivo }: { item: ItemChecklist; motivo: string }) => {
-      if (!item.vinculo) throw new Error("Nenhum documento enviado");
+    mutationFn: async ({
+      item,
+      anexo,
+      motivo,
+    }: { item: ItemChecklist; anexo?: DpColaboradorDocumento | null; motivo: string }) => {
+      const alvo = anexo ?? item.vinculo;
+      if (!alvo) throw new Error("Nenhum documento enviado");
       const { error } = await supabase
         .from("dp_colaborador_documentos")
         .update({ status: "recusado" })
-        .eq("id", item.vinculo.id);
+        .eq("id", alvo.id);
       if (error) throw error;
-      if (item.vinculo.documento_id) {
+      if (alvo.documento_id) {
         await supabase
           .from("dp_documentos")
           .update({
@@ -234,7 +247,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
             revisado_por: user?.id,
             revisado_em: new Date().toISOString(),
           })
-          .eq("id", item.vinculo.documento_id);
+          .eq("id", alvo.documento_id);
       }
     },
     onSuccess: () => {
@@ -276,133 +289,96 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
   });
 
   const definirValidade = useMutation({
-    mutationFn: async ({ item, validade }: { item: ItemChecklist; validade: string | null }) => {
-      if (!item.vinculo) throw new Error("Nenhum documento enviado");
+    mutationFn: async ({
+      item,
+      anexo,
+      validade,
+    }: { item: ItemChecklist; anexo?: DpColaboradorDocumento | null; validade: string | null }) => {
+      const alvo = anexo ?? item.vinculo;
+      if (!alvo) throw new Error("Nenhum documento enviado");
       const { error } = await supabase
         .from("dp_colaborador_documentos")
         .update({ validade })
-        .eq("id", item.vinculo.id);
+        .eq("id", alvo.id);
       if (error) throw error;
     },
     onSuccess: invalidar,
     onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar a validade"),
   });
 
-  /** Gera contrato ou ficha de registro pelo sistema e envia para aceite do colaborador. */
-  const gerarDocumentoSistema = useMutation({
-    mutationFn: async ({ item }: { item: ItemChecklist }) => {
-      const ctx = base.data;
-      if (!ctx) throw new Error("Checklist não carregado");
-      const modelo = item.requisito.tipo_documento === "contrato" ? "contrato" : "ficha_registro";
-
-      const [{ data: empresa }, { data: colab }] = await Promise.all([
-        supabase
-          .from("companies")
-          .select("name, cnpj, address")
-          .eq("id", ctx.colaborador.company_id)
-          .maybeSingle(),
-        supabase
-          .from("dp_colaboradores")
-          .select(
-            "nome, cpf, pis_nit, data_nascimento, estado_civil, endereco, data_admissao, salario_base, regime, matricula, base_horas_mes, dp_cargos(nome), dp_unidades(nome)",
-          )
-          .eq("id", ctx.colaborador.id)
-          .maybeSingle(),
-      ]);
-      if (!empresa || !colab) throw new Error("Dados insuficientes para gerar o documento");
-
-      const contexto = {
-        empresa: { nome: empresa.name, cnpj: (empresa as any).cnpj, endereco: (empresa as any).address },
-        colaborador: {
-          nome: colab.nome,
-          cpf: colab.cpf,
-          pis_nit: (colab as any).pis_nit,
-          data_nascimento: colab.data_nascimento,
-          estado_civil: (colab as any).estado_civil,
-          endereco: (colab as any).endereco,
-          cargo: (colab as any).dp_cargos?.nome ?? null,
-          unidade: (colab as any).dp_unidades?.nome ?? null,
-          data_admissao: colab.data_admissao,
-          salario: (colab as any).salario_base,
-          regime: colab.regime,
-          jornada: (colab as any).base_horas_mes ? `${(colab as any).base_horas_mes}h mensais` : null,
-          matricula: (colab as any).matricula,
-        },
-      };
-
-      const html =
-        modelo === "contrato" ? montarContratoHtml(contexto) : montarFichaRegistroHtml(contexto);
-      const hash = await hashConteudo(html);
-      const blob = new Blob([html], { type: "text/html" });
-      const path = `${ctx.colaborador.company_id}/${ctx.colaborador.id}/gerados/${modelo}-${MODELO_VERSAO}-${Date.now()}.html`;
-
-      const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, blob, {
-        contentType: "text/html",
-        upsert: false,
-      });
-      if (up.error) throw up.error;
-
-      const { data: doc, error: eDoc } = await supabase
-        .from("dp_documentos")
-        .insert({
-          company_id: ctx.colaborador.company_id,
-          colaborador_id: ctx.colaborador.id,
-          tipo: item.requisito.tipo_documento,
-          titulo: item.requisito.nome,
-          descricao: `Gerado pelo sistema (modelo ${MODELO_VERSAO}) — aguardando aceite eletrônico`,
-          file_path: path,
-          file_name: `${modelo}.html`,
-          file_size: blob.size,
-          mime_type: "text/html",
-          uploaded_by: user?.id,
-          aprovacao_status: "pendente",
-        })
-        .select("id")
-        .single();
-      if (eDoc) throw eDoc;
-
-      const payload = {
-        company_id: ctx.colaborador.company_id,
-        colaborador_id: ctx.colaborador.id,
-        requisito_id: item.requisito.id,
-        documento_id: doc.id,
-        status: "enviado" as const,
-        conteudo_hash: hash,
-        dispensado: false,
-      };
-      if (item.vinculo) {
-        const { error } = await supabase
-          .from("dp_colaborador_documentos")
-          .update(payload)
-          .eq("id", item.vinculo.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("dp_colaborador_documentos").insert(payload);
-        if (error) throw error;
+  /** Remove um anexo (arquivo) do requisito. */
+  const excluirAnexo = useMutation({
+    mutationFn: async ({ anexo }: { anexo: DpColaboradorDocumento }) => {
+      const { error } = await supabase
+        .from("dp_colaborador_documentos")
+        .delete()
+        .eq("id", anexo.id);
+      if (error) throw error;
+      const doc = arquivoDoAnexo(anexo);
+      if (doc?.file_path) {
+        await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([doc.file_path]);
+      }
+      if (anexo.documento_id) {
+        await supabase.from("dp_documentos").delete().eq("id", anexo.documento_id);
       }
     },
     onSuccess: () => {
-      toast.success("Documento gerado e enviado para aceite do colaborador");
+      toast.success("Anexo removido");
       invalidar();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao gerar o documento"),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao remover o anexo"),
+  });
+
+  /** Envia um anexo já existente para o aceite eletrônico do colaborador (opcional). */
+  const pedirAceite = useMutation({
+    mutationFn: async ({ anexo }: { anexo: DpColaboradorDocumento }) => {
+      const { error } = await supabase
+        .from("dp_colaborador_documentos")
+        .update({ aceite_solicitado_em: new Date().toISOString(), aceito_em: null })
+        .eq("id", anexo.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Enviado para o aceite do colaborador no portal");
+      invalidar();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao enviar para aceite"),
+  });
+
+  /** Cancela a solicitação de aceite ainda não assinada. */
+  const cancelarAceite = useMutation({
+    mutationFn: async ({ anexo }: { anexo: DpColaboradorDocumento }) => {
+      const { error } = await supabase
+        .from("dp_colaborador_documentos")
+        .update({ aceite_solicitado_em: null })
+        .eq("id", anexo.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Solicitação de aceite cancelada");
+      invalidar();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao cancelar"),
   });
 
   /** Aceite eletrônico do colaborador, com hash e trilha de auditoria. */
   const aceitar = useMutation({
-    mutationFn: async ({ item }: { item: ItemChecklist }) => {
+    mutationFn: async ({
+      item,
+      anexo,
+    }: { item: ItemChecklist; anexo?: DpColaboradorDocumento | null }) => {
       const ctx = base.data;
-      if (!ctx || !item.vinculo) throw new Error("Documento não disponível para aceite");
-      const modelo = item.requisito.tipo_documento === "contrato" ? "contrato" : "ficha_registro";
+      const alvo = anexo ?? item.vinculo;
+      if (!ctx || !alvo) throw new Error("Documento não disponível para aceite");
 
       const { error: eAceite } = await supabase.from("dp_documento_aceites").insert({
         company_id: ctx.colaborador.company_id,
         colaborador_id: ctx.colaborador.id,
         requisito_id: item.requisito.id,
-        documento_id: item.vinculo.documento_id,
-        modelo,
-        modelo_versao: MODELO_VERSAO,
-        conteudo_hash: (item.vinculo as any).conteudo_hash ?? "",
+        documento_id: alvo.documento_id,
+        modelo: item.requisito.tipo_documento,
+        modelo_versao: "anexo",
+        conteudo_hash: (alvo as any).conteudo_hash ?? "",
         aceito_por: user?.id ?? null,
         user_agent: navigator.userAgent.slice(0, 500),
       });
@@ -410,16 +386,9 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
 
       const { error } = await supabase
         .from("dp_colaborador_documentos")
-        .update({ status: "aprovado", aceito_em: new Date().toISOString() })
-        .eq("id", item.vinculo.id);
+        .update({ aceito_em: new Date().toISOString() })
+        .eq("id", alvo.id);
       if (error) throw error;
-
-      if (item.vinculo.documento_id) {
-        await supabase
-          .from("dp_documentos")
-          .update({ aprovacao_status: "aprovado" })
-          .eq("id", item.vinculo.documento_id);
-      }
     },
     onSuccess: () => {
       toast.success("Aceite registrado com data, hora e dispositivo");
@@ -428,11 +397,9 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     onError: (e: any) => toast.error(e?.message ?? "Erro ao registrar o aceite"),
   });
 
-
-
   /** Gera link assinado e abre o arquivo. */
-  const abrir = async (item: ItemChecklist) => {
-    const doc = arquivoDoItem(item);
+  const abrirArquivo = async (anexo?: DpColaboradorDocumento | null) => {
+    const doc = arquivoDoAnexo(anexo);
     if (!doc?.file_path) return toast.error("Sem arquivo anexado");
     const { data, error } = await supabase.storage
       .from(DP_DOCUMENTOS_BUCKET)
@@ -447,6 +414,8 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     a.remove();
   };
 
+  const abrir = async (item: ItemChecklist) => abrirArquivo(item.vinculo);
+
   return {
     isLoading: base.isLoading,
     error: base.error,
@@ -454,13 +423,17 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     itens,
     resumo,
     arquivoDoItem,
+    arquivoDoAnexo,
     enviar,
     aprovar,
     recusar,
     dispensar,
     definirValidade,
-    gerarDocumentoSistema,
+    excluirAnexo,
+    pedirAceite,
+    cancelarAceite,
     aceitar,
     abrir,
+    abrirArquivo,
   };
 }
