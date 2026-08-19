@@ -11,6 +11,7 @@ import {
   SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { SidebarToggleButton } from "@/components/layout/SidebarToggleButton";
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/titleCase";
 import {
@@ -25,6 +26,7 @@ import { makeIsActive } from "@/lib/nav-active";
 import { applyMenuLayout } from "@/lib/dp/menuLayout";
 import { useDpMenuLayout } from "@/hooks/useDpMenuLayout";
 import { OrganizarMenuDialog } from "@/components/dp/OrganizarMenuDialog";
+
 
 type Sub = { title: string; url: string; icon: LucideIcon; end?: boolean; badge?: string };
 type Item =
