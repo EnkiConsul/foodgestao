@@ -16,6 +16,22 @@ export function usePlans() {
   });
 }
 
+/** Contagem de assinaturas por plano (para bloquear exclusão de planos vinculados). */
+export function usePlanSubscriptionCounts() {
+  return useQuery({
+    queryKey: ["admin-plan-subscription-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("subscriptions").select("plan_id");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data ?? []) {
+        if (row.plan_id) counts[row.plan_id] = (counts[row.plan_id] ?? 0) + 1;
+      }
+      return counts;
+    },
+  });
+}
+
 export function useUpsertPlan() {
   const qc = useQueryClient();
   return useMutation({
