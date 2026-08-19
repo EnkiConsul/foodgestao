@@ -16,6 +16,22 @@ export function usePlans() {
   });
 }
 
+/** Contagem de assinaturas por plano (para bloquear exclusão de planos vinculados). */
+export function usePlanSubscriptionCounts() {
+  return useQuery({
+    queryKey: ["admin-plan-subscription-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("subscriptions").select("plan_id");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data ?? []) {
+        if (row.plan_id) counts[row.plan_id] = (counts[row.plan_id] ?? 0) + 1;
+      }
+      return counts;
+    },
+  });
+}
+
 export function useUpsertPlan() {
   const qc = useQueryClient();
   return useMutation({
@@ -46,8 +62,17 @@ export function useDeletePlan() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-plans"] });
+      qc.invalidateQueries({ queryKey: ["admin-plan-subscription-counts"] });
       toast.success("Plano excluído");
     },
-    onError: (e: any) => toast.error(e.message ?? "Não foi possível excluir"),
+    onError: (e: any) => {
+      const linked =
+        e?.code === "23503" || String(e?.message ?? "").includes("subscriptions_plan_id_fkey");
+      toast.error(
+        linked
+          ? "Este plano possui assinaturas vinculadas. Desative-o em vez de excluir."
+          : (e?.message ?? "Não foi possível excluir"),
+      );
+    },
   });
 }

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { usePlans, useUpsertPlan, useDeletePlan } from "@/hooks/usePlans";
+import { usePlans, useUpsertPlan, useDeletePlan, usePlanSubscriptionCounts } from "@/hooks/usePlans";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { PlanEditorDialog } from "./PlanEditorDialog";
 import { formatCents, formatLimit } from "@/lib/billing";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -13,11 +14,14 @@ import {
 
 export function AdminPlans() {
   const { data: plans = [], isLoading } = usePlans();
+  const { data: subCounts = {} } = usePlanSubscriptionCounts();
   const upsert = useUpsertPlan();
   const del = useDeletePlan();
   const [editing, setEditing] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
-  const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const [confirmPlan, setConfirmPlan] = useState<any | null>(null);
+  const confirmSubs = confirmPlan ? (subCounts[confirmPlan.id] ?? 0) : 0;
+
 
   return (
     <div className="space-y-4">
@@ -36,6 +40,7 @@ export function AdminPlans() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {plans.map((p: any) => {
             const f = p.features || {};
+            const subs = subCounts[p.id] ?? 0;
             return (
               <Card key={p.id} className={!p.is_active ? "opacity-60" : ""}>
                 <CardHeader className="pb-3">
@@ -48,12 +53,31 @@ export function AdminPlans() {
                       <Button size="icon" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setConfirmDel(p.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                disabled={subs > 0}
+                                onClick={() => setConfirmPlan(p)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {subs > 0
+                              ? `Plano com ${subs} assinatura${subs > 1 ? "s" : ""} — desative em vez de excluir`
+                              : "Excluir plano"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
                 </CardHeader>
+
                 <CardContent className="space-y-3">
                   <div>
                     <p className="text-2xl font-bold">{formatCents(p.price_cents)}</p>
@@ -66,7 +90,11 @@ export function AdminPlans() {
                     {p.is_active ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}
                     {p.is_public ? <Badge variant="secondary">Público</Badge> : <Badge variant="outline">Privado</Badge>}
                     {p.is_featured && <Badge variant="secondary">{p.featured_label || "Destaque"}</Badge>}
+                    <Badge variant="outline">
+                      {subs} assinatura{subs === 1 ? "" : "s"}
+                    </Badge>
                   </div>
+
                   <div className="text-xs space-y-1 pt-2 border-t">
                     <div className="flex justify-between"><span className="text-muted-foreground">Empresas</span><span>{formatLimit(f.max_companies)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Lançamentos/mês</span><span>{formatLimit(f.max_transactions_per_month)}</span></div>
@@ -91,22 +119,37 @@ export function AdminPlans() {
         onSave={(data) => upsert.mutate(data, { onSuccess: () => setOpen(false) })}
       />
 
-      <AlertDialog open={!!confirmDel} onOpenChange={(v) => !v && setConfirmDel(null)}>
+      <AlertDialog open={!!confirmPlan} onOpenChange={(v) => !v && setConfirmPlan(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir plano?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirmSubs > 0 ? "Desativar plano?" : "Excluir plano?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Assinaturas vinculadas serão impedidas se houverem.
+              {confirmSubs > 0
+                ? `Este plano possui ${confirmSubs} assinatura${confirmSubs > 1 ? "s" : ""} vinculada${confirmSubs > 1 ? "s" : ""} e não pode ser excluído sem perder o histórico. Você pode desativá-lo para que deixe de ser oferecido.`
+                : "Esta ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (confirmDel) del.mutate(confirmDel); setConfirmDel(null); }}>
-              Excluir
+            <AlertDialogAction
+              onClick={() => {
+                if (!confirmPlan) return;
+                if (confirmSubs > 0) {
+                  upsert.mutate({ ...confirmPlan, is_active: false, is_public: false });
+                } else {
+                  del.mutate(confirmPlan.id);
+                }
+                setConfirmPlan(null);
+              }}
+            >
+              {confirmSubs > 0 ? "Desativar plano" : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }
