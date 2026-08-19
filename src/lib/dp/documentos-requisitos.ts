@@ -80,14 +80,18 @@ export type ItemChecklist = {
   key: string;
   requisito: DpDocumentoRequisito;
   dependente?: DependenteContexto | null;
+  /** Anexo principal (o aprovado mais recente ou o último enviado). */
   vinculo?: DpColaboradorDocumento | null;
+  /** Todos os anexos do item (itens que permitem vários arquivos). */
+  anexos: DpColaboradorDocumento[];
   status: StatusItem;
   obrigatorio: boolean;
   validade: string | null;
   diasParaVencer: number | null;
-  /** Satisfeito por outro módulo (ex.: ASO no SESMT). */
-  externo: boolean;
+  /** Permite mais de um arquivo no mesmo item. */
+  multiplos: boolean;
 };
+
 
 export function idadeEmAnos(nascimento?: string | null, base = new Date()): number | null {
   if (!nascimento) return null;
