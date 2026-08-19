@@ -90,7 +90,11 @@ export function AdminPlans() {
                     {p.is_active ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}
                     {p.is_public ? <Badge variant="secondary">Público</Badge> : <Badge variant="outline">Privado</Badge>}
                     {p.is_featured && <Badge variant="secondary">{p.featured_label || "Destaque"}</Badge>}
+                    <Badge variant="outline">
+                      {subs} assinatura{subs === 1 ? "" : "s"}
+                    </Badge>
                   </div>
+
                   <div className="text-xs space-y-1 pt-2 border-t">
                     <div className="flex justify-between"><span className="text-muted-foreground">Empresas</span><span>{formatLimit(f.max_companies)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Lançamentos/mês</span><span>{formatLimit(f.max_transactions_per_month)}</span></div>
