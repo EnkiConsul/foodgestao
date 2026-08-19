@@ -210,10 +210,33 @@ export type ResolverInput = {
   colaborador: ColaboradorContexto;
   dependentes?: DependenteContexto[];
   vinculos?: DpColaboradorDocumento[];
-  /** ASO admissional existente e apto (módulo SESMT). */
-  asoAdmissionalOk?: boolean;
   hoje?: Date;
 };
+
+const PRIORIDADE_STATUS: StatusItem[] = [
+  "aprovado", "vencendo", "enviado", "dispensado", "vencido", "recusado", "pendente",
+];
+
+/** Status agregado de um item que pode ter vários anexos. */
+function resolverItem(
+  req: DpDocumentoRequisito,
+  anexos: DpColaboradorDocumento[],
+  hoje: Date,
+): { status: StatusItem; dias: number | null; validade: string | null; principal: DpColaboradorDocumento | null } {
+  if (anexos.length === 0) {
+    return { status: "pendente", dias: null, validade: null, principal: null };
+  }
+  const avaliados = anexos.map((a) => {
+    const validade = calcularValidade(req, a);
+    const { status, dias } = statusDoVinculo(req, a, validade, hoje);
+    return { anexo: a, status, dias, validade };
+  });
+  avaliados.sort(
+    (a, b) => PRIORIDADE_STATUS.indexOf(a.status) - PRIORIDADE_STATUS.indexOf(b.status),
+  );
+  const melhor = avaliados[0];
+  return { status: melhor.status, dias: melhor.dias, validade: melhor.validade, principal: melhor.anexo };
+}
 
 /** Monta o checklist resolvido do colaborador (inclui itens de dependentes). */
 export function resolverChecklist({
@@ -221,67 +244,54 @@ export function resolverChecklist({
   colaborador,
   dependentes = [],
   vinculos = [],
-  asoAdmissionalOk = false,
   hoje = new Date(),
 }: ResolverInput): ItemChecklist[] {
-  const porChave = new Map<string, DpColaboradorDocumento>();
-  for (const v of vinculos) porChave.set(`${v.requisito_id}:${v.dependente_id ?? ""}`, v);
+  const porChave = new Map<string, DpColaboradorDocumento[]>();
+  for (const v of vinculos) {
+    const k = `${v.requisito_id}:${v.dependente_id ?? ""}`;
+    const lista = porChave.get(k) ?? [];
+    lista.push(v);
+    porChave.set(k, lista);
+  }
 
   const itens: ItemChecklist[] = [];
 
-  for (const req of requisitos) {
-    if (req.obrigatoriedade === "desativado") continue;
-    const ehDependente = req.categoria === "dependente";
-    if (ehDependente) {
-      for (const dep of dependentes) {
-        if (!requisitoAplicaDependente(req, dep, hoje)) continue;
-        const vinculo = porChave.get(`${req.id}:${dep.id}`) ?? null;
-        const validade = calcularValidade(req, vinculo);
-        const { status, dias } = statusDoVinculo(req, vinculo, validade, hoje);
-        itens.push({
-          key: `${req.id}:${dep.id}`,
-          requisito: req,
-          dependente: dep,
-          vinculo,
-          status,
-          validade,
-          diasParaVencer: dias,
-          obrigatorio: req.obrigatoriedade === "obrigatorio",
-          externo: false,
-        });
-      }
-      continue;
-    }
-
-    if (!requisitoAplicaColaborador(req, colaborador)) continue;
-    const vinculo = porChave.get(`${req.id}:`) ?? null;
-    const externo = req.satisfeito_por === "aso_admissional";
-    if (externo) {
-      itens.push({
-        key: `${req.id}:`,
-        requisito: req,
-        vinculo,
-        status: asoAdmissionalOk ? "aprovado" : "pendente",
-        validade: null,
-        diasParaVencer: null,
-        obrigatorio: req.obrigatoriedade === "obrigatorio",
-        externo: true,
-      });
-      continue;
-    }
-    const validade = calcularValidade(req, vinculo);
-    const { status, dias } = statusDoVinculo(req, vinculo, validade, hoje);
-    itens.push({
-      key: `${req.id}:`,
+  const montar = (
+    req: DpDocumentoRequisito,
+    dep: DependenteContexto | null,
+  ): ItemChecklist => {
+    const chave = `${req.id}:${dep?.id ?? ""}`;
+    const anexos = [...(porChave.get(chave) ?? [])].sort(
+      (a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""),
+    );
+    const { status, dias, validade, principal } = resolverItem(req, anexos, hoje);
+    return {
+      key: chave,
       requisito: req,
-      vinculo,
+      dependente: dep,
+      vinculo: principal,
+      anexos,
       status,
       validade,
       diasParaVencer: dias,
       obrigatorio: req.obrigatoriedade === "obrigatorio",
-      externo: false,
-    });
+      multiplos: !!req.permite_multiplos,
+    };
+  };
+
+  for (const req of requisitos) {
+    if (req.obrigatoriedade === "desativado") continue;
+    if (req.categoria === "dependente") {
+      for (const dep of dependentes) {
+        if (!requisitoAplicaDependente(req, dep, hoje)) continue;
+        itens.push(montar(req, dep));
+      }
+      continue;
+    }
+    if (!requisitoAplicaColaborador(req, colaborador)) continue;
+    itens.push(montar(req, null));
   }
+
 
   const ordemStatus: StatusItem[] = [
     "vencido", "pendente", "recusado", "vencendo", "enviado", "aprovado", "dispensado",
