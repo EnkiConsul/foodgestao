@@ -30,6 +30,7 @@ import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 
@@ -397,6 +398,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       valor_hora: c.valor_hora != null ? String(c.valor_hora).replace(".", ",") : "",
       dependentes_irrf: String(c.dependentes_irrf ?? 0),
       adicional_percentual: String(c.adicional_percentual ?? 0).replace(".", ","),
+      insalubridade_percentual: String((c as any).insalubridade_percentual ?? 0).replace(".", ","),
+      periculosidade_percentual: String((c as any).periculosidade_percentual ?? 0).replace(".", ","),
       vale_transporte: !!c.vale_transporte,
       vale_transporte_valor_dia:
         c.vale_transporte_valor_dia != null ? String(c.vale_transporte_valor_dia).replace(".", ",") : "",
@@ -875,7 +878,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     const cargoNome = (cargos.data ?? []).find((c) => c.id === form.cargo_id)?.nome ?? null;
     const salarioNum = numeroBR(rem.salario_base);
     const valorHoraNum = numeroBR(rem.valor_hora);
-    const adicionalNum = numeroBR(rem.adicional_percentual);
+    const insalubridadeNum = numeroBR(rem.insalubridade_percentual);
+    const periculosidadeNum = numeroBR(rem.periculosidade_percentual);
+    // Não cumulam: gravamos o mais favorável no campo único que a folha consome.
+    const adicionalNum = percentualAdicionalVigente(insalubridadeNum, periculosidadeNum);
     const vtDiaNum = numeroBR(rem.vale_transporte_valor_dia);
     const premioNum = numeroBR(rem.premio_assiduidade_valor);
     // Base de cálculo só se aplica a horista/diarista.
@@ -946,8 +952,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       if (pendencia && !isEdit && !criadoId) {
         return erro(rem.forma_pagamento === "horista" ? "valor_hora" : "salario_base", pendencia);
       }
-      if (adicionalNum < 0 || adicionalNum > 100) {
-        return erro("adicional_percentual", "Adicional deve estar entre 0% e 100%");
+      if (insalubridadeNum < 0 || insalubridadeNum > 100) {
+        return erro("insalubridade_percentual", "Insalubridade deve estar entre 0% e 100%");
+      }
+      if (periculosidadeNum < 0 || periculosidadeNum > 100) {
+        return erro("periculosidade_percentual", "Periculosidade deve estar entre 0% e 100%");
       }
       if (rem.vale_transporte && vtDiaNum <= 0) {
         return erro("vale_transporte_valor_dia", "Informe o valor diário do vale-transporte");
@@ -1052,6 +1061,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         valor_hora: rem.forma_pagamento === "horista" ? valorHoraNum || null : null,
         dependentes_irrf: Math.max(0, Math.trunc(numeroBR(rem.dependentes_irrf))),
         adicional_percentual: adicionalNum,
+        insalubridade_percentual: insalubridadeNum,
+        periculosidade_percentual: periculosidadeNum,
         vale_transporte: rem.vale_transporte,
         vale_transporte_valor_dia: rem.vale_transporte ? vtDiaNum : null,
 
@@ -1622,7 +1633,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 salarioCargo={salarioCargo}
                 cargoNome={cargoSelecionado?.nome ?? null}
                 onBeforeNavigate={() => onOpenChange(false)}
-                cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
+                cargoInsalubre={!!cargoSelecionado?.insalubre || !!cargoSelecionado?.insalubre_periculoso}
+                cargoPerigoso={!!cargoSelecionado?.perigoso}
                 regime={regimeSelecionado}
                 beneficios={beneficios}
                 diasJornada={diasJornada}
