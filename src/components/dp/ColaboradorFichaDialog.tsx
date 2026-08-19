@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
+import { useDpDependentes } from "@/hooks/useDpDependentes";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -15,7 +17,7 @@ import {
 } from "@/lib/dp/remuneracao";
 import { MOTIVO_DESLIGAMENTO_LABEL, ELEGIBILIDADE_LABEL } from "@/lib/dp/desligamento";
 import {
-  User, Briefcase, Mail, Phone, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil,
+  User, Briefcase, Mail, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil, X, Users,
 } from "lucide-react";
 import { maskCpf } from "@/lib/cpf";
 
@@ -113,6 +115,22 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
     [atribuicoes, colaborador?.id],
   );
 
+  const configTrabalho = useDpColaboradorConfigTrabalho(colaborador?.id ?? null);
+  const { dependentes } = useDpDependentes(colaborador?.id ?? null);
+  const configVigente = useMemo(
+    () => (configTrabalho.query.data ?? []).find((c) => !c.vigencia_fim) ?? (configTrabalho.query.data ?? [])[0] ?? null,
+    [configTrabalho.query.data],
+  );
+
+  const insalubridade = (colaborador as any)?.insalubridade_percentual as number | null;
+  const periculosidade = (colaborador as any)?.periculosidade_percentual as number | null;
+  const va = (colaborador as any)?.vale_alimentacao as boolean | null;
+  const vaValor = (colaborador as any)?.vale_alimentacao_valor as number | null;
+  const vaPeriodicidade = (colaborador as any)?.vale_alimentacao_periodicidade as string | null;
+  const vaDiasBase = (colaborador as any)?.vale_alimentacao_dias_base as number | null;
+  const vaDescontoTipo = (colaborador as any)?.vale_alimentacao_desconto_tipo as string | null;
+  const vaDescontoValor = (colaborador as any)?.vale_alimentacao_desconto_valor as number | null;
+  const cargaSemanal = (colaborador as any)?.carga_semanal_horas as number | null;
   const formaPagamento = (colaborador as any)?.forma_pagamento as keyof typeof FORMA_PAGAMENTO_LABEL | null;
   const salarioBase = (colaborador as any)?.salario_base as number | null;
   const valorHora = (colaborador as any)?.valor_hora as number | null;
@@ -136,8 +154,8 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+        <DialogHeader className="shrink-0 border-b border-border bg-background p-6 pb-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <DialogTitle className="text-xl font-bold uppercase leading-tight">
@@ -148,6 +166,23 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
               </DialogDescription>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1.5">
+              <div className="mb-1 flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => { onOpenChange(false); onEdit(); }}
+                >
+                  <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Editar
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  onClick={() => onOpenChange(false)}
+                  aria-label="Fechar ficha"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </div>
               {colaborador?.ativo ? (
                 <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
                   <CheckCircle2 className="h-3 w-3 mr-1" /> Ativo
@@ -174,7 +209,7 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6 pt-4">
           {/* Identificação */}
           <Section icon={User} title="Identificação">
             <Field label="CPF" value={colaborador?.cpf ? maskCpf(colaborador.cpf) : "—"} />
@@ -196,8 +231,10 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
 
           </Section>
 
-          {/* Jornada */}
-          <Section icon={Clock} title="Jornada">
+          {/* Jornada e horários */}
+          <Section icon={Clock} title="Horário de Trabalho">
+            <Field label="Carga Semanal" value={cargaSemanal != null ? `${cargaSemanal}h` : "—"} />
+            <Field label="Folga Fixa Semanal" value={folga != null ? DIAS_SEMANA[String(folga)] : "Variável"} />
             <Field
               label="Folha de Ponto"
               value={possuiFolha ? "Sim — vinculado à folha de ponto" : "Não"}
@@ -206,6 +243,31 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
               label="Adiantamento Salarial"
               value={optanteAdiantamento ? "Optante" : "Não optante"}
             />
+            <div className="col-span-full space-y-1">
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Horários por dia da semana
+              </div>
+              {configVigente && configVigente.dias.length > 0 ? (
+                <div className="divide-y divide-border rounded-md border border-border">
+                  {configVigente.dias.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
+                      <span className="text-muted-foreground">{DIAS_SEMANA[String(d.dow)]}</span>
+                      <span className={d.trabalha ? "font-medium" : "text-muted-foreground"}>
+                        {d.trabalha
+                          ? `${(d.entrada ?? "").slice(0, 5) || "—"} às ${(d.saida ?? "").slice(0, 5) || "—"}${
+                              d.intervalo_minutos ? ` · ${d.intervalo_minutos} min de intervalo` : ""
+                            }`
+                          : "Folga"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  Nenhum horário configurado para este colaborador.
+                </div>
+              )}
+            </div>
           </Section>
 
           {/* Remuneração */}
@@ -221,12 +283,39 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
                   : "—"
               }
             />
-            <Field label="Adicional %" value={adicionalPercentual != null ? `${adicionalPercentual}%` : "—"} />
+            <Field label="Insalubridade" value={insalubridade ? `${insalubridade}%` : "Não"} />
+            <Field label="Periculosidade" value={periculosidade ? `${periculosidade}%` : "Não"} />
+            <Field
+              label="Adicional Aplicado na Folha"
+              value={adicionalPercentual ? `${adicionalPercentual}%` : "—"}
+            />
             <Field label="Dependentes IRRF" value={dependentesIrrf ?? "—"} />
             <Field
               label="Vale-Transporte"
               value={valeTransporte ? `Sim — ${fmtCurrency(valeTransporteDia)}/dia` : "Não"}
             />
+            <Field
+              label="Vale-Alimentação"
+              value={
+                va
+                  ? `${fmtCurrency(vaValor)} ${vaPeriodicidade === "diario" ? "por dia" : "por mês"}${
+                      vaPeriodicidade === "diario" && vaDiasBase ? ` · ${vaDiasBase} dias` : ""
+                    }`
+                  : "Não"
+              }
+            />
+            {va && (
+              <Field
+                label="Desconto do Colaborador (VA)"
+                value={
+                  vaDescontoTipo === "nenhum" || !vaDescontoValor
+                    ? "Sem desconto"
+                    : vaDescontoTipo === "percentual"
+                    ? `${vaDescontoValor}%`
+                    : fmtCurrency(vaDescontoValor)
+                }
+              />
+            )}
             <Field
               label="Prêmio de Assiduidade"
               value={
@@ -266,6 +355,26 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
             )}
           </Section>
 
+          {/* Dependentes */}
+          <Section icon={Users} title="Dependentes">
+            {dependentes.length > 0 ? (
+              <div className="col-span-full divide-y divide-border rounded-md border border-border">
+                {dependentes.map((d: any) => (
+                  <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 text-sm">
+                    <span className="font-medium">{d.nome}</span>
+                    <span className="text-muted-foreground">
+                      {fmtDate(d.data_nascimento)}
+                      {d.dependente_irrf ? " · IRRF" : ""}
+                      {d.salario_familia ? " · Salário-família" : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="col-span-full text-sm text-muted-foreground">Nenhum dependente cadastrado.</div>
+            )}
+          </Section>
+
           {/* Acesso ao portal */}
           <Section icon={Lock} title="Acesso ao Portal">
             <Field
@@ -299,17 +408,12 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:justify-between">
+        <DialogFooter className="shrink-0 gap-2 border-t border-border bg-background p-4 sm:justify-between">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
-          <Button
-            onClick={() => {
-              onOpenChange(false);
-              onEdit();
-            }}
-          >
-            <Pencil className="h-4 w-4 mr-2" /> Editar
+          <Button onClick={() => { onOpenChange(false); onEdit(); }}>
+            <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Editar
           </Button>
         </DialogFooter>
       </DialogContent>
