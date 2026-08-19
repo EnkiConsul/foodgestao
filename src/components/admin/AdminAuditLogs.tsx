@@ -69,6 +69,23 @@ export function AdminAuditLogs() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  // Ações existentes no banco (para não limitar o filtro a uma lista fixa)
+  const { data: actionOptions } = useQuery({
+    queryKey: ["admin-audit-log-actions"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("audit_logs")
+        .select("action")
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      if (error) throw error;
+      const set = new Set<string>([...Object.keys(actionLabels), ...(data ?? []).map((r) => r.action)]);
+      return Array.from(set).sort((a, b) => actionInfoOf(a).label.localeCompare(actionInfoOf(b).label, "pt-BR"));
+    },
+  });
+
+
   const queryKey = [
     "admin-audit-logs",
     { page, search, actionFilter, dateFrom: dateFrom?.toISOString(), dateTo: dateTo?.toISOString() },
