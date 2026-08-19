@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -265,6 +265,22 @@ export function RemuneracaoFields({
     if (value.salario_base !== alvo) onChange({ salario_base: alvo });
   }, [travadoPeloCargo, salarioCargo, value.salario_base]);
 
+  /**
+   * Horista/diarista sem base salarial informada abre com o salário de
+   * referência do cargo (piso do patronal ou ajuste da unidade). Nada é
+   * gravado sem salvar — o aviso pede a confirmação do valor.
+   */
+  const prefillRef = useRef(false);
+  const [prefillSugerido, setPrefillSugerido] = useState(false);
+  useEffect(() => {
+    if (!usaBase || prefillRef.current) return;
+    if (!salarioCargo || salarioCargo <= 0) return;
+    if (numeroBR(value.base_salarial) > 0) { prefillRef.current = true; return; }
+    prefillRef.current = true;
+    setPrefillSugerido(true);
+    onChange({ base_salarial: paraBR(salarioCargo) });
+  }, [usaBase, salarioCargo, value.base_salarial]);
+
   return (
     <div className="col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-2">
@@ -351,6 +367,11 @@ export function RemuneracaoFields({
                   onChange={(e) => onChange({ base_salarial: e.target.value })}
                   placeholder="Ex: 2200,00"
                 />
+                {prefillSugerido && (
+                  <p className="text-[11px] text-amber-700 dark:text-amber-500">
+                    Sugerido pelo cargo{cargoNome ? ` ${cargoNome}` : ""} ({formatarBRL(salarioCargo!)}) — confirme o valor e salve.
+                  </p>
+                )}
               </div>
               {forma === "horista" ? (
                 <div className="space-y-2">
