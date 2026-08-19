@@ -23,6 +23,8 @@ const req = (over: Partial<any> = {}): any => ({
   gerado_pelo_sistema: over.gerado_pelo_sistema ?? false,
   exige_aceite: over.exige_aceite ?? false,
   satisfeito_por: over.satisfeito_por ?? null,
+  permite_multiplos: over.permite_multiplos ?? false,
+
   sistema: true,
   ordem: 100,
   created_at: "",
