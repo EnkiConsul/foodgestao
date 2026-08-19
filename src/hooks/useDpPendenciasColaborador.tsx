@@ -242,7 +242,7 @@ export function useDpPendenciasColaborador() {
           .maybeSingle();
 
         if (colab) {
-          const [reqs, deps, vincs, asos] = await Promise.all([
+          const [reqs, deps, vincs] = await Promise.all([
             supabase
               .from("dp_documento_requisitos")
               .select("*")
@@ -257,11 +257,6 @@ export function useDpPendenciasColaborador() {
               .from("dp_colaborador_documentos")
               .select("*")
               .eq("colaborador_id", colabId as string),
-            supabase
-              .from("dp_exames_aso")
-              .select("resultado")
-              .eq("colaborador_id", colabId as string)
-              .eq("tipo", "admissional"),
           ]);
 
           const itens = resolverChecklist({

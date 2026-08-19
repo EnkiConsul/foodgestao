@@ -622,21 +622,10 @@ export function useDpPendencias() {
             .from("dp_colaborador_documentos")
             .select("*")
             .eq("company_id", selectedCompanyId!),
-          supabase
-            .from("dp_exames_aso")
-            .select("colaborador_id, resultado")
-            .eq("company_id", selectedCompanyId!)
-            .eq("tipo", "admissional"),
         ]);
 
         const requisitos = (reqs.data ?? []) as any[];
         if (requisitos.length > 0) {
-          const asoOk = new Set(
-            (asos.data ?? [])
-              .filter((a: any) => a.resultado === "apto" || a.resultado === "apto_com_restricoes")
-              .map((a: any) => a.colaborador_id as string),
-          );
-
           for (const c of (colabs.data ?? []) as any[]) {
             const itens = resolverChecklist({
               requisitos,
