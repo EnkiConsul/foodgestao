@@ -117,10 +117,7 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
 
   const configTrabalho = useDpColaboradorConfigTrabalho(colaborador?.id ?? null);
   const { dependentes } = useDpDependentes(colaborador?.id ?? null);
-  const configVigente = useMemo(
-    () => (configTrabalho.query.data ?? []).find((c) => !c.vigencia_fim) ?? (configTrabalho.query.data ?? [])[0] ?? null,
-    [configTrabalho.query.data],
-  );
+  const configVigente = configTrabalho.vigente ?? configTrabalho.configs[0] ?? null;
 
   const insalubridade = (colaborador as any)?.insalubridade_percentual as number | null;
   const periculosidade = (colaborador as any)?.periculosidade_percentual as number | null;
