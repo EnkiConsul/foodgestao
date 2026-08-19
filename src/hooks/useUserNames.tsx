@@ -27,5 +27,17 @@ export function useUserNames() {
     return info?.full_name || `${userId.slice(0, 8)}…`;
   };
 
-  return { ...query, displayName };
+  /** True when a profile row exists for this user id. */
+  const hasProfile = (userId?: string | null) => {
+    if (!userId) return false;
+    return Boolean(query.data?.has(userId));
+  };
+
+  /** Real name when available, otherwise null (no id fallback). */
+  const realName = (userId?: string | null) => {
+    if (!userId) return null;
+    return query.data?.get(userId)?.full_name || null;
+  };
+
+  return { ...query, displayName, hasProfile, realName };
 }
