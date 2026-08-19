@@ -3406,8 +3406,10 @@ export type Database = {
           exige_cnh: boolean
           exige_epi: boolean
           id: string
+          insalubre: boolean
           insalubre_periculoso: boolean
           nome: string
+          perigoso: boolean
           salario_base: number | null
           updated_at: string
         }
@@ -3421,8 +3423,10 @@ export type Database = {
           exige_cnh?: boolean
           exige_epi?: boolean
           id?: string
+          insalubre?: boolean
           insalubre_periculoso?: boolean
           nome: string
+          perigoso?: boolean
           salario_base?: number | null
           updated_at?: string
         }
@@ -3436,8 +3440,10 @@ export type Database = {
           exige_cnh?: boolean
           exige_epi?: boolean
           id?: string
+          insalubre?: boolean
           insalubre_periculoso?: boolean
           nome?: string
+          perigoso?: boolean
           salario_base?: number | null
           updated_at?: string
         }
@@ -3985,6 +3991,7 @@ export type Database = {
           forma_pagamento: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido: boolean
           id: string
+          insalubridade_percentual: number
           matricula: string | null
           motivo_desligamento:
             | Database["public"]["Enums"]["dp_motivo_desligamento"]
@@ -3994,6 +4001,7 @@ export type Database = {
           observacoes: string | null
           optante_adiantamento: boolean
           perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"]
+          periculosidade_percentual: number
           pis_nit: string | null
           possui_folha_ponto: boolean
           premio_assiduidade: boolean
@@ -4064,6 +4072,7 @@ export type Database = {
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido?: boolean
           id?: string
+          insalubridade_percentual?: number
           matricula?: string | null
           motivo_desligamento?:
             | Database["public"]["Enums"]["dp_motivo_desligamento"]
@@ -4073,6 +4082,7 @@ export type Database = {
           observacoes?: string | null
           optante_adiantamento?: boolean
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
+          periculosidade_percentual?: number
           pis_nit?: string | null
           possui_folha_ponto?: boolean
           premio_assiduidade?: boolean
@@ -4143,6 +4153,7 @@ export type Database = {
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido?: boolean
           id?: string
+          insalubridade_percentual?: number
           matricula?: string | null
           motivo_desligamento?:
             | Database["public"]["Enums"]["dp_motivo_desligamento"]
@@ -4152,6 +4163,7 @@ export type Database = {
           observacoes?: string | null
           optante_adiantamento?: boolean
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
+          periculosidade_percentual?: number
           pis_nit?: string | null
           possui_folha_ponto?: boolean
           premio_assiduidade?: boolean
