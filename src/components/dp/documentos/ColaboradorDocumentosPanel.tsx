@@ -58,8 +58,10 @@ export function ColaboradorDocumentosPanel({
     doc.aprovar.isPending ||
     doc.recusar.isPending ||
     doc.dispensar.isPending ||
-    doc.gerarDocumentoSistema.isPending ||
+    doc.excluirAnexo.isPending ||
+    doc.pedirAceite.isPending ||
     doc.aceitar.isPending;
+
 
   return (
     <div className="space-y-4">
