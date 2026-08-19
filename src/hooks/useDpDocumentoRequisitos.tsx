@@ -16,6 +16,9 @@ type RequisitoUpdate = Partial<
     | "meses_validade"
     | "dias_aviso"
     | "ordem"
+    | "permite_multiplos"
+    | "exige_aceite"
+
   >
 >;
 
