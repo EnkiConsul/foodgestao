@@ -33,6 +33,9 @@ import { BeneficioIsonomiaAviso } from "@/components/dp/BeneficioIsonomiaAviso";
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
 import { formatarBRL } from "@/lib/dp/folha";
+import {
+  GRAUS_INSALUBRIDADE, PERICULOSIDADE_PERCENTUAL_LEGAL, alertasAdicionaisRisco, valorPericulosidade,
+} from "@/lib/dp/adicionais-risco";
 import { cn } from "@/lib/utils";
 
 
@@ -42,6 +45,9 @@ export interface RemuneracaoFormState {
   valor_hora: string;
   dependentes_irrf: string;
   adicional_percentual: string;
+  /** Adicionais de risco — não cumuláveis (art. 193 §2º CLT). */
+  insalubridade_percentual: string;
+  periculosidade_percentual: string;
   vale_transporte: boolean;
   vale_transporte_valor_dia: string;
   beneficios: Record<string, boolean>;
@@ -79,6 +85,8 @@ export const remuneracaoBlank: RemuneracaoFormState = {
   valor_hora: "",
   dependentes_irrf: "0",
   adicional_percentual: "0",
+  insalubridade_percentual: "0",
+  periculosidade_percentual: "0",
   vale_transporte: false,
   vale_transporte_valor_dia: "",
   beneficios: {},
@@ -119,8 +127,10 @@ interface Props {
   cargoNome?: string | null;
   /** Executado antes de navegar para o cadastro de cargos (fecha o diálogo). */
   onBeforeNavigate?: () => void;
-  /** Insalubridade/periculosidade marcada no cargo. */
+  /** Insalubridade marcada no cargo. */
   cargoInsalubre?: boolean;
+  /** Periculosidade marcada no cargo. */
+  cargoPerigoso?: boolean;
   beneficios: Beneficio[];
   cargoInsalubreHint?: string;
   /** Regime do vínculo — restringe as formas de pagamento admitidas. */
@@ -149,6 +159,7 @@ export function RemuneracaoFields({
   cargoNome,
   onBeforeNavigate,
   cargoInsalubre,
+  cargoPerigoso,
   beneficios,
   regime,
   diasJornada,
@@ -196,6 +207,14 @@ export function RemuneracaoFields({
       salario_base: salario,
     },
   );
+
+  const periculosidadeValor = valorPericulosidade(numeroBR(value.periculosidade_percentual), salario);
+  const alertasRisco = alertasAdicionaisRisco({
+    insalubridade: numeroBR(value.insalubridade_percentual),
+    periculosidade: numeroBR(value.periculosidade_percentual),
+    cargoInsalubre: !!cargoInsalubre,
+    cargoPerigoso: !!cargoPerigoso,
+  });
 
   const premioCalculado = premioAssiduidadeBase(
     {
