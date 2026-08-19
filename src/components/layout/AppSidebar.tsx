@@ -1,5 +1,6 @@
 import { LogOut, MessageCircle, LayoutGrid } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { cn } from "@/lib/utils";
 import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
 import symbol360 from "@/assets/360food-symbol.png.asset.json";
 
@@ -25,6 +26,8 @@ import { PortalMenu } from "./sidebar-menus/PortalMenu";
 import { AccountMenu } from "./sidebar-menus/AccountMenu";
 import { ComingSoonMenu } from "./sidebar-menus/ComingSoonMenu";
 import { PedidosMenu } from "./sidebar-menus/PedidosMenu";
+import { SidebarToggleButton } from "./SidebarToggleButton";
+
 
 export function AppSidebar() {
   const { state } = useSidebar();
