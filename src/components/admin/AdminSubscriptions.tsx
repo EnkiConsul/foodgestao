@@ -59,11 +59,8 @@ export function AdminSubscriptions() {
     [byStatus, hideTest, realName]
   );
 
-  const activePlanIds = useMemo(
-    () => new Set(plans.filter((p: any) => p.is_active).map((p: any) => p.id)),
-    [plans]
-  );
   const planLabel = (p: any) => (p.is_active ? p.name : `${p.name} (inativo)`);
+
 
   const sortedFiltered = useMemo(() => {
     if (!clientSortDir) return filtered;
