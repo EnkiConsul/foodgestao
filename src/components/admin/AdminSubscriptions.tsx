@@ -22,18 +22,48 @@ import { ExemptSubscriptionDialog } from "./ExemptSubscriptionDialog";
 import { ClientCell } from "./ClientCell";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
+/** Test/seed accounts and collaborator portal logins pollute the list. */
+const SEED_ID_PREFIXES = ["11111111-", "22222222-", "33333333-", "44444444-", "55555555-"];
+function isNoiseAccount(userId?: string | null, name?: string | null) {
+  if (!userId) return false;
+  if (SEED_ID_PREFIXES.some((p) => userId.startsWith(p))) return true;
+  const n = (name ?? "").toLowerCase();
+  if (!n) return false;
+  return (
+    n.includes("@portal.360food.local") ||
+    n.startsWith("e2e-") ||
+    n.includes("@example.com") ||
+    n.includes("teste analytics")
+  );
+}
+
 export function AdminSubscriptions() {
   const { data: subs = [], isLoading } = useAdminSubscriptions();
   const { data: plans = [] } = usePlans();
-  const { displayName } = useUserNames();
+  const { displayName, realName } = useUserNames();
   
   const update = useUpdateSubscription();
   const removeExemption = useRemoveExemption();
   const [filter, setFilter] = useState<string>("all");
+  const [hideTest, setHideTest] = useState(true);
   const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
   const [exemptTarget, setExemptTarget] = useState<{ id: string; planId: string } | null>(null);
 
-  const filtered = filter === "all" ? subs : subs.filter((s: any) => s.status === filter);
+  const byStatus = filter === "all" ? subs : subs.filter((s: any) => s.status === filter);
+  const noiseCount = useMemo(
+    () => byStatus.filter((s: any) => isNoiseAccount(s.user_id, realName(s.user_id))).length,
+    [byStatus, realName]
+  );
+  const filtered = useMemo(
+    () => (hideTest ? byStatus.filter((s: any) => !isNoiseAccount(s.user_id, realName(s.user_id))) : byStatus),
+    [byStatus, hideTest, realName]
+  );
+
+  const activePlanIds = useMemo(
+    () => new Set(plans.filter((p: any) => p.is_active).map((p: any) => p.id)),
+    [plans]
+  );
+  const planLabel = (p: any) => (p.is_active ? p.name : `${p.name} (inativo)`);
 
   const sortedFiltered = useMemo(() => {
     if (!clientSortDir) return filtered;
@@ -68,7 +98,13 @@ export function AdminSubscriptions() {
           </SelectContent>
         </Select>
         <p className="text-sm text-muted-foreground">{filtered.length} assinaturas</p>
+        {noiseCount > 0 && (
+          <Button size="sm" variant="ghost" onClick={() => setHideTest((v) => !v)}>
+            {hideTest ? `Mostrar contas de teste (${noiseCount})` : "Ocultar contas de teste"}
+          </Button>
+        )}
       </div>
+
 
       {/* Desktop */}
       <div className="hidden md:block rounded-md border">
