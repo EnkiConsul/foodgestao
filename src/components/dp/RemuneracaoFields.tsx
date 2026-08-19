@@ -396,22 +396,82 @@ export function RemuneracaoFields({
           />
         </div>
 
-        <div className="space-y-2">
-          <Label>Adicional insalubridade/periculosidade (%)</Label>
-          <Input
-            inputMode="decimal"
-            value={value.adicional_percentual}
-            {...marca("adicional_percentual")}
+        <div className="space-y-3 rounded-lg border border-border bg-background p-3 md:col-span-2">
+          <div className="text-sm font-medium">Adicionais de risco</div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Insalubridade (%)</Label>
+              <Input
+                inputMode="decimal"
+                value={value.insalubridade_percentual}
+                {...marca("insalubridade_percentual")}
+                onChange={(e) => onChange({ insalubridade_percentual: e.target.value })}
+                placeholder="0"
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {GRAUS_INSALUBRIDADE.map((g) => (
+                  <Button
+                    key={g.percentual}
+                    type="button"
+                    size="sm"
+                    variant={numeroBR(value.insalubridade_percentual) === g.percentual ? "secondary" : "outline"}
+                    className="h-7 text-[11px]"
+                    onClick={() => onChange({ insalubridade_percentual: String(g.percentual) })}
+                  >
+                    {g.label}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Calculado sobre o salário mínimo (art. 192 da CLT).
+              </p>
+            </div>
 
-            onChange={(e) => onChange({ adicional_percentual: e.target.value })}
-            placeholder="0"
-          />
-          {cargoInsalubre ? (
-            <p className="text-[11px] text-amber-600 dark:text-amber-500">
-              O cargo está marcado como insalubre/periculoso — informe o percentual devido.
+            <div className="space-y-2">
+              <Label>Periculosidade (%)</Label>
+              <Input
+                inputMode="decimal"
+                value={value.periculosidade_percentual}
+                {...marca("periculosidade_percentual")}
+                onChange={(e) => onChange({ periculosidade_percentual: e.target.value })}
+                placeholder="0"
+              />
+              <div className="flex flex-wrap gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={
+                    numeroBR(value.periculosidade_percentual) === PERICULOSIDADE_PERCENTUAL_LEGAL
+                      ? "secondary"
+                      : "outline"
+                  }
+                  className="h-7 text-[11px]"
+                  onClick={() => onChange({ periculosidade_percentual: String(PERICULOSIDADE_PERCENTUAL_LEGAL) })}
+                >
+                  Percentual legal (30%)
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Calculado sobre o salário base
+                {periculosidadeValor != null && periculosidadeValor > 0
+                  ? ` — ${formatarBRL(periculosidadeValor)}/mês`
+                  : ""}
+                .
+              </p>
+            </div>
+          </div>
+
+          {alertasRisco.map((a, i) => (
+            <p
+              key={`${a.tipo}-${i}`}
+              className="flex items-start gap-2 text-[11px] text-amber-700 dark:text-amber-500"
+            >
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span>{a.mensagem}</span>
             </p>
-          ) : null}
+          ))}
         </div>
+
       </div>
 
       {/* Assiduidade e pontualidade */}
