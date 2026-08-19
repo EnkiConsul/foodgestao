@@ -115,22 +115,37 @@ export function AdminPlans() {
         onSave={(data) => upsert.mutate(data, { onSuccess: () => setOpen(false) })}
       />
 
-      <AlertDialog open={!!confirmDel} onOpenChange={(v) => !v && setConfirmDel(null)}>
+      <AlertDialog open={!!confirmPlan} onOpenChange={(v) => !v && setConfirmPlan(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir plano?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirmSubs > 0 ? "Desativar plano?" : "Excluir plano?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Assinaturas vinculadas serão impedidas se houverem.
+              {confirmSubs > 0
+                ? `Este plano possui ${confirmSubs} assinatura${confirmSubs > 1 ? "s" : ""} vinculada${confirmSubs > 1 ? "s" : ""} e não pode ser excluído sem perder o histórico. Você pode desativá-lo para que deixe de ser oferecido.`
+                : "Esta ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (confirmDel) del.mutate(confirmDel); setConfirmDel(null); }}>
-              Excluir
+            <AlertDialogAction
+              onClick={() => {
+                if (!confirmPlan) return;
+                if (confirmSubs > 0) {
+                  upsert.mutate({ ...confirmPlan, is_active: false, is_public: false });
+                } else {
+                  del.mutate(confirmPlan.id);
+                }
+                setConfirmPlan(null);
+              }}
+            >
+              {confirmSubs > 0 ? "Desativar plano" : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }
