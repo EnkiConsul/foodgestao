@@ -39,8 +39,18 @@ const actionLabels: Record<string, { label: string; variant: "default" | "second
 const ALL_ACTIONS = "all";
 const PAGE_SIZE = 20;
 
-// Lista fixa para o filtro (evita query separada de "ações distintas")
-const ACTION_OPTIONS = Object.keys(actionLabels);
+/** Rótulo legível para ações sem tradução cadastrada (snake_case → Texto). */
+function humanizeAction(action: string) {
+  return action
+    .split("_")
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function actionInfoOf(action: string) {
+  return actionLabels[action] ?? { label: humanizeAction(action), variant: "outline" as const };
+}
 
 export function AdminAuditLogs() {
   const [searchInput, setSearchInput] = useState("");
