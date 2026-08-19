@@ -600,7 +600,7 @@ export function useDpPendencias() {
 
       // 13. Documentos obrigatórios de admissão faltando, vencidos ou recusados
       try {
-        const [reqs, colabs, deps, vincs, asos] = await Promise.all([
+        const [reqs, colabs, deps, vincs] = await Promise.all([
           supabase
             .from("dp_documento_requisitos")
             .select("*")
