@@ -157,9 +157,9 @@ export function AdminAuditLogs() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL_ACTIONS}>Todas as ações</SelectItem>
-            {ACTION_OPTIONS.map((action) => (
+            {(actionOptions ?? Object.keys(actionLabels)).map((action) => (
               <SelectItem key={action} value={action}>
-                {actionLabels[action]?.label ?? action}
+                {actionInfoOf(action).label}
               </SelectItem>
             ))}
           </SelectContent>
