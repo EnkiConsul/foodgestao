@@ -1498,67 +1498,20 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           )}
 
 
-          {/* Desligamento (editável quando o colaborador está desligado) */}
+          {/* Desligamento tem aba própria: aqui fica apenas o resumo com atalho. */}
           {isDesligado && (
-            <div className="col-span-2 space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
-              <div className="text-sm font-semibold text-destructive">Dados Do Desligamento</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Data da demissão *</Label>
-                  <Input
-                    type="date"
-                    value={form.data_desligamento}
-                    {...marca("data_desligamento")}
-
-                    onChange={(e) => setForm({ ...form, data_desligamento: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Motivo do desligamento</Label>
-                  <Select
-                    value={form.motivo_desligamento}
-                    onValueChange={(v) => setForm({ ...form, motivo_desligamento: v })}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE_DESLIG}>Não informar</SelectItem>
-                      {MOTIVO_DESLIGAMENTO_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Recontrataria?</Label>
-                  <Select
-                    value={form.elegivel_recontratacao}
-                    onValueChange={(v) => setForm({ ...form, elegivel_recontratacao: v })}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE_DESLIG}>Não informar</SelectItem>
-                      {ELEGIBILIDADE_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+              <div className="text-sm">
+                <span className="font-semibold text-destructive">Colaborador desligado</span>
+                {form.data_desligamento && (
+                  <span className="text-muted-foreground">
+                    {" "}em {new Date(`${form.data_desligamento}T12:00:00`).toLocaleDateString("pt-BR")}
+                  </span>
+                )}
               </div>
-              <div className="space-y-1.5">
-                <Label>Considerações do desligamento</Label>
-                <Textarea
-                  rows={3}
-                  maxLength={2000}
-                  placeholder="Notas internas para futuras avaliações de recontratação..."
-                  value={form.observacao_desligamento}
-                  {...marca("observacao_desligamento")}
-
-                  onChange={(e) => setForm({ ...form, observacao_desligamento: e.target.value })}
-                />
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Alterar a data recalcula o prazo de acesso ao portal. Use a ação “Reintegrar” na lista para reativar o colaborador.
-              </p>
+              <Button type="button" variant="outline" size="sm" onClick={() => setTab("desligamento")}>
+                Ver aba Desligamento
+              </Button>
             </div>
           )}
 
@@ -1728,6 +1681,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
           <TabsContent value="documentos" className="mt-4">
             <ColaboradorDocumentosPanel colaboradorId={colaborador?.id ?? criadoId ?? null} />
+          </TabsContent>
+
+          <TabsContent value="acesso" className="mt-4">
+            <ColaboradorAcessoPanel colaborador={colaboradorAtual} />
+          </TabsContent>
+
+          <TabsContent value="desligamento" className="mt-4">
+            <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
           </TabsContent>
           </div>
         </Tabs>
