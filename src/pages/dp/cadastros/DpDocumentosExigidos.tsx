@@ -196,11 +196,11 @@ export default function DpDocumentosExigidos() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium">{r.nome}</span>
                       {r.sistema && <Badge variant="secondary" className="text-xs">Padrão</Badge>}
-                      {r.gerado_pelo_sistema && (
-                        <Badge variant="outline" className="text-xs">Gerado pelo sistema</Badge>
+                      {r.permite_multiplos && (
+                        <Badge variant="outline" className="text-xs">Vários arquivos</Badge>
                       )}
-                      {r.satisfeito_por === "aso_admissional" && (
-                        <Badge variant="outline" className="text-xs">Vem do módulo de exames</Badge>
+                      {r.exige_aceite && (
+                        <Badge variant="outline" className="text-xs">Aceite digital opcional</Badge>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">

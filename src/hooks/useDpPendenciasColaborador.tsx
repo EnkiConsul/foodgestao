@@ -290,8 +290,8 @@ export function useDpPendenciasColaborador() {
               url: "/dp/meu/documentos",
             });
           }
-          const aceites = itens.filter(
-            (i) => i.requisito.exige_aceite && i.status === "enviado" && !!i.vinculo?.documento_id,
+          const aceites = itens.filter((i) =>
+            (i.anexos ?? []).some((a: any) => a.aceite_solicitado_em && !a.aceito_em),
           );
           if (aceites.length > 0) {
             results.push({
