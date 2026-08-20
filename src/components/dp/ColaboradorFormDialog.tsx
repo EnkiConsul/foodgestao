@@ -1658,15 +1658,16 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               />
 
               {/* Regra coletiva de anuênio/triênio aplicável a este colaborador */}
-              <div className="col-span-2">
-                <AdicionalTempoServicoAviso
-                  cargoId={form.cargo_id || null}
-                  unidadeId={form.unidade_id || null}
-                  admissao={form.data_admissao || null}
-                  base={baseSalarialInformada()}
-                  onBeforeNavigate={() => onOpenChange(false)}
-                />
-              </div>
+              <AdicionalTempoServicoCard
+                admissao={form.data_admissao || null}
+                cargoId={form.cargo_id || null}
+                unidadeId={form.unidade_id || null}
+                sindicatoId={form.sindicato_id || null}
+                base={baseSalarialInformada()}
+                pisoCargo={salarioCargo ?? null}
+                onBeforeNavigate={() => onOpenChange(false)}
+              />
+
 
 
 
