@@ -440,7 +440,22 @@ export function resumoPadrao(payload: BeneficiosPadraoPayload | null | undefined
 }
 
 /** Alcance da gravação: só os próximos cadastros ou também quem já existe. */
-export type PadraoAlcance = "novos" | "todos";
+/** "novos" = só próximos cadastros; "todos" = ativos do escopo; "selecionados" = escolhidos na mão. */
+export type PadraoAlcance = "novos" | "todos" | "selecionados";
+
+/** Interseção dos ativos do escopo com a seleção manual, sem o colaborador aberto. */
+export function idsAlvoPadrao(
+  idsDoEscopo: readonly string[],
+  alcance: PadraoAlcance,
+  selecionados: readonly string[] | null | undefined,
+  ignorarColaboradorId?: string | null,
+): string[] {
+  if (alcance === "novos") return [];
+  const base = idsDoEscopo.filter((id) => id !== ignorarColaboradorId);
+  if (alcance === "todos") return base;
+  const set = new Set(selecionados ?? []);
+  return base.filter((id) => set.has(id));
+}
 
 const inteiro = (v: unknown): number => {
   const n = numeroBR(String(v ?? ""));

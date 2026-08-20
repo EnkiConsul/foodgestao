@@ -75,7 +75,7 @@ import {
 } from "@/hooks/useDpBeneficiosPadrao";
 import {
   aplicarPadrao, assinaturaPadrao, diferencasPadrao, divergenciasColaboradorVsPadrao,
-  extrairPadrao, nivelPadrao,
+  extrairPadrao, nivelPadrao, idsAlvoPadrao,
   padraoTemConteudo, padroesIguaisAlgum, resolverPadrao,
   GRUPOS_PADRAO, ROTULOS_GRUPO, gruposComDiferenca, resumoGrupo,
   gruposDivergentesClassificados, gruposAlteracao, quemPerdeBeneficio,
@@ -85,6 +85,7 @@ import { compararRiscoCargo, textoRisco, type DivergenciaRisco } from "@/lib/dp/
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 
@@ -307,6 +308,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   const [escopoPadrao, setEscopoPadrao] = useState<PadraoEscopo>("unidade");
   /** Alcance: só os próximos cadastros ou também quem já está cadastrado. */
   const [alcancePadrao, setAlcancePadrao] = useState<PadraoAlcance>("novos");
+  /** Ids escolhidos na mão quando o alcance é "selecionados". */
+  const [selecionadosPadrao, setSelecionadosPadrao] = useState<string[]>([]);
+  const [buscaSelecao, setBuscaSelecao] = useState("");
   /** Quais grupos de regras o usuário quer replicar neste padrão. */
   const [gruposPadrao, setGruposPadrao] = useState<GrupoPadrao[]>([...GRUPOS_PADRAO]);
 
@@ -371,6 +375,36 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
       return true;
     }) as unknown as Record<string, unknown>[];
   }, [todosColaboradores.data, escopoPadrao, form.unidade_id, form.cargo_id, colaborador?.id]);
+
+  /** Ids do alcance que hoje divergem dos grupos marcados — base da pré-seleção. */
+  const idsDivergentesNoAlcance = useMemo(() => {
+    const payload = extrairPadrao(rem);
+    return colaboradoresDoAlcance
+      .filter(
+        (c) => divergenciasColaboradorVsPadrao(c, payload, gruposPadrao).length > 0,
+      )
+      .map((c) => String(c.id));
+  }, [colaboradoresDoAlcance, rem, gruposPadrao]);
+
+  /** Colaboradores do alcance filtrados pela busca da lista de seleção. */
+  const colaboradoresSelecionaveis = useMemo(() => {
+    const termo = buscaSelecao.trim().toLowerCase();
+    if (!termo) return colaboradoresDoAlcance;
+    return colaboradoresDoAlcance.filter((c) =>
+      String(c.nome ?? "").toLowerCase().includes(termo),
+    );
+  }, [colaboradoresDoAlcance, buscaSelecao]);
+
+  /** Selecionados efetivos: sempre dentro do alcance atual. */
+  const idsSelecionadosValidos = useMemo(
+    () => idsAlvoPadrao(colaboradoresDoAlcance.map((c) => String(c.id)), "selecionados", selecionadosPadrao),
+    [colaboradoresDoAlcance, selecionadosPadrao],
+  );
+
+  const alternarSelecionado = (id: string, marcado: boolean) =>
+    setSelecionadosPadrao((atual) =>
+      marcado ? Array.from(new Set([...atual, id])) : atual.filter((x) => x !== id),
+    );
 
   /** Aviso de divergência do cadastro já existente em relação ao padrão vigente. */
   const [avisoPadraoDispensado, setAvisoPadraoDispensado] = useState(false);
@@ -930,6 +964,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         ? gruposAlteracao(extrairPadrao(rem), padraoAplicavel.payload)
         : [...GRUPOS_PADRAO];
       setGruposPadrao(alteracoes);
+      setBuscaSelecao("");
+      setSelecionadosPadrao(idsDivergentesNoAlcance);
       setPerguntarPadrao(true);
       return;
 
@@ -993,6 +1029,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           payload,
           limparEscoposMaisEspecificos: escopo !== "cargo" && alcancePadrao === "todos",
           alcance: alcancePadrao,
+          colaboradorIds: alcancePadrao === "selecionados" ? idsSelecionadosValidos : null,
           grupos: gruposPadrao,
           ignorarColaboradorId: colaborador?.id ?? null,
         });
@@ -1005,7 +1042,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               : "Padrão de remuneração da unidade atualizado",
           {
             description:
-              alcancePadrao !== "todos"
+              alcancePadrao === "novos"
                 ? "Os próximos cadastros deste alcance já vêm preenchidos."
                 : resultado.atualizados > 0
                   ? `${resultado.atualizados} colaborador(es) atualizado(s) com este padrão.`
@@ -2210,7 +2247,13 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 {(gruposDiferentes.length ? gruposDiferentes : [...GRUPOS_PADRAO]).map((grupo) => {
                   const marcado = gruposPadrao.includes(grupo);
                   const ehDesligamento = tipoDivergencia(grupo) === "desligamento";
-                  const perdem = ehDesligamento ? quemPerdeBeneficio(colaboradoresDoAlcance, grupo) : 0;
+                  const alvosImpacto =
+                    alcancePadrao === "selecionados"
+                      ? colaboradoresDoAlcance.filter((c) =>
+                          idsSelecionadosValidos.includes(String(c.id)),
+                        )
+                      : colaboradoresDoAlcance;
+                  const perdem = ehDesligamento ? quemPerdeBeneficio(alvosImpacto, grupo) : 0;
                   return (
                     <label
                       key={grupo}
@@ -2249,7 +2292,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                             ? `Marcar remove ${ROTULOS_GRUPO[grupo].toLowerCase()} do padrão e de quem estiver no alcance.`
                             : resumoGrupo(extrairPadrao(rem), grupo)}
                         </span>
-                        {ehDesligamento && marcado && alcancePadrao === "todos" && (
+                        {ehDesligamento && marcado && alcancePadrao !== "novos" && (
                           <span className="mt-1 block rounded-lg bg-destructive/10 p-2 text-destructive">
                             {perdem > 0
                               ? `${perdem} colaborador(es) ativo(s) perderão ${ROTULOS_GRUPO[grupo].toLowerCase()}.`
@@ -2309,8 +2352,117 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                         : ""}
                     </span>
                   </span>
+                 </label>
+
+                {/* Meio-termo: escolher na mão quem recebe o padrão. */}
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-xs">
+                  <RadioGroupItem value="selecionados" className="mt-0.5" />
+                  <span className="min-w-0 flex-1">
+                    <span className="font-medium text-foreground">
+                      Colaboradores escolhidos
+                      {alcancePadrao === "selecionados"
+                        ? ` (${idsSelecionadosValidos.length} de ${colaboradoresDoAlcance.length} selecionados)`
+                        : ""}
+                    </span>
+                    <span className="block text-muted-foreground">
+                      Sobrescreve {rotulosGruposSelecionados} apenas de quem você marcar. Os
+                      padrões mais específicos são preservados.
+                    </span>
+                  </span>
                 </label>
               </RadioGroup>
+
+              {alcancePadrao === "selecionados" && (
+                <div className="space-y-2 rounded-xl border p-3">
+                  <Input
+                    value={buscaSelecao}
+                    onChange={(e) => setBuscaSelecao(e.target.value)}
+                    placeholder="Buscar por nome"
+                    className="h-8 text-xs"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() =>
+                        setSelecionadosPadrao(colaboradoresDoAlcance.map((c) => String(c.id)))
+                      }
+                    >
+                      Selecionar todos
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => setSelecionadosPadrao(idsDivergentesNoAlcance)}
+                    >
+                      Só os fora do padrão ({idsDivergentesNoAlcance.length})
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs"
+                      onClick={() => setSelecionadosPadrao([])}
+                    >
+                      Limpar
+                    </Button>
+                  </div>
+                  <ScrollArea className="h-52 pr-3">
+                    <div className="space-y-1">
+                      {colaboradoresSelecionaveis.map((c) => {
+                        const id = String(c.id);
+                        const fora = idsDivergentesNoAlcance.includes(id);
+                        return (
+                          <label
+                            key={id}
+                            className="flex cursor-pointer items-start gap-2 rounded-lg p-2 hover:bg-muted/50"
+                          >
+                            <Checkbox
+                              checked={selecionadosPadrao.includes(id)}
+                              onCheckedChange={(v) => alternarSelecionado(id, v === true)}
+                              className="mt-0.5"
+                            />
+                            <span className="min-w-0">
+                              <span className="flex flex-wrap items-center gap-2">
+                                <span className="font-medium text-foreground">
+                                  {String(c.nome ?? "Sem nome")}
+                                </span>
+                                {fora && (
+                                  <Badge variant="outline" className="text-[10px]">
+                                    fora do padrão
+                                  </Badge>
+                                )}
+                              </span>
+                              <span className="block text-muted-foreground">
+                                {[
+                                  (c as any).dp_cargos?.nome ?? c.cargo ?? null,
+                                  (c as any).dp_unidades?.nome ?? null,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" • ") || "Sem cargo definido"}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                      {!colaboradoresSelecionaveis.length && (
+                        <p className="p-2 text-xs text-muted-foreground">
+                          Nenhum colaborador ativo encontrado neste alcance.
+                        </p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                  {!idsSelecionadosValidos.length && (
+                    <p className="text-xs text-destructive">
+                      Marque ao menos um colaborador para aplicar o padrão.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -2323,7 +2475,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             <AlertDialogAction
               disabled={
                 salvarPadraoBeneficios.isPending ||
-                (escopoPadrao !== "colaborador" && !gruposPadrao.length)
+                (escopoPadrao !== "colaborador" && !gruposPadrao.length) ||
+                (escopoPadrao !== "colaborador" &&
+                  alcancePadrao === "selecionados" &&
+                  !idsSelecionadosValidos.length)
               }
               onClick={(e) => { e.preventDefault(); void responderPadrao(escopoPadrao); }}
             >
