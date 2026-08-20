@@ -36,6 +36,12 @@ export const CAMPOS_PADRAO = [
   "vale_alimentacao_dias_origem",
   "vale_alimentacao_desconto_tipo",
   "vale_alimentacao_desconto_valor",
+  "vale_alimentacao_dia_pagamento",
+  "vale_alimentacao_dias_corte",
+  "vale_alimentacao_desconta_falta",
+  "vale_alimentacao_desconta_folga_extra",
+  "vale_alimentacao_desconta_atestado",
+  "vale_alimentacao_desconta_ferias",
   "beneficios",
 ] as const satisfies readonly (keyof RemuneracaoFormState)[];
 
