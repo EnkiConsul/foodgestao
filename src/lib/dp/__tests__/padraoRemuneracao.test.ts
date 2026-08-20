@@ -66,3 +66,16 @@ describe("adicionais de risco: ficha x cargo", () => {
     expect(textoRisco({ insalubridade: 0, periculosidade: 0 })).toBe("Sem adicional de risco");
   });
 });
+
+describe("idsAlvoPadrao", () => {
+  const escopo = ["a", "b", "c"];
+  it("não aplica a ninguém no alcance novos", () => {
+    expect(idsAlvoPadrao(escopo, "novos", ["a"], null)).toEqual([]);
+  });
+  it("aplica a todos do escopo menos o colaborador aberto", () => {
+    expect(idsAlvoPadrao(escopo, "todos", null, "b")).toEqual(["a", "c"]);
+  });
+  it("limita à seleção manual dentro do escopo", () => {
+    expect(idsAlvoPadrao(escopo, "selecionados", ["a", "c", "z"], "c")).toEqual(["a"]);
+  });
+});
