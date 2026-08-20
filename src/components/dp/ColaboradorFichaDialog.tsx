@@ -644,14 +644,6 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           )}
         </div>
 
-        <DialogFooter className="shrink-0 gap-2 border-t border-border bg-background p-4 sm:justify-between">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-          <Button onClick={() => { onOpenChange(false); onEdit(); }}>
-            <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Editar
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
