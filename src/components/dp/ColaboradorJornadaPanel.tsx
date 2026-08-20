@@ -29,7 +29,7 @@ import {
   cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia,
   detalharCargaSemanal, diaDivergeDoBase, horarioEfetivoDia, horarioPadraoDaSemana,
   diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada,
-  normalizarDias, preencherDiasComHorario, resumoConfigTexto,
+  normalizarDias, preencherDiasComHorario, resumoConfigTexto, resumoSemanaPorFaixas,
   turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
