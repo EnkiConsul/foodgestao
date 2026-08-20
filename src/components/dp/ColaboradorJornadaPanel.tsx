@@ -499,27 +499,12 @@ export function ColaboradorJornadaPanel({
   };
 
   const persistir = async () => {
-    const cache = new Map<string, string>();
-    const turnoPadraoId = await resolverTurno(horario, cache);
+    const turnoPadraoId = await resolverTurno(horario);
 
-    // Cada dia com horário diferente do base aponta para um horário da loja —
-    // horários de fim de semana da unidade deixam de ser "exceção" do colaborador.
-    const diasResolvidos: DiaConfig[] = [];
-    for (const d of dias) {
-      if (!d.trabalha || !diaDivergeDoBase(d, horario)) {
-        diasResolvidos.push({ ...d, turno_id: null, entrada: null, saida: null, intervalo_minutos: null });
-        continue;
-      }
-      const h = horarioEfetivoDia(d, horario);
-      const id = await resolverTurno(h, cache);
-      diasResolvidos.push({
-        ...d,
-        turno_id: id,
-        entrada: h.entrada,
-        saida: h.saida,
-        intervalo_minutos: h.intervalo_minutos ?? 0,
-      });
-    }
+    // Um turno por colaborador: os dias guardam apenas trabalha ou folga.
+    const diasResolvidos: DiaConfig[] = dias.map((d) => ({
+      ...d, turno_id: null, entrada: null, saida: null, intervalo_minutos: null,
+    }));
 
     await salvar.mutateAsync({
       unidade_id: unidadeId === "none" ? null : unidadeId,
