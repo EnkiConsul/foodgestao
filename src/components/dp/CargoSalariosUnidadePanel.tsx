@@ -312,6 +312,13 @@ export function CargoSalariosUnidadePanel({ cargoId }: Props) {
                 </Badge>
                 <Button
                   size="icon" variant="ghost" className="shrink-0"
+                  aria-label={`Editar salário de ${nomeUnidade(p.unidade_id!)}`}
+                  onClick={() => setEditando(p)}
+                >
+                  <Pencil className="size-4" />
+                </Button>
+                <Button
+                  size="icon" variant="ghost" className="shrink-0"
                   aria-label={`Remover salário de ${nomeUnidade(p.unidade_id!)}`}
                   onClick={() => remover(p.id!)}
                 >
