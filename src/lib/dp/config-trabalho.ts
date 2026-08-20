@@ -431,35 +431,6 @@ export function colegasNoHorarioDoDia(dia: DiaConfig, usosPorHorario: Map<string
 }
 
 
-export interface GradeDiaSemana {
-  dow: number;
-  trabalha: boolean;
-  turno_id: string | null;
-}
-
-export function gradeDaSemana(
-  dias: DiaConfig[],
-  base: HorarioDia,
-  turnos: TurnoResolvido[],
-  turnoBaseId: string | null,
-): GradeDiaSemana[] {
-  const idPorHorario = (h: HorarioDia): string | null => {
-    const achado = turnos.find(
-      (t) => String(t.entrada).slice(0, 5) === h.entrada
-        && String(t.saida).slice(0, 5) === h.saida
-        && (t.intervalo_minutos ?? 0) === (h.intervalo_minutos ?? 0),
-    );
-    return achado?.id ?? null;
-  };
-  return ORDEM_EXIBICAO.map((dow) => {
-    const dia = dias.find((d) => d.dow === dow);
-    if (!dia || !dia.trabalha) return { dow, trabalha: false, turno_id: null };
-    if (!temHorarioProprio(dia)) return { dow, trabalha: true, turno_id: turnoBaseId ?? idPorHorario(base) };
-    return { dow, trabalha: true, turno_id: dia.turno_id ?? idPorHorario(horarioEfetivoDia(dia, base)) };
-  });
-}
-
-
 // ------------------------------------------------------------------
 // Horário padrão derivado da semana
 //
