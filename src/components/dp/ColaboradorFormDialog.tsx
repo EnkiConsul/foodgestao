@@ -1506,23 +1506,6 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           )}
 
 
-          {/* Desligamento tem aba própria: aqui fica apenas o resumo com atalho. */}
-          {isDesligado && (
-            <div className="col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
-              <div className="text-sm">
-                <span className="font-semibold text-destructive">Colaborador desligado</span>
-                {form.data_desligamento && (
-                  <span className="text-muted-foreground">
-                    {" "}em {new Date(`${form.data_desligamento}T12:00:00`).toLocaleDateString("pt-BR")}
-                  </span>
-                )}
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => setTab("desligamento")}>
-                Ver aba Desligamento
-              </Button>
-            </div>
-          )}
-
           {/* Senha Inicial */}
           {!isEdit && (
             <div className="col-span-2 space-y-2">
@@ -1532,8 +1515,21 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               </div>
             </div>
           )}
+
+          {/* Acesso ao portal e desligamento moram aqui: sem abas separadas. */}
+          {(isEdit || criadoId) && (
+            <div className="col-span-2 space-y-4">
+              <div id="acesso-portal" className="scroll-mt-4">
+                <ColaboradorAcessoPanel colaborador={colaboradorAtual} />
+              </div>
+              <div id="desligamento" className="scroll-mt-4">
+                <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
+              </div>
+            </div>
+          )}
             </div>
           </TabsContent>
+
 
           {/* forceMount: mantém o horário digitado ao alternar de aba, para que o
               botão único do rodapé grave também esta aba. */}
