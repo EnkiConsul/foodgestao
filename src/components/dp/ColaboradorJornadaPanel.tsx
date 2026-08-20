@@ -26,10 +26,10 @@ import { resolverTurnoDoHorario, type HorarioSimples } from "@/lib/dp/turno-reso
 import { verificarAlertasClt, idadeNaData, temAlertaClt, type AlertaClt } from "@/lib/dp/clt-alertas";
 import { tituloSistema } from "@/lib/text/titleCase";
 import {
-  cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia,
+  cargaSemanalConfig, configTemErro,
   detalharCargaSemanal, diaDivergeDoBase,
-  colegasNoHorarioDoDia, diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada, horarioEfetivoDia,
-  horarioPadraoDaSemana, normalizarDias, preencherDiasComHorario, resumoConfigTexto, semanaDaGrade,
+  diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada,
+  normalizarDias, resumoConfigTexto, semanaDaGrade,
   turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
