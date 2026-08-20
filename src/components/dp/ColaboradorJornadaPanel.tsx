@@ -125,7 +125,13 @@ export function ColaboradorJornadaPanel({
     useDpColaboradorConfigTrabalho(colaborador?.id ?? undefined);
 
   const topoRef = useRef<HTMLDivElement | null>(null);
-  const [unidadeId, setUnidadeId] = useState<string>("none");
+  /**
+   * A unidade é escolhida uma única vez, na aba "Dados" do cadastro: ter dois
+   * campos de unidade permitia salvar a jornada em uma unidade diferente da do
+   * colaborador. Aqui ela é só leitura.
+   */
+  const unidadeId = colaborador?.unidade_id ?? "none";
+
   /**
    * Referência usada apenas para preencher dias ainda em branco (colaborador
    * novo, vigência carregada, cópia de colega). O horário padrão de verdade é
