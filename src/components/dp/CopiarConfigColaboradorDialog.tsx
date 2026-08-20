@@ -5,7 +5,7 @@ import { Users, CalendarOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDpModelosHorario } from "@/hooks/useDpModelosHorario";
-import { resumoConfigTexto, type DiaConfig, type TurnoResolvido } from "@/lib/dp/config-trabalho";
+import { resumoSemanaPorFaixas, type DiaConfig, type TurnoResolvido } from "@/lib/dp/config-trabalho";
 import type { HorarioSimples } from "@/lib/dp/turno-resolver";
 import { useMemo } from "react";
 
