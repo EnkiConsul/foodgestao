@@ -9,15 +9,31 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { DpColaborador } from "@/hooks/useDpColaboradores";
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
+import { useDpTurnos } from "@/hooks/useDpTurnos";
+import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import { AdicionalTempoServicoCard } from "@/components/dp/AdicionalTempoServicoCard";
 import {
   FORMA_PAGAMENTO_LABEL,
   ASSIDUIDADE_CRITERIO_LABEL,
+  PREMIO_TIPO_LABEL,
+  BASE_HORAS_MES_PADRAO,
+  BASE_DIAS_MES_PADRAO,
+  valorHoraPorBase,
+  valorDiaPorBase,
+  valorAdicional,
 } from "@/lib/dp/remuneracao";
+import {
+  cargaSemanalConfig,
+  detalharCargaSemanal,
+  resumoSemanaPorFaixas,
+  type ConfigTrabalho,
+  type TurnoResolvido,
+} from "@/lib/dp/config-trabalho";
 import { MOTIVO_DESLIGAMENTO_LABEL, ELEGIBILIDADE_LABEL } from "@/lib/dp/desligamento";
 import {
-  User, Briefcase, Mail, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil, X, Users,
+  User, Briefcase, Mail, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil, X, Users, Award,
 } from "lucide-react";
 import { maskCpf } from "@/lib/cpf";
 
