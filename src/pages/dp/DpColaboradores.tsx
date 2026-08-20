@@ -81,8 +81,6 @@ export default function DpColaboradores() {
     setDialogOpen(true);
   };
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
-  const [accessResult, setAccessResult] = useState<{ nome: string; cpf: string; password: string; kind: "created" | "reset" } | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
 
   const counts = useMemo(() => {
     const all = list.data ?? [];
@@ -134,16 +132,6 @@ export default function DpColaboradores() {
       toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) });
     }
     setToDelete(null);
-  };
-
-  const copyToClipboard = async (label: string, value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(label);
-      setTimeout(() => setCopied((v) => (v === label ? null : v)), 1500);
-    } catch {
-      toast.error("Não foi possível copiar");
-    }
   };
 
 
@@ -493,45 +481,6 @@ export default function DpColaboradores() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={!!accessResult} onOpenChange={(o) => !o && setAccessResult(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {accessResult?.kind === "created" ? "Acesso ao portal criado" : "Senha redefinida"}
-            </DialogTitle>
-            <DialogDescription>
-              Repasse manualmente as credenciais abaixo ao colaborador <strong>{accessResult?.nome}</strong>.
-              O login no portal do DP é feito pelo CPF.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="rounded-md border bg-muted/40 p-3">
-              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Login (CPF)</div>
-              <div className="flex items-center justify-between gap-2">
-                <div className="font-mono text-base">{accessResult?.cpf}</div>
-                <Button size="sm" variant="ghost" onClick={() => copyToClipboard("cpf", accessResult?.cpf ?? "")}>
-                  {copied === "cpf" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-            <div className="rounded-md border bg-muted/40 p-3">
-              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Senha (6 últimos do CPF)</div>
-              <div className="flex items-center justify-between gap-2">
-                <div className="font-mono text-lg">{accessResult?.password}</div>
-                <Button size="sm" variant="ghost" onClick={() => copyToClipboard("pwd", accessResult?.password ?? "")}>
-                  {copied === "pwd" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              O colaborador deve acessar <span className="font-mono">/dp/login</span> e informar o CPF e a senha.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setAccessResult(null)}>Fechar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
     </DpPage>
   );
