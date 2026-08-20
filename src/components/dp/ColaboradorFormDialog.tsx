@@ -1691,13 +1691,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             <ColaboradorDocumentosPanel colaboradorId={colaborador?.id ?? criadoId ?? null} />
           </TabsContent>
 
-          <TabsContent value="acesso" className="mt-4">
-            <ColaboradorAcessoPanel colaborador={colaboradorAtual} />
-          </TabsContent>
 
-          <TabsContent value="desligamento" className="mt-4">
-            <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
-          </TabsContent>
+
           </div>
         </Tabs>
 
