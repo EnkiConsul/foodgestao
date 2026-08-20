@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Building2, Plus, Trash2, Landmark, History } from "lucide-react";
+import { Building2, Plus, Trash2, Landmark, History, Pencil, FileClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import {
   useDpPatronalPorUnidade,
   useUpsertDpCargoSalario,
   useDeleteDpCargoSalario,
+  useDpCargoSalarioLog,
 } from "@/hooks/useDpCadastros";
 import { moedaBR } from "@/lib/dp/cargos";
 import { numeroBR } from "@/components/dp/RemuneracaoFields";
@@ -20,10 +21,12 @@ import {
   pisoDoPatronal, validarOverrideUnidade, linhaEmAberto, diaAnterior, statusVigencia,
   mensagemErroPiso, type CargoSalarioLinha,
 } from "@/lib/dp/cargoSalarios";
+import { CargoSalarioEditDialog } from "@/components/dp/cargos/CargoSalarioEditDialog";
 
 interface Props {
   cargoId: string;
 }
+
 
 const dataBR = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR");
 
