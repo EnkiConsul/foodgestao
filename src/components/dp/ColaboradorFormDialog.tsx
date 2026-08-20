@@ -30,6 +30,12 @@ import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
+import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
+import { ColaboradorAcessoPanel } from "./ColaboradorAcessoPanel";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreVertical, Trash2 } from "lucide-react";
+import { useDeleteDpColaborador } from "@/hooks/useDpColaboradores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 
@@ -143,6 +149,8 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   colaborador?: DpColaborador | null;
+  /** Aba aberta ao exibir o diálogo (ex.: acesso ao portal ou desligamento). */
+  abaInicial?: AbaVisivel;
 }
 
 const NONE_DESLIG = "__none__";
@@ -175,7 +183,7 @@ const blank = {
 const ABAS = ["dados", "jornada", "remuneracao"] as const;
 type AbaCadastro = (typeof ABAS)[number];
 /** Aba extra, fora do fluxo de avanço automático do cadastro. */
-type AbaVisivel = AbaCadastro | "dependentes";
+type AbaVisivel = AbaCadastro | "dependentes" | "documentos" | "desligamento" | "acesso";
 type IntencaoSalvar = "stay" | "close";
 /** Campo pendente apontado pela validação, usado para focar e destacar. */
 type ErroCampo = { campo: string; mensagem: string };
@@ -186,12 +194,14 @@ const abaSeguinte = (aba: AbaVisivel): AbaCadastro | null =>
 
 
 
-export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props) {
+export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInicial = "dados" }: Props) {
   const upsert = useUpsertDpColaborador();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
   const upsertCargo = useUpsertDpCargo();
   const upsertCargoSalario = useUpsertDpCargoSalario();
+  const removerColaborador = useDeleteDpColaborador();
+  const [confirmarRemocao, setConfirmarRemocao] = useState(false);
   const queryClient = useQueryClient();
 
   const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
@@ -218,6 +228,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
   /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
   const [criadoId, setCriadoId] = useState<string | null>(null);
+  /** Registro salvo do colaborador em edição — base das abas Acesso e Desligamento. */
+  const colaboradorAtual = useMemo(() => {
+    const id = colaborador?.id ?? criadoId;
+    if (!id) return null;
+    return (todosColaboradores.data ?? []).find((c) => c.id === id) ?? colaborador ?? null;
+  }, [colaborador, criadoId, todosColaboradores.data]);
   /** Salvamento do horário de trabalho exposto pelo painel da aba. */
   const jornadaSalvarRef = useRef<(() => Promise<SalvarJornadaResultado>) | null>(null);
 
@@ -381,7 +397,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   useEffect(() => {
     if (!open) return;
     cienciaConfirmada.current = null;
-    setTab("dados");
+    setTab(abaInicial);
     setCriadoId(null);
     const c = (colaborador ?? {}) as any;
     const regime = c.regime ? String(c.regime) : "clt";
@@ -397,6 +413,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       valor_hora: c.valor_hora != null ? String(c.valor_hora).replace(".", ",") : "",
       dependentes_irrf: String(c.dependentes_irrf ?? 0),
       adicional_percentual: String(c.adicional_percentual ?? 0).replace(".", ","),
+      insalubridade_percentual: String((c as any).insalubridade_percentual ?? 0).replace(".", ","),
+      periculosidade_percentual: String((c as any).periculosidade_percentual ?? 0).replace(".", ","),
       vale_transporte: !!c.vale_transporte,
       vale_transporte_valor_dia:
         c.vale_transporte_valor_dia != null ? String(c.vale_transporte_valor_dia).replace(".", ",") : "",
@@ -875,7 +893,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
     const cargoNome = (cargos.data ?? []).find((c) => c.id === form.cargo_id)?.nome ?? null;
     const salarioNum = numeroBR(rem.salario_base);
     const valorHoraNum = numeroBR(rem.valor_hora);
-    const adicionalNum = numeroBR(rem.adicional_percentual);
+    const insalubridadeNum = numeroBR(rem.insalubridade_percentual);
+    const periculosidadeNum = numeroBR(rem.periculosidade_percentual);
+    // Não cumulam: gravamos o mais favorável no campo único que a folha consome.
+    const adicionalNum = percentualAdicionalVigente(insalubridadeNum, periculosidadeNum);
     const vtDiaNum = numeroBR(rem.vale_transporte_valor_dia);
     const premioNum = numeroBR(rem.premio_assiduidade_valor);
     // Base de cálculo só se aplica a horista/diarista.
@@ -946,8 +967,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
       if (pendencia && !isEdit && !criadoId) {
         return erro(rem.forma_pagamento === "horista" ? "valor_hora" : "salario_base", pendencia);
       }
-      if (adicionalNum < 0 || adicionalNum > 100) {
-        return erro("adicional_percentual", "Adicional deve estar entre 0% e 100%");
+      if (insalubridadeNum < 0 || insalubridadeNum > 100) {
+        return erro("insalubridade_percentual", "Insalubridade deve estar entre 0% e 100%");
+      }
+      if (periculosidadeNum < 0 || periculosidadeNum > 100) {
+        return erro("periculosidade_percentual", "Periculosidade deve estar entre 0% e 100%");
       }
       if (rem.vale_transporte && vtDiaNum <= 0) {
         return erro("vale_transporte_valor_dia", "Informe o valor diário do vale-transporte");
@@ -1052,6 +1076,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         valor_hora: rem.forma_pagamento === "horista" ? valorHoraNum || null : null,
         dependentes_irrf: Math.max(0, Math.trunc(numeroBR(rem.dependentes_irrf))),
         adicional_percentual: adicionalNum,
+        insalubridade_percentual: insalubridadeNum,
+        periculosidade_percentual: periculosidadeNum,
         vale_transporte: rem.vale_transporte,
         vale_transporte_valor_dia: rem.vale_transporte ? vtDiaNum : null,
 
@@ -1190,11 +1216,36 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           {/* Cabeçalho e abas fixos: só o conteúdo do formulário rola. */}
           <div className="shrink-0 space-y-3 border-b border-border bg-background p-6 pb-3">
             <DialogHeader className="space-y-0 text-left">
-              <DialogTitle>
-                {isEdit
-                  ? `Editar: ${toProperName(form.nome.trim()) || "Colaborador"}`
-                  : `Cadastrar: ${toProperName(form.nome.trim()) || "Novo Colaborador"}`}
-              </DialogTitle>
+              <div className="flex items-start justify-between gap-2">
+                <DialogTitle>
+                  {isEdit
+                    ? `Editar: ${toProperName(form.nome.trim()) || "Colaborador"}`
+                    : `Cadastrar: ${toProperName(form.nome.trim()) || "Novo Colaborador"}`}
+                </DialogTitle>
+                {(isEdit || criadoId) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="mr-8 h-8 w-8" aria-label="Mais ações do cadastro">
+                        <MoreVertical className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => setTab("desligamento")}>
+                        Registrar desligamento
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setTab("acesso")}>
+                        Acesso ao portal
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onSelect={() => setConfirmarRemocao(true)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Remover cadastro
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </DialogHeader>
             <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="dados" className="gap-2">
@@ -1225,6 +1276,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
               </TabsTrigger>
               <TabsTrigger value="dependentes">Dependentes</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
+              {(isEdit || criadoId) && <TabsTrigger value="acesso">Acesso ao portal</TabsTrigger>}
+              {(isEdit || criadoId) && (
+                <TabsTrigger value="desligamento" className="gap-2">
+                  Desligamento
+                  {isDesligado && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Colaborador desligado" />
+                  )}
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
@@ -1446,67 +1506,20 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
           )}
 
 
-          {/* Desligamento (editável quando o colaborador está desligado) */}
+          {/* Desligamento tem aba própria: aqui fica apenas o resumo com atalho. */}
           {isDesligado && (
-            <div className="col-span-2 space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
-              <div className="text-sm font-semibold text-destructive">Dados Do Desligamento</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Data da demissão *</Label>
-                  <Input
-                    type="date"
-                    value={form.data_desligamento}
-                    {...marca("data_desligamento")}
-
-                    onChange={(e) => setForm({ ...form, data_desligamento: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Motivo do desligamento</Label>
-                  <Select
-                    value={form.motivo_desligamento}
-                    onValueChange={(v) => setForm({ ...form, motivo_desligamento: v })}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE_DESLIG}>Não informar</SelectItem>
-                      {MOTIVO_DESLIGAMENTO_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Recontrataria?</Label>
-                  <Select
-                    value={form.elegivel_recontratacao}
-                    onValueChange={(v) => setForm({ ...form, elegivel_recontratacao: v })}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE_DESLIG}>Não informar</SelectItem>
-                      {ELEGIBILIDADE_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+              <div className="text-sm">
+                <span className="font-semibold text-destructive">Colaborador desligado</span>
+                {form.data_desligamento && (
+                  <span className="text-muted-foreground">
+                    {" "}em {new Date(`${form.data_desligamento}T12:00:00`).toLocaleDateString("pt-BR")}
+                  </span>
+                )}
               </div>
-              <div className="space-y-1.5">
-                <Label>Considerações do desligamento</Label>
-                <Textarea
-                  rows={3}
-                  maxLength={2000}
-                  placeholder="Notas internas para futuras avaliações de recontratação..."
-                  value={form.observacao_desligamento}
-                  {...marca("observacao_desligamento")}
-
-                  onChange={(e) => setForm({ ...form, observacao_desligamento: e.target.value })}
-                />
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Alterar a data recalcula o prazo de acesso ao portal. Use a ação “Reintegrar” na lista para reativar o colaborador.
-              </p>
+              <Button type="button" variant="outline" size="sm" onClick={() => setTab("desligamento")}>
+                Ver aba Desligamento
+              </Button>
             </div>
           )}
 
@@ -1622,7 +1635,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 salarioCargo={salarioCargo}
                 cargoNome={cargoSelecionado?.nome ?? null}
                 onBeforeNavigate={() => onOpenChange(false)}
-                cargoInsalubre={!!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade}
+                cargoInsalubre={!!cargoSelecionado?.insalubre || !!cargoSelecionado?.insalubre_periculoso}
+                cargoPerigoso={!!cargoSelecionado?.perigoso}
                 regime={regimeSelecionado}
                 beneficios={beneficios}
                 diasJornada={diasJornada}
@@ -1675,6 +1689,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
 
           <TabsContent value="documentos" className="mt-4">
             <ColaboradorDocumentosPanel colaboradorId={colaborador?.id ?? criadoId ?? null} />
+          </TabsContent>
+
+          <TabsContent value="acesso" className="mt-4">
+            <ColaboradorAcessoPanel colaborador={colaboradorAtual} />
+          </TabsContent>
+
+          <TabsContent value="desligamento" className="mt-4">
+            <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
           </TabsContent>
           </div>
         </Tabs>
@@ -1765,6 +1787,40 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
         onCreated={selecionarCargo}
       />
 
+      <AlertDialog open={confirmarRemocao} onOpenChange={setConfirmarRemocao}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover este cadastro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O cadastro de <strong>{form.nome || "colaborador"}</strong> será apagado definitivamente.
+              Para encerrar um vínculo mantendo o histórico, use a aba <strong>Desligamento</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                const id = colaborador?.id ?? criadoId;
+                if (!id) return;
+                try {
+                  await removerColaborador.mutateAsync(id);
+                  toast.success("Cadastro removido");
+                  setConfirmarRemocao(false);
+                  onOpenChange(false);
+                } catch (e) {
+                  toast.error("Erro ao remover cadastro", {
+                    description: e instanceof Error ? e.message : String(e),
+                  });
+                }
+              }}
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {conflitoCargo && (
         <CargoSalarioConflitoDialog
           open
@@ -1780,7 +1836,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
                 nome,
                 cbo: cargoSelecionado?.cbo ?? null,
                 insalubre_periculoso:
-                  !!cargoSelecionado?.insalubridade || !!cargoSelecionado?.periculosidade,
+                  !!cargoSelecionado?.insalubre_periculoso ||
+                  !!cargoSelecionado?.insalubre ||
+                  !!cargoSelecionado?.perigoso,
                 salario_base: conflitoCargo.salarioInformado,
               } as Parameters<typeof upsertCargo.mutateAsync>[0]);
               selecionarCargo(cargo);

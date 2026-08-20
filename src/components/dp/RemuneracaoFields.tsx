@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,9 @@ import { BeneficioIsonomiaAviso } from "@/components/dp/BeneficioIsonomiaAviso";
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
 import { formatarBRL } from "@/lib/dp/folha";
+import {
+  GRAUS_INSALUBRIDADE, PERICULOSIDADE_PERCENTUAL_LEGAL, alertasAdicionaisRisco, valorPericulosidade,
+} from "@/lib/dp/adicionais-risco";
 import { cn } from "@/lib/utils";
 
 
@@ -42,6 +45,9 @@ export interface RemuneracaoFormState {
   valor_hora: string;
   dependentes_irrf: string;
   adicional_percentual: string;
+  /** Adicionais de risco — não cumuláveis (art. 193 §2º CLT). */
+  insalubridade_percentual: string;
+  periculosidade_percentual: string;
   vale_transporte: boolean;
   vale_transporte_valor_dia: string;
   beneficios: Record<string, boolean>;
@@ -79,6 +85,8 @@ export const remuneracaoBlank: RemuneracaoFormState = {
   valor_hora: "",
   dependentes_irrf: "0",
   adicional_percentual: "0",
+  insalubridade_percentual: "0",
+  periculosidade_percentual: "0",
   vale_transporte: false,
   vale_transporte_valor_dia: "",
   beneficios: {},
@@ -119,8 +127,10 @@ interface Props {
   cargoNome?: string | null;
   /** Executado antes de navegar para o cadastro de cargos (fecha o diálogo). */
   onBeforeNavigate?: () => void;
-  /** Insalubridade/periculosidade marcada no cargo. */
+  /** Insalubridade marcada no cargo. */
   cargoInsalubre?: boolean;
+  /** Periculosidade marcada no cargo. */
+  cargoPerigoso?: boolean;
   beneficios: Beneficio[];
   cargoInsalubreHint?: string;
   /** Regime do vínculo — restringe as formas de pagamento admitidas. */
@@ -149,6 +159,7 @@ export function RemuneracaoFields({
   cargoNome,
   onBeforeNavigate,
   cargoInsalubre,
+  cargoPerigoso,
   beneficios,
   regime,
   diasJornada,
@@ -196,6 +207,14 @@ export function RemuneracaoFields({
       salario_base: salario,
     },
   );
+
+  const periculosidadeValor = valorPericulosidade(numeroBR(value.periculosidade_percentual), salario);
+  const alertasRisco = alertasAdicionaisRisco({
+    insalubridade: numeroBR(value.insalubridade_percentual),
+    periculosidade: numeroBR(value.periculosidade_percentual),
+    cargoInsalubre: !!cargoInsalubre,
+    cargoPerigoso: !!cargoPerigoso,
+  });
 
   const premioCalculado = premioAssiduidadeBase(
     {
@@ -245,6 +264,22 @@ export function RemuneracaoFields({
     const alvo = paraBR(salarioCargo);
     if (value.salario_base !== alvo) onChange({ salario_base: alvo });
   }, [travadoPeloCargo, salarioCargo, value.salario_base]);
+
+  /**
+   * Horista/diarista sem base salarial informada abre com o salário de
+   * referência do cargo (piso do patronal ou ajuste da unidade). Nada é
+   * gravado sem salvar — o aviso pede a confirmação do valor.
+   */
+  const prefillRef = useRef(false);
+  const [prefillSugerido, setPrefillSugerido] = useState(false);
+  useEffect(() => {
+    if (!usaBase || prefillRef.current) return;
+    if (!salarioCargo || salarioCargo <= 0) return;
+    if (numeroBR(value.base_salarial) > 0) { prefillRef.current = true; return; }
+    prefillRef.current = true;
+    setPrefillSugerido(true);
+    onChange({ base_salarial: paraBR(salarioCargo) });
+  }, [usaBase, salarioCargo, value.base_salarial]);
 
   return (
     <div className="col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
@@ -332,6 +367,11 @@ export function RemuneracaoFields({
                   onChange={(e) => onChange({ base_salarial: e.target.value })}
                   placeholder="Ex: 2200,00"
                 />
+                {prefillSugerido && (
+                  <p className="text-[11px] text-amber-700 dark:text-amber-500">
+                    Sugerido pelo cargo{cargoNome ? ` ${cargoNome}` : ""} ({formatarBRL(salarioCargo!)}) — confirme o valor e salve.
+                  </p>
+                )}
               </div>
               {forma === "horista" ? (
                 <div className="space-y-2">
@@ -396,22 +436,82 @@ export function RemuneracaoFields({
           />
         </div>
 
-        <div className="space-y-2">
-          <Label>Adicional insalubridade/periculosidade (%)</Label>
-          <Input
-            inputMode="decimal"
-            value={value.adicional_percentual}
-            {...marca("adicional_percentual")}
+        <div className="space-y-3 rounded-lg border border-border bg-background p-3 md:col-span-2">
+          <div className="text-sm font-medium">Adicionais de risco</div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Insalubridade (%)</Label>
+              <Input
+                inputMode="decimal"
+                value={value.insalubridade_percentual}
+                {...marca("insalubridade_percentual")}
+                onChange={(e) => onChange({ insalubridade_percentual: e.target.value })}
+                placeholder="0"
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {GRAUS_INSALUBRIDADE.map((g) => (
+                  <Button
+                    key={g.percentual}
+                    type="button"
+                    size="sm"
+                    variant={numeroBR(value.insalubridade_percentual) === g.percentual ? "secondary" : "outline"}
+                    className="h-7 text-[11px]"
+                    onClick={() => onChange({ insalubridade_percentual: String(g.percentual) })}
+                  >
+                    {g.label}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Calculado sobre o salário mínimo (art. 192 da CLT).
+              </p>
+            </div>
 
-            onChange={(e) => onChange({ adicional_percentual: e.target.value })}
-            placeholder="0"
-          />
-          {cargoInsalubre ? (
-            <p className="text-[11px] text-amber-600 dark:text-amber-500">
-              O cargo está marcado como insalubre/periculoso — informe o percentual devido.
+            <div className="space-y-2">
+              <Label>Periculosidade (%)</Label>
+              <Input
+                inputMode="decimal"
+                value={value.periculosidade_percentual}
+                {...marca("periculosidade_percentual")}
+                onChange={(e) => onChange({ periculosidade_percentual: e.target.value })}
+                placeholder="0"
+              />
+              <div className="flex flex-wrap gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={
+                    numeroBR(value.periculosidade_percentual) === PERICULOSIDADE_PERCENTUAL_LEGAL
+                      ? "secondary"
+                      : "outline"
+                  }
+                  className="h-7 text-[11px]"
+                  onClick={() => onChange({ periculosidade_percentual: String(PERICULOSIDADE_PERCENTUAL_LEGAL) })}
+                >
+                  Percentual legal (30%)
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Calculado sobre o salário base
+                {periculosidadeValor != null && periculosidadeValor > 0
+                  ? ` — ${formatarBRL(periculosidadeValor)}/mês`
+                  : ""}
+                .
+              </p>
+            </div>
+          </div>
+
+          {alertasRisco.map((a, i) => (
+            <p
+              key={`${a.tipo}-${i}`}
+              className="flex items-start gap-2 text-[11px] text-amber-700 dark:text-amber-500"
+            >
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span>{a.mensagem}</span>
             </p>
-          ) : null}
+          ))}
         </div>
+
       </div>
 
       {/* Assiduidade e pontualidade */}
