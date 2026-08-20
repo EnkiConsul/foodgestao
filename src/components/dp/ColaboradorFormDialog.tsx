@@ -181,10 +181,10 @@ const blank = {
 };
 
 /** Abas do cadastro, na ordem em que o usuário avança. */
-const ABAS = ["dados", "jornada", "remuneracao"] as const;
+const ABAS = ["dados", "jornada", "remuneracao", "dependentes", "documentos"] as const;
 type AbaCadastro = (typeof ABAS)[number];
-/** Aba extra, fora do fluxo de avanço automático do cadastro. */
-type AbaVisivel = AbaCadastro | "dependentes" | "documentos" | "desligamento" | "acesso";
+/** Atalhos externos que caem em abas já existentes. */
+type AbaVisivel = AbaCadastro | "desligamento" | "acesso";
 type IntencaoSalvar = "stay" | "close";
 /** Campo pendente apontado pela validação, usado para focar e destacar. */
 type ErroCampo = { campo: string; mensagem: string };
@@ -192,6 +192,7 @@ type ErroCampo = { campo: string; mensagem: string };
 
 const abaSeguinte = (aba: AbaVisivel): AbaCadastro | null =>
   ABAS[ABAS.indexOf(aba as AbaCadastro) + 1] ?? null;
+
 
 
 
@@ -1715,11 +1716,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               Fechar
             </Button>
             <span className="text-xs text-muted-foreground">
-              {tab === "dependentes"
-                ? "Dependentes"
-                : `Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
+              {`Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
               {dirty ? " · alterações não salvas" : ""}
             </span>
+
           </div>
           <div className="flex items-center gap-2">
             <Button
