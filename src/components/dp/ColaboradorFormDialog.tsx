@@ -2017,37 +2017,34 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
       />
 
 
-      <AlertDialog open={confirmarRemocao} onOpenChange={setConfirmarRemocao}>
+      <MotivoDialog
+        open={confirmarRemocao}
+        onOpenChange={setConfirmarRemocao}
+        title="Excluir este cadastro?"
+        description={`O cadastro de ${form.nome || "colaborador"} vai para a lixeira e pode ser restaurado por 7 dias. Para encerrar um vínculo mantendo o histórico, use o bloco Desligamento.`}
+        label="Justificativa da exclusão"
+        confirmLabel="Excluir cadastro"
+        loading={removerColaborador.isPending}
+        onConfirm={async (motivo) => {
+          const id = colaborador?.id ?? criadoId;
+          if (!id) return;
+          try {
+            await removerColaborador.mutateAsync({ id, motivo });
+            toast.success("Cadastro movido para a lixeira");
+            setConfirmarRemocao(false);
+            onOpenChange(false);
+          } catch (e) {
+            toast.error("Erro ao excluir cadastro", {
+              description: e instanceof Error ? e.message : String(e),
+            });
+          }
+        }}
+      />
+      <AlertDialog open={false} onOpenChange={() => {}}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover este cadastro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              O cadastro de <strong>{form.nome || "colaborador"}</strong> será apagado definitivamente.
-              Para encerrar um vínculo mantendo o histórico, use a aba <strong>Desligamento</strong>.
-            </AlertDialogDescription>
+            <AlertDialogTitle />
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={async () => {
-                const id = colaborador?.id ?? criadoId;
-                if (!id) return;
-                try {
-                  await removerColaborador.mutateAsync(id);
-                  toast.success("Cadastro removido");
-                  setConfirmarRemocao(false);
-                  onOpenChange(false);
-                } catch (e) {
-                  toast.error("Erro ao remover cadastro", {
-                    description: e instanceof Error ? e.message : String(e),
-                  });
-                }
-              }}
-            >
-              Remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
