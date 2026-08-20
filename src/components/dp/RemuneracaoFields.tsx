@@ -34,8 +34,10 @@ import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
 import { formatarBRL } from "@/lib/dp/folha";
 import {
-  GRAUS_INSALUBRIDADE, PERICULOSIDADE_PERCENTUAL_LEGAL, alertasAdicionaisRisco, valorPericulosidade,
+  GRAUS_INSALUBRIDADE, PERICULOSIDADE_PERCENTUAL_LEGAL, alertasAdicionaisRisco,
+  simularAdicionalPercentual, valorPericulosidade,
 } from "@/lib/dp/adicionais-risco";
+
 import { cn } from "@/lib/utils";
 import {
   DIA_PAGAMENTO_PADRAO,
