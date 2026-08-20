@@ -48,6 +48,8 @@ export default function ConexoesPluggy() {
   const [connectOpen, setConnectOpen] = useState(false);
   const [reconnectItemId, setReconnectItemId] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<Connection | null>(null);
+  const [creditReviewOpen, setCreditReviewOpen] = useState(false);
+  const { pending: pendingCredit, reload: reloadPendingCredit } = usePluggyCreditReview();
 
   const load = useCallback(async () => {
     if (!selectedCompanyId) return;
