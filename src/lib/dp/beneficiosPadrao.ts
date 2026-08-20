@@ -540,7 +540,8 @@ export interface DivergenciaColaborador {
 const equivalente = (a: unknown, b: unknown): boolean => {
   const norm = (v: unknown): unknown => {
     if (v === null || v === undefined || v === "") return null;
-    if (typeof v === "boolean") return v;
+    // "não" e "não informado" são a mesma coisa para o usuário.
+    if (typeof v === "boolean") return v ? true : null;
     const n = Number(String(v).replace(",", "."));
     if (Number.isFinite(n)) return n === 0 ? null : n;
     return String(v);
