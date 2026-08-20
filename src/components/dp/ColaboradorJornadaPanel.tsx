@@ -205,11 +205,6 @@ export function ColaboradorJornadaPanel({
       .slice(0, 10);
   }, [modelos, colaborador?.cargo_id]);
 
-  /**
-   * Uso real de cada horário entre os colegas da unidade (a lista já exclui a
-   * pessoa em edição): é isso que define se o horário é da loja ou próprio.
-   */
-  const usosPorHorario = useMemo(() => contarHorariosUsados(modelos), [modelos]);
 
 
   /**
