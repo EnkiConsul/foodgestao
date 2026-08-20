@@ -75,7 +75,7 @@ import {
 } from "@/hooks/useDpBeneficiosPadrao";
 import {
   aplicarPadrao, assinaturaPadrao, diferencasPadrao, divergenciasColaboradorVsPadrao,
-  extrairPadrao, nivelPadrao,
+  extrairPadrao, nivelPadrao, idsAlvoPadrao,
   padraoTemConteudo, padroesIguaisAlgum, resolverPadrao,
   GRUPOS_PADRAO, ROTULOS_GRUPO, gruposComDiferenca, resumoGrupo,
   gruposDivergentesClassificados, gruposAlteracao, quemPerdeBeneficio,
@@ -85,6 +85,7 @@ import { compararRiscoCargo, textoRisco, type DivergenciaRisco } from "@/lib/dp/
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 
@@ -307,6 +308,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   const [escopoPadrao, setEscopoPadrao] = useState<PadraoEscopo>("unidade");
   /** Alcance: só os próximos cadastros ou também quem já está cadastrado. */
   const [alcancePadrao, setAlcancePadrao] = useState<PadraoAlcance>("novos");
+  /** Ids escolhidos na mão quando o alcance é "selecionados". */
+  const [selecionadosPadrao, setSelecionadosPadrao] = useState<string[]>([]);
+  const [buscaSelecao, setBuscaSelecao] = useState("");
   /** Quais grupos de regras o usuário quer replicar neste padrão. */
   const [gruposPadrao, setGruposPadrao] = useState<GrupoPadrao[]>([...GRUPOS_PADRAO]);
 
