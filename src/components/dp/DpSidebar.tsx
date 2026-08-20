@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, ArrowLeft, ListOrdered } from "lucide-react";
+import { ChevronDown, LogOut, ArrowLeft, ListOrdered, EyeOff, Eye } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
 import symbol360 from "@/assets/360food-symbol.png.asset.json";
