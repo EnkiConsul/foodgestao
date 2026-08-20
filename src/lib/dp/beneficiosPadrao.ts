@@ -15,6 +15,12 @@ import { numeroBR, type RemuneracaoFormState } from "@/components/dp/Remuneracao
 export const CAMPOS_PADRAO = [
   "vale_transporte",
   "vale_transporte_valor_dia",
+  "vale_transporte_dia_pagamento",
+  "vale_transporte_dias_corte",
+  "vale_transporte_desconta_falta",
+  "vale_transporte_desconta_folga_extra",
+  "vale_transporte_desconta_atestado",
+  "vale_transporte_desconta_ferias",
   "premio_assiduidade",
   "premio_assiduidade_valor",
   "premio_assiduidade_tipo",
