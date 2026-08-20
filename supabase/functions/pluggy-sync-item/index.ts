@@ -322,8 +322,22 @@ Deno.serve(async (req) => {
         currency_code: acc.currencyCode ?? 'BRL',
         raw: acc,
       }, { onConflict: 'pluggy_account_id' })
-        .select('id, linked_account_id')
+        .select('id, linked_account_id, linked_credit_card_id, credit_review_status')
         .single();
+
+      // Cartões de crédito NÃO são materializados automaticamente: apenas ficam
+      // pendentes de autorização do usuário na tela de revisão.
+      if (
+        upserted &&
+        (acc.type ?? '').toUpperCase() === 'CREDIT' &&
+        !upserted.linked_credit_card_id &&
+        (upserted.credit_review_status ?? 'none') === 'none'
+      ) {
+        await admin
+          .from('pluggy_accounts')
+          .update({ credit_review_status: 'pending' })
+          .eq('id', upserted.id);
+      }
 
       if (upserted && !upserted.linked_account_id && (acc.type ?? '').toUpperCase() === 'BANK') {
         const ownerUserId = userId ?? (await admin
