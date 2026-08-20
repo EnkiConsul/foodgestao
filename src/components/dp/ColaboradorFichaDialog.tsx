@@ -349,8 +349,35 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
 
           {/* Jornada e horários */}
           <Section icon={Clock} title="Horário de Trabalho">
-            <Field label="Carga Semanal" value={cargaSemanal != null ? `${cargaSemanal}h` : "—"} />
-            <Field label="Folga Fixa Semanal" value={folga != null ? DIAS_SEMANA[String(folga)] : "Variável"} />
+            <Field
+              label="Carga Semanal"
+              value={
+                cargaSemanalCalculada
+                  ? `${cargaSemanalCalculada.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}h · ${diasTrabalhadosSemana} dia(s) por semana`
+                  : "—"
+              }
+            />
+            <Field
+              label="Folga Semanal"
+              value={
+                configDominio?.folga_variavel
+                  ? "Conforme escala"
+                  : folga != null
+                  ? DIAS_SEMANA[String(folga)]
+                  : configDominio?.folga_fixa_dow != null
+                  ? DIAS_SEMANA[String(configDominio.folga_fixa_dow)]
+                  : "—"
+              }
+            />
+            <Field label="Unidade da Configuração" value={unidadeConfigNome ?? colaborador?.unidade_nome} />
+            <Field
+              label="Turno Padrão"
+              value={
+                turnoPadrao
+                  ? `${turnoPadrao.nome} · ${turnoPadrao.entrada} às ${turnoPadrao.saida}`
+                  : "Sem turno padrão"
+              }
+            />
             <Field
               label="Folha de Ponto"
               value={possuiFolha ? "Sim — vinculado à folha de ponto" : "Não"}
@@ -359,21 +386,33 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
               label="Adiantamento Salarial"
               value={optanteAdiantamento ? "Optante" : "Não optante"}
             />
+            <Field label="Vigência da Configuração" value={fmtDate((configVigente as any)?.vigencia_inicio)} />
+            <Field label="Observações da Jornada" value={(configVigente as any)?.observacoes} />
+            {resumoFaixas && (
+              <div className="col-span-full space-y-1">
+                <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Resumo da semana
+                </div>
+                <div className="text-sm text-foreground">{resumoFaixas}</div>
+              </div>
+            )}
             <div className="col-span-full space-y-1">
               <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Horários por dia da semana
               </div>
-              {configVigente && configVigente.dias.length > 0 ? (
+              {detalhesCarga.length > 0 ? (
                 <div className="divide-y divide-border rounded-md border border-border">
-                  {configVigente.dias.map((d) => (
-                    <div key={d.id} className="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
+                  {detalhesCarga.map((d) => (
+                    <div key={d.dow} className="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
                       <span className="text-muted-foreground">{DIAS_SEMANA[String(d.dow)]}</span>
                       <span className={d.trabalha ? "font-medium" : "text-muted-foreground"}>
-                        {d.trabalha
-                          ? `${(d.entrada ?? "").slice(0, 5) || "—"} às ${(d.saida ?? "").slice(0, 5) || "—"}${
-                              d.intervalo_minutos ? ` · ${d.intervalo_minutos} min de intervalo` : ""
-                            }`
-                          : "Folga"}
+                        {!d.trabalha
+                          ? "Folga"
+                          : d.turno
+                          ? `${d.turno.entrada || "—"} às ${d.turno.saida || "—"}${
+                              d.turno.intervalo_minutos ? ` · ${d.turno.intervalo_minutos} min de intervalo` : ""
+                            }${d.origem === "base" ? " · horário do turno" : ""}`
+                          : "Sem horário definido"}
                       </span>
                     </div>
                   ))}
