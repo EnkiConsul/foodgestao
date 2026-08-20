@@ -30,7 +30,11 @@ import {
   type CienciaTurno, type DpTurnoForm, type DpTurnoRow,
 } from "@/hooks/useDpTurnos";
 import { useDpTurnosUso } from "@/hooks/useDpTurnosUso";
+import { useDpColaboradores, type DpColaborador } from "@/hooks/useDpColaboradores";
+import { TurnoDetalheDialog } from "@/components/dp/TurnoDetalheDialog";
+import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { estadoUsoTurno, podeExcluirTurno } from "@/lib/dp/turno-uso";
+
 
 
 const TODAS = "todas";
