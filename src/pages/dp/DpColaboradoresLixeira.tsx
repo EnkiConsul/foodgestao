@@ -14,7 +14,6 @@ import {
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
-import { useUserNames } from "@/hooks/useUserNames";
 import {
   useDpColaboradoresLixeira, useRestaurarDpColaborador, usePurgarDpColaborador,
   type DpColaboradorLixeira,
@@ -37,7 +36,6 @@ export default function DpColaboradoresLixeira() {
   const [toPurge, setToPurge] = useState<DpColaboradorLixeira | null>(null);
 
   const items = lixeira.data ?? [];
-  const nomes = useUserNames(items.map((i) => i.deleted_by).filter(Boolean) as string[]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -77,7 +75,7 @@ export default function DpColaboradoresLixeira() {
         </div>
 
         {lixeira.isLoading ? (
-          <TableSkeleton />
+          <TableSkeleton columns={6} />
         ) : filtered.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">
             Nenhum cadastro na lixeira.
@@ -108,9 +106,6 @@ export default function DpColaboradoresLixeira() {
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">
                     {fmtDateTime(c.deleted_at)}
-                    <div className="text-xs text-muted-foreground">
-                      {c.deleted_by ? nomes[c.deleted_by] ?? "—" : "—"}
-                    </div>
                   </TableCell>
                   <TableCell className="max-w-[240px] text-sm text-muted-foreground">
                     {c.delete_reason || "—"}
