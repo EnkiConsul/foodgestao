@@ -13,7 +13,7 @@ import { rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { moedaBR } from "@/lib/dp/cargos";
+import { moedaBR, selosRiscoCargo, textoPercentualRisco } from "@/lib/dp/cargos";
 import { CargoSalariosUnidadePanel } from "@/components/dp/CargoSalariosUnidadePanel";
 import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
 
