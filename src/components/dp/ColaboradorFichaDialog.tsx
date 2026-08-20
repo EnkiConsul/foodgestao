@@ -2,22 +2,38 @@ import { useMemo } from "react";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpDependentes } from "@/hooks/useDpDependentes";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { DpColaborador } from "@/hooks/useDpColaboradores";
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
+import { useDpTurnos } from "@/hooks/useDpTurnos";
+import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import { AdicionalTempoServicoCard } from "@/components/dp/AdicionalTempoServicoCard";
 import {
   FORMA_PAGAMENTO_LABEL,
   ASSIDUIDADE_CRITERIO_LABEL,
+  PREMIO_TIPO_LABEL,
+  BASE_HORAS_MES_PADRAO,
+  BASE_DIAS_MES_PADRAO,
+  valorHoraPorBase,
+  valorDiaPorBase,
+  valorAdicional,
 } from "@/lib/dp/remuneracao";
+import {
+  cargaSemanalConfig,
+  detalharCargaSemanal,
+  resumoSemanaPorFaixas,
+  type ConfigTrabalho,
+  type TurnoResolvido,
+} from "@/lib/dp/config-trabalho";
 import { MOTIVO_DESLIGAMENTO_LABEL, ELEGIBILIDADE_LABEL } from "@/lib/dp/desligamento";
 import {
-  User, Briefcase, Mail, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil, X, Users,
+  User, Briefcase, Mail, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil, X, Users, Award,
 } from "lucide-react";
 import { maskCpf } from "@/lib/cpf";
 
@@ -119,6 +135,78 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
   const { dependentes } = useDpDependentes(colaborador?.id ?? null);
   const configVigente = configTrabalho.vigente ?? configTrabalho.configs[0] ?? null;
 
+  // A carga semanal não existe como campo: é calculada a partir dos dias e do
+  // turno padrão. Dias sem horário próprio herdam o horário do turno.
+  const { turnos } = useDpTurnos();
+  const { data: unidades } = useDpUnidades();
+
+  const turnosResolvidos = useMemo<TurnoResolvido[]>(
+    () =>
+      (turnos ?? []).map((t: any) => ({
+        id: t.id,
+        nome: t.nome,
+        cor: t.cor ?? null,
+        entrada: String(t.entrada ?? "").slice(0, 5),
+        saida: String(t.saida ?? "").slice(0, 5),
+        intervalo_minutos: t.intervalo_minutos ?? 0,
+      })),
+    [turnos],
+  );
+
+  const configDominio = useMemo<ConfigTrabalho | null>(() => {
+    if (!configVigente) return null;
+    return {
+      turno_padrao_id: (configVigente as any).turno_padrao_id ?? null,
+      folga_variavel: !!(configVigente as any).folga_variavel,
+      folga_fixa_dow: (configVigente as any).folga_fixa_dow ?? null,
+      dias: (configVigente.dias ?? []).map((d: any) => ({
+        dow: d.dow,
+        trabalha: !!d.trabalha,
+        turno_id: d.turno_id ?? null,
+        entrada: d.entrada ? String(d.entrada).slice(0, 5) : null,
+        saida: d.saida ? String(d.saida).slice(0, 5) : null,
+        intervalo_minutos: d.intervalo_minutos ?? null,
+      })),
+    };
+  }, [configVigente]);
+
+  const detalhesCarga = useMemo(
+    () => (configDominio ? detalharCargaSemanal(configDominio, turnosResolvidos) : []),
+    [configDominio, turnosResolvidos],
+  );
+  const cargaSemanalCalculada = useMemo(
+    () => (configDominio ? cargaSemanalConfig(configDominio, turnosResolvidos) : null),
+    [configDominio, turnosResolvidos],
+  );
+  const turnoPadrao = useMemo(
+    () => turnosResolvidos.find((t) => t.id === configDominio?.turno_padrao_id) ?? null,
+    [turnosResolvidos, configDominio?.turno_padrao_id],
+  );
+  const resumoFaixas = useMemo(
+    () =>
+      configDominio
+        ? resumoSemanaPorFaixas(
+            configDominio.dias,
+            turnoPadrao
+              ? {
+                  entrada: turnoPadrao.entrada,
+                  saida: turnoPadrao.saida,
+                  intervalo_minutos: turnoPadrao.intervalo_minutos ?? 0,
+                }
+              : null,
+            { folgaVariavel: configDominio.folga_variavel },
+          )
+        : null,
+    [configDominio, turnoPadrao],
+  );
+  const diasTrabalhadosSemana = detalhesCarga.filter((d) => d.trabalha).length;
+  const unidadeConfigNome = useMemo(() => {
+    const id = (configVigente as any)?.unidade_id as string | null | undefined;
+    if (!id) return null;
+    return (unidades ?? []).find((u: any) => u.id === id)?.nome ?? null;
+  }, [configVigente, unidades]);
+
+
   const insalubridade = (colaborador as any)?.insalubridade_percentual as number | null;
   const periculosidade = (colaborador as any)?.periculosidade_percentual as number | null;
   const va = (colaborador as any)?.vale_alimentacao as boolean | null;
@@ -146,6 +234,37 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
   const assiduidadeMaxAtrasos = (colaborador as any)?.assiduidade_max_atrasos as number | null;
   const assiduidadeConsideraAtestado = (colaborador as any)?.assiduidade_considera_atestado as boolean | null;
   const assiduidadeMaxAtestados = (colaborador as any)?.assiduidade_max_atestados as number | null;
+  const premioTipo = (colaborador as any)?.premio_assiduidade_tipo as keyof typeof PREMIO_TIPO_LABEL | null;
+  const pisNit = (colaborador as any)?.pis_nit as string | null;
+
+  // Vales: campos de ciclo/pagamento e descontos configurados no cadastro.
+  const vaDiaPagamento = (colaborador as any)?.vale_alimentacao_dia_pagamento as number | null;
+  const vaDiasCorte = (colaborador as any)?.vale_alimentacao_dias_corte as number | null;
+  const vaDescontos = [
+    (colaborador as any)?.vale_alimentacao_desconta_falta ? "falta" : null,
+    (colaborador as any)?.vale_alimentacao_desconta_folga_extra ? "folga extra" : null,
+    (colaborador as any)?.vale_alimentacao_desconta_atestado ? "atestado" : null,
+    (colaborador as any)?.vale_alimentacao_desconta_ferias ? "férias" : null,
+  ].filter(Boolean) as string[];
+  const vtDiaPagamento = (colaborador as any)?.vale_transporte_dia_pagamento as number | null;
+  const vtDiasCorte = (colaborador as any)?.vale_transporte_dias_corte as number | null;
+  const vtDescontos = [
+    (colaborador as any)?.vale_transporte_desconta_falta ? "falta" : null,
+    (colaborador as any)?.vale_transporte_desconta_folga_extra ? "folga extra" : null,
+    (colaborador as any)?.vale_transporte_desconta_atestado ? "atestado" : null,
+    (colaborador as any)?.vale_transporte_desconta_ferias ? "férias" : null,
+  ].filter(Boolean) as string[];
+
+  // Valor da hora / do dia só são gravados quando digitados: aqui derivamos da base.
+  const baseCalculo = baseSalarial ?? salarioBase ?? null;
+  const horasBase = baseHorasMes ?? BASE_HORAS_MES_PADRAO;
+  const diasBase = baseDiasMes ?? BASE_DIAS_MES_PADRAO;
+  const valorHoraCalculado = valorHoraPorBase(baseCalculo, horasBase);
+  const valorHoraExibido = valorHora ?? valorHoraCalculado;
+  const valorDiaExibido = valorDiaPorBase(baseCalculo, diasBase);
+  const insalubridadeValor = insalubridade ? valorAdicional(baseCalculo ?? 0, insalubridade) : 0;
+  const periculosidadeValor = periculosidade ? valorAdicional(baseCalculo ?? 0, periculosidade) : 0;
+  const temBeneficio = beneficioAtivos.length > 0 || !!va || !!valeTransporte;
 
   if (!colaborador) return null;
 
@@ -155,53 +274,53 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
         <DialogHeader className="shrink-0 border-b border-border bg-background p-6 pb-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <DialogTitle className="text-xl font-bold uppercase leading-tight">
-                {colaborador?.nome || "Colaborador"}
-              </DialogTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <DialogTitle className="text-xl font-bold uppercase leading-tight">
+                  {colaborador?.nome || "Colaborador"}
+                </DialogTitle>
+                {colaborador?.ativo ? (
+                  <Badge variant="outline" className="h-5 border-emerald-500/30 bg-emerald-500/10 px-1.5 text-[11px] text-emerald-700 dark:text-emerald-400">
+                    <CheckCircle2 className="mr-1 h-3 w-3" /> Ativo
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="h-5 border-destructive/30 bg-destructive/10 px-1.5 text-[11px] text-destructive">
+                    <XCircle className="mr-1 h-3 w-3" /> Desligado
+                  </Badge>
+                )}
+                <Badge
+                  variant="outline"
+                  className={`h-5 px-1.5 text-[11px] ${
+                    perfil === "admin"
+                      ? "bg-destructive/10 text-destructive border-destructive/30"
+                      : perfil === "gestor"
+                      ? "bg-primary/10 text-primary border-primary/30"
+                      : ""
+                  }`}
+                >
+                  <Shield className="mr-1 h-3 w-3" />
+                  {PERFIL_LABEL[perfil ?? "colaborador"]}
+                </Badge>
+              </div>
               <DialogDescription className="mt-1">
                 Ficha completa do colaborador. Clique em <strong>Editar</strong> para alterar os dados.
               </DialogDescription>
             </div>
-            <div className="flex shrink-0 flex-col items-end gap-1.5">
-              <div className="mb-1 flex items-center gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => { onOpenChange(false); onEdit(); }}
-                >
-                  <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Editar
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
-                  onClick={() => onOpenChange(false)}
-                  aria-label="Fechar ficha"
-                >
-                  <X className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              </div>
-              {colaborador?.ativo ? (
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
-                  <CheckCircle2 className="h-3 w-3 mr-1" /> Ativo
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
-                  <XCircle className="h-3 w-3 mr-1" /> Desligado
-                </Badge>
-              )}
-              <Badge
-                variant="outline"
-                className={
-                  perfil === "admin"
-                    ? "bg-destructive/10 text-destructive border-destructive/30"
-                    : perfil === "gestor"
-                    ? "bg-primary/10 text-primary border-primary/30"
-                    : ""
-                }
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => { onOpenChange(false); onEdit(); }}
               >
-                <Shield className="h-3 w-3 mr-1" />
-                {PERFIL_LABEL[perfil ?? "colaborador"]}
-              </Badge>
+                <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Editar
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                onClick={() => onOpenChange(false)}
+                aria-label="Fechar ficha"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </Button>
             </div>
           </div>
         </DialogHeader>
@@ -230,8 +349,35 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
 
           {/* Jornada e horários */}
           <Section icon={Clock} title="Horário de Trabalho">
-            <Field label="Carga Semanal" value={cargaSemanal != null ? `${cargaSemanal}h` : "—"} />
-            <Field label="Folga Fixa Semanal" value={folga != null ? DIAS_SEMANA[String(folga)] : "Variável"} />
+            <Field
+              label="Carga Semanal"
+              value={
+                cargaSemanalCalculada
+                  ? `${cargaSemanalCalculada.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}h · ${diasTrabalhadosSemana} dia(s) por semana`
+                  : "—"
+              }
+            />
+            <Field
+              label="Folga Semanal"
+              value={
+                configDominio?.folga_variavel
+                  ? "Conforme escala"
+                  : folga != null
+                  ? DIAS_SEMANA[String(folga)]
+                  : configDominio?.folga_fixa_dow != null
+                  ? DIAS_SEMANA[String(configDominio.folga_fixa_dow)]
+                  : "—"
+              }
+            />
+            <Field label="Unidade da Configuração" value={unidadeConfigNome ?? colaborador?.unidade_nome} />
+            <Field
+              label="Turno Padrão"
+              value={
+                turnoPadrao
+                  ? `${turnoPadrao.nome} · ${turnoPadrao.entrada} às ${turnoPadrao.saida}`
+                  : "Sem turno padrão"
+              }
+            />
             <Field
               label="Folha de Ponto"
               value={possuiFolha ? "Sim — vinculado à folha de ponto" : "Não"}
@@ -240,21 +386,33 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
               label="Adiantamento Salarial"
               value={optanteAdiantamento ? "Optante" : "Não optante"}
             />
+            <Field label="Vigência da Configuração" value={fmtDate((configVigente as any)?.vigencia_inicio)} />
+            <Field label="Observações da Jornada" value={(configVigente as any)?.observacoes} />
+            {resumoFaixas && (
+              <div className="col-span-full space-y-1">
+                <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Resumo da semana
+                </div>
+                <div className="text-sm text-foreground">{resumoFaixas}</div>
+              </div>
+            )}
             <div className="col-span-full space-y-1">
               <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Horários por dia da semana
               </div>
-              {configVigente && configVigente.dias.length > 0 ? (
+              {detalhesCarga.length > 0 ? (
                 <div className="divide-y divide-border rounded-md border border-border">
-                  {configVigente.dias.map((d) => (
-                    <div key={d.id} className="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
+                  {detalhesCarga.map((d) => (
+                    <div key={d.dow} className="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
                       <span className="text-muted-foreground">{DIAS_SEMANA[String(d.dow)]}</span>
                       <span className={d.trabalha ? "font-medium" : "text-muted-foreground"}>
-                        {d.trabalha
-                          ? `${(d.entrada ?? "").slice(0, 5) || "—"} às ${(d.saida ?? "").slice(0, 5) || "—"}${
-                              d.intervalo_minutos ? ` · ${d.intervalo_minutos} min de intervalo` : ""
-                            }`
-                          : "Folga"}
+                        {!d.trabalha
+                          ? "Folga"
+                          : d.turno
+                          ? `${d.turno.entrada || "—"} às ${d.turno.saida || "—"}${
+                              d.turno.intervalo_minutos ? ` · ${d.turno.intervalo_minutos} min de intervalo` : ""
+                            }${d.origem === "base" ? " · horário do turno" : ""}`
+                          : "Sem horário definido"}
                       </span>
                     </div>
                   ))}
@@ -271,74 +429,143 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           <Section icon={Wallet} title="Remuneração">
             <Field label="Forma de Pagamento" value={formaPagamento ? FORMA_PAGAMENTO_LABEL[formaPagamento] : "—"} />
             <Field label="Salário Base" value={fmtCurrency(salarioBase)} />
-            <Field label="Valor da Hora" value={fmtCurrency(valorHora)} />
             <Field
-              label="Base de Cálculo"
+              label="Valor da Hora"
               value={
-                baseSalarial != null
-                  ? `${fmtCurrency(baseSalarial)} / ${baseHorasMes ?? "—"}h${baseDiasMes ? ` ou ${baseDiasMes} dias` : ""}${valorHoraManual ? " (valor manual)" : ""}`
+                valorHoraExibido != null
+                  ? `${fmtCurrency(valorHoraExibido)}${valorHora == null ? " (calculado)" : valorHoraManual ? " (manual)" : ""}`
                   : "—"
               }
             />
-            <Field label="Insalubridade" value={insalubridade ? `${insalubridade}%` : "Não"} />
-            <Field label="Periculosidade" value={periculosidade ? `${periculosidade}%` : "Não"} />
+            <Field
+              label="Valor do Dia"
+              value={valorDiaExibido != null ? `${fmtCurrency(valorDiaExibido)} (calculado)` : "—"}
+            />
+            <Field
+              label="Base de Cálculo"
+              value={
+                baseCalculo != null
+                  ? `${fmtCurrency(baseCalculo)} / ${horasBase}h · ${diasBase} dias`
+                  : "—"
+              }
+            />
+            <Field label="PIS/NIT" value={pisNit} />
+            <Field
+              label="Insalubridade"
+              value={insalubridade ? `${insalubridade}% · ${fmtCurrency(insalubridadeValor)}/mês` : "Não"}
+            />
+            <Field
+              label="Periculosidade"
+              value={periculosidade ? `${periculosidade}% · ${fmtCurrency(periculosidadeValor)}/mês` : "Não"}
+            />
             <Field
               label="Adicional Aplicado na Folha"
               value={adicionalPercentual ? `${adicionalPercentual}%` : "—"}
             />
             <Field label="Dependentes IRRF" value={dependentesIrrf ?? "—"} />
-            <Field
-              label="Vale-Transporte"
-              value={valeTransporte ? `Sim — ${fmtCurrency(valeTransporteDia)}/dia` : "Não"}
-            />
-            <Field
-              label="Vale-Alimentação"
-              value={
-                va
-                  ? `${fmtCurrency(vaValor)} ${vaPeriodicidade === "diario" ? "por dia" : "por mês"}${
-                      vaPeriodicidade === "diario" && vaDiasBase ? ` · ${vaDiasBase} dias` : ""
-                    }`
-                  : "Não"
-              }
-            />
-            {va && (
-              <Field
-                label="Desconto do Colaborador (VA)"
-                value={
-                  vaDescontoTipo === "nenhum" || !vaDescontoValor
-                    ? "Sem desconto"
-                    : vaDescontoTipo === "percentual"
-                    ? `${vaDescontoValor}%`
-                    : fmtCurrency(vaDescontoValor)
-                }
-              />
-            )}
-            <Field
-              label="Prêmio de Assiduidade"
-              value={
-                premioAssiduidade
-                  ? `${fmtCurrency(premioAssiduidadeValor)} — ${assiduidadeCriterio ? ASSIDUIDADE_CRITERIO_LABEL[assiduidadeCriterio] : ""}`
-                  : "Não"
-              }
-            />
-            {premioAssiduidade && (
-              <>
-                <Field label="Tolerância de Atraso" value={assiduidadeTolerancia != null ? `${assiduidadeTolerancia} min` : "—"} />
-                <Field label="Máx. Atrasos Tolerados" value={assiduidadeMaxAtrasos ?? "—"} />
-                <Field
-                  label="Atestado Faz Perder o Prêmio"
-                  value={assiduidadeConsideraAtestado === false ? "Não" : "Sim"}
-                />
-                {assiduidadeConsideraAtestado !== false && (
-                  <Field label="Atestados Tolerados no Mês" value={assiduidadeMaxAtestados ?? 0} />
-                )}
-              </>
-            )}
+            <Field label="Vale-Transporte" value={valeTransporte ? "Sim — ver Benefícios" : "Não"} />
+            <Field label="Vale-Alimentação" value={va ? "Sim — ver Benefícios" : "Não"} />
+
+            {/* Assiduidade fica em Remuneração (não é benefício) */}
+            <div className="col-span-full space-y-2 rounded-xl border border-border bg-muted/40 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Award className="h-4 w-4 text-primary" aria-hidden="true" />
+                Prêmio de assiduidade
+              </div>
+              {premioAssiduidade ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Valor do Prêmio"
+                    value={
+                      premioTipo === "percentual"
+                        ? `${premioAssiduidadeValor ?? 0}% do salário`
+                        : fmtCurrency(premioAssiduidadeValor)
+                    }
+                  />
+                  <Field label="Tipo" value={premioTipo ? PREMIO_TIPO_LABEL[premioTipo] : "—"} />
+                  <Field
+                    label="Critério"
+                    value={assiduidadeCriterio ? ASSIDUIDADE_CRITERIO_LABEL[assiduidadeCriterio] : "—"}
+                  />
+                  <Field
+                    label="Tolerância de Atraso"
+                    value={assiduidadeTolerancia != null ? `${assiduidadeTolerancia} min` : "—"}
+                  />
+                  <Field label="Máx. Atrasos Tolerados" value={assiduidadeMaxAtrasos ?? "—"} />
+                  <Field
+                    label="Atestado Faz Perder o Prêmio"
+                    value={assiduidadeConsideraAtestado === false ? "Não" : "Sim"}
+                  />
+                  {assiduidadeConsideraAtestado !== false && (
+                    <Field label="Atestados Tolerados no Mês" value={assiduidadeMaxAtestados ?? 0} />
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Colaborador sem prêmio de assiduidade.</p>
+              )}
+            </div>
           </Section>
 
           {/* Benefícios */}
           <Section icon={Briefcase} title="Benefícios">
-            {beneficioAtivos.length > 0 ? (
+            {va && (
+              <div className="col-span-full space-y-2 rounded-lg border border-border p-3">
+                <div className="text-sm font-medium text-foreground">Vale-alimentação</div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Valor"
+                    value={`${fmtCurrency(vaValor)} ${vaPeriodicidade === "diario" ? "por dia" : "por mês"}${
+                      vaPeriodicidade === "diario" && vaDiasBase ? ` · base ${vaDiasBase} dias` : ""
+                    }`}
+                  />
+                  <Field
+                    label="Dia de Pagamento"
+                    value={vaDiaPagamento ? `Dia ${vaDiaPagamento}` : "—"}
+                  />
+                  <Field
+                    label="Corte para Apuração"
+                    value={vaDiasCorte != null ? `${vaDiasCorte} dia(s) antes do pagamento` : "—"}
+                  />
+                  <Field
+                    label="Descontos Aplicados"
+                    value={vaDescontos.length ? vaDescontos.join(", ") : "Nenhum"}
+                  />
+                  <Field
+                    label="Desconto do Colaborador"
+                    value={
+                      vaDescontoTipo === "nenhum" || !vaDescontoValor
+                        ? "Sem desconto"
+                        : vaDescontoTipo === "percentual"
+                        ? `${vaDescontoValor}%`
+                        : fmtCurrency(vaDescontoValor)
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
+            {valeTransporte && (
+              <div className="col-span-full space-y-2 rounded-lg border border-border p-3">
+                <div className="text-sm font-medium text-foreground">Vale-transporte</div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Valor" value={`${fmtCurrency(valeTransporteDia)} por dia`} />
+                  <Field
+                    label="Dia de Pagamento"
+                    value={vtDiaPagamento ? `Dia ${vtDiaPagamento}` : "—"}
+                  />
+                  <Field
+                    label="Corte para Apuração"
+                    value={vtDiasCorte != null ? `${vtDiasCorte} dia(s) antes do pagamento` : "—"}
+                  />
+                  <Field
+                    label="Descontos Aplicados"
+                    value={vtDescontos.length ? vtDescontos.join(", ") : "Nenhum"}
+                  />
+                </div>
+              </div>
+            )}
+
+            {beneficioAtivos.length > 0 && (
               <div className="col-span-full flex flex-wrap gap-2">
                 {beneficioAtivos.map((b) => (
                   <Badge key={b.id} variant="outline" className="text-xs">
@@ -347,9 +574,21 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
                   </Badge>
                 ))}
               </div>
-            ) : (
+            )}
+
+            {!temBeneficio && (
               <div className="col-span-full text-sm text-muted-foreground">Nenhum benefício ativo.</div>
             )}
+
+            <AdicionalTempoServicoCard
+              admissao={(colaborador as any)?.data_admissao ?? null}
+              cargoId={(colaborador as any)?.cargo_id ?? null}
+              unidadeId={(colaborador as any)?.unidade_id ?? null}
+              sindicatoId={enquadramento.data?.laboral?.id ?? null}
+              base={baseCalculo ?? 0}
+              pisoCargo={null}
+              onBeforeNavigate={() => onOpenChange(false)}
+            />
           </Section>
 
           {/* Dependentes */}
@@ -405,14 +644,6 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           )}
         </div>
 
-        <DialogFooter className="shrink-0 gap-2 border-t border-border bg-background p-4 sm:justify-between">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-          <Button onClick={() => { onOpenChange(false); onEdit(); }}>
-            <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Editar
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
