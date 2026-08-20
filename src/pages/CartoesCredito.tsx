@@ -12,6 +12,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CreditCard, Plus, Pencil, Trash2, Wallet, Calendar, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { CreditCardFormDialog } from "@/components/credit-cards/CreditCardFormDialog";
+import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
+import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
 import { PayInvoiceDialog } from "@/components/credit-cards/PayInvoiceDialog";
 import type { Database } from "@/integrations/supabase/types";
 
