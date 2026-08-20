@@ -193,8 +193,54 @@ export default function DpTurnos() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Uso</Label>
+                <Select value={usoFiltro} onValueChange={(v) => setUsoFiltro(v as UsoFiltro)}>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os turnos</SelectItem>
+                    <SelectItem value="em_uso">Em uso</SelectItem>
+                    <SelectItem value="sem_uso">Sem uso</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </DpFilterCard>
+
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground">
+            <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              Turno com histórico deve ser <strong>desativado</strong> — ele deixa de aparecer nas
+              novas escalas e preserva o que já foi registrado. Excluir só faz sentido para turno
+              criado por engano e nunca usado.
+            </span>
+          </div>
+
+          {usoFiltro === "sem_uso" && filtrados.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={selecionados.length > 0 && selecionados.length === candidatosLimpeza.length}
+                  onCheckedChange={(v) => alternarTodos(v === true)}
+                  aria-label="Selecionar todos os turnos sem uso"
+                />
+                <span className="text-sm text-muted-foreground">
+                  {selecionados.length > 0
+                    ? `${selecionados.length} selecionado(s)`
+                    : `${candidatosLimpeza.length} turno(s) sem uso`}
+                </span>
+              </div>
+              <Button
+                variant="destructive"
+                className="h-11"
+                disabled={selecionados.length === 0}
+                onClick={() => setLimpezaOpen(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                Excluir turnos sem uso
+              </Button>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="space-y-3">
@@ -204,7 +250,9 @@ export default function DpTurnos() {
             <DpEmptyState dashed>Não foi possível carregar os turnos.</DpEmptyState>
           ) : filtrados.length === 0 ? (
             <DpEmptyState icon={Clock} dashed>
-              <p className="font-medium text-foreground">Nenhum turno cadastrado</p>
+              <p className="font-medium text-foreground">
+                {turnos.length === 0 ? "Nenhum turno cadastrado" : "Nenhum turno com esses filtros"}
+              </p>
               <p className="mt-1">Comece pelos horários que você mais usa: almoço, jantar, abertura e fechamento.</p>
               <Button className="mt-3 h-11" onClick={abrirNovo}>
                 <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -218,6 +266,11 @@ export default function DpTurnos() {
                   key={t.id}
                   turno={t}
                   unidadeNome={nomeUnidade(t.unidade_id)}
+                  uso={usoPorTurno[t.id]}
+                  usoEstado={estadoDoTurno(t)}
+                  selecionavel={usoFiltro === "sem_uso"}
+                  selecionado={selecionados.includes(t.id)}
+                  onSelecionar={(marcado) => alternarSelecao(t.id, marcado)}
                   onEdit={() => abrirEdicao(t)}
                   onDuplicar={() => duplicar(t)}
                   onDelete={() => setARemover(t)}
@@ -226,6 +279,7 @@ export default function DpTurnos() {
               ))}
             </div>
           )}
+
         </TabsContent>
 
         <TabsContent value="funcionamento" className="space-y-4">
