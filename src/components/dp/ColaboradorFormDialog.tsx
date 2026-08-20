@@ -1596,15 +1596,24 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
           <div className="space-y-2">
             <Label>Unidade *</Label>
-            <Select value={form.unidade_id} onValueChange={(v) => setForm({ ...form, unidade_id: v })}>
-              <SelectTrigger {...marca("unidade_id")}><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-              <SelectContent>
-                {(unidades.data ?? []).map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select value={form.unidade_id} onValueChange={(v) => setForm({ ...form, unidade_id: v })}>
+                <SelectTrigger {...marca("unidade_id")}><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                <SelectContent>
+                  {(unidades.data ?? []).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button type="button" variant="outline" className="shrink-0" onClick={() => setNovaUnidadeOpen(true)}>
+                Nova unidade
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Esta é a unidade usada também no horário de trabalho. Unidades criadas aqui já entram na tela de Unidades.
+            </p>
           </div>
+
 
           <SindicatoEnquadramentoField
             cargoId={form.cargo_id}
