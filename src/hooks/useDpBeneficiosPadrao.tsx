@@ -105,11 +105,12 @@ export function useSalvarDpBeneficiosPadrao() {
 
 
       /**
-       * Alcance "todos": propaga o padrão para os colaboradores ativos do
-       * escopo (empresa, unidade ou cargo), exceto o que está aberto na tela.
+       * Alcance "todos": propaga para os colaboradores ativos do escopo
+       * (empresa, unidade ou cargo). Alcance "selecionados": só os ids
+       * escolhidos na tela. Em ambos, o colaborador aberto fica de fora.
        */
       async function aplicarAosColaboradores(): Promise<number> {
-        if (input.alcance !== "todos") return 0;
+        if (input.alcance !== "todos" && input.alcance !== "selecionados") return 0;
         let alvos = supabase
           .from("dp_colaboradores")
           .select("id")
@@ -120,9 +121,12 @@ export function useSalvarDpBeneficiosPadrao() {
         if (input.cargo_id) alvos = alvos.eq("cargo_id", input.cargo_id);
         const { data: colabs, error: erroAlvos } = await alvos;
         if (erroAlvos) throw erroAlvos;
-        const ids = (colabs ?? [])
-          .map((c: any) => c.id as string)
-          .filter((id) => id !== input.ignorarColaboradorId);
+        const ids = idsAlvoPadrao(
+          (colabs ?? []).map((c: any) => c.id as string),
+          input.alcance,
+          input.colaboradorIds,
+          input.ignorarColaboradorId,
+        );
         if (!ids.length) return 0;
 
         const { error: erroUpdate } = await supabase
