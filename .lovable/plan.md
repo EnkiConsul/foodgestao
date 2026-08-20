@@ -22,15 +22,17 @@ B) Dias pagos e não trabalhados no período anterior  (falta, folga extra, ates
 Valor a depositar = (A - B) x valor do dia
 ```
 
-Período de apuração (data de corte): o VA pago no dia 25 cobre o mês seguinte. O corte é o dia anterior ao dia de pagamento; com pagamento no dia 25:
-- período coberto pelo depósito: 25/mês atual a 24/mês seguinte;
-- período conferido para descontos: 25/mês anterior a 24/mês atual.
+Data de corte: a apuração fecha **alguns dias antes do pagamento** (padrão 5 dias, configurável), para a empresa se organizar financeiramente. Com pagamento no dia 25 e corte de 5 dias:
+- corte (fechamento do cálculo): dia 20;
+- período conferido para descontos: 21/mês anterior a 20/mês atual;
+- período coberto pelo depósito: 21/mês atual a 20/mês seguinte.
 
-O sistema mostra as duas datas para o gestor confirmar e permite ajustar manualmente a quantidade de dias com justificativa.
+O sistema mostra as três datas para o gestor confirmar, avisa quando o corte está próximo e permite ajustar manualmente a quantidade de dias com justificativa.
 
 Fontes dos dias:
-- previstos: escala do mês publicada quando existir; senão a configuração de trabalho (dias marcados como trabalhados na semana);
-- descontos: faltas apuradas no ponto, folgas do tipo extra, licenças/atestados e férias — cada um só entra se estiver marcado como descontável na regra do benefício.
+- previstos: escala do mês publicada quando existir; senão a configuração de trabalho (dias marcados como trabalhados na semana). Já saem da conta as **folgas dominicais e folgas extras marcadas pelo colaborador no calendário de folgas** (aprovadas ou pendentes, sinalizando as pendentes) — não se paga VA em dia que já se sabe que não haverá trabalho;
+- descontos do período anterior: faltas apuradas no ponto, folgas extras concedidas após o pagamento, licenças/atestados e férias — cada um só entra se estiver marcado como descontável na regra do benefício.
+
 
 ## Parte C — Atalho na aba Remuneração do colaborador
 
