@@ -96,9 +96,15 @@ export function useModuleShortcuts(mod: ActiveModule) {
   }, [mod]);
 
   const config = MODULE_NAV[mod] ?? MODULE_NAV.financeiro;
+  const { hidden } = useHiddenScreens();
 
-  // Universo completo de telas do módulo (achatado a partir de moreGroups).
-  const options = useMemo(() => flattenModuleOptions(config.moreGroups), [config.moreGroups]);
+  // Universo completo de telas do módulo (achatado a partir de moreGroups),
+  // sem as telas ocultadas pelo super admin.
+  const options = useMemo(
+    () => flattenModuleOptions(filterMoreGroups(config.moreGroups, hidden)),
+    [config.moreGroups, hidden],
+  );
+
 
   // Fonte primária: se sincronização estiver disponível, usa o backend;
   // senão, localStorage.
