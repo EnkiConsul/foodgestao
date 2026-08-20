@@ -35,8 +35,9 @@ import type { Beneficio } from "@/hooks/useDpBeneficios";
 import { formatarBRL } from "@/lib/dp/folha";
 import {
   GRAUS_INSALUBRIDADE, PERICULOSIDADE_PERCENTUAL_LEGAL, alertasAdicionaisRisco,
-  simularAdicionalPercentual, valorPericulosidade,
+  simularAdicionalPercentual,
 } from "@/lib/dp/adicionais-risco";
+
 
 import { cn } from "@/lib/utils";
 import {
@@ -240,10 +241,6 @@ export function RemuneracaoFields({
   // Base mensal do adicional: no horista/diarista o campo de valor guarda a
   // hora/o dia, então a referência mensal é a base salarial informada.
   const baseMensalRisco = usaBase ? baseSalarial : salario;
-  const periculosidadeValor = valorPericulosidade(
-    numeroBR(value.periculosidade_percentual),
-    baseMensalRisco,
-  );
   const simulacaoPericulosidade = simularAdicionalPercentual({
     percentual: numeroBR(value.periculosidade_percentual),
     baseMensal: baseMensalRisco,
