@@ -6,6 +6,7 @@ import { DpHeader } from "./DpHeader";
 import { AvisosPopout } from "./home/AvisosPopout";
 import { AtestadosPendentesPopout } from "./home/AtestadosPendentesPopout";
 import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
+import { HiddenScreenGuard } from "@/components/nav/HiddenScreenGuard";
 
 export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   return (
@@ -16,9 +17,12 @@ export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" })
         <div className="flex flex-1 flex-col min-w-0">
           <DpHeader variant={variant} />
           <main className="flex-1 p-3 md:p-8 pb-24 md:pb-8">
-            <Outlet />
+            <HiddenScreenGuard surface={variant}>
+              <Outlet />
+            </HiddenScreenGuard>
           </main>
         </div>
+
         {/* Popouts globais — visíveis em qualquer rota autenticada do DP */}
         <AvisosPopout />
         {variant === "admin" && <AtestadosPendentesPopout />}

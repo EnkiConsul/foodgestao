@@ -12,6 +12,8 @@ import { MoreGroupSection } from "@/components/mobile/MoreGroupSection";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useDpMenuLayout } from "@/hooks/useDpMenuLayout";
+import { useHiddenScreens } from "@/hooks/useHiddenScreens";
+import { filterMoreGroups } from "@/lib/nav/hiddenScreens";
 import {
   orderLeavesByLayout,
   orderSubgroupsByLayout,
@@ -36,23 +38,29 @@ export default function Mais() {
   const { layout } = useDpMenuLayout(
     activeModule === "portal_colaborador" ? "portal" : "dp",
   );
+  const { hidden } = useHiddenScreens();
   const config = useMemo(() => {
-    if (!isDpSurface || !layout) return rawConfig;
-    return {
-      ...rawConfig,
-      moreGroups: rawConfig.moreGroups.map((g) =>
-        g.subgroups
-          ? {
-              ...g,
-              subgroups: orderSubgroupsByLayout(g.subgroups, layout).map((sg) => ({
-                ...sg,
-                items: orderLeavesByLayout(sg.id, sg.items, layout),
-              })),
-            }
-          : g,
-      ),
-    };
-  }, [rawConfig, isDpSurface, layout]);
+    const ordered =
+      isDpSurface && layout
+        ? {
+            ...rawConfig,
+            moreGroups: rawConfig.moreGroups.map((g) =>
+              g.subgroups
+                ? {
+                    ...g,
+                    subgroups: orderSubgroupsByLayout(g.subgroups, layout).map((sg) => ({
+                      ...sg,
+                      items: orderLeavesByLayout(sg.id, sg.items, layout),
+                    })),
+                  }
+                : g,
+            ),
+          }
+        : rawConfig;
+    return { ...ordered, moreGroups: filterMoreGroups(ordered.moreGroups, hidden) };
+  }, [rawConfig, isDpSurface, layout, hidden]);
+
+
 
   const allItems: NavLeaf[] = useMemo(
     () =>
