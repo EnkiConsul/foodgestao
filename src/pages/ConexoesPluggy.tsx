@@ -244,6 +244,15 @@ export default function ConexoesPluggy() {
         />
       )}
 
+      <PluggyCreditCardReviewDialog
+        open={creditReviewOpen}
+        onOpenChange={setCreditReviewOpen}
+        accounts={pendingCredit}
+        onDone={() => { reloadPendingCredit(); load(); }}
+      />
+
+
+
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
