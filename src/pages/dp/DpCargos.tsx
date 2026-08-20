@@ -275,65 +275,15 @@ export default function DpCargos() {
 
 
       {/* Criar / Editar */}
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setForm(blankForm); } }}>
-        <DialogContent className="max-w-md sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar Cargo" : "Novo Cargo"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="cargo-nome">Nome do Cargo *</Label>
-              <Input
-                id="cargo-nome"
-                value={form.nome}
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                placeholder="Ex: Pizzaiolo Sênior"
-                maxLength={120}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cargo-descricao">Descrição (Opcional)</Label>
-              <Textarea
-                id="cargo-descricao"
-                value={form.descricao}
-                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                rows={3}
-                placeholder="Breve descrição das responsabilidades."
-              />
-            </div>
-            {!editing && (
-              <p className="rounded-lg border border-dashed p-3 text-[11px] text-muted-foreground">
-                O salário deste cargo é cadastrado como piso do sindicato patronal (que é da unidade)
-                após salvar o cargo. Patronais diferentes exigem piso próprio.
-              </p>
-            )}
-            {editing && (
-              <div className="rounded-xl border border-border p-3">
-                <CargoSalariosUnidadePanel cargoId={editing.id} />
-              </div>
-            )}
+      <CargoFormDialog
+        open={open}
+        onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}
+        cargo={editing as any}
+        colaboradoresCount={
+          editing ? (list.data ?? []).find((c) => c.id === editing.id)?.colaboradores_count ?? 0 : 0
+        }
+      />
 
-            <div className="flex items-center gap-3 rounded-xl border border-border p-3">
-              <Switch
-                id="cargo-insalubre"
-                checked={form.insalubre}
-                onCheckedChange={(v) => setForm({ ...form, insalubre: v })}
-              />
-              <Label htmlFor="cargo-insalubre" className="cursor-pointer">
-                Cargo insalubre ou perigoso
-              </Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => { setOpen(false); setEditing(null); setForm(blankForm); }}>
-              Cancelar
-            </Button>
-            <Button onClick={save} disabled={upsert.isPending}>
-              {upsert.isPending ? "Salvando..." : editing ? "Salvar" : "Cadastrar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Visualização */}
       <Dialog open={!!viewCargo} onOpenChange={(o) => !o && setViewCargo(null)}>
