@@ -258,6 +258,6 @@ export function useDpTurnos(unidadeId?: string | null) {
     [query.data, unidadeId],
   );
 
-  return { ...query, turnos, criar, atualizar, novaVersao, alternarAtivo, remover };
+  return { ...query, turnos, criar, atualizar, novaVersao, alternarAtivo, remover, removerEmLote };
 
 }
