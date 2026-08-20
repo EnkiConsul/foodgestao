@@ -65,6 +65,15 @@ export interface RemuneracaoFormState {
   periculosidade_percentual: string;
   vale_transporte: boolean;
   vale_transporte_valor_dia: string;
+  /** Dia do mês em que o VT é depositado (vazio = padrão da empresa). */
+  vale_transporte_dia_pagamento: string;
+  /** Dias de antecedência do corte do VT. */
+  vale_transporte_dias_corte: string;
+  /** O que faz perder o dia de VT no próximo depósito. */
+  vale_transporte_desconta_falta: boolean;
+  vale_transporte_desconta_folga_extra: boolean;
+  vale_transporte_desconta_atestado: boolean;
+  vale_transporte_desconta_ferias: boolean;
   beneficios: Record<string, boolean>;
   /** Base de cálculo (para horistas/diaristas: base salarial ÷ base de horas/dias). */
   base_salarial: string;
