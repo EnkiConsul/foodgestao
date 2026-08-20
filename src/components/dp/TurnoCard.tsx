@@ -1,14 +1,13 @@
-import { Clock, Pencil, Trash2, Copy, Info } from "lucide-react";
+import { Clock, Pencil, Trash2, Copy, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CATEGORIA_LABEL, formatarFaixaTurno } from "@/lib/dp/turno-utils";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import {
-  detalhesUsoTurno, motivoBloqueioExclusao, podeExcluirTurno, rotuloUsoTurno,
+  motivoBloqueioExclusao, podeExcluirTurno, rotuloUsoTurno,
   type TurnoUsoEstado, type TurnoUsoRow,
 } from "@/lib/dp/turno-uso";
 import type { DpTurnoRow } from "@/hooks/useDpTurnos";
@@ -21,6 +20,7 @@ interface TurnoCardProps {
   selecionavel?: boolean;
   selecionado?: boolean;
   onSelecionar?: (marcado: boolean) => void;
+  onAbrirDetalhe: () => void;
   onEdit: () => void;
   onDuplicar: () => void;
   onDelete: () => void;
@@ -29,17 +29,10 @@ interface TurnoCardProps {
 
 export function TurnoCard({
   turno, unidadeNome, uso, usoEstado, selecionavel, selecionado, onSelecionar,
-  onEdit, onDuplicar, onDelete, onToggleAtivo,
+  onAbrirDetalhe, onEdit, onDuplicar, onDelete, onToggleAtivo,
 }: TurnoCardProps) {
-  const detalhes = detalhesUsoTurno(uso);
   const podeExcluir = podeExcluirTurno(usoEstado);
   const motivo = motivoBloqueioExclusao(usoEstado, uso);
-
-  const variantSelo = usoEstado === "em_uso"
-    ? "secondary"
-    : usoEstado === "sem_uso"
-      ? "outline"
-      : "outline";
 
   return (
     <Card className={turno.ativo ? undefined : "opacity-60"}>
@@ -58,7 +51,12 @@ export function TurnoCard({
             style={{ backgroundColor: turno.cor ?? "hsl(var(--primary))" }}
             aria-hidden="true"
           />
-          <div className="min-w-0 flex-1">
+          <button
+            type="button"
+            onClick={onAbrirDetalhe}
+            className="min-w-0 flex-1 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={`Ver detalhes e colaboradores do turno ${turno.nome}`}
+          >
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="truncate text-base font-semibold">{turno.nome}</h3>
               {turno.versao > 1 && <Badge variant="outline">v{turno.versao}</Badge>}
@@ -80,37 +78,13 @@ export function TurnoCard({
               <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{turno.descricao}</p>
             )}
 
-            <div className="mt-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button type="button" className="inline-flex" aria-label="Ver detalhes de uso do turno">
-                    <Badge variant={variantSelo} className="gap-1">
-                      {rotuloUsoTurno(usoEstado, uso)}
-                      <Info className="h-3 w-3" aria-hidden="true" />
-                    </Badge>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-72 text-sm">
-                  <p className="font-medium">Onde este turno é usado</p>
-                  {detalhes.length === 0 ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Nenhum vínculo encontrado. Pode ser excluído com segurança.
-                    </p>
-                  ) : (
-                    <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                      {detalhes.map((d) => (
-                        <li key={d.rotulo} className="flex justify-between gap-2">
-                          <span>{d.rotulo}</span>
-                          <span className="font-medium text-foreground">{d.quantidade}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {motivo && <p className="mt-2 text-xs text-muted-foreground">{motivo}</p>}
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
+            <span className="mt-2 inline-flex items-center gap-1">
+              <Badge variant={usoEstado === "em_uso" ? "secondary" : "outline"} className="gap-1">
+                {rotuloUsoTurno(usoEstado, uso)}
+                <ChevronRight className="h-3 w-3" aria-hidden="true" />
+              </Badge>
+            </span>
+          </button>
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t pt-3">
