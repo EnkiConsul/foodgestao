@@ -1657,6 +1657,19 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
               />
 
+              {/* Regra coletiva de anuênio/triênio aplicável a este colaborador */}
+              <div className="col-span-2">
+                <AdicionalTempoServicoAviso
+                  cargoId={form.cargo_id || null}
+                  unidadeId={form.unidade_id || null}
+                  admissao={form.data_admissao || null}
+                  base={baseSalarialInformada()}
+                  onBeforeNavigate={() => onOpenChange(false)}
+                />
+              </div>
+
+
+
               {/* Adiantamento — apenas para contratos com salário mensal em folha */}
               {permiteAdiantamento ? (
                 <div className="col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-border p-3">
