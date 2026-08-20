@@ -292,10 +292,24 @@ export function ColaboradorJornadaPanel({
 
 
   /**
-   * Horário único do colaborador: um só horário vale para todos os dias
-   * trabalhados. Folga diferente não gera turno diferente.
+   * Horário principal do colaborador: o que mais se repete nos dias trabalhados.
+   * É o único que vira turno na loja; os dias diferentes ficam como horário do
+   * próprio colaborador, sem criar turno novo.
    */
-  const horario = horarioReferencia;
+  const horario = useMemo<HorarioSimples>(
+    () => horarioPadraoDaSemana(dias, horarioReferencia),
+    [dias, horarioReferencia],
+  );
+
+  /**
+   * Todo dia trabalhado mostra o horário preenchido: nada fica "herdando" em
+   * silêncio. Só roda depois que a referência é resolvida (turno da vigência,
+   * cópia de colega ou grade da unidade).
+   */
+  useEffect(() => {
+    if (vigente?.turno_padrao_id && !horarioAplicadoRef.current) return;
+    setDias((prev) => preencherDiasComHorario(prev, horarioReferencia));
+  }, [horarioReferencia, vigente?.turno_padrao_id]);
 
   /** Turno virtual que representa o horário digitado — só para cálculo na tela. */
   const turnoPadraoTela: TurnoResolvido = useMemo(
