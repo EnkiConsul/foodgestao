@@ -34,6 +34,7 @@ import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
 import { ColaboradorAcessoPanel } from "./ColaboradorAcessoPanel";
 import { Trash2 } from "lucide-react";
+import { DIA_PAGAMENTO_PADRAO, DIAS_CORTE_PADRAO, REGRAS_DESCONTO_PADRAO } from "@/lib/dp/va-calculo";
 
 import { useDeleteDpColaborador } from "@/hooks/useDpColaboradores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
