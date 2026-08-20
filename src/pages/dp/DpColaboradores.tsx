@@ -562,30 +562,18 @@ export default function DpColaboradores() {
                 <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => abrirCadastro(c)}>
                   <Pencil className="h-4 w-4 mr-1" /> Editar
                 </Button>
-                {c.user_id && (
-                  <>
-                    <Button size="sm" variant="ghost" className="min-h-11 flex-1" disabled={resetting === c.id} onClick={() => handleReset(c)}>
-                      <KeyRound className="h-4 w-4 mr-1" /> Resetar
-                    </Button>
-                    <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => openSetPwd(c)}>
-                      <Lock className="h-4 w-4 mr-1" /> Senha
-                    </Button>
-                  </>
-                )}
-                {!c.user_id && (
-                  <Button size="sm" variant="ghost" className="min-h-11 flex-1 text-primary" disabled={granting === c.id} onClick={() => handleGrantAccess(c)}>
-                    <UserPlus className="h-4 w-4 mr-1" /> Acesso
-                  </Button>
-                )}
-                {c.ativo ? (
-                  <Button size="sm" variant="ghost" className="min-h-11 flex-1 text-destructive" onClick={() => setToDesligar(c)}>
-                    <UserMinus className="h-4 w-4 mr-1" /> Desligar
-                  </Button>
-                ) : (
-                  <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setToReintegrar(c)}>
-                    <RotateCcw className="h-4 w-4 mr-1" /> Reintegrar
-                  </Button>
-                )}
+                <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => abrirCadastro(c, "acesso")}>
+                  {c.user_id ? <KeyRound className="h-4 w-4 mr-1" /> : <UserPlus className="h-4 w-4 mr-1" />} Acesso
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={`min-h-11 flex-1 ${c.ativo ? "text-destructive" : ""}`}
+                  onClick={() => abrirCadastro(c, "desligamento")}
+                >
+                  {c.ativo ? <UserMinus className="h-4 w-4 mr-1" /> : <RotateCcw className="h-4 w-4 mr-1" />}
+                  {c.ativo ? "Desligar" : "Reintegrar"}
+                </Button>
                 <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(c)} title="Remover">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
