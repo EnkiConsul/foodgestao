@@ -2352,8 +2352,117 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                         : ""}
                     </span>
                   </span>
+                 </label>
+
+                {/* Meio-termo: escolher na mão quem recebe o padrão. */}
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-xs">
+                  <RadioGroupItem value="selecionados" className="mt-0.5" />
+                  <span className="min-w-0 flex-1">
+                    <span className="font-medium text-foreground">
+                      Colaboradores escolhidos
+                      {alcancePadrao === "selecionados"
+                        ? ` (${idsSelecionadosValidos.length} de ${colaboradoresDoAlcance.length} selecionados)`
+                        : ""}
+                    </span>
+                    <span className="block text-muted-foreground">
+                      Sobrescreve {rotulosGruposSelecionados} apenas de quem você marcar. Os
+                      padrões mais específicos são preservados.
+                    </span>
+                  </span>
                 </label>
               </RadioGroup>
+
+              {alcancePadrao === "selecionados" && (
+                <div className="space-y-2 rounded-xl border p-3">
+                  <Input
+                    value={buscaSelecao}
+                    onChange={(e) => setBuscaSelecao(e.target.value)}
+                    placeholder="Buscar por nome"
+                    className="h-8 text-xs"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() =>
+                        setSelecionadosPadrao(colaboradoresDoAlcance.map((c) => String(c.id)))
+                      }
+                    >
+                      Selecionar todos
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => setSelecionadosPadrao(idsDivergentesNoAlcance)}
+                    >
+                      Só os fora do padrão ({idsDivergentesNoAlcance.length})
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs"
+                      onClick={() => setSelecionadosPadrao([])}
+                    >
+                      Limpar
+                    </Button>
+                  </div>
+                  <ScrollArea className="h-52 pr-3">
+                    <div className="space-y-1">
+                      {colaboradoresSelecionaveis.map((c) => {
+                        const id = String(c.id);
+                        const fora = idsDivergentesNoAlcance.includes(id);
+                        return (
+                          <label
+                            key={id}
+                            className="flex cursor-pointer items-start gap-2 rounded-lg p-2 hover:bg-muted/50"
+                          >
+                            <Checkbox
+                              checked={selecionadosPadrao.includes(id)}
+                              onCheckedChange={(v) => alternarSelecionado(id, v === true)}
+                              className="mt-0.5"
+                            />
+                            <span className="min-w-0">
+                              <span className="flex flex-wrap items-center gap-2">
+                                <span className="font-medium text-foreground">
+                                  {String(c.nome ?? "Sem nome")}
+                                </span>
+                                {fora && (
+                                  <Badge variant="outline" className="text-[10px]">
+                                    fora do padrão
+                                  </Badge>
+                                )}
+                              </span>
+                              <span className="block text-muted-foreground">
+                                {[
+                                  (c as any).dp_cargos?.nome ?? c.cargo ?? null,
+                                  (c as any).dp_unidades?.nome ?? null,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" • ") || "Sem cargo definido"}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                      {!colaboradoresSelecionaveis.length && (
+                        <p className="p-2 text-xs text-muted-foreground">
+                          Nenhum colaborador ativo encontrado neste alcance.
+                        </p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                  {!idsSelecionadosValidos.length && (
+                    <p className="text-xs text-destructive">
+                      Marque ao menos um colaborador para aplicar o padrão.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
