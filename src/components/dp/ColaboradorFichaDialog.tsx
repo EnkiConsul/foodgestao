@@ -545,9 +545,10 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
                   <Field
                     label="Valor"
                     value={`${fmtCurrency(vaValor)} ${vaPeriodicidade === "diario" ? "por dia" : "por mês"}${
-                      vaPeriodicidade === "diario" && vaDiasBase ? ` · base ${vaDiasBase} dias` : ""
+                      vaPeriodicidade === "diario" && vaBaseTexto ? ` · ${vaBaseTexto}` : ""
                     }`}
                   />
+
                   <Field
                     label="Dia de Pagamento"
                     value={vaDiaPagamento ? `Dia ${vaDiaPagamento}` : "—"}
