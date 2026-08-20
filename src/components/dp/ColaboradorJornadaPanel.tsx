@@ -363,38 +363,8 @@ export function ColaboradorJornadaPanel({
   const alternarDia = (dow: number) => {
     marcarAlterado();
     setDias((prev) => prev.map((d) => (d.dow === dow
-      ? (d.trabalha
-        ? { ...d, trabalha: false, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
-        : {
-          ...d,
-          trabalha: true,
-          turno_id: null,
-          entrada: horario.entrada,
-          saida: horario.saida,
-          intervalo_minutos: horario.intervalo_minutos ?? 0,
-        })
+      ? { ...d, trabalha: !d.trabalha, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
       : d)));
-  };
-
-  /**
-   * Edição direta do horário do dia: o campo já vem preenchido com o horário
-   * previsto e o que o usuário digitar passa a valer só para aquele dia.
-   */
-  const definirHorarioDia = (dow: number, patch: Partial<HorarioSimples>) => {
-    marcarAlterado();
-    setDias((prev) => {
-      const dia = prev.find((d) => d.dow === dow);
-      if (!dia) return prev;
-      return definirHorarioNoDia(prev, dow, { ...horarioEfetivoDia(dia, horario), ...patch });
-    });
-  };
-
-  /** Repete o horário de um dia nos dias escolhidos. */
-  const repetirHorario = (dow: number, destinos: number[]) => {
-    if (destinos.length === 0) return;
-    marcarAlterado();
-    setDias((prev) => copiarHorarioEntreDias(prev, dow, destinos, horario));
-    toast.success(`Horário repetido em ${destinos.map((d) => DOW_CURTO[d]).join(", ")}`);
   };
 
   const definirHorario = (patch: Partial<HorarioSimples>) => {
@@ -407,21 +377,26 @@ export function ColaboradorJornadaPanel({
     marcarAlterado();
     setFolgaVariavel(false);
     const folgar = modo === "6x1" ? [0] : [0, 6];
-    setDias((prev) => prev.map((d) => (folgar.includes(d.dow)
-      ? { ...d, trabalha: false, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
-      : {
-        ...d,
-        trabalha: true,
-        entrada: d.entrada ?? horario.entrada,
-        saida: d.saida ?? horario.saida,
-        intervalo_minutos: d.intervalo_minutos ?? horario.intervalo_minutos ?? 0,
-      })));
+    setDias((prev) => prev.map((d) => ({
+      ...d,
+      trabalha: !folgar.includes(d.dow),
+      turno_id: null, entrada: null, saida: null, intervalo_minutos: null,
+    })));
   };
+
+  /**
+   * Na cópia entram apenas os dias de trabalho e folga: o horário do colaborador
+   * é único e vem do campo de horário, nunca de exceções por dia.
+   */
+  const somenteDias = (lista: DiaConfig[]): DiaConfig[] =>
+    normalizarDias(lista).map((d) => ({
+      ...d, turno_id: null, entrada: null, saida: null, intervalo_minutos: null,
+    }));
 
   const onCopiarConfig = (c: ConfigCopiada) => {
     marcarAlterado();
     setFolgaVariavel(c.folga_variavel);
-    setDias(normalizarDias(c.dias));
+    setDias(somenteDias(c.dias));
     if (c.horario?.entrada && c.horario?.saida) {
       // Evita que o efeito de sincronização devolva o horário antigo por cima.
       horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "copiado";
@@ -434,15 +409,11 @@ export function ColaboradorJornadaPanel({
     toast.success("Horário copiado do colega — revise e salve");
   };
 
-  /**
-   * Atalho pelo nome do colega: copia a semana inteira, não só o horário base.
-   * Dias com entrada e saída diferentes normalmente são o padrão da loja nos
-   * dias de maior movimento, então precisam viajar junto na cópia.
-   */
+  /** Atalho pelo nome do colega: copia o horário e os dias de folga dele. */
   const copiarSemanaDoColega = (m: ModeloHorarioColaborador) => {
     marcarAlterado();
     setFolgaVariavel(m.folga_variavel);
-    setDias(normalizarDias(m.dias));
+    setDias(somenteDias(m.dias));
     if (m.horario?.entrada && m.horario?.saida) {
       horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "copiado";
       setHorarioReferencia({
@@ -451,21 +422,16 @@ export function ColaboradorJornadaPanel({
         intervalo_minutos: m.horario.intervalo_minutos ?? 0,
       });
     }
-    const diferentes = diasDiferentesDoColega(m);
-    toast.success(
-      diferentes.length > 0
-        ? `Horário de ${m.colaborador_nome.split(" ")[0]} copiado, incluindo ${diferentes.map((d) => DOW_CURTO[d]).join(", ")} — revise e salve`
-        : `Horário de ${m.colaborador_nome.split(" ")[0]} copiado — revise e salve`,
-    );
+    toast.success(`Horário de ${primeiroNome(m.colaborador_nome)} copiado — revise e salve`);
   };
 
-  /** Aplica uma grade semanal da unidade sobre a semana da tela. */
+  /** Aplica uma grade semanal da unidade: horário dominante e dias de folga. */
   const onUsarGrade = (grade: GradeSemanal) => {
     marcarAlterado();
     const { dias: novos, base } = semanaDaGrade(grade.dias, turnosResolvidos, horario);
     horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "grade";
     setHorarioReferencia(base);
-    setDias(normalizarDias(novos));
+    setDias(somenteDias(novos));
     setFolgaVariavel(grade.folga_variavel);
     toast.success(`Grade "${grade.nome}" aplicada — revise e salve`);
   };
