@@ -46,6 +46,8 @@ import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { PadraoDivergenciaAviso } from "@/components/dp/PadraoDivergenciaAviso";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
+import { UnidadeFormDialog } from "@/components/dp/UnidadeFormDialog";
+
 import { SindicatoEnquadramentoField } from "@/components/dp/SindicatoEnquadramentoField";
 import { UnidadeAdiantamentoDialog } from "@/components/dp/UnidadeAdiantamentoDialog";
 
