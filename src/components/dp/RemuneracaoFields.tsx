@@ -733,7 +733,39 @@ export function RemuneracaoFields({
               <div>Concedido no mês (22 dias): <strong className="text-foreground">{formatarBRL(vt.bruto)}</strong></div>
               <div>Desconto legal (até 6%): <strong className="text-foreground">{formatarBRL(vt.desconto)}</strong></div>
             </div>
+            <ValeCorteFields
+              id="vt"
+              valor={{
+                diaPagamento: value.vale_transporte_dia_pagamento,
+                diasCorte: value.vale_transporte_dias_corte,
+                regras: {
+                  falta: value.vale_transporte_desconta_falta,
+                  folga_extra: value.vale_transporte_desconta_folga_extra,
+                  atestado: value.vale_transporte_desconta_atestado,
+                  ferias: value.vale_transporte_desconta_ferias,
+                },
+              }}
+              onChange={(patch) =>
+                onChange({
+                  ...(patch.diaPagamento !== undefined
+                    ? { vale_transporte_dia_pagamento: patch.diaPagamento }
+                    : {}),
+                  ...(patch.diasCorte !== undefined
+                    ? { vale_transporte_dias_corte: patch.diasCorte }
+                    : {}),
+                  ...(patch.regras
+                    ? {
+                        vale_transporte_desconta_falta: patch.regras.falta,
+                        vale_transporte_desconta_folga_extra: patch.regras.folga_extra,
+                        vale_transporte_desconta_atestado: patch.regras.atestado,
+                        vale_transporte_desconta_ferias: patch.regras.ferias,
+                      }
+                    : {}),
+                })
+              }
+            />
           </div>
+        )}
         )}
       </div>
 
