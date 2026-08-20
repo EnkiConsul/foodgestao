@@ -1,4 +1,5 @@
 import {
+  EyeOff,
   BarChart3,
   Users,
   Sparkles,
