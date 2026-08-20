@@ -178,6 +178,19 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
           onOpenChange={setOrganizarOpen}
           surface={surfaceKey}
         />
+        {isSuperAdmin && !collapsed && (
+          <button
+            type="button"
+            onClick={() => setTelasOpen(true)}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {hiddenEnabled ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            Telas em desenvolvimento
+          </button>
+        )}
+        {isSuperAdmin && (
+          <TelasDesenvolvimentoDialog open={telasOpen} onOpenChange={setTelasOpen} />
+        )}
         {variant === "admin" && !collapsed && (
           <Link
             to="/hub"
