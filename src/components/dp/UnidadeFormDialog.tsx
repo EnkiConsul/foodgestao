@@ -155,9 +155,9 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
       });
       return;
     }
+    // Nova unidade abre em branco: só a empresa é pré-selecionada quando há uma só.
     const only = companies.length === 1 ? companies[0].id : "";
     setForm({ ...blank, company_id: only, nome: nomeInicial });
-    if (only) void applyCompanyData(only, !nomeInicial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, unidade?.id, nomeInicial]);
 
