@@ -411,8 +411,9 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
                           : d.turno
                           ? `${d.turno.entrada || "—"} às ${d.turno.saida || "—"}${
                               d.turno.intervalo_minutos ? ` · ${d.turno.intervalo_minutos} min de intervalo` : ""
-                            }${d.origem === "base" ? " · horário do turno" : ""}`
+                            }`
                           : "Sem horário definido"}
+
                       </span>
                     </div>
                   ))}
