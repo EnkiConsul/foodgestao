@@ -83,7 +83,10 @@ export function periodoVaDe(
 ): PeriodoVa {
   const [ano, mes] = competencia.split("-").map(Number);
   const dia = diaValido(ano, mes - 1, Number(diaPagamento) || DIA_PAGAMENTO_PADRAO);
-  const corteDias = Math.max(0, Number.isFinite(Number(diasCorte)) ? Number(diasCorte) : DIAS_CORTE_PADRAO);
+  const corteDias = Math.max(
+    0,
+    diasCorte == null || !Number.isFinite(Number(diasCorte)) ? DIAS_CORTE_PADRAO : Number(diasCorte),
+  );
 
   const pagamento = iso(utc(ano, mes - 1, dia));
   const corte = somarDias(pagamento, -corteDias);
