@@ -32,12 +32,20 @@ import {
 
 const TODAS = "todas";
 
+type UsoFiltro = "todos" | "em_uso" | "sem_uso";
+
 export default function DpTurnos() {
   const { selectedCompanyId } = useCompanyContext();
-  const { turnos, isLoading, error, criar, atualizar, novaVersao, alternarAtivo, remover } = useDpTurnos();
+  const {
+    turnos, isLoading, error, criar, atualizar, novaVersao, alternarAtivo, remover, removerEmLote,
+  } = useDpTurnos();
+  const { usoPorTurno, isLoading: usoCarregando } = useDpTurnosUso();
 
   const [busca, setBusca] = useState("");
   const [unidadeFiltro, setUnidadeFiltro] = useState(TODAS);
+  const [usoFiltro, setUsoFiltro] = useState<UsoFiltro>("todos");
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [limpezaOpen, setLimpezaOpen] = useState(false);
   const [unidadeFuncionamento, setUnidadeFuncionamento] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
@@ -64,16 +72,47 @@ export default function DpTurnos() {
   const listaUnidades = unidades.data ?? [];
   const nomeUnidade = (id: string | null) => listaUnidades.find((u) => u.id === id)?.nome ?? null;
 
+  const estadoDoTurno = (t: DpTurnoRow) =>
+    estadoUsoTurno({ uso: usoPorTurno[t.id], carregando: usoCarregando });
+
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return turnos.filter((t) => {
       if (unidadeFiltro !== TODAS && t.unidade_id !== unidadeFiltro) return false;
+      if (usoFiltro !== "todos" && !usoCarregando) {
+        const estado = estadoUsoTurno({ uso: usoPorTurno[t.id] });
+        if (usoFiltro === "sem_uso" && estado !== "sem_uso") return false;
+        if (usoFiltro === "em_uso" && estado === "sem_uso") return false;
+      }
       if (!termo) return true;
       return `${t.nome} ${t.descricao ?? ""}`.toLowerCase().includes(termo);
     });
-  }, [turnos, busca, unidadeFiltro]);
+  }, [turnos, busca, unidadeFiltro, usoFiltro, usoPorTurno, usoCarregando]);
+
+  const candidatosLimpeza = useMemo(
+    () => filtrados.filter((t) => podeExcluirTurno(estadoUsoTurno({ uso: usoPorTurno[t.id] }))),
+    [filtrados, usoPorTurno],
+  );
+
+  const alternarSelecao = (id: string, marcado: boolean) =>
+    setSelecionados((atual) => (marcado ? [...new Set([...atual, id])] : atual.filter((i) => i !== id)));
+
+  const alternarTodos = (marcado: boolean) =>
+    setSelecionados(marcado ? candidatosLimpeza.map((t) => t.id) : []);
+
+  const excluirSelecionados = async () => {
+    try {
+      await removerEmLote.mutateAsync(selecionados);
+      toast.success(`${selecionados.length} turno(s) excluído(s).`);
+      setSelecionados([]);
+      setLimpezaOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível excluir os turnos.");
+    }
+  };
 
   const abrirNovo = () => {
+
     setEditando(null);
     setInicial({ ...TURNO_FORM_DEFAULT, unidade_id: unidadeFiltro === TODAS ? null : unidadeFiltro });
     setFormOpen(true);
