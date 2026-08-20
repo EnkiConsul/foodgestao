@@ -277,9 +277,15 @@ export default function DpCargos() {
                   <p className="text-[11px] text-muted-foreground">{salarioResumo(viewCargo).dica}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Insalubridade / periculosidade</Label>
-                  <p className="mt-1">{(viewCargo as any).insalubre_periculoso ? "Sim" : "Não"}</p>
+                  <Label className="text-xs text-muted-foreground">Adicionais de risco</Label>
+                  <p className="mt-1">
+                    Insalubridade: {textoPercentualRisco((viewCargo as any).insalubridade_percentual)}
+                  </p>
+                  <p>
+                    Periculosidade: {textoPercentualRisco((viewCargo as any).periculosidade_percentual)}
+                  </p>
                 </div>
+
               </div>
 
               <div className="pt-2 border-t border-border">
