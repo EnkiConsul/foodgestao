@@ -22,20 +22,22 @@ B) Dias pagos e não trabalhados no período anterior  (falta, folga extra, ates
 Valor a depositar = (A - B) x valor do dia
 ```
 
-Período de apuração (data de corte): o VA pago no dia 25 cobre o mês seguinte. O corte é o dia anterior ao dia de pagamento; com pagamento no dia 25:
-- período coberto pelo depósito: 25/mês atual a 24/mês seguinte;
-- período conferido para descontos: 25/mês anterior a 24/mês atual.
+Data de corte: a apuração fecha **alguns dias antes do pagamento** (padrão 5 dias, configurável), para a empresa se organizar financeiramente. Com pagamento no dia 25 e corte de 5 dias:
+- corte (fechamento do cálculo): dia 20;
+- período conferido para descontos: 21/mês anterior a 20/mês atual;
+- período coberto pelo depósito: 21/mês atual a 20/mês seguinte.
 
-O sistema mostra as duas datas para o gestor confirmar e permite ajustar manualmente a quantidade de dias com justificativa.
+O sistema mostra as três datas para o gestor confirmar, avisa quando o corte está próximo e permite ajustar manualmente a quantidade de dias com justificativa.
 
 Fontes dos dias:
-- previstos: escala do mês publicada quando existir; senão a configuração de trabalho (dias marcados como trabalhados na semana);
-- descontos: faltas apuradas no ponto, folgas do tipo extra, licenças/atestados e férias — cada um só entra se estiver marcado como descontável na regra do benefício.
+- previstos: escala do mês publicada quando existir; senão a configuração de trabalho (dias marcados como trabalhados na semana). Já saem da conta as **folgas dominicais e folgas extras marcadas pelo colaborador no calendário de folgas** (aprovadas ou pendentes, sinalizando as pendentes) — não se paga VA em dia que já se sabe que não haverá trabalho;
+- descontos do período anterior: faltas apuradas no ponto, folgas extras concedidas após o pagamento, licenças/atestados e férias — cada um só entra se estiver marcado como descontável na regra do benefício.
+
 
 ## Parte C — Atalho na aba Remuneração do colaborador
 
 No bloco Vale-alimentação:
-- campo **Dia do pagamento** (1 a 31) com aviso do período coberto ("pago dia 25 → cobre 25/08 a 24/09");
+- campos **Dia do pagamento** (1 a 31) e **Dias de antecedência do corte** (padrão 5), com aviso do período ("pago dia 25, corte dia 20 → cobre 21/08 a 20/09");
 - switches **Desconta em**: falta, folga extra, atestado/licença, férias (com opção "todos");
 - valores herdados do padrão da empresa; quando o colaborador diverge do padrão aparece o banner âmbar já usado nos outros campos;
 - atalho "Definir padrão da empresa" abrindo a configuração do benefício, no mesmo estilo do atalho do teto do salário-família.
@@ -52,14 +54,14 @@ Nova aba **Calculadora de VA** em `/dp/beneficios`:
 ## Detalhes técnicos
 
 Banco:
-- `dp_beneficios`: `dia_pagamento` (int 1–31), `desconta_falta`, `desconta_folga_extra`, `desconta_atestado`, `desconta_ferias` (bool).
-- `dp_colaboradores`: `vale_alimentacao_dia_pagamento` e os mesmos quatro booleanos como override por colaborador (nulos = herda o padrão).
-- `dp_config_dp`: `va_dia_pagamento` e flags de desconto como padrão da empresa.
+- `dp_beneficios`: `dia_pagamento` (int 1–31), `dias_antecedencia_corte` (int, default 5), `desconta_falta`, `desconta_folga_extra`, `desconta_atestado`, `desconta_ferias` (bool).
+- `dp_colaboradores`: `vale_alimentacao_dia_pagamento`, `vale_alimentacao_dias_corte` e os mesmos quatro booleanos como override por colaborador (nulos = herda o padrão).
+- `dp_config_dp`: `va_dia_pagamento`, `va_dias_corte` e flags de desconto como padrão da empresa.
 - Nova tabela `dp_va_apuracoes` (company_id, colaborador_id, competência, dias_previstos, dias_descontados, detalhe jsonb, valor_dia, valor_depositar, observacao) com GRANTs e RLS por empresa, para guardar o fechamento mensal e permitir ajuste manual auditável.
 
 Frontend:
 - `ColaboradorFormDialog.tsx`: remover os `TabsTrigger`/`TabsContent` de `acesso` e `desligamento`; renderizar `ColaboradorAcessoPanel` e `ColaboradorDesligamentoPanel` dentro do `TabsContent value="dados"`; trocar o `DropdownMenu` do cabeçalho por um único `Button` com ícone `Trash2` (aria-label "Excluir cadastro"). `initialTab` aceita `"acesso"`/`"desligamento"` mapeando para a aba `dados` + `scrollIntoView` nas âncoras `#acesso-portal` e `#desligamento`; o indicador de pendência de desligamento migra para o `TabsTrigger` de Dados.
-- `src/lib/dp/va-calculo.ts`: funções puras `periodoVaDe(diaPagamento, competencia)`, `contarDiasPrevistos`, `contarDiasDescontaveis`, `calcularVaDeposito` + testes unitários.
+- `src/lib/dp/va-calculo.ts`: funções puras `periodoVaDe(diaPagamento, diasCorte, competencia)`, `contarDiasPrevistos` (descontando folgas dominicais/extras do calendário via `useDpFolgasQueries`), `contarDiasDescontaveis`, `calcularVaDeposito` + testes unitários.
 - `src/lib/dp/beneficios-regras.ts`: expõe a regra de desconto por evento usada pela calculadora.
 - `src/components/dp/RemuneracaoFields.tsx`: dia de pagamento, switches de desconto, prévia do período e comparação com o padrão.
 - Novo `src/components/dp/beneficios/VaCalculadora.tsx` + hook `useDpVaCalculadora.tsx` (escala do mês, ponto do mês, folgas, férias) integrados em `src/pages/dp/DpBeneficios.tsx`.
