@@ -263,6 +263,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
   /** Criação de cargo sem sair do cadastro. */
   const [novoCargoOpen, setNovoCargoOpen] = useState(false);
+  const [novaUnidadeOpen, setNovaUnidadeOpen] = useState(false);
+
   /** Conflito entre o salário informado e o salário de referência do cargo. */
   const [conflitoCargo, setConflitoCargo] = useState<
     { salarioCargo: number; salarioInformado: number } | null
