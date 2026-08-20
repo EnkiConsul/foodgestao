@@ -1,59 +1,55 @@
-# Cadastro do colaborador: ações nas abas, riscos separados e ficha completa
+# Vale-alimentação: dia de pagamento, data de corte e calculadora mensal
 
-## 1. Salário não carregava (Wanderson)
+## 1. Como o cálculo vai funcionar
 
-Verificado no banco: o registro do Wanderson está com `salario_base`, `valor_hora` e `base_salarial` **nulos** — não é falha de carregamento, o cadastro nunca teve valor gravado. O cargo dele (MOTOQUEIRO) tem salário de referência de R$ 1.750,00 no piso por sindicato patronal.
+Hoje o VA é só valor por dia × dias-base fixos (padrão 22), sem dia de pagamento e sem acerto do mês anterior.
 
-Correção: ao abrir a aba Remuneração de um colaborador **sem salário informado**, o sistema preenche o campo com o salário de referência do cargo/unidade e mostra um aviso "sugerido pelo cargo — confirme o valor". Nada é gravado sem o usuário salvar. Se não houver referência, o campo fica vazio com aviso de pendência (comportamento atual).
+Passa a ser um cálculo em três partes, para cada colaborador:
 
-## 2. Horário de trabalho: não inventar horário incompatível
+```text
+A) Dias previstos do próximo período   (dias de trabalho na escala/jornada)
+B) Dias pagos e não trabalhados no período anterior  (falta, folga extra, atestado, férias — conforme o que a empresa marcar como descontável)
+Valor a depositar = (A - B) x valor do dia
+```
 
-Hoje, quando não existe nenhum colega no mesmo cargo, a sugestão cai para o horário mais usado de toda a unidade — foi assim que o Wanderson (motoqueiro noturno) recebeu um horário diurno.
+Período de apuração (data de corte): o VA pago no dia 25 cobre o mês seguinte. O corte é o dia anterior ao dia de pagamento; ou seja, com pagamento no dia 25:
+- período coberto pelo depósito: 25/mês atual a 24/mês seguinte;
+- período conferido para descontos: 25/mês anterior a 24/mês atual.
 
-Correção: a sugestão automática passa a valer **somente quando há colega no mesmo cargo e unidade**. Sem correspondência cargo+unidade, os campos ficam **vazios** (sem o padrão 08:00–17:00) com a mensagem "nenhum horário compatível encontrado para este cargo nesta unidade — informe o horário". Os atalhos por nome de colega continuam disponíveis para copiar manualmente.
+O sistema mostra as duas datas na tela para o gestor confirmar, e permite ajustar manualmente a quantidade de dias com justificativa.
 
-## 3. Insalubridade e periculosidade em campos separados
+Fontes dos dias:
+- previstos: escala do mês publicada quando existir; senão a configuração de trabalho (dias marcados como trabalhados na semana);
+- descontos: faltas apuradas no ponto, folgas do tipo extra, licenças/atestados e férias — cada um só entra se estiver marcado como descontável na regra do benefício.
 
-Hoje existe um único campo "Adicional insalubridade/periculosidade (%)".
+## 2. Atalho na tela do colaborador
 
-Passa a ter dois blocos independentes:
-- **Insalubridade** — percentual (grau mínimo 10%, médio 20%, máximo 40%), calculado sobre o salário mínimo, com atalhos dos graus.
-- **Periculosidade** — percentual (padrão legal 30%), calculado sobre o salário base.
-- Aviso quando os dois estão marcados: a lei não permite cumular; é preciso optar por um (art. 193 §2º CLT).
-- O cargo passa a distinguir "insalubre" e "perigoso" em vez do único indicador atual, e a marcação do cargo sugere o bloco correspondente na ficha.
+No bloco Vale-alimentação da aba Remuneração:
+- campo **Dia do pagamento** (1 a 31) com aviso do período coberto ("pago dia 25 → cobre 25/08 a 24/09");
+- switches **Desconta em**: falta, folga extra, atestado/licença, férias (com opção "todos");
+- os valores começam herdados do padrão da empresa; quando o colaborador diverge do padrão aparece o banner âmbar já usado nos outros campos;
+- atalho "Definir padrão da empresa" abrindo a configuração do benefício, no mesmo estilo do atalho do teto do salário-família.
 
-## 4. Desligamento, acesso ao portal e remover dentro do cadastro
+## 3. Calculadora na tela de Benefícios
 
-O cadastro ganha duas novas abas e um menu de ações no cabeçalho:
-- **Aba Desligamento** — data da demissão, motivo, elegibilidade para recontratação, observações, prévia do impacto (folgas/solicitações a cancelar, prazo de acesso ao portal) e os botões Registrar desligamento / Editar desligamento / Reintegrar. O diálogo separado deixa de ser necessário; a ação na lista passa a abrir o cadastro nessa aba.
-- **Aba Acesso ao portal** — situação do vínculo de login, CPF de acesso, gerar acesso, redefinir senha, exibição da senha temporária e prazo de carência após o desligamento.
-- **Cabeçalho do cadastro** — menu de ações com "Remover colaborador" (com confirmação), além dos atalhos de desligamento e acesso.
-
-A lista de colaboradores mantém os atalhos, mas apontando para as abas do cadastro.
-
-## 5. Ficha resumo completa e com cabeçalho fixo
-
-A ficha aberta ao clicar na linha passa a mostrar **tudo o que existe no cadastro**, nas mesmas seções das abas:
-- Identificação, contato e vínculo (como hoje).
-- **Horário de trabalho** — dias trabalhados com entrada/saída/intervalo por dia, folga fixa ou variável, carga semanal, turno/horário de referência e origem (horário da loja ou próprio).
-- **Remuneração completa** — forma de pagamento, salário, valor-hora e base de cálculo, insalubridade e periculosidade separadas, prêmio de assiduidade com critérios, vale-transporte, **vale-alimentação** (valor, periodicidade, dias-base, desconto) e demais benefícios da ficha com valor e desconto.
-- **Dependentes** — lista com data de nascimento, IRRF e salário-família.
-- **Documentos de admissão** — checklist com entregues e pendentes.
-- **Sindicatos e enquadramento**, adicional por tempo de serviço, e **desligamento** quando houver.
-
-Layout: cabeçalho **fixo** (sticky) com nome, badges de situação/perfil e os botões **Editar** e **X (fechar)** sempre visíveis; o rodapé duplicado sai. O corpo rola sob o cabeçalho e o botão Editar abre o cadastro na aba correspondente à seção.
+Nova aba **Calculadora de VA** em `/dp/beneficios`:
+- seleção de mês de pagamento e unidade;
+- tabela por colaborador: dias previstos, dias descontados (com detalhe por motivo ao expandir), valor do dia, bruto, desconto do colaborador, **valor a depositar**;
+- totais no topo (colaboradores, dias, total a depositar) e exportação CSV para envio à operadora do cartão;
+- edição pontual dos dias por colaborador com observação, sem alterar o cadastro;
+- botão para gerar os lançamentos do VA na folha do período, reaproveitando a geração de benefícios já existente.
 
 ## Detalhes técnicos
 
 Banco:
-- `dp_colaboradores`: `insalubridade_percentual`, `periculosidade_percentual` (numéricos, 0–100). `adicional_percentual` é mantido e passa a ser preenchido pela soma vigente para não quebrar a apuração da folha e as funções SQL que já o consomem.
-- `dp_cargos`: `insalubre` e `perigoso` booleanos; `insalubre_periculoso` continua sincronizado por padrão para compatibilidade com a trava de menores de 18 anos.
-- Backfill: percentual atual migra para insalubridade quando o cargo é insalubre, senão para periculosidade.
+- `dp_beneficios`: `dia_pagamento` (int 1–31), `desconta_falta`, `desconta_folga_extra`, `desconta_atestado`, `desconta_ferias` (bool).
+- `dp_colaboradores`: `vale_alimentacao_dia_pagamento` e os mesmos quatro booleanos, como override por colaborador (nulos = herda o padrão).
+- `dp_config_dp`: `va_dia_pagamento` e flags de desconto como padrão da empresa.
+- Nova tabela `dp_va_apuracoes` (company_id, colaborador_id, competência, dias_previstos, dias_descontados, detalhe jsonb, valor_dia, valor_depositar, observacao) com GRANTs e RLS por empresa, para guardar o fechamento mensal e permitir ajuste manual auditável.
 
 Frontend:
-- `RemuneracaoFields.tsx`: blocos separados de insalubridade/periculosidade, prévia dos valores e aviso de não cumulação; prefill do salário de referência.
-- `ColaboradorJornadaPanel.tsx` + `modeloHorarioRanking.ts`: sugestão restrita a cargo+unidade, estado "sem horário compatível" e horário inicial vazio.
-- `ColaboradorFormDialog.tsx`: novas abas `desligamento` e `acesso`, menu de ações no cabeçalho (remover), reaproveitando a lógica de `DesligamentoDialog.tsx` e os handlers de acesso hoje em `DpColaboradores.tsx`.
-- `ColaboradorFichaDialog.tsx`: cabeçalho sticky com Editar/X, seções novas alimentadas por `useDpColaboradorConfigTrabalho`, `useDpBeneficios`, `useDpDependentes`, `useDpDocumentos` e `useDpAdicionaisTempoServico`.
-- `DpColaboradores.tsx`: ações da linha/menu passam a abrir o cadastro na aba certa.
-- Testes unitários para a sugestão de horário restrita ao cargo e para o cálculo de insalubridade/periculosidade.
+- `src/lib/dp/va-calculo.ts`: funções puras `periodoVaDe(diaPagamento, competencia)`, `contarDiasPrevistos`, `contarDiasDescontaveis`, `calcularVaDeposito` + testes unitários.
+- `src/lib/dp/beneficios-regras.ts`: passa a expor a regra de desconto por evento usada pela calculadora.
+- `src/components/dp/RemuneracaoFields.tsx`: dia de pagamento, switches de desconto, prévia do período e comparação com o padrão.
+- Novo `src/components/dp/beneficios/VaCalculadora.tsx` + hook `useDpVaCalculadora.tsx` (escala do mês, ponto do mês, folgas, férias) integrados em `src/pages/dp/DpBeneficios.tsx`.
+- `ColaboradorFichaDialog.tsx`: mostra dia de pagamento e regras de desconto do VA.
