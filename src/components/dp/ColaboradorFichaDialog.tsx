@@ -135,6 +135,78 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
   const { dependentes } = useDpDependentes(colaborador?.id ?? null);
   const configVigente = configTrabalho.vigente ?? configTrabalho.configs[0] ?? null;
 
+  // A carga semanal não existe como campo: é calculada a partir dos dias e do
+  // turno padrão. Dias sem horário próprio herdam o horário do turno.
+  const { turnos } = useDpTurnos();
+  const { data: unidades } = useDpUnidades();
+
+  const turnosResolvidos = useMemo<TurnoResolvido[]>(
+    () =>
+      (turnos ?? []).map((t: any) => ({
+        id: t.id,
+        nome: t.nome,
+        cor: t.cor ?? null,
+        entrada: String(t.entrada ?? "").slice(0, 5),
+        saida: String(t.saida ?? "").slice(0, 5),
+        intervalo_minutos: t.intervalo_minutos ?? 0,
+      })),
+    [turnos],
+  );
+
+  const configDominio = useMemo<ConfigTrabalho | null>(() => {
+    if (!configVigente) return null;
+    return {
+      turno_padrao_id: (configVigente as any).turno_padrao_id ?? null,
+      folga_variavel: !!(configVigente as any).folga_variavel,
+      folga_fixa_dow: (configVigente as any).folga_fixa_dow ?? null,
+      dias: (configVigente.dias ?? []).map((d: any) => ({
+        dow: d.dow,
+        trabalha: !!d.trabalha,
+        turno_id: d.turno_id ?? null,
+        entrada: d.entrada ? String(d.entrada).slice(0, 5) : null,
+        saida: d.saida ? String(d.saida).slice(0, 5) : null,
+        intervalo_minutos: d.intervalo_minutos ?? null,
+      })),
+    };
+  }, [configVigente]);
+
+  const detalhesCarga = useMemo(
+    () => (configDominio ? detalharCargaSemanal(configDominio, turnosResolvidos) : []),
+    [configDominio, turnosResolvidos],
+  );
+  const cargaSemanalCalculada = useMemo(
+    () => (configDominio ? cargaSemanalConfig(configDominio, turnosResolvidos) : null),
+    [configDominio, turnosResolvidos],
+  );
+  const turnoPadrao = useMemo(
+    () => turnosResolvidos.find((t) => t.id === configDominio?.turno_padrao_id) ?? null,
+    [turnosResolvidos, configDominio?.turno_padrao_id],
+  );
+  const resumoFaixas = useMemo(
+    () =>
+      configDominio
+        ? resumoSemanaPorFaixas(
+            configDominio.dias,
+            turnoPadrao
+              ? {
+                  entrada: turnoPadrao.entrada,
+                  saida: turnoPadrao.saida,
+                  intervalo_minutos: turnoPadrao.intervalo_minutos ?? 0,
+                }
+              : null,
+            { folgaVariavel: configDominio.folga_variavel },
+          )
+        : null,
+    [configDominio, turnoPadrao],
+  );
+  const diasTrabalhadosSemana = detalhesCarga.filter((d) => d.trabalha).length;
+  const unidadeConfigNome = useMemo(() => {
+    const id = (configVigente as any)?.unidade_id as string | null | undefined;
+    if (!id) return null;
+    return (unidades ?? []).find((u: any) => u.id === id)?.nome ?? null;
+  }, [configVigente, unidades]);
+
+
   const insalubridade = (colaborador as any)?.insalubridade_percentual as number | null;
   const periculosidade = (colaborador as any)?.periculosidade_percentual as number | null;
   const va = (colaborador as any)?.vale_alimentacao as boolean | null;
