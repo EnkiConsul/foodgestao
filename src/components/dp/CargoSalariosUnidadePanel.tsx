@@ -392,11 +392,50 @@ export function CargoSalariosUnidadePanel({ cargoId }: Props) {
                 <Badge variant="outline" className="tabular-nums">
                   {moedaBR(Number(p.salario_base))}
                 </Badge>
+                <Button
+                  size="icon" variant="ghost" className="shrink-0"
+                  aria-label="Editar valor do histórico"
+                  onClick={() => setEditando(p)}
+                >
+                  <Pencil className="size-4" />
+                </Button>
               </li>
             ))}
           </ul>
         </div>
       )}
+
+      {/* Log de alterações (quem mudou, quando e por quê) */}
+      <div className="space-y-2">
+        <Button
+          type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs"
+          onClick={() => setMostrarLog((v) => !v)}
+        >
+          <FileClock className="mr-1 size-3.5" />
+          {mostrarLog ? "Ocultar alterações" : "Ver alterações registradas"}
+        </Button>
+        {mostrarLog && (
+          <div className="rounded-lg border p-2 text-xs text-muted-foreground">
+            {log.isLoading && "Carregando…"}
+            {!log.isLoading && (log.data ?? []).length === 0 && "Nenhuma alteração registrada."}
+            <ul className="space-y-2">
+              {(log.data ?? []).map((r) => (
+                <li key={r.id} className="border-b pb-2 last:border-0 last:pb-0">
+                  <p className="font-medium text-foreground">
+                    {new Date(r.created_at).toLocaleString("pt-BR")}
+                  </p>
+                  <p className="tabular-nums">
+                    {moedaBR(Number(r.valor_antigo?.salario_base ?? 0))} →{" "}
+                    {moedaBR(Number(r.valor_novo?.salario_base ?? 0))} · data base{" "}
+                    {r.valor_antigo?.vigencia_inicio ?? "—"} → {r.valor_novo?.vigencia_inicio ?? "—"}
+                  </p>
+                  {r.justificativa && <p className="italic">“{r.justificativa}”</p>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
       {semPatronal.length > 0 && (
         <p className="text-xs text-amber-600 dark:text-amber-500">
@@ -404,6 +443,18 @@ export function CargoSalariosUnidadePanel({ cargoId }: Props) {
           patronal da unidade para o sistema saber qual piso aplicar.
         </p>
       )}
+
+      <CargoSalarioEditDialog
+        open={!!editando}
+        onOpenChange={(o) => !o && setEditando(null)}
+        cargoId={cargoId}
+        linha={editando}
+        todas={todas}
+        patronais={patronais.map((s) => ({ id: s.id, nome: s.nome }))}
+        unidades={(unidades.data ?? []).map((u) => ({ id: u.id, nome: u.nome }))}
+        patronalPorUnidade={patronalPorUnidade.data as any}
+      />
     </div>
   );
 }
+
