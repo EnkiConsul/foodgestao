@@ -5,7 +5,7 @@ import { Users, CalendarOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDpModelosHorario } from "@/hooks/useDpModelosHorario";
-import { resumoConfigTexto, type DiaConfig, type TurnoResolvido } from "@/lib/dp/config-trabalho";
+import { resumoSemanaPorFaixas, type DiaConfig, type TurnoResolvido } from "@/lib/dp/config-trabalho";
 import type { HorarioSimples } from "@/lib/dp/turno-resolver";
 import { useMemo } from "react";
 
@@ -75,21 +75,12 @@ export function CopiarConfigColaboradorDialog({
               <li key={m.id} className="flex items-center gap-3 p-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{m.colaborador_nome}</p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {m.cargo ? `${m.cargo} · ` : ""}
-                    {resumoConfigTexto(
-                      {
-                        turno_padrao_id: m.turno_padrao_id,
-                        folga_variavel: m.folga_variavel,
-                        folga_fixa_dow: null,
-                        dias: m.dias,
-                      },
-                      m.horario
-                        ? [...turnos, { id: m.turno_padrao_id ?? "modelo", nome: "Horário", cor: null, ...m.horario }]
-                        : turnos,
-                    )}
+                    {resumoSemanaPorFaixas(m.dias, m.horario ?? null, { folgaVariavel: m.folga_variavel })}
                   </p>
                 </div>
+
                 <Button
                   size="sm"
                   variant="outline"

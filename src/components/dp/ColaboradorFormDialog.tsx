@@ -46,6 +46,8 @@ import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { PadraoDivergenciaAviso } from "@/components/dp/PadraoDivergenciaAviso";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
+import { UnidadeFormDialog } from "@/components/dp/UnidadeFormDialog";
+
 import { SindicatoEnquadramentoField } from "@/components/dp/SindicatoEnquadramentoField";
 import { UnidadeAdiantamentoDialog } from "@/components/dp/UnidadeAdiantamentoDialog";
 
@@ -263,6 +265,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
   /** Criação de cargo sem sair do cadastro. */
   const [novoCargoOpen, setNovoCargoOpen] = useState(false);
+  const [novaUnidadeOpen, setNovaUnidadeOpen] = useState(false);
+
   /** Conflito entre o salário informado e o salário de referência do cargo. */
   const [conflitoCargo, setConflitoCargo] = useState<
     { salarioCargo: number; salarioInformado: number } | null
@@ -1596,15 +1600,24 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
           <div className="space-y-2">
             <Label>Unidade *</Label>
-            <Select value={form.unidade_id} onValueChange={(v) => setForm({ ...form, unidade_id: v })}>
-              <SelectTrigger {...marca("unidade_id")}><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-              <SelectContent>
-                {(unidades.data ?? []).map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select value={form.unidade_id} onValueChange={(v) => setForm({ ...form, unidade_id: v })}>
+                <SelectTrigger {...marca("unidade_id")}><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                <SelectContent>
+                  {(unidades.data ?? []).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button type="button" variant="outline" className="shrink-0" onClick={() => setNovaUnidadeOpen(true)}>
+                Nova unidade
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Esta é a unidade usada também no horário de trabalho. Unidades criadas aqui já entram na tela de Unidades.
+            </p>
           </div>
+
 
           <SindicatoEnquadramentoField
             cargoId={form.cargo_id}
@@ -1996,6 +2009,13 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         salarioInicial={baseSalarialInformada() || null}
         onCreated={selecionarCargo}
       />
+
+      <UnidadeFormDialog
+        open={novaUnidadeOpen}
+        onOpenChange={setNovaUnidadeOpen}
+        onSaved={(u) => setForm((f) => ({ ...f, unidade_id: u.id }))}
+      />
+
 
       <AlertDialog open={confirmarRemocao} onOpenChange={setConfirmarRemocao}>
         <AlertDialogContent>

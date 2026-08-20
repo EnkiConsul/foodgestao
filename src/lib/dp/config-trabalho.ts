@@ -325,6 +325,64 @@ export function resumoConfigTexto(config: ConfigTrabalho, turnos: TurnoResolvido
   return partes.join(" · ");
 }
 
+/**
+ * Resumo da semana agrupando dias consecutivos com o mesmo horário.
+ *
+ * O hover dos atalhos mostrava só o horário base, então quem trabalha
+ * sexta/sábado/domingo em horário diferente parecia ter um horário único.
+ * Aqui a semana inteira é descrita por faixas: "Seg–Qui 17:00–00:00 (30 min) ·
+ * Sex–Dom 16:30–00:35 (30 min) · Folga: Qui".
+ */
+export function resumoSemanaPorFaixas(
+  dias: DiaConfig[],
+  base: HorarioDia | null,
+  opts?: { folgaVariavel?: boolean },
+): string {
+  const semana = normalizarDias(dias);
+  const vazio: HorarioDia = { entrada: "", saida: "", intervalo_minutos: 0 };
+
+  type Faixa = { inicio: number; fim: number; chave: string; rotulo: string };
+  const faixas: Faixa[] = [];
+
+  for (const dia of semana) {
+    if (!dia.trabalha) continue;
+    const h = horarioEfetivoDia(dia, base ?? vazio);
+    const temHorario = !!h.entrada && !!h.saida;
+    const chave = temHorario
+      ? `${h.entrada}-${h.saida}-${h.intervalo_minutos ?? 0}`
+      : "sem-horario";
+    const rotulo = temHorario
+      ? `${h.entrada}–${h.saida} (${h.intervalo_minutos ?? 0} min)`
+      : "sem horário definido";
+    const ordem = ORDEM_EXIBICAO as readonly number[];
+    const anterior = faixas[faixas.length - 1];
+    const consecutivo = anterior
+      && ordem.indexOf(dia.dow) === ordem.indexOf(anterior.fim) + 1;
+
+    if (anterior && anterior.chave === chave && consecutivo) {
+      anterior.fim = dia.dow;
+    } else {
+      faixas.push({ inicio: dia.dow, fim: dia.dow, chave, rotulo });
+    }
+  }
+
+  const partes = faixas.map((f) => {
+    const dias_ = f.inicio === f.fim
+      ? DOW_CURTO[f.inicio]
+      : `${DOW_CURTO[f.inicio]}–${DOW_CURTO[f.fim]}`;
+    return `${dias_} ${f.rotulo}`;
+  });
+
+  if (partes.length === 0) partes.push("Nenhum dia de trabalho definido");
+
+  const folgas = semana.filter((d) => !d.trabalha).map((d) => d.dow);
+  if (opts?.folgaVariavel) partes.push("folga conforme escala");
+  else if (folgas.length) partes.push(`Folga: ${folgas.map((d) => DOW_CURTO[d]).join(", ")}`);
+
+  return partes.join(" · ");
+}
+
+
 // ------------------------------------------------------------------
 // Horário por dia (edição direta na tela do colaborador)
 // ------------------------------------------------------------------

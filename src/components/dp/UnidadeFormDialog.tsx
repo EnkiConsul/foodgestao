@@ -1,0 +1,342 @@
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useUpsertDpUnidade, type DpUnidade } from "@/hooks/useDpCadastros";
+import { supabase } from "@/integrations/supabase/client";
+
+export const onlyNumbers = (v: string) => v.replace(/\D/g, "");
+
+export const formatCNPJ = (value: string) => {
+  const c = onlyNumbers(value);
+  if (c.length <= 2) return c;
+  if (c.length <= 5) return c.replace(/^(\d{2})(\d{0,3})/, "$1.$2");
+  if (c.length <= 8) return c.replace(/^(\d{2})(\d{3})(\d{0,3})/, "$1.$2.$3");
+  if (c.length <= 12) return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})/, "$1.$2.$3/$4");
+  return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, "$1.$2.$3/$4-$5");
+};
+
+const blank = {
+  company_id: "",
+  nome: "",
+  cnpj: "",
+  endereco: "",
+  cidade: "",
+  uf: "",
+  ativo: true,
+  telefone: "",
+  possui_relogio_ponto: false,
+  tem_adiantamento: false,
+  dia_adiantamento: "" as string,
+};
+
+/** Unidade em edição — o mínimo que o formulário precisa para carregar. */
+export interface UnidadeEdicao {
+  id: string;
+  company_id?: string | null;
+  nome: string;
+  cnpj?: string | null;
+  endereco?: string | null;
+  cidade?: string | null;
+  uf?: string | null;
+  ativo: boolean;
+  telefone?: string | null;
+  possui_relogio_ponto?: boolean | null;
+  tem_adiantamento?: boolean | null;
+  dia_adiantamento?: number | null;
+}
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Quando presente, o formulário abre em modo edição. */
+  unidade?: UnidadeEdicao | null;
+  /** Nome sugerido no cadastro (usado no atalho do colaborador). */
+  nomeInicial?: string;
+  /** Recebe a unidade salva — usado para selecioná-la de imediato. */
+  onSaved?: (unidade: DpUnidade) => void;
+}
+
+/**
+ * Cadastro de unidade reaproveitado pela tela de Unidades e pelo atalho
+ * "Nova unidade" do cadastro do colaborador: a unidade nasce no mesmo lugar,
+ * com as mesmas regras, venha de onde vier.
+ */
+export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInicial = "", onSaved }: Props) {
+  const { companies } = useCompanyContext();
+  const upsert = useUpsertDpUnidade();
+  const [form, setForm] = useState(blank);
+  const [loadingBrasilApi, setLoadingBrasilApi] = useState(false);
+
+  const applyCompanyData = async (companyId: string, force = false) => {
+    if (!companyId) return;
+    try {
+      const { data, error } = await supabase
+        .from("companies")
+        .select("name, trade_name, cnpj, phone, whatsapp, cep, logradouro, numero, complemento, bairro, cidade, uf, address")
+        .eq("id", companyId)
+        .maybeSingle();
+      if (error || !data) return;
+      const enderecoMontado =
+        [
+          [data.logradouro, data.numero].filter(Boolean).join(", "),
+          data.complemento,
+          data.bairro,
+          data.cep,
+        ]
+          .filter(Boolean)
+          .join(" - ") || data.address || "";
+      let cidade = data.cidade || "";
+      let uf = data.uf || "";
+      let endereco = enderecoMontado;
+      let telefone = data.phone || data.whatsapp || "";
+
+      // Fallback: se a empresa não tem cidade/UF estruturados, consulta CNPJ na BrasilAPI
+      const cnpjDigits = onlyNumbers(data.cnpj || "");
+      if ((!cidade || !uf) && cnpjDigits.length === 14) {
+        setLoadingBrasilApi(true);
+        try {
+          const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjDigits}`);
+          if (res.ok) {
+            const info: any = await res.json();
+            if (!cidade) cidade = info.municipio || "";
+            if (!uf) uf = info.uf || "";
+            if (!endereco) {
+              endereco = [
+                [info.logradouro, info.numero].filter(Boolean).join(", "),
+                info.complemento,
+                info.bairro,
+                info.cep,
+              ].filter(Boolean).join(" - ");
+            }
+            if (!telefone) telefone = info.ddd_telefone_1 || "";
+          }
+        } catch { /* ignore */ }
+        finally { setLoadingBrasilApi(false); }
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        nome: force || !prev.nome ? (data.trade_name || data.name || prev.nome) : prev.nome,
+        cnpj: force || !prev.cnpj ? cnpjDigits : prev.cnpj,
+        endereco: force || !prev.endereco ? endereco : prev.endereco,
+        cidade: force || !prev.cidade ? cidade : prev.cidade,
+        uf: force || !prev.uf ? (uf || "").toUpperCase().slice(0, 2) : prev.uf,
+        telefone: force || !prev.telefone ? telefone : prev.telefone,
+      }));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // Carrega o formulário sempre que o diálogo abre.
+  useEffect(() => {
+    if (!open) return;
+    if (unidade) {
+      setForm({
+        company_id: unidade.company_id ?? "",
+        nome: unidade.nome,
+        cnpj: unidade.cnpj ?? "",
+        endereco: unidade.endereco ?? "",
+        cidade: unidade.cidade ?? "",
+        uf: unidade.uf ?? "",
+        ativo: unidade.ativo,
+        telefone: unidade.telefone ?? "",
+        possui_relogio_ponto: unidade.possui_relogio_ponto ?? false,
+        tem_adiantamento: unidade.tem_adiantamento ?? false,
+        dia_adiantamento: unidade.dia_adiantamento != null ? String(unidade.dia_adiantamento) : "",
+      });
+      return;
+    }
+    const only = companies.length === 1 ? companies[0].id : "";
+    setForm({ ...blank, company_id: only, nome: nomeInicial });
+    if (only) void applyCompanyData(only, !nomeInicial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, unidade?.id, nomeInicial]);
+
+  const save = async () => {
+    if (!form.company_id) {
+      toast.error("Selecione a empresa vinculada");
+      return;
+    }
+    if (!form.nome.trim()) {
+      toast.error("Nome é obrigatório");
+      return;
+    }
+    try {
+      const salva = await upsert.mutateAsync({
+        id: unidade?.id,
+        company_id: form.company_id,
+        nome: form.nome.trim(),
+        cnpj: onlyNumbers(form.cnpj) || null,
+        endereco: form.endereco.trim() || null,
+        cidade: form.cidade.trim() || null,
+        uf: form.uf.trim().toUpperCase() || null,
+        ativo: form.ativo,
+        telefone: form.telefone.trim() || null,
+        possui_relogio_ponto: form.possui_relogio_ponto,
+        tem_adiantamento: form.tem_adiantamento,
+        dia_adiantamento: form.dia_adiantamento ? Number(form.dia_adiantamento) : null,
+      } as Parameters<typeof upsert.mutateAsync>[0]);
+      toast.success(unidade ? "Unidade atualizada" : "Unidade criada");
+      onSaved?.(salva);
+      onOpenChange(false);
+    } catch (e) {
+      toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[92vh] max-w-md flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="border-b p-4 text-left">
+          <DialogTitle>{unidade ? "Editar unidade" : "Nova unidade"}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 space-y-4 overflow-y-auto p-4">
+          <div className="space-y-2">
+            <Label>Empresa vinculada *</Label>
+            {companies.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground">
+                Nenhuma empresa cadastrada.{" "}
+                <Link to="/empresas" className="text-primary underline">
+                  Cadastre em Minhas Empresas
+                </Link>{" "}
+                antes de criar unidades.
+              </div>
+            ) : (
+              <Select
+                value={form.company_id}
+                onValueChange={(v) => {
+                  setForm((prev) => ({ ...prev, company_id: v }));
+                  if (!unidade) void applyCompanyData(v, !form.nome);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.trade_name || c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              A cobrança do plano é por empresa. Uma empresa pode ter várias unidades sem custo extra.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Nome da Unidade *</Label>
+            <Input
+              value={form.nome}
+              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              placeholder="Ex: Unidade Garavelo"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              CNPJ
+              {loadingBrasilApi && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
+                  <Loader2 className="size-3 animate-spin" /> Buscando dados na BrasilAPI...
+                </span>
+              )}
+            </Label>
+            <Input
+              value={formatCNPJ(form.cnpj)}
+              onChange={(e) => setForm({ ...form, cnpj: onlyNumbers(e.target.value) })}
+              placeholder="00.000.000/0000-00"
+              maxLength={18}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Endereço</Label>
+            <Input
+              value={form.endereco}
+              onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+              placeholder="Ex: R 9 A, SN"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-2 space-y-2">
+              <Label>Cidade</Label>
+              <Input
+                value={form.cidade}
+                onChange={(e) => setForm({ ...form, cidade: e.target.value })}
+                placeholder="Ex: Aparecida de Goiânia"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>UF</Label>
+              <Input
+                value={form.uf}
+                onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })}
+                placeholder="GO"
+                maxLength={2}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Telefone</Label>
+            <Input
+              value={form.telefone}
+              onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+              placeholder="Ex: (62) 99999-9999"
+            />
+          </div>
+          <div className="flex items-center space-x-2 rounded-xl border border-border p-3">
+            <Switch
+              id="possui_relogio_ponto"
+              checked={form.possui_relogio_ponto}
+              onCheckedChange={(v) => setForm({ ...form, possui_relogio_ponto: v })}
+            />
+            <Label htmlFor="possui_relogio_ponto">Possui relógio de ponto</Label>
+          </div>
+          <div className="flex items-center space-x-2 rounded-xl border border-border p-3">
+            <Switch
+              id="tem_adiantamento"
+              checked={form.tem_adiantamento}
+              onCheckedChange={(v) =>
+                setForm({ ...form, tem_adiantamento: v, dia_adiantamento: v ? form.dia_adiantamento : "" })
+              }
+            />
+            <Label htmlFor="tem_adiantamento">Tem adiantamento salarial</Label>
+          </div>
+          {form.tem_adiantamento && (
+            <div className="space-y-2">
+              <Label>Dia do Adiantamento</Label>
+              <Select
+                value={form.dia_adiantamento || ""}
+                onValueChange={(v) => setForm({ ...form, dia_adiantamento: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o dia" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 28 }, (_, i) => i + 1).map((dia) => (
+                    <SelectItem key={dia} value={dia.toString()}>{dia}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+        <DialogFooter className="border-t p-4">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={save} disabled={upsert.isPending}>
+            {upsert.isPending ? "Salvando..." : unidade ? "Salvar" : "Cadastrar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

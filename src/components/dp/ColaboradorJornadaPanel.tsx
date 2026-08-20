@@ -29,7 +29,7 @@ import {
   cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia,
   detalharCargaSemanal, diaDivergeDoBase, horarioEfetivoDia, horarioPadraoDaSemana,
   diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada,
-  normalizarDias, preencherDiasComHorario, resumoConfigTexto,
+  normalizarDias, preencherDiasComHorario, resumoConfigTexto, resumoSemanaPorFaixas,
   turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
@@ -125,7 +125,15 @@ export function ColaboradorJornadaPanel({
     useDpColaboradorConfigTrabalho(colaborador?.id ?? undefined);
 
   const topoRef = useRef<HTMLDivElement | null>(null);
-  const [unidadeId, setUnidadeId] = useState<string>("none");
+  /**
+   * A unidade é escolhida uma única vez, na aba "Dados" do cadastro: ter dois
+   * campos de unidade permitia salvar a jornada em uma unidade diferente da do
+   * colaborador. Aqui ela é só leitura.
+   */
+  const unidadeId = colaborador?.unidade_id ?? "none";
+  const unidadeNome = unidades.find((u) => u.id === colaborador?.unidade_id)?.nome ?? null;
+
+
   /**
    * Referência usada apenas para preencher dias ainda em branco (colaborador
    * novo, vigência carregada, cópia de colega). O horário padrão de verdade é
@@ -251,14 +259,13 @@ export function ColaboradorJornadaPanel({
   useEffect(() => {
     if (!active) return;
     if (vigente) {
-      setUnidadeId(vigente.unidade_id ?? "none");
       setFolgaVariavel(vigente.folga_variavel);
       setDias(normalizarDias(vigente.dias, vigente.folga_fixa_dow));
       setObs(vigente.observacoes ?? "");
       setInicio(vigente.vigencia_inicio ?? admissao ?? hoje());
     } else {
-      setUnidadeId(colaborador?.unidade_id ?? "none");
       setFolgaVariavel(false);
+
       setDias(diasPadrao());
       setObs("");
       setInicio(admissao ?? hoje());
@@ -657,11 +664,29 @@ export function ColaboradorJornadaPanel({
         </p>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      {/* Copiar de um colega: o botão do diálogo completo e os atalhos por nome
+          ficam na mesma linha — são a mesma funcionalidade. */}
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => setCopiarOpen(true)}>
           <Users className="h-4 w-4" aria-hidden="true" />
           {tituloSistema("Copiar de Outro Colaborador")}
         </Button>
+        {atalhosColegas.length > 0 && (
+          <>
+            <span className="text-xs text-muted-foreground">ou copie de:</span>
+            {atalhosColegas.map((m) => (
+              <Button
+                key={m.colaborador_id}
+                type="button" size="sm" variant="secondary"
+                className="h-7 px-2 text-xs"
+                title={`${m.colaborador_nome} · ${resumoSemanaPorFaixas(m.dias, m.horario ?? null, { folgaVariavel: m.folga_variavel })}`}
+                onClick={() => copiarSemanaDoColega(m)}
+              >
+                {primeiroNome(m.colaborador_nome)}
+              </Button>
+            ))}
+          </>
+        )}
       </div>
 
       {policy.jornadaHint && (
@@ -673,15 +698,14 @@ export function ColaboradorJornadaPanel({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="ct-unidade">Unidade</Label>
-          <Select value={unidadeId} onValueChange={(v) => { marcarAlterado(); setUnidadeId(v); }}>
-            <SelectTrigger id="ct-unidade"><SelectValue placeholder="Selecione" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Sem unidade definida</SelectItem>
-              {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <Label>Unidade</Label>
+          <p className="rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
+            {unidadeNome
+              ? <>Horário na unidade <strong className="text-foreground">{unidadeNome}</strong></>
+              : "Escolha a unidade na aba Dados para que o horário seja vinculado a ela."}
+          </p>
         </div>
+
 
         <div className="space-y-1.5">
           <Label htmlFor="ct-inicio">Vigência</Label>
@@ -788,24 +812,7 @@ export function ColaboradorJornadaPanel({
           </div>
         </div>
 
-        {atalhosColegas.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">Copiar o horário de:</span>
-            {atalhosColegas.map((m) => (
-              <Button
-                key={m.colaborador_id}
-                type="button" size="sm" variant="secondary"
-                className="h-7 px-2 text-xs"
-                title={m.horario
-                  ? `${m.colaborador_nome} · ${m.horario.entrada}–${m.horario.saida} (${m.horario.intervalo_minutos ?? 0} min)`
-                  : m.colaborador_nome}
-                onClick={() => copiarSemanaDoColega(m)}
-              >
-                {primeiroNome(m.colaborador_nome)}
-              </Button>
-            ))}
-          </div>
-        )}
+
 
         <p className="rounded-md border bg-muted/30 p-2 text-[11px] text-muted-foreground">
           Pode ter horário diferente em cada dia da semana. O horário que mais se repete é o turno do

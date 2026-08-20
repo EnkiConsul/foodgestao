@@ -78,20 +78,31 @@ export function useToggleDpUnidadeAtivo() {
 export function useUpsertDpUnidade() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Partial<DpUnidadeInsert> & { id?: string; nome: string; company_id: string }) => {
+    mutationFn: async (input: Partial<DpUnidadeInsert> & { id?: string; nome: string; company_id: string }): Promise<DpUnidade> => {
       if (!input.company_id) throw new Error("Empresa é obrigatória");
       const payload = { ...input } as DpUnidadeInsert;
       if (input.id) {
-        const { error } = await supabase.from("dp_unidades").update(payload).eq("id", input.id);
+        const { data, error } = await supabase
+          .from("dp_unidades")
+          .update(payload)
+          .eq("id", input.id)
+          .select("*")
+          .single();
         if (error) throw error;
-      } else {
-        const { error } = await supabase.from("dp_unidades").insert(payload);
-        if (error) throw error;
+        return data as DpUnidade;
       }
+      const { data, error } = await supabase
+        .from("dp_unidades")
+        .insert(payload)
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as DpUnidade;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_unidades"] }),
   });
 }
+
 
 
 export function useDeleteDpUnidade() {
