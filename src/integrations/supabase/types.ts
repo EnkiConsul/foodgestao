@@ -4029,6 +4029,9 @@ export type Database = {
           data_admissao: string | null
           data_desligamento: string | null
           data_nascimento: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           dependentes_irrf: number
           desligado_em: string | null
           desligado_por: string | null
@@ -4122,6 +4125,9 @@ export type Database = {
           data_admissao?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           dependentes_irrf?: number
           desligado_em?: string | null
           desligado_por?: string | null
@@ -4215,6 +4221,9 @@ export type Database = {
           data_admissao?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           dependentes_irrf?: number
           desligado_em?: string | null
           desligado_por?: string | null
@@ -13274,6 +13283,20 @@ export type Database = {
       }
       dp_colaborador_ativo_of: { Args: { _user_id: string }; Returns: string }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
+      dp_colaboradores_lixeira: {
+        Args: { p_company_id: string }
+        Returns: {
+          cargo_nome: string
+          delete_reason: string
+          deleted_at: string
+          deleted_by: string
+          expira_em: string
+          id: string
+          matricula: string
+          nome: string
+          unidade_nome: string
+        }[]
+      }
       dp_config_resolvida: {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: {
@@ -13353,6 +13376,10 @@ export type Database = {
         Returns: number
       }
       dp_escala_auto_gerar_todas: { Args: never; Returns: number }
+      dp_excluir_colaborador: {
+        Args: { p_colaborador_id: string; p_motivo: string }
+        Returns: undefined
+      }
       dp_ferias_gerar_periodos: {
         Args: { _colaborador_id: string }
         Returns: number
@@ -13404,12 +13431,24 @@ export type Database = {
         Returns: number
       }
       dp_pascoa: { Args: { _ano: number }; Returns: string }
+      dp_pode_gerenciar_lixeira: {
+        Args: { _company_id: string }
+        Returns: boolean
+      }
       dp_processar_troca: { Args: { _troca_id: string }; Returns: Json }
+      dp_purgar_colaborador: {
+        Args: { p_colaborador_id: string; p_motivo?: string }
+        Returns: undefined
+      }
       dp_regra_bloqueia_data: {
         Args: { _company_id: string; _data: string; _unidade_id: string }
         Returns: boolean
       }
       dp_reintegrar_colaborador: {
+        Args: { p_colaborador_id: string }
+        Returns: undefined
+      }
+      dp_restaurar_colaborador: {
         Args: { p_colaborador_id: string }
         Returns: undefined
       }
