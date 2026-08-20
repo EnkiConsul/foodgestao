@@ -152,6 +152,23 @@ export default function ConexoesPluggy() {
         </Card>
       )}
 
+      {!loading && pendingCredit.length > 0 && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="p-4 flex flex-wrap items-center gap-3">
+            <CreditCardIcon className="h-4 w-4 text-primary shrink-0" />
+            <div className="min-w-0 flex-1 text-sm">
+              <p className="font-semibold">
+                {pendingCredit.length} cartão(ões) de crédito detectado(s)
+              </p>
+              <p className="text-muted-foreground text-xs mt-0.5">
+                Encontramos cartões nas contas conectadas. Eles só serão cadastrados após sua autorização.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => setCreditReviewOpen(true)}>Revisar e autorizar</Button>
+          </CardContent>
+        </Card>
+      )}
+
 
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
