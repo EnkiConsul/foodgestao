@@ -33,8 +33,9 @@ import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
 import { ColaboradorAcessoPanel } from "./ColaboradorAcessoPanel";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { DIA_PAGAMENTO_PADRAO, DIAS_CORTE_PADRAO, REGRAS_DESCONTO_PADRAO } from "@/lib/dp/va-calculo";
+
 import { useDeleteDpColaborador } from "@/hooks/useDpColaboradores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
@@ -397,8 +398,19 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   useEffect(() => {
     if (!open) return;
     cienciaConfirmada.current = null;
-    setTab(abaInicial);
+    // Acesso e desligamento agora vivem na aba Dados: o atalho abre Dados e
+    // rola até a âncora do bloco correspondente.
+    const ancora = abaInicial === "acesso" ? "acesso-portal" : abaInicial === "desligamento" ? "desligamento" : null;
+    setTab(ancora ? "dados" : (abaInicial as AbaVisivel));
+    if (ancora) {
+      window.setTimeout(() => {
+        contentRef.current
+          ?.querySelector<HTMLElement>(`#${ancora}`)
+          ?.scrollIntoView({ block: "start", behavior: "smooth" });
+      }, 250);
+    }
     setCriadoId(null);
+
     const c = (colaborador ?? {}) as any;
     const regime = c.regime ? String(c.regime) : "clt";
     setRem({
@@ -460,6 +472,16 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         c.vale_alimentacao_desconto_valor != null
           ? String(c.vale_alimentacao_desconto_valor).replace(".", ",")
           : "1",
+      vale_alimentacao_dia_pagamento: String((c as any).vale_alimentacao_dia_pagamento ?? DIA_PAGAMENTO_PADRAO),
+      vale_alimentacao_dias_corte: String((c as any).vale_alimentacao_dias_corte ?? DIAS_CORTE_PADRAO),
+      vale_alimentacao_desconta_falta:
+        (c as any).vale_alimentacao_desconta_falta ?? REGRAS_DESCONTO_PADRAO.falta,
+      vale_alimentacao_desconta_folga_extra:
+        (c as any).vale_alimentacao_desconta_folga_extra ?? REGRAS_DESCONTO_PADRAO.folga_extra,
+      vale_alimentacao_desconta_atestado:
+        (c as any).vale_alimentacao_desconta_atestado ?? REGRAS_DESCONTO_PADRAO.atestado,
+      vale_alimentacao_desconta_ferias:
+        (c as any).vale_alimentacao_desconta_ferias ?? REGRAS_DESCONTO_PADRAO.ferias,
     });
 
     setForm({
@@ -1113,6 +1135,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         vale_alimentacao_desconto_valor: rem.vale_alimentacao_desconto_tipo === "nenhum"
           ? 0
           : numeroBR(rem.vale_alimentacao_desconto_valor),
+        vale_alimentacao_dia_pagamento: rem.vale_alimentacao
+          ? Math.min(31, Math.max(1, Math.trunc(numeroBR(rem.vale_alimentacao_dia_pagamento)) || DIA_PAGAMENTO_PADRAO))
+          : null,
+        vale_alimentacao_dias_corte: rem.vale_alimentacao
+          ? Math.min(20, Math.max(0, Math.trunc(numeroBR(rem.vale_alimentacao_dias_corte))))
+          : null,
+        vale_alimentacao_desconta_falta: rem.vale_alimentacao ? rem.vale_alimentacao_desconta_falta : null,
+        vale_alimentacao_desconta_folga_extra: rem.vale_alimentacao
+          ? rem.vale_alimentacao_desconta_folga_extra
+          : null,
+        vale_alimentacao_desconta_atestado: rem.vale_alimentacao ? rem.vale_alimentacao_desconta_atestado : null,
+        vale_alimentacao_desconta_ferias: rem.vale_alimentacao ? rem.vale_alimentacao_desconta_ferias : null,
         ...(isDesligado
           ? {
               data_desligamento: form.data_desligamento,
@@ -1223,34 +1257,24 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                     : `Cadastrar: ${toProperName(form.nome.trim()) || "Novo Colaborador"}`}
                 </DialogTitle>
                 {(isEdit || criadoId) && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="mr-8 h-8 w-8" aria-label="Mais ações do cadastro">
-                        <MoreVertical className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => setTab("desligamento")}>
-                        Registrar desligamento
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setTab("acesso")}>
-                        Acesso ao portal
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onSelect={() => setConfirmarRemocao(true)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Remover cadastro
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="mr-8 h-8 w-8 text-destructive hover:text-destructive"
+                    aria-label="Excluir cadastro"
+                    title="Excluir cadastro"
+                    onClick={() => setConfirmarRemocao(true)}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </Button>
                 )}
+
               </div>
             </DialogHeader>
             <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="dados" className="gap-2">
                 Dados
-                {dadosPendente && (
+                {(dadosPendente || isDesligado) && (
                   <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
                 )}
               </TabsTrigger>
@@ -1276,15 +1300,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               </TabsTrigger>
               <TabsTrigger value="dependentes">Dependentes</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
-              {(isEdit || criadoId) && <TabsTrigger value="acesso">Acesso ao portal</TabsTrigger>}
-              {(isEdit || criadoId) && (
-                <TabsTrigger value="desligamento" className="gap-2">
-                  Desligamento
-                  {isDesligado && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Colaborador desligado" />
-                  )}
-                </TabsTrigger>
-              )}
+
             </TabsList>
           </div>
 
@@ -1506,23 +1522,6 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           )}
 
 
-          {/* Desligamento tem aba própria: aqui fica apenas o resumo com atalho. */}
-          {isDesligado && (
-            <div className="col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
-              <div className="text-sm">
-                <span className="font-semibold text-destructive">Colaborador desligado</span>
-                {form.data_desligamento && (
-                  <span className="text-muted-foreground">
-                    {" "}em {new Date(`${form.data_desligamento}T12:00:00`).toLocaleDateString("pt-BR")}
-                  </span>
-                )}
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => setTab("desligamento")}>
-                Ver aba Desligamento
-              </Button>
-            </div>
-          )}
-
           {/* Senha Inicial */}
           {!isEdit && (
             <div className="col-span-2 space-y-2">
@@ -1532,8 +1531,21 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               </div>
             </div>
           )}
+
+          {/* Acesso ao portal e desligamento moram aqui: sem abas separadas. */}
+          {(isEdit || criadoId) && (
+            <div className="col-span-2 space-y-4">
+              <div id="acesso-portal" className="scroll-mt-4">
+                <ColaboradorAcessoPanel colaborador={colaboradorAtual} />
+              </div>
+              <div id="desligamento" className="scroll-mt-4">
+                <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
+              </div>
+            </div>
+          )}
             </div>
           </TabsContent>
+
 
           {/* forceMount: mantém o horário digitado ao alternar de aba, para que o
               botão único do rodapé grave também esta aba. */}
@@ -1691,13 +1703,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             <ColaboradorDocumentosPanel colaboradorId={colaborador?.id ?? criadoId ?? null} />
           </TabsContent>
 
-          <TabsContent value="acesso" className="mt-4">
-            <ColaboradorAcessoPanel colaborador={colaboradorAtual} />
-          </TabsContent>
 
-          <TabsContent value="desligamento" className="mt-4">
-            <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
-          </TabsContent>
+
           </div>
         </Tabs>
 
