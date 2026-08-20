@@ -206,13 +206,46 @@ export function useDpTurnos(unidadeId?: string | null) {
     onSuccess: invalidate,
   });
 
+  /**
+   * Exclusão só é permitida para turno sem nenhum vínculo. A validação é feita
+   * de novo aqui (dp_turnos_uso) para não apagar turno que acabou de ser usado.
+   */
+  const validarSemUso = async (ids: string[]) => {
+    if (!selectedCompanyId || ids.length === 0) return;
+    const { data, error } = await supabase.rpc("dp_turnos_uso", { p_company_id: selectedCompanyId });
+    if (error) throw error;
+    const emUso = (data ?? []).filter((row) => {
+      if (!ids.includes(row.turno_id)) return false;
+      return totalUsoTurno(row as TurnoUsoRow) > 0;
+    });
+    if (emUso.length > 0) {
+      throw new Error(
+        emUso.length === 1
+          ? "Este turno passou a ser usado em outro cadastro. Desative em vez de excluir."
+          : `${emUso.length} turnos selecionados passaram a ser usados. Atualize a lista e tente de novo.`,
+      );
+    }
+  };
+
   const remover = useMutation({
     mutationFn: async (id: string) => {
+      await validarSemUso([id]);
       const { error } = await supabase.from("dp_turnos").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
+
+  const removerEmLote = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (ids.length === 0) return;
+      await validarSemUso(ids);
+      const { error } = await supabase.from("dp_turnos").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
 
   // Memoizado: devolver um novo array a cada render fazia efeitos que dependem
   // da lista de turnos rodarem sem parar (e sobrescreverem o horário digitado).
