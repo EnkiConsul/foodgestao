@@ -1,4 +1,8 @@
-# Padrão de benefícios e adicionais de risco no cadastro do colaborador
+# Padrão de remuneração e adicionais de risco no cadastro do colaborador
+
+## 0. Renomear para "padrão de remuneração"
+
+O que o sistema grava não são só benefícios: inclui valor da hora/base, prêmio de assiduidade, VA e VT. Todos os rótulos visíveis passam a dizer **"padrão de remuneração"** (título do diálogo, botões, selo "fora do padrão", textos de alcance e mensagens de sucesso). Tabela e arquivos internos continuam com o nome atual, para não exigir migração.
 
 ## 1. Vale-alimentação desligado sendo sugerido como padrão
 
@@ -16,7 +20,7 @@ Como vai ficar:
 
 ## 2. Periculosidade não era oferecida como padrão
 
-Confirmei que insalubridade e periculosidade **não fazem parte do padrão de benefícios** — e com razão: risco é característica do **cargo**, não da unidade. Hoje a propagação existe só no sentido cargo → colaboradores (tela de Cargos, com o aviso "aplicar aos N colaboradores deste cargo"). Ao digitar 30% de periculosidade direto na ficha do Erildson, nada é perguntado e o valor fica só nele.
+Confirmei que insalubridade e periculosidade **não fazem parte do padrão de remuneração** — e com razão: risco é característica do **cargo**, não da unidade. Hoje a propagação existe só no sentido cargo → colaboradores (tela de Cargos, com o aviso "aplicar aos N colaboradores deste cargo"). Ao digitar 30% de periculosidade direto na ficha do Erildson, nada é perguntado e o valor fica só nele.
 
 Como vai ficar:
 
