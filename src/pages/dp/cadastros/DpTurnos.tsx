@@ -29,6 +29,9 @@ import {
   useDpTurnos, turnoParaForm, TURNO_FORM_DEFAULT,
   type CienciaTurno, type DpTurnoForm, type DpTurnoRow,
 } from "@/hooks/useDpTurnos";
+import { useDpTurnosUso } from "@/hooks/useDpTurnosUso";
+import { estadoUsoTurno, podeExcluirTurno } from "@/lib/dp/turno-uso";
+
 
 const TODAS = "todas";
 
