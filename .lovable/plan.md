@@ -22,7 +22,8 @@ Hoje a ficha mostra "Carga semanal —" e dias como "— às —". Verificado o 
 
 - **Valor da hora e valor do dia**: hoje ficam em branco porque só são gravados quando digitados manualmente. Passam a ser calculados a partir do salário e da base (ex.: R$ 1.750,00 / 220h), com indicação de que é valor calculado.
 - **Base de cálculo** deixa de aparecer vazia: mostra sempre salário base, base de horas e base de dias em uso.
-- Novos campos exibidos: PIS/NIT, adicional por tempo de serviço (valor vigente e se há override manual), tipo do prêmio de assiduidade, e o percentual de insalubridade/periculosidade com o valor em reais correspondente.
+- Novos campos exibidos: PIS/NIT, adicional por tempo de serviço (valor vigente e se há override manual) e o percentual de insalubridade/periculosidade com o valor em reais correspondente.
+- **Prêmio de assiduidade** fica aqui, em Remuneração (não em Benefícios): valor, tipo do prêmio, critério, tolerância de atraso, máximo de atrasos e regra de atestado, agrupados em um bloco próprio.
 
 ## 5. Benefícios completos
 
