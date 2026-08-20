@@ -177,6 +177,29 @@ export function resolverHorarioPrevisto(input: ResolverPrevistoInput): HorarioPr
   const dia = config.dias.find((d) => d.dow === dowDaData(data));
   if (!dia || !dia.trabalha) return vazio(colaborador.id, data, "habitual", "folga");
 
+  // Horário próprio do dia (variação da semana, sem turno na loja) tem prioridade
+  // sobre o turno padrão do colaborador.
+  if (dia.entrada && dia.saida) {
+    const ent = hhmm(dia.entrada);
+    const sai = hhmm(dia.saida);
+    const inter = Math.max(0, dia.intervalo_minutos ?? 0);
+    return {
+      colaborador_id: colaborador.id,
+      data,
+      trabalha: true,
+      tipo: "trabalho",
+      turno_id: dia.turno_id ?? null,
+      entrada: ent,
+      saida: sai,
+      intervalo_minutos: inter,
+      termina_no_dia_seguinte: turnoViraODia(ent, sai),
+      carga_prevista_horas: cargaLiquidaHoras({ entrada: ent, saida: sai, intervalo_minutos: inter }),
+      fonte: "habitual",
+      confirmado: false,
+      observacao: null,
+    };
+  }
+
   const turno = turnoDoDia(dia, config.turno_padrao_id, input.turnos ?? []);
   if (!turno) return vazio(colaborador.id, data, "sem_previsao");
 
