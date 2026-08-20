@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CalendarOff, CalendarRange, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert, CopyPlus } from "lucide-react";
+import { CalendarOff, CalendarRange, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,7 +17,7 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpModelosHorario, type ModeloHorarioColaborador } from "@/hooks/useDpModelosHorario";
-import { chaveHorarioBase, contarHorariosBase, contarHorariosUsados, horarioBaseMaisComum, sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
+import { chaveHorarioBase, contarHorariosBase, horarioBaseMaisComum, sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { formatarFaixaTurno, intervaloAbaixoDoLegal } from "@/lib/dp/turno-utils";
@@ -710,7 +709,7 @@ export function ColaboradorJornadaPanel({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="flex items-center gap-2 text-sm font-semibold">
             <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
-            {tituloSistema("Horário de Trabalho por Dia")}
+            {tituloSistema("Horário de Trabalho")}
           </h3>
           <div className="flex items-center gap-2">
             <Button
@@ -1005,51 +1004,5 @@ export function ColaboradorJornadaPanel({
         onAplicar={onUsarGrade}
       />
     </div>
-  );
-}
-
-/** Repete o horário de um dia nos demais dias escolhidos pelo usuário. */
-function RepetirHorarioPopover({ dow, onRepetir }: { dow: number; onRepetir: (destinos: number[]) => void }) {
-  const [open, setOpen] = useState(false);
-  const [sel, setSel] = useState<number[]>([]);
-  const outros = Object.keys(DOW_LABEL).map(Number).filter((d) => d !== dow);
-
-  return (
-    <Popover
-      open={open}
-      onOpenChange={(v) => { setOpen(v); if (!v) setSel([]); }}
-    >
-      <PopoverTrigger asChild>
-        <Button
-          type="button" size="sm" variant="ghost" className="h-7 gap-1.5 text-[11px]"
-          aria-label={`Repetir o horário de ${DOW_LABEL[dow]} em outros dias`}
-        >
-          <CopyPlus className="h-3.5 w-3.5" aria-hidden="true" />
-          Repetir
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-56 space-y-2">
-        <p className="text-xs font-medium">Repetir {DOW_LABEL[dow]} em:</p>
-        <ul className="space-y-1.5">
-          {outros.map((d) => (
-            <li key={d}>
-              <label className="flex items-center gap-2 text-xs">
-                <Checkbox
-                  checked={sel.includes(d)}
-                  onCheckedChange={(v) => setSel((prev) => (v ? [...prev, d] : prev.filter((x) => x !== d)))}
-                />
-                {DOW_LABEL[d]}
-              </label>
-            </li>
-          ))}
-        </ul>
-        <Button
-          type="button" size="sm" className="w-full" disabled={sel.length === 0}
-          onClick={() => { onRepetir(sel); setOpen(false); setSel([]); }}
-        >
-          Aplicar
-        </Button>
-      </PopoverContent>
-    </Popover>
   );
 }
