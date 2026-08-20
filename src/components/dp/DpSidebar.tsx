@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, ArrowLeft, ListOrdered } from "lucide-react";
+import { ChevronDown, LogOut, ArrowLeft, ListOrdered, EyeOff, Eye } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
 import symbol360 from "@/assets/360food-symbol.png.asset.json";
@@ -28,6 +28,8 @@ import { useDpMenuLayout } from "@/hooks/useDpMenuLayout";
 import { useHiddenScreens } from "@/hooks/useHiddenScreens";
 import { filterSurface } from "@/lib/nav/hiddenScreens";
 import { OrganizarMenuDialog } from "@/components/dp/OrganizarMenuDialog";
+import { TelasDesenvolvimentoDialog } from "@/components/dp/TelasDesenvolvimentoDialog";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 
 
 
@@ -101,8 +103,10 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
   const meuResumo = useDpMeuResumo();
   const surfaceKey = variant === "portal" ? "portal" : "dp";
   const { layout } = useDpMenuLayout(surfaceKey);
-  const { hidden } = useHiddenScreens();
+  const { hidden, enabled: hiddenEnabled } = useHiddenScreens();
+  const { isSuperAdmin } = useSuperAdmin();
   const [organizarOpen, setOrganizarOpen] = useState(false);
+  const [telasOpen, setTelasOpen] = useState(false);
   const items = useMemo(() => {
     const base = filterSurface(variant === "portal" ? DP_PORTAL_NAV : DP_ADMIN_NAV, hidden);
     return buildItems(layout ? applyMenuLayout(base, layout) : base);
@@ -176,6 +180,19 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
           onOpenChange={setOrganizarOpen}
           surface={surfaceKey}
         />
+        {isSuperAdmin && !collapsed && (
+          <button
+            type="button"
+            onClick={() => setTelasOpen(true)}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {hiddenEnabled ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            Telas em desenvolvimento
+          </button>
+        )}
+        {isSuperAdmin && (
+          <TelasDesenvolvimentoDialog open={telasOpen} onOpenChange={setTelasOpen} />
+        )}
         {variant === "admin" && !collapsed && (
           <Link
             to="/hub"
