@@ -545,3 +545,64 @@ export function divergenciasColaboradorVsPadrao(
   }
   return out;
 }
+
+// ------------------------------------------------------------------
+// Classificação da divergência por grupo.
+//
+// Desligar um benefício de UMA pessoa é exceção individual, não novo padrão de
+// remuneração. Por isso separamos "alteracao" (valores/regras mudaram com o
+// benefício ligado) de "desligamento" (o switch mestre do grupo está desligado
+// na tela e ligado no padrão de referência). Só "alteracao" abre a pergunta e
+// entra pré-marcada; "desligamento" aparece desmarcado e com aviso de impacto.
+// ------------------------------------------------------------------
+
+export type TipoDivergencia = "alteracao" | "desligamento";
+
+/** Switch mestre de cada grupo (ficha de benefícios não tem). */
+const SWITCH_GRUPO: Partial<Record<GrupoPadrao, CampoPadrao>> = {
+  assiduidade: "premio_assiduidade",
+  vale_alimentacao: "vale_alimentacao",
+  vale_transporte: "vale_transporte",
+};
+
+export interface GrupoDivergente {
+  grupo: GrupoPadrao;
+  tipo: TipoDivergencia;
+}
+
+/** Grupos divergentes já classificados como alteração ou desligamento. */
+export function gruposDivergentesClassificados(
+  atual: BeneficiosPadraoPayload | null | undefined,
+  referencia: BeneficiosPadraoPayload | null | undefined,
+): GrupoDivergente[] {
+  const na = normalizarPadrao(atual);
+  const nr = normalizarPadrao(referencia);
+  return gruposComDiferenca(atual, referencia).map((grupo) => {
+    const chave = SWITCH_GRUPO[grupo];
+    const desligou = !!chave && na[chave] === false && nr[chave] === true;
+    return { grupo, tipo: desligou ? "desligamento" : "alteracao" } as GrupoDivergente;
+  });
+}
+
+/** Só os grupos cuja divergência é de valores/regras (candidatos a padrão). */
+export function gruposAlteracao(
+  atual: BeneficiosPadraoPayload | null | undefined,
+  referencia: BeneficiosPadraoPayload | null | undefined,
+): GrupoPadrao[] {
+  return gruposDivergentesClassificados(atual, referencia)
+    .filter((g) => g.tipo === "alteracao")
+    .map((g) => g.grupo);
+}
+
+/**
+ * Quantos colaboradores ativos do alcance perderiam o benefício se este grupo
+ * (desligado na tela) virar padrão.
+ */
+export function quemPerdeBeneficio(
+  colaboradores: readonly Record<string, unknown>[],
+  grupo: GrupoPadrao,
+): number {
+  const chave = SWITCH_GRUPO[grupo];
+  if (!chave) return 0;
+  return colaboradores.filter((c) => !!c[chave]).length;
+}

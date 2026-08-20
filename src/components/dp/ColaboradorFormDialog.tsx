@@ -21,7 +21,7 @@ import { divergenciasIsonomia, DIAS_BASE_PADRAO, type DivergenciaIsonomia } from
 import { snapshotColegaBeneficios } from "@/lib/dp/isonomia-snapshot";
 import { itensIsonomiaDoCadastro } from "@/hooks/useDpIsonomiaBeneficios";
 import { BeneficioDispensaDialog, type DispensaBeneficio, type MotivoIsonomiaEscolhido } from "@/components/dp/BeneficioDispensaDialog";
-import { useDpUnidades, useDpCargos, useUpsertDpCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, useDpSindicatos, type DpCargo } from "@/hooks/useDpCadastros";
+import { useDpUnidades, useDpCargos, useUpsertDpCargo, usePropagarRiscosCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, useDpSindicatos, type DpCargo } from "@/hooks/useDpCadastros";
 import { salarioCargoNaUnidade, mensagemErroPiso, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
 
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
@@ -78,8 +78,10 @@ import {
   extrairPadrao, nivelPadrao,
   padraoTemConteudo, padroesIguaisAlgum, resolverPadrao,
   GRUPOS_PADRAO, ROTULOS_GRUPO, gruposComDiferenca, resumoGrupo,
+  gruposDivergentesClassificados, gruposAlteracao, quemPerdeBeneficio,
   type GrupoPadrao, type PadraoAlcance, type PadraoEscopo,
 } from "@/lib/dp/beneficiosPadrao";
+import { compararRiscoCargo, textoRisco, type DivergenciaRisco } from "@/lib/dp/cargos";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -298,6 +300,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   const [padraoAplicado, setPadraoAplicado] = useState<PadraoEscopo | null>(null);
   /** Pergunta "usar como padrão?" pendente após gravar. */
   const [perguntarPadrao, setPerguntarPadrao] = useState(false);
+  /** Pergunta "risco é do cargo ou só desta pessoa?" pendente após gravar. */
+  const [perguntarRisco, setPerguntarRisco] = useState(false);
+  const riscoRespondidoRef = useRef<Set<string>>(new Set());
+  const propagarRiscos = usePropagarRiscosCargo();
   const [escopoPadrao, setEscopoPadrao] = useState<PadraoEscopo>("unidade");
   /** Alcance: só os próximos cadastros ou também quem já está cadastrado. */
   const [alcancePadrao, setAlcancePadrao] = useState<PadraoAlcance>("novos");
@@ -342,6 +348,30 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     [rem, padraoAplicavel],
   );
 
+  /**
+   * Divergências classificadas: "alteracao" (valores/regras com o benefício
+   * ligado) pode virar padrão; "desligamento" é exceção individual e só entra
+   * no padrão se o usuário marcar de propósito.
+   */
+  const divergenciasClassificadas = useMemo(
+    () => gruposDivergentesClassificados(extrairPadrao(rem), padraoAplicavel?.payload),
+    [rem, padraoAplicavel],
+  );
+  const tipoDivergencia = (grupo: GrupoPadrao) =>
+    divergenciasClassificadas.find((d) => d.grupo === grupo)?.tipo ?? "alteracao";
+
+  /** Colaboradores ativos do alcance escolhido (usado nos avisos de impacto). */
+  const colaboradoresDoAlcance = useMemo(() => {
+    if (escopoPadrao === "colaborador") return [];
+    return (todosColaboradores.data ?? []).filter((c: any) => {
+      if (!c.ativo || c.data_desligamento) return false;
+      if (c.id === colaborador?.id) return false;
+      if (escopoPadrao !== "empresa" && c.unidade_id !== form.unidade_id) return false;
+      if (escopoPadrao === "cargo" && c.cargo_id !== (form.cargo_id || null)) return false;
+      return true;
+    }) as unknown as Record<string, unknown>[];
+  }, [todosColaboradores.data, escopoPadrao, form.unidade_id, form.cargo_id, colaborador?.id]);
+
   /** Aviso de divergência do cadastro já existente em relação ao padrão vigente. */
   const [avisoPadraoDispensado, setAvisoPadraoDispensado] = useState(false);
   const diferencasDoPadrao = useMemo(() => {
@@ -378,6 +408,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     if (!open) {
       padraoAplicadoRef.current = null;
       padraoRespondidoRef.current = new Set();
+      riscoRespondidoRef.current = new Set();
       setPadraoAplicado(null);
       setAvisoPadraoDispensado(false);
       return;
@@ -832,8 +863,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   };
 
   /**
-   * Vale perguntar se os benefícios deste colaborador viram o padrão da unidade?
-   * Só quando há conteúdo, a unidade está definida e o padrão atual é diferente.
+   * Vale perguntar se a remuneração deste colaborador vira o padrão da unidade?
+   * Só quando há conteúdo, a unidade está definida e existe ao menos um grupo
+   * divergente do tipo "alteracao" — benefício desligado em uma pessoa é
+   * exceção individual e não deve abrir a pergunta sozinho.
    */
   const devePerguntarPadrao = () => {
     if (!form.unidade_id) return false;
@@ -849,24 +882,101 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     ) {
       return false;
     }
+    // Existe padrão de referência e o único desvio é um desligamento? Não pergunta.
+    if (padraoAplicavel && !gruposAlteracao(atual, padraoAplicavel.payload).length) return false;
 
     // Mesmo conjunto já decidido nesta abertura da ficha → não repete.
     return !padraoRespondidoRef.current.has(assinaturaPadrao(atual));
   };
 
+  /**
+   * Adicionais de risco: a ficha divergiu do cargo? Nesse caso perguntamos se
+   * aquilo é regra do cargo (e propaga) ou exceção individual.
+   */
+  const divergenciaRisco: DivergenciaRisco = useMemo(
+    () =>
+      compararRiscoCargo(
+        {
+          insalubridade: numeroBR(rem.insalubridade_percentual),
+          periculosidade: numeroBR(rem.periculosidade_percentual),
+        },
+        cargoSelecionado
+          ? {
+              insalubridade: Number(cargoSelecionado.insalubridade_percentual ?? 0) || 0,
+              periculosidade: Number(cargoSelecionado.periculosidade_percentual ?? 0) || 0,
+            }
+          : null,
+      ),
+    [rem.insalubridade_percentual, rem.periculosidade_percentual, cargoSelecionado],
+  );
+
+  const devePerguntarRisco = () =>
+    !!form.cargo_id &&
+    !!cargoSelecionado &&
+    divergenciaRisco.tipo !== "igual" &&
+    !riscoRespondidoRef.current.has(
+      `${rem.insalubridade_percentual}|${rem.periculosidade_percentual}|${form.cargo_id}`,
+    );
+
   /** Encerra o salvamento: pergunta pelo padrão da unidade antes de sair da tela. */
   const concluir = (perguntar: boolean) => {
     if (perguntar) {
-      setEscopoPadrao(nivelPadrao(padraoAplicavel) ?? "unidade");
+      const escopoInicial = nivelPadrao(padraoAplicavel) ?? "unidade";
+      setEscopoPadrao(escopoInicial);
       // Já existe gente fora do padrão? Então "todos" é o alcance esperado.
       setAlcancePadrao(divergentesNoAlcance > 0 ? "todos" : "novos");
-      setGruposPadrao([...GRUPOS_PADRAO]);
+      // Pré-seleciona apenas os grupos cuja divergência é de valores/regras.
+      const alteracoes = padraoAplicavel
+        ? gruposAlteracao(extrairPadrao(rem), padraoAplicavel.payload)
+        : [...GRUPOS_PADRAO];
+      setGruposPadrao(alteracoes);
       setPerguntarPadrao(true);
       return;
 
     }
+    if (devePerguntarRisco()) { setPerguntarRisco(true); return; }
     finalizar();
   };
+
+  /** Resposta da pergunta dos adicionais de risco (cargo x colaborador). */
+  const responderRisco = async (acao: "colaborador" | "cargo" | "cargo_todos") => {
+    setPerguntarRisco(false);
+    riscoRespondidoRef.current.add(
+      `${rem.insalubridade_percentual}|${rem.periculosidade_percentual}|${form.cargo_id}`,
+    );
+    if (acao !== "colaborador" && form.cargo_id && divergenciaRisco.tipo !== "igual") {
+      const insal = divergenciaRisco.ficha.insalubridade;
+      const peric = divergenciaRisco.ficha.periculosidade;
+      try {
+        await upsertCargo.mutateAsync({
+          id: form.cargo_id,
+          nome: cargoSelecionado?.nome ?? "",
+          insalubre: insal > 0,
+          perigoso: peric > 0,
+          insalubre_periculoso: insal > 0 || peric > 0,
+          insalubridade_percentual: insal,
+          periculosidade_percentual: peric,
+        } as any);
+        if (acao === "cargo_todos") {
+          await propagarRiscos.mutateAsync({
+            cargoId: form.cargo_id,
+            insalubridade_percentual: insal,
+            periculosidade_percentual: peric,
+          });
+        }
+        toast.success("Adicionais de risco do cargo atualizados", {
+          description:
+            acao === "cargo_todos"
+              ? `Aplicados também aos colaboradores ativos de ${cargoSelecionado?.nome ?? "este cargo"}.`
+              : "Os próximos cadastros deste cargo já vêm com estes percentuais.",
+        });
+      } catch (e) {
+        toast.error("Não foi possível atualizar o cargo", { description: mensagemErro(e) });
+      }
+    }
+    finalizar();
+  };
+
 
   /** Resposta da pergunta do padrão — depois segue a intenção original do botão. */
   const responderPadrao = async (escopo: PadraoEscopo | null, naoPerguntarMais = false) => {
@@ -889,10 +999,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
         toast.success(
           escopo === "empresa"
-            ? "Padrão da empresa atualizado"
+            ? "Padrão de remuneração da empresa atualizado"
             : escopo === "cargo"
-              ? "Padrão do cargo atualizado"
-              : "Padrão da unidade atualizado",
+              ? "Padrão de remuneração do cargo atualizado"
+              : "Padrão de remuneração da unidade atualizado",
           {
             description:
               alcancePadrao !== "todos"
@@ -906,6 +1016,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         toast.error("Não foi possível salvar o padrão", { description: mensagemErro(e) });
       }
     }
+    // Encadeia a pergunta dos adicionais de risco, que é decisão do cargo.
+    if (devePerguntarRisco()) { setPerguntarRisco(true); return; }
     finalizar();
   };
 
@@ -1310,7 +1422,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 {!remPendente && divergenciasIso.length === 0 && diferencasDoPadrao.length > 0 && (
                   <span
                     className="h-1.5 w-1.5 rounded-full bg-amber-500"
-                    aria-label="Cadastro fora do padrão de benefícios"
+                    aria-label="Cadastro fora do padrão de remuneração"
                   />
                 )}
                 {!remPendente && divergenciasIso.length > 0 && (
@@ -1999,14 +2111,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
 
 
-      {/* Alcance do padrão de benefícios: perguntado só quando há diferença real. */}
+      {/* Alcance do padrão de remuneração: perguntado só quando há diferença real. */}
       <AlertDialog open={perguntarPadrao} onOpenChange={(o) => { if (!o) void responderPadrao(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Onde salvar estes benefícios como padrão?</AlertDialogTitle>
+            <AlertDialogTitle>Onde salvar este padrão de remuneração?</AlertDialogTitle>
             <AlertDialogDescription>
               Assiduidade, tolerância, vale-alimentação, vale-transporte e a ficha de benefícios podem
-              virar padrão para os próximos cadastros. Escolha o alcance.
+              virar padrão de remuneração para os próximos cadastros. Escolha o alcance.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -2094,8 +2206,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             <div className="space-y-2">
               <p className="text-xs font-medium text-foreground">O que replicar?</p>
               <div className="space-y-2">
-                {GRUPOS_PADRAO.map((grupo) => {
+                {/* Só o que divergiu do padrão vigente: sobre o resto não há o que decidir. */}
+                {(gruposDiferentes.length ? gruposDiferentes : [...GRUPOS_PADRAO]).map((grupo) => {
                   const marcado = gruposPadrao.includes(grupo);
+                  const ehDesligamento = tipoDivergencia(grupo) === "desligamento";
+                  const perdem = ehDesligamento ? quemPerdeBeneficio(colaboradoresDoAlcance, grupo) : 0;
                   return (
                     <label
                       key={grupo}
@@ -2117,15 +2232,30 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                           <span className="font-medium text-foreground">
                             {ROTULOS_GRUPO[grupo]}
                           </span>
-                          {gruposDiferentes.includes(grupo) && (
-                            <Badge variant="outline" className="text-[10px]">
-                              diferente do padrão atual
+                          {ehDesligamento ? (
+                            <Badge variant="destructive" className="text-[10px]">
+                              desligado neste cadastro
                             </Badge>
+                          ) : (
+                            gruposDiferentes.includes(grupo) && (
+                              <Badge variant="outline" className="text-[10px]">
+                                diferente do padrão atual
+                              </Badge>
+                            )
                           )}
                         </span>
                         <span className="block text-muted-foreground">
-                          {resumoGrupo(extrairPadrao(rem), grupo)}
+                          {ehDesligamento
+                            ? `Marcar remove ${ROTULOS_GRUPO[grupo].toLowerCase()} do padrão e de quem estiver no alcance.`
+                            : resumoGrupo(extrairPadrao(rem), grupo)}
                         </span>
+                        {ehDesligamento && marcado && alcancePadrao === "todos" && (
+                          <span className="mt-1 block rounded-lg bg-destructive/10 p-2 text-destructive">
+                            {perdem > 0
+                              ? `${perdem} colaborador(es) ativo(s) perderão ${ROTULOS_GRUPO[grupo].toLowerCase()}.`
+                              : "Nenhum colaborador ativo do alcance tem este benefício hoje."}
+                          </span>
+                        )}
                       </span>
                     </label>
                   );
@@ -2133,11 +2263,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               </div>
               {!gruposPadrao.length && (
                 <p className="text-xs text-destructive">
-                  Marque ao menos um item para salvar como padrão.
+                  Marque ao menos um item para salvar como padrão de remuneração.
                 </p>
               )}
             </div>
           )}
+
 
           {escopoPadrao !== "colaborador" && (
             <div className="space-y-2">
@@ -2201,6 +2332,64 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Adicionais de risco: característica do cargo, não da unidade. */}
+      <AlertDialog
+        open={perguntarRisco}
+        onOpenChange={(o) => { if (!o) void responderRisco("colaborador"); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Este adicional de risco é do cargo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Insalubridade e periculosidade são características da função. Os percentuais desta
+              ficha estão diferentes dos cadastrados em {cargoSelecionado?.nome ?? "cargo"}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {divergenciaRisco.tipo !== "igual" && (
+            <div className="rounded-xl border bg-muted/40 p-3 text-xs">
+              <p className="text-muted-foreground">
+                No cargo: <span className="text-foreground">{textoRisco(divergenciaRisco.cargo)}</span>
+              </p>
+              <p className="text-muted-foreground">
+                Nesta ficha: <span className="text-foreground">{textoRisco(divergenciaRisco.ficha)}</span>
+              </p>
+            </div>
+          )}
+
+          {divergenciaRisco.tipo === "reducao" && (
+            <div className="rounded-xl border border-dashed border-amber-500/50 bg-amber-500/10 p-3 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Atenção:</span> esta ficha reduz ou zera um
+              adicional previsto para o cargo. Aplicar ao cargo retira o adicional dos colegas que
+              exercem a mesma função — só faça isso se o risco realmente deixou de existir.
+            </div>
+          )}
+
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogAction
+              className="w-full"
+              disabled={upsertCargo.isPending || propagarRiscos.isPending}
+              onClick={(e) => { e.preventDefault(); void responderRisco("cargo_todos"); }}
+            >
+              Aplicar ao cargo e aos {cargoSelecionado?.colaboradores_count ?? 0} colaborador(es)
+            </AlertDialogAction>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={upsertCargo.isPending}
+              onClick={() => void responderRisco("cargo")}
+            >
+              Aplicar só ao cargo {cargoSelecionado?.nome ?? ""}
+            </Button>
+            <AlertDialogCancel className="mt-0 w-full" onClick={() => void responderRisco("colaborador")}>
+              Só este colaborador
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
 
 
       {risco && risco.verMaisLabel && (

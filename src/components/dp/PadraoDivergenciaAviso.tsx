@@ -29,7 +29,7 @@ export function PadraoDivergenciaAviso({ origem, diferencas, onAplicar, onDispen
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
         <div className="min-w-0 flex-1 space-y-2">
           <p className="text-sm font-medium text-foreground">
-            Este cadastro está fora do padrão {origem}
+            Este cadastro está fora do padrão de remuneração {origem}
           </p>
           <ul className="space-y-0.5 text-xs text-muted-foreground">
             {diferencas.map((d) => (
@@ -42,7 +42,7 @@ export function PadraoDivergenciaAviso({ origem, diferencas, onAplicar, onDispen
           </ul>
           <div className="flex flex-wrap gap-2 pt-1">
             <Button type="button" size="sm" onClick={onAplicar}>
-              Aplicar padrão
+              Aplicar padrão de remuneração
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={onDispensar}>
               Manter como está
