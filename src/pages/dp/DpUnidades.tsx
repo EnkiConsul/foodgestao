@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2, ListChecks, Users, Search, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, ListChecks, Users, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,143 +11,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   useDpUnidades,
-  useUpsertDpUnidade,
   useDeleteDpUnidade,
   useToggleDpUnidadeAtivo,
   type DpUnidadeWithCounts,
 } from "@/hooks/useDpCadastros";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-
-const onlyNumbers = (v: string) => v.replace(/\D/g, "");
-const formatCNPJ = (value: string) => {
-  const c = onlyNumbers(value);
-  if (c.length <= 2) return c;
-  if (c.length <= 5) return c.replace(/^(\d{2})(\d{0,3})/, "$1.$2");
-  if (c.length <= 8) return c.replace(/^(\d{2})(\d{3})(\d{0,3})/, "$1.$2.$3");
-  if (c.length <= 12) return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})/, "$1.$2.$3/$4");
-  return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, "$1.$2.$3/$4-$5");
-};
-
-const blank = {
-  company_id: "",
-  nome: "",
-  cnpj: "",
-  endereco: "",
-  cidade: "",
-  uf: "",
-  ativo: true,
-  telefone: "",
-  possui_relogio_ponto: false,
-  tem_adiantamento: false,
-  dia_adiantamento: "" as string,
-};
+import { UnidadeFormDialog, formatCNPJ, onlyNumbers } from "@/components/dp/UnidadeFormDialog";
 
 export default function DpUnidades() {
-  const { companies } = useCompanyContext();
   const list = useDpUnidades();
-  const upsert = useUpsertDpUnidade();
   const del = useDeleteDpUnidade();
   const toggle = useToggleDpUnidadeAtivo();
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpUnidadeWithCounts | null>(null);
   const [toDelete, setToDelete] = useState<DpUnidadeWithCounts | null>(null);
-  const [form, setForm] = useState(blank);
   const [busca, setBusca] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "ativa" | "inativa">("all");
-  const [loadingBrasilApi, setLoadingBrasilApi] = useState(false);
 
   const [viewOpen, setViewOpen] = useState(false);
   const [viewing, setViewing] = useState<DpUnidadeWithCounts | null>(null);
 
   const openNew = () => {
     setEditing(null);
-    const only = companies.length === 1 ? companies[0].id : "";
-    setForm({ ...blank, company_id: only });
     setOpen(true);
-    if (only) void applyCompanyData(only, true);
-  };
-
-  const applyCompanyData = async (companyId: string, force = false) => {
-    if (!companyId) return;
-    try {
-      const { data, error } = await supabase
-        .from("companies")
-        .select("name, trade_name, cnpj, phone, whatsapp, cep, logradouro, numero, complemento, bairro, cidade, uf, address")
-        .eq("id", companyId)
-        .maybeSingle();
-      if (error || !data) return;
-      const enderecoMontado =
-        [
-          [data.logradouro, data.numero].filter(Boolean).join(", "),
-          data.complemento,
-          data.bairro,
-          data.cep,
-        ]
-          .filter(Boolean)
-          .join(" - ") || data.address || "";
-      let cidade = data.cidade || "";
-      let uf = data.uf || "";
-      let endereco = enderecoMontado;
-      let telefone = data.phone || data.whatsapp || "";
-
-      // Fallback: se a empresa não tem cidade/UF estruturados, consulta CNPJ na BrasilAPI
-      const cnpjDigits = onlyNumbers(data.cnpj || "");
-      if ((!cidade || !uf) && cnpjDigits.length === 14) {
-        setLoadingBrasilApi(true);
-        try {
-          const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjDigits}`);
-          if (res.ok) {
-            const info: any = await res.json();
-            if (!cidade) cidade = info.municipio || "";
-            if (!uf) uf = info.uf || "";
-            if (!endereco) {
-              endereco = [
-                [info.logradouro, info.numero].filter(Boolean).join(", "),
-                info.complemento,
-                info.bairro,
-                info.cep,
-              ].filter(Boolean).join(" - ");
-            }
-            if (!telefone) telefone = info.ddd_telefone_1 || "";
-          }
-        } catch { /* ignore */ }
-        finally { setLoadingBrasilApi(false); }
-      }
-
-      setForm((prev) => ({
-        ...prev,
-        nome: force || !prev.nome ? (data.trade_name || data.name || prev.nome) : prev.nome,
-        cnpj: force || !prev.cnpj ? cnpjDigits : prev.cnpj,
-        endereco: force || !prev.endereco ? endereco : prev.endereco,
-        cidade: force || !prev.cidade ? cidade : prev.cidade,
-        uf: force || !prev.uf ? (uf || "").toUpperCase().slice(0, 2) : prev.uf,
-        telefone: force || !prev.telefone ? telefone : prev.telefone,
-      }));
-    } catch {
-      /* ignore */
-    }
   };
 
   const openEdit = (u: DpUnidadeWithCounts) => {
     setEditing(u);
-    const anyU = u as any;
-    setForm({
-      company_id: (u as any).company_id ?? "",
-      nome: u.nome,
-      cnpj: u.cnpj ?? "",
-      endereco: u.endereco ?? "",
-      cidade: u.cidade ?? "",
-      uf: u.uf ?? "",
-      ativo: u.ativo,
-      telefone: anyU.telefone ?? "",
-      possui_relogio_ponto: anyU.possui_relogio_ponto ?? false,
-      tem_adiantamento: anyU.tem_adiantamento ?? false,
-      dia_adiantamento: anyU.dia_adiantamento != null ? String(anyU.dia_adiantamento) : "",
-    });
     setOpen(true);
   };
 
@@ -156,36 +47,7 @@ export default function DpUnidades() {
     setViewOpen(true);
   };
 
-  const save = async () => {
-    if (!form.company_id) {
-      toast.error("Selecione a empresa vinculada");
-      return;
-    }
-    if (!form.nome.trim()) {
-      toast.error("Nome é obrigatório");
-      return;
-    }
-    try {
-      await upsert.mutateAsync({
-        id: editing?.id,
-        company_id: form.company_id,
-        nome: form.nome.trim(),
-        cnpj: onlyNumbers(form.cnpj) || null,
-        endereco: form.endereco.trim() || null,
-        cidade: form.cidade.trim() || null,
-        uf: form.uf.trim().toUpperCase() || null,
-        ativo: form.ativo,
-        telefone: form.telefone.trim() || null,
-        possui_relogio_ponto: form.possui_relogio_ponto,
-        tem_adiantamento: form.tem_adiantamento,
-        dia_adiantamento: form.dia_adiantamento ? Number(form.dia_adiantamento) : null,
-      } as any);
-      toast.success(editing ? "Unidade atualizada" : "Unidade criada");
-      setOpen(false);
-    } catch (e) {
-      toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
-    }
-  };
+
 
   const handleDelete = async () => {
     if (!toDelete) return;
