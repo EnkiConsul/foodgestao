@@ -293,24 +293,10 @@ export function ColaboradorJornadaPanel({
 
 
   /**
-   * Horário padrão do colaborador: o que mais se repete nos dias trabalhados.
-   * É ele que vira o turno principal gravado na vigência.
+   * Horário único do colaborador: um só horário vale para todos os dias
+   * trabalhados. Folga diferente não gera turno diferente.
    */
-  const horario = useMemo<HorarioSimples>(
-    () => horarioPadraoDaSemana(dias, horarioReferencia),
-    [dias, horarioReferencia],
-  );
-
-  /**
-   * Todo dia trabalhado mostra o horário preenchido: nada fica "herdando" em
-   * silêncio. O preenchimento usa a referência (turno da vigência, horário do
-   * colega ou o mais usado na unidade) e só roda depois que ela é resolvida —
-   * senão os dias em branco herdariam o horário provisório da tela.
-   */
-  useEffect(() => {
-    if (vigente?.turno_padrao_id && !horarioAplicadoRef.current) return;
-    setDias((prev) => preencherDiasComHorario(prev, horarioReferencia));
-  }, [horarioReferencia, vigente?.turno_padrao_id, dias]);
+  const horario = horarioReferencia;
 
   /** Turno virtual que representa o horário digitado — só para cálculo na tela. */
   const turnoPadraoTela: TurnoResolvido = useMemo(
