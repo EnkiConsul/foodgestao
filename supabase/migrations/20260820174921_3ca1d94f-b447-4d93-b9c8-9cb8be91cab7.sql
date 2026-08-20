@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public.dp_grade_dias; DROP TABLE IF EXISTS public.dp_grades_semanais;

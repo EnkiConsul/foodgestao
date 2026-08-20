@@ -219,7 +219,6 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Unidades", to: "/dp/cadastros/unidades", icon: Building2 },
       { label: "Sindicatos", to: "/dp/cadastros/sindicatos", icon: Scale },
       { label: "Turnos", to: "/dp/cadastros/turnos", icon: Clock },
-      { label: "Grades semanais", to: "/dp/cadastros/grades", icon: CalendarRange },
       { label: "Benefícios", to: "/dp/cadastros/beneficios", icon: Gift },
       { label: "Adicionais e salário-família", to: "/dp/cadastros/adicionais", icon: Gift },
       { label: "Documentos exigidos", to: "/dp/cadastros/documentos-exigidos", icon: FileCheck2 },
