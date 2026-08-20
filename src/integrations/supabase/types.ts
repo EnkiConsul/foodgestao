@@ -11261,9 +11261,13 @@ export type Database = {
           company_id: string
           connection_id: string
           created_at: string
+          credit_review_at: string | null
+          credit_review_by: string | null
+          credit_review_status: string | null
           currency_code: string | null
           id: string
           linked_account_id: string | null
+          linked_credit_card_id: string | null
           name: string | null
           number_masked: string | null
           pluggy_account_id: string
@@ -11279,9 +11283,13 @@ export type Database = {
           company_id: string
           connection_id: string
           created_at?: string
+          credit_review_at?: string | null
+          credit_review_by?: string | null
+          credit_review_status?: string | null
           currency_code?: string | null
           id?: string
           linked_account_id?: string | null
+          linked_credit_card_id?: string | null
           name?: string | null
           number_masked?: string | null
           pluggy_account_id: string
@@ -11297,9 +11305,13 @@ export type Database = {
           company_id?: string
           connection_id?: string
           created_at?: string
+          credit_review_at?: string | null
+          credit_review_by?: string | null
+          credit_review_status?: string | null
           currency_code?: string | null
           id?: string
           linked_account_id?: string | null
+          linked_credit_card_id?: string | null
           name?: string | null
           number_masked?: string | null
           pluggy_account_id?: string
@@ -11330,6 +11342,13 @@ export type Database = {
             columns: ["linked_account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_accounts_linked_credit_card_id_fkey"
+            columns: ["linked_credit_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
             referencedColumns: ["id"]
           },
         ]

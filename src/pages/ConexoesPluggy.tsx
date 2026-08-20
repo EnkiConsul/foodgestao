@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PluggyConnectDialog } from "@/components/accounts/PluggyConnectDialog";
-import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2 } from "lucide-react";
+import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
+import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
+import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2, CreditCard as CreditCardIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -46,6 +48,8 @@ export default function ConexoesPluggy() {
   const [connectOpen, setConnectOpen] = useState(false);
   const [reconnectItemId, setReconnectItemId] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<Connection | null>(null);
+  const [creditReviewOpen, setCreditReviewOpen] = useState(false);
+  const { pending: pendingCredit, reload: reloadPendingCredit } = usePluggyCreditReview();
 
   const load = useCallback(async () => {
     if (!selectedCompanyId) return;
@@ -90,6 +94,7 @@ export default function ConexoesPluggy() {
     if (error) { toast.error("Falha ao sincronizar"); return; }
     toast.success(`Sincronização concluída (${data?.transactions ?? 0} lançamentos)`);
     load();
+    reloadPendingCredit();
   };
 
   const disconnect = async () => {
@@ -143,6 +148,23 @@ export default function ConexoesPluggy() {
                 <RefreshCw className="h-3.5 w-3.5 mr-1" /> Atualizar
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!loading && pendingCredit.length > 0 && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="p-4 flex flex-wrap items-center gap-3">
+            <CreditCardIcon className="h-4 w-4 text-primary shrink-0" />
+            <div className="min-w-0 flex-1 text-sm">
+              <p className="font-semibold">
+                {pendingCredit.length} cartão(ões) de crédito detectado(s)
+              </p>
+              <p className="text-muted-foreground text-xs mt-0.5">
+                Encontramos cartões nas contas conectadas. Eles só serão cadastrados após sua autorização.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => setCreditReviewOpen(true)}>Revisar e autorizar</Button>
           </CardContent>
         </Card>
       )}
@@ -221,6 +243,15 @@ export default function ConexoesPluggy() {
           onConnected={() => load()}
         />
       )}
+
+      <PluggyCreditCardReviewDialog
+        open={creditReviewOpen}
+        onOpenChange={setCreditReviewOpen}
+        accounts={pendingCredit}
+        onDone={() => { reloadPendingCredit(); load(); }}
+      />
+
+
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}>
         <AlertDialogContent>
