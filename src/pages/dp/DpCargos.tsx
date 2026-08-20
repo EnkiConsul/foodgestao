@@ -13,7 +13,7 @@ import { rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { moedaBR } from "@/lib/dp/cargos";
+import { moedaBR, selosRiscoCargo, textoPercentualRisco } from "@/lib/dp/cargos";
 import { CargoSalariosUnidadePanel } from "@/components/dp/CargoSalariosUnidadePanel";
 import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
 
@@ -145,12 +145,21 @@ export default function DpCargos() {
                     <td className="p-4 hidden md:table-cell text-muted-foreground truncate" title={descricao ?? ""}>{descricao || "—"}</td>
                     <td className="p-4 text-right tabular-nums whitespace-nowrap" title={salarioResumo(c).dica}>
                       {salarioResumo(c).texto}
-                      {(c as any).insalubre_periculoso && (
-                        <span className="ml-2 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
-                          insalubre
+                      {selosRiscoCargo(c as any).map((selo) => (
+                        <span
+                          key={selo.tipo}
+                          className={cn(
+                            "ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                            selo.tipo === "insalubridade" && "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+                            selo.tipo === "periculosidade" && "bg-destructive/10 text-destructive",
+                            selo.tipo === "indefinido" && "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {selo.label}
                         </span>
-                      )}
+                      ))}
                     </td>
+
 
                     <td className="p-4 text-center">
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
@@ -268,9 +277,15 @@ export default function DpCargos() {
                   <p className="text-[11px] text-muted-foreground">{salarioResumo(viewCargo).dica}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Insalubridade / periculosidade</Label>
-                  <p className="mt-1">{(viewCargo as any).insalubre_periculoso ? "Sim" : "Não"}</p>
+                  <Label className="text-xs text-muted-foreground">Adicionais de risco</Label>
+                  <p className="mt-1">
+                    Insalubridade: {textoPercentualRisco((viewCargo as any).insalubridade_percentual)}
+                  </p>
+                  <p>
+                    Periculosidade: {textoPercentualRisco((viewCargo as any).periculosidade_percentual)}
+                  </p>
                 </div>
+
               </div>
 
               <div className="pt-2 border-t border-border">
