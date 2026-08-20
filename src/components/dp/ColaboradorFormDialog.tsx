@@ -2008,6 +2008,13 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         onCreated={selecionarCargo}
       />
 
+      <UnidadeFormDialog
+        open={novaUnidadeOpen}
+        onOpenChange={setNovaUnidadeOpen}
+        onSaved={(u) => setForm((f) => ({ ...f, unidade_id: u.id }))}
+      />
+
+
       <AlertDialog open={confirmarRemocao} onOpenChange={setConfirmarRemocao}>
         <AlertDialogContent>
           <AlertDialogHeader>
