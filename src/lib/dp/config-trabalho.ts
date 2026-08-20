@@ -354,9 +354,11 @@ export function resumoSemanaPorFaixas(
     const rotulo = temHorario
       ? `${h.entrada}–${h.saida} (${h.intervalo_minutos ?? 0} min)`
       : "sem horário definido";
+    const ordem = ORDEM_EXIBICAO as readonly number[];
     const anterior = faixas[faixas.length - 1];
     const consecutivo = anterior
-      && ORDEM_EXIBICAO.indexOf(dia.dow) === ORDEM_EXIBICAO.indexOf(anterior.fim) + 1;
+      && ordem.indexOf(dia.dow) === ordem.indexOf(anterior.fim) + 1;
+
     if (anterior && anterior.chave === chave && consecutivo) {
       anterior.fim = dia.dow;
     } else {
