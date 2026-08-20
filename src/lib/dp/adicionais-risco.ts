@@ -88,3 +88,47 @@ export function alertasAdicionaisRisco(input: {
   }
   return out;
 }
+
+// ------------------------------------------------------------------
+// Simulação do adicional por dia / por hora
+//
+// Intermitentes e diaristas raciocinam em valor do dia; horistas, em valor
+// da hora. O adicional continua sendo um percentual, então a simulação é o
+// mesmo percentual aplicado à unidade de pagamento do contrato.
+// ------------------------------------------------------------------
+
+export interface SimulacaoRisco {
+  /** Adicional no mês, sobre a base salarial mensal. */
+  mes: number | null;
+  /** Adicional embutido em cada dia trabalhado. */
+  porDia: number | null;
+  /** Adicional embutido em cada hora trabalhada. */
+  porHora: number | null;
+}
+
+const positivo = (n: number | null | undefined) =>
+  n != null && Number.isFinite(Number(n)) && Number(n) > 0 ? Number(n) : null;
+
+const perc = (base: number | null, percentual: number) => {
+  if (base == null || percentual <= 0) return null;
+  return Math.round(base * (percentual / 100) * 100) / 100;
+};
+
+/**
+ * Simula um adicional percentual nas três unidades usadas nos contratos.
+ * `baseMensal` é o salário mensal de referência; `valorDia`/`valorHora` são os
+ * valores cadastrados para diarista/intermitente e horista.
+ */
+export function simularAdicionalPercentual(input: {
+  percentual: number;
+  baseMensal?: number | null;
+  valorDia?: number | null;
+  valorHora?: number | null;
+}): SimulacaoRisco {
+  const p = Math.max(0, Number(input.percentual) || 0);
+  return {
+    mes: perc(positivo(input.baseMensal), p),
+    porDia: perc(positivo(input.valorDia), p),
+    porHora: perc(positivo(input.valorHora), p),
+  };
+}
