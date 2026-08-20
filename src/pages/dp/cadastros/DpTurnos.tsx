@@ -366,6 +366,30 @@ export default function DpTurnos() {
 
       <TurnoCategoriaLabelsDialog open={labelsOpen} onOpenChange={setLabelsOpen} />
 
+      <TurnoDetalheDialog
+        turno={detalhe}
+        unidadeNome={detalhe ? nomeUnidade(detalhe.unidade_id) : null}
+        uso={detalhe ? usoPorTurno[detalhe.id] : null}
+        usoEstado={detalhe ? estadoDoTurno(detalhe) : "sem_uso"}
+        onOpenChange={(o) => !o && setDetalhe(null)}
+        onEditar={() => { const t = detalhe; setDetalhe(null); if (t) abrirEdicao(t); }}
+        onDuplicar={() => { const t = detalhe; setDetalhe(null); if (t) duplicar(t); }}
+        onExcluir={() => { const t = detalhe; setDetalhe(null); if (t) setARemover(t); }}
+        onAbrirColaborador={(id) => {
+          const c = (colaboradores.data ?? []).find((x) => x.id === id);
+          if (!c) return;
+          setDetalhe(null);
+          setColaboradorAberto(c as DpColaborador);
+        }}
+      />
+
+      <ColaboradorFormDialog
+        open={!!colaboradorAberto}
+        onOpenChange={(o) => !o && setColaboradorAberto(null)}
+        colaborador={colaboradorAberto}
+      />
+
+
       <TurnoForm
         open={formOpen}
         onOpenChange={setFormOpen}
