@@ -1447,28 +1447,57 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="dados" className="gap-2">
                 Dados
-                {(dadosPendente || isDesligado) && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
+                {dadosPendente && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="h-1.5 w-1.5 rounded-full bg-destructive"
+                        aria-label="Falta preencher campos obrigatórios"
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>Falta preencher campos obrigatórios</TooltipContent>
+                  </Tooltip>
                 )}
               </TabsTrigger>
               <TabsTrigger value="jornada">Horário de Trabalho</TabsTrigger>
               <TabsTrigger value="remuneracao" className="gap-2">
                 Remuneração
                 {remPendente && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="h-1.5 w-1.5 rounded-full bg-destructive"
+                        aria-label="Falta preencher campos obrigatórios"
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>Falta preencher campos obrigatórios</TooltipContent>
+                  </Tooltip>
                 )}
                 {!remPendente && divergenciasIso.length === 0 && diferencasDoPadrao.length > 0 && (
-                  <span
-                    className="h-1.5 w-1.5 rounded-full bg-amber-500"
-                    aria-label="Cadastro fora do padrão de remuneração"
-                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                        aria-label="Cadastro fora do padrão de remuneração"
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>Cadastro fora do padrão de remuneração</TooltipContent>
+                  </Tooltip>
                 )}
                 {!remPendente && divergenciasIso.length > 0 && (
-                  <span
-                    className="h-1.5 w-1.5 rounded-full bg-amber-500"
-                    aria-label="Divergência de benefícios em relação aos colegas"
-                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                        aria-label="Divergência de benefícios em relação aos colegas"
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>Divergência de benefícios em relação aos colegas</TooltipContent>
+                  </Tooltip>
                 )}
+
+              </TabsTrigger>
+
 
               </TabsTrigger>
               <TabsTrigger value="dependentes">Dependentes</TabsTrigger>
