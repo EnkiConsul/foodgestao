@@ -149,6 +149,8 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   colaborador?: DpColaborador | null;
+  /** Aba aberta ao exibir o diálogo (ex.: acesso ao portal ou desligamento). */
+  abaInicial?: AbaVisivel;
 }
 
 const NONE_DESLIG = "__none__";
@@ -192,7 +194,7 @@ const abaSeguinte = (aba: AbaVisivel): AbaCadastro | null =>
 
 
 
-export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props) {
+export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInicial = "dados" }: Props) {
   const upsert = useUpsertDpColaborador();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
@@ -395,7 +397,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador }: Props
   useEffect(() => {
     if (!open) return;
     cienciaConfirmada.current = null;
-    setTab("dados");
+    setTab(abaInicial);
     setCriadoId(null);
     const c = (colaborador ?? {}) as any;
     const regime = c.regime ? String(c.regime) : "clt";

@@ -74,6 +74,13 @@ export default function DpColaboradores() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewing, setViewing] = useState<DpColaborador | null>(null);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
+  /** Aba aberta ao abrir o cadastro pelas ações da lista. */
+  const [abaInicial, setAbaInicial] = useState<"dados" | "acesso" | "desligamento">("dados");
+  const abrirCadastro = (c: DpColaborador | null, aba: "dados" | "acesso" | "desligamento" = "dados") => {
+    setEditing(c);
+    setAbaInicial(aba);
+    setDialogOpen(true);
+  };
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
   const [toDesligar, setToDesligar] = useState<DpColaborador | null>(null);
   const [toReintegrar, setToReintegrar] = useState<DpColaborador | null>(null);
@@ -286,7 +293,7 @@ export default function DpColaboradores() {
           <Button
             size="lg"
             className="rounded-full font-semibold"
-            onClick={() => { setEditing(null); setDialogOpen(true); }}
+            onClick={() => abrirCadastro(null)}
           >
             <Plus className="h-5 w-5 mr-2" /> Novo Colaborador
           </Button>
@@ -444,7 +451,7 @@ export default function DpColaboradores() {
                       </TableCell>
                       <TableCell className="align-top" onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-0.5 justify-end">
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditing(c); setDialogOpen(true); }} title="Editar">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); abrirCadastro(c); }} title="Editar">
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <DropdownMenu>
@@ -454,30 +461,17 @@ export default function DpColaboradores() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">
-                              {c.user_id && (
-                                <DropdownMenuItem disabled={resetting === c.id} onSelect={() => handleReset(c)}>
-                                  <KeyRound className="h-4 w-4 mr-2" /> Resetar Senha (CPF)
-                                </DropdownMenuItem>
-                              )}
-                              {c.user_id && (
-                                <DropdownMenuItem onSelect={() => openSetPwd(c)}>
-                                  <Lock className="h-4 w-4 mr-2" /> Definir Senha
-                                </DropdownMenuItem>
-                              )}
-                              {!c.user_id && (
-                                <DropdownMenuItem disabled={granting === c.id} onSelect={() => handleGrantAccess(c)}>
-                                  <UserPlus className="h-4 w-4 mr-2" /> Gerar Acesso Ao Portal
-                                </DropdownMenuItem>
-                              )}
-                              {c.ativo ? (
-                                <DropdownMenuItem onSelect={() => setToDesligar(c)}>
-                                  <UserMinus className="h-4 w-4 mr-2 text-destructive" /> Desligar Colaborador
-                                </DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem onSelect={() => setToReintegrar(c)}>
-                                  <RotateCcw className="h-4 w-4 mr-2" /> Reintegrar Colaborador
-                                </DropdownMenuItem>
-                              )}
+                              <DropdownMenuItem onSelect={() => abrirCadastro(c, "acesso")}>
+                                {c.user_id ? <KeyRound className="h-4 w-4 mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
+                                {c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => abrirCadastro(c, "desligamento")}>
+                                {c.ativo ? (
+                                  <><UserMinus className="h-4 w-4 mr-2 text-destructive" /> Registrar desligamento</>
+                                ) : (
+                                  <><RotateCcw className="h-4 w-4 mr-2" /> Desligamento / reintegração</>
+                                )}
+                              </DropdownMenuItem>
                               <DropdownMenuItem onSelect={() => setToDelete(c)}>
                                 <Trash2 className="h-4 w-4 mr-2 text-destructive" /> Remover
                               </DropdownMenuItem>
@@ -565,7 +559,7 @@ export default function DpColaboradores() {
               </div>
 
               <div className="flex flex-wrap gap-1 pt-1 border-t border-border/60" onClick={(e) => e.stopPropagation()}>
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => { setEditing(c); setDialogOpen(true); }}>
+                <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => abrirCadastro(c)}>
                   <Pencil className="h-4 w-4 mr-1" /> Editar
                 </Button>
                 {c.user_id && (
@@ -617,7 +611,12 @@ export default function DpColaboradores() {
 
       
 
-      <ColaboradorFormDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
+      <ColaboradorFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        colaborador={editing}
+        abaInicial={abaInicial}
+      />
 
 
 
