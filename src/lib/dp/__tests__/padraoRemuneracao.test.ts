@@ -4,6 +4,8 @@ import {
   gruposDivergentesClassificados,
   quemPerdeBeneficio,
   idsAlvoPadrao,
+  padraoParaColunasColaborador,
+  divergenciasColaboradorVsPadrao,
 } from "@/lib/dp/beneficiosPadrao";
 import { compararRiscoCargo, textoRisco } from "@/lib/dp/cargos";
 
@@ -78,5 +80,50 @@ describe("idsAlvoPadrao", () => {
   });
   it("limita à seleção manual dentro do escopo", () => {
     expect(idsAlvoPadrao(escopo, "selecionados", ["a", "c", "z"], "c")).toEqual(["a"]);
+  });
+});
+
+describe("padraoParaColunasColaborador: ciclo dos vales", () => {
+  const padraoVales = {
+    vale_alimentacao: true,
+    vale_alimentacao_valor: "24",
+    vale_alimentacao_dia_pagamento: "25",
+    vale_alimentacao_dias_corte: "5",
+    vale_alimentacao_desconta_falta: true,
+    vale_alimentacao_desconta_atestado: true,
+    vale_transporte: true,
+    vale_transporte_valor_dia: "9",
+    vale_transporte_dia_pagamento: "20",
+    vale_transporte_desconta_atestado: true,
+  } as any;
+
+  it("replica dia de pagamento, corte e descontos", () => {
+    const cols = padraoParaColunasColaborador(padraoVales);
+    expect(cols.vale_alimentacao_dia_pagamento).toBe(25);
+    expect(cols.vale_alimentacao_dias_corte).toBe(5);
+    expect(cols.vale_alimentacao_desconta_atestado).toBe(true);
+    expect(cols.vale_alimentacao_desconta_ferias).toBe(false);
+    expect(cols.vale_transporte_dia_pagamento).toBe(20);
+    expect(cols.vale_transporte_desconta_atestado).toBe(true);
+  });
+
+  it("zera o ciclo quando o vale está desligado", () => {
+    const cols = padraoParaColunasColaborador({
+      ...padraoVales,
+      vale_alimentacao: false,
+    } as any);
+    expect(cols.vale_alimentacao_dia_pagamento).toBeNull();
+    expect(cols.vale_alimentacao_desconta_atestado).toBeNull();
+  });
+
+  it("detecta divergência quando só o desconta atestado difere", () => {
+    const colaborador = {
+      ...padraoParaColunasColaborador(padraoVales),
+      vale_alimentacao_desconta_atestado: false,
+    };
+    const difs = divergenciasColaboradorVsPadrao(colaborador, padraoVales, [
+      "vale_alimentacao",
+    ]);
+    expect(difs.map((d) => d.coluna)).toContain("vale_alimentacao_desconta_atestado");
   });
 });

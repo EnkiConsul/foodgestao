@@ -484,6 +484,15 @@ export function padraoParaColunasColaborador(
   const todas: Record<string, unknown> = {
     vale_transporte: vt,
     vale_transporte_valor_dia: vt ? decimal(payload.vale_transporte_valor_dia) : null,
+    // Ciclo do VT: dia de depósito, corte e o que abate do valor.
+    vale_transporte_dia_pagamento: vt ? inteiro(payload.vale_transporte_dia_pagamento) : null,
+    vale_transporte_dias_corte: vt ? inteiro(payload.vale_transporte_dias_corte) : null,
+    vale_transporte_desconta_falta: vt ? !!payload.vale_transporte_desconta_falta : null,
+    vale_transporte_desconta_folga_extra: vt
+      ? !!payload.vale_transporte_desconta_folga_extra
+      : null,
+    vale_transporte_desconta_atestado: vt ? !!payload.vale_transporte_desconta_atestado : null,
+    vale_transporte_desconta_ferias: vt ? !!payload.vale_transporte_desconta_ferias : null,
 
     premio_assiduidade: premio,
     premio_assiduidade_valor: premio ? decimal(payload.premio_assiduidade_valor) || null : null,
@@ -505,6 +514,15 @@ export function padraoParaColunasColaborador(
       (payload.vale_alimentacao_desconto_tipo ?? "nenhum") === "nenhum"
         ? 0
         : decimal(payload.vale_alimentacao_desconto_valor),
+    // Ciclo do VA: dia de depósito, corte e o que abate do valor.
+    vale_alimentacao_dia_pagamento: va ? inteiro(payload.vale_alimentacao_dia_pagamento) : null,
+    vale_alimentacao_dias_corte: va ? inteiro(payload.vale_alimentacao_dias_corte) : null,
+    vale_alimentacao_desconta_falta: va ? !!payload.vale_alimentacao_desconta_falta : null,
+    vale_alimentacao_desconta_folga_extra: va
+      ? !!payload.vale_alimentacao_desconta_folga_extra
+      : null,
+    vale_alimentacao_desconta_atestado: va ? !!payload.vale_alimentacao_desconta_atestado : null,
+    vale_alimentacao_desconta_ferias: va ? !!payload.vale_alimentacao_desconta_ferias : null,
   };
   return Object.fromEntries(Object.entries(todas).filter(([k]) => permitidos.has(k)));
 }
@@ -522,7 +540,8 @@ export interface DivergenciaColaborador {
 const equivalente = (a: unknown, b: unknown): boolean => {
   const norm = (v: unknown): unknown => {
     if (v === null || v === undefined || v === "") return null;
-    if (typeof v === "boolean") return v;
+    // "não" e "não informado" são a mesma coisa para o usuário.
+    if (typeof v === "boolean") return v ? true : null;
     const n = Number(String(v).replace(",", "."));
     if (Number.isFinite(n)) return n === 0 ? null : n;
     return String(v);
