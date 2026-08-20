@@ -373,3 +373,188 @@ export function useDeleteDpCargoSalario() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_cargo_salarios"] }),
   });
 }
+
+// ---------------- Edição do piso com justificativa e log ----------------
+// Alterar um piso já cadastrado impacta folha e conferências, então a mudança
+// é registrada em dp_regras_historico (mesmo padrão de turnos e configurações).
+
+export interface EdicaoPisoInput {
+  id: string;
+  cargo_id: string;
+  salario_base: number;
+  vigencia_inicio: string;
+  vigencia_fim: string | null;
+  unidade_id: string | null;
+  sindicato_patronal_id: string | null;
+  observacao: string | null;
+  justificativa: string;
+  /** Valores antes da alteração, gravados no log. */
+  anterior: Record<string, unknown>;
+}
+
+export function useUpdateDpCargoSalarioComLog() {
+  const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
+  return useMutation({
+    mutationFn: async (input: EdicaoPisoInput) => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      const { anterior, justificativa, id, ...campos } = input;
+      const { data, error } = await supabase
+        .from("dp_cargo_salarios")
+        .update({
+          salario_base: campos.salario_base,
+          vigencia_inicio: campos.vigencia_inicio,
+          vigencia_fim: campos.vigencia_fim,
+          unidade_id: campos.unidade_id,
+          sindicato_patronal_id: campos.sindicato_patronal_id,
+          observacao: campos.observacao,
+        })
+        .eq("id", id)
+        .select("*")
+        .single();
+      if (error) throw error;
+
+      const { data: auth } = await supabase.auth.getUser();
+      const { error: logErr } = await supabase.from("dp_regras_historico").insert({
+        company_id: selectedCompanyId,
+        tabela: "dp_cargo_salarios",
+        registro_id: id,
+        usuario_id: auth?.user?.id ?? null,
+        justificativa,
+        valor_antigo: anterior as any,
+        valor_novo: {
+          cargo_id: campos.cargo_id,
+          salario_base: campos.salario_base,
+          vigencia_inicio: campos.vigencia_inicio,
+          vigencia_fim: campos.vigencia_fim,
+          unidade_id: campos.unidade_id,
+          sindicato_patronal_id: campos.sindicato_patronal_id,
+          observacao: campos.observacao,
+        } as any,
+      });
+      if (logErr) throw logErr;
+      return data as DpCargoSalario;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dp_cargo_salarios"] });
+      void qc.invalidateQueries({ queryKey: ["dp_cargo_salarios_log"] });
+    },
+  });
+}
+
+export interface PisoLogEntry {
+  id: string;
+  created_at: string;
+  registro_id: string | null;
+  usuario_id: string | null;
+  justificativa: string | null;
+  valor_antigo: any;
+  valor_novo: any;
+}
+
+/** Log de alterações dos pisos de um cargo. */
+export function useDpCargoSalarioLog(cargoId?: string | null) {
+  const { selectedCompanyId } = useCompanyContext();
+  return useQuery({
+    queryKey: ["dp_cargo_salarios_log", selectedCompanyId, cargoId ?? "all"],
+    enabled: !!selectedCompanyId && !!cargoId,
+    queryFn: async (): Promise<PisoLogEntry[]> => {
+      const { data, error } = await supabase
+        .from("dp_regras_historico")
+        .select("id, created_at, registro_id, usuario_id, justificativa, valor_antigo, valor_novo")
+        .eq("company_id", selectedCompanyId!)
+        .eq("tabela", "dp_cargo_salarios")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return ((data ?? []) as PisoLogEntry[]).filter(
+        (r) => !cargoId || (r.valor_novo as any)?.cargo_id === cargoId || (r.valor_antigo as any)?.cargo_id === cargoId,
+      );
+    },
+  });
+}
+
+/** Aplica os percentuais de risco do cargo aos colaboradores vinculados. */
+export function usePropagarRiscosCargo() {
+  const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
+  return useMutation({
+    mutationFn: async (input: {
+      cargoId: string;
+      insalubridade_percentual: number;
+      periculosidade_percentual: number;
+    }) => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      const { error } = await supabase
+        .from("dp_colaboradores")
+        .update({
+          insalubridade_percentual: input.insalubridade_percentual,
+          periculosidade_percentual: input.periculosidade_percentual,
+          adicional_percentual: Math.max(input.insalubridade_percentual, input.periculosidade_percentual),
+        })
+        .eq("company_id", selectedCompanyId)
+        .eq("cargo_id", input.cargoId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_colaboradores"] }),
+  });
+}
+
+/** Sindicato laboral vinculado a cada cargo da empresa. */
+export function useDpLaboralPorCargo() {
+  const { selectedCompanyId } = useCompanyContext();
+  return useQuery({
+    queryKey: ["dp_laboral_por_cargo", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async (): Promise<Record<string, string>> => {
+      const { data, error } = await supabase
+        .from("dp_sindicato_cargos")
+        .select("cargo_id, sindicato_id, dp_sindicatos!inner(id, tipo)")
+        .eq("dp_sindicatos.tipo", "laboral");
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      for (const row of (data ?? []) as any[]) {
+        if (!map[row.cargo_id]) map[row.cargo_id] = row.sindicato_id;
+      }
+      return map;
+    },
+  });
+}
+
+/** Define (ou remove) o sindicato laboral do cargo. */
+export function useSetDpSindicatoLaboralCargo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ cargoId, sindicatoId }: { cargoId: string; sindicatoId: string | null }) => {
+      const { data: atuais, error: selErr } = await supabase
+        .from("dp_sindicato_cargos")
+        .select("sindicato_id, dp_sindicatos!inner(tipo)")
+        .eq("cargo_id", cargoId)
+        .eq("dp_sindicatos.tipo", "laboral");
+      if (selErr) throw selErr;
+      const antigos = (atuais ?? []).map((r: any) => r.sindicato_id as string);
+      const manter = sindicatoId && antigos.includes(sindicatoId);
+      const remover = antigos.filter((id) => id !== sindicatoId);
+      if (remover.length > 0) {
+        const { error } = await supabase
+          .from("dp_sindicato_cargos")
+          .delete()
+          .eq("cargo_id", cargoId)
+          .in("sindicato_id", remover);
+        if (error) throw error;
+      }
+      if (sindicatoId && !manter) {
+        const { error } = await supabase
+          .from("dp_sindicato_cargos")
+          .insert({ cargo_id: cargoId, sindicato_id: sindicatoId });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dp_laboral_por_cargo"] });
+      void qc.invalidateQueries({ queryKey: ["dp_sindicato_do_cargo"] });
+      void qc.invalidateQueries({ queryKey: ["dp_sindicatos"] });
+    },
+  });
+}
+

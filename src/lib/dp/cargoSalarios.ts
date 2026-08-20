@@ -334,3 +334,124 @@ export function agruparPisosPorCargo<T extends { cargo_id?: string | null }>(
   }
   return map;
 }
+
+// ------------------------------------------------------------------
+// Edição de um piso já cadastrado
+//
+// Editar um piso mexe em folha, provisões e conferências, então a alteração
+// exige justificativa e passa pelas mesmas regras de vigência do cadastro:
+// fim >= início, ajuste de unidade nunca abaixo do piso do patronal e nenhuma
+// sobreposição de vigências no mesmo escopo.
+// ------------------------------------------------------------------
+
+/** Mínimo de caracteres exigido na justificativa da alteração. */
+export const JUSTIFICATIVA_MIN = 10;
+
+export interface EdicaoPiso {
+  id: string;
+  salario_base: number;
+  vigencia_inicio: string;
+  vigencia_fim?: string | null;
+  unidade_id?: string | null;
+  sindicato_patronal_id?: string | null;
+  observacao?: string | null;
+  justificativa: string;
+}
+
+export type ValidacaoEdicaoPiso =
+  | { ok: true }
+  | { ok: false; campo: "justificativa" | "salario_base" | "vigencia_inicio" | "vigencia_fim" | "escopo"; mensagem: string };
+
+/** Duas linhas do mesmo escopo se sobrepõem no tempo? */
+export function vigenciasSobrepostas(
+  a: { vigencia_inicio: string; vigencia_fim?: string | null },
+  b: { vigencia_inicio: string; vigencia_fim?: string | null },
+): boolean {
+  const fimA = a.vigencia_fim || "9999-12-31";
+  const fimB = b.vigencia_fim || "9999-12-31";
+  return a.vigencia_inicio <= fimB && b.vigencia_inicio <= fimA;
+}
+
+const mesmoEscopo = (
+  a: { unidade_id?: string | null; sindicato_patronal_id?: string | null },
+  b: { unidade_id?: string | null; sindicato_patronal_id?: string | null },
+) =>
+  (a.unidade_id ?? null) === (b.unidade_id ?? null) &&
+  (a.unidade_id
+    ? true
+    : (a.sindicato_patronal_id ?? null) === (b.sindicato_patronal_id ?? null));
+
+/**
+ * Valida a edição de um piso contra as demais linhas do cargo.
+ * `outras` deve conter todas as linhas do cargo (a própria é ignorada pelo id).
+ */
+export function validarEdicaoPiso(
+  edicao: EdicaoPiso,
+  outras: CargoSalarioLinha[] | null | undefined,
+): ValidacaoEdicaoPiso {
+  if ((edicao.justificativa ?? "").trim().length < JUSTIFICATIVA_MIN) {
+    return {
+      ok: false,
+      campo: "justificativa",
+      mensagem: `Descreva o motivo da alteração com pelo menos ${JUSTIFICATIVA_MIN} caracteres.`,
+    };
+  }
+  if (!edicao.salario_base || edicao.salario_base <= 0) {
+    return { ok: false, campo: "salario_base", mensagem: "Informe um salário maior que zero." };
+  }
+  if (!edicao.vigencia_inicio) {
+    return { ok: false, campo: "vigencia_inicio", mensagem: "Informe a data base (início da vigência)." };
+  }
+  if (edicao.vigencia_fim && edicao.vigencia_fim < edicao.vigencia_inicio) {
+    return { ok: false, campo: "vigencia_fim", mensagem: "O fim da vigência não pode ser anterior ao início." };
+  }
+  if (!edicao.unidade_id && !edicao.sindicato_patronal_id) {
+    return { ok: false, campo: "escopo", mensagem: "Escolha o sindicato patronal ou a unidade do valor." };
+  }
+
+  const demais = (outras ?? []).filter((p) => p.id && p.id !== edicao.id);
+
+  const conflito = demais.find((p) => mesmoEscopo(p, edicao) && vigenciasSobrepostas(p, edicao));
+  if (conflito) {
+    return {
+      ok: false,
+      campo: "vigencia_inicio",
+      mensagem: "Já existe outro valor deste escopo vigente no período informado. Ajuste as datas.",
+    };
+  }
+
+  // Ajuste de unidade nunca abaixo do piso do patronal na data base.
+  if (edicao.unidade_id) {
+    const piso = pisoDoPatronal(demais, edicao.sindicato_patronal_id, edicao.vigencia_inicio, {
+      aceitarFuturo: true,
+    });
+    const check = validarOverrideUnidade(edicao.salario_base, piso ? Number(piso.salario_base) : null);
+    if (check.ok === false && check.motivo === "abaixo_do_piso") {
+      return {
+        ok: false,
+        campo: "salario_base",
+        mensagem: `O valor não pode ficar abaixo do piso do patronal (${moedaBR(check.piso)}).`,
+      };
+    }
+  }
+  return { ok: true };
+}
+
+/** Descreve o que mudou entre o valor antigo e o novo (para o log e a UI). */
+export function diffPiso(
+  antes: CargoSalarioLinha,
+  depois: { salario_base: number; vigencia_inicio: string; vigencia_fim?: string | null; observacao?: string | null },
+): string[] {
+  const out: string[] = [];
+  if (Number(antes.salario_base) !== Number(depois.salario_base)) {
+    out.push(`valor ${moedaBR(Number(antes.salario_base))} → ${moedaBR(Number(depois.salario_base))}`);
+  }
+  if (antes.vigencia_inicio !== depois.vigencia_inicio) {
+    out.push(`data base ${antes.vigencia_inicio} → ${depois.vigencia_inicio}`);
+  }
+  if ((antes.vigencia_fim ?? null) !== (depois.vigencia_fim ?? null)) {
+    out.push(`fim ${antes.vigencia_fim ?? "em aberto"} → ${depois.vigencia_fim ?? "em aberto"}`);
+  }
+  if ((antes.observacao ?? "") !== (depois.observacao ?? "")) out.push("observação");
+  return out;
+}

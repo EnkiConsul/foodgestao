@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Building2, Plus, Trash2, Landmark, History } from "lucide-react";
+import { Building2, Plus, Trash2, Landmark, History, Pencil, FileClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import {
   useDpPatronalPorUnidade,
   useUpsertDpCargoSalario,
   useDeleteDpCargoSalario,
+  useDpCargoSalarioLog,
 } from "@/hooks/useDpCadastros";
 import { moedaBR } from "@/lib/dp/cargos";
 import { numeroBR } from "@/components/dp/RemuneracaoFields";
@@ -20,10 +21,12 @@ import {
   pisoDoPatronal, validarOverrideUnidade, linhaEmAberto, diaAnterior, statusVigencia,
   mensagemErroPiso, type CargoSalarioLinha,
 } from "@/lib/dp/cargoSalarios";
+import { CargoSalarioEditDialog } from "@/components/dp/cargos/CargoSalarioEditDialog";
 
 interface Props {
   cargoId: string;
 }
+
 
 const dataBR = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR");
 
@@ -51,6 +54,10 @@ export function CargoSalariosUnidadePanel({ cargoId }: Props) {
   const [novoPiso, setNovoPiso] = useState({ patronal_id: "", salario_base: "", vigencia_inicio: hoje });
   const [novoAjuste, setNovoAjuste] = useState({ unidade_id: "", salario_base: "", vigencia_inicio: hoje });
   const [salvando, setSalvando] = useState(false);
+  /** Linha aberta para edição (exige justificativa). */
+  const [editando, setEditando] = useState<CargoSalarioLinha | null>(null);
+  const [mostrarLog, setMostrarLog] = useState(false);
+  const log = useDpCargoSalarioLog(mostrarLog ? cargoId : null);
 
   const patronais = useMemo(
     () => (sindicatos.data ?? []).filter((s) => s.tipo === "patronal"),
@@ -213,6 +220,13 @@ export function CargoSalariosUnidadePanel({ cargoId }: Props) {
                   </Badge>
                   <Button
                     size="icon" variant="ghost" className="shrink-0"
+                    aria-label={`Editar piso de ${nomePatronal(p.sindicato_patronal_id!)}`}
+                    onClick={() => setEditando(p)}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon" variant="ghost" className="shrink-0"
                     aria-label={`Remover piso de ${nomePatronal(p.sindicato_patronal_id!)}`}
                     onClick={() => remover(p.id!)}
                   >
@@ -298,6 +312,13 @@ export function CargoSalariosUnidadePanel({ cargoId }: Props) {
                 </Badge>
                 <Button
                   size="icon" variant="ghost" className="shrink-0"
+                  aria-label={`Editar salário de ${nomeUnidade(p.unidade_id!)}`}
+                  onClick={() => setEditando(p)}
+                >
+                  <Pencil className="size-4" />
+                </Button>
+                <Button
+                  size="icon" variant="ghost" className="shrink-0"
                   aria-label={`Remover salário de ${nomeUnidade(p.unidade_id!)}`}
                   onClick={() => remover(p.id!)}
                 >
@@ -371,11 +392,50 @@ export function CargoSalariosUnidadePanel({ cargoId }: Props) {
                 <Badge variant="outline" className="tabular-nums">
                   {moedaBR(Number(p.salario_base))}
                 </Badge>
+                <Button
+                  size="icon" variant="ghost" className="shrink-0"
+                  aria-label="Editar valor do histórico"
+                  onClick={() => setEditando(p)}
+                >
+                  <Pencil className="size-4" />
+                </Button>
               </li>
             ))}
           </ul>
         </div>
       )}
+
+      {/* Log de alterações (quem mudou, quando e por quê) */}
+      <div className="space-y-2">
+        <Button
+          type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs"
+          onClick={() => setMostrarLog((v) => !v)}
+        >
+          <FileClock className="mr-1 size-3.5" />
+          {mostrarLog ? "Ocultar alterações" : "Ver alterações registradas"}
+        </Button>
+        {mostrarLog && (
+          <div className="rounded-lg border p-2 text-xs text-muted-foreground">
+            {log.isLoading && "Carregando…"}
+            {!log.isLoading && (log.data ?? []).length === 0 && "Nenhuma alteração registrada."}
+            <ul className="space-y-2">
+              {(log.data ?? []).map((r) => (
+                <li key={r.id} className="border-b pb-2 last:border-0 last:pb-0">
+                  <p className="font-medium text-foreground">
+                    {new Date(r.created_at).toLocaleString("pt-BR")}
+                  </p>
+                  <p className="tabular-nums">
+                    {moedaBR(Number(r.valor_antigo?.salario_base ?? 0))} →{" "}
+                    {moedaBR(Number(r.valor_novo?.salario_base ?? 0))} · data base{" "}
+                    {r.valor_antigo?.vigencia_inicio ?? "—"} → {r.valor_novo?.vigencia_inicio ?? "—"}
+                  </p>
+                  {r.justificativa && <p className="italic">“{r.justificativa}”</p>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
       {semPatronal.length > 0 && (
         <p className="text-xs text-amber-600 dark:text-amber-500">
@@ -383,6 +443,18 @@ export function CargoSalariosUnidadePanel({ cargoId }: Props) {
           patronal da unidade para o sistema saber qual piso aplicar.
         </p>
       )}
+
+      <CargoSalarioEditDialog
+        open={!!editando}
+        onOpenChange={(o) => !o && setEditando(null)}
+        cargoId={cargoId}
+        linha={editando}
+        todas={todas}
+        patronais={patronais.map((s) => ({ id: s.id, nome: s.nome }))}
+        unidades={(unidades.data ?? []).map((u) => ({ id: u.id, nome: u.nome }))}
+        patronalPorUnidade={patronalPorUnidade.data as any}
+      />
     </div>
   );
 }
+

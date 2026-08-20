@@ -5,33 +5,26 @@ import { Plus, Pencil, Trash2, Briefcase, Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Switch } from "@/components/ui/switch";
-import { useDpCargos, useUpsertDpCargo, useDeleteDpCargo, useDpCargoSalarios, type DpCargo, type DpCargoWithCount } from "@/hooks/useDpCadastros";
-import { pisoVigente, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
+import { useDpCargos, useDeleteDpCargo, useDpCargoSalarios, type DpCargo, type DpCargoWithCount } from "@/hooks/useDpCadastros";
+import { rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
 
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { moedaBR } from "@/lib/dp/cargos";
 import { CargoSalariosUnidadePanel } from "@/components/dp/CargoSalariosUnidadePanel";
+import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
 
-import { numeroBR } from "@/components/dp/RemuneracaoFields";
 import { cn } from "@/lib/utils";
-
-type FormState = { nome: string; descricao: string; salario_base: string; insalubre: boolean };
-const blankForm: FormState = { nome: "", descricao: "", salario_base: "", insalubre: false };
 
 export default function DpCargos() {
   const list = useDpCargos();
-  const upsert = useUpsertDpCargo();
   const del = useDeleteDpCargo();
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpCargo | null>(null);
-  const [form, setForm] = useState<FormState>(blankForm);
   const [toDelete, setToDelete] = useState<DpCargoWithCount | null>(null);
   const [viewCargo, setViewCargo] = useState<DpCargoWithCount | null>(null);
   const [busca, setBusca] = useState("");
@@ -41,48 +34,14 @@ export default function DpCargos() {
 
   const openNew = () => {
     setEditing(null);
-    setForm(blankForm);
     setOpen(true);
   };
 
   const openEdit = (c: DpCargo) => {
     setEditing(c);
-    const cargo = c as DpCargo & { descricao?: string | null; salario_base?: number | null; insalubre_periculoso?: boolean | null };
-    setForm({
-      nome: c.nome,
-      descricao: cargo.descricao ?? "",
-      salario_base: cargo.salario_base != null ? String(cargo.salario_base).replace(".", ",") : "",
-      insalubre: !!cargo.insalubre_periculoso,
-    });
     setOpen(true);
   };
 
-  const save = async () => {
-    if (!form.nome.trim()) {
-      toast.error("O nome do cargo é obrigatório.");
-      return;
-    }
-    try {
-      await upsert.mutateAsync({
-        id: editing?.id,
-        nome: form.nome.trim(),
-        descricao: form.descricao.trim() || null,
-        salario_base: numeroBR(form.salario_base) || null,
-        insalubre_periculoso: form.insalubre,
-      } as Parameters<typeof upsert.mutateAsync>[0]);
-      toast.success(editing ? "Cargo atualizado com sucesso." : "Cargo cadastrado com sucesso.");
-      setOpen(false);
-      setForm(blankForm);
-      setEditing(null);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (msg.includes("23505")) {
-        toast.error("Erro", { description: "Já existe um cargo com este nome." });
-      } else {
-        toast.error("Erro ao salvar", { description: msg });
-      }
-    }
-  };
 
   const handleDelete = async () => {
     if (!toDelete) return;
@@ -275,65 +234,15 @@ export default function DpCargos() {
 
 
       {/* Criar / Editar */}
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setForm(blankForm); } }}>
-        <DialogContent className="max-w-md sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar Cargo" : "Novo Cargo"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="cargo-nome">Nome do Cargo *</Label>
-              <Input
-                id="cargo-nome"
-                value={form.nome}
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                placeholder="Ex: Pizzaiolo Sênior"
-                maxLength={120}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cargo-descricao">Descrição (Opcional)</Label>
-              <Textarea
-                id="cargo-descricao"
-                value={form.descricao}
-                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                rows={3}
-                placeholder="Breve descrição das responsabilidades."
-              />
-            </div>
-            {!editing && (
-              <p className="rounded-lg border border-dashed p-3 text-[11px] text-muted-foreground">
-                O salário deste cargo é cadastrado como piso do sindicato patronal (que é da unidade)
-                após salvar o cargo. Patronais diferentes exigem piso próprio.
-              </p>
-            )}
-            {editing && (
-              <div className="rounded-xl border border-border p-3">
-                <CargoSalariosUnidadePanel cargoId={editing.id} />
-              </div>
-            )}
+      <CargoFormDialog
+        open={open}
+        onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}
+        cargo={editing as any}
+        colaboradoresCount={
+          editing ? (list.data ?? []).find((c) => c.id === editing.id)?.colaboradores_count ?? 0 : 0
+        }
+      />
 
-            <div className="flex items-center gap-3 rounded-xl border border-border p-3">
-              <Switch
-                id="cargo-insalubre"
-                checked={form.insalubre}
-                onCheckedChange={(v) => setForm({ ...form, insalubre: v })}
-              />
-              <Label htmlFor="cargo-insalubre" className="cursor-pointer">
-                Cargo insalubre ou perigoso
-              </Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => { setOpen(false); setEditing(null); setForm(blankForm); }}>
-              Cancelar
-            </Button>
-            <Button onClick={save} disabled={upsert.isPending}>
-              {upsert.isPending ? "Salvando..." : editing ? "Salvar" : "Cadastrar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Visualização */}
       <Dialog open={!!viewCargo} onOpenChange={(o) => !o && setViewCargo(null)}>
