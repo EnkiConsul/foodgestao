@@ -91,7 +91,7 @@ const DpFolgasHub = lazyWithRetry(() => import("./pages/dp/DpFolgasHub"));
 const DpCadastrosHub = lazyWithRetry(() => import("./pages/dp/DpCadastrosHub"));
 const DpCadastroPendencias = lazyWithRetry(() => import("./pages/dp/cadastros/DpCadastroPendencias"));
 const DpTurnos = lazyWithRetry(() => import("./pages/dp/cadastros/DpTurnos"));
-const DpGradesSemanais = lazyWithRetry(() => import("./pages/dp/cadastros/DpGradesSemanais"));
+
 const DpConfiguracoesJornada = lazyWithRetry(() => import("./pages/dp/cadastros/DpConfiguracoesJornada"));
 const DpConformidadeDsr = lazyWithRetry(() => import("./pages/dp/DpConformidadeDsr"));
 const DpEscalas = lazyWithRetry(() => import("./pages/dp/DpEscalas"));
