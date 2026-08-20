@@ -415,6 +415,25 @@ export default function DpTurnos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={limpezaOpen} onOpenChange={(o) => !o && setLimpezaOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selecionados.length} turno(s) sem uso?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Nenhum deles está vinculado a colaborador, escala, convocação, cobertura mínima ou
+              grade semanal. A exclusão é definitiva.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-11">Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="h-11" onClick={excluirSelecionados}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DpPage>
+
   );
 }
