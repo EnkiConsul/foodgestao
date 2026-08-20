@@ -61,7 +61,7 @@ Banco:
 
 Frontend:
 - `ColaboradorFormDialog.tsx`: remover os `TabsTrigger`/`TabsContent` de `acesso` e `desligamento`; renderizar `ColaboradorAcessoPanel` e `ColaboradorDesligamentoPanel` dentro do `TabsContent value="dados"`; trocar o `DropdownMenu` do cabeçalho por um único `Button` com ícone `Trash2` (aria-label "Excluir cadastro"). `initialTab` aceita `"acesso"`/`"desligamento"` mapeando para a aba `dados` + `scrollIntoView` nas âncoras `#acesso-portal` e `#desligamento`; o indicador de pendência de desligamento migra para o `TabsTrigger` de Dados.
-- `src/lib/dp/va-calculo.ts`: funções puras `periodoVaDe(diaPagamento, competencia)`, `contarDiasPrevistos`, `contarDiasDescontaveis`, `calcularVaDeposito` + testes unitários.
+- `src/lib/dp/va-calculo.ts`: funções puras `periodoVaDe(diaPagamento, diasCorte, competencia)`, `contarDiasPrevistos` (descontando folgas dominicais/extras do calendário via `useDpFolgasQueries`), `contarDiasDescontaveis`, `calcularVaDeposito` + testes unitários.
 - `src/lib/dp/beneficios-regras.ts`: expõe a regra de desconto por evento usada pela calculadora.
 - `src/components/dp/RemuneracaoFields.tsx`: dia de pagamento, switches de desconto, prévia do período e comparação com o padrão.
 - Novo `src/components/dp/beneficios/VaCalculadora.tsx` + hook `useDpVaCalculadora.tsx` (escala do mês, ponto do mês, folgas, férias) integrados em `src/pages/dp/DpBeneficios.tsx`.
