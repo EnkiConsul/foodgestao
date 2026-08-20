@@ -662,11 +662,29 @@ export function ColaboradorJornadaPanel({
         </p>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      {/* Copiar de um colega: o botão do diálogo completo e os atalhos por nome
+          ficam na mesma linha — são a mesma funcionalidade. */}
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => setCopiarOpen(true)}>
           <Users className="h-4 w-4" aria-hidden="true" />
           {tituloSistema("Copiar de Outro Colaborador")}
         </Button>
+        {atalhosColegas.length > 0 && (
+          <>
+            <span className="text-xs text-muted-foreground">ou copie de:</span>
+            {atalhosColegas.map((m) => (
+              <Button
+                key={m.colaborador_id}
+                type="button" size="sm" variant="secondary"
+                className="h-7 px-2 text-xs"
+                title={`${m.colaborador_nome} · ${resumoSemanaPorFaixas(m.dias, m.horario ?? null, { folgaVariavel: m.folga_variavel })}`}
+                onClick={() => copiarSemanaDoColega(m)}
+              >
+                {primeiroNome(m.colaborador_nome)}
+              </Button>
+            ))}
+          </>
+        )}
       </div>
 
       {policy.jornadaHint && (
@@ -678,15 +696,14 @@ export function ColaboradorJornadaPanel({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="ct-unidade">Unidade</Label>
-          <Select value={unidadeId} onValueChange={(v) => { marcarAlterado(); setUnidadeId(v); }}>
-            <SelectTrigger id="ct-unidade"><SelectValue placeholder="Selecione" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Sem unidade definida</SelectItem>
-              {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <Label>Unidade</Label>
+          <p className="rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
+            {unidadeNome
+              ? <>Horário na unidade <strong className="text-foreground">{unidadeNome}</strong></>
+              : "Escolha a unidade na aba Dados para que o horário seja vinculado a ela."}
+          </p>
         </div>
+
 
         <div className="space-y-1.5">
           <Label htmlFor="ct-inicio">Vigência</Label>
