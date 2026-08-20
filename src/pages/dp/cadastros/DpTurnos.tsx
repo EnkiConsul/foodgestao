@@ -316,7 +316,9 @@ export default function DpTurnos() {
                   selecionavel={usoFiltro === "sem_uso"}
                   selecionado={selecionados.includes(t.id)}
                   onSelecionar={(marcado) => alternarSelecao(t.id, marcado)}
+                  onAbrirDetalhe={() => setDetalhe(t)}
                   onEdit={() => abrirEdicao(t)}
+
                   onDuplicar={() => duplicar(t)}
                   onDelete={() => setARemover(t)}
                   onToggleAtivo={(ativo) => alternarAtivo.mutate({ id: t.id, ativo })}
