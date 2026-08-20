@@ -397,8 +397,19 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   useEffect(() => {
     if (!open) return;
     cienciaConfirmada.current = null;
-    setTab(abaInicial);
+    // Acesso e desligamento agora vivem na aba Dados: o atalho abre Dados e
+    // rola até a âncora do bloco correspondente.
+    const ancora = abaInicial === "acesso" ? "acesso-portal" : abaInicial === "desligamento" ? "desligamento" : null;
+    setTab(ancora ? "dados" : (abaInicial as AbaVisivel));
+    if (ancora) {
+      window.setTimeout(() => {
+        contentRef.current
+          ?.querySelector<HTMLElement>(`#${ancora}`)
+          ?.scrollIntoView({ block: "start", behavior: "smooth" });
+      }, 250);
+    }
     setCriadoId(null);
+
     const c = (colaborador ?? {}) as any;
     const regime = c.regime ? String(c.regime) : "clt";
     setRem({
