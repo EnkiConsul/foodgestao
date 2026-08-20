@@ -479,7 +479,6 @@ const AppRoutes = () => (
         <Route path="cadastros/pendencias" element={<DpCadastroPendencias />} />
         <Route path="cadastros/beneficios" element={<DpBeneficios />} />
         <Route path="cadastros/turnos" element={<DpTurnos />} />
-        <Route path="cadastros/grades" element={<DpGradesSemanais />} />
         <Route path="turnos" element={<Navigate to="/dp/cadastros/turnos" replace />} />
         <Route path="folgas/configuracoes/regras" element={<DpConfiguracoesJornada />} />
         <Route path="cadastros/regras-jornada" element={<Navigate to="/dp/folgas/configuracoes/regras" replace />} />
