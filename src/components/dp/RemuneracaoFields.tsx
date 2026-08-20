@@ -235,7 +235,32 @@ export function RemuneracaoFields({
     },
   );
 
-  const periculosidadeValor = valorPericulosidade(numeroBR(value.periculosidade_percentual), salario);
+  // Base mensal do adicional: no horista/diarista o campo de valor guarda a
+  // hora/o dia, então a referência mensal é a base salarial informada.
+  const baseMensalRisco = usaBase ? baseSalarial : salario;
+  const periculosidadeValor = valorPericulosidade(
+    numeroBR(value.periculosidade_percentual),
+    baseMensalRisco,
+  );
+  const simulacaoPericulosidade = simularAdicionalPercentual({
+    percentual: numeroBR(value.periculosidade_percentual),
+    baseMensal: baseMensalRisco,
+    valorDia: forma === "diarista" ? numeroBR(value.salario_base) : null,
+    valorHora: forma === "horista" ? numeroBR(value.valor_hora) : null,
+  });
+  /** "R$ x/mês · R$ y por dia trabalhado", conforme a forma de pagamento. */
+  const resumoPericulosidade = [
+    simulacaoPericulosidade.mes != null ? `${formatarBRL(simulacaoPericulosidade.mes)}/mês` : null,
+    simulacaoPericulosidade.porDia != null
+      ? `${formatarBRL(simulacaoPericulosidade.porDia)} por dia trabalhado`
+      : null,
+    simulacaoPericulosidade.porHora != null
+      ? `${formatarBRL(simulacaoPericulosidade.porHora)} por hora`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const alertasRisco = alertasAdicionaisRisco({
     insalubridade: numeroBR(value.insalubridade_percentual),
     periculosidade: numeroBR(value.periculosidade_percentual),
