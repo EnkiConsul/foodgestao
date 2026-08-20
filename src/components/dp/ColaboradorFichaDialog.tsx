@@ -274,53 +274,53 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
         <DialogHeader className="shrink-0 border-b border-border bg-background p-6 pb-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <DialogTitle className="text-xl font-bold uppercase leading-tight">
-                {colaborador?.nome || "Colaborador"}
-              </DialogTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <DialogTitle className="text-xl font-bold uppercase leading-tight">
+                  {colaborador?.nome || "Colaborador"}
+                </DialogTitle>
+                {colaborador?.ativo ? (
+                  <Badge variant="outline" className="h-5 border-emerald-500/30 bg-emerald-500/10 px-1.5 text-[11px] text-emerald-700 dark:text-emerald-400">
+                    <CheckCircle2 className="mr-1 h-3 w-3" /> Ativo
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="h-5 border-destructive/30 bg-destructive/10 px-1.5 text-[11px] text-destructive">
+                    <XCircle className="mr-1 h-3 w-3" /> Desligado
+                  </Badge>
+                )}
+                <Badge
+                  variant="outline"
+                  className={`h-5 px-1.5 text-[11px] ${
+                    perfil === "admin"
+                      ? "bg-destructive/10 text-destructive border-destructive/30"
+                      : perfil === "gestor"
+                      ? "bg-primary/10 text-primary border-primary/30"
+                      : ""
+                  }`}
+                >
+                  <Shield className="mr-1 h-3 w-3" />
+                  {PERFIL_LABEL[perfil ?? "colaborador"]}
+                </Badge>
+              </div>
               <DialogDescription className="mt-1">
                 Ficha completa do colaborador. Clique em <strong>Editar</strong> para alterar os dados.
               </DialogDescription>
             </div>
-            <div className="flex shrink-0 flex-col items-end gap-1.5">
-              <div className="mb-1 flex items-center gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => { onOpenChange(false); onEdit(); }}
-                >
-                  <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Editar
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
-                  onClick={() => onOpenChange(false)}
-                  aria-label="Fechar ficha"
-                >
-                  <X className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              </div>
-              {colaborador?.ativo ? (
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
-                  <CheckCircle2 className="h-3 w-3 mr-1" /> Ativo
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
-                  <XCircle className="h-3 w-3 mr-1" /> Desligado
-                </Badge>
-              )}
-              <Badge
-                variant="outline"
-                className={
-                  perfil === "admin"
-                    ? "bg-destructive/10 text-destructive border-destructive/30"
-                    : perfil === "gestor"
-                    ? "bg-primary/10 text-primary border-primary/30"
-                    : ""
-                }
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => { onOpenChange(false); onEdit(); }}
               >
-                <Shield className="h-3 w-3 mr-1" />
-                {PERFIL_LABEL[perfil ?? "colaborador"]}
-              </Badge>
+                <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Editar
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                onClick={() => onOpenChange(false)}
+                aria-label="Fechar ficha"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </Button>
             </div>
           </div>
         </DialogHeader>
