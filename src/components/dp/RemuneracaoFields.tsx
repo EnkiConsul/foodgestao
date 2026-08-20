@@ -37,6 +37,18 @@ import {
   GRAUS_INSALUBRIDADE, PERICULOSIDADE_PERCENTUAL_LEGAL, alertasAdicionaisRisco, valorPericulosidade,
 } from "@/lib/dp/adicionais-risco";
 import { cn } from "@/lib/utils";
+import {
+  DIA_PAGAMENTO_PADRAO,
+  DIAS_CORTE_PADRAO,
+  REGRAS_DESCONTO_PADRAO,
+  periodoVaDe,
+} from "@/lib/dp/va-calculo";
+
+/** dd/MM a partir de uma data ISO, sem depender de fuso. */
+const formatarDataCurta = (isoData: string) => {
+  const [, m, d] = isoData.split("-");
+  return `${d}/${m}`;
+};
 
 
 export interface RemuneracaoFormState {
@@ -255,6 +267,13 @@ export function RemuneracaoFields({
     vale_alimentacao_desconto_valor: numeroBR(value.vale_alimentacao_desconto_valor),
   };
   const va = valeAlimentacaoDoMes(vaInput, { diasJornada: diasJornadaMes });
+  const hoje = new Date();
+  const periodoVa = periodoVaDe(
+    Number(value.vale_alimentacao_dia_pagamento) || DIA_PAGAMENTO_PADRAO,
+    value.vale_alimentacao_dias_corte === "" ? DIAS_CORTE_PADRAO : Number(value.vale_alimentacao_dias_corte),
+    `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`,
+  );
+
   const alertasVa = value.vale_alimentacao
     ? alertasBeneficioAlimentacao({
       valor: vaInput.vale_alimentacao_valor,
