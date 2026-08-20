@@ -4047,6 +4047,12 @@ export type Database = {
           vale_alimentacao_periodicidade: string
           vale_alimentacao_valor: number | null
           vale_transporte: boolean
+          vale_transporte_desconta_atestado: boolean | null
+          vale_transporte_desconta_falta: boolean | null
+          vale_transporte_desconta_ferias: boolean | null
+          vale_transporte_desconta_folga_extra: boolean | null
+          vale_transporte_dia_pagamento: number | null
+          vale_transporte_dias_corte: number | null
           vale_transporte_valor_dia: number | null
           valor_hora: number | null
           valor_hora_manual: boolean
@@ -4134,6 +4140,12 @@ export type Database = {
           vale_alimentacao_periodicidade?: string
           vale_alimentacao_valor?: number | null
           vale_transporte?: boolean
+          vale_transporte_desconta_atestado?: boolean | null
+          vale_transporte_desconta_falta?: boolean | null
+          vale_transporte_desconta_ferias?: boolean | null
+          vale_transporte_desconta_folga_extra?: boolean | null
+          vale_transporte_dia_pagamento?: number | null
+          vale_transporte_dias_corte?: number | null
           vale_transporte_valor_dia?: number | null
           valor_hora?: number | null
           valor_hora_manual?: boolean
@@ -4221,6 +4233,12 @@ export type Database = {
           vale_alimentacao_periodicidade?: string
           vale_alimentacao_valor?: number | null
           vale_transporte?: boolean
+          vale_transporte_desconta_atestado?: boolean | null
+          vale_transporte_desconta_falta?: boolean | null
+          vale_transporte_desconta_ferias?: boolean | null
+          vale_transporte_desconta_folga_extra?: boolean | null
+          vale_transporte_dia_pagamento?: number | null
+          vale_transporte_dias_corte?: number | null
           vale_transporte_valor_dia?: number | null
           valor_hora?: number | null
           valor_hora_manual?: boolean
@@ -4294,6 +4312,12 @@ export type Database = {
           va_desconta_folga_extra: boolean
           va_dia_pagamento: number | null
           va_dias_corte: number
+          vt_desconta_atestado: boolean | null
+          vt_desconta_falta: boolean | null
+          vt_desconta_ferias: boolean | null
+          vt_desconta_folga_extra: boolean | null
+          vt_dia_pagamento: number | null
+          vt_dias_corte: number | null
         }
         Insert: {
           adicional_tempo_servico_ativo?: boolean
@@ -4329,6 +4353,12 @@ export type Database = {
           va_desconta_folga_extra?: boolean
           va_dia_pagamento?: number | null
           va_dias_corte?: number
+          vt_desconta_atestado?: boolean | null
+          vt_desconta_falta?: boolean | null
+          vt_desconta_ferias?: boolean | null
+          vt_desconta_folga_extra?: boolean | null
+          vt_dia_pagamento?: number | null
+          vt_dias_corte?: number | null
         }
         Update: {
           adicional_tempo_servico_ativo?: boolean
@@ -4364,6 +4394,12 @@ export type Database = {
           va_desconta_folga_extra?: boolean
           va_dia_pagamento?: number | null
           va_dias_corte?: number
+          vt_desconta_atestado?: boolean | null
+          vt_desconta_falta?: boolean | null
+          vt_desconta_ferias?: boolean | null
+          vt_desconta_folga_extra?: boolean | null
+          vt_dia_pagamento?: number | null
+          vt_dias_corte?: number | null
         }
         Relationships: [
           {
@@ -13308,6 +13344,12 @@ export type Database = {
           va_desconta_folga_extra: boolean
           va_dia_pagamento: number | null
           va_dias_corte: number
+          vt_desconta_atestado: boolean | null
+          vt_desconta_falta: boolean | null
+          vt_desconta_ferias: boolean | null
+          vt_desconta_folga_extra: boolean | null
+          vt_dia_pagamento: number | null
+          vt_dias_corte: number | null
         }
         SetofOptions: {
           from: "*"
