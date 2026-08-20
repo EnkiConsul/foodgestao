@@ -234,6 +234,37 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
   const assiduidadeMaxAtrasos = (colaborador as any)?.assiduidade_max_atrasos as number | null;
   const assiduidadeConsideraAtestado = (colaborador as any)?.assiduidade_considera_atestado as boolean | null;
   const assiduidadeMaxAtestados = (colaborador as any)?.assiduidade_max_atestados as number | null;
+  const premioTipo = (colaborador as any)?.premio_assiduidade_tipo as keyof typeof PREMIO_TIPO_LABEL | null;
+  const pisNit = (colaborador as any)?.pis_nit as string | null;
+
+  // Vales: campos de ciclo/pagamento e descontos configurados no cadastro.
+  const vaDiaPagamento = (colaborador as any)?.vale_alimentacao_dia_pagamento as number | null;
+  const vaDiasCorte = (colaborador as any)?.vale_alimentacao_dias_corte as number | null;
+  const vaDescontos = [
+    (colaborador as any)?.vale_alimentacao_desconta_falta ? "falta" : null,
+    (colaborador as any)?.vale_alimentacao_desconta_folga_extra ? "folga extra" : null,
+    (colaborador as any)?.vale_alimentacao_desconta_atestado ? "atestado" : null,
+    (colaborador as any)?.vale_alimentacao_desconta_ferias ? "férias" : null,
+  ].filter(Boolean) as string[];
+  const vtDiaPagamento = (colaborador as any)?.vale_transporte_dia_pagamento as number | null;
+  const vtDiasCorte = (colaborador as any)?.vale_transporte_dias_corte as number | null;
+  const vtDescontos = [
+    (colaborador as any)?.vale_transporte_desconta_falta ? "falta" : null,
+    (colaborador as any)?.vale_transporte_desconta_folga_extra ? "folga extra" : null,
+    (colaborador as any)?.vale_transporte_desconta_atestado ? "atestado" : null,
+    (colaborador as any)?.vale_transporte_desconta_ferias ? "férias" : null,
+  ].filter(Boolean) as string[];
+
+  // Valor da hora / do dia só são gravados quando digitados: aqui derivamos da base.
+  const baseCalculo = baseSalarial ?? salarioBase ?? null;
+  const horasBase = baseHorasMes ?? BASE_HORAS_MES_PADRAO;
+  const diasBase = baseDiasMes ?? BASE_DIAS_MES_PADRAO;
+  const valorHoraCalculado = valorHoraPorBase(baseCalculo, horasBase);
+  const valorHoraExibido = valorHora ?? valorHoraCalculado;
+  const valorDiaExibido = valorDiaPorBase(baseCalculo, diasBase);
+  const insalubridadeValor = insalubridade ? valorAdicional(baseCalculo ?? 0, insalubridade) : 0;
+  const periculosidadeValor = periculosidade ? valorAdicional(baseCalculo ?? 0, periculosidade) : 0;
+  const temBeneficio = beneficioAtivos.length > 0 || !!va || !!valeTransporte;
 
   if (!colaborador) return null;
 
