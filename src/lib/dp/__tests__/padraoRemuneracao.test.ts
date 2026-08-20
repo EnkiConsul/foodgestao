@@ -3,6 +3,7 @@ import {
   gruposAlteracao,
   gruposDivergentesClassificados,
   quemPerdeBeneficio,
+  idsAlvoPadrao,
 } from "@/lib/dp/beneficiosPadrao";
 import { compararRiscoCargo, textoRisco } from "@/lib/dp/cargos";
 
