@@ -25,7 +25,10 @@ import {
 import { makeIsActive } from "@/lib/nav-active";
 import { applyMenuLayout } from "@/lib/dp/menuLayout";
 import { useDpMenuLayout } from "@/hooks/useDpMenuLayout";
+import { useHiddenScreens } from "@/hooks/useHiddenScreens";
+import { filterSurface } from "@/lib/nav/hiddenScreens";
 import { OrganizarMenuDialog } from "@/components/dp/OrganizarMenuDialog";
+
 
 
 type Sub = { title: string; url: string; icon: LucideIcon; end?: boolean; badge?: string };
