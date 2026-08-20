@@ -266,6 +266,22 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
   const periculosidadeValor = periculosidade ? valorAdicional(baseCalculo ?? 0, periculosidade) : 0;
   const temBeneficio = beneficioAtivos.length > 0 || !!va || !!valeTransporte;
 
+  // Base de dias do VA: quando a origem é a jornada, contamos os dias do mês
+  // corrente a partir dos dias da semana configurados (mesma regra do cadastro).
+  const vaDiasOrigem = ((colaborador as any)?.vale_alimentacao_dias_origem ?? "jornada") as string;
+  const vaDiasPelaJornada = useMemo(
+    () => diasTrabalhaveisNoMes(configDominio?.dias ?? null, new Date()),
+    [configDominio],
+  );
+  const vaBaseTexto = useMemo(() => {
+    if (vaDiasOrigem === "fixo") return vaDiasBase ? `base ${vaDiasBase} dias (fixo)` : null;
+    if (vaDiasPelaJornada != null) return `base ${vaDiasPelaJornada} dias no mês (pela jornada)`;
+    return vaDiasBase
+      ? `base ${vaDiasBase} dias (referência — jornada não configurada)`
+      : "jornada não configurada";
+  }, [vaDiasOrigem, vaDiasBase, vaDiasPelaJornada]);
+
+
   if (!colaborador) return null;
 
   return (
