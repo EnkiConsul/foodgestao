@@ -1240,7 +1240,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="dados" className="gap-2">
                 Dados
-                {dadosPendente && (
+                {(dadosPendente || isDesligado) && (
                   <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Pendências nesta aba" />
                 )}
               </TabsTrigger>
@@ -1266,15 +1266,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               </TabsTrigger>
               <TabsTrigger value="dependentes">Dependentes</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
-              {(isEdit || criadoId) && <TabsTrigger value="acesso">Acesso ao portal</TabsTrigger>}
-              {(isEdit || criadoId) && (
-                <TabsTrigger value="desligamento" className="gap-2">
-                  Desligamento
-                  {isDesligado && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Colaborador desligado" />
-                  )}
-                </TabsTrigger>
-              )}
+
             </TabsList>
           </div>
 
