@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Clock, Plus, Search, Store, Tags } from "lucide-react";
+import { Clock, Info, Plus, Search, Store, Tags, Trash2 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { DpPage, DpPageHeader, DpFilterCard, DpEmptyState } from "@/components/dp/DpPage";
