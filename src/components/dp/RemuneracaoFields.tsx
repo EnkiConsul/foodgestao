@@ -29,6 +29,7 @@ import {
   type Periodicidade,
 } from "@/lib/dp/beneficios-regras";
 import { BeneficioIsonomiaAviso } from "@/components/dp/BeneficioIsonomiaAviso";
+import { ValeCorteFields } from "@/components/dp/beneficios/ValeCorteFields";
 
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
