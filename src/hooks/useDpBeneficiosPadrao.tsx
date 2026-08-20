@@ -4,6 +4,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   GRUPOS_PADRAO,
   mesclarPadrao,
+  idsAlvoPadrao,
   padraoParaColunasColaborador,
   type BeneficiosPadraoLinha,
   type BeneficiosPadraoPayload,
@@ -53,6 +54,8 @@ export function useSalvarDpBeneficiosPadrao() {
       limparEscoposMaisEspecificos?: boolean;
       /** "novos" = só os próximos cadastros; "todos" = também quem já existe. */
       alcance?: PadraoAlcance;
+      /** Ids escolhidos na mão quando o alcance é "selecionados". */
+      colaboradorIds?: readonly string[] | null;
       /** Colaborador aberto na tela: mantém o que está no formulário. */
       ignorarColaboradorId?: string | null;
       /** Quais grupos replicar; os demais ficam como já estavam. */
