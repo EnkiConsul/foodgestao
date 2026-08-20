@@ -313,6 +313,13 @@ export default function CartoesCredito() {
         card={editing}
       />
 
+      <PluggyCreditCardReviewDialog
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        accounts={pendingCredit}
+        onDone={() => { reloadPendingCredit(); fetchAll(); }}
+      />
+
       <PayInvoiceDialog
         open={!!payInvoice}
         onOpenChange={(o) => { if (!o) setPayInvoice(null); }}
