@@ -10,7 +10,7 @@ import {
 import { DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
-import { useDpVaCalculadora } from "@/hooks/useDpVaCalculadora";
+import { useDpValeCalculadora, VALE_LABEL, type ValeTipo } from "@/hooks/useDpValeCalculadora";
 import { MOTIVO_DESCONTO_LABEL, type MotivoDesconto } from "@/lib/dp/va-calculo";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -34,22 +34,28 @@ const baixarCsv = (nome: string, conteudo: string) => {
   URL.revokeObjectURL(url);
 };
 
+interface Props {
+  /** `va` = vale-alimentação, `vt` = vale-transporte. */
+  tipo: ValeTipo;
+}
+
 /**
- * Calculadora de vale-alimentação: mostra, por colaborador, os dias previstos
+ * Calculadora de vales pagos por dia: mostra, por colaborador, os dias previstos
  * do próximo período menos os dias pagos e não trabalhados no anterior.
  */
-export function VaCalculadora() {
+export function ValeCalculadora({ tipo }: Props) {
   const [competencia, setCompetencia] = useState(mesAtual());
   const [unidade, setUnidade] = useState("todas");
   const { data: unidades = [] } = useDpUnidades();
-  const va = useDpVaCalculadora(competencia, unidade);
+  const vale = useDpValeCalculadora(tipo, competencia, unidade);
+  const label = VALE_LABEL[tipo];
 
   const exportar = () => {
     const cab = [
       "Colaborador", "Unidade", "Valor do dia", "Dias previstos", "Dias descontados",
       "Falta", "Folga extra", "Atestado", "Ferias", "Dias a pagar", "Desconto", "A depositar",
     ].join(";");
-    const linhas = va.linhas.map((l) =>
+    const linhas = vale.linhas.map((l) =>
       [
         l.nome, l.unidade_nome ?? "", l.valorDia.toFixed(2).replace(".", ","),
         l.diasPrevistos, l.descontos.dias,
@@ -60,7 +66,10 @@ export function VaCalculadora() {
         l.deposito.depositar.toFixed(2).replace(".", ","),
       ].join(";"),
     );
-    baixarCsv(`vale-alimentacao-${competencia}.csv`, [cab, ...linhas].join("\n"));
+    baixarCsv(
+      `${tipo === "va" ? "vale-alimentacao" : "vale-transporte"}-${competencia}.csv`,
+      [cab, ...linhas].join("\n"),
+    );
   };
 
   return (
@@ -84,7 +93,7 @@ export function VaCalculadora() {
             </Select>
           </div>
           <div className="flex items-end">
-            <Button variant="secondary" className="w-full" onClick={exportar} disabled={va.linhas.length === 0}>
+            <Button variant="secondary" className="w-full" onClick={exportar} disabled={vale.linhas.length === 0}>
               <Download className="mr-2 size-4" /> Exportar CSV
             </Button>
           </div>
@@ -93,23 +102,24 @@ export function VaCalculadora() {
         <div className="mt-4 flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
           <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
           <span>
-            Pagamento em <strong className="text-foreground">{dataCurta(va.periodo.pagamento)}</strong>, com corte em{" "}
-            <strong className="text-foreground">{dataCurta(va.periodo.corte)}</strong>. O depósito cobre{" "}
-            {dataCurta(va.periodo.cobertura.inicio)} a {dataCurta(va.periodo.cobertura.fim)} e desconta os dias
-            pagos e não trabalhados entre {dataCurta(va.periodo.conferencia.inicio)} e{" "}
-            {dataCurta(va.periodo.conferencia.fim)}. Cada colaborador pode ter dia de pagamento e regras próprios.
+            Pagamento em <strong className="text-foreground">{dataCurta(vale.periodo.pagamento)}</strong>, com corte em{" "}
+            <strong className="text-foreground">{dataCurta(vale.periodo.corte)}</strong>. O depósito cobre{" "}
+            {dataCurta(vale.periodo.cobertura.inicio)} a {dataCurta(vale.periodo.cobertura.fim)} e desconta os dias
+            pagos e não trabalhados entre {dataCurta(vale.periodo.conferencia.inicio)} e{" "}
+            {dataCurta(vale.periodo.conferencia.fim)}. Cada colaborador pode ter dia de pagamento e regras próprios.
+            {tipo === "vt" && " O desconto exibido é o limite legal de 6% do salário."}
           </span>
         </div>
       </DpContentCard>
 
-      {va.isError && <DpErrorState onRetry={va.refetchAll} />}
+      {vale.isError && <DpErrorState onRetry={vale.refetchAll} />}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
-          { label: "Total a depositar", value: brl(va.total) },
-          { label: "Dias pagos", value: String(va.totalDias) },
-          { label: "Dias descontados", value: String(va.totalDescontados) },
-          { label: "Colaboradores", value: String(va.linhas.length) },
+          { label: "Total a depositar", value: brl(vale.total) },
+          { label: "Dias pagos", value: String(vale.totalDias) },
+          { label: "Dias descontados", value: String(vale.totalDescontados) },
+          { label: "Colaboradores", value: String(vale.linhas.length) },
         ].map((k) => (
           <div key={k.label} className="rounded-2xl border border-border bg-card p-4">
             <Calculator className="size-5 text-primary" />
@@ -120,15 +130,15 @@ export function VaCalculadora() {
       </div>
 
       <DpContentCard>
-        {va.isLoading ? (
+        {vale.isLoading ? (
           <p className="p-6 text-center text-sm text-muted-foreground">Calculando…</p>
-        ) : va.linhas.length === 0 ? (
+        ) : vale.linhas.length === 0 ? (
           <p className="p-6 text-center text-sm text-muted-foreground">
-            Nenhum colaborador com vale-alimentação ativo nesta seleção.
+            Nenhum colaborador com {label.toLowerCase()} ativo nesta seleção.
           </p>
         ) : (
           <div className="divide-y divide-border">
-            {va.linhas.map((l) => (
+            {vale.linhas.map((l) => (
               <div key={l.colaborador_id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">

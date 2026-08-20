@@ -18,7 +18,15 @@ import {
   type RegrasDescontoVa,
 } from "@/lib/dp/va-calculo";
 
-export interface LinhaVa {
+/** Benefício pago por dia com data de corte. */
+export type ValeTipo = "va" | "vt";
+
+export const VALE_LABEL: Record<ValeTipo, string> = {
+  va: "Vale-alimentação",
+  vt: "Vale-transporte",
+};
+
+export interface LinhaVale {
   colaborador_id: string;
   nome: string;
   unidade_nome: string | null;
@@ -33,9 +41,9 @@ export interface LinhaVa {
   semValorDia: boolean;
 }
 
-export interface ResumoVa {
+export interface ResumoVale {
   periodo: ReturnType<typeof periodoVaDe>;
-  linhas: LinhaVa[];
+  linhas: LinhaVale[];
   total: number;
   totalDias: number;
   totalDescontados: number;
@@ -44,38 +52,65 @@ export interface ResumoVa {
 
 const mesIso = (competencia: string) => `${competencia.slice(0, 7)}-01`;
 
+/** Limite legal do desconto de vale-transporte (art. 4º, Lei 7.418/85). */
+const VT_DESCONTO_MAXIMO = 0.06;
+
+const COLUNAS: Record<ValeTipo, { config: string; colaborador: string; flag: string }> = {
+  va: {
+    config:
+      "va_dia_pagamento, va_dias_corte, va_desconta_falta, va_desconta_folga_extra, va_desconta_atestado, va_desconta_ferias",
+    colaborador:
+      "vale_alimentacao, vale_alimentacao_valor, vale_alimentacao_periodicidade, vale_alimentacao_dias_base, vale_alimentacao_desconto_tipo, vale_alimentacao_desconto_valor, vale_alimentacao_dia_pagamento, vale_alimentacao_dias_corte, vale_alimentacao_desconta_falta, vale_alimentacao_desconta_folga_extra, vale_alimentacao_desconta_atestado, vale_alimentacao_desconta_ferias",
+    flag: "vale_alimentacao",
+  },
+  vt: {
+    config:
+      "vt_dia_pagamento, vt_dias_corte, vt_desconta_falta, vt_desconta_folga_extra, vt_desconta_atestado, vt_desconta_ferias",
+    colaborador:
+      "vale_transporte, vale_transporte_valor_dia, vale_transporte_dia_pagamento, vale_transporte_dias_corte, vale_transporte_desconta_falta, vale_transporte_desconta_folga_extra, vale_transporte_desconta_atestado, vale_transporte_desconta_ferias, salario_base, valor_hora, base_salarial, forma_pagamento",
+    flag: "vale_transporte",
+  },
+};
+
 /**
- * Calculadora de vale-alimentação: reúne jornada, escala publicada, folgas,
- * ponto e férias para dizer quanto depositar no mês por colaborador.
+ * Calculadora de vales pagos por dia (alimentação e transporte): reúne jornada,
+ * escala publicada, folgas, ponto e férias para dizer quanto depositar no mês
+ * por colaborador, respeitando o dia de pagamento e a data de corte.
  */
-export function useDpVaCalculadora(competencia: string, unidadeFilter = "todas") {
+export function useDpValeCalculadora(
+  tipo: ValeTipo,
+  competencia: string,
+  unidadeFilter = "todas",
+) {
   const { selectedCompanyId } = useCompanyContext();
   const mes = mesIso(competencia);
+  const cols = COLUNAS[tipo];
+  const p = tipo === "va" ? "vale_alimentacao" : "vale_transporte";
+  const cp = tipo === "va" ? "va" : "vt";
 
   const configQ = useQuery({
-    queryKey: ["dp_config_dp_va", selectedCompanyId],
+    queryKey: ["dp_config_dp_vale", tipo, selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_config_dp")
-        .select(
-          "va_dia_pagamento, va_dias_corte, va_desconta_falta, va_desconta_folga_extra, va_desconta_atestado, va_desconta_ferias",
-        )
+        .select(cols.config)
         .eq("company_id", selectedCompanyId!)
         .maybeSingle();
       if (error) throw error;
-      return data ?? null;
+      return (data ?? null) as Record<string, any> | null;
     },
   });
 
+  const cfg = configQ.data ?? {};
   const padraoEmpresa = {
-    diaPagamento: configQ.data?.va_dia_pagamento ?? DIA_PAGAMENTO_PADRAO,
-    diasCorte: configQ.data?.va_dias_corte ?? DIAS_CORTE_PADRAO,
+    diaPagamento: cfg[`${cp}_dia_pagamento`] ?? DIA_PAGAMENTO_PADRAO,
+    diasCorte: cfg[`${cp}_dias_corte`] ?? DIAS_CORTE_PADRAO,
     regras: {
-      falta: configQ.data?.va_desconta_falta ?? REGRAS_DESCONTO_PADRAO.falta,
-      folga_extra: configQ.data?.va_desconta_folga_extra ?? REGRAS_DESCONTO_PADRAO.folga_extra,
-      atestado: configQ.data?.va_desconta_atestado ?? REGRAS_DESCONTO_PADRAO.atestado,
-      ferias: configQ.data?.va_desconta_ferias ?? REGRAS_DESCONTO_PADRAO.ferias,
+      falta: cfg[`${cp}_desconta_falta`] ?? REGRAS_DESCONTO_PADRAO.falta,
+      folga_extra: cfg[`${cp}_desconta_folga_extra`] ?? REGRAS_DESCONTO_PADRAO.folga_extra,
+      atestado: cfg[`${cp}_desconta_atestado`] ?? REGRAS_DESCONTO_PADRAO.atestado,
+      ferias: cfg[`${cp}_desconta_ferias`] ?? REGRAS_DESCONTO_PADRAO.ferias,
     } as RegrasDescontoVa,
   };
 
@@ -85,16 +120,14 @@ export function useDpVaCalculadora(competencia: string, unidadeFilter = "todas")
   const janelaFim = periodoEmpresa.cobertura.fim;
 
   const colabQ = useQuery({
-    queryKey: ["dp_va_colaboradores", selectedCompanyId, unidadeFilter],
+    queryKey: ["dp_vale_colaboradores", tipo, selectedCompanyId, unidadeFilter],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
-      let q = supabase
-        .from("dp_colaboradores")
-        .select(
-          "id, nome, ativo, data_desligamento, unidade_id, vale_alimentacao, vale_alimentacao_valor, vale_alimentacao_periodicidade, vale_alimentacao_dias_base, vale_alimentacao_desconto_tipo, vale_alimentacao_desconto_valor, vale_alimentacao_dia_pagamento, vale_alimentacao_dias_corte, vale_alimentacao_desconta_falta, vale_alimentacao_desconta_folga_extra, vale_alimentacao_desconta_atestado, vale_alimentacao_desconta_ferias, dp_unidades(nome)",
-        )
+      // Colunas montadas em runtime (VA/VT): tipagem genérica do client não ajuda aqui.
+      let q: any = (supabase.from("dp_colaboradores") as any)
+        .select(`id, nome, ativo, data_desligamento, unidade_id, ${cols.colaborador}, dp_unidades(nome)`)
         .eq("company_id", selectedCompanyId!)
-        .eq("vale_alimentacao", true)
+        .eq(cols.flag, true)
         .order("nome");
       if (unidadeFilter !== "todas") q = q.eq("unidade_id", unidadeFilter);
       const { data, error } = await q;
@@ -106,7 +139,15 @@ export function useDpVaCalculadora(competencia: string, unidadeFilter = "todas")
   const colabIds = (colabQ.data ?? []).map((c) => c.id);
 
   const eventosQ = useQuery({
-    queryKey: ["dp_va_eventos", selectedCompanyId, janelaInicio, janelaFim, colabIds.length, unidadeFilter],
+    queryKey: [
+      "dp_vale_eventos",
+      selectedCompanyId,
+      janelaInicio,
+      janelaFim,
+      colabIds.length,
+      unidadeFilter,
+      tipo,
+    ],
     enabled: !!selectedCompanyId && colabIds.length > 0,
     queryFn: async () => {
       const [config, dias, escala, folgas, pontos, ferias] = await Promise.all([
@@ -161,7 +202,7 @@ export function useDpVaCalculadora(competencia: string, unidadeFilter = "todas")
     },
   });
 
-  const resumo = useMemo<ResumoVa>(() => {
+  const resumo = useMemo<ResumoVale>(() => {
     const colaboradores = (colabQ.data ?? []).filter(
       (c) => c.ativo !== false && (!c.data_desligamento || c.data_desligamento >= janelaInicio),
     );
@@ -190,15 +231,15 @@ export function useDpVaCalculadora(competencia: string, unidadeFilter = "todas")
     const pontosPor = agrupar(ev?.pontos ?? []);
     const feriasPor = agrupar(ev?.ferias ?? []);
 
-    const linhas: LinhaVa[] = colaboradores.map((c) => {
-      const diaPagamento = c.vale_alimentacao_dia_pagamento ?? padraoEmpresa.diaPagamento;
-      const diasCorte = c.vale_alimentacao_dias_corte ?? padraoEmpresa.diasCorte;
+    const linhas: LinhaVale[] = colaboradores.map((c) => {
+      const diaPagamento = c[`${p}_dia_pagamento`] ?? padraoEmpresa.diaPagamento;
+      const diasCorte = c[`${p}_dias_corte`] ?? padraoEmpresa.diasCorte;
       const periodo = periodoVaDe(diaPagamento, diasCorte, mes);
       const regras: RegrasDescontoVa = {
-        falta: c.vale_alimentacao_desconta_falta ?? padraoEmpresa.regras.falta,
-        folga_extra: c.vale_alimentacao_desconta_folga_extra ?? padraoEmpresa.regras.folga_extra,
-        atestado: c.vale_alimentacao_desconta_atestado ?? padraoEmpresa.regras.atestado,
-        ferias: c.vale_alimentacao_desconta_ferias ?? padraoEmpresa.regras.ferias,
+        falta: c[`${p}_desconta_falta`] ?? padraoEmpresa.regras.falta,
+        folga_extra: c[`${p}_desconta_folga_extra`] ?? padraoEmpresa.regras.folga_extra,
+        atestado: c[`${p}_desconta_atestado`] ?? padraoEmpresa.regras.atestado,
+        ferias: c[`${p}_desconta_ferias`] ?? padraoEmpresa.regras.ferias,
       };
 
       const dowTrabalhados = dowPorColab.get(c.id) ?? [1, 2, 3, 4, 5];
@@ -231,7 +272,7 @@ export function useDpVaCalculadora(competencia: string, unidadeFilter = "todas")
         periodo: periodo.conferencia,
         regras,
         diasPrevistos: previstosConferencia,
-        diasComPonto: pontos.map((p) => p.data),
+        diasComPonto: pontos.map((pt) => pt.data),
         usaPonto: pontos.length > 0,
         folgas,
         ferias: (feriasPor.get(c.id) ?? [])
@@ -239,19 +280,28 @@ export function useDpVaCalculadora(competencia: string, unidadeFilter = "todas")
           .map((f) => ({ inicio: f.data_inicio, fim: f.data_fim })),
       });
 
-      const valorMes = Number(c.vale_alimentacao_valor ?? 0);
-      const valorDia =
-        c.vale_alimentacao_periodicidade === "diario"
-          ? valorMes
-          : valorMes / Math.max(1, Number(c.vale_alimentacao_dias_base ?? 22));
+      let valorDia: number;
+      let descontoColaborador: number;
 
-      const descontoColaborador =
-        c.vale_alimentacao_desconto_tipo === "percentual"
-          ? (valorDia * Math.max(0, previstos.dias - descontos.dias) * Number(c.vale_alimentacao_desconto_valor ?? 0)) /
-            100
-          : c.vale_alimentacao_desconto_tipo === "valor"
-            ? Number(c.vale_alimentacao_desconto_valor ?? 0)
-            : 0;
+      if (tipo === "va") {
+        const valorMes = Number(c.vale_alimentacao_valor ?? 0);
+        valorDia =
+          c.vale_alimentacao_periodicidade === "diario"
+            ? valorMes
+            : valorMes / Math.max(1, Number(c.vale_alimentacao_dias_base ?? 22));
+        const diasPagos = Math.max(0, previstos.dias - descontos.dias);
+        descontoColaborador =
+          c.vale_alimentacao_desconto_tipo === "percentual"
+            ? (valorDia * diasPagos * Number(c.vale_alimentacao_desconto_valor ?? 0)) / 100
+            : c.vale_alimentacao_desconto_tipo === "valor"
+              ? Number(c.vale_alimentacao_desconto_valor ?? 0)
+              : 0;
+      } else {
+        valorDia = Number(c.vale_transporte_valor_dia ?? 0);
+        // Desconto legal do VT: até 6% do salário base do colaborador.
+        const salario = Number(c.base_salarial ?? 0) || Number(c.salario_base ?? 0);
+        descontoColaborador = salario > 0 ? salario * VT_DESCONTO_MAXIMO : 0;
+      }
 
       const deposito = calcularVaDeposito({
         diasPrevistos: previstos.dias,
@@ -289,7 +339,7 @@ export function useDpVaCalculadora(competencia: string, unidadeFilter = "todas")
       porMotivo,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colabQ.data, eventosQ.data, mes, janelaInicio, configQ.data]);
+  }, [colabQ.data, eventosQ.data, mes, janelaInicio, configQ.data, tipo]);
 
   return {
     ...resumo,

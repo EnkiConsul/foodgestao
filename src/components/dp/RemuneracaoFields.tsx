@@ -29,13 +29,17 @@ import {
   type Periodicidade,
 } from "@/lib/dp/beneficios-regras";
 import { BeneficioIsonomiaAviso } from "@/components/dp/BeneficioIsonomiaAviso";
+import { ValeCorteFields } from "@/components/dp/beneficios/ValeCorteFields";
 
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
 import { formatarBRL } from "@/lib/dp/folha";
 import {
-  GRAUS_INSALUBRIDADE, PERICULOSIDADE_PERCENTUAL_LEGAL, alertasAdicionaisRisco, valorPericulosidade,
+  GRAUS_INSALUBRIDADE, PERICULOSIDADE_PERCENTUAL_LEGAL, alertasAdicionaisRisco,
+  simularAdicionalPercentual,
 } from "@/lib/dp/adicionais-risco";
+
+
 import { cn } from "@/lib/utils";
 import {
   DIA_PAGAMENTO_PADRAO,
@@ -62,6 +66,15 @@ export interface RemuneracaoFormState {
   periculosidade_percentual: string;
   vale_transporte: boolean;
   vale_transporte_valor_dia: string;
+  /** Dia do mês em que o VT é depositado (vazio = padrão da empresa). */
+  vale_transporte_dia_pagamento: string;
+  /** Dias de antecedência do corte do VT. */
+  vale_transporte_dias_corte: string;
+  /** O que faz perder o dia de VT no próximo depósito. */
+  vale_transporte_desconta_falta: boolean;
+  vale_transporte_desconta_folga_extra: boolean;
+  vale_transporte_desconta_atestado: boolean;
+  vale_transporte_desconta_ferias: boolean;
   beneficios: Record<string, boolean>;
   /** Base de cálculo (para horistas/diaristas: base salarial ÷ base de horas/dias). */
   base_salarial: string;
@@ -110,6 +123,12 @@ export const remuneracaoBlank: RemuneracaoFormState = {
   periculosidade_percentual: "0",
   vale_transporte: false,
   vale_transporte_valor_dia: "",
+  vale_transporte_dia_pagamento: String(DIA_PAGAMENTO_PADRAO),
+  vale_transporte_dias_corte: String(DIAS_CORTE_PADRAO),
+  vale_transporte_desconta_falta: REGRAS_DESCONTO_PADRAO.falta,
+  vale_transporte_desconta_folga_extra: REGRAS_DESCONTO_PADRAO.folga_extra,
+  vale_transporte_desconta_atestado: REGRAS_DESCONTO_PADRAO.atestado,
+  vale_transporte_desconta_ferias: REGRAS_DESCONTO_PADRAO.ferias,
   beneficios: {},
   base_salarial: "",
   base_horas_mes: "220",
@@ -235,7 +254,28 @@ export function RemuneracaoFields({
     },
   );
 
-  const periculosidadeValor = valorPericulosidade(numeroBR(value.periculosidade_percentual), salario);
+  // Base mensal do adicional: no horista/diarista o campo de valor guarda a
+  // hora/o dia, então a referência mensal é a base salarial informada.
+  const baseMensalRisco = usaBase ? baseSalarial : salario;
+  const simulacaoPericulosidade = simularAdicionalPercentual({
+    percentual: numeroBR(value.periculosidade_percentual),
+    baseMensal: baseMensalRisco,
+    valorDia: forma === "diarista" ? numeroBR(value.salario_base) : null,
+    valorHora: forma === "horista" ? numeroBR(value.valor_hora) : null,
+  });
+  /** "R$ x/mês · R$ y por dia trabalhado", conforme a forma de pagamento. */
+  const resumoPericulosidade = [
+    simulacaoPericulosidade.mes != null ? `${formatarBRL(simulacaoPericulosidade.mes)}/mês` : null,
+    simulacaoPericulosidade.porDia != null
+      ? `${formatarBRL(simulacaoPericulosidade.porDia)} por dia trabalhado`
+      : null,
+    simulacaoPericulosidade.porHora != null
+      ? `${formatarBRL(simulacaoPericulosidade.porHora)} por hora`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const alertasRisco = alertasAdicionaisRisco({
     insalubridade: numeroBR(value.insalubridade_percentual),
     periculosidade: numeroBR(value.periculosidade_percentual),
@@ -527,10 +567,9 @@ export function RemuneracaoFields({
               </div>
               <p className="text-[11px] text-muted-foreground">
                 Calculado sobre o salário base
-                {periculosidadeValor != null && periculosidadeValor > 0
-                  ? ` — ${formatarBRL(periculosidadeValor)}/mês`
-                  : ""}
+                {resumoPericulosidade ? ` — ${resumoPericulosidade}` : ""}
                 .
+
               </p>
             </div>
           </div>
@@ -694,6 +733,37 @@ export function RemuneracaoFields({
               <div>Concedido no mês (22 dias): <strong className="text-foreground">{formatarBRL(vt.bruto)}</strong></div>
               <div>Desconto legal (até 6%): <strong className="text-foreground">{formatarBRL(vt.desconto)}</strong></div>
             </div>
+            <ValeCorteFields
+              id="vt"
+              valor={{
+                diaPagamento: value.vale_transporte_dia_pagamento,
+                diasCorte: value.vale_transporte_dias_corte,
+                regras: {
+                  falta: value.vale_transporte_desconta_falta,
+                  folga_extra: value.vale_transporte_desconta_folga_extra,
+                  atestado: value.vale_transporte_desconta_atestado,
+                  ferias: value.vale_transporte_desconta_ferias,
+                },
+              }}
+              onChange={(patch) =>
+                onChange({
+                  ...(patch.diaPagamento !== undefined
+                    ? { vale_transporte_dia_pagamento: patch.diaPagamento }
+                    : {}),
+                  ...(patch.diasCorte !== undefined
+                    ? { vale_transporte_dias_corte: patch.diasCorte }
+                    : {}),
+                  ...(patch.regras
+                    ? {
+                        vale_transporte_desconta_falta: patch.regras.falta,
+                        vale_transporte_desconta_folga_extra: patch.regras.folga_extra,
+                        vale_transporte_desconta_atestado: patch.regras.atestado,
+                        vale_transporte_desconta_ferias: patch.regras.ferias,
+                      }
+                    : {}),
+                })
+              }
+            />
           </div>
         )}
       </div>
@@ -814,71 +884,37 @@ export function RemuneracaoFields({
                 />
               </div>
             )}
-            <div className="space-y-3 rounded-md border border-border bg-muted/20 p-3 md:col-span-2">
-              <div>
-                <p className="text-sm font-medium">Depósito e data de corte</p>
-                <p className="text-xs text-muted-foreground">
-                  O cálculo fecha alguns dias antes do pagamento para a empresa se organizar. O depósito
-                  cobre os dias previstos do próximo período, menos os dias pagos e não trabalhados no
-                  período anterior.
-                </p>
-              </div>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="va_dia_pagamento">Dia do pagamento</Label>
-                  <Input
-                    id="va_dia_pagamento"
-                    inputMode="numeric"
-                    value={value.vale_alimentacao_dia_pagamento}
-                    onChange={(e) =>
-                      onChange({ vale_alimentacao_dia_pagamento: e.target.value.replace(/\D/g, "").slice(0, 2) })
-                    }
-                    placeholder={String(DIA_PAGAMENTO_PADRAO)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="va_dias_corte">Corte (dias antes do pagamento)</Label>
-                  <Input
-                    id="va_dias_corte"
-                    inputMode="numeric"
-                    value={value.vale_alimentacao_dias_corte}
-                    onChange={(e) =>
-                      onChange({ vale_alimentacao_dias_corte: e.target.value.replace(/\D/g, "").slice(0, 2) })
-                    }
-                    placeholder={String(DIAS_CORTE_PADRAO)}
-                  />
-                </div>
-              </div>
-              <div className="rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
-                Pagamento em {formatarDataCurta(periodoVa.pagamento)} · corte em{" "}
-                {formatarDataCurta(periodoVa.corte)} · cobre{" "}
-                {formatarDataCurta(periodoVa.cobertura.inicio)} a {formatarDataCurta(periodoVa.cobertura.fim)} ·
-                confere {formatarDataCurta(periodoVa.conferencia.inicio)} a{" "}
-                {formatarDataCurta(periodoVa.conferencia.fim)}
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Desconta o dia em caso de
-                </p>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                  {([
-                    ["vale_alimentacao_desconta_falta", "Falta"],
-                    ["vale_alimentacao_desconta_folga_extra", "Folga extra"],
-                    ["vale_alimentacao_desconta_atestado", "Atestado/licença"],
-                    ["vale_alimentacao_desconta_ferias", "Férias"],
-                  ] as const).map(([campo, label]) => (
-                    <div key={campo} className="flex items-center gap-3">
-                      <Switch
-                        id={campo}
-                        checked={value[campo]}
-                        onCheckedChange={(v) => onChange({ [campo]: v } as Partial<RemuneracaoFormState>)}
-                      />
-                      <Label htmlFor={campo} className="cursor-pointer text-sm font-normal">{label}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <ValeCorteFields
+              id="va"
+              valor={{
+                diaPagamento: value.vale_alimentacao_dia_pagamento,
+                diasCorte: value.vale_alimentacao_dias_corte,
+                regras: {
+                  falta: value.vale_alimentacao_desconta_falta,
+                  folga_extra: value.vale_alimentacao_desconta_folga_extra,
+                  atestado: value.vale_alimentacao_desconta_atestado,
+                  ferias: value.vale_alimentacao_desconta_ferias,
+                },
+              }}
+              onChange={(patch) =>
+                onChange({
+                  ...(patch.diaPagamento !== undefined
+                    ? { vale_alimentacao_dia_pagamento: patch.diaPagamento }
+                    : {}),
+                  ...(patch.diasCorte !== undefined
+                    ? { vale_alimentacao_dias_corte: patch.diasCorte }
+                    : {}),
+                  ...(patch.regras
+                    ? {
+                        vale_alimentacao_desconta_falta: patch.regras.falta,
+                        vale_alimentacao_desconta_folga_extra: patch.regras.folga_extra,
+                        vale_alimentacao_desconta_atestado: patch.regras.atestado,
+                        vale_alimentacao_desconta_ferias: patch.regras.ferias,
+                      }
+                    : {}),
+                })
+              }
+            />
 
             <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground md:col-span-2">
               <div className="font-medium text-foreground">

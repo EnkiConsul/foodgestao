@@ -181,10 +181,10 @@ const blank = {
 };
 
 /** Abas do cadastro, na ordem em que o usuário avança. */
-const ABAS = ["dados", "jornada", "remuneracao"] as const;
+const ABAS = ["dados", "jornada", "remuneracao", "dependentes", "documentos"] as const;
 type AbaCadastro = (typeof ABAS)[number];
-/** Aba extra, fora do fluxo de avanço automático do cadastro. */
-type AbaVisivel = AbaCadastro | "dependentes" | "documentos" | "desligamento" | "acesso";
+/** Atalhos externos que caem em abas já existentes. */
+type AbaVisivel = AbaCadastro | "desligamento" | "acesso";
 type IntencaoSalvar = "stay" | "close";
 /** Campo pendente apontado pela validação, usado para focar e destacar. */
 type ErroCampo = { campo: string; mensagem: string };
@@ -192,6 +192,7 @@ type ErroCampo = { campo: string; mensagem: string };
 
 const abaSeguinte = (aba: AbaVisivel): AbaCadastro | null =>
   ABAS[ABAS.indexOf(aba as AbaCadastro) + 1] ?? null;
+
 
 
 
@@ -482,6 +483,16 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         (c as any).vale_alimentacao_desconta_atestado ?? REGRAS_DESCONTO_PADRAO.atestado,
       vale_alimentacao_desconta_ferias:
         (c as any).vale_alimentacao_desconta_ferias ?? REGRAS_DESCONTO_PADRAO.ferias,
+      vale_transporte_dia_pagamento: String((c as any).vale_transporte_dia_pagamento ?? DIA_PAGAMENTO_PADRAO),
+      vale_transporte_dias_corte: String((c as any).vale_transporte_dias_corte ?? DIAS_CORTE_PADRAO),
+      vale_transporte_desconta_falta:
+        (c as any).vale_transporte_desconta_falta ?? REGRAS_DESCONTO_PADRAO.falta,
+      vale_transporte_desconta_folga_extra:
+        (c as any).vale_transporte_desconta_folga_extra ?? REGRAS_DESCONTO_PADRAO.folga_extra,
+      vale_transporte_desconta_atestado:
+        (c as any).vale_transporte_desconta_atestado ?? REGRAS_DESCONTO_PADRAO.atestado,
+      vale_transporte_desconta_ferias:
+        (c as any).vale_transporte_desconta_ferias ?? REGRAS_DESCONTO_PADRAO.ferias,
     });
 
     setForm({
@@ -1102,6 +1113,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         periculosidade_percentual: periculosidadeNum,
         vale_transporte: rem.vale_transporte,
         vale_transporte_valor_dia: rem.vale_transporte ? vtDiaNum : null,
+        vale_transporte_dia_pagamento: rem.vale_transporte
+          ? Math.min(31, Math.max(1, Math.trunc(numeroBR(rem.vale_transporte_dia_pagamento)) || DIA_PAGAMENTO_PADRAO))
+          : null,
+        vale_transporte_dias_corte: rem.vale_transporte
+          ? Math.min(20, Math.max(0, Math.trunc(numeroBR(rem.vale_transporte_dias_corte))))
+          : null,
+        vale_transporte_desconta_falta: rem.vale_transporte ? rem.vale_transporte_desconta_falta : null,
+        vale_transporte_desconta_folga_extra: rem.vale_transporte
+          ? rem.vale_transporte_desconta_folga_extra
+          : null,
+        vale_transporte_desconta_atestado: rem.vale_transporte ? rem.vale_transporte_desconta_atestado : null,
+        vale_transporte_desconta_ferias: rem.vale_transporte ? rem.vale_transporte_desconta_ferias : null,
 
         // Base de cálculo do valor da hora/dia
         base_salarial: usaBaseCalculo ? numeroBR(rem.base_salarial) || null : null,
@@ -1223,7 +1246,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
       setBaseline(snapshot);
       toast.success("Colaborador cadastrado");
 
-      if (intencaoRef.current !== "close" && tab !== "dependentes" && abaSeguinte(tab)) {
+      if (intencaoRef.current !== "close" && tab === "dados") {
         toast("Defina o turno e a jornada");
       }
       concluir(perguntar);
@@ -1656,6 +1679,20 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
               />
 
+              {/* Regra coletiva de anuênio/triênio aplicável a este colaborador */}
+              <AdicionalTempoServicoCard
+                admissao={form.data_admissao || null}
+                cargoId={form.cargo_id || null}
+                unidadeId={form.unidade_id || null}
+                sindicatoId={form.sindicato_id || null}
+                base={baseSalarialInformada()}
+                pisoCargo={salarioCargo ?? null}
+                onBeforeNavigate={() => onOpenChange(false)}
+              />
+
+
+
+
               {/* Adiantamento — apenas para contratos com salário mensal em folha */}
               {permiteAdiantamento ? (
                 <div className="col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-border p-3">
@@ -1681,15 +1718,6 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 </p>
               )}
             </div>
-
-            <AdicionalTempoServicoCard
-              admissao={form.data_admissao || null}
-              cargoId={form.cargo_id || null}
-              unidadeId={form.unidade_id || null}
-              sindicatoId={form.sindicato_id || null}
-              base={baseSalarialInformada()}
-              pisoCargo={salarioCargo ?? null}
-            />
           </TabsContent>
 
           <TabsContent value="dependentes" className="mt-4">
@@ -1715,11 +1743,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               Fechar
             </Button>
             <span className="text-xs text-muted-foreground">
-              {tab === "dependentes"
-                ? "Dependentes"
-                : `Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
+              {`Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
               {dirty ? " · alterações não salvas" : ""}
             </span>
+
           </div>
           <div className="flex items-center gap-2">
             <Button

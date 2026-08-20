@@ -19,7 +19,7 @@ import {
 import {
   AtribuicaoDialog, BeneficioDialog, BENEFICIO_TIPO_LABEL,
 } from "@/components/dp/beneficios/BeneficiosDialogs";
-import { VaCalculadora } from "@/components/dp/beneficios/VaCalculadora";
+import { ValeCalculadora } from "@/components/dp/beneficios/ValeCalculadora";
 
 const fmtData = (iso?: string | null) =>
   iso ? format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR }) : "—";
@@ -125,6 +125,7 @@ export default function DpBeneficios() {
           <TabsTrigger value="ficha" className="flex-1 sm:flex-none">Por colaborador</TabsTrigger>
           <TabsTrigger value="catalogo" className="flex-1 sm:flex-none">Catálogo</TabsTrigger>
           <TabsTrigger value="va" className="flex-1 sm:flex-none">Calculadora de VA</TabsTrigger>
+          <TabsTrigger value="vt" className="flex-1 sm:flex-none">Calculadora de VT</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ficha" className="space-y-3">
@@ -215,7 +216,11 @@ export default function DpBeneficios() {
         </TabsContent>
 
         <TabsContent value="va">
-          <VaCalculadora />
+          <ValeCalculadora tipo="va" />
+        </TabsContent>
+
+        <TabsContent value="vt">
+          <ValeCalculadora tipo="vt" />
         </TabsContent>
       </Tabs>
 
