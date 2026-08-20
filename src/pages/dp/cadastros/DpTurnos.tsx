@@ -19,7 +19,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TurnoCard } from "@/components/dp/TurnoCard";
+
 import { TurnoForm, type TurnoSubmitPayload } from "@/components/dp/TurnoForm";
 import { TurnoCategoriaLabelsDialog } from "@/components/dp/TurnoCategoriaLabelsDialog";
 import { HorarioFuncionamentoEditor } from "@/components/dp/HorarioFuncionamentoEditor";
