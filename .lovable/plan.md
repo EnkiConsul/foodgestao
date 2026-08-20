@@ -22,7 +22,8 @@ Hoje a ficha mostra "Carga semanal —" e dias como "— às —". Verificado o 
 
 - **Valor da hora e valor do dia**: hoje ficam em branco porque só são gravados quando digitados manualmente. Passam a ser calculados a partir do salário e da base (ex.: R$ 1.750,00 / 220h), com indicação de que é valor calculado.
 - **Base de cálculo** deixa de aparecer vazia: mostra sempre salário base, base de horas e base de dias em uso.
-- Novos campos exibidos: PIS/NIT, adicional por tempo de serviço (valor vigente e se há override manual), tipo do prêmio de assiduidade, e o percentual de insalubridade/periculosidade com o valor em reais correspondente.
+- Novos campos exibidos: PIS/NIT, adicional por tempo de serviço (valor vigente e se há override manual) e o percentual de insalubridade/periculosidade com o valor em reais correspondente.
+- **Prêmio de assiduidade** fica aqui, em Remuneração (não em Benefícios): valor, tipo do prêmio, critério, tolerância de atraso, máximo de atrasos e regra de atestado, agrupados em um bloco próprio.
 
 ## 5. Benefícios completos
 
@@ -30,7 +31,7 @@ O card hoje diz "Nenhum benefício ativo" mesmo com vale-alimentação de R$ 24,
 
 - **Vale-alimentação**: valor por dia/mês, dias-base, dia de pagamento, dias de corte, descontos aplicados (falta, folga extra, atestado, férias) e desconto do colaborador.
 - **Vale-transporte**: valor por dia, dia de pagamento, dias de corte e os mesmos descontos.
-- **Prêmio de assiduidade** e **adicional por tempo de serviço** como itens de benefício.
+- **Adicional por tempo de serviço** como item de benefício (o prêmio de assiduidade fica em Remuneração).
 - **Benefícios do catálogo** atribuídos ao colaborador continuam listados.
 - A mensagem "Nenhum benefício ativo" só aparece quando realmente não há nada, em nenhuma dessas fontes.
 
