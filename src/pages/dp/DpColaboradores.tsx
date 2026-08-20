@@ -146,13 +146,20 @@ export default function DpColaboradores() {
         title="Colaboradores"
         description="Gerencie a equipe, cargos e acessos ao sistema."
         actions={
-          <Button
-            size="lg"
-            className="rounded-full font-semibold"
-            onClick={() => abrirCadastro(null)}
-          >
-            <Plus className="h-5 w-5 mr-2" /> Novo Colaborador
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="lg" className="rounded-full" asChild>
+              <Link to="/dp/colaboradores/lixeira">
+                <Trash2 className="h-4 w-4 mr-2" /> Lixeira
+              </Link>
+            </Button>
+            <Button
+              size="lg"
+              className="rounded-full font-semibold"
+              onClick={() => abrirCadastro(null)}
+            >
+              <Plus className="h-5 w-5 mr-2" /> Novo Colaborador
+            </Button>
+          </div>
         }
       />
 
