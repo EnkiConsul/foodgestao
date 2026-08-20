@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CalendarOff, CalendarRange, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert, CopyPlus } from "lucide-react";
+import { CalendarOff, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert, CopyPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,12 +29,10 @@ import {
   cargaSemanalConfig, configTemErro, copiarHorarioEntreDias, definirHorarioNoDia,
   detalharCargaSemanal, diaDivergeDoBase, horarioEfetivoDia, horarioPadraoDaSemana,
   diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada,
-  normalizarDias, preencherDiasComHorario, resumoConfigTexto, semanaDaGrade,
+  normalizarDias, preencherDiasComHorario, resumoConfigTexto,
   turnoDoDia, validarConfigTrabalho,
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
-import { UsarGradeSemanalDialog } from "@/components/dp/UsarGradeSemanalDialog";
-import type { GradeSemanal } from "@/hooks/useDpGradesSemanais";
 
 
 const hoje = () => new Date().toISOString().slice(0, 10);
@@ -144,7 +142,6 @@ export function ColaboradorJornadaPanel({
   const admissao = colaborador?.data_admissao ?? null;
   const [obs, setObs] = useState("");
   const [copiarOpen, setCopiarOpen] = useState(false);
-  const [gradeOpen, setGradeOpen] = useState(false);
   const [cienciaOpen, setCienciaOpen] = useState(false);
   /**
    * Quando o salvamento vem do rodapé do cadastro, a decisão do diálogo de
@@ -471,17 +468,6 @@ export function ColaboradorJornadaPanel({
     toast.success(`Horário de ${primeiroNome(m.colaborador_nome)} copiado — revise e salve`);
   };
 
-  /** Aplica uma grade semanal da unidade: horário dominante e dias de folga. */
-  const onUsarGrade = (grade: GradeSemanal) => {
-    marcarAlterado();
-    const { dias: novos, base } = semanaDaGrade(grade.dias, turnosResolvidos, horario);
-    horarioAplicadoRef.current = vigente?.turno_padrao_id ?? "grade";
-    setHorarioReferencia(base);
-    setDias(somenteDias(novos));
-    setFolgaVariavel(grade.folga_variavel);
-    toast.success(`Grade "${grade.nome}" aplicada — revise e salve`);
-  };
-
   /**
    * Converte o horário PRINCIPAL em um horário da loja: reaproveita um turno com
    * o mesmo horário na unidade ou cria um. Só o horário principal passa por aqui
@@ -761,13 +747,6 @@ export function ColaboradorJornadaPanel({
             {tituloSistema("Horário de Trabalho por Dia")}
           </h3>
           <div className="flex items-center gap-2">
-            <Button
-              type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
-              onClick={() => setGradeOpen(true)}
-            >
-              <CalendarRange className="h-3.5 w-3.5" aria-hidden="true" />
-              Grade da unidade
-            </Button>
             <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => aplicarEscala("6x1")}>
               6x1
             </Button>
@@ -1063,14 +1042,6 @@ export function ColaboradorJornadaPanel({
         cargoId={colaborador?.cargo_id ?? null}
         turnos={turnosResolvidos}
         onCopiar={onCopiarConfig}
-      />
-
-      <UsarGradeSemanalDialog
-        open={gradeOpen}
-        onOpenChange={setGradeOpen}
-        unidadeId={unidadeId === "none" ? null : unidadeId}
-        turnos={turnosResolvidos}
-        onAplicar={onUsarGrade}
       />
     </div>
   );
