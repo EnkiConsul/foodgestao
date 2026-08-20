@@ -482,23 +482,15 @@ export function ColaboradorJornadaPanel({
   };
 
   /**
-   * Converte um horário digitado em um horário da loja: reaproveita um turno com
-   * o mesmo horário na unidade ou cria um novo, sem pedir nada ao usuário.
-   * O cache evita criar o mesmo turno duas vezes num único salvamento.
+   * Converte o horário PRINCIPAL em um horário da loja: reaproveita um turno com
+   * o mesmo horário na unidade ou cria um. Só o horário principal passa por aqui
+   * — horário de um dia específico fica no colaborador e não vira turno, senão a
+   * tela de Turnos enche de variação de minutos de cada pessoa.
    */
-  const resolverTurno = async (
-    h: HorarioSimples,
-    cache?: Map<string, string>,
-  ): Promise<string> => {
+  const resolverTurno = async (h: HorarioSimples): Promise<string> => {
     const unidade = unidadeId === "none" ? null : unidadeId;
-    const chave = `${h.entrada}|${h.saida}|${h.intervalo_minutos ?? 0}`;
-    const emCache = cache?.get(chave);
-    if (emCache) return emCache;
     const decisao = resolverTurnoDoHorario(h, turnosResolvidos.map((t) => ({ ...t, ativo: true })), unidade);
-    if (decisao.tipo === "reaproveita") {
-      cache?.set(chave, decisao.turno.id);
-      return decisao.turno.id;
-    }
+    if (decisao.tipo === "reaproveita") return decisao.turno.id;
     const criado = await criarTurno.mutateAsync({
       form: {
         ...TURNO_FORM_DEFAULT,
@@ -513,7 +505,6 @@ export function ColaboradorJornadaPanel({
         ? { confirmada: true, justificativa: "Horário definido no cadastro do colaborador" }
         : null,
     });
-    cache?.set(chave, criado.id);
     return criado.id;
   };
 
