@@ -36,11 +36,13 @@ export default function Mais() {
   const { layout } = useDpMenuLayout(
     activeModule === "portal_colaborador" ? "portal" : "dp",
   );
+  const { hidden } = useHiddenScreens();
   const config = useMemo(() => {
-    if (!isDpSurface || !layout) return rawConfig;
+    const moreGroups = filterMoreGroups(rawConfig.moreGroups, hidden);
+    if (!isDpSurface || !layout) return { ...rawConfig, moreGroups };
     return {
       ...rawConfig,
-      moreGroups: rawConfig.moreGroups.map((g) =>
+      moreGroups: moreGroups.map((g) =>
         g.subgroups
           ? {
               ...g,
@@ -52,7 +54,8 @@ export default function Mais() {
           : g,
       ),
     };
-  }, [rawConfig, isDpSurface, layout]);
+  }, [rawConfig, isDpSurface, layout, hidden]);
+
 
   const allItems: NavLeaf[] = useMemo(
     () =>
