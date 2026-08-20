@@ -1696,15 +1696,6 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 </p>
               )}
             </div>
-
-            <AdicionalTempoServicoCard
-              admissao={form.data_admissao || null}
-              cargoId={form.cargo_id || null}
-              unidadeId={form.unidade_id || null}
-              sindicatoId={form.sindicato_id || null}
-              base={baseSalarialInformada()}
-              pisoCargo={salarioCargo ?? null}
-            />
           </TabsContent>
 
           <TabsContent value="dependentes" className="mt-4">
