@@ -54,6 +54,10 @@ export function CargoSalariosUnidadePanel({ cargoId }: Props) {
   const [novoPiso, setNovoPiso] = useState({ patronal_id: "", salario_base: "", vigencia_inicio: hoje });
   const [novoAjuste, setNovoAjuste] = useState({ unidade_id: "", salario_base: "", vigencia_inicio: hoje });
   const [salvando, setSalvando] = useState(false);
+  /** Linha aberta para edição (exige justificativa). */
+  const [editando, setEditando] = useState<CargoSalarioLinha | null>(null);
+  const [mostrarLog, setMostrarLog] = useState(false);
+  const log = useDpCargoSalarioLog(mostrarLog ? cargoId : null);
 
   const patronais = useMemo(
     () => (sindicatos.data ?? []).filter((s) => s.tipo === "patronal"),
