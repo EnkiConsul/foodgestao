@@ -78,3 +78,56 @@ export function sugerirNomeVariacao(nome: string, existentes: { nome: string }[]
 export function moedaBR(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
+
+// ------------------------------------------------------------------
+// Apresentação dos adicionais de risco do cargo
+// ------------------------------------------------------------------
+
+export interface SeloRiscoCargo {
+  tipo: "insalubridade" | "periculosidade" | "indefinido";
+  label: string;
+  percentual: number | null;
+}
+
+const pct = (v: unknown) => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+/** Formata percentual sem casas desnecessárias ("30%", "12,5%"). */
+function percentualBR(v: number): string {
+  return `${v.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
+}
+
+/**
+ * Selos de risco do cargo com base nos percentuais efetivamente gravados.
+ * O switch "insalubre ou perigoso" sozinho não define o tipo do adicional.
+ */
+export function selosRiscoCargo(cargo: {
+  insalubre_periculoso?: boolean | null;
+  insalubridade_percentual?: number | null;
+  periculosidade_percentual?: number | null;
+} | null | undefined): SeloRiscoCargo[] {
+  if (!cargo) return [];
+  const insal = pct(cargo.insalubridade_percentual);
+  const peric = pct(cargo.periculosidade_percentual);
+  const out: SeloRiscoCargo[] = [];
+
+  if (insal > 0) {
+    out.push({ tipo: "insalubridade", label: `insalubridade ${percentualBR(insal)}`, percentual: insal });
+  }
+  if (peric > 0) {
+    out.push({ tipo: "periculosidade", label: `periculosidade ${percentualBR(peric)}`, percentual: peric });
+  }
+  if (out.length === 0 && cargo.insalubre_periculoso) {
+    out.push({ tipo: "indefinido", label: "risco a definir", percentual: null });
+  }
+  return out;
+}
+
+/** Texto do percentual para a ficha do cargo ("30%" ou "não aplicável"). */
+export function textoPercentualRisco(valor: number | null | undefined): string {
+  const v = pct(valor);
+  return v > 0 ? percentualBR(v) : "não aplicável";
+}
+
