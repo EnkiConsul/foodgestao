@@ -94,6 +94,7 @@ export default function ConexoesPluggy() {
     if (error) { toast.error("Falha ao sincronizar"); return; }
     toast.success(`Sincronização concluída (${data?.transactions ?? 0} lançamentos)`);
     load();
+    reloadPendingCredit();
   };
 
   const disconnect = async () => {
