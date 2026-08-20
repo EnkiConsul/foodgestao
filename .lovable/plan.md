@@ -37,7 +37,7 @@ Fontes dos dias:
 ## Parte C — Atalho na aba Remuneração do colaborador
 
 No bloco Vale-alimentação:
-- campo **Dia do pagamento** (1 a 31) com aviso do período coberto ("pago dia 25 → cobre 25/08 a 24/09");
+- campos **Dia do pagamento** (1 a 31) e **Dias de antecedência do corte** (padrão 5), com aviso do período ("pago dia 25, corte dia 20 → cobre 21/08 a 20/09");
 - switches **Desconta em**: falta, folga extra, atestado/licença, férias (com opção "todos");
 - valores herdados do padrão da empresa; quando o colaborador diverge do padrão aparece o banner âmbar já usado nos outros campos;
 - atalho "Definir padrão da empresa" abrindo a configuração do benefício, no mesmo estilo do atalho do teto do salário-família.
