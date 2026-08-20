@@ -54,9 +54,9 @@ Nova aba **Calculadora de VA** em `/dp/beneficios`:
 ## Detalhes técnicos
 
 Banco:
-- `dp_beneficios`: `dia_pagamento` (int 1–31), `desconta_falta`, `desconta_folga_extra`, `desconta_atestado`, `desconta_ferias` (bool).
-- `dp_colaboradores`: `vale_alimentacao_dia_pagamento` e os mesmos quatro booleanos como override por colaborador (nulos = herda o padrão).
-- `dp_config_dp`: `va_dia_pagamento` e flags de desconto como padrão da empresa.
+- `dp_beneficios`: `dia_pagamento` (int 1–31), `dias_antecedencia_corte` (int, default 5), `desconta_falta`, `desconta_folga_extra`, `desconta_atestado`, `desconta_ferias` (bool).
+- `dp_colaboradores`: `vale_alimentacao_dia_pagamento`, `vale_alimentacao_dias_corte` e os mesmos quatro booleanos como override por colaborador (nulos = herda o padrão).
+- `dp_config_dp`: `va_dia_pagamento`, `va_dias_corte` e flags de desconto como padrão da empresa.
 - Nova tabela `dp_va_apuracoes` (company_id, colaborador_id, competência, dias_previstos, dias_descontados, detalhe jsonb, valor_dia, valor_depositar, observacao) com GRANTs e RLS por empresa, para guardar o fechamento mensal e permitir ajuste manual auditável.
 
 Frontend:
