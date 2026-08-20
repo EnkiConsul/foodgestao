@@ -98,12 +98,13 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
   const meuResumo = useDpMeuResumo();
   const surfaceKey = variant === "portal" ? "portal" : "dp";
   const { layout } = useDpMenuLayout(surfaceKey);
+  const { hidden } = useHiddenScreens();
   const [organizarOpen, setOrganizarOpen] = useState(false);
   const items = useMemo(() => {
-    const base = variant === "portal" ? DP_PORTAL_NAV : DP_ADMIN_NAV;
-    if (!layout) return variant === "portal" ? PORTAL_ITEMS : ADMIN_ITEMS;
-    return buildItems(applyMenuLayout(base, layout));
-  }, [variant, layout]);
+    const base = filterSurface(variant === "portal" ? DP_PORTAL_NAV : DP_ADMIN_NAV, hidden);
+    return buildItems(layout ? applyMenuLayout(base, layout) : base);
+  }, [variant, layout, hidden]);
+
   const subtitle = variant === "portal" ? "Portal do Colaborador" : "Pessoas 360°";
 
   // Toggle exclusivo para grupos do admin (apenas 1 grupo aberto por vez).
