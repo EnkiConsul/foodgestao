@@ -471,6 +471,16 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         c.vale_alimentacao_desconto_valor != null
           ? String(c.vale_alimentacao_desconto_valor).replace(".", ",")
           : "1",
+      vale_alimentacao_dia_pagamento: String((c as any).vale_alimentacao_dia_pagamento ?? DIA_PAGAMENTO_PADRAO),
+      vale_alimentacao_dias_corte: String((c as any).vale_alimentacao_dias_corte ?? DIAS_CORTE_PADRAO),
+      vale_alimentacao_desconta_falta:
+        (c as any).vale_alimentacao_desconta_falta ?? REGRAS_DESCONTO_PADRAO.falta,
+      vale_alimentacao_desconta_folga_extra:
+        (c as any).vale_alimentacao_desconta_folga_extra ?? REGRAS_DESCONTO_PADRAO.folga_extra,
+      vale_alimentacao_desconta_atestado:
+        (c as any).vale_alimentacao_desconta_atestado ?? REGRAS_DESCONTO_PADRAO.atestado,
+      vale_alimentacao_desconta_ferias:
+        (c as any).vale_alimentacao_desconta_ferias ?? REGRAS_DESCONTO_PADRAO.ferias,
     });
 
     setForm({
@@ -1124,6 +1134,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         vale_alimentacao_desconto_valor: rem.vale_alimentacao_desconto_tipo === "nenhum"
           ? 0
           : numeroBR(rem.vale_alimentacao_desconto_valor),
+        vale_alimentacao_dia_pagamento: rem.vale_alimentacao
+          ? Math.min(31, Math.max(1, Math.trunc(numeroBR(rem.vale_alimentacao_dia_pagamento)) || DIA_PAGAMENTO_PADRAO))
+          : null,
+        vale_alimentacao_dias_corte: rem.vale_alimentacao
+          ? Math.min(20, Math.max(0, Math.trunc(numeroBR(rem.vale_alimentacao_dias_corte))))
+          : null,
+        vale_alimentacao_desconta_falta: rem.vale_alimentacao ? rem.vale_alimentacao_desconta_falta : null,
+        vale_alimentacao_desconta_folga_extra: rem.vale_alimentacao
+          ? rem.vale_alimentacao_desconta_folga_extra
+          : null,
+        vale_alimentacao_desconta_atestado: rem.vale_alimentacao ? rem.vale_alimentacao_desconta_atestado : null,
+        vale_alimentacao_desconta_ferias: rem.vale_alimentacao ? rem.vale_alimentacao_desconta_ferias : null,
         ...(isDesligado
           ? {
               data_desligamento: form.data_desligamento,
