@@ -8,6 +8,7 @@ import { toProperName } from "@/lib/text/properName";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { DependentesPanel } from "@/components/dp/DependentesPanel";
 import { AdicionalTempoServicoCard } from "@/components/dp/AdicionalTempoServicoCard";
