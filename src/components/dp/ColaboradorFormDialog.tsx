@@ -1224,7 +1224,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
       setBaseline(snapshot);
       toast.success("Colaborador cadastrado");
 
-      if (intencaoRef.current !== "close" && tab !== "dependentes" && abaSeguinte(tab)) {
+      if (intencaoRef.current !== "close" && tab === "dados") {
         toast("Defina o turno e a jornada");
       }
       concluir(perguntar);
