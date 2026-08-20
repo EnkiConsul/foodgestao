@@ -1223,28 +1223,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                     : `Cadastrar: ${toProperName(form.nome.trim()) || "Novo Colaborador"}`}
                 </DialogTitle>
                 {(isEdit || criadoId) && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="mr-8 h-8 w-8" aria-label="Mais ações do cadastro">
-                        <MoreVertical className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => setTab("desligamento")}>
-                        Registrar desligamento
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setTab("acesso")}>
-                        Acesso ao portal
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onSelect={() => setConfirmarRemocao(true)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Remover cadastro
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="mr-8 h-8 w-8 text-destructive hover:text-destructive"
+                    aria-label="Excluir cadastro"
+                    title="Excluir cadastro"
+                    onClick={() => setConfirmarRemocao(true)}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </Button>
                 )}
+
               </div>
             </DialogHeader>
             <TabsList className="w-full justify-start overflow-x-auto">
