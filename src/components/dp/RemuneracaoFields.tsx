@@ -554,10 +554,9 @@ export function RemuneracaoFields({
               </div>
               <p className="text-[11px] text-muted-foreground">
                 Calculado sobre o salário base
-                {periculosidadeValor != null && periculosidadeValor > 0
-                  ? ` — ${formatarBRL(periculosidadeValor)}/mês`
-                  : ""}
+                {resumoPericulosidade ? ` — ${resumoPericulosidade}` : ""}
                 .
+
               </p>
             </div>
           </div>
