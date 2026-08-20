@@ -1497,9 +1497,6 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 )}
 
               </TabsTrigger>
-
-
-              </TabsTrigger>
               <TabsTrigger value="dependentes">Dependentes</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
 
