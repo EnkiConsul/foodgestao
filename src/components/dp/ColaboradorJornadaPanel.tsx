@@ -257,14 +257,13 @@ export function ColaboradorJornadaPanel({
   useEffect(() => {
     if (!active) return;
     if (vigente) {
-      setUnidadeId(vigente.unidade_id ?? "none");
       setFolgaVariavel(vigente.folga_variavel);
       setDias(normalizarDias(vigente.dias, vigente.folga_fixa_dow));
       setObs(vigente.observacoes ?? "");
       setInicio(vigente.vigencia_inicio ?? admissao ?? hoje());
     } else {
-      setUnidadeId(colaborador?.unidade_id ?? "none");
       setFolgaVariavel(false);
+
       setDias(diasPadrao());
       setObs("");
       setInicio(admissao ?? hoje());
