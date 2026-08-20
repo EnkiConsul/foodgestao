@@ -43,12 +43,16 @@ export default function DpTurnos() {
     turnos, isLoading, error, criar, atualizar, novaVersao, alternarAtivo, remover, removerEmLote,
   } = useDpTurnos();
   const { usoPorTurno, isLoading: usoCarregando } = useDpTurnosUso();
+  const colaboradores = useDpColaboradores();
 
   const [busca, setBusca] = useState("");
   const [unidadeFiltro, setUnidadeFiltro] = useState(TODAS);
   const [usoFiltro, setUsoFiltro] = useState<UsoFiltro>("todos");
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [limpezaOpen, setLimpezaOpen] = useState(false);
+  const [detalhe, setDetalhe] = useState<DpTurnoRow | null>(null);
+  const [colaboradorAberto, setColaboradorAberto] = useState<DpColaborador | null>(null);
+
   const [unidadeFuncionamento, setUnidadeFuncionamento] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
