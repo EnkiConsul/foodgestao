@@ -535,12 +535,23 @@ export function ColaboradorJornadaPanel({
   };
 
   const persistir = async () => {
+    // Só o horário principal vira turno. O colaborador fica vinculado a um único
+    // turno; os dias diferentes guardam o horário no próprio colaborador.
     const turnoPadraoId = await resolverTurno(horario);
 
-    // Um turno por colaborador: os dias guardam apenas trabalha ou folga.
-    const diasResolvidos: DiaConfig[] = dias.map((d) => ({
-      ...d, turno_id: null, entrada: null, saida: null, intervalo_minutos: null,
-    }));
+    const diasResolvidos: DiaConfig[] = dias.map((d) => {
+      if (!d.trabalha || !diaDivergeDoBase(d, horario)) {
+        return { ...d, turno_id: null, entrada: null, saida: null, intervalo_minutos: null };
+      }
+      const h = horarioEfetivoDia(d, horario);
+      return {
+        ...d,
+        turno_id: null,
+        entrada: h.entrada,
+        saida: h.saida,
+        intervalo_minutos: h.intervalo_minutos ?? 0,
+      };
+    });
 
     await salvar.mutateAsync({
       unidade_id: unidadeId === "none" ? null : unidadeId,
