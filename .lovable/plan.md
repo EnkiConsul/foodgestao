@@ -1,6 +1,6 @@
-# Adicional por tempo de serviço: por que a Cristiane caiu no triênio
+# Adicional por tempo de serviço: escada ou cumulativo, por empresa
 
-## O que está acontecendo (confirmado nos dados)
+## Por que a Cristiane caiu no triênio (confirmado nos dados)
 
 Existem **duas regras cadastradas com o mesmo escopo (toda a empresa) e a mesma vigência (01/01/2026)**:
 
@@ -9,28 +9,34 @@ Existem **duas regras cadastradas com o mesmo escopo (toda a empresa) e a mesma 
 
 A Cristiane foi admitida em 01/04/2017 (mais de 9 anos de casa), então ela atende às duas.
 
-O sistema, hoje, escolhe **uma única regra**: a mais específica e, em caso de empate, a de vigência mais recente. Como as duas têm escopo e vigência idênticos, o empate não tem critério de desempate — vence a que vier primeiro na lista, que por acaso é o triênio. Não é erro de cálculo de tempo de casa: é ambiguidade entre duas regras concorrentes.
+Hoje o sistema escolhe **uma única regra**: a mais específica e, no empate, a de vigência mais recente. Como escopo e vigência são idênticos, não há critério de desempate — vence a que vier primeiro na lista, que por acaso é o triênio. Não é erro no cálculo de tempo de casa: é ambiguidade entre regras concorrentes.
 
-## Como resolver
+## O que será construído
 
-Primeiro é preciso decidir a intenção do cadastro, porque as duas leituras são legítimas:
+Na própria tela de Adicionais por tempo de serviço, a empresa escolhe como as regras concorrentes se comportam:
 
-1. **Escada única (mais comum em CCT):** o quinquênio substitui o triênio a partir de 5 anos. Nesse caso as duas regras são degraus de uma mesma escada e o sistema deve aplicar o degrau mais alto que o colaborador já alcançou.
-2. **Regras cumulativas:** triênio e quinquênio somam (3% por triênio + 5% por quinquênio).
+- **Escada (padrão, caso da Pakerê):** o degrau mais alto já alcançado substitui os anteriores. Cristiane com 9 anos passa a receber o quinquênio (5%); quem tem 4 anos fica no triênio (3%); quem tem 2 anos não recebe nada.
+- **Cumulativo:** todas as regras vigentes com ciclo completo somam. Cristiane somaria 3 triênios (conforme o "acumula" de cada regra) mais o quinquênio, e o card mostra a composição linha por linha.
 
-Correção proposta (assumindo a leitura 1, a escada):
+Detalhes da tela:
 
-- Quando houver várias regras vigentes no mesmo escopo, o desempate passa a ser **o maior ciclo já completado pelo colaborador**. Cristiane com 9 anos passa a cair no quinquênio (5%); alguém com 4 anos continua no triênio; alguém com 2 anos segue sem adicional.
-- Se nenhuma regra tiver ciclo completo, mantém a mensagem atual de "não atende aos critérios".
-- Na tela de cadastro das regras, mostrar um aviso quando existirem duas regras vigentes de mesmo escopo, explicando que elas serão tratadas como degraus (a maior alcançada vence) — para o gestor não achar que somam.
-- Na ficha do colaborador, o card passa a dizer qual regra foi aplicada e por quê ("Quinquênio — 1x 5% (9 anos de casa)").
+- Um seletor no topo da tela, com as duas opções explicadas em uma linha cada e efeito imediato em todos os cálculos da empresa.
+- Prévia do efeito ao lado do seletor: exemplo com tempo de casa de 3, 5 e 9 anos, mostrando o percentual resultante em cada modo — o gestor confere antes de salvar.
+- Aviso quando existirem regras vigentes de mesmo escopo, dizendo qual modo está ativo e como elas serão combinadas.
+- O modo é por empresa (fica junto das configurações do Pessoas 360°, com o "Aplicar na folha" que já existe), e vale para todos os escopos de regra.
 
-Se a intenção for a leitura 2 (somar), o ajuste é diferente: o cálculo passa a somar todas as regras vigentes do escopo, e o card mostra a composição.
+Na ficha do colaborador, o card passa a dizer qual regra (ou combinação) foi aplicada e por quê: "Quinquênio — 1x 5% (9 anos de casa)" no modo escada, ou a soma detalhada no modo cumulativo. Sem nenhum ciclo completo, mantém a mensagem discreta de "não atende aos critérios".
+
+Folha, holerite e relatórios usam o mesmo resultado, sem rubrica nova.
 
 ## Detalhes técnicos
 
-- `src/lib/dp/tempoServico.ts`: em `selecionarRegraTempoServico`, adicionar critério de desempate por ciclos completos — filtrar candidatas pelas que o colaborador já completou ao menos 1 ciclo (usando `mesesDeCasa` e `ciclo_meses`) e preferir a de maior `ciclo_meses`; sem nenhuma completa, cair na de menor `ciclo_meses` (para a mensagem de "ainda não atende"). A função passa a receber a admissão junto do alvo.
-- Atualizar chamadas: `src/components/dp/AdicionalTempoServicoCard.tsx` e qualquer uso em folha/apuração (buscar por `selecionarRegraTempoServico`).
-- Testes em `src/lib/dp/__tests__/tempoServico.test.ts`: duas regras de mesmo escopo/vigência com 36 e 60 meses → 9 anos de casa escolhe a de 60; 4 anos escolhe a de 36; 1 ano não gera adicional.
-- Aviso de regras concorrentes em `src/pages/dp/DpAdicionaisTempoServico.tsx`.
-- Nada muda no banco.
+- Banco: nova coluna `adicional_tempo_servico_modo` em `dp_config_dp` (`escada|cumulativo`, default `escada`), herdada por unidade como as demais configs. Sem outras mudanças de schema.
+- `src/lib/dp/tempoServico.ts`:
+  - `selecionarRegraTempoServico` passa a receber a admissão e a referência: entre candidatas de mesmo peso de escopo, prefere a de maior `ciclo_meses` **com ao menos um ciclo completo**; sem nenhuma completa, devolve a de menor `ciclo_meses` (só para a mensagem de "ainda não atende").
+  - nova `calcularAdicionalPorModo({ regras, alvo, admissao, referencia, base, pisoCargo, modo })` retornando `{ percentual, valor, itens: AdicionalCalculado[] }` — no modo escada, `itens` tem um elemento; no cumulativo, um por regra com ciclo completo, respeitando `acumula` e `max_ciclos` de cada uma.
+- `src/hooks/useDpSalarioFamiliaConfig.tsx` (onde vive `adicionalAtivo`) expõe e grava o novo modo.
+- `src/pages/dp/DpAdicionaisTempoServico.tsx`: seletor de modo, prévia 3/5/9 anos e aviso de regras concorrentes.
+- `src/components/dp/AdicionalTempoServicoCard.tsx`: usa `calcularAdicionalPorModo` e mostra a composição quando houver mais de um item.
+- Consumidores da folha/apuração que chamam `selecionarRegraTempoServico` migram para `calcularAdicionalPorModo` (buscar todas as referências).
+- Testes em `src/lib/dp/__tests__/tempoServico.test.ts`: duas regras 36/60 mesmo escopo e vigência — escada com 9 anos → 5%; escada com 4 anos → 3%; cumulativo com 9 anos → soma dos dois; 1 ano → sem adicional nos dois modos; `max_ciclos` respeitado no cumulativo.
