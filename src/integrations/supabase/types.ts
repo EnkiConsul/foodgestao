@@ -91,6 +91,30 @@ export type Database = {
           },
         ]
       }
+      app_hidden_screens: {
+        Row: {
+          enabled: boolean
+          routes: string[]
+          singleton: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          routes?: string[]
+          singleton?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          routes?: string[]
+          singleton?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       asaas_webhook_events: {
         Row: {
           created_at: string
