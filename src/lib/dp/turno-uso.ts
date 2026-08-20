@@ -80,6 +80,12 @@ export function estadoUsoTurno(params: {
   return total > 0 ? "em_uso" : "sem_uso";
 }
 
+/** Colaboradores vinculados de forma fixa (turno padrão + dias da configuração). */
+export function pessoasVinculadasTurno(uso?: TurnoUsoRow | null): number {
+  if (!uso) return 0;
+  return uso.colaboradores_padrao + uso.config_dias;
+}
+
 /** Rótulo curto exibido no selo do card. */
 export function rotuloUsoTurno(estado: TurnoUsoEstado, uso?: TurnoUsoRow | null): string {
   switch (estado) {
@@ -87,12 +93,17 @@ export function rotuloUsoTurno(estado: TurnoUsoEstado, uso?: TurnoUsoRow | null)
       return "Verificando uso…";
     case "versao_historica":
       return "Versão histórica";
-    case "em_uso":
-      return `Em uso: ${totalUsoTurno(uso)}`;
+    case "em_uso": {
+      const pessoas = pessoasVinculadasTurno(uso);
+      return pessoas > 0
+        ? `Em uso · ${pessoas} colaborador${pessoas > 1 ? "es" : ""}`
+        : `Em uso: ${totalUsoTurno(uso)}`;
+    }
     default:
       return "Sem uso";
   }
 }
+
 
 /** Só é seguro excluir turno sem nenhum vínculo e que não seja versão histórica. */
 export function podeExcluirTurno(estado: TurnoUsoEstado): boolean {

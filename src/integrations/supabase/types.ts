@@ -13490,6 +13490,17 @@ export type Database = {
           sindicato_nome: string
         }[]
       }
+      dp_turno_colaboradores: {
+        Args: { p_turno_id: string }
+        Returns: {
+          ativo: boolean
+          cargo_nome: string
+          colaborador_id: string
+          nome: string
+          origem: string
+          unidade_nome: string
+        }[]
+      }
       dp_turnos_uso: {
         Args: { p_company_id: string }
         Returns: {

@@ -30,7 +30,11 @@ import {
   type CienciaTurno, type DpTurnoForm, type DpTurnoRow,
 } from "@/hooks/useDpTurnos";
 import { useDpTurnosUso } from "@/hooks/useDpTurnosUso";
+import { useDpColaboradores, type DpColaborador } from "@/hooks/useDpColaboradores";
+import { TurnoDetalheDialog } from "@/components/dp/TurnoDetalheDialog";
+import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { estadoUsoTurno, podeExcluirTurno } from "@/lib/dp/turno-uso";
+
 
 
 const TODAS = "todas";
@@ -43,12 +47,16 @@ export default function DpTurnos() {
     turnos, isLoading, error, criar, atualizar, novaVersao, alternarAtivo, remover, removerEmLote,
   } = useDpTurnos();
   const { usoPorTurno, isLoading: usoCarregando } = useDpTurnosUso();
+  const colaboradores = useDpColaboradores();
 
   const [busca, setBusca] = useState("");
   const [unidadeFiltro, setUnidadeFiltro] = useState(TODAS);
   const [usoFiltro, setUsoFiltro] = useState<UsoFiltro>("todos");
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [limpezaOpen, setLimpezaOpen] = useState(false);
+  const [detalhe, setDetalhe] = useState<DpTurnoRow | null>(null);
+  const [colaboradorAberto, setColaboradorAberto] = useState<DpColaborador | null>(null);
+
   const [unidadeFuncionamento, setUnidadeFuncionamento] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
@@ -316,7 +324,9 @@ export default function DpTurnos() {
                   selecionavel={usoFiltro === "sem_uso"}
                   selecionado={selecionados.includes(t.id)}
                   onSelecionar={(marcado) => alternarSelecao(t.id, marcado)}
+                  onAbrirDetalhe={() => setDetalhe(t)}
                   onEdit={() => abrirEdicao(t)}
+
                   onDuplicar={() => duplicar(t)}
                   onDelete={() => setARemover(t)}
                   onToggleAtivo={(ativo) => alternarAtivo.mutate({ id: t.id, ativo })}
@@ -355,6 +365,30 @@ export default function DpTurnos() {
       </Tabs>
 
       <TurnoCategoriaLabelsDialog open={labelsOpen} onOpenChange={setLabelsOpen} />
+
+      <TurnoDetalheDialog
+        turno={detalhe}
+        unidadeNome={detalhe ? nomeUnidade(detalhe.unidade_id) : null}
+        uso={detalhe ? usoPorTurno[detalhe.id] : null}
+        usoEstado={detalhe ? estadoDoTurno(detalhe) : "sem_uso"}
+        onOpenChange={(o) => !o && setDetalhe(null)}
+        onEditar={() => { const t = detalhe; setDetalhe(null); if (t) abrirEdicao(t); }}
+        onDuplicar={() => { const t = detalhe; setDetalhe(null); if (t) duplicar(t); }}
+        onExcluir={() => { const t = detalhe; setDetalhe(null); if (t) setARemover(t); }}
+        onAbrirColaborador={(id) => {
+          const c = (colaboradores.data ?? []).find((x) => x.id === id);
+          if (!c) return;
+          setDetalhe(null);
+          setColaboradorAberto(c as DpColaborador);
+        }}
+      />
+
+      <ColaboradorFormDialog
+        open={!!colaboradorAberto}
+        onOpenChange={(o) => !o && setColaboradorAberto(null)}
+        colaborador={colaboradorAberto}
+      />
+
 
       <TurnoForm
         open={formOpen}
