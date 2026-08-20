@@ -2813,10 +2813,16 @@ export type Database = {
           ativo: boolean
           company_id: string
           created_at: string
+          desconta_atestado: boolean
+          desconta_falta: boolean
+          desconta_ferias: boolean
+          desconta_folga_extra: boolean
           desconto_percentual: number
           desconto_tipo: string
           desconto_valor_fixo: number
           descricao: string | null
+          dia_pagamento: number | null
+          dias_antecedencia_corte: number
           dias_base: number
           folha_tipo: Database["public"]["Enums"]["dp_folha_tipo"] | null
           id: string
@@ -2830,10 +2836,16 @@ export type Database = {
           ativo?: boolean
           company_id: string
           created_at?: string
+          desconta_atestado?: boolean
+          desconta_falta?: boolean
+          desconta_ferias?: boolean
+          desconta_folga_extra?: boolean
           desconto_percentual?: number
           desconto_tipo?: string
           desconto_valor_fixo?: number
           descricao?: string | null
+          dia_pagamento?: number | null
+          dias_antecedencia_corte?: number
           dias_base?: number
           folha_tipo?: Database["public"]["Enums"]["dp_folha_tipo"] | null
           id?: string
@@ -2847,10 +2859,16 @@ export type Database = {
           ativo?: boolean
           company_id?: string
           created_at?: string
+          desconta_atestado?: boolean
+          desconta_falta?: boolean
+          desconta_ferias?: boolean
+          desconta_folga_extra?: boolean
           desconto_percentual?: number
           desconto_tipo?: string
           desconto_valor_fixo?: number
           descricao?: string | null
+          dia_pagamento?: number | null
+          dias_antecedencia_corte?: number
           dias_base?: number
           folha_tipo?: Database["public"]["Enums"]["dp_folha_tipo"] | null
           id?: string
@@ -4016,9 +4034,15 @@ export type Database = {
           updated_at: string
           user_id: string | null
           vale_alimentacao: boolean
+          vale_alimentacao_desconta_atestado: boolean | null
+          vale_alimentacao_desconta_falta: boolean | null
+          vale_alimentacao_desconta_ferias: boolean | null
+          vale_alimentacao_desconta_folga_extra: boolean | null
           vale_alimentacao_desconto_tipo: string
           vale_alimentacao_desconto_valor: number
+          vale_alimentacao_dia_pagamento: number | null
           vale_alimentacao_dias_base: number
+          vale_alimentacao_dias_corte: number | null
           vale_alimentacao_dias_origem: string
           vale_alimentacao_periodicidade: string
           vale_alimentacao_valor: number | null
@@ -4097,9 +4121,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           vale_alimentacao?: boolean
+          vale_alimentacao_desconta_atestado?: boolean | null
+          vale_alimentacao_desconta_falta?: boolean | null
+          vale_alimentacao_desconta_ferias?: boolean | null
+          vale_alimentacao_desconta_folga_extra?: boolean | null
           vale_alimentacao_desconto_tipo?: string
           vale_alimentacao_desconto_valor?: number
+          vale_alimentacao_dia_pagamento?: number | null
           vale_alimentacao_dias_base?: number
+          vale_alimentacao_dias_corte?: number | null
           vale_alimentacao_dias_origem?: string
           vale_alimentacao_periodicidade?: string
           vale_alimentacao_valor?: number | null
@@ -4178,9 +4208,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           vale_alimentacao?: boolean
+          vale_alimentacao_desconta_atestado?: boolean | null
+          vale_alimentacao_desconta_falta?: boolean | null
+          vale_alimentacao_desconta_ferias?: boolean | null
+          vale_alimentacao_desconta_folga_extra?: boolean | null
           vale_alimentacao_desconto_tipo?: string
           vale_alimentacao_desconto_valor?: number
+          vale_alimentacao_dia_pagamento?: number | null
           vale_alimentacao_dias_base?: number
+          vale_alimentacao_dias_corte?: number | null
           vale_alimentacao_dias_origem?: string
           vale_alimentacao_periodicidade?: string
           vale_alimentacao_valor?: number | null
@@ -4252,6 +4288,12 @@ export type Database = {
           turno_categoria_labels: Json
           unidade_id: string | null
           updated_at: string
+          va_desconta_atestado: boolean
+          va_desconta_falta: boolean
+          va_desconta_ferias: boolean
+          va_desconta_folga_extra: boolean
+          va_dia_pagamento: number | null
+          va_dias_corte: number
         }
         Insert: {
           adicional_tempo_servico_ativo?: boolean
@@ -4281,6 +4323,12 @@ export type Database = {
           turno_categoria_labels?: Json
           unidade_id?: string | null
           updated_at?: string
+          va_desconta_atestado?: boolean
+          va_desconta_falta?: boolean
+          va_desconta_ferias?: boolean
+          va_desconta_folga_extra?: boolean
+          va_dia_pagamento?: number | null
+          va_dias_corte?: number
         }
         Update: {
           adicional_tempo_servico_ativo?: boolean
@@ -4310,6 +4358,12 @@ export type Database = {
           turno_categoria_labels?: Json
           unidade_id?: string | null
           updated_at?: string
+          va_desconta_atestado?: boolean
+          va_desconta_falta?: boolean
+          va_desconta_ferias?: boolean
+          va_desconta_folga_extra?: boolean
+          va_dia_pagamento?: number | null
+          va_dias_corte?: number
         }
         Relationships: [
           {
@@ -7662,6 +7716,76 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      dp_va_apuracoes: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          competencia: string
+          created_at: string
+          created_by: string | null
+          detalhe: Json
+          dias_descontados: number
+          dias_previstos: number
+          id: string
+          observacao: string | null
+          updated_at: string
+          valor_depositar: number
+          valor_dia: number
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          competencia: string
+          created_at?: string
+          created_by?: string | null
+          detalhe?: Json
+          dias_descontados?: number
+          dias_previstos?: number
+          id?: string
+          observacao?: string | null
+          updated_at?: string
+          valor_depositar?: number
+          valor_dia?: number
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          competencia?: string
+          created_at?: string
+          created_by?: string | null
+          detalhe?: Json
+          dias_descontados?: number
+          dias_previstos?: number
+          id?: string
+          observacao?: string | null
+          updated_at?: string
+          valor_depositar?: number
+          valor_dia?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_va_apuracoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_va_apuracoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_va_apuracoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_send_log: {
         Row: {
@@ -13178,6 +13302,12 @@ export type Database = {
           turno_categoria_labels: Json
           unidade_id: string | null
           updated_at: string
+          va_desconta_atestado: boolean
+          va_desconta_falta: boolean
+          va_desconta_ferias: boolean
+          va_desconta_folga_extra: boolean
+          va_dia_pagamento: number | null
+          va_dias_corte: number
         }
         SetofOptions: {
           from: "*"
