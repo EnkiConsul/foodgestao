@@ -93,11 +93,17 @@ export function AdicionalTempoServicoCard({
     );
   }
 
-  if (!regra) {
+  // Sem regra aplicável ou sem ciclo adquirido: versão enxuta, sem citar
+  // triênio/quinquênio, apenas informando que o critério ainda não foi atendido.
+  if (!regra || !calculo || calculo.ciclos === 0) {
     return (
       <div className="col-span-2 mt-4 space-y-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
         {cabecalho}
-        <p>Nenhuma regra de adicional por tempo de serviço se aplica a este cargo/unidade/sindicato.</p>
+        <p>
+          A empresa possui adicional por tempo de serviço, mas este colaborador ainda não atende
+          aos critérios
+          {calculo ? ` (${calculo.meses} mês(es) de casa)` : ""}.
+        </p>
       </div>
     );
   }
@@ -110,7 +116,7 @@ export function AdicionalTempoServicoCard({
         <Badge variant="outline">
           {rotuloCiclo(regra.ciclo_meses)} · {regra.percentual_por_ciclo}%
         </Badge>
-        {calculo && calculo.valor > 0 && (
+        {calculo.valor > 0 && (
           <Badge variant="secondary">
             +{calculo.percentual}% · {moedaBR(calculo.valor)}/mês
           </Badge>
@@ -123,10 +129,10 @@ export function AdicionalTempoServicoCard({
       </p>
       <p>
         {descreverAdicional(calculo)}
-        {calculo?.mesesParaProximo != null
+        {calculo.mesesParaProximo != null
           ? ` · próximo ciclo em ${calculo.mesesParaProximo} mês(es)`
           : ""}
-        {calculo ? ` · ${calculo.meses} mês(es) de casa` : ""}
+        {` · ${calculo.meses} mês(es) de casa`}
       </p>
       {!config.adicionalAtivo && (
         <p>
@@ -137,3 +143,4 @@ export function AdicionalTempoServicoCard({
     </div>
   );
 }
+
