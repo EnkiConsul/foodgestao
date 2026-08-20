@@ -766,7 +766,6 @@ export function RemuneracaoFields({
             />
           </div>
         )}
-        )}
       </div>
 
       {/* Vale-alimentação / refeição */}
