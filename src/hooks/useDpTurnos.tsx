@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 import { cargaLiquidaHoras, turnoViraODia } from "@/lib/dp/turno-utils";
+import { totalUsoTurno, type TurnoUsoRow } from "@/lib/dp/turno-uso";
+
 
 export type DpTurnoRow = Database["public"]["Tables"]["dp_turnos"]["Row"];
 
