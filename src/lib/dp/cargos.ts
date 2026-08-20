@@ -131,3 +131,65 @@ export function textoPercentualRisco(valor: number | null | undefined): string {
   return v > 0 ? percentualBR(v) : "não aplicável";
 }
 
+
+// ------------------------------------------------------------------
+// Adicionais de risco: a ficha do colaborador e o cargo falam do mesmo campo.
+// Insalubridade/periculosidade são característica da função, então quando o
+// valor digitado na ficha difere do cargo vale perguntar se aquilo é regra do
+// cargo (e propaga) ou exceção só daquela pessoa.
+// ------------------------------------------------------------------
+
+export interface RiscoPercentuais {
+  insalubridade: number;
+  periculosidade: number;
+}
+
+export type DivergenciaRisco =
+  | { tipo: "igual" }
+  | {
+      /** A ficha tem risco maior que o cargo (inclusão/aumento). */
+      tipo: "aumento";
+      ficha: RiscoPercentuais;
+      cargo: RiscoPercentuais;
+    }
+  | {
+      /** A ficha zera ou reduz um risco que o cargo prevê. */
+      tipo: "reducao";
+      ficha: RiscoPercentuais;
+      cargo: RiscoPercentuais;
+    };
+
+const mesmoPercentual = (a: number, b: number) => Math.abs(a - b) <= 0.001;
+
+/** Compara os percentuais de risco da ficha com os do cargo. */
+export function compararRiscoCargo(
+  ficha: RiscoPercentuais,
+  cargo: RiscoPercentuais | null | undefined,
+): DivergenciaRisco {
+  const doCargo: RiscoPercentuais = {
+    insalubridade: Number(cargo?.insalubridade ?? 0) || 0,
+    periculosidade: Number(cargo?.periculosidade ?? 0) || 0,
+  };
+  const naFicha: RiscoPercentuais = {
+    insalubridade: Number(ficha.insalubridade ?? 0) || 0,
+    periculosidade: Number(ficha.periculosidade ?? 0) || 0,
+  };
+  if (
+    mesmoPercentual(naFicha.insalubridade, doCargo.insalubridade) &&
+    mesmoPercentual(naFicha.periculosidade, doCargo.periculosidade)
+  ) {
+    return { tipo: "igual" };
+  }
+  const reduziu =
+    naFicha.insalubridade < doCargo.insalubridade ||
+    naFicha.periculosidade < doCargo.periculosidade;
+  return { tipo: reduziu ? "reducao" : "aumento", ficha: naFicha, cargo: doCargo };
+}
+
+/** Texto curto dos percentuais, para o diálogo ("Periculosidade 30%"). */
+export function textoRisco(r: RiscoPercentuais): string {
+  const partes: string[] = [];
+  if (r.insalubridade > 0) partes.push(`Insalubridade ${r.insalubridade}%`);
+  if (r.periculosidade > 0) partes.push(`Periculosidade ${r.periculosidade}%`);
+  return partes.length ? partes.join(" • ") : "Sem adicional de risco";
+}
