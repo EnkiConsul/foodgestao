@@ -429,74 +429,143 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           <Section icon={Wallet} title="Remuneração">
             <Field label="Forma de Pagamento" value={formaPagamento ? FORMA_PAGAMENTO_LABEL[formaPagamento] : "—"} />
             <Field label="Salário Base" value={fmtCurrency(salarioBase)} />
-            <Field label="Valor da Hora" value={fmtCurrency(valorHora)} />
             <Field
-              label="Base de Cálculo"
+              label="Valor da Hora"
               value={
-                baseSalarial != null
-                  ? `${fmtCurrency(baseSalarial)} / ${baseHorasMes ?? "—"}h${baseDiasMes ? ` ou ${baseDiasMes} dias` : ""}${valorHoraManual ? " (valor manual)" : ""}`
+                valorHoraExibido != null
+                  ? `${fmtCurrency(valorHoraExibido)}${valorHora == null ? " (calculado)" : valorHoraManual ? " (manual)" : ""}`
                   : "—"
               }
             />
-            <Field label="Insalubridade" value={insalubridade ? `${insalubridade}%` : "Não"} />
-            <Field label="Periculosidade" value={periculosidade ? `${periculosidade}%` : "Não"} />
+            <Field
+              label="Valor do Dia"
+              value={valorDiaExibido != null ? `${fmtCurrency(valorDiaExibido)} (calculado)` : "—"}
+            />
+            <Field
+              label="Base de Cálculo"
+              value={
+                baseCalculo != null
+                  ? `${fmtCurrency(baseCalculo)} / ${horasBase}h · ${diasBase} dias`
+                  : "—"
+              }
+            />
+            <Field label="PIS/NIT" value={pisNit} />
+            <Field
+              label="Insalubridade"
+              value={insalubridade ? `${insalubridade}% · ${fmtCurrency(insalubridadeValor)}/mês` : "Não"}
+            />
+            <Field
+              label="Periculosidade"
+              value={periculosidade ? `${periculosidade}% · ${fmtCurrency(periculosidadeValor)}/mês` : "Não"}
+            />
             <Field
               label="Adicional Aplicado na Folha"
               value={adicionalPercentual ? `${adicionalPercentual}%` : "—"}
             />
             <Field label="Dependentes IRRF" value={dependentesIrrf ?? "—"} />
-            <Field
-              label="Vale-Transporte"
-              value={valeTransporte ? `Sim — ${fmtCurrency(valeTransporteDia)}/dia` : "Não"}
-            />
-            <Field
-              label="Vale-Alimentação"
-              value={
-                va
-                  ? `${fmtCurrency(vaValor)} ${vaPeriodicidade === "diario" ? "por dia" : "por mês"}${
-                      vaPeriodicidade === "diario" && vaDiasBase ? ` · ${vaDiasBase} dias` : ""
-                    }`
-                  : "Não"
-              }
-            />
-            {va && (
-              <Field
-                label="Desconto do Colaborador (VA)"
-                value={
-                  vaDescontoTipo === "nenhum" || !vaDescontoValor
-                    ? "Sem desconto"
-                    : vaDescontoTipo === "percentual"
-                    ? `${vaDescontoValor}%`
-                    : fmtCurrency(vaDescontoValor)
-                }
-              />
-            )}
-            <Field
-              label="Prêmio de Assiduidade"
-              value={
-                premioAssiduidade
-                  ? `${fmtCurrency(premioAssiduidadeValor)} — ${assiduidadeCriterio ? ASSIDUIDADE_CRITERIO_LABEL[assiduidadeCriterio] : ""}`
-                  : "Não"
-              }
-            />
-            {premioAssiduidade && (
-              <>
-                <Field label="Tolerância de Atraso" value={assiduidadeTolerancia != null ? `${assiduidadeTolerancia} min` : "—"} />
-                <Field label="Máx. Atrasos Tolerados" value={assiduidadeMaxAtrasos ?? "—"} />
-                <Field
-                  label="Atestado Faz Perder o Prêmio"
-                  value={assiduidadeConsideraAtestado === false ? "Não" : "Sim"}
-                />
-                {assiduidadeConsideraAtestado !== false && (
-                  <Field label="Atestados Tolerados no Mês" value={assiduidadeMaxAtestados ?? 0} />
-                )}
-              </>
-            )}
+            <Field label="Vale-Transporte" value={valeTransporte ? "Sim — ver Benefícios" : "Não"} />
+            <Field label="Vale-Alimentação" value={va ? "Sim — ver Benefícios" : "Não"} />
+
+            {/* Assiduidade fica em Remuneração (não é benefício) */}
+            <div className="col-span-full space-y-2 rounded-xl border border-border bg-muted/40 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Award className="h-4 w-4 text-primary" aria-hidden="true" />
+                Prêmio de assiduidade
+              </div>
+              {premioAssiduidade ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Valor do Prêmio"
+                    value={
+                      premioTipo === "percentual"
+                        ? `${premioAssiduidadeValor ?? 0}% do salário`
+                        : fmtCurrency(premioAssiduidadeValor)
+                    }
+                  />
+                  <Field label="Tipo" value={premioTipo ? PREMIO_TIPO_LABEL[premioTipo] : "—"} />
+                  <Field
+                    label="Critério"
+                    value={assiduidadeCriterio ? ASSIDUIDADE_CRITERIO_LABEL[assiduidadeCriterio] : "—"}
+                  />
+                  <Field
+                    label="Tolerância de Atraso"
+                    value={assiduidadeTolerancia != null ? `${assiduidadeTolerancia} min` : "—"}
+                  />
+                  <Field label="Máx. Atrasos Tolerados" value={assiduidadeMaxAtrasos ?? "—"} />
+                  <Field
+                    label="Atestado Faz Perder o Prêmio"
+                    value={assiduidadeConsideraAtestado === false ? "Não" : "Sim"}
+                  />
+                  {assiduidadeConsideraAtestado !== false && (
+                    <Field label="Atestados Tolerados no Mês" value={assiduidadeMaxAtestados ?? 0} />
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Colaborador sem prêmio de assiduidade.</p>
+              )}
+            </div>
           </Section>
 
           {/* Benefícios */}
           <Section icon={Briefcase} title="Benefícios">
-            {beneficioAtivos.length > 0 ? (
+            {va && (
+              <div className="col-span-full space-y-2 rounded-lg border border-border p-3">
+                <div className="text-sm font-medium text-foreground">Vale-alimentação</div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Valor"
+                    value={`${fmtCurrency(vaValor)} ${vaPeriodicidade === "diario" ? "por dia" : "por mês"}${
+                      vaPeriodicidade === "diario" && vaDiasBase ? ` · base ${vaDiasBase} dias` : ""
+                    }`}
+                  />
+                  <Field
+                    label="Dia de Pagamento"
+                    value={vaDiaPagamento ? `Dia ${vaDiaPagamento}` : "—"}
+                  />
+                  <Field
+                    label="Corte para Apuração"
+                    value={vaDiasCorte != null ? `${vaDiasCorte} dia(s) antes do pagamento` : "—"}
+                  />
+                  <Field
+                    label="Descontos Aplicados"
+                    value={vaDescontos.length ? vaDescontos.join(", ") : "Nenhum"}
+                  />
+                  <Field
+                    label="Desconto do Colaborador"
+                    value={
+                      vaDescontoTipo === "nenhum" || !vaDescontoValor
+                        ? "Sem desconto"
+                        : vaDescontoTipo === "percentual"
+                        ? `${vaDescontoValor}%`
+                        : fmtCurrency(vaDescontoValor)
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
+            {valeTransporte && (
+              <div className="col-span-full space-y-2 rounded-lg border border-border p-3">
+                <div className="text-sm font-medium text-foreground">Vale-transporte</div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Valor" value={`${fmtCurrency(valeTransporteDia)} por dia`} />
+                  <Field
+                    label="Dia de Pagamento"
+                    value={vtDiaPagamento ? `Dia ${vtDiaPagamento}` : "—"}
+                  />
+                  <Field
+                    label="Corte para Apuração"
+                    value={vtDiasCorte != null ? `${vtDiasCorte} dia(s) antes do pagamento` : "—"}
+                  />
+                  <Field
+                    label="Descontos Aplicados"
+                    value={vtDescontos.length ? vtDescontos.join(", ") : "Nenhum"}
+                  />
+                </div>
+              </div>
+            )}
+
+            {beneficioAtivos.length > 0 && (
               <div className="col-span-full flex flex-wrap gap-2">
                 {beneficioAtivos.map((b) => (
                   <Badge key={b.id} variant="outline" className="text-xs">
@@ -505,9 +574,21 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
                   </Badge>
                 ))}
               </div>
-            ) : (
+            )}
+
+            {!temBeneficio && (
               <div className="col-span-full text-sm text-muted-foreground">Nenhum benefício ativo.</div>
             )}
+
+            <AdicionalTempoServicoCard
+              admissao={(colaborador as any)?.data_admissao ?? null}
+              cargoId={(colaborador as any)?.cargo_id ?? null}
+              unidadeId={(colaborador as any)?.unidade_id ?? null}
+              sindicatoId={enquadramento.data?.laboral?.id ?? null}
+              base={baseCalculo ?? 0}
+              pisoCargo={null}
+              onBeforeNavigate={() => onOpenChange(false)}
+            />
           </Section>
 
           {/* Dependentes */}
