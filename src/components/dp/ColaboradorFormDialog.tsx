@@ -2040,13 +2040,6 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           }
         }}
       />
-      <AlertDialog open={false} onOpenChange={() => {}}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle />
-          </AlertDialogHeader>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {conflitoCargo && (
         <CargoSalarioConflitoDialog
