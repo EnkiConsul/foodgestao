@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useHiddenScreens } from "@/hooks/useHiddenScreens";
+import { filterMoreGroups } from "@/lib/nav/hiddenScreens";
 import { MODULE_NAV } from "@/config/mobileNav";
 import type { MoreGroup, NavLeaf } from "@/config/mobileNav";
 import type { ActiveModule } from "@/hooks/useActiveModule";
