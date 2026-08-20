@@ -852,71 +852,37 @@ export function RemuneracaoFields({
                 />
               </div>
             )}
-            <div className="space-y-3 rounded-md border border-border bg-muted/20 p-3 md:col-span-2">
-              <div>
-                <p className="text-sm font-medium">Depósito e data de corte</p>
-                <p className="text-xs text-muted-foreground">
-                  O cálculo fecha alguns dias antes do pagamento para a empresa se organizar. O depósito
-                  cobre os dias previstos do próximo período, menos os dias pagos e não trabalhados no
-                  período anterior.
-                </p>
-              </div>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="va_dia_pagamento">Dia do pagamento</Label>
-                  <Input
-                    id="va_dia_pagamento"
-                    inputMode="numeric"
-                    value={value.vale_alimentacao_dia_pagamento}
-                    onChange={(e) =>
-                      onChange({ vale_alimentacao_dia_pagamento: e.target.value.replace(/\D/g, "").slice(0, 2) })
-                    }
-                    placeholder={String(DIA_PAGAMENTO_PADRAO)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="va_dias_corte">Corte (dias antes do pagamento)</Label>
-                  <Input
-                    id="va_dias_corte"
-                    inputMode="numeric"
-                    value={value.vale_alimentacao_dias_corte}
-                    onChange={(e) =>
-                      onChange({ vale_alimentacao_dias_corte: e.target.value.replace(/\D/g, "").slice(0, 2) })
-                    }
-                    placeholder={String(DIAS_CORTE_PADRAO)}
-                  />
-                </div>
-              </div>
-              <div className="rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
-                Pagamento em {formatarDataCurta(periodoVa.pagamento)} · corte em{" "}
-                {formatarDataCurta(periodoVa.corte)} · cobre{" "}
-                {formatarDataCurta(periodoVa.cobertura.inicio)} a {formatarDataCurta(periodoVa.cobertura.fim)} ·
-                confere {formatarDataCurta(periodoVa.conferencia.inicio)} a{" "}
-                {formatarDataCurta(periodoVa.conferencia.fim)}
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Desconta o dia em caso de
-                </p>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                  {([
-                    ["vale_alimentacao_desconta_falta", "Falta"],
-                    ["vale_alimentacao_desconta_folga_extra", "Folga extra"],
-                    ["vale_alimentacao_desconta_atestado", "Atestado/licença"],
-                    ["vale_alimentacao_desconta_ferias", "Férias"],
-                  ] as const).map(([campo, label]) => (
-                    <div key={campo} className="flex items-center gap-3">
-                      <Switch
-                        id={campo}
-                        checked={value[campo]}
-                        onCheckedChange={(v) => onChange({ [campo]: v } as Partial<RemuneracaoFormState>)}
-                      />
-                      <Label htmlFor={campo} className="cursor-pointer text-sm font-normal">{label}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <ValeCorteFields
+              id="va"
+              valor={{
+                diaPagamento: value.vale_alimentacao_dia_pagamento,
+                diasCorte: value.vale_alimentacao_dias_corte,
+                regras: {
+                  falta: value.vale_alimentacao_desconta_falta,
+                  folga_extra: value.vale_alimentacao_desconta_folga_extra,
+                  atestado: value.vale_alimentacao_desconta_atestado,
+                  ferias: value.vale_alimentacao_desconta_ferias,
+                },
+              }}
+              onChange={(patch) =>
+                onChange({
+                  ...(patch.diaPagamento !== undefined
+                    ? { vale_alimentacao_dia_pagamento: patch.diaPagamento }
+                    : {}),
+                  ...(patch.diasCorte !== undefined
+                    ? { vale_alimentacao_dias_corte: patch.diasCorte }
+                    : {}),
+                  ...(patch.regras
+                    ? {
+                        vale_alimentacao_desconta_falta: patch.regras.falta,
+                        vale_alimentacao_desconta_folga_extra: patch.regras.folga_extra,
+                        vale_alimentacao_desconta_atestado: patch.regras.atestado,
+                        vale_alimentacao_desconta_ferias: patch.regras.ferias,
+                      }
+                    : {}),
+                })
+              }
+            />
 
             <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground md:col-span-2">
               <div className="font-medium text-foreground">
