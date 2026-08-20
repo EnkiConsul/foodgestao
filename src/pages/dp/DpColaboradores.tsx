@@ -464,22 +464,16 @@ export default function DpColaboradores() {
 
 
 
-      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remover colaborador?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Isto também remove todas as solicitações e documentos vinculados a <strong>{toDelete?.nome}</strong>.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <MotivoDialog
+        open={!!toDelete}
+        onOpenChange={(o) => !o && setToDelete(null)}
+        title="Excluir colaborador?"
+        description={`${toDelete?.nome ?? "O cadastro"} vai para a lixeira e pode ser restaurado por 7 dias.`}
+        label="Justificativa da exclusão"
+        confirmLabel="Excluir cadastro"
+        loading={del.isPending}
+        onConfirm={handleDelete}
+      />
 
 
     </DpPage>
