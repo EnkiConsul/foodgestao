@@ -103,8 +103,10 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
   const meuResumo = useDpMeuResumo();
   const surfaceKey = variant === "portal" ? "portal" : "dp";
   const { layout } = useDpMenuLayout(surfaceKey);
-  const { hidden } = useHiddenScreens();
+  const { hidden, enabled: hiddenEnabled } = useHiddenScreens();
+  const { isSuperAdmin } = useSuperAdmin();
   const [organizarOpen, setOrganizarOpen] = useState(false);
+  const [telasOpen, setTelasOpen] = useState(false);
   const items = useMemo(() => {
     const base = filterSurface(variant === "portal" ? DP_PORTAL_NAV : DP_ADMIN_NAV, hidden);
     return buildItems(layout ? applyMenuLayout(base, layout) : base);
