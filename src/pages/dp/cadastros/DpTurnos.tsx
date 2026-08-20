@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Clock, Plus, Search, Store, Tags } from "lucide-react";
+import { Clock, Info, Plus, Search, Store, Tags, Trash2 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { DpPage, DpPageHeader, DpFilterCard, DpEmptyState } from "@/components/dp/DpPage";
@@ -18,7 +19,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TurnoCard } from "@/components/dp/TurnoCard";
+
 import { TurnoForm, type TurnoSubmitPayload } from "@/components/dp/TurnoForm";
 import { TurnoCategoriaLabelsDialog } from "@/components/dp/TurnoCategoriaLabelsDialog";
 import { HorarioFuncionamentoEditor } from "@/components/dp/HorarioFuncionamentoEditor";
@@ -26,15 +29,26 @@ import {
   useDpTurnos, turnoParaForm, TURNO_FORM_DEFAULT,
   type CienciaTurno, type DpTurnoForm, type DpTurnoRow,
 } from "@/hooks/useDpTurnos";
+import { useDpTurnosUso } from "@/hooks/useDpTurnosUso";
+import { estadoUsoTurno, podeExcluirTurno } from "@/lib/dp/turno-uso";
+
 
 const TODAS = "todas";
 
+type UsoFiltro = "todos" | "em_uso" | "sem_uso";
+
 export default function DpTurnos() {
   const { selectedCompanyId } = useCompanyContext();
-  const { turnos, isLoading, error, criar, atualizar, novaVersao, alternarAtivo, remover } = useDpTurnos();
+  const {
+    turnos, isLoading, error, criar, atualizar, novaVersao, alternarAtivo, remover, removerEmLote,
+  } = useDpTurnos();
+  const { usoPorTurno, isLoading: usoCarregando } = useDpTurnosUso();
 
   const [busca, setBusca] = useState("");
   const [unidadeFiltro, setUnidadeFiltro] = useState(TODAS);
+  const [usoFiltro, setUsoFiltro] = useState<UsoFiltro>("todos");
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [limpezaOpen, setLimpezaOpen] = useState(false);
   const [unidadeFuncionamento, setUnidadeFuncionamento] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
@@ -61,16 +75,47 @@ export default function DpTurnos() {
   const listaUnidades = unidades.data ?? [];
   const nomeUnidade = (id: string | null) => listaUnidades.find((u) => u.id === id)?.nome ?? null;
 
+  const estadoDoTurno = (t: DpTurnoRow) =>
+    estadoUsoTurno({ uso: usoPorTurno[t.id], carregando: usoCarregando });
+
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return turnos.filter((t) => {
       if (unidadeFiltro !== TODAS && t.unidade_id !== unidadeFiltro) return false;
+      if (usoFiltro !== "todos" && !usoCarregando) {
+        const estado = estadoUsoTurno({ uso: usoPorTurno[t.id] });
+        if (usoFiltro === "sem_uso" && estado !== "sem_uso") return false;
+        if (usoFiltro === "em_uso" && estado === "sem_uso") return false;
+      }
       if (!termo) return true;
       return `${t.nome} ${t.descricao ?? ""}`.toLowerCase().includes(termo);
     });
-  }, [turnos, busca, unidadeFiltro]);
+  }, [turnos, busca, unidadeFiltro, usoFiltro, usoPorTurno, usoCarregando]);
+
+  const candidatosLimpeza = useMemo(
+    () => filtrados.filter((t) => podeExcluirTurno(estadoUsoTurno({ uso: usoPorTurno[t.id] }))),
+    [filtrados, usoPorTurno],
+  );
+
+  const alternarSelecao = (id: string, marcado: boolean) =>
+    setSelecionados((atual) => (marcado ? [...new Set([...atual, id])] : atual.filter((i) => i !== id)));
+
+  const alternarTodos = (marcado: boolean) =>
+    setSelecionados(marcado ? candidatosLimpeza.map((t) => t.id) : []);
+
+  const excluirSelecionados = async () => {
+    try {
+      await removerEmLote.mutateAsync(selecionados);
+      toast.success(`${selecionados.length} turno(s) excluído(s).`);
+      setSelecionados([]);
+      setLimpezaOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível excluir os turnos.");
+    }
+  };
 
   const abrirNovo = () => {
+
     setEditando(null);
     setInicial({ ...TURNO_FORM_DEFAULT, unidade_id: unidadeFiltro === TODAS ? null : unidadeFiltro });
     setFormOpen(true);
@@ -193,8 +238,54 @@ export default function DpTurnos() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Uso</Label>
+                <Select value={usoFiltro} onValueChange={(v) => setUsoFiltro(v as UsoFiltro)}>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os turnos</SelectItem>
+                    <SelectItem value="em_uso">Em uso</SelectItem>
+                    <SelectItem value="sem_uso">Sem uso</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </DpFilterCard>
+
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground">
+            <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              Turno com histórico deve ser <strong>desativado</strong> — ele deixa de aparecer nas
+              novas escalas e preserva o que já foi registrado. Excluir só faz sentido para turno
+              criado por engano e nunca usado.
+            </span>
+          </div>
+
+          {usoFiltro === "sem_uso" && filtrados.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={selecionados.length > 0 && selecionados.length === candidatosLimpeza.length}
+                  onCheckedChange={(v) => alternarTodos(v === true)}
+                  aria-label="Selecionar todos os turnos sem uso"
+                />
+                <span className="text-sm text-muted-foreground">
+                  {selecionados.length > 0
+                    ? `${selecionados.length} selecionado(s)`
+                    : `${candidatosLimpeza.length} turno(s) sem uso`}
+                </span>
+              </div>
+              <Button
+                variant="destructive"
+                className="h-11"
+                disabled={selecionados.length === 0}
+                onClick={() => setLimpezaOpen(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                Excluir turnos sem uso
+              </Button>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="space-y-3">
@@ -204,7 +295,9 @@ export default function DpTurnos() {
             <DpEmptyState dashed>Não foi possível carregar os turnos.</DpEmptyState>
           ) : filtrados.length === 0 ? (
             <DpEmptyState icon={Clock} dashed>
-              <p className="font-medium text-foreground">Nenhum turno cadastrado</p>
+              <p className="font-medium text-foreground">
+                {turnos.length === 0 ? "Nenhum turno cadastrado" : "Nenhum turno com esses filtros"}
+              </p>
               <p className="mt-1">Comece pelos horários que você mais usa: almoço, jantar, abertura e fechamento.</p>
               <Button className="mt-3 h-11" onClick={abrirNovo}>
                 <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -218,6 +311,11 @@ export default function DpTurnos() {
                   key={t.id}
                   turno={t}
                   unidadeNome={nomeUnidade(t.unidade_id)}
+                  uso={usoPorTurno[t.id]}
+                  usoEstado={estadoDoTurno(t)}
+                  selecionavel={usoFiltro === "sem_uso"}
+                  selecionado={selecionados.includes(t.id)}
+                  onSelecionar={(marcado) => alternarSelecao(t.id, marcado)}
                   onEdit={() => abrirEdicao(t)}
                   onDuplicar={() => duplicar(t)}
                   onDelete={() => setARemover(t)}
@@ -226,6 +324,7 @@ export default function DpTurnos() {
               ))}
             </div>
           )}
+
         </TabsContent>
 
         <TabsContent value="funcionamento" className="space-y-4">
@@ -316,6 +415,25 @@ export default function DpTurnos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={limpezaOpen} onOpenChange={(o) => !o && setLimpezaOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selecionados.length} turno(s) sem uso?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Nenhum deles está vinculado a colaborador, escala, convocação, cobertura mínima ou
+              grade semanal. A exclusão é definitiva.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-11">Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="h-11" onClick={excluirSelecionados}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DpPage>
+
   );
 }

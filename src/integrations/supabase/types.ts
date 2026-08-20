@@ -13490,6 +13490,20 @@ export type Database = {
           sindicato_nome: string
         }[]
       }
+      dp_turnos_uso: {
+        Args: { p_company_id: string }
+        Returns: {
+          cobertura_minima: number
+          colaboradores_padrao: number
+          config_dias: number
+          convocacoes: number
+          escala_itens_publicados: number
+          escala_itens_rascunho: number
+          grade_dias: number
+          turno_id: string
+          versoes: number
+        }[]
+      }
       dre_apply_default_mapping: {
         Args: { _company_id: string }
         Returns: number
