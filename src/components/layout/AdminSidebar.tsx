@@ -65,6 +65,8 @@ const tenantItems = [
   { title: "Formas de Pagamento Padrão", url: "/admin/formas-pagamento-padrao", icon: CreditCard },
   { title: "Perfis de Acesso", url: "/admin/perfis-acesso", icon: Building2 },
   { title: "Módulos", url: "/admin/modulos", icon: Sparkles },
+  { title: "Telas em Desenvolvimento", url: "/admin/telas", icon: EyeOff },
+
   { title: "Bancos", url: "/admin/bancos", icon: Landmark },
   { title: "Auditoria de Saldos", url: "/admin/auditoria-saldos", icon: ShieldCheck },
   { title: "Saúde do Sistema", url: "/admin/saude-sistema", icon: Activity },
