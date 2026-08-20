@@ -77,6 +77,7 @@ const Mais = lazyWithRetry(() => import("./pages/Mais"));
 // DP admin
 const DpHome = lazyWithRetry(() => import("./pages/dp/DpHome"));
 const DpColaboradores = lazyWithRetry(() => import("./pages/dp/DpColaboradores"));
+const DpColaboradoresLixeira = lazyWithRetry(() => import("./pages/dp/DpColaboradoresLixeira"));
 const DpSolicitacoes = lazyWithRetry(() => import("./pages/dp/DpSolicitacoes"));
 const DpDocumentos = lazyWithRetry(() => import("./pages/dp/DpDocumentos"));
 const DpDocumentosHub = lazyWithRetry(() => import("./pages/dp/DpDocumentosHub"));
@@ -444,6 +445,7 @@ const AppRoutes = () => (
       >
         <Route index element={<DpHome />} />
         <Route path="colaboradores" element={<DpColaboradores />} />
+        <Route path="colaboradores/lixeira" element={<DpColaboradoresLixeira />} />
         <Route path="solicitacoes" element={<DpSolicitacoes />} />
         <Route path="folgas" element={<DpFolgasHub />} />
         <Route path="folgas/calendario" element={<DpFolgas />} />

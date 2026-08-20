@@ -25,6 +25,8 @@ import {
 } from "@/hooks/useDpColaboradores";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
+import { MotivoDialog } from "@/components/dp/MotivoDialog";
+import { Link } from "react-router-dom";
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
@@ -123,13 +125,13 @@ export default function DpColaboradores() {
       });
   }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, statusFilter]);
 
-  const handleDelete = async () => {
+  const handleDelete = async (motivo: string) => {
     if (!toDelete) return;
     try {
-      await del.mutateAsync(toDelete.id);
-      toast.success("Colaborador removido");
+      await del.mutateAsync({ id: toDelete.id, motivo });
+      toast.success("Cadastro movido para a lixeira");
     } catch (e) {
-      toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Erro ao excluir", { description: e instanceof Error ? e.message : String(e) });
     }
     setToDelete(null);
   };
@@ -144,13 +146,20 @@ export default function DpColaboradores() {
         title="Colaboradores"
         description="Gerencie a equipe, cargos e acessos ao sistema."
         actions={
-          <Button
-            size="lg"
-            className="rounded-full font-semibold"
-            onClick={() => abrirCadastro(null)}
-          >
-            <Plus className="h-5 w-5 mr-2" /> Novo Colaborador
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="lg" className="rounded-full" asChild>
+              <Link to="/dp/colaboradores/lixeira">
+                <Trash2 className="h-4 w-4 mr-2" /> Lixeira
+              </Link>
+            </Button>
+            <Button
+              size="lg"
+              className="rounded-full font-semibold"
+              onClick={() => abrirCadastro(null)}
+            >
+              <Plus className="h-5 w-5 mr-2" /> Novo Colaborador
+            </Button>
+          </div>
         }
       />
 
@@ -464,22 +473,16 @@ export default function DpColaboradores() {
 
 
 
-      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remover colaborador?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Isto também remove todas as solicitações e documentos vinculados a <strong>{toDelete?.nome}</strong>.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <MotivoDialog
+        open={!!toDelete}
+        onOpenChange={(o) => !o && setToDelete(null)}
+        title="Excluir colaborador?"
+        description={`${toDelete?.nome ?? "O cadastro"} vai para a lixeira e pode ser restaurado por 7 dias.`}
+        label="Justificativa da exclusão"
+        confirmLabel="Excluir cadastro"
+        loading={del.isPending}
+        onConfirm={handleDelete}
+      />
 
 
     </DpPage>

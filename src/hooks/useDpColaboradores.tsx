@@ -55,14 +55,80 @@ export function useUpsertDpColaborador() {
   });
 }
 
+/**
+ * Exclusão do cadastro com justificativa obrigatória. Não apaga o registro:
+ * ele vai para a lixeira (7 dias) e pode ser restaurado.
+ */
 export function useDeleteDpColaborador() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_colaboradores").delete().eq("id", id);
+    mutationFn: async (input: { id: string; motivo: string }) => {
+      const { error } = await (supabase.rpc as any)("dp_excluir_colaborador", {
+        p_colaborador_id: input.id,
+        p_motivo: input.motivo,
+      });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_colaboradores"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+      qc.invalidateQueries({ queryKey: ["dp_colaboradores_lixeira"] });
+    },
+  });
+}
+
+export type DpColaboradorLixeira = {
+  id: string;
+  nome: string;
+  cargo_nome: string | null;
+  unidade_nome: string | null;
+  matricula: string | null;
+  deleted_at: string;
+  deleted_by: string | null;
+  delete_reason: string | null;
+  expira_em: string;
+};
+
+/** Lixeira de colaboradores da empresa ativa (itens vencidos são purgados no servidor). */
+export function useDpColaboradoresLixeira() {
+  const { selectedCompanyId } = useCompanyContext();
+  return useQuery({
+    queryKey: ["dp_colaboradores_lixeira", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("dp_colaboradores_lixeira", {
+        p_company_id: selectedCompanyId,
+      });
+      if (error) throw error;
+      return (data ?? []) as DpColaboradorLixeira[];
+    },
+  });
+}
+
+export function useRestaurarDpColaborador() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.rpc as any)("dp_restaurar_colaborador", { p_colaborador_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+      qc.invalidateQueries({ queryKey: ["dp_colaboradores_lixeira"] });
+    },
+  });
+}
+
+export function usePurgarDpColaborador() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; motivo: string }) => {
+      const { error } = await (supabase.rpc as any)("dp_purgar_colaborador", {
+        p_colaborador_id: input.id,
+        p_motivo: input.motivo,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_colaboradores_lixeira"] }),
   });
 }
 

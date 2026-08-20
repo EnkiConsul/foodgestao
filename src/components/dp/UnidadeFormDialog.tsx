@@ -155,9 +155,9 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
       });
       return;
     }
+    // Nova unidade abre em branco: só a empresa é pré-selecionada quando há uma só.
     const only = companies.length === 1 ? companies[0].id : "";
     setForm({ ...blank, company_id: only, nome: nomeInicial });
-    if (only) void applyCompanyData(only, !nomeInicial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, unidade?.id, nomeInicial]);
 
@@ -213,10 +213,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
             ) : (
               <Select
                 value={form.company_id}
-                onValueChange={(v) => {
-                  setForm((prev) => ({ ...prev, company_id: v }));
-                  if (!unidade) void applyCompanyData(v, !form.nome);
-                }}
+                onValueChange={(v) => setForm((prev) => ({ ...prev, company_id: v }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a empresa" />
@@ -233,6 +230,18 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
             <p className="text-[11px] text-muted-foreground">
               A cobrança do plano é por empresa. Uma empresa pode ter várias unidades sem custo extra.
             </p>
+            {!unidade && form.company_id && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                disabled={loadingBrasilApi}
+                onClick={() => void applyCompanyData(form.company_id, true)}
+              >
+                {loadingBrasilApi ? "Buscando..." : "Usar dados da empresa"}
+              </Button>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Nome da Unidade *</Label>
