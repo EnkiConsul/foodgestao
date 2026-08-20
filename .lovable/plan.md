@@ -31,7 +31,7 @@ O card hoje diz "Nenhum benefício ativo" mesmo com vale-alimentação de R$ 24,
 
 - **Vale-alimentação**: valor por dia/mês, dias-base, dia de pagamento, dias de corte, descontos aplicados (falta, folga extra, atestado, férias) e desconto do colaborador.
 - **Vale-transporte**: valor por dia, dia de pagamento, dias de corte e os mesmos descontos.
-- **Prêmio de assiduidade** e **adicional por tempo de serviço** como itens de benefício.
+- **Adicional por tempo de serviço** como item de benefício (o prêmio de assiduidade fica em Remuneração).
 - **Benefícios do catálogo** atribuídos ao colaborador continuam listados.
 - A mensagem "Nenhum benefício ativo" só aparece quando realmente não há nada, em nenhuma dessas fontes.
 
