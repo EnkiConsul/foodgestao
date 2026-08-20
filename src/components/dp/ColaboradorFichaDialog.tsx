@@ -523,7 +523,18 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
                 <p className="text-sm text-muted-foreground">Colaborador sem prêmio de assiduidade.</p>
               )}
             </div>
+
+            <AdicionalTempoServicoCard
+              admissao={(colaborador as any)?.data_admissao ?? null}
+              cargoId={(colaborador as any)?.cargo_id ?? null}
+              unidadeId={(colaborador as any)?.unidade_id ?? null}
+              sindicatoId={enquadramento.data?.laboral?.id ?? null}
+              base={baseCalculo ?? 0}
+              pisoCargo={null}
+              onBeforeNavigate={() => onOpenChange(false)}
+            />
           </Section>
+
 
           {/* Benefícios */}
           <Section icon={Briefcase} title="Benefícios">
