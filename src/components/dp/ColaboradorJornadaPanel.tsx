@@ -780,79 +780,55 @@ export function ColaboradorJornadaPanel({
           </div>
         )}
 
+        <div className="grid gap-2 rounded-lg border p-3 sm:grid-cols-3">
+          <div className="space-y-1">
+            <Label className="text-[11px]" htmlFor="h-entrada">Entrada</Label>
+            <Input
+              id="h-entrada" type="time" className="h-9" value={horario.entrada}
+              onChange={(e) => definirHorario({ entrada: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px]" htmlFor="h-saida">Saída</Label>
+            <Input
+              id="h-saida" type="time" className="h-9" value={horario.saida}
+              onChange={(e) => definirHorario({ saida: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px]" htmlFor="h-intervalo">Intervalo (min)</Label>
+            <Input
+              id="h-intervalo" type="number" min={0} inputMode="numeric" className="h-9"
+              value={horario.intervalo_minutos ?? 0}
+              onChange={(e) => definirHorario({ intervalo_minutos: Number(e.target.value || 0) })}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground sm:col-span-3">
+            Este horário vale para todos os dias trabalhados. Horário de entrada, saída ou intervalo
+            diferente é outro turno; folga diferente não é.
+          </p>
+        </div>
+
         <ul className="divide-y rounded-lg border">
-          {dias.map((dia) => {
-            const h = horarioEfetivoDia(dia, horario);
-            const diferente = diaDivergeDoBase(dia, horario);
-            // Horário da loja é o que outros colegas realmente usam; horário só
-            // desta pessoa continua sendo exceção, mesmo já existindo o turno.
-            const colegas = colegasNoHorarioDoDia({ ...dia, ...h }, usosPorHorario);
-            const daLoja = diferente && colegas >= 1;
-            return (
-              <li key={dia.dow} className="space-y-2 p-3">
-                <div className="flex flex-wrap items-center gap-3">
-                  <Switch
-                    checked={dia.trabalha}
-                    onCheckedChange={() => alternarDia(dia.dow)}
-                    aria-label={`Trabalha ${DOW_LABEL[dia.dow]}`}
-                  />
-                  <span className="w-24 shrink-0 text-sm font-medium">{DOW_LABEL[dia.dow]}</span>
-                  {dia.trabalha ? (
-                    <div className="ml-auto flex items-center gap-2">
-                      {diferente && (
-                        <Badge
-                          variant={daLoja ? "secondary" : "outline"}
-                          className="text-[10px]"
-                          title={daLoja
-                            ? `Usado por ${colegas} ${colegas === 1 ? "colega" : "colegas"} da unidade`
-                            : "Nenhum outro colaborador da unidade usa este horário"}
-                        >
-                          {daLoja
-                            ? `Horário da loja · ${colegas} ${colegas === 1 ? "colega" : "colegas"}`
-                            : "Horário próprio"}
-                        </Badge>
-                      )}
-
-                      <RepetirHorarioPopover
-                        dow={dia.dow}
-                        onRepetir={(destinos) => repetirHorario(dia.dow, destinos)}
-                      />
-                    </div>
-
-                  ) : (
-                    <Badge variant="secondary" className="ml-auto">Folga</Badge>
-                  )}
-                </div>
-
-                {dia.trabalha && (
-                  <div className="grid gap-2 pl-[3.25rem] sm:grid-cols-3">
-                    <div className="space-y-1">
-                      <Label className="text-[11px]" htmlFor={`h-ent-${dia.dow}`}>Entrada</Label>
-                      <Input
-                        id={`h-ent-${dia.dow}`} type="time" className="h-9" value={h.entrada}
-                        onChange={(e) => definirHorarioDia(dia.dow, { entrada: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px]" htmlFor={`h-sai-${dia.dow}`}>Saída</Label>
-                      <Input
-                        id={`h-sai-${dia.dow}`} type="time" className="h-9" value={h.saida}
-                        onChange={(e) => definirHorarioDia(dia.dow, { saida: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px]" htmlFor={`h-int-${dia.dow}`}>Intervalo (min)</Label>
-                      <Input
-                        id={`h-int-${dia.dow}`} type="number" min={0} inputMode="numeric" className="h-9"
-                        value={h.intervalo_minutos ?? 0}
-                        onChange={(e) => definirHorarioDia(dia.dow, { intervalo_minutos: Number(e.target.value || 0) })}
-                      />
-                    </div>
-                  </div>
-                )}
-              </li>
-            );
-          })}
+          {dias.map((dia) => (
+            <li key={dia.dow} className="flex flex-wrap items-center gap-3 p-3">
+              <Switch
+                checked={dia.trabalha}
+                onCheckedChange={() => alternarDia(dia.dow)}
+                aria-label={`Trabalha ${DOW_LABEL[dia.dow]}`}
+              />
+              <span className="w-24 shrink-0 text-sm font-medium">{DOW_LABEL[dia.dow]}</span>
+              {dia.trabalha ? (
+                <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+                  {horario.entrada && horario.saida
+                    ? `${horario.entrada} → ${horario.saida}`
+                    : "Sem horário definido"}
+                </span>
+              ) : (
+                <Badge variant="secondary" className="ml-auto">Folga</Badge>
+              )}
+            </li>
+          ))}
         </ul>
         {policy.folgaSemanal !== "nao_se_aplica" && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
