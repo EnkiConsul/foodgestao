@@ -44,6 +44,9 @@ export default function CartoesCredito() {
   const [editing, setEditing] = useState<CreditCardRow | null>(null);
   const [payInvoice, setPayInvoice] = useState<Invoice | null>(null);
   const [deleteCard, setDeleteCard] = useState<CreditCardRow | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const { pending: pendingCredit, reload: reloadPendingCredit } = usePluggyCreditReview();
+
 
   const fetchAll = useCallback(async () => {
     if (!user) return;
@@ -120,6 +123,23 @@ export default function CartoesCredito() {
           <Plus className="h-4 w-4" /> Novo Cartão
         </Button>
       </div>
+
+      {pendingCredit.length > 0 && (
+        <Card className="border-warning/40 bg-warning/5 shadow-sm">
+          <CardContent className="p-4 flex flex-wrap items-center gap-3">
+            <AlertCircle className="h-4 w-4 text-warning shrink-0" />
+            <div className="min-w-0 flex-1 text-sm">
+              <p className="font-semibold">
+                {pendingCredit.length} cartão(ões) encontrado(s) no Open Finance
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Nada é cadastrado sem sua autorização. Revise os dados e confirme para criar ou vincular.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => setReviewOpen(true)}>Revisar cartões</Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="shadow-sm">
