@@ -1,4 +1,8 @@
-# Padrão de benefícios e adicionais de risco no cadastro do colaborador
+# Padrão de remuneração e adicionais de risco no cadastro do colaborador
+
+## 0. Renomear para "padrão de remuneração"
+
+O que o sistema grava não são só benefícios: inclui valor da hora/base, prêmio de assiduidade, VA e VT. Todos os rótulos visíveis passam a dizer **"padrão de remuneração"** (título do diálogo, botões, selo "fora do padrão", textos de alcance e mensagens de sucesso). Tabela e arquivos internos continuam com o nome atual, para não exigir migração.
 
 ## 1. Vale-alimentação desligado sendo sugerido como padrão
 
