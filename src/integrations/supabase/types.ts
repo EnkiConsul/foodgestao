@@ -3416,6 +3416,8 @@ export type Database = {
       dp_cargos: {
         Row: {
           ativo: boolean
+          base_dias_mes: number
+          base_horas_mes: number
           cbo: string | null
           cnh_categoria_minima: string | null
           company_id: string
@@ -3426,13 +3428,17 @@ export type Database = {
           id: string
           insalubre: boolean
           insalubre_periculoso: boolean
+          insalubridade_percentual: number
           nome: string
+          periculosidade_percentual: number
           perigoso: boolean
           salario_base: number | null
           updated_at: string
         }
         Insert: {
           ativo?: boolean
+          base_dias_mes?: number
+          base_horas_mes?: number
           cbo?: string | null
           cnh_categoria_minima?: string | null
           company_id: string
@@ -3443,13 +3449,17 @@ export type Database = {
           id?: string
           insalubre?: boolean
           insalubre_periculoso?: boolean
+          insalubridade_percentual?: number
           nome: string
+          periculosidade_percentual?: number
           perigoso?: boolean
           salario_base?: number | null
           updated_at?: string
         }
         Update: {
           ativo?: boolean
+          base_dias_mes?: number
+          base_horas_mes?: number
           cbo?: string | null
           cnh_categoria_minima?: string | null
           company_id?: string
@@ -3460,7 +3470,9 @@ export type Database = {
           id?: string
           insalubre?: boolean
           insalubre_periculoso?: boolean
+          insalubridade_percentual?: number
           nome?: string
+          periculosidade_percentual?: number
           perigoso?: boolean
           salario_base?: number | null
           updated_at?: string
