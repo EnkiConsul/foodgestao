@@ -123,13 +123,13 @@ export default function DpColaboradores() {
       });
   }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, statusFilter]);
 
-  const handleDelete = async () => {
+  const handleDelete = async (motivo: string) => {
     if (!toDelete) return;
     try {
-      await del.mutateAsync(toDelete.id);
-      toast.success("Colaborador removido");
+      await del.mutateAsync({ id: toDelete.id, motivo });
+      toast.success("Cadastro movido para a lixeira");
     } catch (e) {
-      toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Erro ao excluir", { description: e instanceof Error ? e.message : String(e) });
     }
     setToDelete(null);
   };
