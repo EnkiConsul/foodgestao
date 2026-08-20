@@ -32,6 +32,9 @@ A lista de colaboradores é carregada só quando o painel é aberto, para não p
   - `dp_colaborador_config_trabalho.turno_padrao_id`
   - `dp_colaborador_config_dias.turno_id`
   - `dp_escala_itens.turno_id` (via `dp_escalas`, a partir do mês corrente), distinto por colaborador.
-- Hook `useDpTurnoColaboradores(turnoId, enabled)` em `src/hooks/useDpTurnoColaboradores.tsx`, habilitado apenas quando o popover está aberto.
-- `src/components/dp/TurnoCard.tsx`: popover ganha a seção "Colaboradores vinculados" com skeleton de carregamento; rótulo do selo passa a considerar `colaboradores_padrao + config_dias`.
+- Hook `useDpTurnoColaboradores(turnoId, enabled)` em `src/hooks/useDpTurnoColaboradores.tsx`, habilitado apenas quando o painel está aberto.
+- Novo `src/components/dp/TurnoDetalheDialog.tsx`: painel de detalhe (Dialog com cabeçalho/rodapé fixos e corpo com rolagem) contendo resumo de uso, lista de colaboradores com skeleton e as ações de editar/duplicar/excluir.
+- `src/components/dp/TurnoCard.tsx`: corpo do card vira área clicável (`role="button"`, acessível por teclado) que dispara `onAbrirDetalhe`; ações existentes param a propagação do clique. Rótulo do selo passa a considerar `colaboradores_padrao + config_dias`.
+- `src/pages/dp/cadastros/DpTurnos.tsx`: estado do turno em detalhe e renderização do novo diálogo, reaproveitando `abrirEdicao`, `duplicar` e `setARemover`.
+
 - `src/lib/dp/turno-uso.ts`: helper de rótulo do selo com contagem de pessoas + rótulos de origem, com testes em `src/lib/dp/__tests__/turno-uso.test.ts`.
