@@ -131,6 +131,8 @@ export function ColaboradorJornadaPanel({
    * colaborador. Aqui ela é só leitura.
    */
   const unidadeId = colaborador?.unidade_id ?? "none";
+  const unidadeNome = unidades.find((u) => u.id === colaborador?.unidade_id)?.nome ?? null;
+
 
   /**
    * Referência usada apenas para preencher dias ainda em branco (colaborador
