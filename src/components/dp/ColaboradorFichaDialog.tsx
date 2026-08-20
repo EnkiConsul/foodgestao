@@ -31,7 +31,9 @@ import {
   type ConfigTrabalho,
   type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
+import { diasTrabalhaveisNoMes } from "@/lib/dp/beneficios-regras";
 import { MOTIVO_DESLIGAMENTO_LABEL, ELEGIBILIDADE_LABEL } from "@/lib/dp/desligamento";
+
 import {
   User, Briefcase, Mail, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil, X, Users, Award,
 } from "lucide-react";
@@ -266,6 +268,22 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
   const periculosidadeValor = periculosidade ? valorAdicional(baseCalculo ?? 0, periculosidade) : 0;
   const temBeneficio = beneficioAtivos.length > 0 || !!va || !!valeTransporte;
 
+  // Base de dias do VA: quando a origem é a jornada, contamos os dias do mês
+  // corrente a partir dos dias da semana configurados (mesma regra do cadastro).
+  const vaDiasOrigem = ((colaborador as any)?.vale_alimentacao_dias_origem ?? "jornada") as string;
+  const vaDiasPelaJornada = useMemo(
+    () => diasTrabalhaveisNoMes(configDominio?.dias ?? null, new Date()),
+    [configDominio],
+  );
+  const vaBaseTexto = useMemo(() => {
+    if (vaDiasOrigem === "fixo") return vaDiasBase ? `base ${vaDiasBase} dias (fixo)` : null;
+    if (vaDiasPelaJornada != null) return `base ${vaDiasPelaJornada} dias no mês (pela jornada)`;
+    return vaDiasBase
+      ? `base ${vaDiasBase} dias (referência — jornada não configurada)`
+      : "jornada não configurada";
+  }, [vaDiasOrigem, vaDiasBase, vaDiasPelaJornada]);
+
+
   if (!colaborador) return null;
 
   return (
@@ -411,8 +429,9 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
                           : d.turno
                           ? `${d.turno.entrada || "—"} às ${d.turno.saida || "—"}${
                               d.turno.intervalo_minutos ? ` · ${d.turno.intervalo_minutos} min de intervalo` : ""
-                            }${d.origem === "base" ? " · horário do turno" : ""}`
+                            }`
                           : "Sem horário definido"}
+
                       </span>
                     </div>
                   ))}
@@ -504,7 +523,18 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
                 <p className="text-sm text-muted-foreground">Colaborador sem prêmio de assiduidade.</p>
               )}
             </div>
+
+            <AdicionalTempoServicoCard
+              admissao={(colaborador as any)?.data_admissao ?? null}
+              cargoId={(colaborador as any)?.cargo_id ?? null}
+              unidadeId={(colaborador as any)?.unidade_id ?? null}
+              sindicatoId={enquadramento.data?.laboral?.id ?? null}
+              base={baseCalculo ?? 0}
+              pisoCargo={null}
+              onBeforeNavigate={() => onOpenChange(false)}
+            />
           </Section>
+
 
           {/* Benefícios */}
           <Section icon={Briefcase} title="Benefícios">
@@ -515,9 +545,10 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
                   <Field
                     label="Valor"
                     value={`${fmtCurrency(vaValor)} ${vaPeriodicidade === "diario" ? "por dia" : "por mês"}${
-                      vaPeriodicidade === "diario" && vaDiasBase ? ` · base ${vaDiasBase} dias` : ""
+                      vaPeriodicidade === "diario" && vaBaseTexto ? ` · ${vaBaseTexto}` : ""
                     }`}
                   />
+
                   <Field
                     label="Dia de Pagamento"
                     value={vaDiaPagamento ? `Dia ${vaDiaPagamento}` : "—"}
@@ -579,17 +610,8 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
             {!temBeneficio && (
               <div className="col-span-full text-sm text-muted-foreground">Nenhum benefício ativo.</div>
             )}
-
-            <AdicionalTempoServicoCard
-              admissao={(colaborador as any)?.data_admissao ?? null}
-              cargoId={(colaborador as any)?.cargo_id ?? null}
-              unidadeId={(colaborador as any)?.unidade_id ?? null}
-              sindicatoId={enquadramento.data?.laboral?.id ?? null}
-              base={baseCalculo ?? 0}
-              pisoCargo={null}
-              onBeforeNavigate={() => onOpenChange(false)}
-            />
           </Section>
+
 
           {/* Dependentes */}
           <Section icon={Users} title="Dependentes">
