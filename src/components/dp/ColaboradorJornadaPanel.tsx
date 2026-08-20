@@ -376,8 +376,38 @@ export function ColaboradorJornadaPanel({
   const alternarDia = (dow: number) => {
     marcarAlterado();
     setDias((prev) => prev.map((d) => (d.dow === dow
-      ? { ...d, trabalha: !d.trabalha, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
+      ? (d.trabalha
+        ? { ...d, trabalha: false, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
+        : {
+          ...d,
+          trabalha: true,
+          turno_id: null,
+          entrada: horario.entrada,
+          saida: horario.saida,
+          intervalo_minutos: horario.intervalo_minutos ?? 0,
+        })
       : d)));
+  };
+
+  /**
+   * Edição direta do horário do dia: o campo já vem preenchido com o horário
+   * previsto e o que o usuário digitar passa a valer só para aquele dia.
+   */
+  const definirHorarioDia = (dow: number, patch: Partial<HorarioSimples>) => {
+    marcarAlterado();
+    setDias((prev) => {
+      const dia = prev.find((d) => d.dow === dow);
+      if (!dia) return prev;
+      return definirHorarioNoDia(prev, dow, { ...horarioEfetivoDia(dia, horario), ...patch });
+    });
+  };
+
+  /** Repete o horário de um dia nos dias escolhidos. */
+  const repetirHorario = (dow: number, destinos: number[]) => {
+    if (destinos.length === 0) return;
+    marcarAlterado();
+    setDias((prev) => copiarHorarioEntreDias(prev, dow, destinos, horario));
+    toast.success(`Horário repetido em ${destinos.map((d) => DOW_CURTO[d]).join(", ")}`);
   };
 
   const definirHorario = (patch: Partial<HorarioSimples>) => {
@@ -390,21 +420,23 @@ export function ColaboradorJornadaPanel({
     marcarAlterado();
     setFolgaVariavel(false);
     const folgar = modo === "6x1" ? [0] : [0, 6];
-    setDias((prev) => prev.map((d) => ({
-      ...d,
-      trabalha: !folgar.includes(d.dow),
-      turno_id: null, entrada: null, saida: null, intervalo_minutos: null,
-    })));
+    setDias((prev) => prev.map((d) => (folgar.includes(d.dow)
+      ? { ...d, trabalha: false, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
+      : {
+        ...d,
+        trabalha: true,
+        entrada: d.entrada ?? horario.entrada,
+        saida: d.saida ?? horario.saida,
+        intervalo_minutos: d.intervalo_minutos ?? horario.intervalo_minutos ?? 0,
+      })));
   };
 
   /**
-   * Na cópia entram apenas os dias de trabalho e folga: o horário do colaborador
-   * é único e vem do campo de horário, nunca de exceções por dia.
+   * A cópia traz a semana inteira do colega: dias de folga e também os dias com
+   * horário diferente, que continuam sendo horário do colaborador (sem turno).
    */
   const somenteDias = (lista: DiaConfig[]): DiaConfig[] =>
-    normalizarDias(lista).map((d) => ({
-      ...d, turno_id: null, entrada: null, saida: null, intervalo_minutos: null,
-    }));
+    normalizarDias(lista).map((d) => ({ ...d, turno_id: null }));
 
   const onCopiarConfig = (c: ConfigCopiada) => {
     marcarAlterado();
