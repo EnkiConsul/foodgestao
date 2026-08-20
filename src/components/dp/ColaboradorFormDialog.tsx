@@ -33,8 +33,8 @@ import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
 import { ColaboradorAcessoPanel } from "./ColaboradorAcessoPanel";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+
 import { useDeleteDpColaborador } from "@/hooks/useDpColaboradores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
