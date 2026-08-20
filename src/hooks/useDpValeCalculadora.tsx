@@ -123,8 +123,8 @@ export function useDpValeCalculadora(
     queryKey: ["dp_vale_colaboradores", tipo, selectedCompanyId, unidadeFilter],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
-      let q = supabase
-        .from("dp_colaboradores")
+      // Colunas montadas em runtime (VA/VT): tipagem genérica do client não ajuda aqui.
+      let q: any = (supabase.from("dp_colaboradores") as any)
         .select(`id, nome, ativo, data_desligamento, unidade_id, ${cols.colaborador}, dp_unidades(nome)`)
         .eq("company_id", selectedCompanyId!)
         .eq(cols.flag, true)
