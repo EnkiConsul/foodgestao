@@ -126,7 +126,7 @@ export function ComplementosSalariaisPanel({
         )}
       </DpContentCard>
 
-      {/* Prêmio de assiduidade */}
+      {/* Prêmio de assiduidade — mesmos campos da ficha do colaborador */}
       <DpContentCard contentClassName="space-y-3 p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -145,17 +145,39 @@ export function ComplementosSalariaisPanel({
             </Label>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Tipo, valor e critérios (tolerância de atraso, limite de atrasos e atestados) ficam no
-          padrão de remuneração da empresa, cargo ou unidade — e continuam editáveis na ficha do
-          colaborador, que pergunta se a mudança é exceção ou novo padrão.
-        </p>
-        {config.assiduidadeAtiva && (
-          <Button variant="outline" onClick={() => navigate("/dp/beneficios")}>
-            Abrir padrão de remuneração
-          </Button>
+        {config.assiduidadeAtiva ? (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Tipo, valor e critérios são os mesmos campos da remuneração da ficha — editar aqui
+              muda o padrão da empresa, da unidade ou do cargo; a ficha continua podendo abrir
+              exceção para um colaborador.
+            </p>
+            <div className="space-y-2">
+              {escoposAssiduidade.map((e) => (
+                <div
+                  key={e.chave}
+                  className="flex flex-wrap items-center gap-2 rounded-xl border border-border p-3 text-sm"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{e.rotulo}</p>
+                    <p className="text-xs text-muted-foreground">{e.resumo}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Button variant="outline" onClick={() => setAssiduidadeAberta(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Editar Regras
+            </Button>
+          </>
+        ) : (
+          <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+            Esta empresa não paga prêmio de assiduidade. Ligue a chave acima para configurar as
+            regras.
+          </p>
         )}
       </DpContentCard>
+
 
       {/* Adicional noturno */}
       <DpContentCard contentClassName="space-y-3 p-4 md:p-5">
