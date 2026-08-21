@@ -1,32 +1,33 @@
-# Funcionamento da unidade: por que não apareceu
+# Corrigir o turno fantasma 11:00 → 23:00 no funcionamento da unidade
 
-## O que os prints mostram
+## O que está acontecendo
 
-A janela do print é a versão **anterior** do formulário de unidade, não a atual:
+Confirmado no código: ao abrir o editor de funcionamento, todo dia sem horário salvo é montado já **aberto** e com um período pré-preenchido de **11:00 → 23:00** (`funcionamentoVazio` em `src/lib/dp/turno-utils.ts`).
 
-- título "Editar unidade" (a versão atual mostra o nome da unidade, ex. "Pakerê T-63");
-- sem as abas Dados | Funcionamento;
-- rodapé com "Salvar" acima de "Cancelar" (na versão atual "Cancelar" vem primeiro no celular).
+Efeito prático:
 
-O código já no projeto (`UnidadeFormDialog.tsx`) tem as abas **Dados** e **Funcionamento**, com o editor de horários dentro da segunda aba. Ou seja: o formulário está certo, o navegador estava com o pacote antigo em cache.
+1. Você cadastrou o período "Dia" na Garavelo.
+2. Pediu para replicar nos outros dias.
+3. A replicação **acrescenta** o período copiado à lista do dia de destino — que já tinha o 11:00 → 23:00 sugerido pelo sistema. Resultado: dois períodos por dia.
 
-## Passo 1 — Confirmar (sem mudar código)
+Também confirmei que ainda não há nenhum horário de funcionamento gravado no banco (nenhuma unidade), então não há dado sujo para limpar: basta corrigir o comportamento e cadastrar de novo.
 
-1. Recarregar a pré-visualização com cache limpo (fechar e reabrir a aba do Chrome ou puxar para atualizar).
-2. Abrir Pessoas > Unidades > editar "Pakerê T-63": deve aparecer a barra de abas **Dados | Funcionamento** logo abaixo do título, que agora mostra o nome da unidade.
+## Correções
 
-Se depois do recarregamento as abas continuarem ausentes, o problema é outro e eu investigo no ambiente (checagem direta da tela em execução) antes de qualquer alteração.
+1. **Dia sem horário começa fechado e vazio.** Nenhum horário sugerido automaticamente. O dia só passa a ter período quando você liga a chave "aberto" ou adiciona um período.
+2. **Ligar a chave do dia cria um período em branco** (Abre/Fecha vazios) em vez de 11:00 → 23:00, para não gravar horário que você não escolheu.
+3. **Replicar em outros dias substitui o dia inteiro** por padrão: o dia de destino fica exatamente com os períodos copiados. Para os casos em que você quer somar (ex.: replicar o Jantar em dias que já têm Almoço), o botão passa a ter duas ações claras: **Substituir horário do dia** e **Adicionar como período extra**.
+4. **Não salvar período incompleto:** dias abertos com Abre/Fecha em branco são avisados e não geram linha no banco.
 
-## Passo 2 — Deixar impossível de perder (se você quiser)
+## Como fica na prática (Garavelo)
 
-Mesmo com as abas funcionando, dá para tornar o acesso mais direto:
-
-- Abrir o editor já na aba **Funcionamento** quando o acesso vier pelo atalho da loja (já implementado nos cards/lista/ficha de Unidades).
-- Mostrar um aviso na aba Dados quando a unidade ainda não tem funcionamento configurado, com um botão "Configurar funcionamento" que muda de aba.
-- No título do diálogo, um selo curto com o resumo ("Seg–Sex 08:30 → 18:30") para dar retorno imediato.
+- Cadastra "Dia" 11:00 → 23:00 na segunda.
+- Replicar > Substituir horário do dia > marca ter–dom: todos ficam apenas com "Dia" 11:00 → 23:00.
+- Se depois quiser um período de madrugada só na sexta e sábado: cria na sexta e usa Replicar > Adicionar como período extra em sábado.
 
 ## Detalhes técnicos
 
-- Arquivos envolvidos: `src/components/dp/UnidadeFormDialog.tsx` (abas + integração de salvamento), `src/components/dp/HorarioFuncionamentoEditor.tsx` (períodos por dia), `src/hooks/useDpFuncionamentoResumo.tsx` (resumo por unidade), `src/pages/dp/DpUnidades.tsx` (atalhos e resumo).
-- Nenhuma mudança de banco é necessária: `dp_unidade_horarios_funcionamento` já aceita vários períodos por dia.
-- O Passo 2 é só frontend.
+- `src/lib/dp/turno-utils.ts`: `funcionamentoVazio` passa a retornar `aberto: false` e `periodos: []`; `periodoVazio` retorna horas `null`.
+- `src/components/dp/HorarioFuncionamentoEditor.tsx`: ao ligar a chave do dia, cria um período em branco se não houver nenhum; `aplicarEmDias` recebe modo `substituir | adicionar`; o popover de replicação ganha a escolha do modo; validação bloqueia salvar período incompleto.
+- `src/hooks/useDpHorariosFuncionamento.tsx`: continua apagando e regravando por unidade; períodos sem hora são descartados antes do insert.
+- Testes em `src/lib/dp/__tests__/turno-utils.test.ts` cobrindo dia vazio (fechado) e resumo semanal.
