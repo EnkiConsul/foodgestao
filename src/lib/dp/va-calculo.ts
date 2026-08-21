@@ -139,12 +139,17 @@ export interface FolgaMarcada {
 
 export interface DiasPrevistosInput {
   periodo: { inicio: string; fim: string };
+  /** Datas previstas explícitas, usadas por convocação de intermitentes. */
+  datasPrevistas?: string[];
+  origemDatasPrevistas?: "convocacao";
   /** Itens da escala publicada, quando existir. */
   escala?: DiaEscala[];
   /** Dias da semana trabalhados na jornada habitual (0=domingo). */
   dowTrabalhados?: number[];
   /** Folgas marcadas no calendário (dominicais, extras, férias...). */
   folgas?: FolgaMarcada[];
+  /** Intervalos de férias que retiram dias do próximo depósito. */
+  ferias?: { inicio: string; fim: string }[];
 }
 
 export interface DiasPrevistosResultado {
@@ -153,7 +158,8 @@ export interface DiasPrevistosResultado {
   folgasDescontadas: number;
   /** Quantas dessas folgas ainda aguardam aprovação. */
   folgasPendentes: number;
-  origem: "escala" | "jornada";
+  feriasDescontadas: number;
+  origem: "escala" | "jornada" | "convocacao";
 }
 
 const folgaValida = (f: FolgaMarcada) =>
@@ -167,26 +173,39 @@ const folgaValida = (f: FolgaMarcada) =>
 export function contarDiasPrevistos(input: DiasPrevistosInput): DiasPrevistosResultado {
   const dias = diasDoIntervalo(input.periodo.inicio, input.periodo.fim);
   const escala = (input.escala ?? []).filter((e) => e.data >= input.periodo.inicio && e.data <= input.periodo.fim);
-  const usaEscala = escala.length > 0;
+  const explicitas = [...new Set(input.datasPrevistas ?? [])].filter(
+    (d) => d >= input.periodo.inicio && d <= input.periodo.fim,
+  );
+  const usaExplicitas = input.origemDatasPrevistas === "convocacao";
+  const usaEscala = !usaExplicitas && escala.length > 0;
 
-  const previstos = usaEscala
-    ? escala.filter((e) => e.tipo === "trabalho").map((e) => e.data)
-    : dias.filter((d) => (input.dowTrabalhados ?? []).includes(dowDe(d)));
+  const previstos = usaExplicitas
+    ? explicitas
+    : usaEscala
+      ? escala.filter((e) => e.tipo === "trabalho").map((e) => e.data)
+      : dias.filter((d) => (input.dowTrabalhados ?? []).includes(dowDe(d)));
 
   const folgasNoPeriodo = (input.folgas ?? []).filter(
     (f) => folgaValida(f) && f.data >= input.periodo.inicio && f.data <= input.periodo.fim,
   );
   const porData = new Map(folgasNoPeriodo.map((f) => [f.data, f]));
 
-  const restantes = previstos.filter((d) => !porData.has(d));
-  const descontadas = previstos.length - restantes.length;
+  const ferias = new Set<string>();
+  for (const intervalo of input.ferias ?? []) {
+    for (const d of diasDoIntervalo(intervalo.inicio, intervalo.fim)) ferias.add(d);
+  }
+  const semFolga = previstos.filter((d) => !porData.has(d));
+  const restantes = semFolga.filter((d) => !ferias.has(d));
+  const descontadas = previstos.length - semFolga.length;
+  const feriasDescontadas = semFolga.length - restantes.length;
   const pendentes = previstos.filter((d) => porData.get(d)?.status === "pendente").length;
 
   return {
     dias: restantes.length,
     folgasDescontadas: descontadas,
     folgasPendentes: pendentes,
-    origem: usaEscala ? "escala" : "jornada",
+    feriasDescontadas,
+    origem: usaExplicitas ? "convocacao" : usaEscala ? "escala" : "jornada",
   };
 }
 

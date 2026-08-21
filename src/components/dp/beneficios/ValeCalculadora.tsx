@@ -146,8 +146,9 @@ export function ValeCalculadora({ tipo }: Props) {
                     {l.unidade_nome ? <span className="text-muted-foreground"> · {l.unidade_nome}</span> : null}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {l.diasPrevistos} dias previstos ({l.origemPrevistos === "escala" ? "escala publicada" : "jornada habitual"})
+                    {l.diasPrevistos} dias previstos ({l.origemPrevistos === "escala" ? "escala publicada" : l.origemPrevistos === "convocacao" ? "convocações aceitas" : "jornada habitual"})
                     {l.folgasDescontadas > 0 && ` · −${l.folgasDescontadas} folga(s) já marcada(s)`}
+                    {l.feriasDescontadas > 0 && ` · −${l.feriasDescontadas} dia(s) de férias`}
                     {l.descontos.dias > 0 && ` · −${l.descontos.dias} do período anterior`}
                     {" · "}{brl(l.valorDia)}/dia
                   </p>
@@ -167,6 +168,7 @@ export function ValeCalculadora({ tipo }: Props) {
                     {l.semValorDia && (
                       <Badge variant="destructive" className="text-[11px]">Sem valor por dia cadastrado</Badge>
                     )}
+                    {l.aviso && <Badge variant="outline" className="text-[11px]">{l.aviso}</Badge>}
                   </div>
                 </div>
                 <div className="shrink-0 text-right">
