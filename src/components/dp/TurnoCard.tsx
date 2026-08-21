@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { CATEGORIA_LABEL, formatarFaixaTurno } from "@/lib/dp/turno-utils";
+import { categoriaLabel, formatarFaixaTurno } from "@/lib/dp/turno-utils";
+import { useTurnoCategoriaLabels } from "@/hooks/useTurnoCategoriaLabels";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import {
   motivoBloqueioExclusao, podeExcluirTurno, rotuloUsoTurno,
@@ -31,6 +32,7 @@ export function TurnoCard({
   turno, unidadeNome, uso, usoEstado, selecionavel, selecionado, onSelecionar,
   onAbrirDetalhe, onEdit, onDuplicar, onDelete, onToggleAtivo,
 }: TurnoCardProps) {
+  const { categorias } = useTurnoCategoriaLabels();
   const podeExcluir = podeExcluirTurno(usoEstado);
   const motivo = motivoBloqueioExclusao(usoEstado, uso);
 
@@ -61,7 +63,7 @@ export function TurnoCard({
               <h3 className="truncate text-base font-semibold">{turno.nome}</h3>
               {turno.versao > 1 && <Badge variant="outline">v{turno.versao}</Badge>}
               {turno.categoria && (
-                <Badge variant="secondary">{CATEGORIA_LABEL[turno.categoria] ?? turno.categoria}</Badge>
+                <Badge variant="secondary">{categoriaLabel(turno.categoria, categorias)}</Badge>
               )}
             </div>
             <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
