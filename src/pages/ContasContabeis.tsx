@@ -269,9 +269,14 @@ export default function ContasContabeis() {
     );
   };
 
-  const handleRestoreDefault = async () => {
+  const handleRestoreDefault = () => {
     if (!selectedCompanyId) return;
-    if (!confirm("Isto irá adicionar as contas do modelo padrão que ainda não existirem nesta empresa. Contas atuais serão mantidas. Continuar?")) return;
+    setRestoreOpen(true);
+  };
+
+  const executeRestore = async () => {
+    if (!selectedCompanyId) return;
+    setRestoreOpen(false);
     setRestoring(true);
     const { data, error } = await (supabase as any).rpc("chart_accounts_restore_default", { _company_id: selectedCompanyId });
     setRestoring(false);
