@@ -30,6 +30,8 @@ import {
 } from "@/lib/dp/beneficios-regras";
 import { BeneficioIsonomiaAviso } from "@/components/dp/BeneficioIsonomiaAviso";
 import { ValeCorteFields } from "@/components/dp/beneficios/ValeCorteFields";
+import { beneficioAlcanca, descreverEscopoBeneficio } from "@/lib/dp/beneficioEscopo";
+
 
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
