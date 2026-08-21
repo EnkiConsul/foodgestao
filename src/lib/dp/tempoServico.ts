@@ -89,23 +89,35 @@ export function regraAtende(regra: RegraTempoServico, alvo: AlvoAdicional): bool
 
 /**
  * Escolhe a regra mais específica e vigente para o colaborador.
- * Prioridade: cargo > unidade > sindicato > empresa; empate resolve pela
- * vigência mais recente.
+ * Prioridade: cargo > unidade > sindicato > empresa. Entre regras de mesmo
+ * escopo, vence a de maior ciclo já **alcançado** pelo colaborador (escada:
+ * quinquênio substitui triênio a partir de 5 anos de casa); se nenhuma foi
+ * alcançada, devolve a de menor ciclo, apenas para a mensagem de "ainda não
+ * atende". Empate final resolve pela vigência mais recente.
  */
 export function selecionarRegraTempoServico(
   regras: RegraTempoServico[],
   alvo: AlvoAdicional,
   referencia: string,
+  admissao?: string | null,
 ): RegraTempoServico | null {
+  const meses = mesesDeCasa(admissao, referencia);
+  const alcancou = (r: RegraTempoServico) =>
+    r.ciclo_meses > 0 && Math.floor(meses / r.ciclo_meses) >= 1 ? 1 : 0;
   const candidatas = regras
     .filter((r) => r.ativo && vigenteEm(r, referencia) && regraAtende(r, alvo))
     .sort((a, b) => {
       const peso = PESO_ESCOPO[b.escopo] - PESO_ESCOPO[a.escopo];
       if (peso !== 0) return peso;
+      const alcance = alcancou(b) - alcancou(a);
+      if (alcance !== 0) return alcance;
+      const ciclo = alcancou(a) === 1 ? b.ciclo_meses - a.ciclo_meses : a.ciclo_meses - b.ciclo_meses;
+      if (ciclo !== 0) return ciclo;
       return b.vigencia_inicio.localeCompare(a.vigencia_inicio);
     });
   return candidatas[0] ?? null;
 }
+
 
 /** Meses completos entre admissão e a data de referência. */
 export function mesesDeCasa(admissao: string | null | undefined, referencia: string): number {
