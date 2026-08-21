@@ -70,7 +70,39 @@ export function ComplementosSalariaisPanel({
   const { data: sindicatos = [] } = useDpSindicatos();
 
   const [form, setForm] = useState<RegraTempoServicoInput | null>(null);
+  const [assiduidadeAberta, setAssiduidadeAberta] = useState(false);
   const navigate = useNavigate();
+
+  const { data: padroes = [] } = useDpBeneficiosPadroes();
+
+  /** Escopos que hoje têm regra própria de assiduidade (empresa sempre aparece). */
+  const escoposAssiduidade = useMemo(() => {
+    const nome = (unidadeId: string | null, cargoId: string | null) => {
+      if (cargoId) {
+        const c = cargos.find((x) => x.id === cargoId)?.nome ?? "Cargo";
+        const u = unidadeId ? unidades.find((x) => x.id === unidadeId)?.nome : null;
+        return u ? `Cargo ${c} · ${u}` : `Cargo ${c}`;
+      }
+      if (unidadeId) return `Unidade ${unidades.find((x) => x.id === unidadeId)?.nome ?? ""}`.trim();
+      return "Toda a empresa";
+    };
+    const empresa = padroes.find((p) => !p.unidade_id && !p.cargo_id);
+    const outros = padroes.filter(
+      (p) => (p.unidade_id || p.cargo_id) && p.payload?.premio_assiduidade !== undefined,
+    );
+    return [
+      {
+        chave: "empresa",
+        rotulo: "Toda a empresa",
+        resumo: resumoAssiduidade(empresa?.payload as any),
+      },
+      ...outros.map((p) => ({
+        chave: p.id,
+        rotulo: nome(p.unidade_id, p.cargo_id),
+        resumo: resumoAssiduidade(p.payload as any),
+      })),
+    ];
+  }, [padroes, unidades, cargos]);
 
   /** Cargos com risco cadastrado — mesma fonte usada na ficha do colaborador. */
   const cargosRisco = useMemo(
@@ -80,6 +112,7 @@ export function ComplementosSalariaisPanel({
       ),
     [cargos],
   );
+
 
   const complementosExtras: ReactNode = (
     <>
