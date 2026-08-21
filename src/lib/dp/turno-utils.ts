@@ -109,7 +109,7 @@ export function serializarCategorias(lista: CategoriaTurnoItem[]): CategoriaTurn
     .filter((c) => !!c.codigo && !!c.nome);
 }
 
-type FonteCategorias = CategoriaTurnoItem[] | CategoriaLabels | null | undefined;
+export type FonteCategorias = CategoriaTurnoItem[] | CategoriaLabels | null | undefined;
 
 function comoLista(fonte: FonteCategorias): CategoriaTurnoItem[] {
   if (!fonte) return categoriasPadrao();
@@ -191,7 +191,7 @@ export function nomeSugeridoTurno(
   categoria: string | null | undefined,
   entrada: string,
   saida: string,
-  overrides?: CategoriaLabels | null,
+  overrides?: FonteCategorias,
 ): string {
   const cat = categoria || sugerirCategoria(entrada);
   const label = categoriaLabel(cat, overrides);
