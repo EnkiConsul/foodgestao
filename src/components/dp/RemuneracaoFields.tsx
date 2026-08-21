@@ -236,6 +236,12 @@ export function RemuneracaoFields({
 }: Props) {
   const navigate = useNavigate();
 
+  // Complementos desligados pela empresa (Cargos e Salários → Complementos Salariais)
+  // não aparecem na ficha do colaborador.
+  const { config: complementos } = useDpSalarioFamiliaConfig();
+  const assiduidadeAtiva = complementos.assiduidadeAtiva;
+
+
   /** Marca o input pendente para foco/destaque automático. */
   const marca = (campo: string, extraClass?: string) => ({
     "data-field": campo,
