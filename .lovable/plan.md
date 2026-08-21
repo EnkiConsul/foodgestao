@@ -38,5 +38,5 @@ Ao selecionar uma linha, exibir:
 
 ## Validação
 - Criar testes para configuração global versus unidade, folga dominical prevista, sobreposição de folgas/férias, acerto anterior e intermitente sem/com convocações.
-- Validar especificamente o caso da Cristiane, que deve explicar no calendário a passagem de 27 para 22 dias antes de outros ajustes.
+- Validar em vários perfis (CLT com folga fixa, escala publicada e intermitente); a Cristiane é o caso de conferência que deve explicar no calendário a passagem de 27 para 22 dias antes de outros ajustes.
 - Conferir carregamento, seleção de colaborador, VA/VT, histórico e responsividade em desktop e mobile.
