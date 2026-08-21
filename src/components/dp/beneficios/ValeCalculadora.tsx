@@ -10,8 +10,10 @@ import {
 import { DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
-import { useDpValeCalculadora, VALE_LABEL, type ValeTipo } from "@/hooks/useDpValeCalculadora";
+import { useDpValeCalculadora, VALE_LABEL, type LinhaVale, type ValeTipo } from "@/hooks/useDpValeCalculadora";
+import { ValeMemoriaDialog } from "@/components/dp/beneficios/ValeMemoriaDialog";
 import { MOTIVO_DESCONTO_LABEL, type MotivoDesconto } from "@/lib/dp/va-calculo";
+
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
