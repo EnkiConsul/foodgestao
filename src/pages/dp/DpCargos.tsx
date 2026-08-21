@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
@@ -273,9 +273,10 @@ export default function DpCargos() {
       </div>
 
 
-      {/* Criar / Editar */}
         </TabsContent>
       </Tabs>
+
+      {/* Criar / Editar */}
 
       <CargoFormDialog
         open={open}
