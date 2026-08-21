@@ -212,6 +212,9 @@ export function RemuneracaoFields({
   cargoInsalubre,
   cargoPerigoso,
   beneficios,
+  onNovoBeneficio,
+  onEditarBeneficio,
+
   regime,
   diasJornada,
   folgasFimDeSemanaMes,
