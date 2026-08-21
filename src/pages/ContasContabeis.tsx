@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, PlusCircle, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, PlusCircle, Sparkles, X } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -55,6 +56,9 @@ export default function ContasContabeis() {
   const [defaultParent, setDefaultParent] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<ChartAccount | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["chart-accounts", user?.id, contextType],
@@ -72,6 +76,27 @@ export default function ContasContabeis() {
 
   const tree = useMemo(() => buildTree(rows), [rows]);
 
+  // id -> depth (profundidade na árvore) e mapa de filhos
+  const { depthById, childrenById } = useMemo(() => {
+    const depthById = new Map<string, number>();
+    const childrenById = new Map<string, string[]>();
+    const walk = (nodes: Node[], depth: number) => {
+      nodes.forEach((n) => {
+        depthById.set(n.id, depth);
+        childrenById.set(n.id, n.children.map((c) => c.id));
+        walk(n.children, depth + 1);
+      });
+    };
+    walk(tree, 0);
+    return { depthById, childrenById };
+  }, [tree]);
+
+  const collectSubtree = (id: string, acc: string[] = []): string[] => {
+    acc.push(id);
+    (childrenById.get(id) ?? []).forEach((c) => collectSubtree(c, acc));
+    return acc;
+  };
+
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -79,6 +104,24 @@ export default function ContasContabeis() {
       else next.add(id);
       return next;
     });
+  };
+
+  const toggleSelect = (id: string, checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      collectSubtree(id).forEach((sid) => {
+        if (checked) next.add(sid);
+        else next.delete(sid);
+      });
+      return next;
+    });
+  };
+
+  const allSelected = rows.length > 0 && selected.size === rows.length;
+  const someSelected = selected.size > 0 && !allSelected;
+
+  const toggleSelectAll = () => {
+    setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)));
   };
 
   const openNew = (parentId: string | null = null) => {
@@ -109,15 +152,81 @@ export default function ContasContabeis() {
     setDeleteTarget(null);
   };
 
+  const confirmBulkDelete = async () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+
+    const byId = new Map(rows.map((r) => [r.id, r] as const));
+    const blocked: { name: string; reason: string }[] = [];
+
+    // Contas com filhas fora da seleção não podem ser excluídas
+    const deletable = ids.filter((id) => {
+      const children = childrenById.get(id) ?? [];
+      const outside = children.filter((c) => !selected.has(c));
+      if (outside.length > 0) {
+        blocked.push({ name: byId.get(id)?.name ?? id, reason: "possui contas filhas fora da seleção" });
+        return false;
+      }
+      return true;
+    });
+
+    // Exclui das folhas para as raízes
+    const levels = new Map<number, string[]>();
+    deletable.forEach((id) => {
+      const d = depthById.get(id) ?? 0;
+      levels.set(d, [...(levels.get(d) ?? []), id]);
+    });
+    const orderedDepths = Array.from(levels.keys()).sort((a, b) => b - a);
+
+    let deletedCount = 0;
+    for (const depth of orderedDepths) {
+      const batch = levels.get(depth)!;
+      const { error } = await (supabase as any).from("chart_accounts").delete().in("id", batch);
+      if (!error) {
+        deletedCount += batch.length;
+        continue;
+      }
+      // Se o lote falhar, tenta item a item para identificar as contas bloqueadas
+      for (const id of batch) {
+        const { error: single } = await (supabase as any).from("chart_accounts").delete().eq("id", id);
+        if (single) blocked.push({ name: byId.get(id)?.name ?? id, reason: single.message });
+        else deletedCount += 1;
+      }
+    }
+
+    setBulkDeleting(false);
+    setBulkOpen(false);
+    setSelected(new Set());
+    queryClient.invalidateQueries({ queryKey: ["chart-accounts"] });
+
+    if (blocked.length === 0) {
+      toast.success(`${deletedCount} conta(s) excluída(s)`);
+    } else {
+      const detalhes = blocked.slice(0, 5).map((b) => `${b.name}: ${b.reason}`).join(" · ");
+      toast.warning(`${deletedCount} excluída(s), ${blocked.length} não excluída(s)`, {
+        description: blocked.length > 5 ? `${detalhes} …` : detalhes,
+      });
+    }
+  };
+
   const renderNode = (node: Node, depth = 0) => {
     const hasChildren = node.children.length > 0;
     const isOpen = expanded.has(node.id);
+    const isSelected = selected.has(node.id);
     return (
       <div key={node.id}>
         <div
           className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 group border-b"
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
         >
+          <label className="flex items-center justify-center h-8 w-8 md:h-6 md:w-6 shrink-0 cursor-pointer">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={(c) => toggleSelect(node.id, c === true)}
+              aria-label={`Selecionar ${node.name}`}
+            />
+          </label>
           <button
             type="button"
             onClick={() => hasChildren && toggleExpand(node.id)}
@@ -175,7 +284,7 @@ export default function ContasContabeis() {
   const canRestore = contextType === "pj" && !!selectedCompanyId;
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-0">
       <Helmet><title>Contas Contábeis | 360°FOOD</title></Helmet>
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
         <div>
@@ -194,6 +303,19 @@ export default function ContasContabeis() {
         </div>
       </div>
 
+      {selected.size > 0 && (
+        <Card className="hidden md:flex items-center justify-between gap-3 p-3">
+          <span className="text-sm font-medium">{selected.size} conta(s) selecionada(s)</span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+              <X className="h-4 w-4 mr-2" /> Limpar seleção
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setBulkOpen(true)}>
+              <Trash2 className="h-4 w-4 mr-2" /> Excluir selecionadas
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <Card className="p-2">
         {isLoading ? (
@@ -206,9 +328,35 @@ export default function ContasContabeis() {
             </Button>
           </div>
         ) : (
-          <div className="divide-y">{tree.map((n) => renderNode(n))}</div>
+          <>
+            <div className="flex items-center gap-2 px-2 py-2 border-b">
+              <label className="flex items-center justify-center h-8 w-8 md:h-6 md:w-6 shrink-0 cursor-pointer">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Selecionar todas as contas"
+                />
+              </label>
+              <span className="text-xs text-muted-foreground">
+                {selected.size > 0 ? `${selected.size} selecionada(s)` : "Selecionar todas"}
+              </span>
+            </div>
+            <div className="divide-y">{tree.map((n) => renderNode(n))}</div>
+          </>
         )}
       </Card>
+
+      {selected.size > 0 && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t bg-background p-3 flex items-center justify-between gap-2">
+          <span className="text-sm font-medium">{selected.size} selecionada(s)</span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Limpar</Button>
+            <Button variant="destructive" size="sm" onClick={() => setBulkOpen(true)}>
+              <Trash2 className="h-4 w-4 mr-2" /> Excluir
+            </Button>
+          </div>
+        </div>
+      )}
 
       <ChartAccountFormDialog
         open={dialogOpen}
@@ -229,6 +377,24 @@ export default function ContasContabeis() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkOpen} onOpenChange={(o) => !bulkDeleting && setBulkOpen(o)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selected.size} conta(s) contábil(is)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A exclusão começa pelas contas mais profundas.
+              Contas com filhas fora da seleção ou em uso em lançamentos não serão excluídas e serão informadas ao final.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmBulkDelete(); }} disabled={bulkDeleting}>
+              {bulkDeleting ? "Excluindo..." : "Excluir selecionadas"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
