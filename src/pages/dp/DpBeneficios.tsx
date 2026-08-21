@@ -2,12 +2,14 @@ import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Gift, Plus, Pencil, Trash2, Users, Wallet, PlayCircle } from "lucide-react";
+import { Gift, Plus, Pencil, Trash2, Users, Wallet, PlayCircle, ExternalLink } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
+import { DpStatCard, DpStatGrid } from "@/components/dp/DpStatCard";
+import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -16,10 +18,12 @@ import { DpErrorState } from "@/components/dp/DpErrorState";
 import {
   useDpBeneficios, type Beneficio, type ColaboradorBeneficio,
 } from "@/hooks/useDpBeneficios";
+import { useDpBeneficiosCadastro, type BeneficioCadastroItem } from "@/hooks/useDpBeneficiosCadastro";
 import {
   AtribuicaoDialog, BeneficioDialog, BENEFICIO_TIPO_LABEL,
 } from "@/components/dp/beneficios/BeneficiosDialogs";
 import { ValeCalculadora } from "@/components/dp/beneficios/ValeCalculadora";
+import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 
 const fmtData = (iso?: string | null) =>
   iso ? format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR }) : "—";
@@ -27,28 +31,62 @@ const fmtData = (iso?: string | null) =>
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+type LinhaCatalogo = { origem: "catalogo"; nome: string; item: ColaboradorBeneficio };
+type LinhaCadastro = { origem: "cadastro"; nome: string; item: BeneficioCadastroItem };
+type Linha = LinhaCatalogo | LinhaCadastro;
+
 export default function DpBeneficios() {
   const { data: colaboradores = [] } = useDpColaboradores();
   const [colabFilter, setColabFilter] = useState("todos");
   const b = useDpBeneficios(colabFilter);
+  const cadastro = useDpBeneficiosCadastro(colabFilter);
 
   const [catOpen, setCatOpen] = useState(false);
   const [catEdit, setCatEdit] = useState<Beneficio | null>(null);
   const [atrOpen, setAtrOpen] = useState(false);
   const [atrEdit, setAtrEdit] = useState<ColaboradorBeneficio | null>(null);
   const [periodoId, setPeriodoId] = useState<string>("");
+  const [fichaId, setFichaId] = useState<string | null>(null);
+
+  const fichaColaborador = useMemo(
+    () => colaboradores.find((c: any) => c.id === fichaId) ?? null,
+    [colaboradores, fichaId],
+  );
+
+  /** Ficha unificada: benefícios do cadastro do colaborador + atribuições do catálogo. */
+  const linhas = useMemo<Linha[]>(() => {
+    const doCadastro: Linha[] = cadastro.itens.map((item) => ({
+      origem: "cadastro",
+      nome: item.colaborador_nome,
+      item,
+    }));
+    const doCatalogo: Linha[] = b.atribuicoes.map((item) => ({
+      origem: "catalogo",
+      nome: item.colaborador_nome ?? "",
+      item,
+    }));
+    return [...doCadastro, ...doCatalogo].sort((a, b2) => a.nome.localeCompare(b2.nome));
+  }, [cadastro.itens, b.atribuicoes]);
 
   const kpis = useMemo(() => {
     const ativos = b.atribuicoes.filter((a) => a.ativo);
-    const custo = ativos.reduce((s, a) => s + Number(a.valor ?? 0), 0);
-    const desconto = ativos.reduce((s, a) => s + Number(a.desconto_valor ?? 0), 0);
+    const custoCatalogo = ativos.reduce((s, a) => s + Number(a.valor ?? 0), 0);
+    const descontoCatalogo = ativos.reduce((s, a) => s + Number(a.desconto_valor ?? 0), 0);
+    const custoCadastro = cadastro.itens.reduce((s, i) => s + i.bruto, 0);
+    const descontoCadastro = cadastro.itens.reduce((s, i) => s + i.desconto, 0);
+    const custo = custoCatalogo + custoCadastro;
+    const desconto = descontoCatalogo + descontoCadastro;
+    const pessoas = new Set([
+      ...ativos.map((a) => a.colaborador_id),
+      ...cadastro.itens.map((i) => i.colaborador_id),
+    ]);
     return {
-      catalogo: b.beneficios.filter((x) => x.ativo).length,
-      colaboradores: new Set(ativos.map((a) => a.colaborador_id)).size,
+      itens: ativos.length + cadastro.itens.length,
+      colaboradores: pessoas.size,
       custo,
       liquido: custo - desconto,
     };
-  }, [b.beneficios, b.atribuicoes]);
+  }, [b.atribuicoes, cadastro.itens]);
 
   const colabList = colaboradores.map((x) => ({ id: x.id, nome: x.nome }));
 
@@ -58,28 +96,25 @@ export default function DpBeneficios() {
       <DpPageHeader
         icon={Gift}
         title="Benefícios"
-        description="Catálogo de benefícios (VT, VA/VR, saúde) e ficha por colaborador, com geração automática na folha."
+        description="Benefícios do cadastro do colaborador (VA/VT) e catálogo da empresa, com geração automática na folha."
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[
-          { label: "Benefícios ativos", value: String(kpis.catalogo), icon: Gift, tone: "text-primary" },
-          { label: "Colaboradores atendidos", value: String(kpis.colaboradores), icon: Users, tone: "text-primary" },
-          { label: "Custo bruto mensal", value: brl(kpis.custo), icon: Wallet, tone: "text-amber-600" },
-          { label: "Custo líquido (após desconto)", value: brl(kpis.liquido), icon: Wallet, tone: "text-emerald-600" },
-        ].map((k) => (
-          <div key={k.label} className="rounded-2xl border border-border bg-card p-4">
-            <k.icon className={`size-5 ${k.tone}`} />
-            <p className="mt-2 text-xl font-bold">{k.value}</p>
-            <p className="text-xs text-muted-foreground">{k.label}</p>
-          </div>
-        ))}
-      </div>
+      <DpStatGrid>
+        <DpStatCard icon={Gift} label="Benefícios ativos" value={String(kpis.itens)} />
+        <DpStatCard icon={Users} label="Colaboradores atendidos" value={String(kpis.colaboradores)} />
+        <DpStatCard icon={Wallet} label="Custo bruto mensal" value={brl(kpis.custo)} tone="warning" />
+        <DpStatCard
+          icon={Wallet}
+          label="Custo líquido (após desconto)"
+          value={brl(kpis.liquido)}
+          tone="success"
+        />
+      </DpStatGrid>
 
-      <DpContentCard contentClassName="p-4 md:p-5">
+      <DpContentCard contentClassName="p-3 sm:p-4 md:p-5">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Colaborador</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
             <Select value={colabFilter} onValueChange={setColabFilter}>
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent className="max-h-72">
@@ -91,12 +126,12 @@ export default function DpBeneficios() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-              Gerar na folha
-            </Label>
-            <div className="flex gap-2">
+            <Label className="text-xs font-medium text-muted-foreground">Gerar na folha</Label>
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Select value={periodoId} onValueChange={setPeriodoId}>
-                <SelectTrigger className="min-w-0 flex-1"><SelectValue placeholder="Selecione o período" /></SelectTrigger>
+                <SelectTrigger className="min-w-0 flex-1">
+                  <SelectValue placeholder="Selecione o período" />
+                </SelectTrigger>
                 <SelectContent className="max-h-72">
                   {b.periodos.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
@@ -107,7 +142,7 @@ export default function DpBeneficios() {
               </Select>
               <Button
                 variant="secondary"
-                className="shrink-0"
+                className="w-full sm:w-auto sm:shrink-0"
                 disabled={!periodoId || b.gerarLancamentos.isPending}
                 onClick={() => b.gerarLancamentos.mutate(periodoId)}
               >
@@ -118,78 +153,126 @@ export default function DpBeneficios() {
         </div>
       </DpContentCard>
 
-      {b.isError && <DpErrorState onRetry={b.refetchAll} className="mb-3" />}
+      {(b.isError || cadastro.isError) && (
+        <DpErrorState
+          onRetry={() => { b.refetchAll(); cadastro.refetch(); }}
+          className="mb-3"
+        />
+      )}
 
-      <Tabs defaultValue="ficha" className="space-y-3">
-        <TabsList className="flex w-full sm:w-auto">
-          <TabsTrigger value="ficha" className="flex-1 sm:flex-none">Por colaborador</TabsTrigger>
-          <TabsTrigger value="catalogo" className="flex-1 sm:flex-none">Catálogo</TabsTrigger>
-          <TabsTrigger value="va" className="flex-1 sm:flex-none">Calculadora de VA</TabsTrigger>
-          <TabsTrigger value="vt" className="flex-1 sm:flex-none">Calculadora de VT</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="ficha" className="space-y-3 pb-24 md:pb-0">
+        <DpTabsBar>
+          <TabsTrigger value="ficha">Por colaborador</TabsTrigger>
+          <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+          <TabsTrigger value="va">Calculadora de VA</TabsTrigger>
+          <TabsTrigger value="vt">Calculadora de VT</TabsTrigger>
+        </DpTabsBar>
 
         <TabsContent value="ficha" className="space-y-3">
-          <div className="flex justify-end">
-            <Button onClick={() => { setAtrEdit(null); setAtrOpen(true); }}>
-              <Plus className="mr-2 size-4" /> Atribuir benefício
-            </Button>
-          </div>
+          <Button
+            className="w-full sm:w-auto sm:ml-auto sm:flex"
+            onClick={() => { setAtrEdit(null); setAtrOpen(true); }}
+          >
+            <Plus className="mr-2 size-4" /> Atribuir benefício
+          </Button>
           <DpContentCard>
-            {b.atribuicoes.length === 0 ? (
-              <p className="p-6 text-center text-sm text-muted-foreground">
-                Nenhum benefício atribuído.
-              </p>
+            {linhas.length === 0 ? (
+              <div className="space-y-2 p-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Nenhum benefício encontrado. Os benefícios podem vir da ficha do colaborador
+                  (vale-alimentação e vale-transporte, na aba Remuneração) ou do catálogo da empresa.
+                </p>
+                <Button variant="secondary" onClick={() => { setAtrEdit(null); setAtrOpen(true); }}>
+                  <Plus className="mr-2 size-4" /> Atribuir benefício do catálogo
+                </Button>
+              </div>
             ) : (
               <div className="divide-y divide-border">
-                {b.atribuicoes.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {a.colaborador_nome} · {a.beneficio_nome}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {brl(Number(a.valor ?? 0))}
-                        {Number(a.desconto_valor ?? 0) > 0 &&
-                          ` · desconto ${brl(Number(a.desconto_valor))}`}
-                        {" · "}{fmtData(a.data_inicio)}
-                        {a.data_fim ? ` até ${fmtData(a.data_fim)}` : ""}
-                      </p>
+                {linhas.map((linha) =>
+                  linha.origem === "cadastro" ? (
+                    <div
+                      key={linha.item.id}
+                      className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4"
+                    >
+                      <div className="min-w-0">
+                        <p className="break-words text-sm font-medium">
+                          {linha.item.colaborador_nome} · {linha.item.nome}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {brl(linha.item.bruto)}
+                          {linha.item.desconto > 0 && ` · desconto ${brl(linha.item.desconto)}`}
+                          {` · ${linha.item.detalhe}`}
+                          {linha.item.diaPagamento ? ` · paga dia ${linha.item.diaPagamento}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Badge variant="secondary">Do cadastro</Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setFichaId(linha.item.colaborador_id)}
+                        >
+                          <ExternalLink className="mr-1.5 size-4" /> Ficha
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {!a.ativo && <Badge variant="secondary">Inativo</Badge>}
-                      <Button size="icon" variant="ghost" aria-label="Editar atribuição"
-                        onClick={() => { setAtrEdit(a); setAtrOpen(true); }}>
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" aria-label="Remover atribuição"
-                        onClick={() => b.deleteAtribuicao.mutate(a.id)}>
-                        <Trash2 className="size-4 text-destructive" />
-                      </Button>
+                  ) : (
+                    <div
+                      key={linha.item.id}
+                      className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4"
+                    >
+                      <div className="min-w-0">
+                        <p className="break-words text-sm font-medium">
+                          {linha.item.colaborador_nome} · {linha.item.beneficio_nome}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {brl(Number(linha.item.valor ?? 0))}
+                          {Number(linha.item.desconto_valor ?? 0) > 0 &&
+                            ` · desconto ${brl(Number(linha.item.desconto_valor))}`}
+                          {" · "}{fmtData(linha.item.data_inicio)}
+                          {linha.item.data_fim ? ` até ${fmtData(linha.item.data_fim)}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {!linha.item.ativo && <Badge variant="secondary">Inativo</Badge>}
+                        <Button size="icon" variant="ghost" aria-label="Editar atribuição"
+                          onClick={() => { setAtrEdit(linha.item); setAtrOpen(true); }}>
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" aria-label="Remover atribuição"
+                          onClick={() => b.deleteAtribuicao.mutate(linha.item.id)}>
+                          <Trash2 className="size-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
             )}
           </DpContentCard>
         </TabsContent>
 
         <TabsContent value="catalogo" className="space-y-3">
-          <div className="flex justify-end">
-            <Button onClick={() => { setCatEdit(null); setCatOpen(true); }}>
-              <Plus className="mr-2 size-4" /> Novo benefício
-            </Button>
-          </div>
+          <Button
+            className="w-full sm:w-auto sm:ml-auto sm:flex"
+            onClick={() => { setCatEdit(null); setCatOpen(true); }}
+          >
+            <Plus className="mr-2 size-4" /> Novo benefício
+          </Button>
           <DpContentCard>
             {b.beneficios.length === 0 ? (
               <p className="p-6 text-center text-sm text-muted-foreground">
-                Nenhum benefício cadastrado.
+                Nenhum benefício cadastrado no catálogo.
               </p>
             ) : (
               <div className="divide-y divide-border">
                 {b.beneficios.map((x) => (
-                  <div key={x.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <div
+                    key={x.id}
+                    className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4"
+                  >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{x.nome}</p>
+                      <p className="break-words text-sm font-medium">{x.nome}</p>
                       <p className="text-xs text-muted-foreground">
                         {BENEFICIO_TIPO_LABEL[x.tipo]} · {brl(Number(x.valor_padrao ?? 0))}
                         {Number(x.desconto_percentual ?? 0) > 0 &&
@@ -244,6 +327,15 @@ export default function DpBeneficios() {
           b.saveAtribuicao.mutate(input, { onSuccess: () => setAtrOpen(false) })
         }
       />
+      {fichaColaborador && (
+        <ColaboradorFichaDialog
+          open={!!fichaColaborador}
+          onOpenChange={(o) => !o && setFichaId(null)}
+          colaborador={fichaColaborador as any}
+          onEdit={() => setFichaId(null)}
+        />
+
+      )}
     </DpPage>
   );
 }
