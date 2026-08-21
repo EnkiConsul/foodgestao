@@ -102,46 +102,20 @@ export default function DpBeneficios() {
       </DpStatGrid>
 
       <DpContentCard contentClassName="p-3 sm:p-4 md:p-5">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
-            <Select value={colabFilter} onValueChange={setColabFilter}>
-              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                <SelectItem value="todos">Todos</SelectItem>
-                {colabList.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Gerar na folha</Label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Select value={periodoId} onValueChange={setPeriodoId}>
-                <SelectTrigger className="min-w-0 flex-1">
-                  <SelectValue placeholder="Selecione o período" />
-                </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {b.periodos.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {format(parseISO(p.competencia), "MM/yyyy")} — {p.tipo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="secondary"
-                className="w-full sm:w-auto sm:shrink-0"
-                disabled={!periodoId || b.gerarLancamentos.isPending}
-                onClick={() => b.gerarLancamentos.mutate(periodoId)}
-              >
-                <PlayCircle className="mr-2 size-4" /> Gerar
-              </Button>
-            </div>
-          </div>
+        <div className="max-w-sm space-y-1.5">
+          <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
+          <Select value={colabFilter} onValueChange={setColabFilter}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="todos">Todos</SelectItem>
+              {colabList.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </DpContentCard>
+
 
       {(b.isError || cadastro.isError) && (
         <DpErrorState
