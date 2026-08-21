@@ -28,6 +28,17 @@ export default function DpUnidades() {
   const del = useDeleteDpUnidade();
   const toggle = useToggleDpUnidadeAtivo();
 
+  // Aba controlada por query string para permitir link direto (ex.: ?aba=sindicatos).
+  const [params, setParams] = useSearchParams();
+  const abaParam = params.get("aba") ?? "";
+  const aba = abaParam === "sindicatos" ? "sindicatos" : "unidades";
+  const setAba = (v: string) => {
+    const next = new URLSearchParams(params);
+    if (v === "unidades") next.delete("aba");
+    else next.set("aba", v);
+    setParams(next, { replace: true });
+  };
+
   const { resumos } = useDpFuncionamentoResumo();
   const [open, setOpen] = useState(false);
   const [abaForm, setAbaForm] = useState<"dados" | "funcionamento">("dados");
