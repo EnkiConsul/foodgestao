@@ -387,6 +387,24 @@ export default function ContasContabeis() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={bulkOpen} onOpenChange={(o) => !bulkDeleting && setBulkOpen(o)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selected.size} conta(s) contábil(is)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A exclusão começa pelas contas mais profundas.
+              Contas com filhas fora da seleção ou em uso em lançamentos não serão excluídas e serão informadas ao final.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmBulkDelete(); }} disabled={bulkDeleting}>
+              {bulkDeleting ? "Excluindo..." : "Excluir selecionadas"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={restoreOpen} onOpenChange={(o) => !restoring && setRestoreOpen(o)}>
         <AlertDialogContent>
           <AlertDialogHeader className="sm:text-center">
