@@ -179,6 +179,7 @@ export default function DpColaboradoresLixeira() {
               ))}
             </TableBody>
           </Table>
+          </>
         )}
       </DpContentCard>
 
