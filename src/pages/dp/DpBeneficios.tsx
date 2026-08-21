@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Gift, Plus, Pencil, Trash2, Users, Wallet, PlayCircle, ExternalLink } from "lucide-react";
+import { Gift, Plus, Pencil, Trash2, Users, Wallet, PlayCircle } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
 import { DpStatCard, DpStatGrid } from "@/components/dp/DpStatCard";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
@@ -32,9 +32,6 @@ import { ValesCadastroCard } from "@/components/dp/beneficios/ValesCadastroCard"
 import type { ValeTipo } from "@/hooks/useDpValeCalculadora";
 
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
-
-const fmtData = (iso?: string | null) =>
-  iso ? format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR }) : "—";
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -90,7 +87,7 @@ export default function DpBeneficios() {
       <DpPageHeader
         icon={Gift}
         title="Benefícios"
-        description="Benefícios do cadastro do colaborador (VA/VT) e catálogo da empresa, com geração automática na folha."
+        description="Vale-alimentação, vale-transporte e demais benefícios da empresa, com as mesmas regras da ficha do colaborador e geração automática na folha."
       />
 
       <DpStatGrid>
