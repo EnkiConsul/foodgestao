@@ -178,6 +178,11 @@ interface Props {
   /** Periculosidade marcada no cargo. */
   cargoPerigoso?: boolean;
   beneficios: Beneficio[];
+  /** Abre o cadastro de um novo benefício do catálogo a partir desta tela. */
+  onNovoBeneficio?: () => void;
+  /** Abre o cadastro do benefício do catálogo para edição. */
+  onEditarBeneficio?: (b: Beneficio) => void;
+
   cargoInsalubreHint?: string;
   /** Regime do vínculo — restringe as formas de pagamento admitidas. */
   regime?: string | null;
