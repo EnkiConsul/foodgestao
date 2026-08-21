@@ -335,6 +335,9 @@ export default function DpBeneficios() {
         onOpenChange={setCatOpen}
         editing={catEdit}
         saving={b.saveBeneficio.isPending}
+        unidades={(unidades.data ?? []).map((u: any) => ({ id: u.id, nome: u.nome }))}
+        cargos={(cargos.data ?? []).map((c: any) => ({ id: c.id, nome: c.nome }))}
+
         onSubmit={(input) =>
           b.saveBeneficio.mutate(input, { onSuccess: () => setCatOpen(false) })
         }
