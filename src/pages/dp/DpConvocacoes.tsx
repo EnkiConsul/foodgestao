@@ -238,7 +238,7 @@ export default function DpConvocacoes() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="grid gap-2">
                 <Label>Entrada</Label>
                 <Input type="time" value={form.entrada} onChange={(e) => setForm((f) => ({ ...f, entrada: e.target.value }))} />

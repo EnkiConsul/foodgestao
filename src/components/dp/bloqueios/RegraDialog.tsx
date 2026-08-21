@@ -111,7 +111,7 @@ export function RegraDialog({
                 {form.meses.length === MESES.length ? "Desmarcar todos" : "Marcar todos"}
               </Button>
             </div>
-            <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
               {MESES.map((m) => (
                 <button
                   key={m} type="button"
@@ -150,7 +150,7 @@ export function RegraDialog({
                   {form.dias.length === DIAS.length ? "Desmarcar todos" : "Marcar todos"}
                 </Button>
               </div>
-              <div className="grid grid-cols-7 gap-1 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-1 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
                 {DIAS.map((d) => (
                   <button
                     key={d} type="button"

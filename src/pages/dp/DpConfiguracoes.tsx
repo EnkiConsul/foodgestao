@@ -142,7 +142,54 @@ export default function DpConfiguracoes() {
           </Button>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile: cartões editáveis */}
+        <ul className="space-y-3 md:hidden">
+          {dias.isLoading && (
+            <li className="py-6 text-center text-sm text-muted-foreground">Carregando...</li>
+          )}
+          {!dias.isLoading && rows.length === 0 && (
+            <li className="py-6 text-center text-sm text-muted-foreground">
+              Nenhuma configuração futura cadastrada.
+            </li>
+          )}
+          {rows.map((r) => (
+            <li key={r.id} className="rounded-2xl border border-border bg-card p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold">{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+                <Button variant="ghost" size="icon" onClick={() => setToDelete(r)} className="size-9">
+                  <Trash2 className="size-4 text-destructive" />
+                </Button>
+              </div>
+              <div className="mt-2 grid gap-2">
+                <div className="grid gap-1">
+                  <Label className="text-xs text-muted-foreground">Limite de folgas</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    defaultValue={r.limite_folgas}
+                    onBlur={(e) => {
+                      if (Number(e.target.value) !== r.limite_folgas) handleUpdateRow(r, "limite_folgas", e.target.value);
+                    }}
+                    className="h-10"
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <Label className="text-xs text-muted-foreground">Observação</Label>
+                  <Input
+                    defaultValue={r.observacao ?? ""}
+                    onBlur={(e) => {
+                      if ((e.target.value || null) !== r.observacao) handleUpdateRow(r, "observacao", e.target.value);
+                    }}
+                    className="h-10"
+                    placeholder="—"
+                  />
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <div className="hidden overflow-x-auto md:block">
           <Table>
             <TableHeader>
               <TableRow>

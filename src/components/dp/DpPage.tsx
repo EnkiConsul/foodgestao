@@ -28,17 +28,21 @@ interface DpPageHeaderProps {
 
 export function DpPageHeader({ icon: Icon, title, description, actions, className }: DpPageHeaderProps) {
   return (
-    <header className={cn("dp-page-header flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
-      <div className="flex min-w-0 items-start gap-2.5 sm:gap-3">
-        <Icon className="mt-0.5 h-6 w-6 shrink-0 text-primary sm:mt-1 sm:h-7 sm:w-7" />
+    <header className={cn("dp-page-header flex flex-col gap-2 sm:gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
+      <div className="flex min-w-0 items-start gap-2 sm:gap-3">
+        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary sm:mt-1 sm:h-7 sm:w-7" />
         <div className="min-w-0">
-          <h1 className="text-xl font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">{toTitleCase(title)}</h1>
+          <h1 className="text-lg font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">{toTitleCase(title)}</h1>
           {description && (
-            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground sm:line-clamp-none sm:text-sm">{description}</p>
+            <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground sm:mt-1 sm:line-clamp-none sm:text-sm">{description}</p>
           )}
         </div>
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap items-center justify-start gap-2 sm:justify-end">{actions}</div>}
+      {actions && (
+        <div className="dp-page-actions -mx-3 flex shrink-0 items-center gap-2 overflow-x-auto px-3 pb-0.5 [scrollbar-width:none] [&>*]:shrink-0 [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:justify-end sm:overflow-visible sm:px-0">
+          {actions}
+        </div>
+      )}
     </header>
   );
 }

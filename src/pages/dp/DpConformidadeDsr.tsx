@@ -11,6 +11,7 @@ import {
 } from "@/lib/dp/dsr-rules";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 
+import { cn } from "@/lib/utils";
 import { DpPage, DpPageHeader, DpContentCard, DpFilterCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Button } from "@/components/ui/button";
@@ -221,8 +222,70 @@ export default function DpConformidadeDsr() {
       ) : query.isLoading ? (
         <Skeleton className="h-64 w-full" />
       ) : (
-        <DpContentCard contentClassName="overflow-x-auto">
-          <Table>
+        <DpContentCard contentClassName="p-3 md:p-0 md:overflow-x-auto">
+          {/* Mobile: cartões por colaborador */}
+          <ul className="space-y-3 md:hidden">
+            {linhas.length === 0 && (
+              <li className="py-8 text-center text-sm text-muted-foreground">
+                Nenhum colaborador ativo no período.
+              </li>
+            )}
+            {linhas.map((l) => (
+              <li
+                key={l.colaboradorId}
+                className={cn(
+                  "rounded-2xl border border-border bg-card p-3",
+                  !l.conforme && "border-destructive/40 bg-destructive/5",
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{l.nome}</p>
+                    {l.sexo === "F" && (
+                      <p className="text-[11px] text-muted-foreground">Art. 386 CLT</p>
+                    )}
+                  </div>
+                  {l.conforme ? (
+                    <Badge variant="outline" className="shrink-0 gap-1 border-emerald-500/30 text-emerald-700 dark:text-emerald-400">
+                      <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> Conforme
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive" className="shrink-0 gap-1">
+                      <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> Fora
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <p className="text-muted-foreground">Domingos no mês</p>
+                    <p className="font-semibold tabular-nums">{l.domingosNoPeriodo}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Folgados</p>
+                    <p className="font-semibold tabular-nums">{l.domingosFolgados.length}</p>
+                  </div>
+                  {porAcordo && (
+                    <div>
+                      <p className="text-muted-foreground">Dias negociados</p>
+                      <p className="font-semibold tabular-nums">{l.negociadosAproveitados}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-muted-foreground">Mínimo esperado</p>
+                    <p className="font-semibold tabular-nums">{l.esperado}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Periodicidade</p>
+                    <p className="font-semibold">
+                      {l.periodicidadeAplicada > 0 ? `${l.periodicidadeAplicada.toFixed(1)} sem.` : "sem exigência"}
+                    </p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <Table className="hidden md:table">
             <TableHeader>
               <TableRow>
                 <TableHead>Colaborador</TableHead>
