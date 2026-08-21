@@ -192,12 +192,22 @@ export default function DpBeneficios() {
             unidades={(unidades.data ?? []).map((u: any) => ({ id: u.id, nome: u.nome }))}
             cargos={(cargos.data ?? []).map((c: any) => ({ id: c.id, nome: c.nome }))}
           />
-          <Button
-            className="w-full sm:w-auto sm:ml-auto sm:flex"
-            onClick={() => { setCatEdit(null); setCatOpen(true); }}
-          >
-            <Plus className="mr-2 size-4" /> Novo Benefício
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => { setAtrEdit(null); setAtrOpen(true); }}
+            >
+              <Plus className="mr-2 size-4" /> Atribuir a Colaborador
+            </Button>
+            <Button
+              className="w-full sm:w-auto"
+              onClick={() => { setCatEdit(null); setCatOpen(true); }}
+            >
+              <Plus className="mr-2 size-4" /> Novo Benefício
+            </Button>
+          </div>
+
 
           <DpContentCard>
             {b.beneficios.length === 0 ? (
