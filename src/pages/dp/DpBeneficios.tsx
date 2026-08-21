@@ -41,6 +41,9 @@ type Linha = LinhaCatalogo | LinhaCadastro;
 
 export default function DpBeneficios() {
   const { data: colaboradores = [] } = useDpColaboradores();
+  const unidades = useDpUnidades();
+  const cargos = useDpCargos();
+
   const [colabFilter, setColabFilter] = useState("todos");
   const b = useDpBeneficios(colabFilter);
   const cadastro = useDpBeneficiosCadastro(colabFilter);
