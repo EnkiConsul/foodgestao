@@ -140,7 +140,7 @@ export default function DpMeuEscala() {
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
             <Card><CardContent className="p-3">
               <p className="text-xs text-muted-foreground">Dias de trabalho</p>
               <p className="text-lg font-semibold">{totais.trabalho}</p>
