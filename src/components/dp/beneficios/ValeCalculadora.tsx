@@ -190,6 +190,14 @@ export function ValeCalculadora({ tipo }: Props) {
           </div>
         )}
       </DpContentCard>
+
+      <ValeMemoriaDialog
+        open={!!memoria}
+        onOpenChange={(o) => !o && setMemoria(null)}
+        linha={memoria}
+        valeLabel={label}
+      />
     </div>
+
   );
 }
