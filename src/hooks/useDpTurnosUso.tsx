@@ -29,5 +29,5 @@ export function useDpTurnosUso() {
     return mapa;
   }, [query.data]);
 
-  return { ...query, usoPorTurno };
+  return { ...query, usoPorTurno, usoIndisponivel: query.isError };
 }

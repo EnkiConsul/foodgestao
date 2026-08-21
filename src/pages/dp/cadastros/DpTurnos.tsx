@@ -44,7 +44,7 @@ export default function DpTurnos() {
   const {
     turnos, isLoading, error, criar, atualizar, novaVersao, alternarAtivo, remover, removerEmLote,
   } = useDpTurnos();
-  const { usoPorTurno, isLoading: usoCarregando } = useDpTurnosUso();
+  const { usoPorTurno, isLoading: usoCarregando, usoIndisponivel } = useDpTurnosUso();
   const colaboradores = useDpColaboradores();
 
   const [busca, setBusca] = useState("");
@@ -81,13 +81,13 @@ export default function DpTurnos() {
   const nomeUnidade = (id: string | null) => listaUnidades.find((u) => u.id === id)?.nome ?? null;
 
   const estadoDoTurno = (t: DpTurnoRow) =>
-    estadoUsoTurno({ uso: usoPorTurno[t.id], carregando: usoCarregando });
+    estadoUsoTurno({ uso: usoPorTurno[t.id], carregando: usoCarregando, erro: usoIndisponivel });
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return turnos.filter((t) => {
       if (unidadeFiltro !== TODAS && t.unidade_id !== unidadeFiltro) return false;
-      if (usoFiltro !== "todos" && !usoCarregando) {
+      if (usoFiltro !== "todos" && !usoCarregando && !usoIndisponivel) {
         const estado = estadoUsoTurno({ uso: usoPorTurno[t.id] });
         if (usoFiltro === "sem_uso" && estado !== "sem_uso") return false;
         if (usoFiltro === "em_uso" && estado === "sem_uso") return false;
@@ -95,11 +95,14 @@ export default function DpTurnos() {
       if (!termo) return true;
       return `${t.nome} ${t.descricao ?? ""}`.toLowerCase().includes(termo);
     });
-  }, [turnos, busca, unidadeFiltro, usoFiltro, usoPorTurno, usoCarregando]);
+  }, [turnos, busca, unidadeFiltro, usoFiltro, usoPorTurno, usoCarregando, usoIndisponivel]);
 
   const candidatosLimpeza = useMemo(
-    () => filtrados.filter((t) => podeExcluirTurno(estadoUsoTurno({ uso: usoPorTurno[t.id] }))),
-    [filtrados, usoPorTurno],
+    () =>
+      usoIndisponivel
+        ? []
+        : filtrados.filter((t) => podeExcluirTurno(estadoUsoTurno({ uso: usoPorTurno[t.id] }))),
+    [filtrados, usoPorTurno, usoIndisponivel],
   );
 
   const alternarSelecao = (id: string, marcado: boolean) =>

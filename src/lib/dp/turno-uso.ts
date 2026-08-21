@@ -10,7 +10,6 @@ export interface TurnoUsoRow {
   escala_itens_rascunho: number;
   convocacoes: number;
   cobertura_minima: number;
-  grade_dias: number;
   versoes: number;
 }
 
@@ -23,7 +22,6 @@ export const TURNO_USO_VAZIO: Omit<TurnoUsoRow, "turno_id"> = {
   escala_itens_rascunho: 0,
   convocacoes: 0,
   cobertura_minima: 0,
-  grade_dias: 0,
   versoes: 0,
 };
 
@@ -42,7 +40,6 @@ export function totalUsoTurno(uso?: TurnoUsoRow | null): number {
     uso.escala_itens_rascunho +
     uso.convocacoes +
     uso.cobertura_minima +
-    uso.grade_dias +
     uso.versoes
   );
 }
@@ -57,13 +54,17 @@ export function detalhesUsoTurno(uso?: TurnoUsoRow | null): TurnoUsoDetalhe[] {
     { rotulo: "Itens de escala em rascunho", quantidade: uso.escala_itens_rascunho },
     { rotulo: "Convocações", quantidade: uso.convocacoes },
     { rotulo: "Cobertura mínima", quantidade: uso.cobertura_minima },
-    { rotulo: "Grades semanais", quantidade: uso.grade_dias },
     { rotulo: "Versões derivadas deste turno", quantidade: uso.versoes },
   ];
   return itens.filter((i) => i.quantidade > 0);
 }
 
-export type TurnoUsoEstado = "carregando" | "sem_uso" | "em_uso" | "versao_historica";
+export type TurnoUsoEstado =
+  | "carregando"
+  | "indisponivel"
+  | "sem_uso"
+  | "em_uso"
+  | "versao_historica";
 
 /**
  * Estado do turno para a tela: versão histórica (é origem de outra versão ou
@@ -72,9 +73,11 @@ export type TurnoUsoEstado = "carregando" | "sem_uso" | "em_uso" | "versao_histo
 export function estadoUsoTurno(params: {
   uso?: TurnoUsoRow | null;
   carregando?: boolean;
+  erro?: boolean;
   ehVersaoHistorica?: boolean;
 }): TurnoUsoEstado {
   if (params.carregando) return "carregando";
+  if (params.erro) return "indisponivel";
   const total = totalUsoTurno(params.uso);
   if (params.ehVersaoHistorica || (params.uso?.versoes ?? 0) > 0) return "versao_historica";
   return total > 0 ? "em_uso" : "sem_uso";
@@ -91,6 +94,8 @@ export function rotuloUsoTurno(estado: TurnoUsoEstado, uso?: TurnoUsoRow | null)
   switch (estado) {
     case "carregando":
       return "Verificando uso…";
+    case "indisponivel":
+      return "Uso indisponível";
     case "versao_historica":
       return "Versão histórica";
     case "em_uso": {
@@ -114,6 +119,9 @@ export function podeExcluirTurno(estado: TurnoUsoEstado): boolean {
 export function motivoBloqueioExclusao(estado: TurnoUsoEstado, uso?: TurnoUsoRow | null): string | null {
   if (estado === "sem_uso") return null;
   if (estado === "carregando") return "Aguarde a verificação de uso do turno.";
+  if (estado === "indisponivel") {
+    return "Não foi possível verificar o uso deste turno agora. Tente novamente antes de excluir.";
+  }
   if (estado === "versao_historica") {
     return "Este turno faz parte do histórico de versões. Desative em vez de excluir.";
   }
