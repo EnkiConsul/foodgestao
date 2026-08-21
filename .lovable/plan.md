@@ -1,50 +1,71 @@
-# Benefícios: uma tela de cálculo no formato da sua planilha
+# Benefícios: cálculo com a lógica da sua planilha
 
 ## O problema
 
-Hoje a tela tem três abas e nenhuma delas se parece com o seu controle real:
+A tela tem três abas e nenhuma reflete o seu controle real:
 
-- **Cálculo mensal** — as calculadoras de VA/VT (o que mais se aproxima da planilha).
-- **Vales por colaborador** — lista solta de itens, misturando o VA/VT da ficha do colaborador com atribuições avulsas. Não serve para conferir nada.
-- **Catálogo da empresa** — cadastro de benefícios *extras* (plano de saúde, odonto, seguro). Aparece vazio porque VA e VT não moram ali: eles são campos da ficha do colaborador (aba Remuneração). É essa a confusão.
+- **Cálculo mensal** — as calculadoras de VA/VT (o que mais se aproxima).
+- **Vales por colaborador** — lista solta de itens, sem serventia para conferir o depósito.
+- **Catálogo da empresa** — só benefícios *extras*. Aparece vazio porque VA e VT hoje moram apenas na ficha do colaborador (aba Remuneração). É aí que se perde a referência.
+
+## A lógica do cálculo
+
+Para cada colaborador, por tipo de vale:
+
+```text
+dias a trabalhar no ciclo atual
+  + (dias trabalhados no ciclo anterior − dias pagos no ciclo anterior)
+  = total de dias a receber
+total de dias × valor por dia = valor a depositar
+```
+
+A diferença do ciclo anterior é **sempre calculada pelo sistema** — pode ser negativa (pagou mais do que trabalhou) ou positiva (trabalhou mais do que foi pago, como no caso do Herick). Não existe campo de ajuste manual.
+
+- **Dias a trabalhar**: escala publicada, jornada do colaborador ou convocações aceitas (intermitentes), já descontando folgas semanais, folga dominical e férias.
+- **Dias trabalhados no anterior**: ponto/escala do ciclo, descontando falta, folga extra, atestado e férias conforme as regras de VA/VT configuradas.
+- **Dias pagos no anterior**: o que o depósito daquele ciclo cobriu.
 
 ## O que vamos fazer
 
-### 1. Uma única tela de cálculo, igual à planilha
+### 1. Aba de cálculo mensal reescrita
 
-A aba principal passa a ser uma tabela com exatamente as colunas que você usa:
+Uma visão por colaborador (cartões no mobile, tabela no desktop) mostrando, sem jargão:
 
-```text
-Colaborador | Valor/dia | Dias pagos (ciclo anterior) | Dias trabalhados (anterior) |
-Dias a trabalhar (ciclo atual) | Acrescentar | Total de dias a receber | Valor a depositar
-```
-
-- Alternador **Vale-alimentação / Vale-transporte** no topo, com mês e unidade.
-- **Dias pagos** e **dias trabalhados** do ciclo anterior vêm do sistema (o que foi depositado x ponto/escala/folgas/férias).
-- **Dias a trabalhar** vêm da escala publicada, da jornada do colaborador ou das convocações aceitas (intermitentes).
-- **Acrescentar**: coluna editável, como na sua planilha, para ajustes manuais (ex.: os 8 dias do Herick). Fica salva por mês/colaborador com quem lançou e uma observação opcional.
-- **Total de dias** = dias a trabalhar + (trabalhados − pagos no anterior) + acrescentar. **Valor a depositar** = total × valor/dia.
-- Clicar na linha continua abrindo a memória de cálculo com o calendário dia a dia.
-- Exportar CSV com as mesmas colunas.
+- valor por dia e dia de pagamento;
+- dias do ciclo atual;
+- a diferença do ciclo anterior, com sinal e explicação (`+8 dias do ciclo anterior` / `−1 falta`);
+- total de dias e valor a depositar;
+- clique abre a memória de cálculo com o calendário dia a dia;
+- exportar CSV e totais no topo (dias, valor total, colaboradores).
 
 ### 2. Fim da aba "Vales por colaborador"
 
-O que era útil ali entra na própria tabela de cálculo (nome, valor/dia, dia de pagamento, avisos de configuração faltando) e no atalho para a ficha do colaborador. A aba deixa de existir.
+O que era útil ali (valor/dia, dia de pagamento, avisos de configuração faltando, atalho para a ficha) entra na própria visão de cálculo. A aba deixa de existir.
 
-### 3. Catálogo renomeado e explicado
+### 3. Catálogo da empresa passa a incluir VA e VT
 
-Vira **"Outros benefícios (plano de saúde, odonto, etc.)"** com um texto curto avisando: *VA e VT são configurados na ficha do colaborador, aba Remuneração — e aparecem na aba de Cálculo.* Assim ninguém procura VA no catálogo.
+O catálogo ganha, no topo, os dois itens do sistema — **Vale-alimentação** e **Vale-transporte** — com as mesmas regras que existem hoje na ficha do colaborador:
+
+- periodicidade (diário/mensal), valor por dia, dias considerados;
+- desconto (valor ou percentual, respeitando o limite de 6% do VT);
+- dia de pagamento e antecedência da data de corte;
+- o que desconta: falta, folga extra, atestado, férias.
+
+Essas regras são editáveis ali como **padrão da empresa** (e por unidade/cargo, como os demais itens do catálogo), e continuam editáveis na ficha do colaborador, que prevalece quando preenchida. O admin escolhe por qual tela trabalhar; a origem da regra aplicada fica visível ("padrão da empresa" / "da unidade" / "do colaborador").
+
+Abaixo dos vales seguem os benefícios extras (plano de saúde, odonto, seguro), como hoje.
 
 ### 4. Histórico
 
-Aba **Histórico**: os cálculos já fechados por mês, com o total depositado e o que foi acrescentado manualmente, para conferência dos ciclos anteriores.
+Aba **Histórico**: ciclos já fechados por mês e tipo, com dias, diferença aplicada e total depositado, para conferência.
 
 ## Detalhes técnicos
 
-- `src/lib/dp/va-calculo.ts` / `useDpValeCalculadora.tsx`: expor explicitamente `diasPagosAnterior`, `diasTrabalhadosAnterior` e a diferença assinada (hoje só existe `descontos.dias`, sempre negativa — a planilha também soma, caso do Herick).
-- Nova tabela `dp_vale_ajustes` (company_id, colaborador_id, tipo va/vt, competência, dias, observação, created_by) com RLS + GRANTs, para a coluna **Acrescentar**.
-- Nova tabela `dp_vale_fechamentos` (competência, tipo, total, snapshot das linhas) para a aba Histórico, gravada ao fechar o mês.
-- `ValeCalculadora.tsx`: passa de lista de cartões para tabela (com cartões empilhados no mobile), com célula editável de acréscimo.
-- `DpBeneficios.tsx`: abas passam a ser **Cálculo mensal**, **Histórico** e **Outros benefícios**; remoção da aba de vales por colaborador e ajuste dos KPIs para usarem o valor projetado.
-- `useDpBeneficiosCadastro.tsx`: continua como fonte dos dados da ficha (valor/dia, dia de pagamento, regras de desconto), mas alimentando a tabela em vez de uma lista própria.
-- Testes em `vaCalculo.test.ts` para diferença positiva/negativa do ciclo anterior, acréscimo manual e intermitente sem convocação.
+- `src/lib/dp/va-calculo.ts` / `useDpValeCalculadora.tsx`: expor `diasPagosAnterior`, `diasTrabalhadosAnterior` e a diferença **assinada** (hoje só existe `descontos.dias`, sempre negativa) e somar essa diferença no total de dias.
+- Padrões de vale por escopo: reaproveitar o modelo já usado em `dp_beneficios_padroes`/`beneficiosPadrao.ts` para guardar as regras de VA/VT por empresa, unidade e cargo, com RLS + GRANTs na migração; resolução Colaborador → Cargo → Unidade → Empresa consumida pelo motor de cálculo.
+- Extrair os campos de regra de VA/VT de `RemuneracaoFields.tsx` para um componente único usado na ficha do colaborador e no diálogo do catálogo (`BeneficiosDialogs.tsx`), evitando duas UIs divergentes.
+- `ValeCalculadora.tsx`: nova apresentação com as colunas de dias/diferença/total e CSV correspondente.
+- `DpBeneficios.tsx`: abas passam a ser **Cálculo mensal**, **Histórico** e **Catálogo da empresa**; KPIs recalculados com o valor projetado.
+- `useDpBeneficiosCadastro.tsx`: segue como fonte dos dados da ficha, alimentando a visão de cálculo.
+- Nova tabela `dp_vale_fechamentos` (competência, tipo, total, snapshot das linhas) para o Histórico, com RLS + GRANTs.
+- Testes em `vaCalculo.test.ts`: diferença positiva e negativa do ciclo anterior, intermitente sem convocação, e paridade entre a resolução por escopo e a regra do colaborador.
