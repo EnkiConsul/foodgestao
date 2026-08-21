@@ -33,6 +33,8 @@ Padronização de títulos visíveis: cabeçalhos de página, rótulos de abas, 
 
 - `src/pages/dp/DpBeneficios.tsx`: remover a `TabsContent value="ficha"`, o cálculo de `linhas`, `useDpBeneficiosCadastro` na listagem e o `ColaboradorFichaDialog` usado só por ela; renomear a aba `catalogo`.
 - Novo `src/components/dp/beneficios/ValeRegrasCard.tsx` + `ValeRegrasDialog.tsx`: reaproveitam `ValeCorteFields` e os mesmos campos de `RemuneracaoFields.tsx`, extraindo o bloco VA/VT para um componente compartilhado para que as duas telas usem uma fonte só de UI e validação.
-- Persistência: padrão de empresa em `dp_config_dp` (`va_*` / `vt_*`); padrão de unidade e cargo em `dp_beneficios_padroes.payload` (helpers já existentes em `src/lib/dp/beneficiosPadrao.ts` e `beneficioEscopo.ts`); exceção do colaborador continua em `dp_colaboradores.vale_*`. Sem migração de banco.
+- Persistência: padrão de empresa em `dp_config_dp` (`va_*` / `vt_*`, incluindo flags de vale ativo/excluído); padrão de unidade e cargo em `dp_beneficios_padroes.payload` (helpers já existentes em `src/lib/dp/beneficiosPadrao.ts` e `beneficioEscopo.ts`); exceção do colaborador continua em `dp_colaboradores.vale_*`. Uma migração pequena adiciona as flags `va_ativo` / `vt_ativo` em `dp_config_dp`.
+- Diálogo de escopo ao salvar VA/VT na ficha: reaproveita o fluxo de escopo de benefícios (colaborador, cargo, unidade, empresa) e grava no destino escolhido.
+
 - KPIs da tela recalculados sem a lista da aba removida (contagem de benefícios ativos, colaboradores atendidos, custo bruto e líquido).
 - Title Case aplicado nos `DpPageHeader`, `TabsTrigger`, `DialogTitle` e `Helmet` do módulo Pessoas.
