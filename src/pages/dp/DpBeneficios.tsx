@@ -182,40 +182,70 @@ export default function DpBeneficios() {
           <DpContentCard>
             {b.beneficios.length === 0 ? (
               <p className="p-6 text-center text-sm text-muted-foreground">
-                Nenhum benefício cadastrado no catálogo.
+                Nenhum benefício cadastrado. Use "Novo Benefício" e, se precisar de valores
+                diferentes por unidade ou cargo, cadastre o mesmo benefício mais de uma vez
+                mudando o escopo.
               </p>
             ) : (
               <div className="divide-y divide-border">
-                {b.beneficios.map((x) => (
-                  <div
-                    key={x.id}
-                    className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4"
-                  >
-                    <div className="min-w-0">
-                      <p className="break-words text-sm font-medium">{x.nome}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {BENEFICIO_TIPO_LABEL[x.tipo]} · {brl(Number(x.valor_padrao ?? 0))}
-                        {Number(x.desconto_percentual ?? 0) > 0 &&
-                          ` · desconto ${Number(x.desconto_percentual)}%`}
-                        {x.folha_tipo ? " · entra na folha" : ""}
-                      </p>
+                {grupos.map((g) => (
+                  <div key={g.nome} className="px-3 py-3 sm:px-4">
+                    <div className="mb-2 flex items-center gap-2">
+                      <p className="break-words text-sm font-semibold">{g.nome}</p>
+                      {g.itens.length > 1 && (
+                        <Badge variant="outline">{g.itens.length} escopos</Badge>
+                      )}
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {!x.ativo && <Badge variant="secondary">Inativo</Badge>}
-                      <Button size="icon" variant="ghost" aria-label="Editar benefício"
-                        onClick={() => { setCatEdit(x); setCatOpen(true); }}>
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" aria-label="Remover benefício"
-                        onClick={() => b.deleteBeneficio.mutate(x.id)}>
-                        <Trash2 className="size-4 text-destructive" />
-                      </Button>
+                    {g.duplicado && (
+                      <p className="mb-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
+                        Há mais de um cadastro com este nome cobrindo o mesmo escopo. Revise para
+                        evitar valores duplicados no mesmo colaborador.
+                      </p>
+                    )}
+                    <div className="space-y-2">
+                      {g.itens.map((x) => (
+                        <div
+                          key={x.id}
+                          className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                        >
+                          <div className="min-w-0 space-y-1">
+                            <Badge variant="secondary" className="font-normal">
+                              {escopoLabel(x)}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground">
+                              {BENEFICIO_TIPO_LABEL[x.tipo]} · {brl(Number(x.valor_padrao ?? 0))}
+                              {Number(x.desconto_percentual ?? 0) > 0 &&
+                                ` · desconto ${Number(x.desconto_percentual)}%`}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            {!x.ativo && <Badge variant="secondary">Inativo</Badge>}
+                            <Button size="icon" variant="ghost" aria-label="Duplicar para outro escopo"
+                              onClick={() => {
+                                const { id, ...rest } = x as any;
+                                setCatEdit({ ...rest, nome: x.nome } as Beneficio);
+                                setCatOpen(true);
+                              }}>
+                              <Copy className="size-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" aria-label="Editar benefício"
+                              onClick={() => { setCatEdit(x); setCatOpen(true); }}>
+                              <Pencil className="size-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" aria-label="Remover benefício"
+                              onClick={() => b.deleteBeneficio.mutate(x.id)}>
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </DpContentCard>
+
         </TabsContent>
       </Tabs>
 
