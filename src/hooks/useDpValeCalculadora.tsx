@@ -45,6 +45,10 @@ export interface LinhaVale {
   aviso?: string;
   descontos: DiasDescontaveisResultado;
   deposito: DepositoVa;
+  /** Desconto do colaborador no mês, para recalcular com a diferença informada. */
+  descontoColaborador: number;
+  /** Dias previstos no ciclo anterior — sugestão para o campo "dias trabalhados". */
+  sugestaoTrabalhadosAnterior: number;
   /** Sem valor por dia cadastrado não há como calcular. */
   semValorDia: boolean;
   /** Período próprio do colaborador (pode diferir do padrão da empresa). */
@@ -54,6 +58,7 @@ export interface LinhaVale {
   /** De onde veio a regra aplicada. */
   origemRegra: "empresa" | "unidade" | "colaborador";
 }
+
 
 export interface ResumoVale {
   periodo: ReturnType<typeof periodoVaDe>;
