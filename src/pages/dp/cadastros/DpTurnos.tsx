@@ -331,34 +331,9 @@ export default function DpTurnos() {
             </div>
           )}
 
-        </TabsContent>
+        </div>
+      </div>
 
-        <TabsContent value="funcionamento" className="space-y-4">
-          <DpFilterCard>
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs">
-                <Store className="h-3.5 w-3.5" aria-hidden="true" />
-                Unidade
-              </Label>
-              <Select
-                value={unidadeFuncionamento ?? ""}
-                onValueChange={(v) => setUnidadeFuncionamento(v)}
-              >
-                <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Selecione a unidade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {listaUnidades.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </DpFilterCard>
-
-          <HorarioFuncionamentoEditor unidadeId={unidadeFuncionamento} />
-        </TabsContent>
-      </Tabs>
 
       <TurnoCategoriaLabelsDialog open={labelsOpen} onOpenChange={setLabelsOpen} />
 
