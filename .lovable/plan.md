@@ -17,8 +17,10 @@ Hoje existem 7 categorias fixas ("Abertura", "Almoço", "Jantar", ...) e o diál
 O horário de funcionamento é o horário da loja (quando abre/fecha), não jornada de trabalho — por isso fica melhor no cadastro da unidade.
 
 - A aba desaparece da tela de Turnos; a tela fica só com a lista de turnos (sem barra de abas).
-- O editor de horário de funcionamento passa a ser uma aba/seção do cadastro de Unidades, sempre no contexto da unidade que está sendo editada (sem seletor de unidade solto).
+- O editor de horário de funcionamento passa a ser uma seção do cadastro de Unidades, sempre no contexto da unidade que está sendo editada (sem seletor de unidade solto).
+- Vale também para a unidade criada a partir do cadastro de colaboradores: é o mesmo diálogo de unidade. Como o horário precisa da unidade já existente, a seção fica visível logo após salvar a unidade nova, dentro do mesmo diálogo, com o aviso "salve a unidade para definir o horário" antes disso.
 - Nenhum dado é perdido: os horários já salvos continuam e aparecem na unidade correspondente.
+
 
 ## Detalhes técnicos
 
