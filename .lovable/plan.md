@@ -4,7 +4,7 @@
 
 1. A aba "Vales por colaborador" sai da tela de Benefícios.
 2. A aba "Catálogo da empresa" passa a ser **Cadastro de Benefícios** e vira o lugar único onde qualquer benefício é criado e editado — Vale-Alimentação, Vale-Transporte e todos os demais (plano de saúde, cesta, auxílio creche, ou qualquer um novo criado pelo usuário).
-3. VA e VT aparecem nesse cadastro como itens fixos do sistema (não podem ser excluídos) com **exatamente as mesmas regras** da aba Remuneração da ficha do colaborador. Editar em qualquer uma das duas telas altera o mesmo dado.
+3. VA e VT aparecem nesse cadastro com **exatamente as mesmas regras** da aba Remuneração da ficha do colaborador. Editar em qualquer uma das duas telas altera o mesmo dado, e a empresa que não usa o benefício pode excluí-lo.
 4. Todos os títulos do módulo passam para Title Case (Primeira Letra de Cada Palavra Maiúscula).
 
 ## Cadastro de Benefícios
