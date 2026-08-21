@@ -166,6 +166,52 @@ export function BeneficioDialog({
               }
             />
           </div>
+          <div className="space-y-3 rounded-md border border-border bg-muted/20 p-3 sm:col-span-2">
+            <div>
+              <p className="text-sm font-medium">Aplica-se a</p>
+              <p className="text-xs text-muted-foreground">
+                Em branco, o benefício vale para a empresa inteira e pode ser vinculado a qualquer
+                colaborador. Com unidade e/ou cargo, ele só aparece no cadastro de quem pertence a
+                esse escopo.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Unidade</Label>
+                <Select
+                  value={form.unidade_id ?? "todas"}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, unidade_id: v === "todas" ? null : v }))
+                  }
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="todas">Todas as unidades</SelectItem>
+                    {unidades.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Cargo</Label>
+                <Select
+                  value={form.cargo_id ?? "todos"}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, cargo_id: v === "todos" ? null : v }))
+                  }
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="todos">Todos os cargos</SelectItem>
+                    {cargos.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>Descrição</Label>
             <Textarea
@@ -174,6 +220,7 @@ export function BeneficioDialog({
               rows={2}
             />
           </div>
+
           <div className="flex items-center gap-3 sm:col-span-2">
             <Switch
               checked={form.ativo}
