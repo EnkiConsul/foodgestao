@@ -44,23 +44,90 @@ export const CATEGORIA_LABEL: Record<string, string> = Object.fromEntries(
   CATEGORIAS_TURNO.map((c) => [c.v, c.label]),
 );
 
-/** Rótulos personalizados por empresa: { almoco: "Turno do almoço" }. */
+/** Rótulos personalizados por empresa (formato antigo): { almoco: "Turno do almoço" }. */
 export type CategoriaLabels = Record<string, string>;
 
-/** Rótulo da categoria respeitando o nome personalizado da empresa. */
-export function categoriaLabel(
-  categoria: string | null | undefined,
-  overrides?: CategoriaLabels | null,
-): string {
-  if (!categoria) return "Turno";
-  const custom = overrides?.[categoria]?.trim();
-  return custom || CATEGORIA_LABEL[categoria] || categoria;
+/** Categoria de turno sob controle da empresa. */
+export interface CategoriaTurnoItem {
+  codigo: string;
+  nome: string;
+  ordem: number;
 }
 
-/** Lista de categorias já com os rótulos personalizados aplicados. */
-export function categoriasTurno(overrides?: CategoriaLabels | null) {
-  return CATEGORIAS_TURNO.map((c) => ({ v: c.v, label: categoriaLabel(c.v, overrides) }));
+/** Lista padrão sugerida quando a empresa nunca personalizou nada. */
+export function categoriasPadrao(): CategoriaTurnoItem[] {
+  return CATEGORIAS_TURNO.map((c, i) => ({ codigo: c.v, nome: c.label, ordem: i }));
 }
+
+/** Código estável para categoria criada pela empresa. */
+export function codigoCategoriaCustom(nome: string): string {
+  const slug = nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 32);
+  return `custom_${slug || Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Lê o valor guardado em dp_config_dp.turno_categoria_labels aceitando os dois
+ * formatos: o antigo `{ codigo: nome }` (só rótulos) e o novo array completo.
+ */
+export function normalizarCategorias(raw: unknown): CategoriaTurnoItem[] {
+  if (Array.isArray(raw)) {
+    const lista = raw
+      .map((item, i) => {
+        const o = (item ?? {}) as Record<string, unknown>;
+        const codigo = typeof o.codigo === "string" ? o.codigo.trim() : "";
+        const nome = typeof o.nome === "string" ? o.nome.trim() : "";
+        if (!codigo || !nome) return null;
+        const ordem = typeof o.ordem === "number" ? o.ordem : i;
+        return { codigo, nome, ordem } satisfies CategoriaTurnoItem;
+      })
+      .filter((x): x is CategoriaTurnoItem => !!x);
+    if (lista.length === 0) return categoriasPadrao();
+    return lista
+      .sort((a, b) => a.ordem - b.ordem)
+      .map((c, i) => ({ ...c, ordem: i }));
+  }
+  if (raw && typeof raw === "object") {
+    const overrides = raw as Record<string, unknown>;
+    return categoriasPadrao().map((c) => {
+      const v = overrides[c.codigo];
+      return typeof v === "string" && v.trim() ? { ...c, nome: v.trim() } : c;
+    });
+  }
+  return categoriasPadrao();
+}
+
+/** Normaliza nomes/ordem antes de gravar. */
+export function serializarCategorias(lista: CategoriaTurnoItem[]): CategoriaTurnoItem[] {
+  return lista
+    .map((c, i) => ({ codigo: c.codigo, nome: c.nome.trim(), ordem: i }))
+    .filter((c) => !!c.codigo && !!c.nome);
+}
+
+type FonteCategorias = CategoriaTurnoItem[] | CategoriaLabels | null | undefined;
+
+function comoLista(fonte: FonteCategorias): CategoriaTurnoItem[] {
+  if (!fonte) return categoriasPadrao();
+  return normalizarCategorias(fonte);
+}
+
+/** Rótulo da categoria respeitando o nome definido pela empresa. */
+export function categoriaLabel(categoria: string | null | undefined, fonte?: FonteCategorias): string {
+  if (!categoria) return "Turno";
+  const item = comoLista(fonte).find((c) => c.codigo === categoria);
+  return item?.nome || CATEGORIA_LABEL[categoria] || categoria;
+}
+
+/** Lista de categorias da empresa no formato do seletor. */
+export function categoriasTurno(fonte?: FonteCategorias) {
+  return comoLista(fonte).map((c) => ({ v: c.codigo, label: c.nome }));
+}
+
 
 /** Cores sugeridas para identificar o turno na grade da escala. */
 export const CORES_TURNO = [
