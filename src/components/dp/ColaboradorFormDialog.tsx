@@ -1418,7 +1418,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     <Dialog open={open} onOpenChange={(o) => { if (!o) { tentarFechar(); return; } onOpenChange(true); }}>
       <DialogContent
         ref={contentRef}
-        className="flex max-h-[92vh] w-full max-w-4xl flex-col gap-0 overflow-hidden p-0"
+        className="flex h-[100dvh] w-full max-w-none flex-col gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[92vh] sm:max-w-4xl sm:rounded-lg"
       >
         <Tabs
           value={tab}
@@ -1426,10 +1426,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           className="flex min-h-0 flex-1 flex-col"
         >
           {/* Cabeçalho e abas fixos: só o conteúdo do formulário rola. */}
-          <div className="shrink-0 space-y-3 border-b border-border bg-background p-6 pb-3">
+          <div className="shrink-0 space-y-3 border-b border-border bg-background p-4 pb-2 sm:p-6 sm:pb-3">
             <DialogHeader className="space-y-0 text-left">
               <div className="flex items-start justify-between gap-2">
-                <DialogTitle>
+                <DialogTitle className="min-w-0 truncate pr-6 text-base sm:text-lg">
                   {isEdit
                     ? `Editar: ${toProperName(form.nome.trim()) || "Colaborador"}`
                     : `Cadastrar: ${toProperName(form.nome.trim()) || "Novo Colaborador"}`}
@@ -1449,7 +1449,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
               </div>
             </DialogHeader>
-            <TabsList className="w-full justify-start overflow-x-auto">
+            <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0 sm:pb-0">
+            <TabsList className="w-max justify-start sm:w-full">
               <TabsTrigger value="dados" className="gap-2">
                 Dados
                 {dadosPendente && (
@@ -1506,16 +1507,17 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
 
             </TabsList>
+            </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6">
           <TabsContent value="dados" className="mt-0">
 
 
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
           {/* Nome */}
-          <div className="col-span-2 space-y-2">
+          <div className="md:col-span-2 space-y-2">
             <Label>Nome Completo *</Label>
             <Input
               value={form.nome}
@@ -1724,7 +1726,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
           {/* Folha de ponto (condicional) */}
           {unidadeSelecionada?.possui_relogio_ponto && (
-            <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
+            <div className="md:col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
               <Switch
                 id="possui_folha_ponto"
                 checked={form.possui_folha_ponto}
@@ -1737,7 +1739,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
           {/* Senha Inicial */}
           {!isEdit && (
-            <div className="col-span-2 space-y-2">
+            <div className="md:col-span-2 space-y-2">
               <Label>Senha Inicial</Label>
               <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground font-mono">
                 Padrão: 6 últimos dígitos do CPF
@@ -1747,7 +1749,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
           {/* Acesso ao portal e desligamento moram aqui: sem abas separadas. */}
           {(isEdit || criadoId) && (
-            <div className="col-span-2 space-y-4">
+            <div className="md:col-span-2 space-y-4">
               <div id="acesso-portal" className="scroll-mt-4">
                 <ColaboradorAcessoPanel colaborador={colaboradorAtual} />
               </div>
@@ -1885,7 +1887,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
               {/* Adiantamento — apenas para contratos com salário mensal em folha */}
               {permiteAdiantamento ? (
-                <div className="col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-border p-3">
+                <div className="md:col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-border p-3">
                   <Switch
                     id="optante_adiantamento"
                     checked={form.optante_adiantamento}
@@ -1902,7 +1904,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                   </Button>}
                 </div>
               ) : (
-                <p className="col-span-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                <p className="md:col-span-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
                   <strong className="text-foreground">Adiantamento salarial não se aplica.</strong>{" "}
                   {policy.adiantamentoHint}
                 </p>
@@ -1926,21 +1928,23 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           </div>
         </Tabs>
 
-        <DialogFooter className="shrink-0 gap-2 border-t border-border p-4 sm:justify-between">
-
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={tentarFechar} disabled={upsert.isPending}>
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border p-3 sm:flex-row sm:p-4 sm:justify-between">
+          <p className="order-2 text-center text-[11px] text-muted-foreground sm:order-1 sm:text-left sm:text-xs">
+            {`Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
+            {dirty ? " · alterações não salvas" : ""}
+          </p>
+          <div className="order-1 flex w-full items-center gap-2 sm:order-2 sm:w-auto">
+            <Button
+              variant="ghost"
+              className="hidden sm:inline-flex"
+              onClick={tentarFechar}
+              disabled={upsert.isPending}
+            >
               Fechar
             </Button>
-            <span className="text-xs text-muted-foreground">
-              {`Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
-              {dirty ? " · alterações não salvas" : ""}
-            </span>
-
-          </div>
-          <div className="flex items-center gap-2">
             <Button
               variant="secondary"
+              className="h-11 flex-1 sm:h-10 sm:flex-none"
               onClick={() => void submit("stay")}
               disabled={upsert.isPending}
             >
@@ -1950,7 +1954,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                   ? "Salvar e continuar"
                   : "Salvar"}
             </Button>
-            <Button onClick={() => void submit("close")} disabled={upsert.isPending}>
+            <Button
+              className="h-11 flex-1 sm:h-10 sm:flex-none"
+              onClick={() => void submit("close")}
+              disabled={upsert.isPending}
+            >
               Concluir
             </Button>
           </div>

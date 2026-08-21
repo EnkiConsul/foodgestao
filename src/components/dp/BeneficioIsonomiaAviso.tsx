@@ -16,7 +16,7 @@ export function BeneficioIsonomiaAviso({ divergencias, onAplicarPadrao }: Props)
   if (divergencias.length === 0) return null;
 
   return (
-    <div className="col-span-2 space-y-3 rounded-xl border-2 border-amber-500/60 bg-amber-500/10 p-4">
+    <div className="md:col-span-2 space-y-3 rounded-xl border-2 border-amber-500/60 bg-amber-500/10 p-4">
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
         <div>

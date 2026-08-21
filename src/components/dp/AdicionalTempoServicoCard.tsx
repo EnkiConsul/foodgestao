@@ -82,7 +82,7 @@ export function AdicionalTempoServicoCard({
 
   if (regras.length === 0) {
     return (
-      <div className="col-span-2 mt-4 space-y-2 rounded-xl border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+      <div className="md:col-span-2 mt-4 space-y-2 rounded-xl border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
         {cabecalho}
         <p>
           Nenhuma regra cadastrada. Se a convenção prevê anuênio, triênio ou quinquênio,
@@ -96,7 +96,7 @@ export function AdicionalTempoServicoCard({
   // apenas informando que o critério ainda não foi atendido.
   if (total.itens.length === 0) {
     return (
-      <div className="col-span-2 mt-4 space-y-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+      <div className="md:col-span-2 mt-4 space-y-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
         {cabecalho}
         <p>
           A empresa possui adicional por tempo de serviço, mas este colaborador ainda não atende
@@ -107,7 +107,7 @@ export function AdicionalTempoServicoCard({
   }
 
   return (
-    <div className="col-span-2 mt-4 space-y-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+    <div className="md:col-span-2 mt-4 space-y-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
       {cabecalho}
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary">

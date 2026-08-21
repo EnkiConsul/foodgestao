@@ -356,7 +356,7 @@ export function RemuneracaoFields({
   }, [usaBase, salarioCargo, value.base_salarial]);
 
   return (
-    <div className="col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
+    <div className="md:col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-semibold">Remuneração e benefícios</div>
         <Badge variant="outline" className="text-[10px]">Obrigatório para a folha</Badge>
