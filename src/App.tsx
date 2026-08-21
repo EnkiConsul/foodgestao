@@ -490,14 +490,16 @@ const AppRoutes = () => (
         <Route path="escalas/mes" element={<DpEscalaMes />} />
         <Route path="operacao" element={<DpOperacaoDia />} />
         <Route path="convocacoes" element={<DpConvocacoes />} />
-        <Route path="ponto" element={<ModuloEmDesenvolvimentoGate module="ponto"><DpPonto /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="ponto/time" element={<ModuloEmDesenvolvimentoGate module="ponto"><DpPontoConsolidado /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="ponto/apuracao" element={<ModuloEmDesenvolvimentoGate module="ponto"><DpPontoApuracao /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="folha" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolha /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="folha/provisoes" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolhaProvisoes /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="folha/relatorios" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolhaRelatorios /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="rescisoes" element={<ModuloEmDesenvolvimentoGate module="folha"><DpRescisoes /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="folha/:id" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolhaPeriodo /></ModuloEmDesenvolvimentoGate>} />
+        {/* Folha de pagamento e ponto desativados: gerados fora do sistema por ora. */}
+        <Route path="ponto" element={<Navigate to="/dp" replace />} />
+        <Route path="ponto/time" element={<Navigate to="/dp" replace />} />
+        <Route path="ponto/apuracao" element={<Navigate to="/dp" replace />} />
+        <Route path="folha" element={<Navigate to="/dp" replace />} />
+        <Route path="folha/provisoes" element={<Navigate to="/dp" replace />} />
+        <Route path="folha/relatorios" element={<Navigate to="/dp" replace />} />
+        <Route path="rescisoes" element={<Navigate to="/dp" replace />} />
+        <Route path="folha/:id" element={<Navigate to="/dp" replace />} />
+
 
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
