@@ -23,6 +23,8 @@ import {
   AtribuicaoDialog, BeneficioDialog, BENEFICIO_TIPO_LABEL,
 } from "@/components/dp/beneficios/BeneficiosDialogs";
 import { ValeCalculadora } from "@/components/dp/beneficios/ValeCalculadora";
+import type { ValeTipo } from "@/hooks/useDpValeCalculadora";
+
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 
 const fmtData = (iso?: string | null) =>
