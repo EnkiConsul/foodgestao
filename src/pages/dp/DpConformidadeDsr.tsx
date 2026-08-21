@@ -11,6 +11,7 @@ import {
 } from "@/lib/dp/dsr-rules";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 
+import { cn } from "@/lib/utils";
 import { DpPage, DpPageHeader, DpContentCard, DpFilterCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Button } from "@/components/ui/button";
