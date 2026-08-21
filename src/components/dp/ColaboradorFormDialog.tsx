@@ -25,7 +25,9 @@ import { BeneficioDispensaDialog, type DispensaBeneficio, type MotivoIsonomiaEsc
 import { useDpUnidades, useDpCargos, useUpsertDpCargo, usePropagarRiscosCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, useDpSindicatos, type DpCargo } from "@/hooks/useDpCadastros";
 import { salarioCargoNaUnidade, mensagemErroPiso, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
 
-import { useDpBeneficios } from "@/hooks/useDpBeneficios";
+import { useDpBeneficios, type Beneficio } from "@/hooks/useDpBeneficios";
+import { BeneficioDialog } from "@/components/dp/beneficios/BeneficiosDialogs";
+
 import { Textarea } from "@/components/ui/textarea";
 import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
