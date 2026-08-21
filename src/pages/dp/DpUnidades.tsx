@@ -317,6 +317,10 @@ export default function DpUnidades() {
                 <p>{viewing.ativo ? "Ativa" : "Inativa"}</p>
               </div>
               <div>
+                <Label className="text-xs text-muted-foreground uppercase">Colaboradores vinculados</Label>
+                <p>{viewing.colaboradores_count}</p>
+              </div>
+              <div>
                 <Label className="text-xs text-muted-foreground uppercase">Relógio de Ponto</Label>
                 <p>{(viewing as any).possui_relogio_ponto ? "Sim" : "Não"}</p>
               </div>
