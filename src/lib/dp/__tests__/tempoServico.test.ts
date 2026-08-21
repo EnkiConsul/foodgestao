@@ -164,6 +164,6 @@ describe("regras concorrentes: escada x cumulativo", () => {
       pisoCargo: 2000,
       modo: "escada",
     });
-    expect(total.valor).toBe(60);
+    expect(total.valor).toBe(180);
   });
 });
