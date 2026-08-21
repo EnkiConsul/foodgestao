@@ -19,7 +19,10 @@ import { moedaBR } from "@/lib/dp/cargos";
 import {
   BASE_ADICIONAL_LABEL,
   ESCOPO_ADICIONAL_LABEL,
+  MODO_ADICIONAL_LABEL,
+  calcularAdicionalPorModo,
   rotuloCiclo,
+  type ModoAdicional,
   type BaseAdicional,
   type EscopoAdicional,
   type RegraTempoServico,
@@ -27,6 +30,10 @@ import {
 import { tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
 
 const hoje = () => new Date().toISOString().slice(0, 10);
+
+/** Salário fictício usado só na prévia do modo de cálculo. */
+const BASE_PREVIA = 2000;
+const ANOS_PREVIA = [3, 5, 9];
 
 const REGRA_VAZIA: RegraTempoServicoInput = {
   nome: "Adicional por tempo de serviço",
@@ -70,6 +77,35 @@ export default function DpAdicionaisTempoServico() {
     vigencia: config.vigencia,
     confirmadoEm: config.confirmadoEm,
   });
+
+  // Prévia: como o modo escolhido se comporta em 3, 5 e 9 anos de casa.
+  const previa = useMemo(() => {
+    const ref = hoje();
+    return ANOS_PREVIA.map((anos) => {
+      const admissao = `${Number(ref.slice(0, 4)) - anos}${ref.slice(4)}`;
+      const total = calcularAdicionalPorModo({
+        regras,
+        alvo: {},
+        admissao,
+        referencia: ref,
+        base: BASE_PREVIA,
+        pisoCargo: BASE_PREVIA,
+        modo: config.adicionalModo,
+      });
+      return {
+        anos,
+        percentual: total.percentual,
+        valor: total.valor,
+        detalhe: total.itens.map((i) => rotuloCiclo(i.regra.ciclo_meses)).join(" + "),
+      };
+    });
+  }, [regras, config.adicionalModo]);
+
+  // Duas ou mais regras vigentes de empresa competindo entre si.
+  const concorrentes = useMemo(
+    () => regras.filter((r) => r.ativo && r.escopo === "empresa").length > 1,
+    [regras],
+  );
 
   const nomeEscopo = (r: RegraTempoServico): string => {
     if (r.escopo === "cargo") return cargos.find((c) => c.id === r.cargo_id)?.nome ?? "Cargo";
@@ -162,6 +198,56 @@ export default function DpAdicionaisTempoServico() {
             </Label>
           </div>
         </div>
+
+        {/* Como combinar regras concorrentes: escada (padrão) ou cumulativo */}
+        <div className="grid grid-cols-1 gap-3 rounded-xl border border-border p-3 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Quando há mais de uma regra para o mesmo colaborador</Label>
+            <Select
+              value={config.adicionalModo}
+              onValueChange={(v) =>
+                void salvarConfig({ adicionalModo: v as ModoAdicional }).then(() =>
+                  toast.success("Modo de cálculo atualizado"),
+                )
+              }
+              disabled={salvandoConfig}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(MODO_ADICIONAL_LABEL) as ModoAdicional[]).map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {MODO_ADICIONAL_LABEL[m]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {config.adicionalModo === "cumulativo"
+                ? "As regras somam: um colaborador com 9 anos recebe o triênio e o quinquênio."
+                : "Vale o maior ciclo já alcançado: com 5 anos o quinquênio substitui o triênio."}
+            </p>
+          </div>
+          <div className="space-y-1.5 rounded-lg border border-dashed border-border p-3 text-xs">
+            <p className="font-medium text-foreground">Prévia sobre {moedaBR(BASE_PREVIA)}</p>
+            {previa.map((p) => (
+              <p key={p.anos} className="text-muted-foreground">
+                {p.anos} ano(s) de casa: <span className="text-foreground">{p.percentual}%</span> ·{" "}
+                {moedaBR(p.valor)}/mês
+                {p.detalhe ? ` (${p.detalhe})` : ""}
+              </p>
+            ))}
+            {concorrentes && (
+              <p className="flex items-start gap-1.5 pt-1 text-amber-700 dark:text-amber-300">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                Há mais de uma regra vigente para o mesmo escopo — elas serão combinadas no modo{" "}
+                {config.adicionalModo === "cumulativo" ? "cumulativo" : "escada"}.
+              </p>
+            )}
+          </div>
+        </div>
+
 
         <div className="space-y-2">
           {isLoading && <p className="text-sm text-muted-foreground">Carregando regras…</p>}
