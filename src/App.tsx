@@ -371,8 +371,9 @@ const AppRoutes = () => (
         <Route path="calendario" element={<DpMeuCalendario />} />
         <Route path="escala" element={<DpMeuEscala />} />
         <Route path="convocacoes" element={<DpMinhasConvocacoes />} />
-        <Route path="ponto" element={<ModuloEmDesenvolvimentoGate module="ponto" surface="portal"><DpMeuPonto /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="contracheque" element={<ModuloEmDesenvolvimentoGate module="folha" surface="portal"><DpMeuContracheque /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="ponto" element={<Navigate to="/dp/meu" replace />} />
+        <Route path="contracheque" element={<Navigate to="/dp/meu/documentos?tipo=contracheque" replace />} />
+
 
         <Route path="atestados" element={<Navigate to="/dp/meu/documentos?tipo=atestado" replace />} />
         <Route path="disciplinar" element={<Navigate to="/dp/meu/documentos?tipo=disciplinar" replace />} />
