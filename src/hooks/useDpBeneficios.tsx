@@ -111,17 +111,29 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
   });
 
   const saveBeneficio = useMutation({
-    mutationFn: async (input: BeneficioInput) => {
+    /** Retorna o registro salvo — o cadastro do colaborador usa o id para já marcar o benefício novo. */
+    mutationFn: async (input: BeneficioInput): Promise<Beneficio> => {
       const company_id = requireCompany();
       const { id, ...rest } = input;
       if (id) {
-        const { error } = await supabase.from("dp_beneficios").update(rest).eq("id", id);
+        const { data, error } = await supabase
+          .from("dp_beneficios")
+          .update(rest)
+          .eq("id", id)
+          .select("*")
+          .single();
         if (error) throw error;
-      } else {
-        const { error } = await supabase.from("dp_beneficios").insert({ ...rest, company_id });
-        if (error) throw error;
+        return data as Beneficio;
       }
+      const { data, error } = await supabase
+        .from("dp_beneficios")
+        .insert({ ...rest, company_id })
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as Beneficio;
     },
+
     onSuccess: () => {
       toast.success("Benefício salvo");
       invalidate("dp_beneficios", "dp_colaborador_beneficios");

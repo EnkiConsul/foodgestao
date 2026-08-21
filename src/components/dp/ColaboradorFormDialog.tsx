@@ -25,7 +25,9 @@ import { BeneficioDispensaDialog, type DispensaBeneficio, type MotivoIsonomiaEsc
 import { useDpUnidades, useDpCargos, useUpsertDpCargo, usePropagarRiscosCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, useDpSindicatos, type DpCargo } from "@/hooks/useDpCadastros";
 import { salarioCargoNaUnidade, mensagemErroPiso, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
 
-import { useDpBeneficios } from "@/hooks/useDpBeneficios";
+import { useDpBeneficios, type Beneficio } from "@/hooks/useDpBeneficios";
+import { BeneficioDialog } from "@/components/dp/beneficios/BeneficiosDialogs";
+
 import { Textarea } from "@/components/ui/textarea";
 import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
@@ -213,7 +215,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   const [confirmarRemocao, setConfirmarRemocao] = useState(false);
   const queryClient = useQueryClient();
 
-  const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
+  const { beneficios, atribuicoes, saveAtribuicao, saveBeneficio } = useDpBeneficios();
+  // Atalho de catálogo aberto de dentro do cadastro (criar/editar benefício).
+  const [beneficioDialogOpen, setBeneficioDialogOpen] = useState(false);
+  const [beneficioEditando, setBeneficioEditando] = useState<Beneficio | null>(null);
+
   const [form, setForm] = useState(blank);
   const { selectedCompanyId, companies } = useCompanyContext();
   const todosColaboradores = useDpColaboradores();
@@ -1866,6 +1872,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 cargoPerigoso={!!cargoSelecionado?.perigoso}
                 regime={regimeSelecionado}
                 beneficios={beneficios}
+                onNovoBeneficio={() => {
+                  setBeneficioEditando(null);
+                  setBeneficioDialogOpen(true);
+                }}
+                onEditarBeneficio={(b) => {
+                  setBeneficioEditando(b);
+                  setBeneficioDialogOpen(true);
+                }}
+
                 diasJornada={diasJornada}
                 folgasFimDeSemanaMes={folgasFimDeSemanaMes}
 
@@ -2024,6 +2039,28 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         onOpenChange={setNovaUnidadeOpen}
         onSaved={(u) => setForm((f) => ({ ...f, unidade_id: u.id }))}
       />
+
+      {/* Catálogo de benefícios criado/editado sem sair do cadastro do colaborador */}
+      <BeneficioDialog
+        open={beneficioDialogOpen}
+        onOpenChange={setBeneficioDialogOpen}
+        editing={beneficioEditando}
+        saving={saveBeneficio.isPending}
+        onSubmit={(input) =>
+          saveBeneficio.mutate(input, {
+            onSuccess: (salvo) => {
+              setBeneficioDialogOpen(false);
+              // Benefício novo já nasce marcado para o colaborador em edição.
+              if (!beneficioEditando && salvo?.id) {
+                patchRem({ beneficios: { ...rem.beneficios, [salvo.id]: true } });
+              }
+              setBeneficioEditando(null);
+            },
+          })
+        }
+      />
+
+
 
 
       <MotivoDialog

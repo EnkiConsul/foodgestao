@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, PencilLine } from "lucide-react";
+import { Calculator, PencilLine, Pencil, Plus } from "lucide-react";
 import {
   formaPagamentoOptions,
   valeTransporteDoMes,
@@ -178,6 +178,11 @@ interface Props {
   /** Periculosidade marcada no cargo. */
   cargoPerigoso?: boolean;
   beneficios: Beneficio[];
+  /** Abre o cadastro de um novo benefício do catálogo a partir desta tela. */
+  onNovoBeneficio?: () => void;
+  /** Abre o cadastro do benefício do catálogo para edição. */
+  onEditarBeneficio?: (b: Beneficio) => void;
+
   cargoInsalubreHint?: string;
   /** Regime do vínculo — restringe as formas de pagamento admitidas. */
   regime?: string | null;
@@ -207,6 +212,9 @@ export function RemuneracaoFields({
   cargoInsalubre,
   cargoPerigoso,
   beneficios,
+  onNovoBeneficio,
+  onEditarBeneficio,
+
   regime,
   diasJornada,
   folgasFimDeSemanaMes,
@@ -966,31 +974,70 @@ export function RemuneracaoFields({
       </div>
 
       {/* Benefícios da empresa */}
-      {beneficios.length > 0 && (
-        <div className="space-y-2">
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Label>Benefícios</Label>
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-            {beneficios.map((b) => (
-              <label
-                key={b.id}
-                className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-sm"
-              >
-                <Checkbox
-                  checked={!!value.beneficios[b.id]}
-                  onCheckedChange={(v) =>
-                    onChange({ beneficios: { ...value.beneficios, [b.id]: v === true } })
-                  }
-                />
-                <span className="min-w-0 flex-1 truncate">{b.nome}</span>
-                <span className="text-xs text-muted-foreground">{formatarBRL(Number(b.valor_padrao ?? 0))}</span>
-              </label>
-            ))}
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Os benefícios marcados passam a valer a partir de hoje e entram automaticamente na folha.
-          </p>
+          {onNovoBeneficio && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="min-h-9 w-full sm:w-auto"
+              onClick={() => onNovoBeneficio()}
+            >
+              <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" /> Novo benefício
+            </Button>
+          )}
         </div>
-      )}
+
+        {beneficios.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
+            Nenhum benefício no catálogo da empresa. Crie o primeiro para poder vinculá-lo a este
+            colaborador — ele entra automaticamente na folha.
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              {beneficios.map((b) => (
+                <div
+                  key={b.id}
+                  className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-sm"
+                >
+                  <label className="flex min-w-0 flex-1 items-center gap-2">
+                    <Checkbox
+                      checked={!!value.beneficios[b.id]}
+                      onCheckedChange={(v) =>
+                        onChange({ beneficios: { ...value.beneficios, [b.id]: v === true } })
+                      }
+                    />
+                    <span className="min-w-0 flex-1 truncate">{b.nome}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatarBRL(Number(b.valor_padrao ?? 0))}
+                    </span>
+                  </label>
+                  {onEditarBeneficio && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-9 w-9 shrink-0"
+                      title="Editar benefício do catálogo"
+                      aria-label={`Editar benefício ${b.nome}`}
+                      onClick={() => onEditarBeneficio(b)}
+                    >
+                      <Pencil className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Os benefícios marcados passam a valer a partir de hoje e entram automaticamente na folha.
+            </p>
+          </>
+        )}
+      </div>
+
     </div>
   );
 }
