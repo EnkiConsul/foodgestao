@@ -1872,6 +1872,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 cargoPerigoso={!!cargoSelecionado?.perigoso}
                 regime={regimeSelecionado}
                 beneficios={beneficios}
+                onNovoBeneficio={() => {
+                  setBeneficioEditando(null);
+                  setBeneficioDialogOpen(true);
+                }}
+                onEditarBeneficio={(b) => {
+                  setBeneficioEditando(b);
+                  setBeneficioDialogOpen(true);
+                }}
+
                 diasJornada={diasJornada}
                 folgasFimDeSemanaMes={folgasFimDeSemanaMes}
 
