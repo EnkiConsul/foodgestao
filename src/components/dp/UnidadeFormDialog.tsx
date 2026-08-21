@@ -383,6 +383,10 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
           </Label>
           <HorarioFuncionamentoEditor unidadeId={unidadeId} semRodape onRegistrarSalvar={registrarSalvar} />
         </TabsContent>
+
+        <TabsContent value="sindicato" className="mt-0 flex-1 overflow-y-auto p-4">
+          <UnidadeSindicatoPanel unidadeId={unidadeId} unidadeNome={form.nome} />
+        </TabsContent>
         </Tabs>
         <DialogFooter className="flex-col gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row">
           <Button variant="ghost" className="h-11 w-full sm:w-auto" onClick={() => onOpenChange(false)}>
