@@ -18,6 +18,8 @@ import { moedaBR, selosRiscoCargo, textoPercentualRisco } from "@/lib/dp/cargos"
 import { CargoSalariosUnidadePanel } from "@/components/dp/CargoSalariosUnidadePanel";
 import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
 import { ComplementosSalariaisPanel } from "@/components/dp/cargos/ComplementosSalariaisPanel";
+import { TurnosPanel } from "@/components/dp/cargos/TurnosPanel";
+import { DocumentosObrigatoriosPanel } from "@/components/dp/cargos/DocumentosObrigatoriosPanel";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
 
