@@ -22,7 +22,9 @@ export type BeneficioInput = {
   tipo: BeneficioTipo;
   valor_padrao: number;
   desconto_percentual: number;
-  folha_tipo: FolhaTipo | null;
+  /** Legado da folha desativada; sempre gravado como null. */
+  folha_tipo?: FolhaTipo | null;
+
   descricao: string | null;
   ativo: boolean;
   /** Escopo: em branco = empresa inteira. */
