@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import type {
   Beneficio, BeneficioInput, BeneficioTipo, ColaboradorBeneficio,
-  ColaboradorBeneficioInput, FolhaTipo,
+  ColaboradorBeneficioInput,
 } from "@/hooks/useDpBeneficios";
 
 export const BENEFICIO_TIPO_LABEL: Record<BeneficioTipo, string> = {
@@ -27,12 +27,6 @@ export const BENEFICIO_TIPO_LABEL: Record<BeneficioTipo, string> = {
   outro: "Outro",
 };
 
-/** Tipos de folha aceitos para geração automática de lançamento. */
-export const FOLHA_TIPO_BENEFICIO: { value: FolhaTipo; label: string }[] = [
-  { value: "vale_transporte", label: "Vale-transporte" },
-  { value: "vale_alimentacao", label: "Vale-alimentação" },
-];
-
 type Colab = { id: string; nome: string };
 
 const hoje = () => new Date().toISOString().slice(0, 10);
@@ -42,7 +36,6 @@ const emptyBeneficio: BeneficioInput = {
   tipo: "outro",
   valor_padrao: 0,
   desconto_percentual: 0,
-  folha_tipo: null,
   descricao: null,
   ativo: true,
   unidade_id: null,
@@ -78,7 +71,6 @@ export function BeneficioDialog({
             tipo: editing.tipo,
             valor_padrao: Number(editing.valor_padrao ?? 0),
             desconto_percentual: Number(editing.desconto_percentual ?? 0),
-            folha_tipo: editing.folha_tipo,
             descricao: editing.descricao,
             ativo: editing.ativo,
             unidade_id: (editing as any).unidade_id ?? null,
@@ -103,7 +95,7 @@ export function BeneficioDialog({
         {editing && (
           <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
             Este é o cadastro do catálogo da empresa: a alteração vale para todos os colaboradores que
-            usam este benefício. Valores individuais são ajustados em Benefícios &gt; Vales por colaborador.
+            usam este benefício. Ajustes individuais são feitos na ficha do colaborador, na aba Remuneração.
           </p>
         )}
 

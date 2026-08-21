@@ -14,6 +14,7 @@ export type ColaboradorBeneficio =
 
 export type BeneficioTipo = Database["public"]["Enums"]["dp_beneficio_tipo"];
 export type FolhaTipo = Database["public"]["Enums"]["dp_folha_tipo"];
+// Mantido apenas por compatibilidade de tipos; a geração de folha está desativada.
 
 export type BeneficioInput = {
   id?: string;
