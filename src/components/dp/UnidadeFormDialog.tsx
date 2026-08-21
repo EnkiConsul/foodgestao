@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useUpsertDpUnidade, type DpUnidade } from "@/hooks/useDpCadastros";
@@ -63,6 +64,8 @@ interface Props {
   nomeInicial?: string;
   /** Recebe a unidade salva — usado para selecioná-la de imediato. */
   onSaved?: (unidade: DpUnidade) => void;
+  /** Abre direto numa aba (ex.: atalho "Funcionamento" do card da unidade). */
+  abaInicial?: "dados" | "funcionamento";
 }
 
 /**
@@ -70,7 +73,7 @@ interface Props {
  * "Nova unidade" do cadastro do colaborador: a unidade nasce no mesmo lugar,
  * com as mesmas regras, venha de onde vier.
  */
-export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInicial = "", onSaved }: Props) {
+export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInicial = "", onSaved, abaInicial = "dados" }: Props) {
   const { companies } = useCompanyContext();
   const upsert = useUpsertDpUnidade();
   const [form, setForm] = useState(blank);
@@ -139,10 +142,12 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
 
   // Carrega o formulário sempre que o diálogo abre.
   const [criadaId, setCriadaId] = useState<string | null>(null);
+  const [aba, setAba] = useState<"dados" | "funcionamento">(abaInicial);
 
   useEffect(() => {
     if (!open) return;
     setCriadaId(null);
+    setAba(unidade ? abaInicial : "dados");
     if (unidade) {
       setForm({
         company_id: unidade.company_id ?? "",
@@ -199,6 +204,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
       }
       // Nova unidade: mantém aberta para configurar o funcionamento da loja.
       setCriadaId(salva.id);
+      setAba("funcionamento");
       toast.success("Unidade criada. Agora defina o horário de funcionamento (opcional).");
     } catch (e) {
       toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) });
@@ -207,11 +213,24 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[92vh] max-w-2xl flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className="flex h-[100dvh] max-w-2xl flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:rounded-lg">
         <DialogHeader className="border-b p-4 text-left">
-          <DialogTitle>{unidade ? "Editar unidade" : "Nova unidade"}</DialogTitle>
+          <DialogTitle className="truncate">
+            {unidade ? unidade.nome || "Editar unidade" : "Nova unidade"}
+          </DialogTitle>
         </DialogHeader>
-        <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        <Tabs
+          value={aba}
+          onValueChange={(v) => setAba(v as "dados" | "funcionamento")}
+          className="flex min-h-0 flex-1 flex-col gap-0"
+        >
+          <div className="border-b px-4 pt-3">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="dados" className="h-10">Dados</TabsTrigger>
+              <TabsTrigger value="funcionamento" className="h-10">Funcionamento</TabsTrigger>
+            </TabsList>
+          </div>
+        <TabsContent value="dados" className="mt-0 flex-1 space-y-4 overflow-y-auto p-4">
           <div className="space-y-2">
             <Label>Empresa vinculada *</Label>
             {companies.length === 0 ? (
@@ -350,20 +369,21 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
               </Select>
             </div>
           )}
+        </TabsContent>
 
-          <div className="space-y-2 border-t pt-4">
-            <Label className="flex items-center gap-1.5">
-              <Store className="h-4 w-4" aria-hidden="true" />
-              Horário de funcionamento da loja
-            </Label>
-            <HorarioFuncionamentoEditor unidadeId={unidadeId} />
-          </div>
-        </div>
-        <DialogFooter className="border-t p-4">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+        <TabsContent value="funcionamento" className="mt-0 flex-1 space-y-2 overflow-y-auto p-4">
+          <Label className="flex items-center gap-1.5">
+            <Store className="h-4 w-4" aria-hidden="true" />
+            Horário de funcionamento da loja
+          </Label>
+          <HorarioFuncionamentoEditor unidadeId={unidadeId} semRodape />
+        </TabsContent>
+        </Tabs>
+        <DialogFooter className="flex-col gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row">
+          <Button variant="ghost" className="h-11 w-full sm:w-auto" onClick={() => onOpenChange(false)}>
             {criadaId ? "Fechar" : "Cancelar"}
           </Button>
-          <Button onClick={save} disabled={upsert.isPending}>
+          <Button className="h-11 w-full sm:w-auto" onClick={save} disabled={upsert.isPending}>
             {upsert.isPending ? "Salvando..." : unidade || criadaId ? "Salvar" : "Cadastrar"}
           </Button>
         </DialogFooter>
