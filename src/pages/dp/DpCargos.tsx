@@ -23,6 +23,9 @@ import { DpTabsBar } from "@/components/dp/DpTabsBar";
 
 import { cn } from "@/lib/utils";
 
+/** Abas válidas da tela (a query string `aba` controla a navegação direta). */
+const ABAS = ["cargos", "complementos", "turnos", "documentos"];
+
 export default function DpCargos() {
   const list = useDpCargos();
   const del = useDeleteDpCargo();
