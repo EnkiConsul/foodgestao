@@ -9,11 +9,11 @@ import { moedaBR } from "@/lib/dp/cargos";
 import {
   BASE_ADICIONAL_LABEL,
   ESCOPO_ADICIONAL_LABEL,
-  calcularAdicionalTempoServico,
+  calcularAdicionalPorModo,
   descreverAdicional,
   rotuloCiclo,
-  selecionarRegraTempoServico,
 } from "@/lib/dp/tempoServico";
+
 
 interface Props {
   admissao: string | null;
