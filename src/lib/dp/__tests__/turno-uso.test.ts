@@ -42,7 +42,7 @@ describe("turno-uso", () => {
   });
 
   it("detalha apenas origens com quantidade", () => {
-    const detalhes = detalhesUsoTurno(uso({ config_dias: 2, grade_dias: 1 }));
+    const detalhes = detalhesUsoTurno(uso({ config_dias: 2, cobertura_minima: 1 }));
     expect(detalhes).toHaveLength(2);
     expect(detalhes.map((d) => d.quantidade)).toEqual([2, 1]);
   });
