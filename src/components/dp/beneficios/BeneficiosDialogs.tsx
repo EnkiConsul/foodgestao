@@ -132,22 +132,14 @@ export function BeneficioDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Lançar na folha como</Label>
-            <Select
-              value={form.folha_tipo ?? "nenhum"}
-              onValueChange={(v) =>
-                setForm((f) => ({ ...f, folha_tipo: v === "nenhum" ? null : (v as FolhaTipo) }))
-              }
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="nenhum">Não lançar</SelectItem>
-                {FOLHA_TIPO_BENEFICIO.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Valor padrão (R$)</Label>
+            <Input
+              type="number" min={0} step="0.01"
+              value={form.valor_padrao}
+              onChange={(e) => setForm((f) => ({ ...f, valor_padrao: Number(e.target.value) }))}
+            />
           </div>
+
           <div className="space-y-2">
             <Label>Valor padrão (R$)</Label>
             <Input
