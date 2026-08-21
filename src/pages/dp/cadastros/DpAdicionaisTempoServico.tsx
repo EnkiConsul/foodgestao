@@ -19,7 +19,10 @@ import { moedaBR } from "@/lib/dp/cargos";
 import {
   BASE_ADICIONAL_LABEL,
   ESCOPO_ADICIONAL_LABEL,
+  MODO_ADICIONAL_LABEL,
+  calcularAdicionalPorModo,
   rotuloCiclo,
+  type ModoAdicional,
   type BaseAdicional,
   type EscopoAdicional,
   type RegraTempoServico,
@@ -27,6 +30,10 @@ import {
 import { tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
 
 const hoje = () => new Date().toISOString().slice(0, 10);
+
+/** Salário fictício usado só na prévia do modo de cálculo. */
+const BASE_PREVIA = 2000;
+const ANOS_PREVIA = [3, 5, 9];
 
 const REGRA_VAZIA: RegraTempoServicoInput = {
   nome: "Adicional por tempo de serviço",
@@ -70,6 +77,35 @@ export default function DpAdicionaisTempoServico() {
     vigencia: config.vigencia,
     confirmadoEm: config.confirmadoEm,
   });
+
+  // Prévia: como o modo escolhido se comporta em 3, 5 e 9 anos de casa.
+  const previa = useMemo(() => {
+    const ref = hoje();
+    return ANOS_PREVIA.map((anos) => {
+      const admissao = `${Number(ref.slice(0, 4)) - anos}${ref.slice(4)}`;
+      const total = calcularAdicionalPorModo({
+        regras,
+        alvo: {},
+        admissao,
+        referencia: ref,
+        base: BASE_PREVIA,
+        pisoCargo: BASE_PREVIA,
+        modo: config.adicionalModo,
+      });
+      return {
+        anos,
+        percentual: total.percentual,
+        valor: total.valor,
+        detalhe: total.itens.map((i) => rotuloCiclo(i.regra.ciclo_meses)).join(" + "),
+      };
+    });
+  }, [regras, config.adicionalModo]);
+
+  // Duas ou mais regras vigentes de empresa competindo entre si.
+  const concorrentes = useMemo(
+    () => regras.filter((r) => r.ativo && r.escopo === "empresa").length > 1,
+    [regras],
+  );
 
   const nomeEscopo = (r: RegraTempoServico): string => {
     if (r.escopo === "cargo") return cargos.find((c) => c.id === r.cargo_id)?.nome ?? "Cargo";
