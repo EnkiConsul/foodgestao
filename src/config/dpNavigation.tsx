@@ -188,7 +188,6 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Colaboradores", to: "/dp/colaboradores", icon: Users, shortcut: true },
       { label: "Cargos e Salários", to: "/dp/cadastros/cargos", icon: Briefcase },
       { label: "Unidades", to: "/dp/cadastros/unidades", icon: Building2 },
-      { label: "Sindicatos", to: "/dp/cadastros/sindicatos", icon: Scale },
       { label: "Benefícios", to: "/dp/cadastros/beneficios", icon: Gift },
       { label: "Pendências", to: "/dp/cadastros/pendencias", icon: BellRing },
     ],

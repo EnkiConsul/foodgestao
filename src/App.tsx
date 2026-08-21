@@ -100,7 +100,6 @@ const DpOperacaoDia = lazyWithRetry(() => import("./pages/dp/DpOperacaoDia"));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
-const DpSindicatos = lazyWithRetry(() => import("./pages/dp/DpSindicatos"));
 const DpSindicatoNegociacoes = lazyWithRetry(() => import("./pages/dp/DpSindicatoNegociacoes"));
 const DpAprovacoes = lazyWithRetry(() => import("./pages/dp/DpAprovacoes"));
 const DpAvisos = lazyWithRetry(() => import("./pages/dp/DpAvisos"));
@@ -466,7 +465,7 @@ const AppRoutes = () => (
         <Route path="cadastros/cargos" element={<DpCargos />} />
         <Route path="cadastros/adicionais" element={<Navigate to="/dp/cadastros/cargos?aba=complementos" replace />} />
         <Route path="cadastros/documentos-exigidos" element={<Navigate to="/dp/cadastros/cargos?aba=documentos" replace />} />
-        <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
+        <Route path="cadastros/sindicatos" element={<Navigate to="/dp/cadastros/unidades?aba=sindicatos" replace />} />
         <Route path="cadastros/pendencias" element={<DpCadastroPendencias />} />
         <Route path="cadastros/beneficios" element={<DpBeneficios />} />
         <Route path="cadastros/turnos" element={<Navigate to="/dp/cadastros/cargos?aba=turnos" replace />} />
@@ -491,7 +490,7 @@ const AppRoutes = () => (
 
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
-        <Route path="sindicatos" element={<Navigate to="/dp/cadastros/sindicatos" replace />} />
+        <Route path="sindicatos" element={<Navigate to="/dp/cadastros/unidades?aba=sindicatos" replace />} />
         <Route path="unidades" element={<Navigate to="/dp/cadastros/unidades" replace />} />
         <Route path="cargos" element={<Navigate to="/dp/cadastros/cargos" replace />} />
         <Route path="sindicatos/negociacoes" element={<Navigate to="/dp/documentos/act-cct" replace />} />
