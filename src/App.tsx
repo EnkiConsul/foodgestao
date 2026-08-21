@@ -99,14 +99,6 @@ const DpEscalas = lazyWithRetry(() => import("./pages/dp/DpEscalas"));
 const DpEscalaMes = lazyWithRetry(() => import("./pages/dp/DpEscalaMes"));
 const DpOperacaoDia = lazyWithRetry(() => import("./pages/dp/DpOperacaoDia"));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
-const DpPonto = lazyWithRetry(() => import("./pages/dp/DpPonto"));
-const DpPontoConsolidado = lazyWithRetry(() => import("./pages/dp/DpPontoConsolidado"));
-const DpPontoApuracao = lazyWithRetry(() => import("./pages/dp/DpPontoApuracao"));
-const DpFolha = lazyWithRetry(() => import("./pages/dp/DpFolha"));
-const DpFolhaPeriodo = lazyWithRetry(() => import("./pages/dp/DpFolhaPeriodo"));
-const DpFolhaProvisoes = lazyWithRetry(() => import("./pages/dp/DpFolhaProvisoes"));
-const DpRescisoes = lazyWithRetry(() => import("./pages/dp/DpRescisoes"));
-const DpFolhaRelatorios = lazyWithRetry(() => import("./pages/dp/DpFolhaRelatorios"));
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
 const DpAdicionaisTempoServico = lazyWithRetry(() => import("./pages/dp/cadastros/DpAdicionaisTempoServico"));
@@ -138,8 +130,6 @@ const DpMeuTrocas = lazyWithRetry(() => import("./pages/dp/portal/DpMeuTrocas"))
 const DpMeuCalendario = lazyWithRetry(() => import("./pages/dp/portal/DpMeuCalendario"));
 const DpMeuEscala = lazyWithRetry(() => import("./pages/dp/portal/DpMeuEscala"));
 const DpMinhasConvocacoes = lazyWithRetry(() => import("./pages/dp/portal/DpMinhasConvocacoes"));
-const DpMeuPonto = lazyWithRetry(() => import("./pages/dp/portal/DpMeuPonto"));
-const DpMeuContracheque = lazyWithRetry(() => import("./pages/dp/portal/DpMeuContracheque"));
 const DpMeuHistorico = lazyWithRetry(() => import("./pages/dp/portal/DpMeuHistorico"));
 
 // Admin
