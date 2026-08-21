@@ -58,8 +58,9 @@ export const MODULES: ModuleDefinition[] = [
     description: "Registro de ponto, espelho, ajustes e apuração de horas.",
     icon: Clock,
     entryRoute: "/dp/ponto",
-    available: true,
-    sellable: true,
+    // Desativado: folha de ponto é gerada em sistema externo.
+    available: false,
+    sellable: false,
     parent: "dp",
     requires: ["dp"],
   },
@@ -82,8 +83,9 @@ export const MODULES: ModuleDefinition[] = [
     description: "Folha de pagamento, provisões, rescisão e holerite.",
     icon: Receipt,
     entryRoute: "/dp/folha",
-    available: true,
-    sellable: true,
+    // Desativado: folha de pagamento é gerada pela contabilidade.
+    available: false,
+    sellable: false,
     parent: "dp",
     requires: ["dp", "ponto"],
   },
@@ -125,7 +127,7 @@ export const MODULE_BY_SLUG: Record<AppModule, ModuleDefinition> = Object.fromEn
 export const SELLABLE_MODULES: ModuleDefinition[] = MODULES.filter((m) => m.sellable);
 
 /** Submódulos vendáveis do DP. */
-export const DP_SUBMODULES: AppModule[] = ["ponto", "escala", "folha"];
+export const DP_SUBMODULES: AppModule[] = ["escala"];
 
 
 export function statusLabel(status: ModuleStatus): string {

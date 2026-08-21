@@ -40,20 +40,6 @@ export function KpiCards() {
     },
   });
 
-  const folhas = useQuery({
-    queryKey: ["dp_kpi_folhas", selectedCompanyId],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("dp_folha_periodos")
-        .select("id", { count: "exact", head: true })
-        .eq("company_id", selectedCompanyId!)
-        .eq("status", "aberto");
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-
   const anivHoje = (aniv.data ?? []).filter((a) => a.faltamDias === 0).length;
 
   return (
@@ -61,7 +47,6 @@ export function KpiCards() {
       <Kpi icon={Users} label="Colaboradores ativos" value={colabs.data?.ativos ?? "—"} hint={`Total: ${colabs.data?.total ?? 0}`} />
       <Kpi icon={UserCheck} label="Pendências abertas" value={pend.data?.length ?? "—"} />
       <Kpi icon={Cake} label="Aniversariantes hoje" value={anivHoje} hint={`${aniv.data?.length ?? 0} nos próximos 30d`} />
-      <Kpi icon={Wallet} label="Folhas em aberto" value={folhas.data ?? "—"} />
     </div>
   );
 }

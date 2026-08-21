@@ -1,7 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
-import { format, parseISO } from "date-fns";
-import { Gift, Plus, Pencil, Trash2, Users, Wallet, PlayCircle } from "lucide-react";
+import { Gift, Plus, Pencil, Trash2, Users, Wallet, Copy } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
 import { DpStatCard, DpStatGrid } from "@/components/dp/DpStatCard";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
@@ -31,6 +30,7 @@ import { ValesCadastroCard } from "@/components/dp/beneficios/ValesCadastroCard"
 import type { ValeTipo } from "@/hooks/useDpValeCalculadora";
 
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
+import { descreverEscopoBeneficio } from "@/lib/dp/beneficioEscopo";
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -78,6 +78,35 @@ export default function DpBeneficios() {
     };
   }, [b.atribuicoes, cadastro.itens]);
 
+  const escopoLabel = (x: Beneficio) => {
+    const unidade = (unidades.data ?? []).find((u: any) => u.id === (x as any).unidade_id);
+    const cargo = (cargos.data ?? []).find((c: any) => c.id === (x as any).cargo_id);
+    const texto = descreverEscopoBeneficio(x as any, {
+      unidade: unidade?.nome,
+      cargo: cargo?.nome,
+    });
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  };
+
+  /** Agrupa por nome para enxergar as variações de unidade/cargo lado a lado. */
+  const grupos = useMemo(() => {
+    const mapa = new Map<string, Beneficio[]>();
+    for (const x of b.beneficios) {
+      const chave = x.nome.trim().toLocaleLowerCase("pt-BR");
+      mapa.set(chave, [...(mapa.get(chave) ?? []), x]);
+    }
+    return [...mapa.values()].map((itens) => {
+      const chaves = itens.map(
+        (i) => `${(i as any).unidade_id ?? "-"}|${(i as any).cargo_id ?? "-"}`,
+      );
+      return {
+        nome: itens[0].nome,
+        itens,
+        duplicado: new Set(chaves).size !== chaves.length,
+      };
+    });
+  }, [b.beneficios]);
+
   const colabList = colaboradores.map((x) => ({ id: x.id, nome: x.nome }));
 
   return (
@@ -86,7 +115,7 @@ export default function DpBeneficios() {
       <DpPageHeader
         icon={Gift}
         title="Benefícios"
-        description="Vale-alimentação, vale-transporte e demais benefícios da empresa, com as mesmas regras da ficha do colaborador e geração automática na folha."
+        description="Vale-alimentação, vale-transporte e demais benefícios da empresa, com as mesmas regras da ficha do colaborador e parâmetros próprios por unidade ou cargo."
       />
 
       <DpStatGrid>
@@ -102,46 +131,20 @@ export default function DpBeneficios() {
       </DpStatGrid>
 
       <DpContentCard contentClassName="p-3 sm:p-4 md:p-5">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
-            <Select value={colabFilter} onValueChange={setColabFilter}>
-              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                <SelectItem value="todos">Todos</SelectItem>
-                {colabList.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Gerar na folha</Label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Select value={periodoId} onValueChange={setPeriodoId}>
-                <SelectTrigger className="min-w-0 flex-1">
-                  <SelectValue placeholder="Selecione o período" />
-                </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {b.periodos.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {format(parseISO(p.competencia), "MM/yyyy")} — {p.tipo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="secondary"
-                className="w-full sm:w-auto sm:shrink-0"
-                disabled={!periodoId || b.gerarLancamentos.isPending}
-                onClick={() => b.gerarLancamentos.mutate(periodoId)}
-              >
-                <PlayCircle className="mr-2 size-4" /> Gerar
-              </Button>
-            </div>
-          </div>
+        <div className="max-w-sm space-y-1.5">
+          <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
+          <Select value={colabFilter} onValueChange={setColabFilter}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="todos">Todos</SelectItem>
+              {colabList.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </DpContentCard>
+
 
       {(b.isError || cadastro.isError) && (
         <DpErrorState
@@ -208,40 +211,70 @@ export default function DpBeneficios() {
           <DpContentCard>
             {b.beneficios.length === 0 ? (
               <p className="p-6 text-center text-sm text-muted-foreground">
-                Nenhum benefício cadastrado no catálogo.
+                Nenhum benefício cadastrado. Use "Novo Benefício" e, se precisar de valores
+                diferentes por unidade ou cargo, cadastre o mesmo benefício mais de uma vez
+                mudando o escopo.
               </p>
             ) : (
               <div className="divide-y divide-border">
-                {b.beneficios.map((x) => (
-                  <div
-                    key={x.id}
-                    className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4"
-                  >
-                    <div className="min-w-0">
-                      <p className="break-words text-sm font-medium">{x.nome}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {BENEFICIO_TIPO_LABEL[x.tipo]} · {brl(Number(x.valor_padrao ?? 0))}
-                        {Number(x.desconto_percentual ?? 0) > 0 &&
-                          ` · desconto ${Number(x.desconto_percentual)}%`}
-                        {x.folha_tipo ? " · entra na folha" : ""}
-                      </p>
+                {grupos.map((g) => (
+                  <div key={g.nome} className="px-3 py-3 sm:px-4">
+                    <div className="mb-2 flex items-center gap-2">
+                      <p className="break-words text-sm font-semibold">{g.nome}</p>
+                      {g.itens.length > 1 && (
+                        <Badge variant="outline">{g.itens.length} escopos</Badge>
+                      )}
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {!x.ativo && <Badge variant="secondary">Inativo</Badge>}
-                      <Button size="icon" variant="ghost" aria-label="Editar benefício"
-                        onClick={() => { setCatEdit(x); setCatOpen(true); }}>
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" aria-label="Remover benefício"
-                        onClick={() => b.deleteBeneficio.mutate(x.id)}>
-                        <Trash2 className="size-4 text-destructive" />
-                      </Button>
+                    {g.duplicado && (
+                      <p className="mb-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
+                        Há mais de um cadastro com este nome cobrindo o mesmo escopo. Revise para
+                        evitar valores duplicados no mesmo colaborador.
+                      </p>
+                    )}
+                    <div className="space-y-2">
+                      {g.itens.map((x) => (
+                        <div
+                          key={x.id}
+                          className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                        >
+                          <div className="min-w-0 space-y-1">
+                            <Badge variant="secondary" className="font-normal">
+                              {escopoLabel(x)}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground">
+                              {BENEFICIO_TIPO_LABEL[x.tipo]} · {brl(Number(x.valor_padrao ?? 0))}
+                              {Number(x.desconto_percentual ?? 0) > 0 &&
+                                ` · desconto ${Number(x.desconto_percentual)}%`}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            {!x.ativo && <Badge variant="secondary">Inativo</Badge>}
+                            <Button size="icon" variant="ghost" aria-label="Duplicar para outro escopo"
+                              onClick={() => {
+                                const { id, ...rest } = x as any;
+                                setCatEdit({ ...rest, nome: x.nome } as Beneficio);
+                                setCatOpen(true);
+                              }}>
+                              <Copy className="size-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" aria-label="Editar benefício"
+                              onClick={() => { setCatEdit(x); setCatOpen(true); }}>
+                              <Pencil className="size-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" aria-label="Remover benefício"
+                              onClick={() => b.deleteBeneficio.mutate(x.id)}>
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </DpContentCard>
+
         </TabsContent>
       </Tabs>
 

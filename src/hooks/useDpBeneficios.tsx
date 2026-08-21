@@ -14,6 +14,7 @@ export type ColaboradorBeneficio =
 
 export type BeneficioTipo = Database["public"]["Enums"]["dp_beneficio_tipo"];
 export type FolhaTipo = Database["public"]["Enums"]["dp_folha_tipo"];
+// Mantido apenas por compatibilidade de tipos; a geração de folha está desativada.
 
 export type BeneficioInput = {
   id?: string;
@@ -21,7 +22,9 @@ export type BeneficioInput = {
   tipo: BeneficioTipo;
   valor_padrao: number;
   desconto_percentual: number;
-  folha_tipo: FolhaTipo | null;
+  /** Legado da folha desativada; sempre gravado como null. */
+  folha_tipo?: FolhaTipo | null;
+
   descricao: string | null;
   ativo: boolean;
   /** Escopo: em branco = empresa inteira. */
@@ -44,7 +47,7 @@ export type ColaboradorBeneficioInput = {
 
 /**
  * Catálogo de benefícios da empresa e ficha de benefícios por colaborador,
- * com geração das linhas correspondentes na folha de pagamento.
+ * Sem vínculo com folha de pagamento (gerada fora do sistema).
  */
 export function useDpBeneficios(colaboradorFilter = "todos") {
   const { selectedCompanyId } = useCompanyContext();
@@ -91,26 +94,6 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
         beneficio_nome: r.dp_beneficios?.nome ?? null,
         beneficio_tipo: r.dp_beneficios?.tipo ?? null,
       })) as ColaboradorBeneficio[];
-    },
-  });
-
-  const periodosQ = useQuery({
-    queryKey: ["dp_folha_periodos_beneficios", selectedCompanyId],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_folha_periodos")
-        .select("id, competencia, tipo, status")
-        .eq("company_id", selectedCompanyId!)
-        .order("competencia", { ascending: false })
-        .limit(24);
-      if (error) throw error;
-      return (data ?? []) as {
-        id: string;
-        competencia: string;
-        tipo: string;
-        status: string;
-      }[];
     },
   });
 
@@ -196,27 +179,9 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
     onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
   });
 
-  const gerarLancamentos = useMutation({
-    mutationFn: async (periodoId: string) => {
-      const { data, error } = await supabase.rpc("dp_beneficios_gerar_lancamentos", {
-        _periodo_id: periodoId,
-      });
-      if (error) throw error;
-      return (data as number) ?? 0;
-    },
-    onSuccess: (n) => {
-      toast.success(
-        n > 0 ? `${n} lançamento(s) gerado(s) na folha` : "Nenhum lançamento novo a gerar",
-      );
-      qc.invalidateQueries({ queryKey: ["dp_folha_lancamentos"] });
-    },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao gerar lançamentos"),
-  });
-
   return {
     beneficios: beneficiosQ.data ?? [],
     atribuicoes: atribuicoesQ.data ?? [],
-    periodos: periodosQ.data ?? [],
     isLoading: beneficiosQ.isLoading || atribuicoesQ.isLoading,
     isError: beneficiosQ.isError || atribuicoesQ.isError,
     refetchAll: () => {
@@ -227,6 +192,5 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
     deleteBeneficio,
     saveAtribuicao,
     deleteAtribuicao,
-    gerarLancamentos,
   };
 }

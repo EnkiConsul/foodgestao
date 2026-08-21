@@ -99,14 +99,6 @@ const DpEscalas = lazyWithRetry(() => import("./pages/dp/DpEscalas"));
 const DpEscalaMes = lazyWithRetry(() => import("./pages/dp/DpEscalaMes"));
 const DpOperacaoDia = lazyWithRetry(() => import("./pages/dp/DpOperacaoDia"));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
-const DpPonto = lazyWithRetry(() => import("./pages/dp/DpPonto"));
-const DpPontoConsolidado = lazyWithRetry(() => import("./pages/dp/DpPontoConsolidado"));
-const DpPontoApuracao = lazyWithRetry(() => import("./pages/dp/DpPontoApuracao"));
-const DpFolha = lazyWithRetry(() => import("./pages/dp/DpFolha"));
-const DpFolhaPeriodo = lazyWithRetry(() => import("./pages/dp/DpFolhaPeriodo"));
-const DpFolhaProvisoes = lazyWithRetry(() => import("./pages/dp/DpFolhaProvisoes"));
-const DpRescisoes = lazyWithRetry(() => import("./pages/dp/DpRescisoes"));
-const DpFolhaRelatorios = lazyWithRetry(() => import("./pages/dp/DpFolhaRelatorios"));
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
 const DpAdicionaisTempoServico = lazyWithRetry(() => import("./pages/dp/cadastros/DpAdicionaisTempoServico"));
@@ -138,8 +130,6 @@ const DpMeuTrocas = lazyWithRetry(() => import("./pages/dp/portal/DpMeuTrocas"))
 const DpMeuCalendario = lazyWithRetry(() => import("./pages/dp/portal/DpMeuCalendario"));
 const DpMeuEscala = lazyWithRetry(() => import("./pages/dp/portal/DpMeuEscala"));
 const DpMinhasConvocacoes = lazyWithRetry(() => import("./pages/dp/portal/DpMinhasConvocacoes"));
-const DpMeuPonto = lazyWithRetry(() => import("./pages/dp/portal/DpMeuPonto"));
-const DpMeuContracheque = lazyWithRetry(() => import("./pages/dp/portal/DpMeuContracheque"));
 const DpMeuHistorico = lazyWithRetry(() => import("./pages/dp/portal/DpMeuHistorico"));
 
 // Admin
@@ -371,8 +361,9 @@ const AppRoutes = () => (
         <Route path="calendario" element={<DpMeuCalendario />} />
         <Route path="escala" element={<DpMeuEscala />} />
         <Route path="convocacoes" element={<DpMinhasConvocacoes />} />
-        <Route path="ponto" element={<ModuloEmDesenvolvimentoGate module="ponto" surface="portal"><DpMeuPonto /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="contracheque" element={<ModuloEmDesenvolvimentoGate module="folha" surface="portal"><DpMeuContracheque /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="ponto" element={<Navigate to="/dp/meu" replace />} />
+        <Route path="contracheque" element={<Navigate to="/dp/meu/documentos?tipo=contracheque" replace />} />
+
 
         <Route path="atestados" element={<Navigate to="/dp/meu/documentos?tipo=atestado" replace />} />
         <Route path="disciplinar" element={<Navigate to="/dp/meu/documentos?tipo=disciplinar" replace />} />
@@ -451,7 +442,7 @@ const AppRoutes = () => (
         <Route path="folgas/calendario" element={<DpFolgas />} />
         <Route path="ferias" element={<DpFerias />} />
         <Route path="conformidade" element={<ModuloEmDesenvolvimentoGate titulo="SESMT"><DpConformidade /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="beneficios" element={<ModuloEmDesenvolvimentoGate module="folha"><DpBeneficios /></ModuloEmDesenvolvimentoGate>} />
+        <Route path="beneficios" element={<Navigate to="/dp/cadastros/beneficios" replace />} />
         <Route path="analytics" element={<DpAnalytics />} />
 
         <Route path="calendario" element={<DpAdminCalendario />} />
@@ -490,14 +481,16 @@ const AppRoutes = () => (
         <Route path="escalas/mes" element={<DpEscalaMes />} />
         <Route path="operacao" element={<DpOperacaoDia />} />
         <Route path="convocacoes" element={<DpConvocacoes />} />
-        <Route path="ponto" element={<ModuloEmDesenvolvimentoGate module="ponto"><DpPonto /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="ponto/time" element={<ModuloEmDesenvolvimentoGate module="ponto"><DpPontoConsolidado /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="ponto/apuracao" element={<ModuloEmDesenvolvimentoGate module="ponto"><DpPontoApuracao /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="folha" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolha /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="folha/provisoes" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolhaProvisoes /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="folha/relatorios" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolhaRelatorios /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="rescisoes" element={<ModuloEmDesenvolvimentoGate module="folha"><DpRescisoes /></ModuloEmDesenvolvimentoGate>} />
-        <Route path="folha/:id" element={<ModuloEmDesenvolvimentoGate module="folha"><DpFolhaPeriodo /></ModuloEmDesenvolvimentoGate>} />
+        {/* Folha de pagamento e ponto desativados: gerados fora do sistema por ora. */}
+        <Route path="ponto" element={<Navigate to="/dp" replace />} />
+        <Route path="ponto/time" element={<Navigate to="/dp" replace />} />
+        <Route path="ponto/apuracao" element={<Navigate to="/dp" replace />} />
+        <Route path="folha" element={<Navigate to="/dp" replace />} />
+        <Route path="folha/provisoes" element={<Navigate to="/dp" replace />} />
+        <Route path="folha/relatorios" element={<Navigate to="/dp" replace />} />
+        <Route path="rescisoes" element={<Navigate to="/dp" replace />} />
+        <Route path="folha/:id" element={<Navigate to="/dp" replace />} />
+
 
         <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
