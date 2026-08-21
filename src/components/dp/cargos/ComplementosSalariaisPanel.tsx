@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
-import { Helmet } from "react-helmet-async";
+import { useMemo, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertTriangle, Baby, CalendarClock, Check, Plus, Trash2, Pencil, X } from "lucide-react";
-import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
+import { AlertTriangle, Baby, Award, Moon, ShieldAlert, Plus, Trash2, Pencil, X } from "lucide-react";
+import { DpContentCard } from "@/components/dp/DpPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,7 +57,12 @@ const numero = (v: string): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-export default function DpAdicionaisTempoServico() {
+export function ComplementosSalariaisPanel({
+  onEditarCargo,
+}: {
+  /** Abre a edição do cargo (aba Riscos) a partir dos cards de risco. */
+  onEditarCargo?: (cargoId: string) => void;
+}) {
   const { regras, isLoading, salvar, salvando, remover, removendo } = useDpAdicionaisTempoServico();
   const { config, salvar: salvarConfig, salvando: salvandoConfig } = useDpSalarioFamiliaConfig();
   const { data: unidades = [] } = useDpUnidades();
@@ -65,6 +70,110 @@ export default function DpAdicionaisTempoServico() {
   const { data: sindicatos = [] } = useDpSindicatos();
 
   const [form, setForm] = useState<RegraTempoServicoInput | null>(null);
+  const navigate = useNavigate();
+
+  /** Cargos com risco cadastrado — mesma fonte usada na ficha do colaborador. */
+  const cargosRisco = useMemo(
+    () =>
+      (cargos as any[]).filter(
+        (c) => Number(c.insalubridade_percentual ?? 0) > 0 || Number(c.periculosidade_percentual ?? 0) > 0,
+      ),
+    [cargos],
+  );
+
+  const complementosExtras: ReactNode = (
+    <>
+      {/* Insalubridade e periculosidade — percentual padrão do cargo */}
+      <DpContentCard contentClassName="space-y-3 p-4 md:p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <ShieldAlert className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-semibold">Insalubridade e Periculosidade</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          O percentual é do cargo e vale para todos os colaboradores nele — o mesmo campo que aparece
+          na remuneração da ficha, onde é possível abrir exceção para um colaborador.
+        </p>
+        {cargosRisco.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+            Nenhum cargo com insalubridade ou periculosidade cadastrada.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {cargosRisco.map((c: any) => (
+              <div
+                key={c.id}
+                className="flex flex-wrap items-center gap-2 rounded-xl border border-border p-3 text-sm"
+              >
+                <p className="min-w-0 flex-1 truncate font-medium uppercase">{c.nome}</p>
+                {Number(c.insalubridade_percentual ?? 0) > 0 && (
+                  <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400" variant="secondary">
+                    Insalubridade {Number(c.insalubridade_percentual)}%
+                  </Badge>
+                )}
+                {Number(c.periculosidade_percentual ?? 0) > 0 && (
+                  <Badge variant="destructive">
+                    Periculosidade {Number(c.periculosidade_percentual)}%
+                  </Badge>
+                )}
+                {onEditarCargo && (
+                  <Button size="icon" variant="ghost" onClick={() => onEditarCargo(c.id)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </DpContentCard>
+
+      {/* Prêmio de assiduidade */}
+      <DpContentCard contentClassName="space-y-3 p-4 md:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Award className="h-5 w-5 text-primary" />
+            <h2 className="text-base font-semibold">Prêmio de Assiduidade</h2>
+            {!config.assiduidadeAtiva && <Badge variant="outline">Não utilizado</Badge>}
+          </div>
+          <div className="flex items-center gap-3">
+            <Switch
+              id="assid_ativa"
+              checked={config.assiduidadeAtiva}
+              onCheckedChange={(v) => void salvarConfig({ assiduidadeAtiva: v })}
+            />
+            <Label htmlFor="assid_ativa" className="cursor-pointer text-sm">
+              Usar nesta empresa
+            </Label>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Tipo, valor e critérios (tolerância de atraso, limite de atrasos e atestados) ficam no
+          padrão de remuneração da empresa, cargo ou unidade — e continuam editáveis na ficha do
+          colaborador, que pergunta se a mudança é exceção ou novo padrão.
+        </p>
+        {config.assiduidadeAtiva && (
+          <Button variant="outline" onClick={() => navigate("/dp/beneficios")}>
+            Abrir padrão de remuneração
+          </Button>
+        )}
+      </DpContentCard>
+
+      {/* Adicional noturno */}
+      <DpContentCard contentClassName="space-y-3 p-4 md:p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <Moon className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-semibold">Adicional Noturno</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Mínimo legal de 20% sobre as horas entre 22h e 5h (ou o percentual da convenção). O
+          sistema identifica essas horas pelo turno cadastrado, então o adicional é definido no
+          horário de trabalho, não aqui.
+        </p>
+        <Button variant="outline" onClick={() => navigate("/dp/cadastros/turnos")}>
+          Abrir turnos
+        </Button>
+      </DpContentCard>
+    </>
+  );
 
   const laborais = useMemo(
     () => sindicatos.filter((s) => (s as { tipo?: string }).tipo === "laboral"),
@@ -138,26 +247,12 @@ export default function DpAdicionaisTempoServico() {
 
 
   return (
-    <DpPage>
-      <Helmet>
-        <title>Adicionais e salário-família | Pessoas 360°</title>
-        <meta
-          name="description"
-          content="Configure adicionais por tempo de serviço (anuênio, triênio, quinquênio) e a tabela anual do salário-família."
-        />
-      </Helmet>
-
-      <DpPageHeader
-        icon={CalendarClock}
-        title="Adicionais e salário-família"
-        description="Regras de adicional por tempo de casa e a tabela anual do salário-família."
-      />
-
+    <div className="space-y-4">
       {/* Tabela anual do salário-família */}
       <DpContentCard contentClassName="space-y-4 p-4 md:p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Baby className="h-5 w-5 text-primary" />
-          <h2 className="text-base font-semibold">Salário-família</h2>
+          <h2 className="text-base font-semibold">Salário-Família</h2>
           {config.vigencia ? (
             <Badge variant={vencida ? "destructive" : "secondary"}>
               Vigência {config.vigencia.slice(0, 4)}
@@ -165,15 +260,31 @@ export default function DpAdicionaisTempoServico() {
           ) : (
             <Badge variant="destructive">Não configurado</Badge>
           )}
+          <div className="ml-auto flex items-center gap-3">
+            <Switch
+              id="sf_ativo"
+              checked={config.salarioFamiliaAtivo}
+              onCheckedChange={(v) => void salvarConfig({ salarioFamiliaAtivo: v })}
+            />
+            <Label htmlFor="sf_ativo" className="cursor-pointer text-sm">
+              Usar nesta empresa
+            </Label>
+          </div>
         </div>
-        {vencida && (
+        {config.salarioFamiliaAtivo && vencida && (
           <p className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             O INSS reajusta a cota e o teto todo ano. Confirme os valores do ano vigente para o
             sistema voltar a calcular o benefício na folha.
           </p>
         )}
-        <SalarioFamiliaTabelaForm />
+        {config.salarioFamiliaAtivo ? (
+          <SalarioFamiliaTabelaForm />
+        ) : (
+          <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+            Esta empresa não paga salário-família. Ligue a chave acima para configurar a tabela.
+          </p>
+        )}
 
       </DpContentCard>
 
@@ -181,7 +292,7 @@ export default function DpAdicionaisTempoServico() {
       <DpContentCard contentClassName="space-y-4 p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-base font-semibold">Adicional por tempo de serviço</h2>
+            <h2 className="text-base font-semibold">Adicional por Tempo de Serviço</h2>
             <p className="text-xs text-muted-foreground">
               Anuênio, triênio ou quinquênio negociados em convenção — o sistema aplica o percentual
               conforme os meses completos de casa.
@@ -194,7 +305,7 @@ export default function DpAdicionaisTempoServico() {
               onCheckedChange={(v) => void salvarConfig({ adicionalAtivo: v })}
             />
             <Label htmlFor="adic_ativo" className="cursor-pointer text-sm">
-              Aplicar na folha
+              Usar nesta empresa
             </Label>
           </div>
         </div>
@@ -503,6 +614,8 @@ export default function DpAdicionaisTempoServico() {
           </Button>
         )}
       </DpContentCard>
-    </DpPage>
+
+      {complementosExtras}
+    </div>
   );
 }
