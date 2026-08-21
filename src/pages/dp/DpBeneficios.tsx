@@ -160,13 +160,29 @@ export default function DpBeneficios() {
         />
       )}
 
-      <Tabs defaultValue="ficha" className="space-y-3 pb-24 md:pb-0">
+      <Tabs defaultValue="calculo" className="space-y-3 pb-24 md:pb-0">
         <DpTabsBar>
+          <TabsTrigger value="calculo">Cálculo mensal</TabsTrigger>
           <TabsTrigger value="ficha">Por colaborador</TabsTrigger>
           <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
-          <TabsTrigger value="va">Calculadora de VA</TabsTrigger>
-          <TabsTrigger value="vt">Calculadora de VT</TabsTrigger>
         </DpTabsBar>
+
+        <TabsContent value="calculo" className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {(["va", "vt"] as const).map((t) => (
+              <Button
+                key={t}
+                size="sm"
+                variant={valeTipo === t ? "default" : "outline"}
+                onClick={() => setValeTipo(t)}
+              >
+                {t === "va" ? "Vale-alimentação" : "Vale-transporte"}
+              </Button>
+            ))}
+          </div>
+          <ValeCalculadora tipo={valeTipo} />
+        </TabsContent>
+
 
         <TabsContent value="ficha" className="space-y-3">
           <Button
