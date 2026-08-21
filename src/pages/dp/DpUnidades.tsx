@@ -288,6 +288,10 @@ export default function DpUnidades() {
           </div>
         ))}
       </div>
+        </TabsContent>
+      </Tabs>
+
+
 
 
       {/* View dialog */}
