@@ -24,7 +24,11 @@ export type BeneficioInput = {
   folha_tipo: FolhaTipo | null;
   descricao: string | null;
   ativo: boolean;
+  /** Escopo: em branco = empresa inteira. */
+  unidade_id?: string | null;
+  cargo_id?: string | null;
 };
+
 
 export type ColaboradorBeneficioInput = {
   id?: string;
