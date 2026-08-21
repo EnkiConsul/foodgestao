@@ -116,7 +116,7 @@ export default function DpCargos() {
       <DpPageHeader
         icon={Briefcase}
         title="Cargos e Salários"
-        description="Gerencie os cargos disponíveis na empresa. Pisos diferentes por unidade (convenções patronais distintas) são cadastrados em “Salário por unidade”, dentro da ficha ou da edição do cargo."
+        description="Cargos, pisos por unidade, complementos salariais, turnos de jornada e documentos obrigatórios."
         actions={
           aba === "cargos" ? (
             <Button onClick={openNew} className="rounded-full px-6">
@@ -130,6 +130,8 @@ export default function DpCargos() {
         <DpTabsBar>
           <TabsTrigger value="cargos">Cargos</TabsTrigger>
           <TabsTrigger value="complementos">Complementos Salariais</TabsTrigger>
+          <TabsTrigger value="turnos">Turnos</TabsTrigger>
+          <TabsTrigger value="documentos">Documentos Obrigatórios</TabsTrigger>
         </DpTabsBar>
 
         <TabsContent value="complementos" className="m-0">
@@ -140,6 +142,15 @@ export default function DpCargos() {
             }}
           />
         </TabsContent>
+
+        <TabsContent value="turnos" className="m-0">
+          <TurnosPanel />
+        </TabsContent>
+
+        <TabsContent value="documentos" className="m-0">
+          <DocumentosObrigatoriosPanel />
+        </TabsContent>
+
 
         <TabsContent value="cargos" className="m-0">
       <div className="relative mb-4">
