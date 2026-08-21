@@ -7570,7 +7570,9 @@ export type Database = {
           hora_abertura: string | null
           hora_fechamento: string | null
           id: string
+          nome: string | null
           observacoes: string | null
+          ordem: number
           unidade_id: string
           updated_at: string
         }
@@ -7583,7 +7585,9 @@ export type Database = {
           hora_abertura?: string | null
           hora_fechamento?: string | null
           id?: string
+          nome?: string | null
           observacoes?: string | null
+          ordem?: number
           unidade_id: string
           updated_at?: string
         }
@@ -7596,7 +7600,9 @@ export type Database = {
           hora_abertura?: string | null
           hora_fechamento?: string | null
           id?: string
+          nome?: string | null
           observacoes?: string | null
+          ordem?: number
           unidade_id?: string
           updated_at?: string
         }
