@@ -13,6 +13,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useUpsertDpUnidade, type DpUnidade } from "@/hooks/useDpCadastros";
 import { supabase } from "@/integrations/supabase/client";
 import { HorarioFuncionamentoEditor } from "@/components/dp/HorarioFuncionamentoEditor";
+import { UnidadeSindicatoPanel } from "@/components/dp/unidades/UnidadeSindicatoPanel";
 
 export const onlyNumbers = (v: string) => v.replace(/\D/g, "");
 
