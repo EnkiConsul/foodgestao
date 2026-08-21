@@ -1,7 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Gift, Plus, Pencil, Trash2, Users, Wallet, PlayCircle } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
 import { DpStatCard, DpStatGrid } from "@/components/dp/DpStatCard";
