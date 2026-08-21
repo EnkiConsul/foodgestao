@@ -97,3 +97,73 @@ describe("calcularAdicionalTempoServico", () => {
     ).toBeNull();
   });
 });
+
+describe("regras concorrentes: escada x cumulativo", () => {
+  const trienio = regra({ id: "t", nome: "Triênio", ciclo_meses: 36, percentual_por_ciclo: 3, acumula: false });
+  const quinquenio = regra({ id: "q", nome: "Quinquênio", ciclo_meses: 60, percentual_por_ciclo: 5, acumula: false });
+  const regras = [trienio, quinquenio];
+
+  it("escada: com 9 anos de casa vence o quinquênio", () => {
+    expect(
+      selecionarRegraTempoServico(regras, {}, "2026-08-20", "2017-04-01")?.id,
+    ).toBe("q");
+    const total = calcularAdicionalPorModo({
+      regras, alvo: {}, admissao: "2017-04-01", referencia: "2026-08-20", base: 2000, modo: "escada",
+    });
+    expect(total.percentual).toBe(5);
+    expect(total.valor).toBe(100);
+    expect(total.itens).toHaveLength(1);
+  });
+
+  it("escada: com 4 anos de casa fica no triênio", () => {
+    const total = calcularAdicionalPorModo({
+      regras, alvo: {}, admissao: "2022-08-20", referencia: "2026-08-20", base: 2000, modo: "escada",
+    });
+    expect(total.percentual).toBe(3);
+    expect(total.itens[0].regra.id).toBe("t");
+  });
+
+  it("cumulativo: com 9 anos soma triênio e quinquênio", () => {
+    const total = calcularAdicionalPorModo({
+      regras, alvo: {}, admissao: "2017-04-01", referencia: "2026-08-20", base: 2000, modo: "cumulativo",
+    });
+    expect(total.percentual).toBe(8);
+    expect(total.valor).toBe(160);
+    expect(total.itens).toHaveLength(2);
+  });
+
+  it("sem ciclo completo não gera adicional em nenhum modo", () => {
+    for (const modo of ["escada", "cumulativo"] as const) {
+      const total = calcularAdicionalPorModo({
+        regras, alvo: {}, admissao: "2025-08-20", referencia: "2026-08-20", base: 2000, modo,
+      });
+      expect(total.percentual).toBe(0);
+      expect(total.itens).toHaveLength(0);
+    }
+  });
+
+  it("cumulativo respeita max_ciclos e acumula de cada regra", () => {
+    const total = calcularAdicionalPorModo({
+      regras: [regra({ id: "a", ciclo_meses: 12, percentual_por_ciclo: 1, acumula: true, max_ciclos: 3 })],
+      alvo: {},
+      admissao: "2010-01-01",
+      referencia: "2026-01-01",
+      base: 1000,
+      modo: "cumulativo",
+    });
+    expect(total.percentual).toBe(3);
+  });
+
+  it("usa o piso do cargo quando a regra manda", () => {
+    const total = calcularAdicionalPorModo({
+      regras: [regra({ base: "piso_cargo" })],
+      alvo: {},
+      admissao: "2017-04-01",
+      referencia: "2026-08-20",
+      base: 1000,
+      pisoCargo: 2000,
+      modo: "escada",
+    });
+    expect(total.valor).toBe(60);
+  });
+});
