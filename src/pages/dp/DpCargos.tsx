@@ -18,10 +18,15 @@ import { moedaBR, selosRiscoCargo, textoPercentualRisco } from "@/lib/dp/cargos"
 import { CargoSalariosUnidadePanel } from "@/components/dp/CargoSalariosUnidadePanel";
 import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
 import { ComplementosSalariaisPanel } from "@/components/dp/cargos/ComplementosSalariaisPanel";
+import { TurnosPanel } from "@/components/dp/cargos/TurnosPanel";
+import { DocumentosObrigatoriosPanel } from "@/components/dp/cargos/DocumentosObrigatoriosPanel";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
 
 import { cn } from "@/lib/utils";
+
+/** Abas válidas da tela (a query string `aba` controla a navegação direta). */
+const ABAS = ["cargos", "complementos", "turnos", "documentos"];
 
 export default function DpCargos() {
   const list = useDpCargos();
@@ -37,9 +42,10 @@ export default function DpCargos() {
   const colaboradores = useDpColaboradores();
 
   // Aba controlada por query string para permitir link direto e redirecionamento
-  // da antiga rota /dp/cadastros/adicionais.
+  // das antigas rotas de adicionais, turnos e documentos exigidos.
   const [params, setParams] = useSearchParams();
-  const aba = params.get("aba") === "complementos" ? "complementos" : "cargos";
+  const abaParam = params.get("aba") ?? "";
+  const aba = ABAS.includes(abaParam) ? abaParam : "cargos";
   const setAba = (v: string) => {
     const next = new URLSearchParams(params);
     if (v === "cargos") next.delete("aba");
@@ -112,7 +118,7 @@ export default function DpCargos() {
       <DpPageHeader
         icon={Briefcase}
         title="Cargos e Salários"
-        description="Gerencie os cargos disponíveis na empresa. Pisos diferentes por unidade (convenções patronais distintas) são cadastrados em “Salário por unidade”, dentro da ficha ou da edição do cargo."
+        description="Cargos, pisos por unidade, complementos salariais, turnos de jornada e documentos obrigatórios."
         actions={
           aba === "cargos" ? (
             <Button onClick={openNew} className="rounded-full px-6">
@@ -126,6 +132,8 @@ export default function DpCargos() {
         <DpTabsBar>
           <TabsTrigger value="cargos">Cargos</TabsTrigger>
           <TabsTrigger value="complementos">Complementos Salariais</TabsTrigger>
+          <TabsTrigger value="turnos">Turnos</TabsTrigger>
+          <TabsTrigger value="documentos">Documentos Obrigatórios</TabsTrigger>
         </DpTabsBar>
 
         <TabsContent value="complementos" className="m-0">
@@ -136,6 +144,15 @@ export default function DpCargos() {
             }}
           />
         </TabsContent>
+
+        <TabsContent value="turnos" className="m-0">
+          <TurnosPanel />
+        </TabsContent>
+
+        <TabsContent value="documentos" className="m-0">
+          <DocumentosObrigatoriosPanel />
+        </TabsContent>
+
 
         <TabsContent value="cargos" className="m-0">
       <div className="relative mb-4">

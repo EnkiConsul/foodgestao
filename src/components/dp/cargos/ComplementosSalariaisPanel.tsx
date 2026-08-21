@@ -168,7 +168,7 @@ export function ComplementosSalariaisPanel({
           sistema identifica essas horas pelo turno cadastrado, então o adicional é definido no
           horário de trabalho, não aqui.
         </p>
-        <Button variant="outline" onClick={() => navigate("/dp/cadastros/turnos")}>
+        <Button variant="outline" onClick={() => navigate("/dp/cadastros/cargos?aba=turnos")}>
           Abrir turnos
         </Button>
       </DpContentCard>

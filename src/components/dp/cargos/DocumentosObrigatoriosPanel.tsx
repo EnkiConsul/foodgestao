@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
-import { Helmet } from "react-helmet-async";
-import { FileCheck2, Plus, RotateCcw, Trash2, Info, Loader2 } from "lucide-react";
-import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
+import { Plus, RotateCcw, Trash2, Info, Loader2 } from "lucide-react";
+import { DpContentCard } from "@/components/dp/DpPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +24,11 @@ const OBRIGATORIEDADES = [
   { value: "desativado", label: "Não exigir" },
 ];
 
-export default function DpDocumentosExigidos() {
+/**
+ * Regras de documentos obrigatórios da empresa, exibidas como aba de Cargos e Salários.
+ * A ficha do colaborador mostra apenas o checklist dele, sem editar as regras.
+ */
+export function DocumentosObrigatoriosPanel() {
   const { requisitos, isLoading, semear, salvar, criar, remover } = useDpDocumentoRequisitos();
   const [novoAberto, setNovoAberto] = useState(false);
   const [novo, setNovo] = useState({
@@ -50,119 +53,110 @@ export default function DpDocumentosExigidos() {
   const obrigatorios = requisitos.filter((r) => r.obrigatoriedade === "obrigatorio").length;
 
   return (
-    <DpPage>
-      <Helmet>
-        <title>Documentos exigidos | Pessoas 360°</title>
-        <meta
-          name="description"
-          content="Defina quais documentos são obrigatórios na admissão, por cargo, veículo, regime e dependentes."
-        />
-      </Helmet>
-
-      <DpPageHeader
-        title="Documentos exigidos"
-        description="Lista de documentos que a empresa cobra dos colaboradores. Vem preenchida com o padrão do sistema e pode ser ajustada."
-        icon={FileCheck2}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" disabled={semear.isPending} onClick={() => semear.mutate()}>
-              {semear.isPending ? <Loader2 className="mr-1 size-4 animate-spin" /> : <RotateCcw className="mr-1 size-4" />}
-              Restaurar padrão
-            </Button>
-            <Dialog open={novoAberto} onOpenChange={setNovoAberto}>
-              <DialogTrigger asChild>
-                <Button size="sm"><Plus className="mr-1 size-4" /> Novo documento</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>Novo documento exigido</DialogTitle></DialogHeader>
-                <div className="space-y-3">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 rounded-lg border border-dashed bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-muted-foreground">
+          Documentos que a empresa cobra dos colaboradores. Vem preenchido com o padrão do sistema e
+          pode ser ajustado.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" disabled={semear.isPending} onClick={() => semear.mutate()}>
+            {semear.isPending ? <Loader2 className="mr-1 size-4 animate-spin" /> : <RotateCcw className="mr-1 size-4" />}
+            Restaurar Padrão
+          </Button>
+          <Dialog open={novoAberto} onOpenChange={setNovoAberto}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="mr-1 size-4" /> Novo Documento</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Novo Documento Obrigatório</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Nome</Label>
+                  <Input
+                    value={novo.nome}
+                    maxLength={120}
+                    onChange={(e) => setNovo((s) => ({ ...s, nome: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <Label>Nome</Label>
-                    <Input
-                      value={novo.nome}
-                      maxLength={120}
-                      onChange={(e) => setNovo((s) => ({ ...s, nome: e.target.value }))}
-                    />
+                    <Label>Categoria</Label>
+                    <Select value={novo.categoria} onValueChange={(v) => setNovo((s) => ({ ...s, categoria: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(CATEGORIA_LABEL).map(([v, l]) => (
+                          <SelectItem key={v} value={v}>{l}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label>Categoria</Label>
-                      <Select value={novo.categoria} onValueChange={(v) => setNovo((s) => ({ ...s, categoria: v }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(CATEGORIA_LABEL).map(([v, l]) => (
-                            <SelectItem key={v} value={v}>{l}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Quem deve entregar</Label>
-                      <Select value={novo.aplica_a} onValueChange={(v) => setNovo((s) => ({ ...s, aplica_a: v }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(APLICA_LABEL).map(([v, l]) => (
-                            <SelectItem key={v} value={v}>{l}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Exigência</Label>
-                      <Select
-                        value={novo.obrigatoriedade}
-                        onValueChange={(v) => setNovo((s) => ({ ...s, obrigatoriedade: v }))}
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {OBRIGATORIEDADES.map((o) => (
-                            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Renovação</Label>
-                      <Select
-                        value={novo.periodicidade}
-                        onValueChange={(v) => setNovo((s) => ({ ...s, periodicidade: v }))}
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(PERIODICIDADE_LABEL).map(([v, l]) => (
-                            <SelectItem key={v} value={v}>{l}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-1">
+                    <Label>Quem deve entregar</Label>
+                    <Select value={novo.aplica_a} onValueChange={(v) => setNovo((s) => ({ ...s, aplica_a: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(APLICA_LABEL).map(([v, l]) => (
+                          <SelectItem key={v} value={v}>{l}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Exigência</Label>
+                    <Select
+                      value={novo.obrigatoriedade}
+                      onValueChange={(v) => setNovo((s) => ({ ...s, obrigatoriedade: v }))}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {OBRIGATORIEDADES.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Renovação</Label>
+                    <Select
+                      value={novo.periodicidade}
+                      onValueChange={(v) => setNovo((s) => ({ ...s, periodicidade: v }))}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(PERIODICIDADE_LABEL).map(([v, l]) => (
+                          <SelectItem key={v} value={v}>{l}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="ghost" onClick={() => setNovoAberto(false)}>Cancelar</Button>
-                  <Button
-                    disabled={!novo.nome.trim() || criar.isPending}
-                    onClick={async () => {
-                      await criar.mutateAsync({
-                        nome: novo.nome.trim(),
-                        categoria: novo.categoria,
-                        aplica_a: novo.aplica_a,
-                        obrigatoriedade: novo.obrigatoriedade,
-                        periodicidade: novo.periodicidade,
-                        meses_validade: novo.meses_validade ? Number(novo.meses_validade) : null,
-                        dias_aviso: Number(novo.dias_aviso) || 30,
-                      });
-                      setNovoAberto(false);
-                      setNovo((s) => ({ ...s, nome: "" }));
-                    }}
-                  >
-                    Adicionar
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        }
-      />
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setNovoAberto(false)}>Cancelar</Button>
+                <Button
+                  disabled={!novo.nome.trim() || criar.isPending}
+                  onClick={async () => {
+                    await criar.mutateAsync({
+                      nome: novo.nome.trim(),
+                      categoria: novo.categoria,
+                      aplica_a: novo.aplica_a,
+                      obrigatoriedade: novo.obrigatoriedade,
+                      periodicidade: novo.periodicidade,
+                      meses_validade: novo.meses_validade ? Number(novo.meses_validade) : null,
+                      dias_aviso: Number(novo.dias_aviso) || 30,
+                    });
+                    setNovoAberto(false);
+                    setNovo((s) => ({ ...s, nome: "" }));
+                  }}
+                >
+                  Adicionar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
 
       <Alert>
         <Info className="size-4" />
@@ -210,7 +204,7 @@ export default function DpDocumentosExigidos() {
                       {r.descricao ? ` · ${r.descricao}` : ""}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {(r.periodicidade === "anual" || r.periodicidade === "semestral") && (
                       <Input
                         type="number"
@@ -270,6 +264,6 @@ export default function DpDocumentosExigidos() {
           </DpContentCard>
         ))
       )}
-    </DpPage>
+    </div>
   );
 }

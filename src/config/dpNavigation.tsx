@@ -1,5 +1,4 @@
 import {
-  FileCheck2,
   ArrowLeftRight,
   Ban,
   BarChart3,
@@ -190,9 +189,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Cargos e Salários", to: "/dp/cadastros/cargos", icon: Briefcase },
       { label: "Unidades", to: "/dp/cadastros/unidades", icon: Building2 },
       { label: "Sindicatos", to: "/dp/cadastros/sindicatos", icon: Scale },
-      { label: "Turnos", to: "/dp/cadastros/turnos", icon: Clock },
       { label: "Benefícios", to: "/dp/cadastros/beneficios", icon: Gift },
-      { label: "Documentos exigidos", to: "/dp/cadastros/documentos-exigidos", icon: FileCheck2 },
       { label: "Pendências", to: "/dp/cadastros/pendencias", icon: BellRing },
     ],
   },

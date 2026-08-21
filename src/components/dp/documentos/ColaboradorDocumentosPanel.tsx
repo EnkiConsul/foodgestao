@@ -73,8 +73,8 @@ export function ColaboradorDocumentosPanel({
           </CardTitle>
           {!somenteEnvio && !ocultarConfig && (
             <Button asChild size="sm" variant="ghost">
-              <Link to="/dp/cadastros/documentos-exigidos">
-                <Settings2 className="mr-1 size-4" /> Configurar exigências
+              <Link to="/dp/cadastros/cargos?aba=documentos">
+                <Settings2 className="mr-1 size-4" /> Gerenciar Documentos Obrigatórios
               </Link>
             </Button>
           )}
