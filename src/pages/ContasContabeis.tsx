@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, PlusCircle, Sparkles, X } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, PlusCircle, Sparkles, X, CheckCircle2 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -51,6 +51,7 @@ export default function ContasContabeis() {
   const { contextType, selectedCompanyId } = useCompanyContext();
   const queryClient = useQueryClient();
   const [restoring, setRestoring] = useState(false);
+  const [restoreOpen, setRestoreOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ChartAccount | null>(null);
   const [defaultParent, setDefaultParent] = useState<string | null>(null);
@@ -268,9 +269,14 @@ export default function ContasContabeis() {
     );
   };
 
-  const handleRestoreDefault = async () => {
+  const handleRestoreDefault = () => {
     if (!selectedCompanyId) return;
-    if (!confirm("Isto irá adicionar as contas do modelo padrão que ainda não existirem nesta empresa. Contas atuais serão mantidas. Continuar?")) return;
+    setRestoreOpen(true);
+  };
+
+  const executeRestore = async () => {
+    if (!selectedCompanyId) return;
+    setRestoreOpen(false);
     setRestoring(true);
     const { data, error } = await (supabase as any).rpc("chart_accounts_restore_default", { _company_id: selectedCompanyId });
     setRestoring(false);
@@ -394,6 +400,43 @@ export default function ContasContabeis() {
             <AlertDialogCancel disabled={bulkDeleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmBulkDelete(); }} disabled={bulkDeleting}>
               {bulkDeleting ? "Excluindo..." : "Excluir selecionadas"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={restoreOpen} onOpenChange={(o) => !restoring && setRestoreOpen(o)}>
+        <AlertDialogContent>
+          <AlertDialogHeader className="sm:text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-2">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+            <AlertDialogTitle>Restaurar modelo padrão?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                Adicione as contas do plano padrão que ainda estão faltando na empresa.
+                Nenhuma conta existente será alterada ou removida.
+              </p>
+              <ul className="space-y-2 text-left">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  <span>Contas padrão ausentes são criadas automaticamente.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  <span>Contas criadas, editadas ou inativadas por você permanecem intactas.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  <span>A ação é reversível: basta excluir as contas adicionadas manualmente.</span>
+                </li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={restoring}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); executeRestore(); }} disabled={restoring}>
+              {restoring ? "Restaurando..." : "Restaurar modelo"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
