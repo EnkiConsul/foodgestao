@@ -408,8 +408,8 @@ export default function ContasContabeis() {
       <AlertDialog open={restoreOpen} onOpenChange={(o) => !restoring && setRestoreOpen(o)}>
         <AlertDialogContent>
           <AlertDialogHeader className="sm:text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EB6119]/10 mb-2">
-              <Sparkles className="h-6 w-6 text-[#EB6119]" />
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-2">
+              <Sparkles className="h-6 w-6 text-primary" />
             </div>
             <AlertDialogTitle>Restaurar modelo padrão?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
@@ -419,15 +419,15 @@ export default function ContasContabeis() {
               </p>
               <ul className="space-y-2 text-left">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-[#EB6119] mt-0.5 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                   <span>Contas padrão ausentes são criadas automaticamente.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-[#EB6119] mt-0.5 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                   <span>Contas criadas, editadas ou inativadas por você permanecem intactas.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-[#EB6119] mt-0.5 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                   <span>A ação é reversível: basta excluir as contas adicionadas manualmente.</span>
                 </li>
               </ul>
