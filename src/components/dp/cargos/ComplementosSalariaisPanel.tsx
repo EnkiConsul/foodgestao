@@ -28,6 +28,10 @@ import {
   type RegraTempoServico,
 } from "@/lib/dp/tempoServico";
 import { tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
+import { useDpBeneficiosPadroes } from "@/hooks/useDpBeneficiosPadrao";
+import { resumoAssiduidade } from "@/components/dp/AssiduidadeFields";
+import { AssiduidadeRegrasDialog } from "@/components/dp/cargos/AssiduidadeRegrasDialog";
+
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 
@@ -70,7 +74,39 @@ export function ComplementosSalariaisPanel({
   const { data: sindicatos = [] } = useDpSindicatos();
 
   const [form, setForm] = useState<RegraTempoServicoInput | null>(null);
+  const [assiduidadeAberta, setAssiduidadeAberta] = useState(false);
   const navigate = useNavigate();
+
+  const { data: padroes = [] } = useDpBeneficiosPadroes();
+
+  /** Escopos que hoje têm regra própria de assiduidade (empresa sempre aparece). */
+  const escoposAssiduidade = useMemo(() => {
+    const nome = (unidadeId: string | null, cargoId: string | null) => {
+      if (cargoId) {
+        const c = cargos.find((x) => x.id === cargoId)?.nome ?? "Cargo";
+        const u = unidadeId ? unidades.find((x) => x.id === unidadeId)?.nome : null;
+        return u ? `Cargo ${c} · ${u}` : `Cargo ${c}`;
+      }
+      if (unidadeId) return `Unidade ${unidades.find((x) => x.id === unidadeId)?.nome ?? ""}`.trim();
+      return "Toda a empresa";
+    };
+    const empresa = padroes.find((p) => !p.unidade_id && !p.cargo_id);
+    const outros = padroes.filter(
+      (p) => (p.unidade_id || p.cargo_id) && p.payload?.premio_assiduidade !== undefined,
+    );
+    return [
+      {
+        chave: "empresa",
+        rotulo: "Toda a empresa",
+        resumo: resumoAssiduidade(empresa?.payload as any),
+      },
+      ...outros.map((p) => ({
+        chave: p.id,
+        rotulo: nome(p.unidade_id, p.cargo_id),
+        resumo: resumoAssiduidade(p.payload as any),
+      })),
+    ];
+  }, [padroes, unidades, cargos]);
 
   /** Cargos com risco cadastrado — mesma fonte usada na ficha do colaborador. */
   const cargosRisco = useMemo(
@@ -80,6 +116,7 @@ export function ComplementosSalariaisPanel({
       ),
     [cargos],
   );
+
 
   const complementosExtras: ReactNode = (
     <>
@@ -126,7 +163,7 @@ export function ComplementosSalariaisPanel({
         )}
       </DpContentCard>
 
-      {/* Prêmio de assiduidade */}
+      {/* Prêmio de assiduidade — mesmos campos da ficha do colaborador */}
       <DpContentCard contentClassName="space-y-3 p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -145,17 +182,39 @@ export function ComplementosSalariaisPanel({
             </Label>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Tipo, valor e critérios (tolerância de atraso, limite de atrasos e atestados) ficam no
-          padrão de remuneração da empresa, cargo ou unidade — e continuam editáveis na ficha do
-          colaborador, que pergunta se a mudança é exceção ou novo padrão.
-        </p>
-        {config.assiduidadeAtiva && (
-          <Button variant="outline" onClick={() => navigate("/dp/beneficios")}>
-            Abrir padrão de remuneração
-          </Button>
+        {config.assiduidadeAtiva ? (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Tipo, valor e critérios são os mesmos campos da remuneração da ficha — editar aqui
+              muda o padrão da empresa, da unidade ou do cargo; a ficha continua podendo abrir
+              exceção para um colaborador.
+            </p>
+            <div className="space-y-2">
+              {escoposAssiduidade.map((e) => (
+                <div
+                  key={e.chave}
+                  className="flex flex-wrap items-center gap-2 rounded-xl border border-border p-3 text-sm"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{e.rotulo}</p>
+                    <p className="text-xs text-muted-foreground">{e.resumo}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Button variant="outline" onClick={() => setAssiduidadeAberta(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Editar Regras
+            </Button>
+          </>
+        ) : (
+          <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+            Esta empresa não paga prêmio de assiduidade. Ligue a chave acima para configurar as
+            regras.
+          </p>
         )}
       </DpContentCard>
+
 
       {/* Adicional noturno */}
       <DpContentCard contentClassName="space-y-3 p-4 md:p-5">
@@ -616,6 +675,13 @@ export function ComplementosSalariaisPanel({
       </DpContentCard>
 
       {complementosExtras}
+
+      <AssiduidadeRegrasDialog
+        open={assiduidadeAberta}
+        onOpenChange={setAssiduidadeAberta}
+        unidades={unidades.map((u) => ({ id: u.id, nome: u.nome }))}
+        cargos={cargos.map((c) => ({ id: c.id, nome: c.nome }))}
+      />
     </div>
   );
 }
