@@ -134,36 +134,8 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Conformidade DSR", to: "/dp/conformidade-dsr", icon: Scale },
     ],
   },
-  {
-    id: "ponto",
-    label: "Ponto",
-    icon: Fingerprint,
-    matchPrefixes: ["/dp/ponto"],
-    items: [
-      { label: "Espelho de Ponto", to: "/dp/ponto", icon: Fingerprint, end: true, badge: "Em breve" },
-      { label: "Ponto do Time", to: "/dp/ponto/time", icon: Users, end: true, badge: "Em breve" },
-      { label: "Apuração para Folha", to: "/dp/ponto/apuracao", icon: Calculator, end: true, badge: "Em breve" },
-    ],
-  },
-  {
-    id: "folha",
-    label: "Folha",
-    icon: Receipt,
-    matchPrefixes: ["/dp/folha", "/dp/rescisoes", "/dp/beneficios"],
-    items: [
-      {
-        label: "Folha de Pagamento",
-        to: "/dp/folha",
-        icon: Receipt,
-        end: true,
-        badge: "Em breve",
-      },
-      { label: "Provisões de Férias e 13º", to: "/dp/folha/provisoes", icon: Palmtree, end: true, badge: "Em breve" },
-      { label: "Rescisões", to: "/dp/rescisoes", icon: FileSignature, badge: "Em breve" },
-      { label: "Relatórios da Folha", to: "/dp/folha/relatorios", icon: FileBarChart, end: true, badge: "Em breve" },
-      { label: "Benefícios", to: "/dp/beneficios", icon: Gift, badge: "Em breve" },
-    ],
-  },
+
+
 
   {
     id: "documentos",
