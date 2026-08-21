@@ -178,7 +178,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
     }
     try {
       const salva = await upsert.mutateAsync({
-        id: unidade?.id,
+        id: unidadeId ?? undefined,
         company_id: form.company_id,
         nome: form.nome.trim(),
         cnpj: onlyNumbers(form.cnpj) || null,
@@ -207,7 +207,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[92vh] max-w-md flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className="flex max-h-[92vh] max-w-2xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b p-4 text-left">
           <DialogTitle>{unidade ? "Editar unidade" : "Nova unidade"}</DialogTitle>
         </DialogHeader>
