@@ -9,6 +9,10 @@ interface Row extends SalarioFamiliaConfig {
   adicionalAtivo: boolean;
   /** Como combinar regras concorrentes: escada (padrão) ou cumulativo. */
   adicionalModo: ModoAdicional;
+  /** Empresa usa salário-família? */
+  salarioFamiliaAtivo: boolean;
+  /** Empresa usa prêmio de assiduidade? */
+  assiduidadeAtiva: boolean;
 }
 
 const VAZIO: Row = {
@@ -19,6 +23,8 @@ const VAZIO: Row = {
   confirmadoEm: null,
   adicionalAtivo: false,
   adicionalModo: "escada",
+  salarioFamiliaAtivo: true,
+  assiduidadeAtiva: true,
 };
 
 /**
@@ -36,7 +42,7 @@ export function useDpSalarioFamiliaConfig() {
       const { data, error } = await supabase
         .from("dp_config_dp")
         .select(
-          "id, salario_familia_cota, salario_familia_teto, salario_familia_vigencia, salario_familia_confirmado_em, adicional_tempo_servico_ativo, adicional_tempo_servico_modo",
+          "id, salario_familia_cota, salario_familia_teto, salario_familia_vigencia, salario_familia_confirmado_em, adicional_tempo_servico_ativo, adicional_tempo_servico_modo, salario_familia_ativo, assiduidade_ativa",
         )
         .eq("company_id", selectedCompanyId!)
         .is("unidade_id", null)
@@ -52,6 +58,8 @@ export function useDpSalarioFamiliaConfig() {
         adicionalAtivo: !!data.adicional_tempo_servico_ativo,
         adicionalModo:
           data.adicional_tempo_servico_modo === "cumulativo" ? "cumulativo" : "escada",
+        salarioFamiliaAtivo: (data as { salario_familia_ativo?: boolean }).salario_familia_ativo !== false,
+        assiduidadeAtiva: (data as { assiduidade_ativa?: boolean }).assiduidade_ativa !== false,
       };
     },
   });
@@ -63,6 +71,8 @@ export function useDpSalarioFamiliaConfig() {
       vigencia?: string | null;
       adicionalAtivo?: boolean;
       adicionalModo?: ModoAdicional;
+      salarioFamiliaAtivo?: boolean;
+      assiduidadeAtiva?: boolean;
       confirmar?: boolean;
     }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
@@ -73,6 +83,8 @@ export function useDpSalarioFamiliaConfig() {
         salario_familia_confirmado_em?: string | null;
         adicional_tempo_servico_ativo?: boolean;
         adicional_tempo_servico_modo?: ModoAdicional;
+        salario_familia_ativo?: boolean;
+        assiduidade_ativa?: boolean;
       } = {};
       if (input.cota !== undefined) patch.salario_familia_cota = input.cota;
       if (input.teto !== undefined) patch.salario_familia_teto = input.teto;
@@ -81,6 +93,9 @@ export function useDpSalarioFamiliaConfig() {
         patch.adicional_tempo_servico_ativo = input.adicionalAtivo;
       if (input.adicionalModo !== undefined)
         patch.adicional_tempo_servico_modo = input.adicionalModo;
+      if (input.salarioFamiliaAtivo !== undefined)
+        patch.salario_familia_ativo = input.salarioFamiliaAtivo;
+      if (input.assiduidadeAtiva !== undefined) patch.assiduidade_ativa = input.assiduidadeAtiva;
       if (input.confirmar)
         patch.salario_familia_confirmado_em = new Date().toISOString().slice(0, 10);
 
