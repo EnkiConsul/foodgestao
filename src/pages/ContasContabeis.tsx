@@ -206,6 +206,8 @@ export default function ContasContabeis() {
       }
     }
 
+    if (deletedCount > 0) await resequenceCodes();
+
     setBulkDeleting(false);
     setBulkOpen(false);
     setSelected(new Set());
