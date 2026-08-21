@@ -210,7 +210,7 @@ export function useDpBeneficiosCadastro(colaboradorFilter = "todos") {
       }
 
       if (c.vale_transporte && num(c.vale_transporte_valor_dia) > 0) {
-        const dias = diasCalculados ?? num(c.vale_alimentacao_dias_base) || DIAS_BASE_PADRAO;
+        const dias = diasCalculados ?? (num(c.vale_alimentacao_dias_base) || DIAS_BASE_PADRAO);
         const calc = calcularBeneficioMes({
           valor: c.vale_transporte_valor_dia,
           periodicidade: "diario",
