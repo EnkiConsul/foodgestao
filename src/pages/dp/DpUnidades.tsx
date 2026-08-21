@@ -125,9 +125,10 @@ export default function DpUnidades() {
           <table className="w-full table-fixed text-sm">
             <thead className="bg-muted/50 text-muted-foreground border-b border-border">
               <tr>
-                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] w-[26%]">Unidade</th>
-                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden lg:table-cell w-[16%]">Empresa</th>
-                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell w-[14%]">CNPJ</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] w-[24%]">Unidade</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden lg:table-cell w-[14%]">Empresa</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell w-[12%]">CNPJ</th>
+                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[10%]">Colab.</th>
                 <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[10%]">Cargos</th>
                 <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[14%]">Sind. Patronais</th>
                 <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[10%]">Status</th>
@@ -136,10 +137,10 @@ export default function DpUnidades() {
             </thead>
             <tbody className="divide-y divide-border">
               {list.isLoading && (
-                <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
+                <tr><td colSpan={8} className="p-12 text-center text-muted-foreground">Carregando...</td></tr>
               )}
               {!list.isLoading && rows.length === 0 && (
-                <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">
+                <tr><td colSpan={8} className="p-12 text-center text-muted-foreground">
                   {(list.data ?? []).length === 0 ? "Nenhuma unidade cadastrada." : "Nenhuma unidade encontrada com os filtros atuais."}
                 </td></tr>
               )}
