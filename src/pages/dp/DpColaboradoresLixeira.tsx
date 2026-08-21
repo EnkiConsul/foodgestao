@@ -65,8 +65,8 @@ export default function DpColaboradoresLixeira() {
         }
       />
 
-      <DpContentCard>
-        <div className="mb-4 max-w-sm">
+      <DpContentCard contentClassName="p-4 md:p-5">
+        <div className="mb-4 md:max-w-sm">
           <Input
             placeholder="Buscar por nome ou matrícula..."
             value={search}
@@ -75,13 +75,60 @@ export default function DpColaboradoresLixeira() {
         </div>
 
         {lixeira.isLoading ? (
-          <TableSkeleton columns={6} />
+          <div className="hidden md:block"><TableSkeleton columns={6} /></div>
         ) : filtered.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">
             Nenhum cadastro na lixeira.
           </p>
         ) : (
-          <Table>
+          <>
+          {/* Mobile: lista de cartões */}
+          <ul className="space-y-3 md:hidden">
+            {filtered.map((c) => (
+              <li key={c.id} className="rounded-2xl border border-border bg-card p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{c.nome}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {[c.cargo_nome, c.unidade_nome].filter(Boolean).join(" · ") || "—"}
+                      {c.matricula ? ` · #${c.matricula}` : ""}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={diasRestantes(c.expira_em) <= 2 ? "destructive" : "secondary"}
+                    className="shrink-0"
+                  >
+                    {diasRestantes(c.expira_em)} d
+                  </Badge>
+                </div>
+                <dl className="mt-2 space-y-1 text-xs">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Excluído em</dt>
+                    <dd className="text-right font-medium">{fmtDateTime(c.deleted_at)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="shrink-0 text-muted-foreground">Justificativa</dt>
+                    <dd className="text-right">{c.delete_reason || "—"}</dd>
+                  </div>
+                </dl>
+                <div className="mt-3 flex gap-2 border-t border-border/60 pt-2">
+                  <Button variant="outline" size="sm" className="min-h-10 flex-1" onClick={() => setToRestore(c)}>
+                    <RotateCcw className="mr-1 h-4 w-4" /> Restaurar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-10 flex-1 text-destructive hover:text-destructive"
+                    onClick={() => setToPurge(c)}
+                  >
+                    <Trash2 className="mr-1 h-4 w-4" /> Apagar
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <Table className="hidden md:table">
             <TableHeader>
               <TableRow>
                 <TableHead>Colaborador</TableHead>
