@@ -204,6 +204,11 @@ export default function DpBeneficios() {
                           {` · ${linha.item.detalhe}`}
                           {linha.item.diaPagamento ? ` · paga dia ${linha.item.diaPagamento}` : ""}
                         </p>
+                        {linha.item.aviso && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400">
+                            {linha.item.aviso}
+                          </p>
+                        )}
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         <Badge variant="secondary">Do cadastro</Badge>
