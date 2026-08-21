@@ -31,6 +31,8 @@ import {
 import { BeneficioIsonomiaAviso } from "@/components/dp/BeneficioIsonomiaAviso";
 import { ValeCorteFields } from "@/components/dp/beneficios/ValeCorteFields";
 import { beneficioAlcanca, descreverEscopoBeneficio } from "@/lib/dp/beneficioEscopo";
+import { AssiduidadeFields } from "@/components/dp/AssiduidadeFields";
+
 
 
 import { useDpSalarioFamiliaConfig } from "@/hooks/useDpSalarioFamiliaConfig";
