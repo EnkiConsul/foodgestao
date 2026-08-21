@@ -84,7 +84,14 @@ export function BeneficioDialog({
         <DialogHeader>
           <DialogTitle>{editing ? "Editar benefício" : "Novo benefício"}</DialogTitle>
         </DialogHeader>
+        {editing && (
+          <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
+            Este é o cadastro do catálogo da empresa: a alteração vale para todos os colaboradores que
+            usam este benefício. Valores individuais são ajustados em Benefícios &gt; Por colaborador.
+          </p>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
+
           <div className="space-y-2 sm:col-span-2">
             <Label>Nome</Label>
             <Input
