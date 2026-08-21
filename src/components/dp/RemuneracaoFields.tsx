@@ -998,44 +998,63 @@ export function RemuneracaoFields({
         ) : (
           <>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              {beneficios.map((b) => (
-                <div
-                  key={b.id}
-                  className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-sm"
-                >
-                  <label className="flex min-w-0 flex-1 items-center gap-2">
-                    <Checkbox
-                      checked={!!value.beneficios[b.id]}
-                      onCheckedChange={(v) =>
-                        onChange({ beneficios: { ...value.beneficios, [b.id]: v === true } })
-                      }
-                    />
-                    <span className="min-w-0 flex-1 truncate">{b.nome}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatarBRL(Number(b.valor_padrao ?? 0))}
-                    </span>
-                  </label>
-                  {onEditarBeneficio && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-9 w-9 shrink-0"
-                      title="Editar benefício do catálogo"
-                      aria-label={`Editar benefício ${b.nome}`}
-                      onClick={() => onEditarBeneficio(b)}
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+              {beneficios.map((b) => {
+                const alcanca = beneficioAlcanca(b as any, escopoAlvo ?? {});
+                const escopoTexto = descreverEscopoBeneficio(b as any, {
+                  unidade: nomeUnidade?.((b as any).unidade_id) ?? null,
+                  cargo: nomeCargo?.((b as any).cargo_id) ?? null,
+                });
+                return (
+                  <div
+                    key={b.id}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-sm",
+                      !alcanca && "opacity-60",
+                    )}
+                    title={alcanca ? undefined : `Disponível só para ${escopoTexto}`}
+                  >
+                    <label className="flex min-w-0 flex-1 items-center gap-2">
+                      <Checkbox
+                        disabled={!alcanca}
+                        checked={!!value.beneficios[b.id]}
+                        onCheckedChange={(v) =>
+                          onChange({ beneficios: { ...value.beneficios, [b.id]: v === true } })
+                        }
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{b.nome}</span>
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          {alcanca ? escopoTexto : `Só para ${escopoTexto}`}
+                        </span>
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatarBRL(Number(b.valor_padrao ?? 0))}
+                      </span>
+                    </label>
+                    {onEditarBeneficio && (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 shrink-0"
+                        title="Editar benefício do catálogo"
+                        aria-label={`Editar benefício ${b.nome}`}
+                        onClick={() => onEditarBeneficio(b)}
+                      >
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <p className="text-[11px] text-muted-foreground">
               Os benefícios marcados passam a valer a partir de hoje e entram automaticamente na folha.
+              Benefícios de outra unidade ou cargo aparecem esmaecidos.
             </p>
           </>
         )}
+
       </div>
 
     </div>
