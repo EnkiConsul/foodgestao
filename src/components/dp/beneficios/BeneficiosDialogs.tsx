@@ -139,15 +139,6 @@ export function BeneficioDialog({
               onChange={(e) => setForm((f) => ({ ...f, valor_padrao: Number(e.target.value) }))}
             />
           </div>
-
-          <div className="space-y-2">
-            <Label>Valor padrão (R$)</Label>
-            <Input
-              type="number" min={0} step="0.01"
-              value={form.valor_padrao}
-              onChange={(e) => setForm((f) => ({ ...f, valor_padrao: Number(e.target.value) }))}
-            />
-          </div>
           <div className="space-y-2">
             <Label>Desconto do colaborador (%)</Label>
             <Input
