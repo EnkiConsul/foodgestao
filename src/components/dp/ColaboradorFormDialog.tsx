@@ -1418,7 +1418,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     <Dialog open={open} onOpenChange={(o) => { if (!o) { tentarFechar(); return; } onOpenChange(true); }}>
       <DialogContent
         ref={contentRef}
-        className="flex max-h-[92vh] w-full max-w-4xl flex-col gap-0 overflow-hidden p-0"
+        className="flex h-[100dvh] w-full max-w-none flex-col gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[92vh] sm:max-w-4xl sm:rounded-lg"
       >
         <Tabs
           value={tab}
@@ -1426,7 +1426,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           className="flex min-h-0 flex-1 flex-col"
         >
           {/* Cabeçalho e abas fixos: só o conteúdo do formulário rola. */}
-          <div className="shrink-0 space-y-3 border-b border-border bg-background p-6 pb-3">
+          <div className="shrink-0 space-y-3 border-b border-border bg-background p-4 pb-2 sm:p-6 sm:pb-3">
             <DialogHeader className="space-y-0 text-left">
               <div className="flex items-start justify-between gap-2">
                 <DialogTitle>
