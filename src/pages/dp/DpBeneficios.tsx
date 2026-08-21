@@ -26,6 +26,8 @@ import {
 } from "@/components/dp/beneficios/BeneficiosDialogs";
 import { ValeCalculadora } from "@/components/dp/beneficios/ValeCalculadora";
 import { ValeHistorico } from "@/components/dp/beneficios/ValeHistorico";
+import { ValesCadastroCard } from "@/components/dp/beneficios/ValesCadastroCard";
+
 
 import type { ValeTipo } from "@/hooks/useDpValeCalculadora";
 
@@ -36,10 +38,6 @@ const fmtData = (iso?: string | null) =>
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-type LinhaCatalogo = { origem: "catalogo"; nome: string; item: ColaboradorBeneficio };
-type LinhaCadastro = { origem: "cadastro"; nome: string; item: BeneficioCadastroItem };
-type Linha = LinhaCatalogo | LinhaCadastro;
 
 export default function DpBeneficios() {
   const { data: colaboradores = [] } = useDpColaboradores();
@@ -58,26 +56,11 @@ export default function DpBeneficios() {
   const [fichaId, setFichaId] = useState<string | null>(null);
   const [valeTipo, setValeTipo] = useState<ValeTipo>("va");
 
-
   const fichaColaborador = useMemo(
     () => colaboradores.find((c: any) => c.id === fichaId) ?? null,
     [colaboradores, fichaId],
   );
 
-  /** Ficha unificada: benefícios do cadastro do colaborador + atribuições do catálogo. */
-  const linhas = useMemo<Linha[]>(() => {
-    const doCadastro: Linha[] = cadastro.itens.map((item) => ({
-      origem: "cadastro",
-      nome: item.colaborador_nome,
-      item,
-    }));
-    const doCatalogo: Linha[] = b.atribuicoes.map((item) => ({
-      origem: "catalogo",
-      nome: item.colaborador_nome ?? "",
-      item,
-    }));
-    return [...doCadastro, ...doCatalogo].sort((a, b2) => a.nome.localeCompare(b2.nome));
-  }, [cadastro.itens, b.atribuicoes]);
 
   const kpis = useMemo(() => {
     const ativos = b.atribuicoes.filter((a) => a.ativo);
@@ -173,10 +156,10 @@ export default function DpBeneficios() {
 
       <Tabs defaultValue="calculo" className="space-y-3 pb-24 md:pb-0">
         <DpTabsBar>
-          <TabsTrigger value="calculo">Cálculo mensal</TabsTrigger>
+          <TabsTrigger value="calculo">Cálculo Mensal</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
-          <TabsTrigger value="ficha">Vales por colaborador</TabsTrigger>
-          <TabsTrigger value="catalogo">Catálogo da empresa</TabsTrigger>
+          <TabsTrigger value="catalogo">Cadastro de Benefícios</TabsTrigger>
+
 
 
         </DpTabsBar>
@@ -204,102 +187,18 @@ export default function DpBeneficios() {
 
 
 
-        <TabsContent value="ficha" className="space-y-3">
-          <Button
-            className="w-full sm:w-auto sm:ml-auto sm:flex"
-            onClick={() => { setAtrEdit(null); setAtrOpen(true); }}
-          >
-            <Plus className="mr-2 size-4" /> Atribuir benefício
-          </Button>
-          <DpContentCard>
-            {linhas.length === 0 ? (
-              <div className="space-y-2 p-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Nenhum benefício encontrado. Os benefícios podem vir da ficha do colaborador
-                  (vale-alimentação e vale-transporte, na aba Remuneração) ou do catálogo da empresa.
-                </p>
-                <Button variant="secondary" onClick={() => { setAtrEdit(null); setAtrOpen(true); }}>
-                  <Plus className="mr-2 size-4" /> Atribuir benefício do catálogo
-                </Button>
-              </div>
-            ) : (
-              <div className="divide-y divide-border">
-                {linhas.map((linha) =>
-                  linha.origem === "cadastro" ? (
-                    <div
-                      key={linha.item.id}
-                      className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4"
-                    >
-                      <div className="min-w-0">
-                        <p className="break-words text-sm font-medium">
-                          {linha.item.colaborador_nome} · {linha.item.nome}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {brl(linha.item.bruto)}
-                          {linha.item.desconto > 0 && ` · desconto ${brl(linha.item.desconto)}`}
-                          {` · ${linha.item.detalhe}`}
-                          {linha.item.diaPagamento ? ` · paga dia ${linha.item.diaPagamento}` : ""}
-                        </p>
-                        {linha.item.aviso && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400">
-                            {linha.item.aviso}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <Badge variant="secondary">Do cadastro</Badge>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setFichaId(linha.item.colaborador_id)}
-                        >
-                          <ExternalLink className="mr-1.5 size-4" /> Ficha
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      key={linha.item.id}
-                      className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4"
-                    >
-                      <div className="min-w-0">
-                        <p className="break-words text-sm font-medium">
-                          {linha.item.colaborador_nome} · {linha.item.beneficio_nome}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {brl(Number(linha.item.valor ?? 0))}
-                          {Number(linha.item.desconto_valor ?? 0) > 0 &&
-                            ` · desconto ${brl(Number(linha.item.desconto_valor))}`}
-                          {" · "}{fmtData(linha.item.data_inicio)}
-                          {linha.item.data_fim ? ` até ${fmtData(linha.item.data_fim)}` : ""}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        {!linha.item.ativo && <Badge variant="secondary">Inativo</Badge>}
-                        <Button size="icon" variant="ghost" aria-label="Editar atribuição"
-                          onClick={() => { setAtrEdit(linha.item); setAtrOpen(true); }}>
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" aria-label="Remover atribuição"
-                          onClick={() => b.deleteAtribuicao.mutate(linha.item.id)}>
-                          <Trash2 className="size-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                  ),
-                )}
-              </div>
-            )}
-          </DpContentCard>
-        </TabsContent>
-
         <TabsContent value="catalogo" className="space-y-3">
+          <ValesCadastroCard
+            unidades={(unidades.data ?? []).map((u: any) => ({ id: u.id, nome: u.nome }))}
+            cargos={(cargos.data ?? []).map((c: any) => ({ id: c.id, nome: c.nome }))}
+          />
           <Button
             className="w-full sm:w-auto sm:ml-auto sm:flex"
             onClick={() => { setCatEdit(null); setCatOpen(true); }}
           >
-            <Plus className="mr-2 size-4" /> Novo benefício
+            <Plus className="mr-2 size-4" /> Novo Benefício
           </Button>
+
           <DpContentCard>
             {b.beneficios.length === 0 ? (
               <p className="p-6 text-center text-sm text-muted-foreground">
