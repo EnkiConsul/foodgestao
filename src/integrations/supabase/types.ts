@@ -4325,6 +4325,7 @@ export type Database = {
       dp_config_dp: {
         Row: {
           adicional_tempo_servico_ativo: boolean
+          adicional_tempo_servico_modo: string
           company_id: string
           created_at: string
           dias_descanso_negociados: number[]
@@ -4366,6 +4367,7 @@ export type Database = {
         }
         Insert: {
           adicional_tempo_servico_ativo?: boolean
+          adicional_tempo_servico_modo?: string
           company_id: string
           created_at?: string
           dias_descanso_negociados?: number[]
@@ -4407,6 +4409,7 @@ export type Database = {
         }
         Update: {
           adicional_tempo_servico_ativo?: boolean
+          adicional_tempo_servico_modo?: string
           company_id?: string
           created_at?: string
           dias_descanso_negociados?: number[]
@@ -13301,6 +13304,7 @@ export type Database = {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: {
           adicional_tempo_servico_ativo: boolean
+          adicional_tempo_servico_modo: string
           company_id: string
           created_at: string
           dias_descanso_negociados: number[]
