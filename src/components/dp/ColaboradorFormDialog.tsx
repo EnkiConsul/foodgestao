@@ -215,7 +215,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   const [confirmarRemocao, setConfirmarRemocao] = useState(false);
   const queryClient = useQueryClient();
 
-  const { beneficios, atribuicoes, saveAtribuicao } = useDpBeneficios();
+  const { beneficios, atribuicoes, saveAtribuicao, saveBeneficio } = useDpBeneficios();
+  // Atalho de catálogo aberto de dentro do cadastro (criar/editar benefício).
+  const [beneficioDialogOpen, setBeneficioDialogOpen] = useState(false);
+  const [beneficioEditando, setBeneficioEditando] = useState<Beneficio | null>(null);
+
   const [form, setForm] = useState(blank);
   const { selectedCompanyId, companies } = useCompanyContext();
   const todosColaboradores = useDpColaboradores();
