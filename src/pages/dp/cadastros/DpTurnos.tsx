@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Clock, Info, Plus, Search, Store, Tags, Trash2 } from "lucide-react";
+import { Clock, Info, Plus, Search, Tags, Trash2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -24,7 +23,6 @@ import { TurnoCard } from "@/components/dp/TurnoCard";
 
 import { TurnoForm, type TurnoSubmitPayload } from "@/components/dp/TurnoForm";
 import { TurnoCategoriaLabelsDialog } from "@/components/dp/TurnoCategoriaLabelsDialog";
-import { HorarioFuncionamentoEditor } from "@/components/dp/HorarioFuncionamentoEditor";
 import {
   useDpTurnos, turnoParaForm, TURNO_FORM_DEFAULT,
   type CienciaTurno, type DpTurnoForm, type DpTurnoRow,
@@ -57,7 +55,6 @@ export default function DpTurnos() {
   const [detalhe, setDetalhe] = useState<DpTurnoRow | null>(null);
   const [colaboradorAberto, setColaboradorAberto] = useState<DpColaborador | null>(null);
 
-  const [unidadeFuncionamento, setUnidadeFuncionamento] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [editando, setEditando] = useState<DpTurnoRow | null>(null);
