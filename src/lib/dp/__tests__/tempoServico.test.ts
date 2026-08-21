@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
+  calcularAdicionalPorModo,
   calcularAdicionalTempoServico,
   mesesDeCasa,
   selecionarRegraTempoServico,
   type RegraTempoServico,
 } from "../tempoServico";
+
 
 const regra = (over: Partial<RegraTempoServico> = {}): RegraTempoServico => ({
   id: over.id ?? "r1",
