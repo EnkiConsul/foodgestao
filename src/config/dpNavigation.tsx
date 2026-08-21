@@ -242,33 +242,23 @@ const PORTAL_GROUPS: DpNavGroup[] = [
     ],
   },
   {
-    id: "meu-ponto",
-    label: "Meu Ponto",
-    icon: Fingerprint,
-    matchPrefixes: ["/dp/meu/ponto"],
-    items: [
-      { label: "Registrar Ponto", to: "/dp/meu/ponto", icon: Fingerprint, shortLabel: "Ponto", badge: "Em breve" },
-    ],
-  },
-  {
     id: "portal-documentos",
     label: "Documentos",
     icon: FileText,
     matchPrefixes: [
       "/dp/meu/documentos",
-      "/dp/meu/contracheque",
       "/dp/meu/atestados",
       "/dp/meu/disciplinar",
       "/dp/meu/sindicato",
     ],
     items: [
       { label: "Meus Documentos", to: "/dp/meu/documentos", icon: FileText, shortcut: true, shortLabel: "Documentos" },
-      { label: "Meus Contracheques", to: "/dp/meu/contracheque", icon: Receipt, shortLabel: "Contracheques", badge: "Em breve" },
       { label: "Atestados", to: "/dp/meu/atestados", icon: HeartPulse },
       { label: "Disciplinar", to: "/dp/meu/disciplinar", icon: ShieldAlert },
       { label: "Sindicato", to: "/dp/meu/sindicato", icon: Scale },
     ],
   },
+
 ];
 
 const PORTAL_DIRECT: DpNavItem[] = [
