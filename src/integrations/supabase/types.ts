@@ -4346,6 +4346,7 @@ export type Database = {
         Row: {
           adicional_tempo_servico_ativo: boolean
           adicional_tempo_servico_modo: string
+          assiduidade_ativa: boolean
           company_id: string
           created_at: string
           dias_descanso_negociados: number[]
@@ -4363,6 +4364,7 @@ export type Database = {
           politica_feriado: Database["public"]["Enums"]["dp_politica_feriado"]
           politica_sabado: Database["public"]["Enums"]["dp_politica_sabado"]
           regra_dsr: Database["public"]["Enums"]["dp_regra_dsr"]
+          salario_familia_ativo: boolean
           salario_familia_confirmado_em: string | null
           salario_familia_cota: number | null
           salario_familia_teto: number | null
@@ -4390,6 +4392,7 @@ export type Database = {
         Insert: {
           adicional_tempo_servico_ativo?: boolean
           adicional_tempo_servico_modo?: string
+          assiduidade_ativa?: boolean
           company_id: string
           created_at?: string
           dias_descanso_negociados?: number[]
@@ -4407,6 +4410,7 @@ export type Database = {
           politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
           politica_sabado?: Database["public"]["Enums"]["dp_politica_sabado"]
           regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
+          salario_familia_ativo?: boolean
           salario_familia_confirmado_em?: string | null
           salario_familia_cota?: number | null
           salario_familia_teto?: number | null
@@ -4434,6 +4438,7 @@ export type Database = {
         Update: {
           adicional_tempo_servico_ativo?: boolean
           adicional_tempo_servico_modo?: string
+          assiduidade_ativa?: boolean
           company_id?: string
           created_at?: string
           dias_descanso_negociados?: number[]
@@ -4451,6 +4456,7 @@ export type Database = {
           politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
           politica_sabado?: Database["public"]["Enums"]["dp_politica_sabado"]
           regra_dsr?: Database["public"]["Enums"]["dp_regra_dsr"]
+          salario_familia_ativo?: boolean
           salario_familia_confirmado_em?: string | null
           salario_familia_cota?: number | null
           salario_familia_teto?: number | null
@@ -13359,6 +13365,7 @@ export type Database = {
         Returns: {
           adicional_tempo_servico_ativo: boolean
           adicional_tempo_servico_modo: string
+          assiduidade_ativa: boolean
           company_id: string
           created_at: string
           dias_descanso_negociados: number[]
@@ -13376,6 +13383,7 @@ export type Database = {
           politica_feriado: Database["public"]["Enums"]["dp_politica_feriado"]
           politica_sabado: Database["public"]["Enums"]["dp_politica_sabado"]
           regra_dsr: Database["public"]["Enums"]["dp_regra_dsr"]
+          salario_familia_ativo: boolean
           salario_familia_confirmado_em: string | null
           salario_familia_cota: number | null
           salario_familia_teto: number | null

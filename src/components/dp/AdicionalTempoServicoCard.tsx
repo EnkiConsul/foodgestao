@@ -64,7 +64,7 @@ export function AdicionalTempoServicoCard({
 
   const irParaCadastro = () => {
     onBeforeNavigate?.();
-    navigate("/dp/cadastros/adicionais");
+    navigate("/dp/cadastros/cargos?aba=complementos");
   };
 
   const cabecalho = (
@@ -142,7 +142,7 @@ export function AdicionalTempoServicoCard({
       <p>{total.meses} mês(es) de casa</p>
       {!config.adicionalAtivo && (
         <p>
-          Ative "Aplicar na folha" em Cadastros → Adicionais e salário-família para o valor entrar
+          Ative o adicional em Cadastros → Cargos e Salários → Complementos Salariais para o valor entrar
           no contracheque.
         </p>
       )}

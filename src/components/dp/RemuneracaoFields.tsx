@@ -33,6 +33,7 @@ import { ValeCorteFields } from "@/components/dp/beneficios/ValeCorteFields";
 import { beneficioAlcanca, descreverEscopoBeneficio } from "@/lib/dp/beneficioEscopo";
 
 
+import { useDpSalarioFamiliaConfig } from "@/hooks/useDpSalarioFamiliaConfig";
 import { AlertTriangle, Info } from "lucide-react";
 import type { Beneficio } from "@/hooks/useDpBeneficios";
 import { formatarBRL } from "@/lib/dp/folha";
@@ -234,6 +235,12 @@ export function RemuneracaoFields({
   onAplicarPadraoIsonomia,
 }: Props) {
   const navigate = useNavigate();
+
+  // Complementos desligados pela empresa (Cargos e Salários → Complementos Salariais)
+  // não aparecem na ficha do colaborador.
+  const { config: complementos } = useDpSalarioFamiliaConfig();
+  const assiduidadeAtiva = complementos.assiduidadeAtiva;
+
 
   /** Marca o input pendente para foco/destaque automático. */
   const marca = (campo: string, extraClass?: string) => ({
@@ -606,121 +613,123 @@ export function RemuneracaoFields({
 
       </div>
 
-      {/* Assiduidade e pontualidade */}
-      <div className="space-y-3 rounded-lg border border-border bg-background p-3">
-        <div className="flex items-center gap-3">
-          <Switch
-            id="premio_assiduidade"
-            checked={value.premio_assiduidade}
-            onCheckedChange={(v) => onChange({ premio_assiduidade: v })}
-          />
-          <Label htmlFor="premio_assiduidade" className="cursor-pointer">
-            Prêmio de assiduidade e pontualidade
-          </Label>
-        </div>
-        {value.premio_assiduidade && (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Forma do prêmio</Label>
-              <Select
-                value={value.premio_assiduidade_tipo}
-                onValueChange={(v: PremioTipo) => onChange({ premio_assiduidade_tipo: v })}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(PREMIO_TIPO_LABEL) as PremioTipo[]).map((t) => (
-                    <SelectItem key={t} value={t}>{PREMIO_TIPO_LABEL[t]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>
-                {value.premio_assiduidade_tipo === "percentual" ? "Percentual do salário (%)" : "Valor mensal"}
-              </Label>
-              <Input
-                inputMode="decimal"
-                value={value.premio_assiduidade_valor}
-                {...marca("premio_assiduidade_valor")}
-
-                onChange={(e) => onChange({ premio_assiduidade_valor: e.target.value })}
-                placeholder={value.premio_assiduidade_tipo === "percentual" ? "Ex: 5" : "Ex: 150,00"}
-              />
-              {value.premio_assiduidade_tipo === "percentual" && premioCalculado > 0 && (
-                <p className="text-[11px] text-muted-foreground">
-                  Equivale a <strong className="text-foreground">{formatarBRL(premioCalculado)}</strong> por mês.
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label>Critério</Label>
-              <Select
-                value={value.assiduidade_criterio}
-                onValueChange={(v: AssiduidadeCriterio) => onChange({ assiduidade_criterio: v })}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ASSIDUIDADE_CRITERIO_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Tolerância de atraso (min/dia)</Label>
-              <Input
-                inputMode="numeric"
-                value={value.assiduidade_tolerancia_min}
-                onChange={(e) => onChange({ assiduidade_tolerancia_min: e.target.value.replace(/\D/g, "") })}
-                placeholder="10"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Máximo de atrasos no mês</Label>
-              <Input
-                inputMode="numeric"
-                value={value.assiduidade_max_atrasos}
-                onChange={(e) => onChange({ assiduidade_max_atrasos: e.target.value.replace(/\D/g, "") })}
-                placeholder="2"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Limite definido pela empresa — 0 exige pontualidade integral no mês.
-              </p>
-            </div>
-            <div className="space-y-2 rounded-lg border border-border/70 bg-muted/30 p-3 md:col-span-2">
-              <div className="flex items-center gap-3">
-                <Switch
-                  id="assiduidade_considera_atestado"
-                  checked={value.assiduidade_considera_atestado}
-                  onCheckedChange={(v) => onChange({ assiduidade_considera_atestado: v })}
-                />
-                <Label htmlFor="assiduidade_considera_atestado" className="cursor-pointer">
-                  Atestado também faz perder o prêmio
-                </Label>
-              </div>
-              {value.assiduidade_considera_atestado && (
-                <div className="space-y-2">
-                  <Label>Atestados tolerados no mês</Label>
-                  <Input
-                    inputMode="numeric"
-                    className="max-w-[160px]"
-                    value={value.assiduidade_max_atestados}
-                    onChange={(e) => onChange({ assiduidade_max_atestados: e.target.value.replace(/\D/g, "") })}
-                    placeholder="0"
-                  />
-                </div>
-              )}
-              <p className="text-[11px] text-muted-foreground">
-                Muitas convenções tiram o prêmio quando há atestado. A empresa pode
-                abonar caso a caso na apuração da folha, mantendo o prêmio do mês.
-              </p>
-            </div>
-            <p className="text-[11px] text-muted-foreground md:col-span-2">
-              O prêmio é pago quando o critério é cumprido no mês. Faltas sempre cancelam o benefício.
-            </p>
+      {/* Assiduidade e pontualidade — desligada quando a empresa não usa o prêmio */}
+      {assiduidadeAtiva && (
+        <div className="space-y-3 rounded-lg border border-border bg-background p-3">
+          <div className="flex items-center gap-3">
+            <Switch
+              id="premio_assiduidade"
+              checked={value.premio_assiduidade}
+              onCheckedChange={(v) => onChange({ premio_assiduidade: v })}
+            />
+            <Label htmlFor="premio_assiduidade" className="cursor-pointer">
+              Prêmio de assiduidade e pontualidade
+            </Label>
           </div>
-        )}
-      </div>
+          {value.premio_assiduidade && (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Forma do prêmio</Label>
+                <Select
+                  value={value.premio_assiduidade_tipo}
+                  onValueChange={(v: PremioTipo) => onChange({ premio_assiduidade_tipo: v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(PREMIO_TIPO_LABEL) as PremioTipo[]).map((t) => (
+                      <SelectItem key={t} value={t}>{PREMIO_TIPO_LABEL[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>
+                  {value.premio_assiduidade_tipo === "percentual" ? "Percentual do salário (%)" : "Valor mensal"}
+                </Label>
+                <Input
+                  inputMode="decimal"
+                  value={value.premio_assiduidade_valor}
+                  {...marca("premio_assiduidade_valor")}
+
+                  onChange={(e) => onChange({ premio_assiduidade_valor: e.target.value })}
+                  placeholder={value.premio_assiduidade_tipo === "percentual" ? "Ex: 5" : "Ex: 150,00"}
+                />
+                {value.premio_assiduidade_tipo === "percentual" && premioCalculado > 0 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Equivale a <strong className="text-foreground">{formatarBRL(premioCalculado)}</strong> por mês.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Critério</Label>
+                <Select
+                  value={value.assiduidade_criterio}
+                  onValueChange={(v: AssiduidadeCriterio) => onChange({ assiduidade_criterio: v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ASSIDUIDADE_CRITERIO_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tolerância de atraso (min/dia)</Label>
+                <Input
+                  inputMode="numeric"
+                  value={value.assiduidade_tolerancia_min}
+                  onChange={(e) => onChange({ assiduidade_tolerancia_min: e.target.value.replace(/\D/g, "") })}
+                  placeholder="10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Máximo de atrasos no mês</Label>
+                <Input
+                  inputMode="numeric"
+                  value={value.assiduidade_max_atrasos}
+                  onChange={(e) => onChange({ assiduidade_max_atrasos: e.target.value.replace(/\D/g, "") })}
+                  placeholder="2"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Limite definido pela empresa — 0 exige pontualidade integral no mês.
+                </p>
+              </div>
+              <div className="space-y-2 rounded-lg border border-border/70 bg-muted/30 p-3 md:col-span-2">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id="assiduidade_considera_atestado"
+                    checked={value.assiduidade_considera_atestado}
+                    onCheckedChange={(v) => onChange({ assiduidade_considera_atestado: v })}
+                  />
+                  <Label htmlFor="assiduidade_considera_atestado" className="cursor-pointer">
+                    Atestado também faz perder o prêmio
+                  </Label>
+                </div>
+                {value.assiduidade_considera_atestado && (
+                  <div className="space-y-2">
+                    <Label>Atestados tolerados no mês</Label>
+                    <Input
+                      inputMode="numeric"
+                      className="max-w-[160px]"
+                      value={value.assiduidade_max_atestados}
+                      onChange={(e) => onChange({ assiduidade_max_atestados: e.target.value.replace(/\D/g, "") })}
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  Muitas convenções tiram o prêmio quando há atestado. A empresa pode
+                  abonar caso a caso na apuração da folha, mantendo o prêmio do mês.
+                </p>
+              </div>
+              <p className="text-[11px] text-muted-foreground md:col-span-2">
+                O prêmio é pago quando o critério é cumprido no mês. Faltas sempre cancelam o benefício.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Isonomia: divergências contra o grupo sindical/cargo equivalente */}
       <BeneficioIsonomiaAviso divergencias={isonomia ?? []} onAplicarPadrao={onAplicarPadraoIsonomia} />

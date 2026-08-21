@@ -101,7 +101,6 @@ const DpOperacaoDia = lazyWithRetry(() => import("./pages/dp/DpOperacaoDia"));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
-const DpAdicionaisTempoServico = lazyWithRetry(() => import("./pages/dp/cadastros/DpAdicionaisTempoServico"));
 const DpDocumentosExigidos = lazyWithRetry(() => import("./pages/dp/cadastros/DpDocumentosExigidos"));
 const DpSindicatos = lazyWithRetry(() => import("./pages/dp/DpSindicatos"));
 const DpSindicatoNegociacoes = lazyWithRetry(() => import("./pages/dp/DpSindicatoNegociacoes"));
@@ -467,7 +466,7 @@ const AppRoutes = () => (
         <Route path="cadastros" element={<DpCadastrosHub />} />
         <Route path="cadastros/unidades" element={<DpUnidades />} />
         <Route path="cadastros/cargos" element={<DpCargos />} />
-        <Route path="cadastros/adicionais" element={<DpAdicionaisTempoServico />} />
+        <Route path="cadastros/adicionais" element={<Navigate to="/dp/cadastros/cargos?aba=complementos" replace />} />
         <Route path="cadastros/documentos-exigidos" element={<DpDocumentosExigidos />} />
         <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
         <Route path="cadastros/pendencias" element={<DpCadastroPendencias />} />

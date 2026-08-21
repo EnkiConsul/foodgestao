@@ -187,12 +187,11 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     matchPrefixes: ["/dp/colaboradores", "/dp/cadastros"],
     items: [
       { label: "Colaboradores", to: "/dp/colaboradores", icon: Users, shortcut: true },
-      { label: "Cargos", to: "/dp/cadastros/cargos", icon: Briefcase },
+      { label: "Cargos e Salários", to: "/dp/cadastros/cargos", icon: Briefcase },
       { label: "Unidades", to: "/dp/cadastros/unidades", icon: Building2 },
       { label: "Sindicatos", to: "/dp/cadastros/sindicatos", icon: Scale },
       { label: "Turnos", to: "/dp/cadastros/turnos", icon: Clock },
       { label: "Benefícios", to: "/dp/cadastros/beneficios", icon: Gift },
-      { label: "Adicionais e salário-família", to: "/dp/cadastros/adicionais", icon: Gift },
       { label: "Documentos exigidos", to: "/dp/cadastros/documentos-exigidos", icon: FileCheck2 },
       { label: "Pendências", to: "/dp/cadastros/pendencias", icon: BellRing },
     ],

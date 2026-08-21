@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Briefcase, Search, Users } from "lucide-react";
@@ -16,6 +17,9 @@ import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { moedaBR, selosRiscoCargo, textoPercentualRisco } from "@/lib/dp/cargos";
 import { CargoSalariosUnidadePanel } from "@/components/dp/CargoSalariosUnidadePanel";
 import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
+import { ComplementosSalariaisPanel } from "@/components/dp/cargos/ComplementosSalariaisPanel";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { DpTabsBar } from "@/components/dp/DpTabsBar";
 
 import { cn } from "@/lib/utils";
 
@@ -31,6 +35,17 @@ export default function DpCargos() {
   /** Colaborador aberto para edição a partir da lista de vinculados. */
   const [editarColaborador, setEditarColaborador] = useState<any | null>(null);
   const colaboradores = useDpColaboradores();
+
+  // Aba controlada por query string para permitir link direto e redirecionamento
+  // da antiga rota /dp/cadastros/adicionais.
+  const [params, setParams] = useSearchParams();
+  const aba = params.get("aba") === "complementos" ? "complementos" : "cargos";
+  const setAba = (v: string) => {
+    const next = new URLSearchParams(params);
+    if (v === "cargos") next.delete("aba");
+    else next.set("aba", v);
+    setParams(next, { replace: true });
+  };
 
   const openNew = () => {
     setEditing(null);
@@ -92,21 +107,37 @@ export default function DpCargos() {
 
   return (
     <DpPage narrow>
-      <Helmet><title>Cargos — Pessoas 360°</title></Helmet>
+      <Helmet><title>Cargos e Salários — Pessoas 360°</title></Helmet>
 
       <DpPageHeader
         icon={Briefcase}
-        title="Cargos"
+        title="Cargos e Salários"
         description="Gerencie os cargos disponíveis na empresa. Pisos diferentes por unidade (convenções patronais distintas) são cadastrados em “Salário por unidade”, dentro da ficha ou da edição do cargo."
         actions={
-          <>
+          aba === "cargos" ? (
             <Button onClick={openNew} className="rounded-full px-6">
               <Plus className="size-4 mr-2" /> Novo Cargo
             </Button>
-          </>
+          ) : undefined
         }
       />
 
+      <Tabs value={aba} onValueChange={setAba} className="space-y-4">
+        <DpTabsBar>
+          <TabsTrigger value="cargos">Cargos</TabsTrigger>
+          <TabsTrigger value="complementos">Complementos Salariais</TabsTrigger>
+        </DpTabsBar>
+
+        <TabsContent value="complementos" className="m-0">
+          <ComplementosSalariaisPanel
+            onEditarCargo={(cargoId) => {
+              const c = (list.data ?? []).find((x) => x.id === cargoId);
+              if (c) openEdit(c);
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="cargos" className="m-0">
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input className="pl-9" placeholder="Buscar cargo por nome..." value={busca} onChange={(e) => setBusca(e.target.value)} />
@@ -242,7 +273,11 @@ export default function DpCargos() {
       </div>
 
 
+        </TabsContent>
+      </Tabs>
+
       {/* Criar / Editar */}
+
       <CargoFormDialog
         open={open}
         onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}
