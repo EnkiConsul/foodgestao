@@ -13494,7 +13494,6 @@ export type Database = {
           convocacoes: number
           escala_itens_publicados: number
           escala_itens_rascunho: number
-          grade_dias: number
           turno_id: string
           versoes: number
         }[]
