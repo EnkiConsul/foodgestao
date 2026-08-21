@@ -195,6 +195,12 @@ export default function DpBeneficios() {
           <ValeCalculadora tipo={valeTipo} />
         </TabsContent>
 
+        <TabsContent value="historico" className="space-y-3">
+          <ValeHistorico />
+        </TabsContent>
+
+
+
 
         <TabsContent value="ficha" className="space-y-3">
           <Button
