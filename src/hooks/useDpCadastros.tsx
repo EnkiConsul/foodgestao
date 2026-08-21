@@ -15,6 +15,7 @@ export type DpSindicatoInsert = Database["public"]["Tables"]["dp_sindicatos"]["I
 export type DpUnidadeWithCounts = DpUnidade & {
   cargos_count: number;
   sindicatos_patronais_count: number;
+  colaboradores_count: number;
   company_name?: string | null;
 };
 
@@ -38,26 +39,37 @@ export function useDpUnidades() {
         return [];
       }
 
-      const [{ data: uc, error: ucErr }, { data: su, error: suErr }] = await Promise.all([
+      const [{ data: uc, error: ucErr }, { data: su, error: suErr }, { data: col, error: colErr }] = await Promise.all([
         supabase.from("dp_unidade_cargos").select("unidade_id").in("unidade_id", ids),
         supabase
           .from("dp_sindicato_unidades")
           .select("unidade_id, dp_sindicatos!inner(tipo)")
           .in("unidade_id", ids)
           .eq("dp_sindicatos.tipo", "patronal"),
+        supabase
+          .from("dp_colaboradores")
+          .select("unidade_id")
+          .in("company_id", companyIds)
+          .not("unidade_id", "is", null),
       ]);
       if (ucErr) throw ucErr;
       if (suErr) throw suErr;
+      if (colErr) throw colErr;
 
       const cargosMap = new Map<string, number>();
       (uc ?? []).forEach((r: any) => cargosMap.set(r.unidade_id, (cargosMap.get(r.unidade_id) ?? 0) + 1));
       const sindMap = new Map<string, number>();
       (su ?? []).forEach((r: any) => sindMap.set(r.unidade_id, (sindMap.get(r.unidade_id) ?? 0) + 1));
+      const colabMap = new Map<string, number>();
+      (col ?? []).forEach((r: any) => {
+        if (r.unidade_id) colabMap.set(r.unidade_id, (colabMap.get(r.unidade_id) ?? 0) + 1);
+      });
 
       return unidades.map((u) => ({
         ...(u as DpUnidade),
         cargos_count: cargosMap.get(u.id) ?? 0,
         sindicatos_patronais_count: sindMap.get(u.id) ?? 0,
+        colaboradores_count: colabMap.get(u.id) ?? 0,
         company_name: u.companies?.trade_name || u.companies?.name || null,
       }));
     },
