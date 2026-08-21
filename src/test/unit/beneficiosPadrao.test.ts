@@ -157,8 +157,19 @@ describe("grupos do padrão", () => {
 
   it("limita as colunas do colaborador aos grupos escolhidos", () => {
     const cols = padraoParaColunasColaborador(cheio, ["vale_transporte"]);
-    expect(Object.keys(cols).sort()).toEqual(["vale_transporte", "vale_transporte_valor_dia"]);
+    // O grupo carrega o valor e também as regras de pagamento/corte do VT.
+    expect(Object.keys(cols).sort()).toEqual([
+      "vale_transporte",
+      "vale_transporte_desconta_atestado",
+      "vale_transporte_desconta_falta",
+      "vale_transporte_desconta_ferias",
+      "vale_transporte_desconta_folga_extra",
+      "vale_transporte_dia_pagamento",
+      "vale_transporte_dias_corte",
+      "vale_transporte_valor_dia",
+    ]);
   });
+
 });
 
 describe("divergenciasColaboradorVsPadrao", () => {
