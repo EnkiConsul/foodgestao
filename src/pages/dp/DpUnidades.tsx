@@ -251,6 +251,9 @@ export default function DpUnidades() {
               </div>
             </div>
             <div className="flex flex-wrap gap-1.5 text-[11px]">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-secondary text-secondary-foreground">
+                <Users className="size-3" /> {u.colaboradores_count} colab.
+              </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">
                 <ListChecks className="size-3" /> {u.cargos_count} cargos
               </span>
