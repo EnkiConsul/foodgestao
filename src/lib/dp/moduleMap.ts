@@ -14,10 +14,6 @@ export interface DpRouteModuleRule {
  * Rotas do DP não listadas pertencem ao DP base (`dp`), que é obrigatório.
  */
 export const DP_ROUTE_MODULES: DpRouteModuleRule[] = [
-  // Ponto
-  { prefix: "/dp/ponto", module: "ponto" },
-  { prefix: "/dp/meu/ponto", module: "ponto" },
-
   // Escala / gerador de escala
   { prefix: "/dp/escalas", module: "escala" },
   { prefix: "/dp/escala", module: "escala" },
@@ -31,12 +27,6 @@ export const DP_ROUTE_MODULES: DpRouteModuleRule[] = [
   { prefix: "/dp/bloqueios", module: "escala" },
   { prefix: "/dp/meu/escala", module: "escala" },
 
-  // Folha de pagamento
-  { prefix: "/dp/folha", module: "folha" },
-  { prefix: "/dp/rescisoes", module: "folha" },
-  { prefix: "/dp/beneficios", module: "folha" },
-  { prefix: "/dp/meu/contracheque", module: "folha" },
-
 ];
 
 /**
@@ -44,7 +34,7 @@ export const DP_ROUTE_MODULES: DpRouteModuleRule[] = [
  * mas exibem a máscara "Módulo em desenvolvimento".
  * Para liberar um módulo, basta removê-lo desta lista.
  */
-export const MODULOS_EM_DESENVOLVIMENTO: AppModule[] = ["ponto", "folha"];
+export const MODULOS_EM_DESENVOLVIMENTO: AppModule[] = [];
 
 /**
  * Rotas pausadas individualmente (não pertencem a um módulo comercial pausado).
