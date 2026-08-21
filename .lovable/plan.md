@@ -19,11 +19,11 @@ dias a trabalhar no ciclo atual
 total de dias × valor por dia = valor a depositar
 ```
 
-A diferença do ciclo anterior é **sempre calculada pelo sistema** — pode ser negativa (pagou mais do que trabalhou) ou positiva (trabalhou mais do que foi pago, como no caso do Herick). Não existe campo de ajuste manual.
+A diferença do ciclo anterior é **calculada pelo sistema** a partir dos dois números do ciclo anterior — pode ser negativa (pagou mais do que trabalhou) ou positiva (trabalhou mais do que foi pago, como no caso do Herick). Não existe campo de "acrescentar" manual.
 
-- **Dias a trabalhar**: escala publicada, jornada do colaborador ou convocações aceitas (intermitentes), já descontando folgas semanais, folga dominical e férias.
-- **Dias trabalhados no anterior**: ponto/escala do ciclo, descontando falta, folga extra, atestado e férias conforme as regras de VA/VT configuradas.
-- **Dias pagos no anterior**: o que o depósito daquele ciclo cobriu.
+- **Dias a trabalhar (ciclo atual)**: calculado pelo sistema — escala publicada, jornada do colaborador ou convocações aceitas (intermitentes), já descontando folgas semanais, folga dominical e férias. Editável quando o gestor quiser sobrepor.
+- **Dias trabalhados no ciclo anterior**: **informado manualmente** pelo gestor, já que o ponto ainda não está implantado.
+- **Dias pagos no ciclo anterior**: vem do fechamento anterior salvo no sistema; no primeiro ciclo (ou se não houver fechamento) o gestor também informa manualmente.
 
 ## O que vamos fazer
 
@@ -32,11 +32,14 @@ A diferença do ciclo anterior é **sempre calculada pelo sistema** — pode ser
 Uma visão por colaborador (cartões no mobile, tabela no desktop) mostrando, sem jargão:
 
 - valor por dia e dia de pagamento;
-- dias do ciclo atual;
-- a diferença do ciclo anterior, com sinal e explicação (`+8 dias do ciclo anterior` / `−1 falta`);
+- dias do ciclo atual (calculado, com opção de ajustar);
+- **campos editáveis** de "dias pagos" e "dias trabalhados" do ciclo anterior, um por colaborador, com salvamento automático e indicação de quando o valor de "pagos" veio do fechamento anterior;
+- a diferença resultante, com sinal e explicação (`+8 dias do ciclo anterior` / `−1 dia`);
 - total de dias e valor a depositar;
-- clique abre a memória de cálculo com o calendário dia a dia;
-- exportar CSV e totais no topo (dias, valor total, colaboradores).
+- clique abre a memória de cálculo com o calendário dia a dia do ciclo atual;
+- exportar CSV e totais no topo (dias, valor total, colaboradores);
+- botão **Fechar ciclo**, que grava os dias pagos e alimenta automaticamente o próximo mês.
+
 
 ### 2. Fim da aba "Vales por colaborador"
 
