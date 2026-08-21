@@ -47,6 +47,8 @@ export default function DpBeneficios() {
   const [atrEdit, setAtrEdit] = useState<ColaboradorBeneficio | null>(null);
   const [periodoId, setPeriodoId] = useState<string>("");
   const [fichaId, setFichaId] = useState<string | null>(null);
+  const [valeTipo, setValeTipo] = useState<ValeTipo>("va");
+
 
   const fichaColaborador = useMemo(
     () => colaboradores.find((c: any) => c.id === fichaId) ?? null,
