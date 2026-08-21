@@ -379,7 +379,7 @@ export default function DpDocumentos() {
               <Label>Título {(fileRef.current?.files?.length ?? 0) > 1 ? "(ignorado em envio em lote)" : "*"}</Label>
               <Input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Ex.: Contracheque 07/2026" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label>Tipo</Label>
                 <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })} disabled={!!filterTipo}>

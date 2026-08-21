@@ -100,7 +100,7 @@ export function NovoColaboradorInlineDialog({
             <Label>CPF</Label>
             <Input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" />
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div className="space-y-1">
               <Label>Cargo</Label>
               <Select value={cargo} onValueChange={setCargo}>
