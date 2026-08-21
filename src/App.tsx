@@ -91,7 +91,6 @@ const DpAnalytics = lazyWithRetry(() => import("./pages/dp/DpAnalytics"));
 const DpFolgasHub = lazyWithRetry(() => import("./pages/dp/DpFolgasHub"));
 const DpCadastrosHub = lazyWithRetry(() => import("./pages/dp/DpCadastrosHub"));
 const DpCadastroPendencias = lazyWithRetry(() => import("./pages/dp/cadastros/DpCadastroPendencias"));
-const DpTurnos = lazyWithRetry(() => import("./pages/dp/cadastros/DpTurnos"));
 
 const DpConfiguracoesJornada = lazyWithRetry(() => import("./pages/dp/cadastros/DpConfiguracoesJornada"));
 const DpConformidadeDsr = lazyWithRetry(() => import("./pages/dp/DpConformidadeDsr"));
@@ -101,7 +100,6 @@ const DpOperacaoDia = lazyWithRetry(() => import("./pages/dp/DpOperacaoDia"));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
-const DpDocumentosExigidos = lazyWithRetry(() => import("./pages/dp/cadastros/DpDocumentosExigidos"));
 const DpSindicatos = lazyWithRetry(() => import("./pages/dp/DpSindicatos"));
 const DpSindicatoNegociacoes = lazyWithRetry(() => import("./pages/dp/DpSindicatoNegociacoes"));
 const DpAprovacoes = lazyWithRetry(() => import("./pages/dp/DpAprovacoes"));
@@ -467,12 +465,12 @@ const AppRoutes = () => (
         <Route path="cadastros/unidades" element={<DpUnidades />} />
         <Route path="cadastros/cargos" element={<DpCargos />} />
         <Route path="cadastros/adicionais" element={<Navigate to="/dp/cadastros/cargos?aba=complementos" replace />} />
-        <Route path="cadastros/documentos-exigidos" element={<DpDocumentosExigidos />} />
+        <Route path="cadastros/documentos-exigidos" element={<Navigate to="/dp/cadastros/cargos?aba=documentos" replace />} />
         <Route path="cadastros/sindicatos" element={<DpSindicatos />} />
         <Route path="cadastros/pendencias" element={<DpCadastroPendencias />} />
         <Route path="cadastros/beneficios" element={<DpBeneficios />} />
-        <Route path="cadastros/turnos" element={<DpTurnos />} />
-        <Route path="turnos" element={<Navigate to="/dp/cadastros/turnos" replace />} />
+        <Route path="cadastros/turnos" element={<Navigate to="/dp/cadastros/cargos?aba=turnos" replace />} />
+        <Route path="turnos" element={<Navigate to="/dp/cadastros/cargos?aba=turnos" replace />} />
         <Route path="folgas/configuracoes/regras" element={<DpConfiguracoesJornada />} />
         <Route path="cadastros/regras-jornada" element={<Navigate to="/dp/folgas/configuracoes/regras" replace />} />
         <Route path="conformidade-dsr" element={<DpConformidadeDsr />} />
