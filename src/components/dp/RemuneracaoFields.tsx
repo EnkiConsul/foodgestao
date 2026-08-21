@@ -221,6 +221,10 @@ export function RemuneracaoFields({
   beneficios,
   onNovoBeneficio,
   onEditarBeneficio,
+  escopoAlvo,
+  nomeUnidade,
+  nomeCargo,
+
 
   regime,
   diasJornada,
