@@ -361,6 +361,11 @@ export interface DepositoVaInput {
   diasPrevistos: number;
   diasDescontados: number;
   valorDia: number;
+  /**
+   * Diferença assinada do ciclo anterior (dias trabalhados − dias pagos).
+   * Positiva quando o colaborador trabalhou mais do que recebeu.
+   */
+  diferencaAnterior?: number;
   /** Desconto do colaborador no mês (já calculado pelas regras do benefício). */
   descontoColaborador?: number;
   /** Ajuste manual do gestor, quando informado, substitui os dias calculados. */
@@ -376,12 +381,30 @@ export interface DepositoVa {
 
 const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 
-/** Valor a depositar: (previstos − descontados) × valor do dia, menos o desconto. */
+/**
+ * Valor a depositar: (previstos − descontados + diferença do ciclo anterior)
+ * × valor do dia, menos o desconto do colaborador.
+ */
 export function calcularVaDeposito(input: DepositoVaInput): DepositoVa {
-  const calculado = Math.max(0, (Number(input.diasPrevistos) || 0) - (Number(input.diasDescontados) || 0));
+  const calculado = Math.max(
+    0,
+    (Number(input.diasPrevistos) || 0) -
+      (Number(input.diasDescontados) || 0) +
+      (Number(input.diferencaAnterior) || 0),
+  );
   const diasPagos =
     input.diasAjustados == null ? calculado : Math.max(0, Number(input.diasAjustados) || 0);
   const bruto = round2(diasPagos * (Number(input.valorDia) || 0));
   const desconto = Math.min(bruto, round2(Math.max(0, Number(input.descontoColaborador) || 0)));
   return { diasPagos, bruto, desconto, depositar: round2(bruto - desconto) };
 }
+
+/** Diferença assinada do ciclo anterior. Sem dias trabalhados informados, é zero. */
+export function diferencaCicloAnterior(
+  diasPagosAnterior: number | null | undefined,
+  diasTrabalhadosAnterior: number | null | undefined,
+): number {
+  if (diasTrabalhadosAnterior == null || !Number.isFinite(Number(diasTrabalhadosAnterior))) return 0;
+  return Math.trunc(Number(diasTrabalhadosAnterior) || 0) - Math.trunc(Number(diasPagosAnterior) || 0);
+}
+

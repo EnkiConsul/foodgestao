@@ -7747,9 +7747,15 @@ export type Database = {
           created_by: string | null
           detalhe: Json
           dias_descontados: number
+          dias_pagos_anterior: number
           dias_previstos: number
+          dias_trabalhados_anterior: number | null
+          fechado_em: string | null
+          fechado_por: string | null
           id: string
           observacao: string | null
+          tipo: string
+          total_dias: number
           updated_at: string
           valor_depositar: number
           valor_dia: number
@@ -7762,9 +7768,15 @@ export type Database = {
           created_by?: string | null
           detalhe?: Json
           dias_descontados?: number
+          dias_pagos_anterior?: number
           dias_previstos?: number
+          dias_trabalhados_anterior?: number | null
+          fechado_em?: string | null
+          fechado_por?: string | null
           id?: string
           observacao?: string | null
+          tipo?: string
+          total_dias?: number
           updated_at?: string
           valor_depositar?: number
           valor_dia?: number
@@ -7777,9 +7789,15 @@ export type Database = {
           created_by?: string | null
           detalhe?: Json
           dias_descontados?: number
+          dias_pagos_anterior?: number
           dias_previstos?: number
+          dias_trabalhados_anterior?: number | null
+          fechado_em?: string | null
+          fechado_por?: string | null
           id?: string
           observacao?: string | null
+          tipo?: string
+          total_dias?: number
           updated_at?: string
           valor_depositar?: number
           valor_dia?: number

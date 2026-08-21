@@ -45,6 +45,10 @@ export interface LinhaVale {
   aviso?: string;
   descontos: DiasDescontaveisResultado;
   deposito: DepositoVa;
+  /** Desconto do colaborador no mês, para recalcular com a diferença informada. */
+  descontoColaborador: number;
+  /** Dias previstos no ciclo anterior — sugestão para o campo "dias trabalhados". */
+  sugestaoTrabalhadosAnterior: number;
   /** Sem valor por dia cadastrado não há como calcular. */
   semValorDia: boolean;
   /** Período próprio do colaborador (pode diferir do padrão da empresa). */
@@ -54,6 +58,7 @@ export interface LinhaVale {
   /** De onde veio a regra aplicada. */
   origemRegra: "empresa" | "unidade" | "colaborador";
 }
+
 
 export interface ResumoVale {
   periodo: ReturnType<typeof periodoVaDe>;
@@ -391,9 +396,12 @@ export function useDpValeCalculadora(
         descontoColaborador = salario > 0 ? salario * VT_DESCONTO_MAXIMO : 0;
       }
 
+      // Base do depósito: só os dias previstos do ciclo atual. A diferença do
+      // ciclo anterior entra pelos dias informados pelo gestor (ponto ainda não
+      // implantado), evitando contar o mesmo dia duas vezes.
       const deposito = calcularVaDeposito({
         diasPrevistos: previstos.dias,
-        diasDescontados: descontos.dias,
+        diasDescontados: 0,
         valorDia,
         descontoColaborador,
       });
@@ -414,9 +422,12 @@ export function useDpValeCalculadora(
         calendario: previstos.detalhe,
         origemRegra,
         descontos,
+        descontoColaborador: Math.round(descontoColaborador * 100) / 100,
+        sugestaoTrabalhadosAnterior: Math.max(0, previstosConferencia.length - descontos.dias),
 
         deposito,
         semValorDia: !(valorDia > 0),
+
         aviso: intermitente && previstos.dias === 0
           ? "Sem convocações aceitas no período — aguardando convocações."
           : !intermitente && jornadaCobertura.length === 0 && escala.length === 0

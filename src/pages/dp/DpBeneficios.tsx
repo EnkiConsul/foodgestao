@@ -25,6 +25,8 @@ import {
   AtribuicaoDialog, BeneficioDialog, BENEFICIO_TIPO_LABEL,
 } from "@/components/dp/beneficios/BeneficiosDialogs";
 import { ValeCalculadora } from "@/components/dp/beneficios/ValeCalculadora";
+import { ValeHistorico } from "@/components/dp/beneficios/ValeHistorico";
+
 import type { ValeTipo } from "@/hooks/useDpValeCalculadora";
 
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
@@ -172,8 +174,10 @@ export default function DpBeneficios() {
       <Tabs defaultValue="calculo" className="space-y-3 pb-24 md:pb-0">
         <DpTabsBar>
           <TabsTrigger value="calculo">Cálculo mensal</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="ficha">Vales por colaborador</TabsTrigger>
           <TabsTrigger value="catalogo">Catálogo da empresa</TabsTrigger>
+
 
         </DpTabsBar>
 
@@ -192,6 +196,12 @@ export default function DpBeneficios() {
           </div>
           <ValeCalculadora tipo={valeTipo} />
         </TabsContent>
+
+        <TabsContent value="historico" className="space-y-3">
+          <ValeHistorico />
+        </TabsContent>
+
+
 
 
         <TabsContent value="ficha" className="space-y-3">
