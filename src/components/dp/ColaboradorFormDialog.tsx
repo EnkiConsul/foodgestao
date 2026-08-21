@@ -1429,7 +1429,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           <div className="shrink-0 space-y-3 border-b border-border bg-background p-4 pb-2 sm:p-6 sm:pb-3">
             <DialogHeader className="space-y-0 text-left">
               <div className="flex items-start justify-between gap-2">
-                <DialogTitle>
+                <DialogTitle className="min-w-0 truncate pr-6 text-base sm:text-lg">
                   {isEdit
                     ? `Editar: ${toProperName(form.nome.trim()) || "Colaborador"}`
                     : `Cadastrar: ${toProperName(form.nome.trim()) || "Novo Colaborador"}`}
