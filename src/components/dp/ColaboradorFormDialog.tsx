@@ -1515,7 +1515,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
           {/* Nome */}
-          <div className="col-span-2 space-y-2">
+          <div className="md:col-span-2 space-y-2">
             <Label>Nome Completo *</Label>
             <Input
               value={form.nome}
@@ -1724,7 +1724,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
           {/* Folha de ponto (condicional) */}
           {unidadeSelecionada?.possui_relogio_ponto && (
-            <div className="col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
+            <div className="md:col-span-2 flex items-center gap-3 rounded-xl border border-border p-3">
               <Switch
                 id="possui_folha_ponto"
                 checked={form.possui_folha_ponto}
@@ -1737,7 +1737,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
           {/* Senha Inicial */}
           {!isEdit && (
-            <div className="col-span-2 space-y-2">
+            <div className="md:col-span-2 space-y-2">
               <Label>Senha Inicial</Label>
               <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground font-mono">
                 Padrão: 6 últimos dígitos do CPF
@@ -1747,7 +1747,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
           {/* Acesso ao portal e desligamento moram aqui: sem abas separadas. */}
           {(isEdit || criadoId) && (
-            <div className="col-span-2 space-y-4">
+            <div className="md:col-span-2 space-y-4">
               <div id="acesso-portal" className="scroll-mt-4">
                 <ColaboradorAcessoPanel colaborador={colaboradorAtual} />
               </div>
@@ -1885,7 +1885,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
               {/* Adiantamento — apenas para contratos com salário mensal em folha */}
               {permiteAdiantamento ? (
-                <div className="col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-border p-3">
+                <div className="md:col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-border p-3">
                   <Switch
                     id="optante_adiantamento"
                     checked={form.optante_adiantamento}
@@ -1902,7 +1902,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                   </Button>}
                 </div>
               ) : (
-                <p className="col-span-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                <p className="md:col-span-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
                   <strong className="text-foreground">Adiantamento salarial não se aplica.</strong>{" "}
                   {policy.adiantamentoHint}
                 </p>

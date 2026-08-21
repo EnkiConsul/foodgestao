@@ -140,7 +140,7 @@ export function SindicatoEnquadramentoField({
   };
 
   return (
-    <div className="col-span-2 space-y-3 rounded-xl border border-border bg-muted/30 p-3">
+    <div className="md:col-span-2 space-y-3 rounded-xl border border-border bg-muted/30 p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Scale className="h-4 w-4 text-primary" />

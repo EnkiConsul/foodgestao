@@ -276,7 +276,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
             />
           </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <div className="col-span-2 space-y-2">
+            <div className="sm:col-span-2 space-y-2">
               <Label>Cidade</Label>
               <Input
                 value={form.cidade}
