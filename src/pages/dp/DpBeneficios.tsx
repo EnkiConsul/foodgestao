@@ -332,7 +332,9 @@ export default function DpBeneficios() {
           open={!!fichaColaborador}
           onOpenChange={(o) => !o && setFichaId(null)}
           colaborador={fichaColaborador as any}
+          onEdit={() => setFichaId(null)}
         />
+
       )}
     </DpPage>
   );
