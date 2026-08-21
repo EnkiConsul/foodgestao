@@ -38,7 +38,6 @@ export function DpStatCard({
   const Comp = onClick ? "button" : "div";
   return (
     <Card
-      asChild={false}
       className={cn(
         "h-full overflow-hidden",
         onClick && "transition-colors hover:bg-muted/40",
