@@ -19,7 +19,7 @@ Folha e Ponto ficam totalmente ocultos (código preservado, desativado), Escala 
 - Tela de Benefícios: remover o botão/seletor "Gerar na Folha", o campo "Lançar na folha como" no cadastro do benefício, a coluna/etiqueta "entra na folha" e ajustar o texto de apoio da página.
 - Outras telas: remover cards, KPIs, atalhos, pendências e favoritos que apontem para folha ou ponto (home do DP, filtros, pendências, catálogo de módulos).
 - Cadastros que hoje explicam impacto "na folha" (piso salarial, adicionais, benefícios) passam a falar em remuneração/valores, sem citar geração de folha.
-- Documentos: mantém a importação de arquivos, incluindo as categorias Contracheque e Arquivos de Ponto, que continuam sendo o caminho para disponibilizar esses documentos ao colaborador (recebidos da contabilidade e do sistema de ponto).
+- Documentos: nada muda. Todas as telas atuais permanecem (Contracheques, Folhas de Ponto, Adiantamentos, Atestados, Registros Disciplinares, ACT/CCT, Histórico Completo), com a função de importar o documento recebido da contabilidade ou do sistema de ponto e disponibilizá-lo ao colaborador no portal.
 
 ### 3. Módulos comerciais
 - Ponto e Folha saem da vitrine de módulos e das dependências; DP e Escala seguem.
