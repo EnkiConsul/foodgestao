@@ -51,6 +51,7 @@ export default function ContasContabeis() {
   const { contextType, selectedCompanyId } = useCompanyContext();
   const queryClient = useQueryClient();
   const [restoring, setRestoring] = useState(false);
+  const [restoreOpen, setRestoreOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ChartAccount | null>(null);
   const [defaultParent, setDefaultParent] = useState<string | null>(null);
