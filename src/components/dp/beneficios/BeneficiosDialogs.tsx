@@ -45,16 +45,26 @@ const emptyBeneficio: BeneficioInput = {
   folha_tipo: null,
   descricao: null,
   ativo: true,
+  unidade_id: null,
+  cargo_id: null,
 };
+
+type EscopoOpcao = { id: string; nome: string };
 
 export function BeneficioDialog({
   open, onOpenChange, editing, saving, onSubmit,
+  unidades = [], cargos = [], escopoInicial,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   editing: Beneficio | null;
   saving: boolean;
   onSubmit: (input: BeneficioInput) => void;
+  /** Unidades e cargos da empresa, para amarrar o escopo do benefício. */
+  unidades?: EscopoOpcao[];
+  cargos?: EscopoOpcao[];
+  /** Escopo pré-selecionado ao criar (ex.: unidade/cargo do colaborador aberto). */
+  escopoInicial?: { unidade_id?: string | null; cargo_id?: string | null };
 }) {
   const [form, setForm] = useState<BeneficioInput>(emptyBeneficio);
 
@@ -71,25 +81,32 @@ export function BeneficioDialog({
             folha_tipo: editing.folha_tipo,
             descricao: editing.descricao,
             ativo: editing.ativo,
+            unidade_id: (editing as any).unidade_id ?? null,
+            cargo_id: (editing as any).cargo_id ?? null,
           }
-        : emptyBeneficio,
+        : {
+            ...emptyBeneficio,
+            unidade_id: escopoInicial?.unidade_id ?? null,
+            cargo_id: escopoInicial?.cargo_id ?? null,
+          },
     );
-  }, [open, editing]);
+  }, [open, editing, escopoInicial?.unidade_id, escopoInicial?.cargo_id]);
 
   const valid = form.nome.trim().length > 1;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editing ? "Editar benefício" : "Novo benefício"}</DialogTitle>
         </DialogHeader>
         {editing && (
           <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
             Este é o cadastro do catálogo da empresa: a alteração vale para todos os colaboradores que
-            usam este benefício. Valores individuais são ajustados em Benefícios &gt; Por colaborador.
+            usam este benefício. Valores individuais são ajustados em Benefícios &gt; Vales por colaborador.
           </p>
         )}
+
         <div className="grid gap-4 sm:grid-cols-2">
 
           <div className="space-y-2 sm:col-span-2">
@@ -149,6 +166,52 @@ export function BeneficioDialog({
               }
             />
           </div>
+          <div className="space-y-3 rounded-md border border-border bg-muted/20 p-3 sm:col-span-2">
+            <div>
+              <p className="text-sm font-medium">Aplica-se a</p>
+              <p className="text-xs text-muted-foreground">
+                Em branco, o benefício vale para a empresa inteira e pode ser vinculado a qualquer
+                colaborador. Com unidade e/ou cargo, ele só aparece no cadastro de quem pertence a
+                esse escopo.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Unidade</Label>
+                <Select
+                  value={form.unidade_id ?? "todas"}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, unidade_id: v === "todas" ? null : v }))
+                  }
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="todas">Todas as unidades</SelectItem>
+                    {unidades.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Cargo</Label>
+                <Select
+                  value={form.cargo_id ?? "todos"}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, cargo_id: v === "todos" ? null : v }))
+                  }
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="todos">Todos os cargos</SelectItem>
+                    {cargos.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>Descrição</Label>
             <Textarea
@@ -157,6 +220,7 @@ export function BeneficioDialog({
               rows={2}
             />
           </div>
+
           <div className="flex items-center gap-3 sm:col-span-2">
             <Switch
               checked={form.ativo}

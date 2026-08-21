@@ -2835,6 +2835,7 @@ export type Database = {
       dp_beneficios: {
         Row: {
           ativo: boolean
+          cargo_id: string | null
           company_id: string
           created_at: string
           desconta_atestado: boolean
@@ -2853,11 +2854,13 @@ export type Database = {
           nome: string
           periodicidade: string
           tipo: Database["public"]["Enums"]["dp_beneficio_tipo"]
+          unidade_id: string | null
           updated_at: string
           valor_padrao: number
         }
         Insert: {
           ativo?: boolean
+          cargo_id?: string | null
           company_id: string
           created_at?: string
           desconta_atestado?: boolean
@@ -2876,11 +2879,13 @@ export type Database = {
           nome: string
           periodicidade?: string
           tipo?: Database["public"]["Enums"]["dp_beneficio_tipo"]
+          unidade_id?: string | null
           updated_at?: string
           valor_padrao?: number
         }
         Update: {
           ativo?: boolean
+          cargo_id?: string | null
           company_id?: string
           created_at?: string
           desconta_atestado?: boolean
@@ -2899,15 +2904,30 @@ export type Database = {
           nome?: string
           periodicidade?: string
           tipo?: Database["public"]["Enums"]["dp_beneficio_tipo"]
+          unidade_id?: string | null
           updated_at?: string
           valor_padrao?: number
         }
         Relationships: [
           {
+            foreignKeyName: "dp_beneficios_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dp_beneficios_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_beneficios_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
           },
         ]

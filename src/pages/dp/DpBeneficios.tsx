@@ -14,6 +14,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
+import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import {
   useDpBeneficios, type Beneficio, type ColaboradorBeneficio,
@@ -39,6 +41,9 @@ type Linha = LinhaCatalogo | LinhaCadastro;
 
 export default function DpBeneficios() {
   const { data: colaboradores = [] } = useDpColaboradores();
+  const unidades = useDpUnidades();
+  const cargos = useDpCargos();
+
   const [colabFilter, setColabFilter] = useState("todos");
   const b = useDpBeneficios(colabFilter);
   const cadastro = useDpBeneficiosCadastro(colabFilter);
@@ -167,8 +172,9 @@ export default function DpBeneficios() {
       <Tabs defaultValue="calculo" className="space-y-3 pb-24 md:pb-0">
         <DpTabsBar>
           <TabsTrigger value="calculo">Cálculo mensal</TabsTrigger>
-          <TabsTrigger value="ficha">Por colaborador</TabsTrigger>
-          <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+          <TabsTrigger value="ficha">Vales por colaborador</TabsTrigger>
+          <TabsTrigger value="catalogo">Catálogo da empresa</TabsTrigger>
+
         </DpTabsBar>
 
         <TabsContent value="calculo" className="space-y-3">
@@ -329,6 +335,9 @@ export default function DpBeneficios() {
         onOpenChange={setCatOpen}
         editing={catEdit}
         saving={b.saveBeneficio.isPending}
+        unidades={(unidades.data ?? []).map((u: any) => ({ id: u.id, nome: u.nome }))}
+        cargos={(cargos.data ?? []).map((c: any) => ({ id: c.id, nome: c.nome }))}
+
         onSubmit={(input) =>
           b.saveBeneficio.mutate(input, { onSuccess: () => setCatOpen(false) })
         }
