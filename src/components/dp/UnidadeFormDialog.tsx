@@ -13,6 +13,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useUpsertDpUnidade, type DpUnidade } from "@/hooks/useDpCadastros";
 import { supabase } from "@/integrations/supabase/client";
 import { HorarioFuncionamentoEditor } from "@/components/dp/HorarioFuncionamentoEditor";
+import { UnidadeSindicatoPanel } from "@/components/dp/unidades/UnidadeSindicatoPanel";
 
 export const onlyNumbers = (v: string) => v.replace(/\D/g, "");
 
@@ -55,6 +56,9 @@ export interface UnidadeEdicao {
   dia_adiantamento?: number | null;
 }
 
+/** Abas do cadastro de unidade. */
+export type UnidadeAba = "dados" | "funcionamento" | "sindicato";
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -65,7 +69,7 @@ interface Props {
   /** Recebe a unidade salva — usado para selecioná-la de imediato. */
   onSaved?: (unidade: DpUnidade) => void;
   /** Abre direto numa aba (ex.: atalho "Funcionamento" do card da unidade). */
-  abaInicial?: "dados" | "funcionamento";
+  abaInicial?: UnidadeAba;
 }
 
 /**
@@ -142,7 +146,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
 
   // Carrega o formulário sempre que o diálogo abre.
   const [criadaId, setCriadaId] = useState<string | null>(null);
-  const [aba, setAba] = useState<"dados" | "funcionamento">(abaInicial);
+  const [aba, setAba] = useState<UnidadeAba>(abaInicial);
   const salvarFuncionamento = useRef<(() => Promise<void>) | null>(null);
   const registrarSalvar = useCallback((fn: (() => Promise<void>) | null) => {
     salvarFuncionamento.current = fn;
@@ -226,13 +230,14 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         </DialogHeader>
         <Tabs
           value={aba}
-          onValueChange={(v) => setAba(v as "dados" | "funcionamento")}
+          onValueChange={(v) => setAba(v as UnidadeAba)}
           className="flex min-h-0 flex-1 flex-col gap-0"
         >
           <div className="border-b px-4 pt-3">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="dados" className="h-10">Dados</TabsTrigger>
               <TabsTrigger value="funcionamento" className="h-10">Funcionamento</TabsTrigger>
+              <TabsTrigger value="sindicato" className="h-10">Sindicato</TabsTrigger>
             </TabsList>
           </div>
         <TabsContent value="dados" className="mt-0 flex-1 space-y-4 overflow-y-auto p-4">
@@ -382,6 +387,10 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
             Horário de funcionamento da loja
           </Label>
           <HorarioFuncionamentoEditor unidadeId={unidadeId} semRodape onRegistrarSalvar={registrarSalvar} />
+        </TabsContent>
+
+        <TabsContent value="sindicato" className="mt-0 flex-1 overflow-y-auto p-4">
+          <UnidadeSindicatoPanel unidadeId={unidadeId} unidadeNome={form.nome} />
         </TabsContent>
         </Tabs>
         <DialogFooter className="flex-col gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row">

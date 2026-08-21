@@ -1,11 +1,7 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
-import { DpTabsBar } from "@/components/dp/DpTabsBar";
-import { SindicatosPanel } from "@/components/dp/sindicatos/SindicatosPanel";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2, ListChecks, Users, Search, Store } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, ListChecks, Users, Search, Store, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,10 +13,11 @@ import {
   useDpUnidades,
   useDeleteDpUnidade,
   useToggleDpUnidadeAtivo,
+  useDpPatronalPorUnidade,
   type DpUnidadeWithCounts,
 } from "@/hooks/useDpCadastros";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { UnidadeFormDialog, formatCNPJ, onlyNumbers } from "@/components/dp/UnidadeFormDialog";
+import { UnidadeFormDialog, formatCNPJ, onlyNumbers, type UnidadeAba } from "@/components/dp/UnidadeFormDialog";
 import { useDpFuncionamentoResumo } from "@/hooks/useDpFuncionamentoResumo";
 
 export default function DpUnidades() {
@@ -28,20 +25,10 @@ export default function DpUnidades() {
   const del = useDeleteDpUnidade();
   const toggle = useToggleDpUnidadeAtivo();
 
-  // Aba controlada por query string para permitir link direto (ex.: ?aba=sindicatos).
-  const [params, setParams] = useSearchParams();
-  const abaParam = params.get("aba") ?? "";
-  const aba = abaParam === "sindicatos" ? "sindicatos" : "unidades";
-  const setAba = (v: string) => {
-    const next = new URLSearchParams(params);
-    if (v === "unidades") next.delete("aba");
-    else next.set("aba", v);
-    setParams(next, { replace: true });
-  };
-
   const { resumos } = useDpFuncionamentoResumo();
+  const patronais = useDpPatronalPorUnidade();
   const [open, setOpen] = useState(false);
-  const [abaForm, setAbaForm] = useState<"dados" | "funcionamento">("dados");
+  const [abaForm, setAbaForm] = useState<UnidadeAba>("dados");
   const [editing, setEditing] = useState<DpUnidadeWithCounts | null>(null);
   const [toDelete, setToDelete] = useState<DpUnidadeWithCounts | null>(null);
   const [busca, setBusca] = useState("");
@@ -56,7 +43,7 @@ export default function DpUnidades() {
     setOpen(true);
   };
 
-  const openEdit = (u: DpUnidadeWithCounts, aba: "dados" | "funcionamento" = "dados") => {
+  const openEdit = (u: DpUnidadeWithCounts, aba: UnidadeAba = "dados") => {
     setEditing(u);
     setAbaForm(aba);
     setOpen(true);
@@ -111,27 +98,12 @@ export default function DpUnidades() {
         title="Unidades"
         description="Cadastre e gerencie as unidades, seus cargos e sindicatos patronais."
         actions={
-          aba === "unidades" ? (
-            <>
-              <Button onClick={openNew} className="rounded-full px-6">
-                <Plus className="size-4 mr-2" /> Nova Unidade
-              </Button>
-            </>
-          ) : undefined
+          <Button onClick={openNew} className="rounded-full px-6">
+            <Plus className="size-4 mr-2" /> Nova Unidade
+          </Button>
         }
       />
 
-      <Tabs value={aba} onValueChange={setAba} className="space-y-4">
-        <DpTabsBar>
-          <TabsTrigger value="unidades">Unidades</TabsTrigger>
-          <TabsTrigger value="sindicatos">Sindicatos Patronais</TabsTrigger>
-        </DpTabsBar>
-
-        <TabsContent value="sindicatos" className="m-0">
-          <SindicatosPanel tipo="patronal" />
-        </TabsContent>
-
-        <TabsContent value="unidades" className="m-0">
       <div className="flex flex-col sm:flex-row gap-2 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -158,7 +130,7 @@ export default function DpUnidades() {
                 <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] hidden md:table-cell w-[12%]">CNPJ</th>
                 <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[10%]">Colab.</th>
                 <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[10%]">Cargos</th>
-                <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[14%]">Sind. Patronais</th>
+                <th className="text-left p-4 font-bold uppercase tracking-wider text-[10px] w-[14%]">Sind. Patronal</th>
                 <th className="text-center p-4 font-bold uppercase tracking-wider text-[10px] w-[10%]">Status</th>
                 <th className="text-right p-4 font-bold uppercase tracking-wider text-[10px] w-[10%]">Ações</th>
               </tr>
@@ -202,10 +174,20 @@ export default function DpUnidades() {
                       <ListChecks className="size-3" /> {u.cargos_count}
                     </span>
                   </td>
-                  <td className="p-4 text-center">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent text-accent-foreground">
-                      <Users className="size-3" /> {u.sindicatos_patronais_count}
-                    </span>
+                  <td className="p-4">
+                    {patronais.data?.[u.id] ? (
+                      <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground" title={patronais.data[u.id].nome}>
+                        <Scale className="size-3 shrink-0" /> <span className="truncate">{patronais.data[u.id].nome}</span>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="text-xs text-primary underline underline-offset-2"
+                        onClick={(e) => { e.stopPropagation(); openEdit(u, "sindicato"); }}
+                      >
+                        Vincular sindicato
+                      </button>
+                    )}
                   </td>
                   <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
                     <Switch checked={u.ativo} onCheckedChange={() => handleToggle(u)} />
@@ -285,13 +267,17 @@ export default function DpUnidades() {
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">
                 <ListChecks className="size-3" /> {u.cargos_count} cargos
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-accent text-accent-foreground">
-                <Users className="size-3" /> {u.sindicatos_patronais_count} sind.
+              <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-accent px-2 py-0.5 font-medium text-accent-foreground">
+                <Scale className="size-3 shrink-0" />
+                <span className="truncate">{patronais.data?.[u.id]?.nome ?? "Sem sindicato"}</span>
               </span>
             </div>
             <div className="flex flex-wrap gap-1 pt-1 border-t border-border/60" onClick={(e) => e.stopPropagation()}>
               <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => openEdit(u, "funcionamento")}>
                 <Store className="size-4 mr-1" /> Funcionamento
+              </Button>
+              <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => openEdit(u, "sindicato")}>
+                <Scale className="size-4 mr-1" /> Sindicato
               </Button>
               <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => openEdit(u)}>
                 <Pencil className="size-4 mr-1" /> Editar
@@ -303,8 +289,6 @@ export default function DpUnidades() {
           </div>
         ))}
       </div>
-        </TabsContent>
-      </Tabs>
 
 
 
