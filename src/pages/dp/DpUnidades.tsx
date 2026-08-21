@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { DpTabsBar } from "@/components/dp/DpTabsBar";
+import { SindicatosPanel } from "@/components/dp/sindicatos/SindicatosPanel";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Building2, ListChecks, Users, Search, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +27,17 @@ export default function DpUnidades() {
   const list = useDpUnidades();
   const del = useDeleteDpUnidade();
   const toggle = useToggleDpUnidadeAtivo();
+
+  // Aba controlada por query string para permitir link direto (ex.: ?aba=sindicatos).
+  const [params, setParams] = useSearchParams();
+  const abaParam = params.get("aba") ?? "";
+  const aba = abaParam === "sindicatos" ? "sindicatos" : "unidades";
+  const setAba = (v: string) => {
+    const next = new URLSearchParams(params);
+    if (v === "unidades") next.delete("aba");
+    else next.set("aba", v);
+    setParams(next, { replace: true });
+  };
 
   const { resumos } = useDpFuncionamentoResumo();
   const [open, setOpen] = useState(false);
@@ -96,14 +111,27 @@ export default function DpUnidades() {
         title="Unidades"
         description="Cadastre e gerencie as unidades, seus cargos e sindicatos patronais."
         actions={
-          <>
-            <Button onClick={openNew} className="rounded-full px-6">
-              <Plus className="size-4 mr-2" /> Nova Unidade
-            </Button>
-          </>
+          aba === "unidades" ? (
+            <>
+              <Button onClick={openNew} className="rounded-full px-6">
+                <Plus className="size-4 mr-2" /> Nova Unidade
+              </Button>
+            </>
+          ) : undefined
         }
       />
 
+      <Tabs value={aba} onValueChange={setAba} className="space-y-4">
+        <DpTabsBar>
+          <TabsTrigger value="unidades">Unidades</TabsTrigger>
+          <TabsTrigger value="sindicatos">Sindicatos Patronais</TabsTrigger>
+        </DpTabsBar>
+
+        <TabsContent value="sindicatos" className="m-0">
+          <SindicatosPanel tipo="patronal" />
+        </TabsContent>
+
+        <TabsContent value="unidades" className="m-0">
       <div className="flex flex-col sm:flex-row gap-2 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -275,6 +303,10 @@ export default function DpUnidades() {
           </div>
         ))}
       </div>
+        </TabsContent>
+      </Tabs>
+
+
 
 
       {/* View dialog */}

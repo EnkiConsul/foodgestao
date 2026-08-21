@@ -20,13 +20,14 @@ import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
 import { ComplementosSalariaisPanel } from "@/components/dp/cargos/ComplementosSalariaisPanel";
 import { TurnosPanel } from "@/components/dp/cargos/TurnosPanel";
 import { DocumentosObrigatoriosPanel } from "@/components/dp/cargos/DocumentosObrigatoriosPanel";
+import { SindicatosPanel } from "@/components/dp/sindicatos/SindicatosPanel";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
 
 import { cn } from "@/lib/utils";
 
 /** Abas válidas da tela (a query string `aba` controla a navegação direta). */
-const ABAS = ["cargos", "complementos", "turnos", "documentos"];
+const ABAS = ["cargos", "complementos", "turnos", "documentos", "sindicatos"];
 
 export default function DpCargos() {
   const list = useDpCargos();
@@ -134,6 +135,7 @@ export default function DpCargos() {
           <TabsTrigger value="complementos">Complementos Salariais</TabsTrigger>
           <TabsTrigger value="turnos">Turnos</TabsTrigger>
           <TabsTrigger value="documentos">Documentos Obrigatórios</TabsTrigger>
+          <TabsTrigger value="sindicatos">Sindicatos Laborais</TabsTrigger>
         </DpTabsBar>
 
         <TabsContent value="complementos" className="m-0">
@@ -151,6 +153,10 @@ export default function DpCargos() {
 
         <TabsContent value="documentos" className="m-0">
           <DocumentosObrigatoriosPanel />
+        </TabsContent>
+
+        <TabsContent value="sindicatos" className="m-0">
+          <SindicatosPanel tipo="laboral" />
         </TabsContent>
 
 
