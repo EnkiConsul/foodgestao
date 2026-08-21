@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2, ListChecks, Users, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, ListChecks, Users, Search, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,13 +17,16 @@ import {
 } from "@/hooks/useDpCadastros";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { UnidadeFormDialog, formatCNPJ, onlyNumbers } from "@/components/dp/UnidadeFormDialog";
+import { useDpFuncionamentoResumo } from "@/hooks/useDpFuncionamentoResumo";
 
 export default function DpUnidades() {
   const list = useDpUnidades();
   const del = useDeleteDpUnidade();
   const toggle = useToggleDpUnidadeAtivo();
 
+  const { resumos } = useDpFuncionamentoResumo();
   const [open, setOpen] = useState(false);
+  const [abaForm, setAbaForm] = useState<"dados" | "funcionamento">("dados");
   const [editing, setEditing] = useState<DpUnidadeWithCounts | null>(null);
   const [toDelete, setToDelete] = useState<DpUnidadeWithCounts | null>(null);
   const [busca, setBusca] = useState("");
@@ -34,11 +37,13 @@ export default function DpUnidades() {
 
   const openNew = () => {
     setEditing(null);
+    setAbaForm("dados");
     setOpen(true);
   };
 
-  const openEdit = (u: DpUnidadeWithCounts) => {
+  const openEdit = (u: DpUnidadeWithCounts, aba: "dados" | "funcionamento" = "dados") => {
     setEditing(u);
+    setAbaForm(aba);
     setOpen(true);
   };
 
@@ -147,6 +152,10 @@ export default function DpUnidades() {
                   <td className="p-4">
                     <div className="font-bold truncate" title={u.nome}>{u.nome}</div>
                     {u.endereco && <div className="text-xs text-muted-foreground truncate" title={u.endereco}>{u.endereco}</div>}
+                    <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground truncate" title={resumos[u.id] ?? "Funcionamento não configurado"}>
+                      <Store className="size-3 shrink-0" aria-hidden="true" />
+                      {resumos[u.id] ?? "Funcionamento não configurado"}
+                    </div>
                   </td>
                   <td className="p-4 hidden lg:table-cell text-xs truncate">
                     {u.company_name ?? "—"}
@@ -169,6 +178,16 @@ export default function DpUnidades() {
                   </td>
                   <td className="p-4 text-right whitespace-nowrap">
                     <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        title="Horário de funcionamento"
+                        aria-label={`Horário de funcionamento de ${u.nome}`}
+                        onClick={(e) => { e.stopPropagation(); openEdit(u, "funcionamento"); }}
+                      >
+                        <Store className="size-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -216,6 +235,10 @@ export default function DpUnidades() {
                 {u.company_name && <div className="text-[11px] text-muted-foreground truncate">{u.company_name}</div>}
                 {u.cnpj && <div className="font-mono text-[11px] text-muted-foreground">{formatCNPJ(u.cnpj)}</div>}
                 {u.endereco && <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{u.endereco}</div>}
+                <div className="mt-1 flex items-start gap-1 text-[11px] text-muted-foreground">
+                  <Store className="mt-0.5 size-3 shrink-0" aria-hidden="true" />
+                  <span className="line-clamp-2">{resumos[u.id] ?? "Funcionamento não configurado"}</span>
+                </div>
               </div>
               <div onClick={(e) => e.stopPropagation()}>
                 <Switch checked={u.ativo} onCheckedChange={() => handleToggle(u)} />
@@ -229,7 +252,10 @@ export default function DpUnidades() {
                 <Users className="size-3" /> {u.sindicatos_patronais_count} sind.
               </span>
             </div>
-            <div className="flex gap-1 pt-1 border-t border-border/60" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-wrap gap-1 pt-1 border-t border-border/60" onClick={(e) => e.stopPropagation()}>
+              <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => openEdit(u, "funcionamento")}>
+                <Store className="size-4 mr-1" /> Funcionamento
+              </Button>
               <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => openEdit(u)}>
                 <Pencil className="size-4 mr-1" /> Editar
               </Button>
@@ -285,6 +311,10 @@ export default function DpUnidades() {
                 <Label className="text-xs text-muted-foreground uppercase">Relógio de Ponto</Label>
                 <p>{(viewing as any).possui_relogio_ponto ? "Sim" : "Não"}</p>
               </div>
+              <div className="md:col-span-2">
+                <Label className="text-xs text-muted-foreground uppercase">Funcionamento da loja</Label>
+                <p>{resumos[viewing.id] ?? "Não configurado"}</p>
+              </div>
               <div>
                 <Label className="text-xs text-muted-foreground uppercase">Adiantamento</Label>
                 <p>
@@ -298,6 +328,11 @@ export default function DpUnidades() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setViewOpen(false)}>Fechar</Button>
             {viewing && (
+              <Button variant="outline" onClick={() => { const u = viewing; setViewOpen(false); openEdit(u, "funcionamento"); }}>
+                <Store className="size-4 mr-2" /> Funcionamento
+              </Button>
+            )}
+            {viewing && (
               <Button onClick={() => { const u = viewing; setViewOpen(false); openEdit(u); }}>
                 <Pencil className="size-4 mr-2" /> Editar
               </Button>
@@ -307,7 +342,7 @@ export default function DpUnidades() {
       </Dialog>
 
       {/* Create/Edit dialog — mesmo formulário usado no cadastro do colaborador */}
-      <UnidadeFormDialog open={open} onOpenChange={setOpen} unidade={editing} />
+      <UnidadeFormDialog open={open} onOpenChange={setOpen} unidade={editing} abaInicial={abaForm} />
 
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>

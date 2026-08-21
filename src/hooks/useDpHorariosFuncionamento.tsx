@@ -101,6 +101,7 @@ export function useDpHorariosFuncionamento(unidadeId: string | null | undefined)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_horarios_funcionamento"] });
+      qc.invalidateQueries({ queryKey: ["dp_funcionamento_resumo"] });
     },
   });
 

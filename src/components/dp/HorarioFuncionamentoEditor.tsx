@@ -27,6 +27,10 @@ const DIA_CURTO: Record<number, string> = Object.fromEntries(
 
 interface HorarioFuncionamentoEditorProps {
   unidadeId: string | null;
+  /** Esconde o botão próprio: quem salva é o rodapé do diálogo da unidade. */
+  semRodape?: boolean;
+  /** Entrega a função de salvar para o container (usado com semRodape). */
+  onRegistrarSalvar?: (salvar: (() => Promise<void>) | null) => void;
 }
 
 /** Períodos sobrepostos são permitidos — apenas sinalizados. */
@@ -48,7 +52,7 @@ function temSobreposicao(periodos: HorarioFuncionamentoPeriodo[]): boolean {
   return faixas.some((f, i) => i > 0 && f[0] < faixas[i - 1][1]);
 }
 
-export function HorarioFuncionamentoEditor({ unidadeId }: HorarioFuncionamentoEditorProps) {
+export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onRegistrarSalvar }: HorarioFuncionamentoEditorProps) {
   const { horarios, isLoading, salvar } = useDpHorariosFuncionamento(unidadeId);
   const [dias, setDias] = useState<HorarioFuncionamentoDia[]>([]);
 
@@ -123,6 +127,14 @@ export function HorarioFuncionamentoEditor({ unidadeId }: HorarioFuncionamentoEd
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar.");
     }
   };
+
+  // Permite o rodapé do diálogo da unidade salvar dados + funcionamento juntos.
+  useEffect(() => {
+    if (!onRegistrarSalvar) return;
+    onRegistrarSalvar(unidadeId ? async () => { await salvar.mutateAsync(dias); } : null);
+    return () => onRegistrarSalvar(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dias, unidadeId, onRegistrarSalvar]);
 
   if (!unidadeId) {
     return (
@@ -245,12 +257,14 @@ export function HorarioFuncionamentoEditor({ unidadeId }: HorarioFuncionamentoEd
         );
       })}
 
-      <div className="sticky bottom-0 -mx-1 bg-background/95 px-1 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-        <Button className="h-11 w-full" onClick={submit} disabled={salvar.isPending}>
-          <Save className="mr-2 h-4 w-4" aria-hidden="true" />
-          {salvar.isPending ? "Salvando..." : "Salvar horário de funcionamento"}
-        </Button>
-      </div>
+      {!semRodape && (
+        <div className="sticky bottom-0 -mx-1 bg-background/95 px-1 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+          <Button className="h-11 w-full" onClick={submit} disabled={salvar.isPending}>
+            <Save className="mr-2 h-4 w-4" aria-hidden="true" />
+            {salvar.isPending ? "Salvando..." : "Salvar horário de funcionamento"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

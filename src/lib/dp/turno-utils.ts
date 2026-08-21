@@ -362,6 +362,46 @@ export function formatarFuncionamento(h: HorarioFuncionamentoDia): string {
   return periodos.map(formatarPeriodo).join(" · ");
 }
 
+const DIA_CURTO_FUNC: Record<number, string> = {
+  0: "Dom", 1: "Seg", 2: "Ter", 3: "Qua", 4: "Qui", 5: "Sex", 6: "Sáb",
+};
+const ORDEM_FUNC = [1, 2, 3, 4, 5, 6, 0];
+
+/**
+ * Resumo curto do funcionamento da semana agrupando dias vizinhos com o mesmo
+ * horário: "Seg–Sex 08:30 → 18:30 · Sáb 11:00 → 23:00".
+ */
+export function resumoFuncionamentoSemana(dias: HorarioFuncionamentoDia[]): string {
+  const porDia = new Map(dias.map((d) => [d.dia_semana, d]));
+  const blocos: { inicio: number; fim: number; texto: string }[] = [];
+
+  ORDEM_FUNC.forEach((dia) => {
+    const d = porDia.get(dia);
+    if (!d || !d.aberto) return;
+    const texto = formatarFuncionamento(d);
+    const ultimo = blocos[blocos.length - 1];
+    const vizinho = ultimo && ORDEM_FUNC.indexOf(ultimo.fim) === ORDEM_FUNC.indexOf(dia) - 1;
+    if (ultimo && vizinho && ultimo.texto === texto) {
+      ultimo.fim = dia;
+      return;
+    }
+    blocos.push({ inicio: dia, fim: dia, texto });
+  });
+
+  if (blocos.length === 0) return "";
+  return blocos
+    .map((b) => {
+      const faixa = b.inicio === b.fim
+        ? DIA_CURTO_FUNC[b.inicio]
+        : `${DIA_CURTO_FUNC[b.inicio]}–${DIA_CURTO_FUNC[b.fim]}`;
+      return `${faixa} ${b.texto}`;
+    })
+    .join(" · ");
+}
+
+
+
+
 function cabeNoPeriodo(
   turno: Pick<TurnoHorario, "entrada" | "saida">,
   p: HorarioFuncionamentoPeriodo,
