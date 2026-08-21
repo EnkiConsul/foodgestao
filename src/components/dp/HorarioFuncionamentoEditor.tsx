@@ -22,7 +22,7 @@ const DIA_LONGO: Record<number, string> = Object.fromEntries(
   DIAS_SEMANA.map((d) => [d.v, d.longo]),
 );
 const DIA_CURTO: Record<number, string> = Object.fromEntries(
-  DIAS_SEMANA.map((d) => [d.v, d.curto ?? d.longo]),
+  DIAS_SEMANA.map((d) => [d.v, d.curto]),
 );
 
 interface HorarioFuncionamentoEditorProps {
