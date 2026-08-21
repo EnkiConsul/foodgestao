@@ -64,11 +64,12 @@ Aba **Histórico**: ciclos já fechados por mês e tipo, com dias, diferença ap
 
 ## Detalhes técnicos
 
-- `src/lib/dp/va-calculo.ts` / `useDpValeCalculadora.tsx`: expor `diasPagosAnterior`, `diasTrabalhadosAnterior` e a diferença **assinada** (hoje só existe `descontos.dias`, sempre negativa) e somar essa diferença no total de dias.
+- `src/lib/dp/va-calculo.ts` / `useDpValeCalculadora.tsx`: receber `diasPagosAnterior` e `diasTrabalhadosAnterior` como entradas e expor a diferença **assinada** (hoje só existe `descontos.dias`, sempre negativa), somando-a ao total de dias. Nada de apuração de ponto: os dias do ciclo anterior são valores informados/persistidos.
 - Padrões de vale por escopo: reaproveitar o modelo já usado em `dp_beneficios_padroes`/`beneficiosPadrao.ts` para guardar as regras de VA/VT por empresa, unidade e cargo, com RLS + GRANTs na migração; resolução Colaborador → Cargo → Unidade → Empresa consumida pelo motor de cálculo.
 - Extrair os campos de regra de VA/VT de `RemuneracaoFields.tsx` para um componente único usado na ficha do colaborador e no diálogo do catálogo (`BeneficiosDialogs.tsx`), evitando duas UIs divergentes.
-- `ValeCalculadora.tsx`: nova apresentação com as colunas de dias/diferença/total e CSV correspondente.
+- `ValeCalculadora.tsx`: nova apresentação com colunas de dias/diferença/total, inputs numéricos por linha com debounce e CSV correspondente.
 - `DpBeneficios.tsx`: abas passam a ser **Cálculo mensal**, **Histórico** e **Catálogo da empresa**; KPIs recalculados com o valor projetado.
 - `useDpBeneficiosCadastro.tsx`: segue como fonte dos dados da ficha, alimentando a visão de cálculo.
-- Nova tabela `dp_vale_fechamentos` (competência, tipo, total, snapshot das linhas) para o Histórico, com RLS + GRANTs.
-- Testes em `vaCalculo.test.ts`: diferença positiva e negativa do ciclo anterior, intermitente sem convocação, e paridade entre a resolução por escopo e a regra do colaborador.
+- Nova tabela `dp_vale_apuracoes` já existente será estendida (ou nova `dp_vale_fechamentos`) para guardar por competência/tipo/colaborador: `dias_pagos_anterior`, `dias_trabalhados_anterior` (informados), dias do ciclo, total e valor — servindo de base para o Histórico e para pré-preencher os "dias pagos" do mês seguinte. Migração com RLS + GRANTs.
+- Testes em `vaCalculo.test.ts`: diferença positiva e negativa do ciclo anterior, ciclo sem dados anteriores (diferença zero), intermitente sem convocação, e paridade entre a resolução por escopo e a regra do colaborador.
+
