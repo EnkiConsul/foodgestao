@@ -12,7 +12,8 @@ Transformar a tela de Benefícios em um fluxo único e compreensível para VA e 
 
 ## Correções do cálculo
 - Remover a leitura que exige uma única configuração de DP; resolver a regra aplicável por hierarquia **empresa → unidade → colaborador**, evitando o erro causado pelas três configurações existentes.
-- Aplicar à Cristiane a configuração da unidade e a regra cadastrada de folga dominical, mesmo quando essa folga prevista ainda não foi lançada manualmente no calendário.
+- Aplicar a regra a **todos os colaboradores**, cada um com sua unidade, jornada e regime: a folga dominical prevista em regra é sempre deduzida, mesmo quando ainda não foi lançada manualmente no calendário. A Cristiane serve apenas como caso de conferência.
+
 - Manter a precedência das fontes: convocações aceitas para intermitentes; escala publicada quando houver; jornada habitual nos demais casos.
 - Deduzir da cobertura futura as folgas semanais, folgas dominicais previstas, folgas extras e férias; deduzir também os dias pagos e não trabalhados do período anterior conforme as regras do benefício.
 - Evitar contagem duplicada quando a mesma data aparecer em mais de uma origem.
