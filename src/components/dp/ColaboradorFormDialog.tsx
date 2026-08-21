@@ -1449,7 +1449,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
               </div>
             </DialogHeader>
-            <TabsList className="w-full justify-start overflow-x-auto">
+            <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0 sm:pb-0">
+            <TabsList className="w-max justify-start sm:w-full">
               <TabsTrigger value="dados" className="gap-2">
                 Dados
                 {dadosPendente && (
