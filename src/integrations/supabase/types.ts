@@ -13199,6 +13199,10 @@ export type Database = {
               saldo_proprio: number
             }[]
           }
+      chart_accounts_resequence: {
+        Args: { _context: Database["public"]["Enums"]["context_type"] }
+        Returns: number
+      }
       chart_accounts_restore_default: {
         Args: { _company_id: string }
         Returns: number
