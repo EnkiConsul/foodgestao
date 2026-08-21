@@ -1880,6 +1880,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                   setBeneficioEditando(b);
                   setBeneficioDialogOpen(true);
                 }}
+                escopoAlvo={{ unidade_id: form.unidade_id || null, cargo_id: form.cargo_id || null }}
+                nomeUnidade={(id) =>
+                  (unidades.data ?? []).find((u: any) => u.id === id)?.nome ?? null
+                }
+                nomeCargo={(id) => (cargos.data ?? []).find((c: any) => c.id === id)?.nome ?? null}
 
                 diasJornada={diasJornada}
                 folgasFimDeSemanaMes={folgasFimDeSemanaMes}
