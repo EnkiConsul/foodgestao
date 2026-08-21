@@ -14,6 +14,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
+import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import {
   useDpBeneficios, type Beneficio, type ColaboradorBeneficio,
