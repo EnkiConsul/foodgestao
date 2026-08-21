@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/popover";
 import { DIAS_SEMANA, ORDEM_EXIBICAO } from "@/lib/dp/jornada-utils";
 import {
-  formatarFuncionamento, funcionamentoVazio, periodoVazio, periodosDoDia,
+  formatarFuncionamento, funcionamentoVazio, periodoCompleto, periodoVazio, periodosDoDia,
   type HorarioFuncionamentoDia, type HorarioFuncionamentoPeriodo,
 } from "@/lib/dp/turno-utils";
 import { useDpHorariosFuncionamento } from "@/hooks/useDpHorariosFuncionamento";
@@ -24,6 +24,8 @@ const DIA_LONGO: Record<number, string> = Object.fromEntries(
 const DIA_CURTO: Record<number, string> = Object.fromEntries(
   DIAS_SEMANA.map((d) => [d.v, d.curto]),
 );
+
+type ModoReplicar = "substituir" | "adicionar";
 
 interface HorarioFuncionamentoEditorProps {
   unidadeId: string | null;
@@ -68,6 +70,16 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
   const atualizar = (dia: number, patch: Partial<HorarioFuncionamentoDia>) =>
     setDias((prev) => prev.map((d) => (d.dia_semana === dia ? { ...d, ...patch } : d)));
 
+  /** Abrir o dia cria um período em branco; nunca um horário sugerido. */
+  const alternarAberto = (dia: number, aberto: boolean) =>
+    setDias((prev) =>
+      prev.map((d) => {
+        if (d.dia_semana !== dia) return d;
+        const periodos = aberto && (d.periodos ?? []).length === 0 ? [periodoVazio()] : d.periodos ?? [];
+        return { ...d, aberto, periodos };
+      }),
+    );
+
   const atualizarPeriodo = (
     dia: number,
     index: number,
@@ -100,11 +112,22 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
       ),
     );
 
-  /** Copia um período para os dias marcados (substitui se o nome coincidir). */
-  const aplicarEmDias = (periodo: HorarioFuncionamentoPeriodo, destinos: number[]) => {
+  /**
+   * Replica um período nos dias marcados.
+   * - "substituir": o dia de destino fica só com este período.
+   * - "adicionar": mantém os períodos existentes (substituindo o de mesmo nome).
+   */
+  const aplicarEmDias = (
+    periodo: HorarioFuncionamentoPeriodo,
+    destinos: number[],
+    modo: ModoReplicar,
+  ) => {
     setDias((prev) =>
       prev.map((d) => {
         if (!destinos.includes(d.dia_semana)) return d;
+        if (modo === "substituir") {
+          return { ...d, aberto: true, periodos: [{ ...periodo }] };
+        }
         const atuais = d.periodos ?? [];
         const nome = (periodo.nome ?? "").trim().toLowerCase();
         const idx = nome
@@ -112,14 +135,38 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
           : -1;
         const proximos = idx >= 0
           ? atuais.map((p, i) => (i === idx ? { ...periodo } : p))
-          : [...atuais, { ...periodo }];
+          : [...atuais.filter(periodoCompleto), { ...periodo }];
         return { ...d, aberto: true, periodos: proximos };
       }),
     );
-    toast.success("Período aplicado nos dias selecionados.");
+    toast.success(
+      modo === "substituir"
+        ? "Horário do dia substituído nos dias selecionados."
+        : "Período adicionado nos dias selecionados.",
+    );
+  };
+
+  /** Dias abertos precisam de pelo menos um período com abre e fecha. */
+  const validar = (): string | null => {
+    const incompleto = dias.find(
+      (d) => d.aberto && (d.periodos ?? []).some((p) => !periodoCompleto(p)),
+    );
+    if (incompleto) {
+      return `Preencha "Abre" e "Fecha" em ${DIA_LONGO[incompleto.dia_semana]} ou remova o período.`;
+    }
+    const semPeriodo = dias.find((d) => d.aberto && (d.periodos ?? []).length === 0);
+    if (semPeriodo) {
+      return `Adicione um horário em ${DIA_LONGO[semPeriodo.dia_semana]} ou marque o dia como fechado.`;
+    }
+    return null;
   };
 
   const submit = async () => {
+    const erro = validar();
+    if (erro) {
+      toast.error(erro);
+      return;
+    }
     try {
       await salvar.mutateAsync(dias);
       toast.success("Horário de funcionamento salvo.");
@@ -131,7 +178,15 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
   // Permite o rodapé do diálogo da unidade salvar dados + funcionamento juntos.
   useEffect(() => {
     if (!onRegistrarSalvar) return;
-    onRegistrarSalvar(unidadeId ? async () => { await salvar.mutateAsync(dias); } : null);
+    onRegistrarSalvar(
+      unidadeId
+        ? async () => {
+            const erro = validar();
+            if (erro) throw new Error(erro);
+            await salvar.mutateAsync(dias);
+          }
+        : null,
+    );
     return () => onRegistrarSalvar(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dias, unidadeId, onRegistrarSalvar]);
@@ -170,7 +225,7 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
                 </div>
                 <Switch
                   checked={d.aberto}
-                  onCheckedChange={(v) => atualizar(d.dia_semana, { aberto: v })}
+                  onCheckedChange={(v) => alternarAberto(d.dia_semana, v)}
                   aria-label={`${DIA_LONGO[d.dia_semana]}: ${d.aberto ? "fechar" : "abrir"}`}
                 />
               </div>
@@ -228,7 +283,7 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
                       <AplicarEmDiasBotao
                         origem={d.dia_semana}
                         periodo={p}
-                        onAplicar={(destinos) => aplicarEmDias(p, destinos)}
+                        onAplicar={(destinos, modo) => aplicarEmDias(p, destinos, modo)}
                       />
                     </div>
                   ))}
@@ -274,7 +329,7 @@ function AplicarEmDiasBotao({
 }: {
   origem: number;
   periodo: HorarioFuncionamentoPeriodo;
-  onAplicar: (destinos: number[]) => void;
+  onAplicar: (destinos: number[], modo: ModoReplicar) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [marcados, setMarcados] = useState<number[]>([]);
@@ -296,7 +351,7 @@ function AplicarEmDiasBotao({
           Aplicar em outros dias
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 space-y-2" align="start">
+      <PopoverContent className="w-64 space-y-2" align="start">
         <p className="text-xs text-muted-foreground">Aplicar este horário em:</p>
         {ORDEM_EXIBICAO.filter((d) => d !== origem).map((d) => (
           <label key={d} className="flex items-center gap-2 text-sm">
@@ -307,14 +362,25 @@ function AplicarEmDiasBotao({
             {DIA_CURTO[d]}
           </label>
         ))}
-        <Button
-          type="button"
-          className="h-10 w-full"
-          disabled={marcados.length === 0}
-          onClick={() => { onAplicar(marcados); setOpen(false); }}
-        >
-          Aplicar
-        </Button>
+        <div className="space-y-1.5 border-t pt-2">
+          <Button
+            type="button"
+            className="h-10 w-full"
+            disabled={marcados.length === 0}
+            onClick={() => { onAplicar(marcados, "substituir"); setOpen(false); }}
+          >
+            Substituir horário do dia
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 w-full"
+            disabled={marcados.length === 0}
+            onClick={() => { onAplicar(marcados, "adicionar"); setOpen(false); }}
+          >
+            Adicionar como período extra
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

@@ -337,16 +337,22 @@ export function periodosDoDia(h: HorarioFuncionamentoDia): HorarioFuncionamentoP
 }
 
 export function periodoVazio(nome?: string | null): HorarioFuncionamentoPeriodo {
-  return { nome: nome ?? null, hora_abertura: "11:00", hora_fechamento: "23:00" };
+  return { nome: nome ?? null, hora_abertura: null, hora_fechamento: null };
 }
 
+/** Dia sem horário salvo: fechado e sem período — nada é sugerido. */
 export function funcionamentoVazio(dia: number): HorarioFuncionamentoDia {
   return {
     dia_semana: dia,
-    aberto: true,
-    periodos: [periodoVazio()],
+    aberto: false,
+    periodos: [],
     observacoes: null,
   };
+}
+
+/** Um período só vale para o funcionamento quando tem abertura e fechamento. */
+export function periodoCompleto(p: HorarioFuncionamentoPeriodo): boolean {
+  return !!p.hora_abertura && !!p.hora_fechamento;
 }
 
 export function formatarPeriodo(p: HorarioFuncionamentoPeriodo): string {
