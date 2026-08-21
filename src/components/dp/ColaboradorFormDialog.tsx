@@ -2040,6 +2040,28 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         onSaved={(u) => setForm((f) => ({ ...f, unidade_id: u.id }))}
       />
 
+      {/* Catálogo de benefícios criado/editado sem sair do cadastro do colaborador */}
+      <BeneficioDialog
+        open={beneficioDialogOpen}
+        onOpenChange={setBeneficioDialogOpen}
+        editing={beneficioEditando}
+        saving={saveBeneficio.isPending}
+        onSubmit={(input) =>
+          saveBeneficio.mutate(input, {
+            onSuccess: (salvo) => {
+              setBeneficioDialogOpen(false);
+              // Benefício novo já nasce marcado para o colaborador em edição.
+              if (!beneficioEditando && salvo?.id) {
+                patchRem({ beneficios: { ...rem.beneficios, [salvo.id]: true } });
+              }
+              setBeneficioEditando(null);
+            },
+          })
+        }
+      />
+
+
+
 
       <MotivoDialog
         open={confirmarRemocao}
