@@ -35,15 +35,15 @@ describe("contarDiasPrevistos", () => {
       periodo,
       dowTrabalhados: [1, 2, 3, 4, 5, 6],
       folgas: [
-        { data: "2026-08-24", tipo: "extra", status: "aprovada" },
-        { data: "2026-08-26", tipo: "normal", status: "pendente" },
-        { data: "2026-08-28", tipo: "normal", status: "recusada" },
+        { data: "2026-08-24", tipo: "extra", status: "realizada" },
+        { data: "2026-08-26", tipo: "normal", status: "agendada" },
+        { data: "2026-08-28", tipo: "normal", status: "cancelada" },
       ],
     });
     // 21..31 tem 9 dias úteis (exclui domingos 23 e 30); menos 2 folgas válidas.
     expect(r.dias).toBe(7);
     expect(r.folgasDescontadas).toBe(2);
-    expect(r.folgasPendentes).toBe(1);
+    expect(r.folgasPendentes).toBe(0);
     expect(r.origem).toBe("jornada");
   });
 
@@ -108,7 +108,7 @@ describe("contarDiasDescontaveis", () => {
       ...base,
       usaPonto: true,
       diasComPonto: ["2026-07-23"],
-      folgas: [{ data: "2026-07-22", tipo: "extra", status: "aprovada" }],
+      folgas: [{ data: "2026-07-22", tipo: "extra", status: "realizada" }],
     });
     expect(r.porMotivo.folga_extra).toBe(1);
     expect(r.porMotivo.falta).toBe(1); // 24 sem ponto
@@ -118,7 +118,7 @@ describe("contarDiasDescontaveis", () => {
   it("ignora atestado quando a empresa não desconta", () => {
     const r = contarDiasDescontaveis({
       ...base,
-      folgas: [{ data: "2026-07-22", tipo: "licenca", status: "aprovada" }],
+      folgas: [{ data: "2026-07-22", tipo: "licenca", status: "realizada" }],
     });
     expect(r.dias).toBe(0);
   });

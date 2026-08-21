@@ -164,8 +164,9 @@ export function useDpValeCalculadora(
           .eq("company_id", selectedCompanyId!),
         supabase
           .from("dp_escala_itens")
-          .select("colaborador_id, data, tipo")
+          .select("colaborador_id, data, tipo, dp_escalas!inner(status)")
           .eq("company_id", selectedCompanyId!)
+          .eq("dp_escalas.status", "publicada")
           .in("colaborador_id", colabIds)
           .gte("data", janelaInicio)
           .lte("data", janelaFim),
@@ -271,7 +272,7 @@ export function useDpValeCalculadora(
         status: f.status ? String(f.status) : null,
       }));
       const ferias = (feriasPor.get(c.id) ?? [])
-        .filter((f) => !f.status || !["cancelado", "planejado"].includes(String(f.status)))
+        .filter((f) => !f.status || String(f.status) !== "cancelado")
         .map((f) => ({ inicio: f.data_inicio, fim: f.data_fim }));
       const datasConvocadas = [...new Set((convocacoesPor.get(c.id) ?? []).map((x) => String(x.data)))];
       const jornadaCobertura = datasDaJornada(c.id, periodo.cobertura);
