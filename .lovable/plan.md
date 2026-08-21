@@ -47,6 +47,7 @@ Ao selecionar uma linha, exibir:
 - Preservar os diálogos atuais de criação, edição e atribuição de benefícios dentro da ação secundária de configuração.
 
 ## Validação
-- Criar testes para configuração global versus unidade, folga dominical prevista, sobreposição de folgas/férias, acerto anterior e intermitente sem/com convocações.
-- Validar em vários perfis (CLT com folga fixa, escala publicada e intermitente); a Cristiane é o caso de conferência que deve explicar no calendário a passagem de 27 para 22 dias antes de outros ajustes.
-- Conferir carregamento, seleção de colaborador, VA/VT, histórico e responsividade em desktop e mobile.
+- Criar testes para: 6x1 com folga dominical (deve resultar em 25 dias no mês de 31 dias), 5x2, escala publicada, intermitente sem e com convocações, sobreposição de folga/férias e acerto do período anterior.
+- Validar a hierarquia de configuração empresa versus unidade versus colaborador.
+- Conferir carregamento sem erro, seleção de colaborador, VA/VT, histórico e responsividade em desktop e mobile.
+
