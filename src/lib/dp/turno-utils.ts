@@ -397,6 +397,9 @@ export function resumoFuncionamentoSemana(dias: HorarioFuncionamentoDia[]): stri
       return `${faixa} ${b.texto}`;
     })
     .join(" · ");
+}
+
+
 
 
 function cabeNoPeriodo(
