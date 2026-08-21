@@ -675,6 +675,13 @@ export function ComplementosSalariaisPanel({
       </DpContentCard>
 
       {complementosExtras}
+
+      <AssiduidadeRegrasDialog
+        open={assiduidadeAberta}
+        onOpenChange={setAssiduidadeAberta}
+        unidades={unidades.map((u) => ({ id: u.id, nome: u.nome }))}
+        cargos={cargos.map((c) => ({ id: c.id, nome: c.nome }))}
+      />
     </div>
   );
 }
