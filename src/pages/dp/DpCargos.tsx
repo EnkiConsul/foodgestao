@@ -37,9 +37,10 @@ export default function DpCargos() {
   const colaboradores = useDpColaboradores();
 
   // Aba controlada por query string para permitir link direto e redirecionamento
-  // da antiga rota /dp/cadastros/adicionais.
+  // das antigas rotas de adicionais, turnos e documentos exigidos.
   const [params, setParams] = useSearchParams();
-  const aba = params.get("aba") === "complementos" ? "complementos" : "cargos";
+  const abaParam = params.get("aba") ?? "";
+  const aba = ABAS.includes(abaParam) ? abaParam : "cargos";
   const setAba = (v: string) => {
     const next = new URLSearchParams(params);
     if (v === "cargos") next.delete("aba");
