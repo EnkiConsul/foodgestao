@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, PlusCircle, Sparkles, X } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, PlusCircle, Sparkles, X, CheckCircle2 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
