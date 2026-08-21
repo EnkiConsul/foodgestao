@@ -46,9 +46,11 @@ interface Props {
 export function ValeCalculadora({ tipo }: Props) {
   const [competencia, setCompetencia] = useState(mesAtual());
   const [unidade, setUnidade] = useState("todas");
+  const [memoria, setMemoria] = useState<LinhaVale | null>(null);
   const { data: unidades = [] } = useDpUnidades();
   const vale = useDpValeCalculadora(tipo, competencia, unidade);
   const label = VALE_LABEL[tipo];
+
 
   const exportar = () => {
     const cab = [
@@ -139,7 +141,12 @@ export function ValeCalculadora({ tipo }: Props) {
         ) : (
           <div className="divide-y divide-border">
             {vale.linhas.map((l) => (
-              <div key={l.colaborador_id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <button
+                type="button"
+                key={l.colaborador_id}
+                onClick={() => setMemoria(l)}
+                className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+              >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">
                     {l.nome}
@@ -147,6 +154,7 @@ export function ValeCalculadora({ tipo }: Props) {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {l.diasPrevistos} dias previstos ({l.origemPrevistos === "escala" ? "escala publicada" : l.origemPrevistos === "convocacao" ? "convocações aceitas" : "jornada habitual"})
+                    {l.dominicaisDescontadas > 0 && ` · −${l.dominicaisDescontadas} folga(s) dominical(is)`}
                     {l.folgasDescontadas > 0 && ` · −${l.folgasDescontadas} folga(s) já marcada(s)`}
                     {l.feriasDescontadas > 0 && ` · −${l.feriasDescontadas} dia(s) de férias`}
                     {l.descontos.dias > 0 && ` · −${l.descontos.dias} do período anterior`}
@@ -160,11 +168,6 @@ export function ValeCalculadora({ tipo }: Props) {
                           {MOTIVO_DESCONTO_LABEL[m]}: {l.descontos.porMotivo[m]}
                         </Badge>
                       ))}
-                    {l.folgasPendentes > 0 && (
-                      <Badge variant="outline" className="text-[11px]">
-                        {l.folgasPendentes} folga(s) pendente(s) de aprovação
-                      </Badge>
-                    )}
                     {l.semValorDia && (
                       <Badge variant="destructive" className="text-[11px]">Sem valor por dia cadastrado</Badge>
                     )}
@@ -177,9 +180,11 @@ export function ValeCalculadora({ tipo }: Props) {
                     {l.deposito.diasPagos} dias
                     {l.deposito.desconto > 0 && ` · desconto ${brl(l.deposito.desconto)}`}
                   </p>
+                  <p className="text-[11px] text-primary">Ver memória de cálculo</p>
                 </div>
-              </div>
+              </button>
             ))}
+
           </div>
         )}
       </DpContentCard>

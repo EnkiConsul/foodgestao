@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
 import {
   DIA_PAGAMENTO_PADRAO,
   DIAS_CORTE_PADRAO,
@@ -13,8 +14,10 @@ import {
   dowDe,
   periodoVaDe,
   type DepositoVa,
+  type DiaClassificado,
   type DiasDescontaveisResultado,
   type MotivoDesconto,
+  type PeriodoVa,
   type RegrasDescontoVa,
 } from "@/lib/dp/va-calculo";
 
@@ -33,14 +36,23 @@ export interface LinhaVale {
   valorDia: number;
   diasPrevistos: number;
   origemPrevistos: "escala" | "jornada" | "convocacao";
+  /** Dias de trabalho da escala antes das deduções. */
+  diasEscala: number;
   folgasDescontadas: number;
   folgasPendentes: number;
   feriasDescontadas: number;
+  dominicaisDescontadas: number;
   aviso?: string;
   descontos: DiasDescontaveisResultado;
   deposito: DepositoVa;
   /** Sem valor por dia cadastrado não há como calcular. */
   semValorDia: boolean;
+  /** Período próprio do colaborador (pode diferir do padrão da empresa). */
+  periodo: PeriodoVa;
+  /** Classificação dia a dia do período coberto, para o calendário. */
+  calendario: DiaClassificado[];
+  /** De onde veio a regra aplicada. */
+  origemRegra: "empresa" | "unidade" | "colaborador";
 }
 
 export interface ResumoVale {
@@ -56,6 +68,10 @@ const mesIso = (competencia: string) => `${competencia.slice(0, 7)}-01`;
 
 /** Limite legal do desconto de vale-transporte (art. 4º, Lei 7.418/85). */
 const VT_DESCONTO_MAXIMO = 0.06;
+
+/** Campos da regra de folga dominical, comuns a todas as configurações. */
+const CONFIG_DSR =
+  "id, unidade_id, modo_frequencia_domingo, periodicidade_domingo, domingos_por_mes, modo_frequencia_domingo_mulher, periodicidade_domingo_mulher, domingos_por_mes_mulher";
 
 const COLUNAS: Record<ValeTipo, { config: string; colaborador: string; flag: string }> = {
   va: {
@@ -74,6 +90,7 @@ const COLUNAS: Record<ValeTipo, { config: string; colaborador: string; flag: str
   },
 };
 
+
 /**
  * Calculadora de vales pagos por dia (alimentação e transporte): reúne jornada,
  * escala publicada, folgas, ponto e férias para dizer quanto depositar no mês
@@ -90,22 +107,30 @@ export function useDpValeCalculadora(
   const p = tipo === "va" ? "vale_alimentacao" : "vale_transporte";
   const cp = tipo === "va" ? "va" : "vt";
 
+  // A empresa pode ter uma configuração padrão e exceções por unidade.
   const configQ = useQuery({
     queryKey: ["dp_config_dp_vale", tipo, selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_config_dp")
-        .select(cols.config)
-        .eq("company_id", selectedCompanyId!)
-        .maybeSingle();
+        .select(`${CONFIG_DSR}, ${cols.config}`)
+        .eq("company_id", selectedCompanyId!);
       if (error) throw error;
-      return (data ?? null) as Record<string, any> | null;
+      return (data ?? []) as unknown as Record<string, any>[];
     },
   });
 
-  const cfg = configQ.data ?? {};
-  const padraoEmpresa = {
+  const configs = configQ.data ?? [];
+  const configPadrao = configs.find((c) => !c.unidade_id) ?? {};
+  const configPorUnidade = useMemo(() => {
+    const m = new Map<string, Record<string, any>>();
+    for (const c of configs) if (c.unidade_id) m.set(String(c.unidade_id), c);
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configQ.data]);
+
+  const parametrosDe = (cfg: Record<string, any>) => ({
     diaPagamento: cfg[`${cp}_dia_pagamento`] ?? DIA_PAGAMENTO_PADRAO,
     diasCorte: cfg[`${cp}_dias_corte`] ?? DIAS_CORTE_PADRAO,
     regras: {
@@ -114,7 +139,10 @@ export function useDpValeCalculadora(
       atestado: cfg[`${cp}_desconta_atestado`] ?? REGRAS_DESCONTO_PADRAO.atestado,
       ferias: cfg[`${cp}_desconta_ferias`] ?? REGRAS_DESCONTO_PADRAO.ferias,
     } as RegrasDescontoVa,
-  };
+  });
+
+  const padraoEmpresa = parametrosDe(configPadrao);
+
 
   // Janela ampla: cobre a conferência do período anterior e a cobertura futura.
   const periodoEmpresa = periodoVaDe(padraoEmpresa.diaPagamento, padraoEmpresa.diasCorte, mes);
@@ -127,7 +155,7 @@ export function useDpValeCalculadora(
     queryFn: async () => {
       // Colunas montadas em runtime (VA/VT): tipagem genérica do client não ajuda aqui.
       let q: any = (supabase.from("dp_colaboradores") as any)
-        .select(`id, nome, regime, ativo, data_desligamento, unidade_id, ${cols.colaborador}, dp_unidades(nome)`)
+        .select(`id, nome, regime, sexo, ativo, data_desligamento, unidade_id, ${cols.colaborador}, dp_unidades(nome)`)
         .eq("company_id", selectedCompanyId!)
         .eq(cols.flag, true)
         .order("nome");
@@ -253,15 +281,30 @@ export function useDpValeCalculadora(
     const convocacoesPor = agrupar(ev?.convocacoes ?? []);
 
     const linhas: LinhaVale[] = colaboradores.map((c) => {
-      const diaPagamento = c[`${p}_dia_pagamento`] ?? padraoEmpresa.diaPagamento;
-      const diasCorte = c[`${p}_dias_corte`] ?? padraoEmpresa.diasCorte;
+      // Hierarquia da regra: colaborador → unidade → empresa.
+      const cfgUnidade = c.unidade_id ? configPorUnidade.get(String(c.unidade_id)) : undefined;
+      const escopo = parametrosDe(cfgUnidade ?? configPadrao);
+      const cfgDsr = cfgUnidade ?? configPadrao;
+
+      const temRegraPropria =
+        c[`${p}_dia_pagamento`] != null || c[`${p}_dias_corte`] != null;
+      const origemRegra: LinhaVale["origemRegra"] = temRegraPropria
+        ? "colaborador"
+        : cfgUnidade
+          ? "unidade"
+          : "empresa";
+
+      const diaPagamento = c[`${p}_dia_pagamento`] ?? escopo.diaPagamento;
+      const diasCorte = c[`${p}_dias_corte`] ?? escopo.diasCorte;
       const periodo = periodoVaDe(diaPagamento, diasCorte, mes);
       const regras: RegrasDescontoVa = {
-        falta: c[`${p}_desconta_falta`] ?? padraoEmpresa.regras.falta,
-        folga_extra: c[`${p}_desconta_folga_extra`] ?? padraoEmpresa.regras.folga_extra,
-        atestado: c[`${p}_desconta_atestado`] ?? padraoEmpresa.regras.atestado,
-        ferias: c[`${p}_desconta_ferias`] ?? padraoEmpresa.regras.ferias,
+        falta: c[`${p}_desconta_falta`] ?? escopo.regras.falta,
+        folga_extra: c[`${p}_desconta_folga_extra`] ?? escopo.regras.folga_extra,
+        atestado: c[`${p}_desconta_atestado`] ?? escopo.regras.atestado,
+        ferias: c[`${p}_desconta_ferias`] ?? escopo.regras.ferias,
       };
+
+
 
       const intermitente = String(c.regime ?? "") === "intermitente";
       const escala = (escalaPor.get(c.id) ?? []).map((e) => ({ data: e.data, tipo: String(e.tipo) }));
@@ -278,6 +321,21 @@ export function useDpValeCalculadora(
       const jornadaCobertura = datasDaJornada(c.id, periodo.cobertura);
       const dowTrabalhados = [...new Set(jornadaCobertura.map(dowDe))];
 
+      // Domingos de trabalho no período: base para a folga dominical de regra.
+      const escalaCob = escala.filter(
+        (e) => e.data >= periodo.cobertura.inicio && e.data <= periodo.cobertura.fim,
+      );
+      const previstosBase = intermitente
+        ? datasConvocadas.filter((d) => d >= periodo.cobertura.inicio && d <= periodo.cobertura.fim)
+        : escalaCob.length
+          ? escalaCob.filter((e) => e.tipo === "trabalho").map((e) => e.data)
+          : jornadaCobertura;
+      const domingosTrabalho = previstosBase.filter((d) => dowDe(d) === 0).length;
+      // Intermitente só recebe pelos dias convocados: não há folga dominical a abater.
+      const folgasDominicaisPrevistas = intermitente
+        ? 0
+        : domingosFolgaNoPeriodo(cfgDsr as any, domingosTrabalho, { sexo: c.sexo ?? null });
+
       const previstos = contarDiasPrevistos({
         periodo: periodo.cobertura,
         datasPrevistas: intermitente ? datasConvocadas : undefined,
@@ -286,7 +344,9 @@ export function useDpValeCalculadora(
         dowTrabalhados,
         folgas,
         ferias,
+        folgasDominicaisPrevistas,
       });
+
 
       const escalaConf = escala.filter(
         (e) => e.data >= periodo.conferencia.inicio && e.data <= periodo.conferencia.fim,
@@ -348,7 +408,13 @@ export function useDpValeCalculadora(
         folgasDescontadas: previstos.folgasDescontadas,
         folgasPendentes: previstos.folgasPendentes,
         feriasDescontadas: previstos.feriasDescontadas,
+        dominicaisDescontadas: previstos.dominicaisDescontadas,
+        diasEscala: previstos.diasEscala,
+        periodo,
+        calendario: previstos.detalhe,
+        origemRegra,
         descontos,
+
         deposito,
         semValorDia: !(valorDia > 0),
         aviso: intermitente && previstos.dias === 0
