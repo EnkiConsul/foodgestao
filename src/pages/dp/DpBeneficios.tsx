@@ -322,14 +322,6 @@ export default function DpBeneficios() {
             )}
           </DpContentCard>
         </TabsContent>
-
-        <TabsContent value="va">
-          <ValeCalculadora tipo="va" />
-        </TabsContent>
-
-        <TabsContent value="vt">
-          <ValeCalculadora tipo="vt" />
-        </TabsContent>
       </Tabs>
 
       <BeneficioDialog
