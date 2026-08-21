@@ -1928,21 +1928,23 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           </div>
         </Tabs>
 
-        <DialogFooter className="shrink-0 gap-2 border-t border-border p-4 sm:justify-between">
-
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={tentarFechar} disabled={upsert.isPending}>
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border p-3 sm:flex-row sm:p-4 sm:justify-between">
+          <p className="order-2 text-center text-[11px] text-muted-foreground sm:order-1 sm:text-left sm:text-xs">
+            {`Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
+            {dirty ? " · alterações não salvas" : ""}
+          </p>
+          <div className="order-1 flex w-full items-center gap-2 sm:order-2 sm:w-auto">
+            <Button
+              variant="ghost"
+              className="hidden sm:inline-flex"
+              onClick={tentarFechar}
+              disabled={upsert.isPending}
+            >
               Fechar
             </Button>
-            <span className="text-xs text-muted-foreground">
-              {`Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
-              {dirty ? " · alterações não salvas" : ""}
-            </span>
-
-          </div>
-          <div className="flex items-center gap-2">
             <Button
               variant="secondary"
+              className="h-11 flex-1 sm:h-10 sm:flex-none"
               onClick={() => void submit("stay")}
               disabled={upsert.isPending}
             >
@@ -1952,7 +1954,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                   ? "Salvar e continuar"
                   : "Salvar"}
             </Button>
-            <Button onClick={() => void submit("close")} disabled={upsert.isPending}>
+            <Button
+              className="h-11 flex-1 sm:h-10 sm:flex-none"
+              onClick={() => void submit("close")}
+              disabled={upsert.isPending}
+            >
               Concluir
             </Button>
           </div>
