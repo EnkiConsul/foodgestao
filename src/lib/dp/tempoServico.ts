@@ -188,6 +188,81 @@ export function descreverAdicional(calc: AdicionalCalculado | null): string {
   return `${calc.rotulo} = ${calc.percentual}% (${moedaBR(calc.valor)}/mês)`;
 }
 
+// ------------------------------------------------------------------
+// Combinação de regras concorrentes
+// ------------------------------------------------------------------
+
+/** Como a empresa combina regras concorrentes de tempo de serviço. */
+export type ModoAdicional = "escada" | "cumulativo";
+
+export const MODO_ADICIONAL_LABEL: Record<ModoAdicional, string> = {
+  escada: "Escada (o maior ciclo alcançado substitui os anteriores)",
+  cumulativo: "Cumulativo (as regras somam entre si)",
+};
+
+export interface AdicionalTotal {
+  /** Percentual total aplicado sobre a base. */
+  percentual: number;
+  /** Valor total em reais no mês. */
+  valor: number;
+  /** Uma linha por regra aplicada (escada = no máximo uma). */
+  itens: AdicionalCalculado[];
+  /** Meses completos de casa. */
+  meses: number;
+  /** Regra usada para a mensagem quando nada foi adquirido ainda. */
+  referencia: AdicionalCalculado | null;
+}
+
+/**
+ * Calcula o adicional considerando o modo da empresa.
+ * `escada`: aplica só a regra de maior ciclo já alcançado.
+ * `cumulativo`: soma todas as regras vigentes com ciclo completo.
+ */
+export function calcularAdicionalPorModo(input: {
+  regras: RegraTempoServico[];
+  alvo: AlvoAdicional;
+  admissao: string | null | undefined;
+  referencia: string;
+  base: number;
+  pisoCargo?: number | null;
+  modo: ModoAdicional;
+}): AdicionalTotal {
+  const { regras, alvo, admissao, referencia, base, pisoCargo, modo } = input;
+  const meses = mesesDeCasa(admissao, referencia);
+
+  const baseDe = (regra: RegraTempoServico) =>
+    regra.base === "piso_cargo" ? pisoCargo ?? base : base;
+
+  const calcular = (regra: RegraTempoServico) =>
+    calcularAdicionalTempoServico({ regra, admissao, referencia, base: baseDe(regra) });
+
+  if (modo === "escada") {
+    const regra = selecionarRegraTempoServico(regras, alvo, referencia, admissao);
+    const calc = regra ? calcular(regra) : null;
+    const aplicado = calc && calc.ciclos > 0 ? [calc] : [];
+    return {
+      percentual: aplicado[0]?.percentual ?? 0,
+      valor: aplicado[0]?.valor ?? 0,
+      itens: aplicado,
+      meses,
+      referencia: calc,
+    };
+  }
+
+  const vigentes = regras
+    .filter((r) => r.ativo && vigenteEm(r, referencia) && regraAtende(r, alvo))
+    .sort((a, b) => a.ciclo_meses - b.ciclo_meses);
+  const calculos = vigentes
+    .map((r) => calcular(r))
+    .filter((c): c is AdicionalCalculado => !!c);
+  const itens = calculos.filter((c) => c.ciclos > 0);
+  const percentual = Number(itens.reduce((s, c) => s + c.percentual, 0).toFixed(3));
+  const valor = Number(itens.reduce((s, c) => s + c.valor, 0).toFixed(2));
+  return { percentual, valor, itens, meses, referencia: calculos[0] ?? null };
+}
+
+
+
 export const ESCOPO_ADICIONAL_LABEL: Record<EscopoAdicional, string> = {
   empresa: "Toda a empresa",
   sindicato: "Por sindicato laboral",
