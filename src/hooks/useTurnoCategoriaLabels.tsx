@@ -1,13 +1,16 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { CATEGORIAS_TURNO, type CategoriaLabels } from "@/lib/dp/turno-utils";
+import {
+  normalizarCategorias, serializarCategorias, type CategoriaTurnoItem,
+} from "@/lib/dp/turno-utils";
 
 /**
- * Rótulos personalizados das categorias de turno (por empresa).
- * Guardados em dp_config_dp.turno_categoria_labels na linha padrão da empresa
- * (unidade_id nulo). Os códigos internos das categorias nunca mudam.
+ * Categorias de turno sob controle da empresa (nome, ordem, criação e exclusão).
+ * Guardadas em dp_config_dp.turno_categoria_labels na linha padrão da empresa
+ * (unidade_id nulo). Aceita o formato antigo `{ codigo: nome }` na leitura.
  */
 export function useTurnoCategoriaLabels() {
   const { selectedCompanyId } = useCompanyContext();
@@ -16,7 +19,7 @@ export function useTurnoCategoriaLabels() {
   const query = useQuery({
     queryKey: ["dp_turno_categoria_labels", selectedCompanyId],
     enabled: !!selectedCompanyId,
-    queryFn: async (): Promise<{ id: string | null; labels: CategoriaLabels }> => {
+    queryFn: async (): Promise<{ id: string | null; categorias: CategoriaTurnoItem[] }> => {
       const { data, error } = await supabase
         .from("dp_config_dp")
         .select("id, turno_categoria_labels")
@@ -25,46 +28,93 @@ export function useTurnoCategoriaLabels() {
         .maybeSingle();
       if (error) throw error;
       const raw = (data as { turno_categoria_labels?: unknown } | null)?.turno_categoria_labels;
-      const labels: CategoriaLabels = {};
-      if (raw && typeof raw === "object") {
-        Object.entries(raw as Record<string, unknown>).forEach(([k, v]) => {
-          if (typeof v === "string" && v.trim()) labels[k] = v.trim();
-        });
-      }
-      return { id: (data as { id?: string } | null)?.id ?? null, labels };
+      return {
+        id: (data as { id?: string } | null)?.id ?? null,
+        categorias: normalizarCategorias(raw),
+      };
     },
   });
 
-  const labels = useMemo(() => query.data?.labels ?? {}, [query.data]);
+  const categorias = useMemo(
+    () => query.data?.categorias ?? normalizarCategorias(null),
+    [query.data],
+  );
+
+  const gravarLista = async (lista: CategoriaTurnoItem[]) => {
+    if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+    const limpo = serializarCategorias(lista);
+    const payload = limpo as unknown as Json;
+    const rowId = query.data?.id ?? null;
+    if (rowId) {
+      const { error } = await supabase
+        .from("dp_config_dp")
+        .update({ turno_categoria_labels: payload })
+        .eq("id", rowId);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from("dp_config_dp")
+        .insert({ company_id: selectedCompanyId, unidade_id: null, turno_categoria_labels: payload });
+      if (error) throw error;
+    }
+    return limpo;
+  };
 
   const salvar = useMutation({
-    mutationFn: async (next: CategoriaLabels) => {
-      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      // Guarda apenas os rótulos realmente personalizados.
-      const limpo: CategoriaLabels = {};
-      CATEGORIAS_TURNO.forEach((c) => {
-        const v = next[c.v]?.trim();
-        if (v && v !== c.label) limpo[c.v] = v;
-      });
-
-      const rowId = query.data?.id ?? null;
-      if (rowId) {
-        const { error } = await supabase
-          .from("dp_config_dp")
-          .update({ turno_categoria_labels: limpo })
-          .eq("id", rowId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("dp_config_dp")
-          .insert({ company_id: selectedCompanyId, unidade_id: null, turno_categoria_labels: limpo });
-        if (error) throw error;
-      }
-      return limpo;
-    },
+    mutationFn: gravarLista,
     onSuccess: () =>
       void qc.invalidateQueries({ queryKey: ["dp_turno_categoria_labels", selectedCompanyId] }),
   });
 
-  return { labels, isLoading: query.isLoading, salvar };
+  /** Exclui a categoria migrando os turnos que a usam para outra categoria. */
+  const excluir = useMutation({
+    mutationFn: async (input: { codigo: string; destino?: string | null; lista: CategoriaTurnoItem[] }) => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      if (input.destino) {
+        const { error } = await supabase
+          .from("dp_turnos")
+          .update({ categoria: input.destino })
+          .eq("company_id", selectedCompanyId)
+          .eq("categoria", input.codigo);
+        if (error) throw error;
+      }
+      return gravarLista(input.lista.filter((c) => c.codigo !== input.codigo));
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dp_turno_categoria_labels", selectedCompanyId] });
+      void qc.invalidateQueries({ queryKey: ["dp_turnos"] });
+    },
+  });
+
+  /** Quantos turnos usam cada categoria (para avisar antes de excluir). */
+  const uso = useQuery({
+    queryKey: ["dp_turno_categoria_uso", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data, error } = await supabase
+        .from("dp_turnos")
+        .select("categoria")
+        .eq("company_id", selectedCompanyId!);
+      if (error) throw error;
+      const contagem: Record<string, number> = {};
+      (data ?? []).forEach((t) => {
+        const c = (t as { categoria: string | null }).categoria;
+        if (c) contagem[c] = (contagem[c] ?? 0) + 1;
+      });
+      return contagem;
+    },
+  });
+
+  return {
+    categorias,
+    /** Compatibilidade: mapa codigo → nome. */
+    labels: useMemo(
+      () => Object.fromEntries(categorias.map((c) => [c.codigo, c.nome])) as Record<string, string>,
+      [categorias],
+    ),
+    usoPorCategoria: uso.data ?? {},
+    isLoading: query.isLoading,
+    salvar,
+    excluir,
+  };
 }

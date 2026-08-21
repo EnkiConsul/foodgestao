@@ -5,7 +5,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { CATEGORIA_LABEL, formatarFaixaTurno } from "@/lib/dp/turno-utils";
+import { categoriaLabel, formatarFaixaTurno } from "@/lib/dp/turno-utils";
+import { useTurnoCategoriaLabels } from "@/hooks/useTurnoCategoriaLabels";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import {
   detalhesUsoTurno, motivoBloqueioExclusao, podeExcluirTurno,
@@ -40,6 +41,7 @@ export function TurnoDetalheDialog({
   const restantes = lista.length - visiveis.length;
   const detalhes = detalhesUsoTurno(uso);
   const motivo = motivoBloqueioExclusao(usoEstado, uso);
+  const { categorias } = useTurnoCategoriaLabels();
 
   return (
     <Dialog open={!!turno} onOpenChange={onOpenChange}>
@@ -50,7 +52,7 @@ export function TurnoDetalheDialog({
             {turno && turno.versao > 1 && <Badge variant="outline">v{turno.versao}</Badge>}
             {turno?.categoria && (
               <Badge variant="secondary">
-                {CATEGORIA_LABEL[turno.categoria] ?? turno.categoria}
+                {categoriaLabel(turno.categoria, categorias)}
               </Badge>
             )}
             {turno && !turno.ativo && <Badge variant="outline">Inativo</Badge>}

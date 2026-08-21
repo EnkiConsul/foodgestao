@@ -44,23 +44,90 @@ export const CATEGORIA_LABEL: Record<string, string> = Object.fromEntries(
   CATEGORIAS_TURNO.map((c) => [c.v, c.label]),
 );
 
-/** Rótulos personalizados por empresa: { almoco: "Turno do almoço" }. */
+/** Rótulos personalizados por empresa (formato antigo): { almoco: "Turno do almoço" }. */
 export type CategoriaLabels = Record<string, string>;
 
-/** Rótulo da categoria respeitando o nome personalizado da empresa. */
-export function categoriaLabel(
-  categoria: string | null | undefined,
-  overrides?: CategoriaLabels | null,
-): string {
-  if (!categoria) return "Turno";
-  const custom = overrides?.[categoria]?.trim();
-  return custom || CATEGORIA_LABEL[categoria] || categoria;
+/** Categoria de turno sob controle da empresa. */
+export interface CategoriaTurnoItem {
+  codigo: string;
+  nome: string;
+  ordem: number;
 }
 
-/** Lista de categorias já com os rótulos personalizados aplicados. */
-export function categoriasTurno(overrides?: CategoriaLabels | null) {
-  return CATEGORIAS_TURNO.map((c) => ({ v: c.v, label: categoriaLabel(c.v, overrides) }));
+/** Lista padrão sugerida quando a empresa nunca personalizou nada. */
+export function categoriasPadrao(): CategoriaTurnoItem[] {
+  return CATEGORIAS_TURNO.map((c, i) => ({ codigo: c.v, nome: c.label, ordem: i }));
 }
+
+/** Código estável para categoria criada pela empresa. */
+export function codigoCategoriaCustom(nome: string): string {
+  const slug = nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 32);
+  return `custom_${slug || Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Lê o valor guardado em dp_config_dp.turno_categoria_labels aceitando os dois
+ * formatos: o antigo `{ codigo: nome }` (só rótulos) e o novo array completo.
+ */
+export function normalizarCategorias(raw: unknown): CategoriaTurnoItem[] {
+  if (Array.isArray(raw)) {
+    const lista = raw
+      .map((item, i) => {
+        const o = (item ?? {}) as Record<string, unknown>;
+        const codigo = typeof o.codigo === "string" ? o.codigo.trim() : "";
+        const nome = typeof o.nome === "string" ? o.nome.trim() : "";
+        if (!codigo || !nome) return null;
+        const ordem = typeof o.ordem === "number" ? o.ordem : i;
+        return { codigo, nome, ordem } satisfies CategoriaTurnoItem;
+      })
+      .filter((x): x is CategoriaTurnoItem => !!x);
+    if (lista.length === 0) return categoriasPadrao();
+    return lista
+      .sort((a, b) => a.ordem - b.ordem)
+      .map((c, i) => ({ ...c, ordem: i }));
+  }
+  if (raw && typeof raw === "object") {
+    const overrides = raw as Record<string, unknown>;
+    return categoriasPadrao().map((c) => {
+      const v = overrides[c.codigo];
+      return typeof v === "string" && v.trim() ? { ...c, nome: v.trim() } : c;
+    });
+  }
+  return categoriasPadrao();
+}
+
+/** Normaliza nomes/ordem antes de gravar. */
+export function serializarCategorias(lista: CategoriaTurnoItem[]): CategoriaTurnoItem[] {
+  return lista
+    .map((c, i) => ({ codigo: c.codigo, nome: c.nome.trim(), ordem: i }))
+    .filter((c) => !!c.codigo && !!c.nome);
+}
+
+export type FonteCategorias = CategoriaTurnoItem[] | CategoriaLabels | null | undefined;
+
+function comoLista(fonte: FonteCategorias): CategoriaTurnoItem[] {
+  if (!fonte) return categoriasPadrao();
+  return normalizarCategorias(fonte);
+}
+
+/** Rótulo da categoria respeitando o nome definido pela empresa. */
+export function categoriaLabel(categoria: string | null | undefined, fonte?: FonteCategorias): string {
+  if (!categoria) return "Turno";
+  const item = comoLista(fonte).find((c) => c.codigo === categoria);
+  return item?.nome || CATEGORIA_LABEL[categoria] || categoria;
+}
+
+/** Lista de categorias da empresa no formato do seletor. */
+export function categoriasTurno(fonte?: FonteCategorias) {
+  return comoLista(fonte).map((c) => ({ v: c.codigo, label: c.nome }));
+}
+
 
 /** Cores sugeridas para identificar o turno na grade da escala. */
 export const CORES_TURNO = [
@@ -124,7 +191,7 @@ export function nomeSugeridoTurno(
   categoria: string | null | undefined,
   entrada: string,
   saida: string,
-  overrides?: CategoriaLabels | null,
+  overrides?: FonteCategorias,
 ): string {
   const cat = categoria || sugerirCategoria(entrada);
   const label = categoriaLabel(cat, overrides);
@@ -241,47 +308,67 @@ export function turnoTemErro(validacoes: ValidacaoTurno[]): boolean {
 // Horário de funcionamento da unidade
 // ------------------------------------------------------------------
 
+/** Um intervalo de funcionamento no dia (ex.: almoço 08:30→18:30). */
+export interface HorarioFuncionamentoPeriodo {
+  nome?: string | null;
+  hora_abertura: string | null;
+  hora_fechamento: string | null;
+}
+
 export interface HorarioFuncionamentoDia {
   dia_semana: number;
   aberto: boolean;
-  hora_abertura: string | null;
-  hora_fechamento: string | null;
-  fecha_no_dia_seguinte: boolean;
+  /** Um ou mais períodos no mesmo dia. */
+  periodos?: HorarioFuncionamentoPeriodo[];
   observacoes?: string | null;
+  // Compatibilidade com o formato de período único.
+  hora_abertura?: string | null;
+  hora_fechamento?: string | null;
+  fecha_no_dia_seguinte?: boolean;
+}
+
+/** Períodos do dia, aceitando também o formato antigo de período único. */
+export function periodosDoDia(h: HorarioFuncionamentoDia): HorarioFuncionamentoPeriodo[] {
+  if (h.periodos && h.periodos.length > 0) return h.periodos;
+  if (h.hora_abertura || h.hora_fechamento) {
+    return [{ nome: null, hora_abertura: h.hora_abertura ?? null, hora_fechamento: h.hora_fechamento ?? null }];
+  }
+  return [];
+}
+
+export function periodoVazio(nome?: string | null): HorarioFuncionamentoPeriodo {
+  return { nome: nome ?? null, hora_abertura: "11:00", hora_fechamento: "23:00" };
 }
 
 export function funcionamentoVazio(dia: number): HorarioFuncionamentoDia {
   return {
     dia_semana: dia,
     aberto: true,
-    hora_abertura: "11:00",
-    hora_fechamento: "23:00",
-    fecha_no_dia_seguinte: false,
+    periodos: [periodoVazio()],
     observacoes: null,
   };
 }
 
-export function formatarFuncionamento(h: HorarioFuncionamentoDia): string {
-  if (!h.aberto) return "Fechado";
-  if (!h.hora_abertura || !h.hora_fechamento) return "Sem horário definido";
-  const suf = h.fecha_no_dia_seguinte || turnoViraODia(h.hora_abertura, h.hora_fechamento) ? " (+1)" : "";
-  return `${hhmm(h.hora_abertura)} → ${hhmm(h.hora_fechamento)}${suf}`;
+export function formatarPeriodo(p: HorarioFuncionamentoPeriodo): string {
+  if (!p.hora_abertura || !p.hora_fechamento) return "Sem horário definido";
+  const suf = turnoViraODia(p.hora_abertura, p.hora_fechamento) ? " (+1)" : "";
+  return `${hhmm(p.hora_abertura)} → ${hhmm(p.hora_fechamento)}${suf}`;
 }
 
-/**
- * Aviso operacional (nunca bloqueio): o turno cabe dentro do funcionamento do dia?
- * Retorna null quando não há como avaliar.
- */
-export function turnoForaDoFuncionamento(
-  turno: Pick<TurnoHorario, "entrada" | "saida">,
-  funcionamento: HorarioFuncionamentoDia | null | undefined,
-): string | null {
-  if (!funcionamento) return null;
-  if (!funcionamento.aberto) return "A unidade está fechada neste dia.";
-  if (!funcionamento.hora_abertura || !funcionamento.hora_fechamento) return null;
+export function formatarFuncionamento(h: HorarioFuncionamentoDia): string {
+  if (!h.aberto) return "Fechado";
+  const periodos = periodosDoDia(h).filter((p) => p.hora_abertura && p.hora_fechamento);
+  if (periodos.length === 0) return "Sem horário definido";
+  return periodos.map(formatarPeriodo).join(" · ");
+}
 
-  const abre = paraMinutos(funcionamento.hora_abertura);
-  const fecha0 = paraMinutos(funcionamento.hora_fechamento);
+function cabeNoPeriodo(
+  turno: Pick<TurnoHorario, "entrada" | "saida">,
+  p: HorarioFuncionamentoPeriodo,
+): { ok: boolean; motivo: string | null } | null {
+  if (!p.hora_abertura || !p.hora_fechamento) return null;
+  const abre = paraMinutos(p.hora_abertura);
+  const fecha0 = paraMinutos(p.hora_fechamento);
   const entrada = paraMinutos(turno.entrada);
   const saida0 = paraMinutos(turno.saida);
   if (abre === null || fecha0 === null || entrada === null || saida0 === null) return null;
@@ -289,7 +376,28 @@ export function turnoForaDoFuncionamento(
   const fecha = fecha0 <= abre ? fecha0 + 24 * 60 : fecha0;
   const saida = saida0 <= entrada ? saida0 + 24 * 60 : saida0;
 
-  if (entrada < abre) return "O turno começa antes da abertura da unidade.";
-  if (saida > fecha) return "O turno termina depois do fechamento da unidade.";
-  return null;
+  if (entrada < abre) return { ok: false, motivo: "O turno começa antes da abertura da unidade." };
+  if (saida > fecha) return { ok: false, motivo: "O turno termina depois do fechamento da unidade." };
+  return { ok: true, motivo: null };
 }
+
+/**
+ * Aviso operacional (nunca bloqueio): o turno cabe em algum período de
+ * funcionamento do dia? Retorna null quando não há como avaliar.
+ */
+export function turnoForaDoFuncionamento(
+  turno: Pick<TurnoHorario, "entrada" | "saida">,
+  funcionamento: HorarioFuncionamentoDia | null | undefined,
+): string | null {
+  if (!funcionamento) return null;
+  if (!funcionamento.aberto) return "A unidade está fechada neste dia.";
+
+  const avaliacoes = periodosDoDia(funcionamento)
+    .map((p) => cabeNoPeriodo(turno, p))
+    .filter((r): r is { ok: boolean; motivo: string | null } => !!r);
+
+  if (avaliacoes.length === 0) return null;
+  if (avaliacoes.some((a) => a.ok)) return null;
+  return avaliacoes[0].motivo;
+}
+

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Clock, Info, Plus, Search, Store, Tags, Trash2 } from "lucide-react";
+import { Clock, Info, Plus, Search, Tags, Trash2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -24,7 +23,6 @@ import { TurnoCard } from "@/components/dp/TurnoCard";
 
 import { TurnoForm, type TurnoSubmitPayload } from "@/components/dp/TurnoForm";
 import { TurnoCategoriaLabelsDialog } from "@/components/dp/TurnoCategoriaLabelsDialog";
-import { HorarioFuncionamentoEditor } from "@/components/dp/HorarioFuncionamentoEditor";
 import {
   useDpTurnos, turnoParaForm, TURNO_FORM_DEFAULT,
   type CienciaTurno, type DpTurnoForm, type DpTurnoRow,
@@ -57,7 +55,6 @@ export default function DpTurnos() {
   const [detalhe, setDetalhe] = useState<DpTurnoRow | null>(null);
   const [colaboradorAberto, setColaboradorAberto] = useState<DpColaborador | null>(null);
 
-  const [unidadeFuncionamento, setUnidadeFuncionamento] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [editando, setEditando] = useState<DpTurnoRow | null>(null);
@@ -212,13 +209,9 @@ export default function DpTurnos() {
 
       />
 
-      <Tabs defaultValue="turnos" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="turnos" className="h-11">Turnos</TabsTrigger>
-          <TabsTrigger value="funcionamento" className="h-11">Funcionamento</TabsTrigger>
-        </TabsList>
+      <div className="space-y-4">
+        <div className="space-y-4">
 
-        <TabsContent value="turnos" className="space-y-4">
           <DpFilterCard>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -335,34 +328,9 @@ export default function DpTurnos() {
             </div>
           )}
 
-        </TabsContent>
+        </div>
+      </div>
 
-        <TabsContent value="funcionamento" className="space-y-4">
-          <DpFilterCard>
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs">
-                <Store className="h-3.5 w-3.5" aria-hidden="true" />
-                Unidade
-              </Label>
-              <Select
-                value={unidadeFuncionamento ?? ""}
-                onValueChange={(v) => setUnidadeFuncionamento(v)}
-              >
-                <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Selecione a unidade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {listaUnidades.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </DpFilterCard>
-
-          <HorarioFuncionamentoEditor unidadeId={unidadeFuncionamento} />
-        </TabsContent>
-      </Tabs>
 
       <TurnoCategoriaLabelsDialog open={labelsOpen} onOpenChange={setLabelsOpen} />
 
