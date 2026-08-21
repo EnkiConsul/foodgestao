@@ -338,13 +338,24 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
               </Select>
             </div>
           )}
+
+          <div className="space-y-2 border-t pt-4">
+            <Label className="flex items-center gap-1.5">
+              <Store className="h-4 w-4" aria-hidden="true" />
+              Horário de funcionamento da loja
+            </Label>
+            <HorarioFuncionamentoEditor unidadeId={unidadeId} />
+          </div>
         </div>
         <DialogFooter className="border-t p-4">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            {criadaId ? "Fechar" : "Cancelar"}
+          </Button>
           <Button onClick={save} disabled={upsert.isPending}>
-            {upsert.isPending ? "Salvando..." : unidade ? "Salvar" : "Cadastrar"}
+            {upsert.isPending ? "Salvando..." : unidade || criadaId ? "Salvar" : "Cadastrar"}
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
