@@ -48,20 +48,19 @@ export function AdicionalTempoServicoCard({
   const { config } = useDpSalarioFamiliaConfig();
   const referencia = new Date().toISOString().slice(0, 10);
 
-  const regra = useMemo(
-    () => selecionarRegraTempoServico(regras, { cargoId, unidadeId, sindicatoId }, referencia),
-    [regras, cargoId, unidadeId, sindicatoId, referencia],
+  const total = useMemo(
+    () =>
+      calcularAdicionalPorModo({
+        regras,
+        alvo: { cargoId, unidadeId, sindicatoId },
+        admissao,
+        referencia,
+        base,
+        pisoCargo,
+        modo: config.adicionalModo,
+      }),
+    [regras, cargoId, unidadeId, sindicatoId, admissao, referencia, base, pisoCargo, config.adicionalModo],
   );
-
-  const calculo = useMemo(() => {
-    const baseValor = regra?.base === "piso_cargo" ? pisoCargo ?? base : base;
-    return calcularAdicionalTempoServico({
-      regra,
-      admissao,
-      referencia,
-      base: baseValor,
-    });
-  }, [regra, admissao, referencia, base, pisoCargo]);
 
   const irParaCadastro = () => {
     onBeforeNavigate?.();
@@ -93,16 +92,15 @@ export function AdicionalTempoServicoCard({
     );
   }
 
-  // Sem regra aplicável ou sem ciclo adquirido: versão enxuta, sem citar
-  // triênio/quinquênio, apenas informando que o critério ainda não foi atendido.
-  if (!regra || !calculo || calculo.ciclos === 0) {
+  // Sem ciclo adquirido: versão enxuta, sem citar triênio/quinquênio,
+  // apenas informando que o critério ainda não foi atendido.
+  if (total.itens.length === 0) {
     return (
       <div className="col-span-2 mt-4 space-y-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
         {cabecalho}
         <p>
           A empresa possui adicional por tempo de serviço, mas este colaborador ainda não atende
-          aos critérios
-          {calculo ? ` (${calculo.meses} mês(es) de casa)` : ""}.
+          aos critérios ({total.meses} mês(es) de casa).
         </p>
       </div>
     );
@@ -112,28 +110,36 @@ export function AdicionalTempoServicoCard({
     <div className="col-span-2 mt-4 space-y-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
       {cabecalho}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium text-foreground">{regra.nome}</span>
-        <Badge variant="outline">
-          {rotuloCiclo(regra.ciclo_meses)} · {regra.percentual_por_ciclo}%
+        <Badge variant="secondary">
+          +{total.percentual}% · {moedaBR(total.valor)}/mês
         </Badge>
-        {calculo.valor > 0 && (
-          <Badge variant="secondary">
-            +{calculo.percentual}% · {moedaBR(calculo.valor)}/mês
-          </Badge>
-        )}
+        <Badge variant="outline">
+          {config.adicionalModo === "cumulativo" ? "Regras cumulativas" : "Escada"}
+        </Badge>
         {!config.adicionalAtivo && <Badge variant="outline">Não aplicado na folha</Badge>}
       </div>
-      <p>
-        {ESCOPO_ADICIONAL_LABEL[regra.escopo]} · base: {BASE_ADICIONAL_LABEL[regra.base]}
-        {regra.acumula ? " · acumula por ciclo" : " · não acumula"}
-      </p>
-      <p>
-        {descreverAdicional(calculo)}
-        {calculo.mesesParaProximo != null
-          ? ` · próximo ciclo em ${calculo.mesesParaProximo} mês(es)`
-          : ""}
-        {` · ${calculo.meses} mês(es) de casa`}
-      </p>
+      {total.itens.map((item) => (
+        <div key={item.regra.id} className="space-y-0.5">
+          <p className="flex flex-wrap items-center gap-1.5">
+            <span className="font-medium text-foreground">{item.regra.nome}</span>
+            <Badge variant="outline">
+              {rotuloCiclo(item.regra.ciclo_meses)} · {item.regra.percentual_por_ciclo}%
+            </Badge>
+          </p>
+          <p>
+            {ESCOPO_ADICIONAL_LABEL[item.regra.escopo]} · base:{" "}
+            {BASE_ADICIONAL_LABEL[item.regra.base]}
+            {item.regra.acumula ? " · acumula por ciclo" : " · não acumula"}
+          </p>
+          <p>
+            {descreverAdicional(item)}
+            {item.mesesParaProximo != null
+              ? ` · próximo ciclo em ${item.mesesParaProximo} mês(es)`
+              : ""}
+          </p>
+        </div>
+      ))}
+      <p>{total.meses} mês(es) de casa</p>
       {!config.adicionalAtivo && (
         <p>
           Ative "Aplicar na folha" em Cadastros → Adicionais e salário-família para o valor entrar
@@ -143,4 +149,5 @@ export function AdicionalTempoServicoCard({
     </div>
   );
 }
+
 
