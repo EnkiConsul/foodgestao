@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, PencilLine } from "lucide-react";
+import { Calculator, PencilLine, Pencil, Plus } from "lucide-react";
 import {
   formaPagamentoOptions,
   valeTransporteDoMes,
