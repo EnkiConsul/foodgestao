@@ -146,83 +146,73 @@ export default function DpColaboradores() {
         title="Colaboradores"
         description="Gerencie a equipe, cargos e acessos ao sistema."
         actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="lg" className="rounded-full" asChild>
+          <>
+            <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
               <Link to="/dp/colaboradores/lixeira">
-                <Trash2 className="h-4 w-4 mr-2" /> Lixeira
+                <Trash2 className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Lixeira</span>
               </Link>
             </Button>
             <Button
-              size="lg"
-              className="rounded-full font-semibold"
+              size="sm"
+              className="h-10 rounded-full font-semibold sm:size-lg"
               onClick={() => abrirCadastro(null)}
             >
-              <Plus className="h-5 w-5 mr-2" /> Novo Colaborador
+              <Plus className="h-4 w-4 mr-1.5 sm:h-5 sm:w-5 sm:mr-2" /> Novo
+              <span className="hidden sm:inline">&nbsp;Colaborador</span>
             </Button>
-          </div>
+          </>
         }
       />
 
       <Tabs value={statusFilter} onValueChange={setStatusFilter}>
-        <TabsList>
+        <DpTabsBar>
           <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
           <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
           <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
-        </TabsList>
+        </DpTabsBar>
       </Tabs>
 
-      <DpFilterCard>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold tracking-wider text-muted-foreground">BUSCAR</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Nome ou CPF..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold tracking-wider text-muted-foreground">UNIDADE</label>
-              <Select value={unidadeFilter} onValueChange={setUnidadeFilter}>
-                <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {(unidades.data ?? []).map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold tracking-wider text-muted-foreground">CARGO</label>
-              <Select value={cargoFilter} onValueChange={setCargoFilter}>
-                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {(cargos.data ?? []).map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold tracking-wider text-muted-foreground">PERFIL</label>
-              <Select value={perfilFilter} onValueChange={setPerfilFilter}>
-                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="colaborador">Colaborador</SelectItem>
-                  <SelectItem value="gestor">Gestor</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-      </DpFilterCard>
+      <DpFilters
+        search={{ value: search, onChange: setSearch, placeholder: "Nome ou CPF..." }}
+        activeCount={
+          (unidadeFilter !== "all" ? 1 : 0) + (cargoFilter !== "all" ? 1 : 0) + (perfilFilter !== "all" ? 1 : 0)
+        }
+        onClear={() => { setUnidadeFilter("all"); setCargoFilter("all"); setPerfilFilter("all"); }}
+      >
+        <DpFilterField label="Unidade">
+          <Select value={unidadeFilter} onValueChange={setUnidadeFilter}>
+            <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {(unidades.data ?? []).map((u) => (
+                <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Cargo">
+          <Select value={cargoFilter} onValueChange={setCargoFilter}>
+            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {(cargos.data ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Perfil">
+          <Select value={perfilFilter} onValueChange={setPerfilFilter}>
+            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="colaborador">Colaborador</SelectItem>
+              <SelectItem value="gestor">Gestor</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+      </DpFilters>
 
       <DpContentCard contentClassName="hidden md:block">
           {list.isLoading ? (
