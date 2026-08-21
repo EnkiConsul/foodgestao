@@ -136,6 +136,15 @@ export default function ContasContabeis() {
     setDialogOpen(true);
   };
 
+  const resequenceCodes = async () => {
+    const { error } = await (supabase as any).rpc("chart_accounts_resequence", { _context: contextType });
+    if (error) {
+      toast.warning("Índice não foi reorganizado", { description: error.message });
+      return false;
+    }
+    return true;
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     const hasChildren = rows.some((r) => r.parent_id === deleteTarget.id);
@@ -147,7 +156,8 @@ export default function ContasContabeis() {
     const { error } = await (supabase as any).from("chart_accounts").delete().eq("id", deleteTarget.id);
     if (error) toast.error("Erro ao excluir", { description: error.message });
     else {
-      toast.success("Conta excluída");
+      const ok = await resequenceCodes();
+      toast.success(ok ? "Conta excluída e índice reorganizado" : "Conta excluída");
       queryClient.invalidateQueries({ queryKey: ["chart-accounts"] });
     }
     setDeleteTarget(null);
@@ -195,6 +205,8 @@ export default function ContasContabeis() {
         else deletedCount += 1;
       }
     }
+
+    if (deletedCount > 0) await resequenceCodes();
 
     setBulkDeleting(false);
     setBulkOpen(false);
