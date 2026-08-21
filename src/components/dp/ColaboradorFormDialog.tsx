@@ -2051,10 +2051,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         onOpenChange={setBeneficioDialogOpen}
         editing={beneficioEditando}
         saving={saveBeneficio.isPending}
+        unidades={(unidades.data ?? []).map((u: any) => ({ id: u.id, nome: u.nome }))}
+        cargos={(cargos.data ?? []).map((c: any) => ({ id: c.id, nome: c.nome }))}
+        escopoInicial={{ unidade_id: form.unidade_id || null, cargo_id: form.cargo_id || null }}
         onSubmit={(input) =>
           saveBeneficio.mutate(input, {
             onSuccess: (salvo) => {
               setBeneficioDialogOpen(false);
+
               // Benefício novo já nasce marcado para o colaborador em edição.
               if (!beneficioEditando && salvo?.id) {
                 patchRem({ beneficios: { ...rem.beneficios, [salvo.id]: true } });
