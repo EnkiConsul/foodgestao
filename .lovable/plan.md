@@ -21,6 +21,24 @@ O horário de funcionamento é o horário da loja (quando abre/fecha), não jorn
 - Vale também para a unidade criada a partir do cadastro de colaboradores: é o mesmo diálogo de unidade. Como o horário precisa da unidade já existente, a seção fica visível logo após salvar a unidade nova, dentro do mesmo diálogo, com o aviso "salve a unidade para definir o horário" antes disso.
 - Nenhum dado é perdido: os horários já salvos continuam e aparecem na unidade correspondente.
 
+### 3. Mais de um período de funcionamento por dia
+Hoje cada dia da semana aceita **um único** intervalo abre/fecha (é uma linha por unidade+dia). O caso da Pakerê tem dois períodos no mesmo dia, com horários diferentes por faixa de dias:
+
+```text
+Período "Almoço"  — Seg a Sex: 08:30 → 18:30
+Período "Jantar"  — Seg a Qui: 17:00 → 00:35 (+1)
+                  — Sex a Dom: 16:30 → 00:35 (+1)
+```
+
+Como fica na tela: por dia da semana é possível **adicionar quantos períodos precisar** (botão "Adicionar período"), cada um com nome opcional (Almoço, Jantar), abre, fecha e virada de dia detectada automaticamente. Domingo fica só com o período Jantar; sábado idem; segunda a quinta ficam com Almoço + Jantar.
+
+Para não repetir o preenchimento dia a dia:
+- Cada período tem a ação **"Aplicar em outros dias"**, onde se marcam os dias que recebem aquele mesmo intervalo (ex.: criar o Jantar 17:00–00:35 e aplicar em Seg–Qui; criar 16:30–00:35 e aplicar em Sex–Dom).
+- O resumo do dia mostra todos os períodos ("08:30–18:30 · 17:00–00:35 (+1)").
+
+Períodos que se sobrepõem no mesmo dia são permitidos (é comum a cozinha do jantar abrir antes de o almoço fechar), apenas com um aviso visual — não bloqueia o salvamento.
+
+
 
 ## Detalhes técnicos
 
@@ -31,4 +49,8 @@ O horário de funcionamento é o horário da loja (quando abre/fecha), não jorn
 - `src/components/dp/TurnoForm.tsx` e `TurnoCard.tsx`: consomem a lista da empresa.
 - `src/pages/dp/cadastros/DpTurnos.tsx`: remove `Tabs`, o estado `unidadeFuncionamento` e o import do editor de funcionamento.
 - `src/components/dp/UnidadeFormDialog.tsx`: passa a incluir `HorarioFuncionamentoEditor` para a unidade em edição (apenas em unidade já salva; em nova unidade a seção aparece após salvar).
-- `turnoForaDoFuncionamento` continua existindo como utilitário, sem mudança de comportamento nesta entrega.
+- Múltiplos períodos por dia: migração em `dp_unidade_horarios_funcionamento` — nova coluna `ordem` (int, default 0) e `nome` (text, nulo), troca do índice único `(unidade_id, dia_semana)` por `(unidade_id, dia_semana, ordem)`. Registros atuais viram `ordem = 0`, sem perda. GRANTs/RLS existentes permanecem (tabela já tem políticas por empresa).
+- `useDpHorariosFuncionamento`: retorna `Record<dia, HorarioFuncionamentoPeriodo[]>`; o salvamento passa a apagar os períodos da unidade e reinserir a lista (transação lógica única) em vez de `upsert` por dia.
+- `turno-utils.ts`: `HorarioFuncionamentoDia` ganha `periodos`; `formatarFuncionamento` concatena os períodos e `turnoForaDoFuncionamento` passa a validar se o turno cabe em **algum** período do dia. Testes unitários para os dois helpers com o cenário Pakerê.
+- `HorarioFuncionamentoEditor.tsx`: linhas de período por dia com adicionar/remover, nome opcional e "Aplicar em outros dias" (seleção de dias).
+
