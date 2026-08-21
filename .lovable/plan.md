@@ -11,10 +11,11 @@
 
 A aba passa a listar, em uma lista só:
 
-- **Vale-Alimentação (item do sistema)** e **Vale-Transporte (item do sistema)** — abrem um editor com os mesmos campos da Remuneração: valor por dia, periodicidade, dias base e origem dos dias, dia do pagamento, dias de corte, o que desconta (falta, folga extra, atestado, férias) e desconto do colaborador (percentual ou valor). Cada um pode ser salvo como padrão da **Empresa**, de uma **Unidade** ou de um **Cargo**, respeitando a hierarquia já usada hoje (Empresa → Unidade → Cargo → Colaborador) e mantendo o alerta de isonomia.
+- **Vale-Alimentação** e **Vale-Transporte** — abrem um editor com os mesmos campos da Remuneração: valor por dia, periodicidade, dias base e origem dos dias, dia do pagamento, dias de corte, o que desconta (falta, folga extra, atestado, férias) e desconto do colaborador (percentual ou valor). Cada um pode ser salvo como padrão da **Empresa**, de uma **Unidade** ou de um **Cargo**, respeitando a hierarquia já usada hoje (Empresa → Unidade → Cargo → Colaborador) e mantendo o alerta de isonomia. Ambos podem ser **excluídos** quando a empresa não usa o benefício — a exclusão desativa o vale para a empresa (some do cálculo mensal, da ficha e da folha) e pode ser reativada depois pelo botão de recriar o benefício.
 - **Demais benefícios** — a lista atual do catálogo, com os mesmos botões de criar, editar e excluir que já existem hoje.
 
-O que o usuário salvar aqui vira o padrão que aparece pré-preenchido na ficha do colaborador; o que ele ajustar na ficha continua valendo como exceção daquele colaborador, com aviso de que difere do padrão.
+Ao editar VA/VT (ou qualquer benefício com padrão) **na ficha do colaborador**, o sistema pergunta o alcance da alteração antes de salvar: exceção só deste colaborador, padrão do cargo, padrão da unidade ou padrão da empresa — o mesmo diálogo de escopo já definido para benefícios, com o aviso de isonomia quando a mudança afeta um grupo.
+
 
 ## Abas Finais da Tela de Benefícios
 
