@@ -4372,12 +4372,14 @@ export type Database = {
           turno_categoria_labels: Json
           unidade_id: string | null
           updated_at: string
+          va_ativo: boolean
           va_desconta_atestado: boolean
           va_desconta_falta: boolean
           va_desconta_ferias: boolean
           va_desconta_folga_extra: boolean
           va_dia_pagamento: number | null
           va_dias_corte: number
+          vt_ativo: boolean
           vt_desconta_atestado: boolean | null
           vt_desconta_falta: boolean | null
           vt_desconta_ferias: boolean | null
@@ -4414,12 +4416,14 @@ export type Database = {
           turno_categoria_labels?: Json
           unidade_id?: string | null
           updated_at?: string
+          va_ativo?: boolean
           va_desconta_atestado?: boolean
           va_desconta_falta?: boolean
           va_desconta_ferias?: boolean
           va_desconta_folga_extra?: boolean
           va_dia_pagamento?: number | null
           va_dias_corte?: number
+          vt_ativo?: boolean
           vt_desconta_atestado?: boolean | null
           vt_desconta_falta?: boolean | null
           vt_desconta_ferias?: boolean | null
@@ -4456,12 +4460,14 @@ export type Database = {
           turno_categoria_labels?: Json
           unidade_id?: string | null
           updated_at?: string
+          va_ativo?: boolean
           va_desconta_atestado?: boolean
           va_desconta_falta?: boolean
           va_desconta_ferias?: boolean
           va_desconta_folga_extra?: boolean
           va_dia_pagamento?: number | null
           va_dias_corte?: number
+          vt_ativo?: boolean
           vt_desconta_atestado?: boolean | null
           vt_desconta_falta?: boolean | null
           vt_desconta_ferias?: boolean | null
@@ -13379,12 +13385,14 @@ export type Database = {
           turno_categoria_labels: Json
           unidade_id: string | null
           updated_at: string
+          va_ativo: boolean
           va_desconta_atestado: boolean
           va_desconta_falta: boolean
           va_desconta_ferias: boolean
           va_desconta_folga_extra: boolean
           va_dia_pagamento: number | null
           va_dias_corte: number
+          vt_ativo: boolean
           vt_desconta_atestado: boolean | null
           vt_desconta_falta: boolean | null
           vt_desconta_ferias: boolean | null
