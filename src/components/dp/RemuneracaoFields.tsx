@@ -184,6 +184,11 @@ interface Props {
   onNovoBeneficio?: () => void;
   /** Abre o cadastro do benefício do catálogo para edição. */
   onEditarBeneficio?: (b: Beneficio) => void;
+  /** Unidade e cargo do colaborador — define quais benefícios do catálogo valem. */
+  escopoAlvo?: { unidade_id?: string | null; cargo_id?: string | null };
+  nomeUnidade?: (id?: string | null) => string | null;
+  nomeCargo?: (id?: string | null) => string | null;
+
 
   cargoInsalubreHint?: string;
   /** Regime do vínculo — restringe as formas de pagamento admitidas. */
