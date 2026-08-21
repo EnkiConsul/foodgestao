@@ -28,6 +28,10 @@ import {
   type RegraTempoServico,
 } from "@/lib/dp/tempoServico";
 import { tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
+import { useDpBeneficiosPadroes } from "@/hooks/useDpBeneficiosPadrao";
+import { resumoAssiduidade } from "@/components/dp/AssiduidadeFields";
+import { AssiduidadeRegrasDialog } from "@/components/dp/cargos/AssiduidadeRegrasDialog";
+
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 
