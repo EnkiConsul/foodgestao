@@ -49,4 +49,8 @@ Períodos que se sobrepõem no mesmo dia são permitidos (é comum a cozinha do 
 - `src/components/dp/TurnoForm.tsx` e `TurnoCard.tsx`: consomem a lista da empresa.
 - `src/pages/dp/cadastros/DpTurnos.tsx`: remove `Tabs`, o estado `unidadeFuncionamento` e o import do editor de funcionamento.
 - `src/components/dp/UnidadeFormDialog.tsx`: passa a incluir `HorarioFuncionamentoEditor` para a unidade em edição (apenas em unidade já salva; em nova unidade a seção aparece após salvar).
-- `turnoForaDoFuncionamento` continua existindo como utilitário, sem mudança de comportamento nesta entrega.
+- Múltiplos períodos por dia: migração em `dp_unidade_horarios_funcionamento` — nova coluna `ordem` (int, default 0) e `nome` (text, nulo), troca do índice único `(unidade_id, dia_semana)` por `(unidade_id, dia_semana, ordem)`. Registros atuais viram `ordem = 0`, sem perda. GRANTs/RLS existentes permanecem (tabela já tem políticas por empresa).
+- `useDpHorariosFuncionamento`: retorna `Record<dia, HorarioFuncionamentoPeriodo[]>`; o salvamento passa a apagar os períodos da unidade e reinserir a lista (transação lógica única) em vez de `upsert` por dia.
+- `turno-utils.ts`: `HorarioFuncionamentoDia` ganha `periodos`; `formatarFuncionamento` concatena os períodos e `turnoForaDoFuncionamento` passa a validar se o turno cabe em **algum** período do dia. Testes unitários para os dois helpers com o cenário Pakerê.
+- `HorarioFuncionamentoEditor.tsx`: linhas de período por dia com adicionar/remover, nome opcional e "Aplicar em outros dias" (seleção de dias).
+
