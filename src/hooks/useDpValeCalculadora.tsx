@@ -32,9 +32,11 @@ export interface LinhaVale {
   unidade_nome: string | null;
   valorDia: number;
   diasPrevistos: number;
-  origemPrevistos: "escala" | "jornada";
+  origemPrevistos: "escala" | "jornada" | "convocacao";
   folgasDescontadas: number;
   folgasPendentes: number;
+  feriasDescontadas: number;
+  aviso?: string;
   descontos: DiasDescontaveisResultado;
   deposito: DepositoVa;
   /** Sem valor por dia cadastrado não há como calcular. */
@@ -125,7 +127,7 @@ export function useDpValeCalculadora(
     queryFn: async () => {
       // Colunas montadas em runtime (VA/VT): tipagem genérica do client não ajuda aqui.
       let q: any = (supabase.from("dp_colaboradores") as any)
-        .select(`id, nome, ativo, data_desligamento, unidade_id, ${cols.colaborador}, dp_unidades(nome)`)
+        .select(`id, nome, regime, ativo, data_desligamento, unidade_id, ${cols.colaborador}, dp_unidades(nome)`)
         .eq("company_id", selectedCompanyId!)
         .eq(cols.flag, true)
         .order("nome");
@@ -150,7 +152,7 @@ export function useDpValeCalculadora(
     ],
     enabled: !!selectedCompanyId && colabIds.length > 0,
     queryFn: async () => {
-      const [config, dias, escala, folgas, pontos, ferias] = await Promise.all([
+      const [config, dias, escala, folgas, pontos, ferias, convocacoes] = await Promise.all([
         supabase
           .from("dp_colaborador_config_trabalho")
           .select("id, colaborador_id, vigencia_inicio, vigencia_fim")
@@ -162,8 +164,9 @@ export function useDpValeCalculadora(
           .eq("company_id", selectedCompanyId!),
         supabase
           .from("dp_escala_itens")
-          .select("colaborador_id, data, tipo")
+          .select("colaborador_id, data, tipo, dp_escalas!inner(status)")
           .eq("company_id", selectedCompanyId!)
+          .eq("dp_escalas.status", "publicada")
           .in("colaborador_id", colabIds)
           .gte("data", janelaInicio)
           .lte("data", janelaFim),
@@ -188,8 +191,16 @@ export function useDpValeCalculadora(
           .in("colaborador_id", colabIds)
           .lte("data_inicio", janelaFim)
           .gte("data_fim", janelaInicio),
+        supabase
+          .from("dp_convocacoes")
+          .select("colaborador_id, data, status")
+          .eq("company_id", selectedCompanyId!)
+          .in("colaborador_id", colabIds)
+          .eq("status", "aceita")
+          .gte("data", janelaInicio)
+          .lte("data", janelaFim),
       ]);
-      const erro = [config, dias, escala, folgas, pontos, ferias].find((r) => r.error)?.error;
+      const erro = [config, dias, escala, folgas, pontos, ferias, convocacoes].find((r) => r.error)?.error;
       if (erro) throw erro;
       return {
         config: (config.data ?? []) as any[],
@@ -198,6 +209,7 @@ export function useDpValeCalculadora(
         folgas: (folgas.data ?? []) as any[],
         pontos: (pontos.data ?? []) as any[],
         ferias: (ferias.data ?? []) as any[],
+        convocacoes: (convocacoes.data ?? []) as any[],
       };
     },
   });
@@ -215,11 +227,19 @@ export function useDpValeCalculadora(
       atual.push(Number(d.dow));
       dowPorConfig.set(d.config_id, atual);
     }
-    const dowPorColab = new Map<string, number[]>();
+    const configPorColab = new Map<string, any[]>();
     for (const c of ev?.config ?? []) {
-      const dows = dowPorConfig.get(c.id);
-      if (dows?.length) dowPorColab.set(c.colaborador_id, dows);
+      const atual = configPorColab.get(c.colaborador_id) ?? [];
+      atual.push(c);
+      configPorColab.set(c.colaborador_id, atual);
     }
+    const datasDaJornada = (colaboradorId: string, periodo: { inicio: string; fim: string }) =>
+      diasDoIntervalo(periodo.inicio, periodo.fim).filter((data) => {
+        const config = (configPorColab.get(colaboradorId) ?? [])
+          .filter((x) => x.vigencia_inicio <= data && (!x.vigencia_fim || x.vigencia_fim >= data))
+          .sort((a, b) => String(b.vigencia_inicio).localeCompare(String(a.vigencia_inicio)))[0];
+        return config ? (dowPorConfig.get(config.id) ?? []).includes(dowDe(data)) : false;
+      });
 
     const agrupar = <T extends { colaborador_id: string }>(rows: T[]) => {
       const m = new Map<string, T[]>();
@@ -230,6 +250,7 @@ export function useDpValeCalculadora(
     const folgasPor = agrupar(ev?.folgas ?? []);
     const pontosPor = agrupar(ev?.pontos ?? []);
     const feriasPor = agrupar(ev?.ferias ?? []);
+    const convocacoesPor = agrupar(ev?.convocacoes ?? []);
 
     const linhas: LinhaVale[] = colaboradores.map((c) => {
       const diaPagamento = c[`${p}_dia_pagamento`] ?? padraoEmpresa.diaPagamento;
@@ -242,7 +263,7 @@ export function useDpValeCalculadora(
         ferias: c[`${p}_desconta_ferias`] ?? padraoEmpresa.regras.ferias,
       };
 
-      const dowTrabalhados = dowPorColab.get(c.id) ?? [1, 2, 3, 4, 5];
+      const intermitente = String(c.regime ?? "") === "intermitente";
       const escala = (escalaPor.get(c.id) ?? []).map((e) => ({ data: e.data, tipo: String(e.tipo) }));
       const folgas = (folgasPor.get(c.id) ?? []).map((f) => ({
         data: f.data,
@@ -250,22 +271,31 @@ export function useDpValeCalculadora(
         extra: f.extra,
         status: f.status ? String(f.status) : null,
       }));
+      const ferias = (feriasPor.get(c.id) ?? [])
+        .filter((f) => !f.status || String(f.status) !== "cancelado")
+        .map((f) => ({ inicio: f.data_inicio, fim: f.data_fim }));
+      const datasConvocadas = [...new Set((convocacoesPor.get(c.id) ?? []).map((x) => String(x.data)))];
+      const jornadaCobertura = datasDaJornada(c.id, periodo.cobertura);
+      const dowTrabalhados = [...new Set(jornadaCobertura.map(dowDe))];
 
       const previstos = contarDiasPrevistos({
         periodo: periodo.cobertura,
+        datasPrevistas: intermitente ? datasConvocadas : undefined,
+        origemDatasPrevistas: intermitente ? "convocacao" : undefined,
         escala,
         dowTrabalhados,
         folgas,
+        ferias,
       });
 
       const escalaConf = escala.filter(
         (e) => e.data >= periodo.conferencia.inicio && e.data <= periodo.conferencia.fim,
       );
-      const previstosConferencia = escalaConf.length
-        ? escalaConf.filter((e) => e.tipo === "trabalho").map((e) => e.data)
-        : diasDoIntervalo(periodo.conferencia.inicio, periodo.conferencia.fim).filter((d) =>
-            dowTrabalhados.includes(dowDe(d)),
-          );
+      const previstosConferencia = intermitente
+        ? datasConvocadas.filter((d) => d >= periodo.conferencia.inicio && d <= periodo.conferencia.fim)
+        : escalaConf.length
+          ? escalaConf.filter((e) => e.tipo === "trabalho").map((e) => e.data)
+          : datasDaJornada(c.id, periodo.conferencia);
 
       const pontos = pontosPor.get(c.id) ?? [];
       const descontos = contarDiasDescontaveis({
@@ -275,9 +305,7 @@ export function useDpValeCalculadora(
         diasComPonto: pontos.map((pt) => pt.data),
         usaPonto: pontos.length > 0,
         folgas,
-        ferias: (feriasPor.get(c.id) ?? [])
-          .filter((f) => !f.status || f.status !== "cancelado")
-          .map((f) => ({ inicio: f.data_inicio, fim: f.data_fim })),
+        ferias,
       });
 
       let valorDia: number;
@@ -319,9 +347,15 @@ export function useDpValeCalculadora(
         origemPrevistos: previstos.origem,
         folgasDescontadas: previstos.folgasDescontadas,
         folgasPendentes: previstos.folgasPendentes,
+        feriasDescontadas: previstos.feriasDescontadas,
         descontos,
         deposito,
         semValorDia: !(valorDia > 0),
+        aviso: intermitente && previstos.dias === 0
+          ? "Sem convocações aceitas no período — aguardando convocações."
+          : !intermitente && jornadaCobertura.length === 0 && escala.length === 0
+            ? "Jornada não cadastrada para o período."
+            : undefined,
       };
     });
 

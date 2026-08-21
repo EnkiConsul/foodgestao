@@ -2,93 +2,72 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useDpValeCalculadora, type LinhaVale } from "@/hooks/useDpValeCalculadora";
 import { valeAlimentacaoDoMes } from "@/lib/dp/remuneracao";
-import {
-  calcularBeneficioMes,
-  descreverDiasJornada,
-  diasTrabalhaveisNoMes,
-  DIAS_BASE_PADRAO,
-} from "@/lib/dp/beneficios-regras";
 
-/**
- * Benefícios que ficam gravados no próprio cadastro do colaborador
- * (Vale-Alimentação e Vale-Transporte da aba Remuneração).
- * A tela de Benefícios mostra estes itens junto com as atribuições do catálogo,
- * para o gestor ver tudo o que a empresa paga em um único lugar.
- *
- * Os dias considerados vêm da jornada vigente do colaborador (dias da semana
- * marcados na configuração de trabalho) e, para intermitentes, das convocações
- * aceitas no mês de referência.
- */
+/** Benefício gravado diretamente no cadastro do colaborador. */
 export interface BeneficioCadastroItem {
-  /** Chave sintética — não existe registro na tabela de atribuições. */
   id: string;
   origem: "cadastro";
   colaborador_id: string;
   colaborador_nome: string;
   tipo: "vale_alimentacao" | "vale_transporte";
   nome: string;
-  /** Valor concedido no mês. */
   bruto: number;
-  /** Desconto do colaborador no mês. */
   desconto: number;
-  /** Custo líquido da empresa no mês. */
   liquido: number;
   dias: number;
-  /** De onde saíram os dias usados no cálculo. */
   diasOrigem: "jornada" | "convocacao" | "fixo" | "padrao";
   diaPagamento: number | null;
   detalhe: string;
-  /** Alerta quando o número de dias é apenas uma referência provisória. */
   aviso?: string;
 }
 
-const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+const competenciaAtual = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
 
 const COLUNAS = [
-  "id",
-  "nome",
-  "regime",
-  "salario_base",
-  "forma_pagamento",
-  "vale_alimentacao",
-  "vale_alimentacao_valor",
-  "vale_alimentacao_periodicidade",
-  "vale_alimentacao_dias_base",
-  "vale_alimentacao_dias_origem",
-  "vale_alimentacao_desconto_tipo",
-  "vale_alimentacao_desconto_valor",
-  "vale_alimentacao_dia_pagamento",
-  "vale_transporte",
-  "vale_transporte_valor_dia",
-  "vale_transporte_dia_pagamento",
+  "id", "nome", "regime", "vale_alimentacao", "vale_alimentacao_valor",
+  "vale_alimentacao_periodicidade", "vale_alimentacao_dias_base", "vale_alimentacao_dias_origem",
+  "vale_alimentacao_desconto_tipo", "vale_alimentacao_desconto_valor", "vale_alimentacao_dia_pagamento",
+  "vale_transporte", "vale_transporte_valor_dia", "vale_transporte_dia_pagamento",
 ].join(", ");
 
-/** Primeiro e último dia do mês de referência, em ISO. */
-function limitesDoMes(ref: Date) {
-  const ano = ref.getFullYear();
-  const mes = ref.getMonth();
-  const p = (n: number) => String(n).padStart(2, "0");
-  const ultimo = new Date(ano, mes + 1, 0).getDate();
-  return {
-    inicio: `${ano}-${p(mes + 1)}-01`,
-    fim: `${ano}-${p(mes + 1)}-${p(ultimo)}`,
-    competencia: `${ano}-${p(mes + 1)}`,
-  };
-}
+const detalheLinha = (linha: LinhaVale) => {
+  const origem = linha.origemPrevistos === "convocacao"
+    ? "convocações aceitas"
+    : linha.origemPrevistos === "escala"
+      ? "escala publicada"
+      : "jornada habitual";
+  const partes = [`${linha.diasPrevistos} previsto(s) por ${origem}`];
+  if (linha.folgasDescontadas > 0) partes.push(`− ${linha.folgasDescontadas} folga(s)`);
+  if (linha.feriasDescontadas > 0) partes.push(`− ${linha.feriasDescontadas} dia(s) de férias`);
+  if (linha.descontos.dias > 0) partes.push(`− ${linha.descontos.dias} diferença(s) anterior(es)`);
+  partes.push(`= ${linha.deposito.diasPagos} dia(s)`);
+  return partes.join(" ");
+};
 
+/**
+ * Espelha na aba Por colaborador o mesmo motor das calculadoras de VA e VT.
+ * Quantidades expressamente fixas e benefícios mensais permanecem inalterados.
+ */
 export function useDpBeneficiosCadastro(colaboradorFilter = "todos") {
   const { selectedCompanyId } = useCompanyContext();
-  const { inicio, fim, competencia } = useMemo(() => limitesDoMes(new Date()), []);
+  const competencia = useMemo(competenciaAtual, []);
+  const va = useDpValeCalculadora("va", competencia);
+  const vt = useDpValeCalculadora("vt", competencia);
 
   const query = useQuery({
     queryKey: ["dp_beneficios_cadastro", selectedCompanyId],
-    enabled: !!selectedCompanyId,
+    enabled: Boolean(selectedCompanyId),
     queryFn: async () => {
+      if (!selectedCompanyId) return [];
       const { data, error } = await supabase
         .from("dp_colaboradores")
         .select(COLUNAS)
-        .eq("company_id", selectedCompanyId!)
+        .eq("company_id", selectedCompanyId)
         .is("deleted_at", null)
         .eq("ativo", true)
         .order("nome");
@@ -97,153 +76,81 @@ export function useDpBeneficiosCadastro(colaboradorFilter = "todos") {
     },
   });
 
-  /** Jornada vigente de todos os colaboradores da empresa, em lote. */
-  const jornadasQ = useQuery({
-    queryKey: ["dp_beneficios_cadastro_jornadas", selectedCompanyId],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_colaborador_config_trabalho")
-        .select("colaborador_id, vigencia_inicio, dias:dp_colaborador_config_dias(dow, trabalha)")
-        .eq("company_id", selectedCompanyId!)
-        .is("vigencia_fim", null)
-        .order("vigencia_inicio", { ascending: false });
-      if (error) throw error;
-      const map = new Map<string, { dow: number; trabalha: boolean }[]>();
-      for (const row of (data ?? []) as any[]) {
-        if (map.has(row.colaborador_id)) continue; // a mais recente vence
-        map.set(row.colaborador_id, (row.dias ?? []) as { dow: number; trabalha: boolean }[]);
-      }
-      return map;
-    },
-  });
-
-  /** Convocações aceitas no mês — base de dias para intermitentes. */
-  const convocacoesQ = useQuery({
-    queryKey: ["dp_beneficios_cadastro_convocacoes", selectedCompanyId, inicio, fim],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_convocacoes")
-        .select("colaborador_id, data")
-        .eq("company_id", selectedCompanyId!)
-        .eq("status", "aceita")
-        .gte("data", inicio)
-        .lte("data", fim);
-      if (error) throw error;
-      const map = new Map<string, Set<string>>();
-      for (const row of (data ?? []) as any[]) {
-        const set = map.get(row.colaborador_id) ?? new Set<string>();
-        set.add(row.data);
-        map.set(row.colaborador_id, set);
-      }
-      return new Map([...map].map(([k, v]) => [k, v.size]));
-    },
-  });
-
   const itens = useMemo<BeneficioCadastroItem[]>(() => {
-    const rows = query.data ?? [];
-    const jornadas = jornadasQ.data;
-    const convocacoes = convocacoesQ.data;
+    const vaPor = new Map(va.linhas.map((linha) => [linha.colaborador_id, linha]));
+    const vtPor = new Map(vt.linhas.map((linha) => [linha.colaborador_id, linha]));
     const out: BeneficioCadastroItem[] = [];
 
-    for (const c of rows) {
+    for (const c of query.data ?? []) {
       if (colaboradorFilter !== "todos" && c.id !== colaboradorFilter) continue;
-
-      const intermitente = (c.regime ?? "") === "intermitente";
-      const diasJornadaCfg = jornadas?.get(c.id) ?? null;
-      const diasConvocados = intermitente ? (convocacoes?.get(c.id) ?? 0) : null;
-      const diasCalculados = intermitente
-        ? diasConvocados
-        : diasTrabalhaveisNoMes(diasJornadaCfg, competencia);
-
-      const origemDias: BeneficioCadastroItem["diasOrigem"] = intermitente
-        ? "convocacao"
-        : diasCalculados != null
-          ? "jornada"
-          : "padrao";
-
-      const aviso = intermitente
-        ? !diasConvocados
-          ? "Sem convocações aceitas neste mês — valor a confirmar."
-          : undefined
-        : diasCalculados == null
-          ? `Horário de trabalho não cadastrado — usando ${DIAS_BASE_PADRAO} dias como referência.`
-          : undefined;
-
-      const rotuloDias = (dias: number) =>
-        intermitente
-          ? `${dias} dia(s) convocado(s)`
-          : origemDias === "jornada"
-            ? `${dias} dia(s) — ${descreverDiasJornada(diasJornadaCfg)}`
-            : `${dias} dia(s) (referência)`;
+      const intermitente = String(c.regime ?? "") === "intermitente";
 
       if (c.vale_alimentacao) {
-        const va = valeAlimentacaoDoMes(c, { diasJornada: diasCalculados ?? undefined });
         const diario = (c.vale_alimentacao_periodicidade ?? "mensal") === "diario";
-        if (va.bruto > 0 || (diario && intermitente)) {
+        const quantidadeFixa = diario && c.vale_alimentacao_dias_origem === "fixo";
+        const linha = vaPor.get(c.id);
+
+        if (!diario || quantidadeFixa) {
+          const calc = valeAlimentacaoDoMes(c);
+          if (calc.bruto > 0) {
+            out.push({
+              id: `cadastro-va-${c.id}`, origem: "cadastro", colaborador_id: c.id,
+              colaborador_nome: c.nome, tipo: "vale_alimentacao", nome: "Vale-alimentação",
+              bruto: calc.bruto, desconto: calc.desconto, liquido: calc.liquido, dias: calc.dias,
+              diasOrigem: "fixo", diaPagamento: c.vale_alimentacao_dia_pagamento ?? null,
+              detalhe: diario ? `${calc.dias} dia(s) (quantidade fixa)` : "valor mensal fixo",
+            });
+          }
+        } else if (linha) {
           out.push({
-            id: `cadastro-va-${c.id}`,
-            origem: "cadastro",
-            colaborador_id: c.id,
-            colaborador_nome: c.nome,
-            tipo: "vale_alimentacao",
-            nome: "Vale-alimentação",
-            bruto: va.bruto,
-            desconto: va.desconto,
-            liquido: va.liquido,
-            dias: va.dias,
-            diasOrigem: diario
-              ? va.diasOrigem === "fixo"
-                ? "fixo"
-                : origemDias
-              : "fixo",
+            id: `cadastro-va-${c.id}`, origem: "cadastro", colaborador_id: c.id,
+            colaborador_nome: c.nome, tipo: "vale_alimentacao", nome: "Vale-alimentação",
+            bruto: linha.deposito.bruto, desconto: linha.deposito.desconto,
+            liquido: linha.deposito.depositar, dias: linha.deposito.diasPagos,
+            diasOrigem: linha.origemPrevistos === "convocacao" ? "convocacao" : "jornada",
             diaPagamento: c.vale_alimentacao_dia_pagamento ?? null,
-            detalhe: !diario
-              ? "valor mensal fixo"
-              : va.diasOrigem === "fixo"
-                ? `${va.dias} dia(s) (quantidade fixa)`
-                : rotuloDias(va.dias),
-            aviso: diario && va.diasOrigem !== "fixo" ? aviso : undefined,
+            detalhe: detalheLinha(linha), aviso: linha.aviso,
+          });
+        } else if (intermitente) {
+          out.push({
+            id: `cadastro-va-${c.id}`, origem: "cadastro", colaborador_id: c.id,
+            colaborador_nome: c.nome, tipo: "vale_alimentacao", nome: "Vale-alimentação",
+            bruto: 0, desconto: 0, liquido: 0, dias: 0, diasOrigem: "convocacao",
+            diaPagamento: c.vale_alimentacao_dia_pagamento ?? null,
+            detalhe: "0 dias — aguardando convocações",
+            aviso: "Sem convocações aceitas no período — valor a confirmar.",
           });
         }
       }
 
-      if (c.vale_transporte && num(c.vale_transporte_valor_dia) > 0) {
-        const dias = diasCalculados ?? (num(c.vale_alimentacao_dias_base) || DIAS_BASE_PADRAO);
-        const calc = calcularBeneficioMes({
-          valor: c.vale_transporte_valor_dia,
-          periodicidade: "diario",
-          dias_base: dias,
-          desconto_tipo: "nenhum",
-        });
-        out.push({
-          id: `cadastro-vt-${c.id}`,
-          origem: "cadastro",
-          colaborador_id: c.id,
-          colaborador_nome: c.nome,
-          tipo: "vale_transporte",
-          nome: "Vale-transporte",
-          bruto: calc.bruto,
-          desconto: calc.desconto,
-          liquido: calc.liquido,
-          dias,
-          diasOrigem: origemDias,
-          diaPagamento: c.vale_transporte_dia_pagamento ?? null,
-          detalhe: rotuloDias(dias),
-          aviso,
-        });
+      if (c.vale_transporte && Number(c.vale_transporte_valor_dia ?? 0) > 0) {
+        const linha = vtPor.get(c.id);
+        if (linha) {
+          out.push({
+            id: `cadastro-vt-${c.id}`, origem: "cadastro", colaborador_id: c.id,
+            colaborador_nome: c.nome, tipo: "vale_transporte", nome: "Vale-transporte",
+            bruto: linha.deposito.bruto, desconto: linha.deposito.desconto,
+            liquido: linha.deposito.depositar, dias: linha.deposito.diasPagos,
+            diasOrigem: linha.origemPrevistos === "convocacao" ? "convocacao" : "jornada",
+            diaPagamento: c.vale_transporte_dia_pagamento ?? null,
+            detalhe: detalheLinha(linha), aviso: linha.aviso,
+          });
+        }
       }
     }
-
-    return out.sort(
-      (a, b) => a.colaborador_nome.localeCompare(b.colaborador_nome) || a.nome.localeCompare(b.nome),
-    );
-  }, [query.data, jornadasQ.data, convocacoesQ.data, colaboradorFilter, competencia]);
+    return out.sort((a, b) =>
+      a.colaborador_nome.localeCompare(b.colaborador_nome) || a.nome.localeCompare(b.nome));
+  }, [query.data, va.linhas, vt.linhas, colaboradorFilter]);
 
   return {
     ...query,
-    isLoading: query.isLoading || jornadasQ.isLoading || convocacoesQ.isLoading,
+    isLoading: query.isLoading || va.isLoading || vt.isLoading,
+    isError: query.isError || va.isError || vt.isError,
     itens,
+    refetch: () => {
+      void query.refetch();
+      va.refetchAll();
+      vt.refetchAll();
+    },
   };
 }
