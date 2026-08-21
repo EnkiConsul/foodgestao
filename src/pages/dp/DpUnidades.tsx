@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { DpTabsBar } from "@/components/dp/DpTabsBar";
+import { SindicatosPanel } from "@/components/dp/sindicatos/SindicatosPanel";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Building2, ListChecks, Users, Search, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
