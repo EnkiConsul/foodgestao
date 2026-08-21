@@ -147,6 +147,54 @@ export function tetoFolgasMes(cfg: CfgTeto, opts?: { sexo?: string | null }): nu
   return Math.max(geral, mulher);
 }
 
+/**
+ * Quantidade de folgas dominicais previstas em regra dentro de um período,
+ * a partir da quantidade de domingos que o período contém.
+ *
+ * Ex.: 1 domingo a cada 3 semanas em um período com 4 domingos → 1 folga.
+ * Ex.: modelo "1 domingo por mês" em um período com 4 domingos → 1 folga.
+ */
+export function domingosFolgaNoPeriodo(
+  cfg: CfgTeto,
+  domingosNoPeriodo: number,
+  opts?: { sexo?: string | null },
+): number {
+  const domingos = Math.max(0, Math.floor(Number(domingosNoPeriodo) || 0));
+  if (domingos === 0) return 0;
+
+  const calcular = (
+
+    modo: ModoFrequencia,
+    semanas: number,
+    porMes: number,
+  ) => {
+    if (modo === "por_mes") {
+      const qtd = Number(porMes);
+      if (!Number.isFinite(qtd) || qtd <= 0) return 0;
+      return Math.min(domingos, Math.max(0, Math.floor(qtd + 1e-9)));
+    }
+    const intervalo = Number(semanas);
+    if (!Number.isFinite(intervalo) || intervalo <= 0) return 0;
+    return Math.min(domingos, Math.floor(domingos / intervalo + 1e-9));
+  };
+
+
+  const geral = calcular(
+    cfg.modo_frequencia_domingo ?? "semanas",
+    cfg.periodicidade_domingo ?? 0,
+    cfg.domingos_por_mes ?? 0,
+  );
+  if (opts?.sexo !== "F") return geral;
+
+  const mulher = calcular(
+    cfg.modo_frequencia_domingo_mulher ?? "semanas",
+    cfg.periodicidade_domingo_mulher ?? 0,
+    cfg.domingos_por_mes_mulher ?? 0,
+  );
+  return Math.max(geral, mulher);
+}
+
+
 export interface ResumoEscolhaFolgas {
   /** Dias da semana em que o colaborador pode marcar folga (0 = domingo). */
   dias: number[];

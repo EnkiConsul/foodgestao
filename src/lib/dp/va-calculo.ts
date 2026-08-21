@@ -150,6 +150,34 @@ export interface DiasPrevistosInput {
   folgas?: FolgaMarcada[];
   /** Intervalos de férias que retiram dias do próximo depósito. */
   ferias?: { inicio: string; fim: string }[];
+  /**
+   * Folgas dominicais previstas em regra no mês (DSR). Aplicadas mesmo sem
+   * lançamento manual no calendário, quando o colaborador trabalha aos domingos.
+   */
+  folgasDominicaisPrevistas?: number;
+}
+
+/** Como cada dia do período entrou (ou não) na base do benefício. */
+export type ClasseDia =
+  | "pago"
+  | "folga_semanal"
+  | "folga_dominical"
+  | "folga_extra"
+  | "ferias"
+  | "atestado";
+
+export const CLASSE_DIA_LABEL: Record<ClasseDia, string> = {
+  pago: "Dia pago",
+  folga_semanal: "Folga semanal",
+  folga_dominical: "Folga dominical prevista",
+  folga_extra: "Folga extra",
+  ferias: "Férias",
+  atestado: "Atestado/licença",
+};
+
+export interface DiaClassificado {
+  data: string;
+  classe: ClasseDia;
 }
 
 export interface DiasPrevistosResultado {
@@ -159,16 +187,30 @@ export interface DiasPrevistosResultado {
   /** Mantido por compatibilidade; solicitações pendentes ainda não são folgas efetivas. */
   folgasPendentes: number;
   feriasDescontadas: number;
+  /** Folgas dominicais previstas em regra e retiradas da base. */
+  dominicaisDescontadas: number;
+  /** Dias de trabalho da escala antes de qualquer dedução. */
+  diasEscala: number;
   origem: "escala" | "jornada" | "convocacao";
+  /** Classificação dia a dia, para o calendário de auditoria. */
+  detalhe: DiaClassificado[];
 }
 
 const folgaValida = (f: FolgaMarcada) =>
   !f.status || f.status !== "cancelada";
 
+const classeDaFolga = (f: FolgaMarcada): ClasseDia => {
+  if (f.tipo === "extra" || f.extra === true) return "folga_extra";
+  if (f.tipo === "licenca") return "atestado";
+  if (f.tipo === "ferias") return "ferias";
+  return dowDe(f.data) === 0 ? "folga_dominical" : "folga_semanal";
+};
+
 /**
  * Dias de trabalho previstos no período: usa a escala publicada quando houver,
- * senão a jornada habitual. As folgas já marcadas no calendário saem da conta —
- * não se paga VA em dia que já se sabe que não haverá trabalho.
+ * senão a jornada habitual. Saem da conta as folgas já marcadas no calendário,
+ * as férias e as folgas dominicais previstas em regra — não se paga o vale em
+ * dia em que já se sabe que não haverá trabalho.
  */
 export function contarDiasPrevistos(input: DiasPrevistosInput): DiasPrevistosResultado {
   const dias = diasDoIntervalo(input.periodo.inicio, input.periodo.fim);
@@ -194,19 +236,53 @@ export function contarDiasPrevistos(input: DiasPrevistosInput): DiasPrevistosRes
   for (const intervalo of input.ferias ?? []) {
     for (const d of diasDoIntervalo(intervalo.inicio, intervalo.fim)) ferias.add(d);
   }
-  const semFolga = previstos.filter((d) => !porData.has(d));
-  const restantes = semFolga.filter((d) => !ferias.has(d));
-  const descontadas = previstos.length - semFolga.length;
-  const feriasDescontadas = semFolga.length - restantes.length;
+
+  const classes = new Map<string, ClasseDia>();
+  const previstosSet = new Set(previstos);
+  for (const data of previstos) {
+    const folga = porData.get(data);
+    if (ferias.has(data)) classes.set(data, "ferias");
+    else if (folga) classes.set(data, classeDaFolga(folga));
+    else classes.set(data, "pago");
+  }
+
+  // Folga dominical da regra: aplicada aos domingos ainda pagos, na ordem do mês.
+  const dominicaisPrevistas = Math.max(0, Math.floor(Number(input.folgasDominicaisPrevistas) || 0));
+  const dominicaisJaMarcadas = [...classes.entries()].filter(
+    ([, c]) => c === "folga_dominical",
+  ).length;
+  let aAplicar = Math.max(0, dominicaisPrevistas - dominicaisJaMarcadas);
+  if (aAplicar > 0) {
+    for (const data of previstos.slice().sort()) {
+      if (aAplicar === 0) break;
+      if (dowDe(data) !== 0 || classes.get(data) !== "pago") continue;
+      classes.set(data, "folga_dominical");
+      aAplicar -= 1;
+    }
+  }
+
+  const detalhe: DiaClassificado[] = dias
+    .map((data) => ({
+      data,
+      classe: previstosSet.has(data) ? classes.get(data)! : ("folga_semanal" as ClasseDia),
+    }))
+    .sort((a, b) => a.data.localeCompare(b.data));
+
+  const contar = (classe: ClasseDia) =>
+    previstos.filter((d) => classes.get(d) === classe).length;
 
   return {
-    dias: restantes.length,
-    folgasDescontadas: descontadas,
+    dias: contar("pago"),
+    folgasDescontadas: contar("folga_extra") + contar("folga_semanal") + contar("atestado"),
     folgasPendentes: 0,
-    feriasDescontadas,
+    feriasDescontadas: contar("ferias"),
+    dominicaisDescontadas: contar("folga_dominical"),
+    diasEscala: previstos.length,
     origem: usaExplicitas ? "convocacao" : usaEscala ? "escala" : "jornada",
+    detalhe,
   };
 }
+
 
 export interface DiasDescontaveisInput {
   periodo: { inicio: string; fim: string };

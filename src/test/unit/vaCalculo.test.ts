@@ -83,17 +83,28 @@ describe("contarDiasPrevistos", () => {
     expect(r.origem).toBe("convocacao");
   });
 
-  it("retira férias do próximo período sem contar duas vezes uma folga", () => {
+  it("férias prevalecem sobre a folga marcada no mesmo dia", () => {
     const r = contarDiasPrevistos({
       periodo,
       dowTrabalhados: [1, 2, 3, 4, 5, 6],
       folgas: [{ data: "2026-08-24", tipo: "normal", status: "agendada" }],
       ferias: [{ inicio: "2026-08-24", fim: "2026-08-26" }],
     });
-    expect(r.folgasDescontadas).toBe(1);
-    expect(r.feriasDescontadas).toBe(2);
+    expect(r.folgasDescontadas).toBe(0);
+    expect(r.feriasDescontadas).toBe(3);
     expect(r.dias).toBe(6);
   });
+
+  it("abate as folgas dominicais previstas em regra", () => {
+    const r = contarDiasPrevistos({
+      periodo: { inicio: "2026-09-01", fim: "2026-09-30" },
+      dowTrabalhados: [0, 1, 2, 3, 4, 5],
+      folgasDominicaisPrevistas: 1,
+    });
+    expect(r.dominicaisDescontadas).toBe(1);
+    expect(r.dias).toBe(r.diasEscala - 1);
+  });
+
 });
 
 describe("contarDiasDescontaveis", () => {
