@@ -115,7 +115,7 @@ export default function DpBeneficios() {
       <DpPageHeader
         icon={Gift}
         title="Benefícios"
-        description="Vale-alimentação, vale-transporte e demais benefícios da empresa, com as mesmas regras da ficha do colaborador e geração automática na folha."
+        description="Vale-alimentação, vale-transporte e demais benefícios da empresa, com as mesmas regras da ficha do colaborador e parâmetros próprios por unidade ou cargo."
       />
 
       <DpStatGrid>
