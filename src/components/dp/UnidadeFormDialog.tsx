@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Store } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -143,6 +143,10 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
   // Carrega o formulário sempre que o diálogo abre.
   const [criadaId, setCriadaId] = useState<string | null>(null);
   const [aba, setAba] = useState<"dados" | "funcionamento">(abaInicial);
+  const salvarFuncionamento = useRef<(() => Promise<void>) | null>(null);
+  const registrarSalvar = useCallback((fn: (() => Promise<void>) | null) => {
+    salvarFuncionamento.current = fn;
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -196,6 +200,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         tem_adiantamento: form.tem_adiantamento,
         dia_adiantamento: form.dia_adiantamento ? Number(form.dia_adiantamento) : null,
       } as Parameters<typeof upsert.mutateAsync>[0]);
+      if (salvarFuncionamento.current) await salvarFuncionamento.current();
       onSaved?.(salva);
       if (unidade || criadaId) {
         toast.success("Unidade atualizada");
@@ -376,7 +381,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
             <Store className="h-4 w-4" aria-hidden="true" />
             Horário de funcionamento da loja
           </Label>
-          <HorarioFuncionamentoEditor unidadeId={unidadeId} semRodape />
+          <HorarioFuncionamentoEditor unidadeId={unidadeId} semRodape onRegistrarSalvar={registrarSalvar} />
         </TabsContent>
         </Tabs>
         <DialogFooter className="flex-col gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row">
