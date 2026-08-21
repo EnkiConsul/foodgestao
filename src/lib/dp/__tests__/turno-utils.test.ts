@@ -102,3 +102,30 @@ describe("nome e intervalo legal", () => {
     expect(intervaloAbaixoDoLegal({ entrada: "10:00", saida: "13:00", intervalo_minutos: 0 })).toBeNull();
   });
 });
+
+describe("funcionamento: padrões e resumo", () => {
+  it("dia sem horário salvo começa fechado e sem período", () => {
+    const d = funcionamentoVazio(3);
+    expect(d.aberto).toBe(false);
+    expect(d.periodos).toEqual([]);
+    expect(formatarFuncionamento(d)).toBe("Fechado");
+  });
+
+  it("período novo não sugere horário", () => {
+    const p = periodoVazio();
+    expect(p.hora_abertura).toBeNull();
+    expect(p.hora_fechamento).toBeNull();
+    expect(periodoCompleto(p)).toBe(false);
+  });
+
+  it("resumo agrupa dias vizinhos com o mesmo horário", () => {
+    const dia = (n: number) => ({
+      dia_semana: n,
+      aberto: true,
+      periodos: [{ nome: "Dia", hora_abertura: "11:00", hora_fechamento: "23:00" }],
+      observacoes: null,
+    });
+    const resumo = resumoFuncionamentoSemana([1, 2, 3, 4, 5].map(dia));
+    expect(resumo).toBe("Seg–Sex 11:00 → 23:00");
+  });
+});
