@@ -96,14 +96,27 @@ export default function DpUnidades() {
         title="Unidades"
         description="Cadastre e gerencie as unidades, seus cargos e sindicatos patronais."
         actions={
-          <>
-            <Button onClick={openNew} className="rounded-full px-6">
-              <Plus className="size-4 mr-2" /> Nova Unidade
-            </Button>
-          </>
+          aba === "unidades" ? (
+            <>
+              <Button onClick={openNew} className="rounded-full px-6">
+                <Plus className="size-4 mr-2" /> Nova Unidade
+              </Button>
+            </>
+          ) : undefined
         }
       />
 
+      <Tabs value={aba} onValueChange={setAba} className="space-y-4">
+        <DpTabsBar>
+          <TabsTrigger value="unidades">Unidades</TabsTrigger>
+          <TabsTrigger value="sindicatos">Sindicatos Patronais</TabsTrigger>
+        </DpTabsBar>
+
+        <TabsContent value="sindicatos" className="m-0">
+          <SindicatosPanel tipo="patronal" />
+        </TabsContent>
+
+        <TabsContent value="unidades" className="m-0">
       <div className="flex flex-col sm:flex-row gap-2 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
