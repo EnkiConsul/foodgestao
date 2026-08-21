@@ -167,8 +167,9 @@ export default function DpBeneficios() {
       <Tabs defaultValue="calculo" className="space-y-3 pb-24 md:pb-0">
         <DpTabsBar>
           <TabsTrigger value="calculo">Cálculo mensal</TabsTrigger>
-          <TabsTrigger value="ficha">Por colaborador</TabsTrigger>
-          <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+          <TabsTrigger value="ficha">Vales por colaborador</TabsTrigger>
+          <TabsTrigger value="catalogo">Catálogo da empresa</TabsTrigger>
+
         </DpTabsBar>
 
         <TabsContent value="calculo" className="space-y-3">
