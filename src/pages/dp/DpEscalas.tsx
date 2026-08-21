@@ -366,18 +366,54 @@ export default function DpEscalas() {
           )}
 
           <DpContentCard contentClassName="p-4 md:p-5">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="flex items-center gap-2 text-sm font-semibold">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <h2 className="flex items-start gap-2 text-sm font-semibold">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 {resultado.propostas.length} folga(s) propostas — {selecionadas.size} selecionada(s)
               </h2>
-              <Button onClick={() => publicar.mutate()} disabled={publicar.isPending || selecionadas.size === 0}>
+              <Button
+                className="w-full sm:w-auto"
+                onClick={() => publicar.mutate()}
+                disabled={publicar.isPending || selecionadas.size === 0}
+              >
                 <Upload className="mr-1 h-4 w-4" />
                 {publicar.isPending ? "Publicando…" : "Publicar escala"}
               </Button>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Mobile: cartões selecionáveis */}
+            <ul className="space-y-2 md:hidden">
+              {resultado.propostas.length === 0 && (
+                <li className="py-6 text-center text-sm text-muted-foreground">Nenhuma folga a propor.</li>
+              )}
+              {resultado.propostas.map((p) => {
+                const chave = `${p.colaboradorId}|${p.data}`;
+                return (
+                  <li key={chave} className="flex items-start gap-3 rounded-2xl border border-border bg-card p-3">
+                    <Checkbox
+                      className="mt-1"
+                      checked={selecionadas.has(chave)}
+                      onCheckedChange={() => toggle(chave)}
+                      aria-label={`Selecionar folga de ${p.nome} em ${p.data}`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">{p.nome}</p>
+                      <p className="text-xs capitalize text-muted-foreground">
+                        {format(parseIso(p.data), "dd/MM/yyyy")} · {diaSemanaLabel(p.data)}
+                      </p>
+                      <Badge
+                        variant={p.motivo.includes("dominical") ? "default" : "secondary"}
+                        className="mt-1.5 max-w-full whitespace-normal text-left text-[11px]"
+                      >
+                        {p.motivo}
+                      </Badge>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="hidden overflow-x-auto md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
