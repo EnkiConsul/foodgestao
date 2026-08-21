@@ -165,6 +165,11 @@ export default function DpUnidades() {
                     {u.cnpj ? formatCNPJ(u.cnpj) : "—"}
                   </td>
                   <td className="p-4 text-center">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+                      <Users className="size-3" /> {u.colaboradores_count}
+                    </span>
+                  </td>
+                  <td className="p-4 text-center">
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                       <ListChecks className="size-3" /> {u.cargos_count}
                     </span>
