@@ -563,7 +563,7 @@ export function useDpPendencias() {
             tipo: "Salário-família",
             vencimento: ymd(prazo),
             atrasoDias: differenceInCalendarDays(today, prazo),
-            url: "/dp/cadastros/adicionais",
+            url: "/dp/cadastros/cargos?aba=complementos",
           });
         }
       } catch (e) {

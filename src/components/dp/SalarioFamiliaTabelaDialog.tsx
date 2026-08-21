@@ -124,7 +124,7 @@ export function SalarioFamiliaTabelaForm({
       )}
       {mostrarLinkCadastro && (
         <Link
-          to="/dp/cadastros/adicionais"
+          to="/dp/cadastros/cargos?aba=complementos"
           className="inline-flex items-center gap-1 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
         >
           Abrir Adicionais e salário-família <ExternalLink className="h-3 w-3" />
