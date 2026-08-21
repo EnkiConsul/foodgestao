@@ -212,13 +212,9 @@ export default function DpTurnos() {
 
       />
 
-      <Tabs defaultValue="turnos" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="turnos" className="h-11">Turnos</TabsTrigger>
-          <TabsTrigger value="funcionamento" className="h-11">Funcionamento</TabsTrigger>
-        </TabsList>
+      <div className="space-y-4">
+        <div className="space-y-4">
 
-        <TabsContent value="turnos" className="space-y-4">
           <DpFilterCard>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
