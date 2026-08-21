@@ -60,6 +60,40 @@ describe("contarDiasPrevistos", () => {
     expect(r.dias).toBe(2);
     expect(r.origem).toBe("escala");
   });
+
+  it("usa convocações distintas para intermitente sem fallback de jornada", () => {
+    const r = contarDiasPrevistos({
+      periodo,
+      datasPrevistas: ["2026-08-21", "2026-08-21", "2026-08-23"],
+      origemDatasPrevistas: "convocacao",
+      dowTrabalhados: [1, 2, 3, 4, 5],
+    });
+    expect(r.dias).toBe(2);
+    expect(r.origem).toBe("convocacao");
+  });
+
+  it("intermitente sem convocação fica com zero dias", () => {
+    const r = contarDiasPrevistos({
+      periodo,
+      datasPrevistas: [],
+      origemDatasPrevistas: "convocacao",
+      dowTrabalhados: [1, 2, 3, 4, 5],
+    });
+    expect(r.dias).toBe(0);
+    expect(r.origem).toBe("convocacao");
+  });
+
+  it("retira férias do próximo período sem contar duas vezes uma folga", () => {
+    const r = contarDiasPrevistos({
+      periodo,
+      dowTrabalhados: [1, 2, 3, 4, 5, 6],
+      folgas: [{ data: "2026-08-24", tipo: "normal", status: "agendada" }],
+      ferias: [{ inicio: "2026-08-24", fim: "2026-08-26" }],
+    });
+    expect(r.folgasDescontadas).toBe(1);
+    expect(r.feriasDescontadas).toBe(2);
+    expect(r.dias).toBe(6);
+  });
 });
 
 describe("contarDiasDescontaveis", () => {
