@@ -2,10 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { SalarioFamiliaConfig } from "@/lib/dp/salarioFamilia";
+import type { ModoAdicional } from "@/lib/dp/tempoServico";
 
 interface Row extends SalarioFamiliaConfig {
   id: string | null;
   adicionalAtivo: boolean;
+  /** Como combinar regras concorrentes: escada (padrão) ou cumulativo. */
+  adicionalModo: ModoAdicional;
 }
 
 const VAZIO: Row = {
@@ -15,6 +18,7 @@ const VAZIO: Row = {
   vigencia: null,
   confirmadoEm: null,
   adicionalAtivo: false,
+  adicionalModo: "escada",
 };
 
 /**
@@ -32,7 +36,7 @@ export function useDpSalarioFamiliaConfig() {
       const { data, error } = await supabase
         .from("dp_config_dp")
         .select(
-          "id, salario_familia_cota, salario_familia_teto, salario_familia_vigencia, salario_familia_confirmado_em, adicional_tempo_servico_ativo",
+          "id, salario_familia_cota, salario_familia_teto, salario_familia_vigencia, salario_familia_confirmado_em, adicional_tempo_servico_ativo, adicional_tempo_servico_modo",
         )
         .eq("company_id", selectedCompanyId!)
         .is("unidade_id", null)
@@ -46,6 +50,8 @@ export function useDpSalarioFamiliaConfig() {
         vigencia: data.salario_familia_vigencia ?? null,
         confirmadoEm: data.salario_familia_confirmado_em ?? null,
         adicionalAtivo: !!data.adicional_tempo_servico_ativo,
+        adicionalModo:
+          data.adicional_tempo_servico_modo === "cumulativo" ? "cumulativo" : "escada",
       };
     },
   });
@@ -56,6 +62,7 @@ export function useDpSalarioFamiliaConfig() {
       teto?: number | null;
       vigencia?: string | null;
       adicionalAtivo?: boolean;
+      adicionalModo?: ModoAdicional;
       confirmar?: boolean;
     }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
@@ -65,12 +72,15 @@ export function useDpSalarioFamiliaConfig() {
         salario_familia_vigencia?: string | null;
         salario_familia_confirmado_em?: string | null;
         adicional_tempo_servico_ativo?: boolean;
+        adicional_tempo_servico_modo?: ModoAdicional;
       } = {};
       if (input.cota !== undefined) patch.salario_familia_cota = input.cota;
       if (input.teto !== undefined) patch.salario_familia_teto = input.teto;
       if (input.vigencia !== undefined) patch.salario_familia_vigencia = input.vigencia;
       if (input.adicionalAtivo !== undefined)
         patch.adicional_tempo_servico_ativo = input.adicionalAtivo;
+      if (input.adicionalModo !== undefined)
+        patch.adicional_tempo_servico_modo = input.adicionalModo;
       if (input.confirmar)
         patch.salario_familia_confirmado_em = new Date().toISOString().slice(0, 10);
 
