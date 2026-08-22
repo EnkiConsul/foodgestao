@@ -12,6 +12,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { z } from "npm:zod@3";
 import { extractPeriodo, extractPeriodoFromFilename } from "../_shared/competencia.ts";
+import { detectTipoFromText, parseNaturezaLine, type DocTipo } from "../_shared/doc-tipos.ts";
 
 const BUCKET = "dp-bulk-import";
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -197,8 +198,18 @@ async function processPage(args: {
       extractPeriodoFromFilename(batch.source_file_name ?? ""); // "YYYY-MM" ou null
     const unidadeDetectada = cnpjs.map((c) => cnpjToUnidade.get(c)).find(Boolean) ?? null;
 
+    // Natureza (só relevante quando o lote está em detecção automática, mas
+    // guardamos sempre para permitir correção manual na revisão).
+    const tipoDetectado: DocTipo | null =
+      parseNaturezaLine(ocr) ??
+      detectTipoFromText(ocr) ??
+      detectTipoFromText(batch.source_file_name ?? "");
+    const tipoEfetivo = batch.deteccao_automatica
+      ? (tipoDetectado ?? "outros")
+      : batch.tipo;
+
     // Restrição por unidade + possui_folha_ponto (para tipo=ponto)
-    const restrictPonto = batch.tipo === "ponto";
+    const restrictPonto = tipoEfetivo === "ponto";
     const candidates = colabList.filter((c) => {
       if (restrictPonto && c.possui_folha_ponto === false) return false;
       if (unidadeDetectada && c.unidade_id && c.unidade_id !== unidadeDetectada) return false;
@@ -243,7 +254,7 @@ async function processPage(args: {
         ? `${competencia}-01`
         : String(batch.referencia_data);
       const { data: dup } = await svc.from("dp_documentos")
-        .select("id").eq("colaborador_id", match.id).eq("tipo", batch.tipo)
+        .select("id").eq("colaborador_id", match.id).eq("tipo", tipoEfetivo)
         .eq("referencia_data", ref).limit(1).maybeSingle();
       if (dup?.id) duplicateOf = dup.id as string;
     }
@@ -260,6 +271,8 @@ async function processPage(args: {
       matched_colaborador_ativo: match ? match.ativo : null,
       detected_cnpj: cnpjs[0] ?? null,
       detected_competencia: competencia,
+      tipo_detectado: tipoEfetivo,
+      tipo_confidence: tipoDetectado ? 0.9 : 0,
       duplicate_of: duplicateOf,
       confidence,
       status: "pending",
@@ -349,7 +362,7 @@ async function ocrPage(apiKey: string, pdfB64: string): Promise<string> {
         content: [
           {
             type: "text",
-            text: "Extraia TODO o texto legível deste documento de RH (contracheque, folha de ponto, adiantamento ou décimo terceiro). Responda apenas com o texto puro extraído, sem comentários. Inclua CPF, CNPJ, matrícula e nome do colaborador. Na ÚLTIMA linha, acrescente exatamente `COMPETENCIA: MM/AAAA` com o mês/ano de referência do documento (o período trabalhado ou a folha a que ele se refere). NUNCA use a data de emissão, impressão, admissão ou pagamento como competência. Se não for possível determinar, escreva `COMPETENCIA: DESCONHECIDA`.",
+            text: "Extraia TODO o texto legível deste documento de departamento pessoal. Responda apenas com o texto puro extraído, sem comentários. Inclua CPF, CNPJ, matrícula e nome do colaborador. Na PENÚLTIMA linha, acrescente exatamente `COMPETENCIA: MM/AAAA` com o mês/ano de referência do documento (o período trabalhado ou a folha a que ele se refere). NUNCA use a data de emissão, impressão, admissão ou pagamento como competência. Se não for possível determinar, escreva `COMPETENCIA: DESCONHECIDA`. Na ÚLTIMA linha, acrescente exatamente `NATUREZA: x` onde x é UM destes valores, conforme o documento: contracheque (contracheque/holerite mensal), contracheque_13 (décimo terceiro), contracheque_ferias (folha de pagamento de férias), adiantamento (adiantamento/antecipação salarial), ponto (folha/espelho de ponto), aviso_ferias, recibo_ferias, informe_rendimentos (comprovante anual de rendimentos), atestado, disciplinar (advertência/suspensão), contrato, outros. Se não tiver certeza, escreva `NATUREZA: outros`.",
           },
           {
             type: "file",
