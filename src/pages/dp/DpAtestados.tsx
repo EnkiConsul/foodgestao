@@ -278,7 +278,7 @@ export default function DpAtestados() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <TabsList>
-          <TabsTrigger value="importar"><Upload className="size-4 mr-2" />Importar</TabsTrigger>
+          <TabsTrigger value="importar"><Upload className="size-4 mr-2" />Cadastrar</TabsTrigger>
           <TabsTrigger value="historico"><History className="size-4 mr-2" />Histórico</TabsTrigger>
         </TabsList>
 
@@ -286,7 +286,7 @@ export default function DpAtestados() {
           <DpContentCard>
             <div className="flex items-center gap-2 mb-4">
               <Upload className="size-5 text-primary" />
-              <h3 className="text-lg font-semibold">Importar Atestado</h3>
+              <h3 className="text-lg font-semibold">Cadastrar Atestado</h3>
             </div>
 
             <div className="space-y-4">
