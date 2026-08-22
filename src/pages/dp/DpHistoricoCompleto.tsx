@@ -350,15 +350,66 @@ export default function DpHistoricoCompleto() {
 
   return (
     <DpPage>
-      <Helmet><title>Histórico Completo — Pessoas 360°</title></Helmet>
+      <Helmet><title>Histórico — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={FileText}
-        title="Histórico Completo de Documentos"
+        title="Histórico"
         description="Visualize todos os documentos de todos os colaboradores em um único lugar."
       />
 
+      {/* Barra de naturezas: grupos e tipos sempre à mostra */}
+      <div className="rounded-lg border bg-card p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="text-sm font-semibold">Natureza do Documento</div>
+          {(grupo !== "all" || tipo !== "all") && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setGrupo("all"); setTipo("all"); }}>
+              Limpar natureza
+            </Button>
+          )}
+        </div>
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+          <button
+            type="button"
+            onClick={() => { setGrupo("all"); setTipo("all"); }}
+            className={`h-7 rounded-full border px-3 text-xs font-semibold transition-colors ${
+              grupo === "all" && tipo === "all" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
+            }`}
+          >
+            Todos
+          </button>
+          {DP_DOC_GRUPOS.map((g) => (
+            <div key={g.grupo} className="min-w-0">
+              <button
+                type="button"
+                onClick={() => { setGrupo(g.grupo); setTipo("all"); }}
+                className={`mb-1 block text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+                  grupo === g.grupo && tipo === "all" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {g.label}
+              </button>
+              <div className="flex flex-wrap gap-1.5">
+                {g.tipos.filter((t) => t.value !== "ferias").map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => { setGrupo("all"); setTipo(tipo === t.value ? "all" : t.value); }}
+                    className={`h-6 rounded-full border px-2.5 text-[11px] transition-colors ${
+                      tipo === t.value ? "border-primary bg-primary text-primary-foreground" : `${t.badgeClass} hover:bg-muted`
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <DpFilterCard>
         <div className="mb-3 text-sm font-semibold">Filtros</div>
+
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase text-muted-foreground">Tipo</Label>
