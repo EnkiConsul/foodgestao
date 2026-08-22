@@ -21,6 +21,7 @@ type Alerta = {
   nome: string;
   tipo: "ponto" | "adiantamento";
   problema: "faltando" | "inconsistente";
+  unidade_id: string | null;
 };
 
 const TIPO_LABEL = { ponto: "Folha de Ponto", adiantamento: "Adiantamento Salarial" } as const;
@@ -31,10 +32,13 @@ type Grupo = {
   key: string;
   tipo: "ponto" | "adiantamento";
   problema: "faltando" | "inconsistente";
+  unidade_id: string | null;
+  nome_unidade: string | null;
   nomes: string[];
   total: number;
   completo: boolean;
 };
+
 
 /**
  * Confere, por competência, se os documentos de Folha de Ponto e Adiantamento
