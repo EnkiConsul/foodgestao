@@ -36,8 +36,17 @@ Arquivo: `src/components/dp/documentos/DocConsistenciaPanel.tsx` (apenas apresen
 7. **Mobile**: manter o empilhamento atual; o nome da unidade pode ocupar a linha inteira acima dos badges/nomes para não comprimir a largura.
 8. **Estado local de expansão**: a chave de `aberto` segue a nova chave de grupo `${problema}-${tipo}-${unidade_id}`.
 
+## Ícone da tela Importar
+
+Trocar o ícone do item de menu **Importar** (`/dp/documentos`) no arquivo `src/config/dpNavigation.tsx`:
+
+- Ícone atual: `FileText`.
+- Novo ícone: `Upload` (do `lucide-react`), mais alinhado com a ação de importar documentos.
+- Atualizar também o grupo de importação caso o ícone do grupo deva refletir a mesma ideia; caso contrário, alterar apenas o item interno.
+
 ## Escopo
 
-- Apenas frontend: alteração em `DocConsistenciaPanel.tsx`.
+- Apenas frontend: alteração em `DocConsistenciaPanel.tsx` e `src/config/dpNavigation.tsx`.
 - Nenhuma migração de banco, RLS, edge function ou hook novo.
 - Preservar o comportamento de "ver mais / ver menos" de nomes e a responsividade existente.
+
