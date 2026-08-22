@@ -750,7 +750,7 @@ export default function DpHistoricoCompleto() {
           <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
-                {colOrder.map((k) => <ColunaHeader key={k} k={k} />)}
+                {colOrder.map((k) => renderColunaHeader(k))}
                 <TableHead className="uppercase text-xs text-right w-[9%]">Ações</TableHead>
               </TableRow>
             </TableHeader>
