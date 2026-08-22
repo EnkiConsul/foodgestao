@@ -73,7 +73,21 @@ Novo painel **Pendências da Competência** dentro do Histórico (e alerta no to
 - No portal, o colaborador vê **somente** documentos cujo `colaborador_id` é o dele — garantido pelas policies de `dp_documentos` e mantido nas consultas do portal.
 - Documentos importados sem colaborador vinculado ficam retidos na importação e nunca aparecem no portal.
 
-### 7. Navegação e rotas
+### 7. Paridade: nada da importação atual se perde
+
+Tudo o que a importação de contracheques/ponto/adiantamento faz hoje é preservado na tela única:
+
+- OCR/IA por página, extração de CPF, CNPJ, matrícula e nome; match por CPF → matrícula → nome, com nível de confiança.
+- Competência extraída pela IA com a regra "nunca usar data de emissão/impressão/admissão/pagamento"; competência fixa por lote quando informada.
+- Barra de progresso do lote, banner de processamento, lista de lotes com histórico e detalhes do lote.
+- Detecção de duplicidade (colaborador + natureza + competência) com escolha **ignorar ou substituir** e o diálogo de confirmação de substituição.
+- Colaboradores inativos são casados mas sinalizados; colaboradores faltantes têm painel próprio, criação inline de cadastro e confirmação explícita.
+- Cobertura por unidade: vinculação de unidade em lote, alerta de "unidade indefinida" e aprovação explícita registrada em auditoria.
+- Regra específica de folha de ponto (só colaboradores da unidade com `possui_folha_ponto`) é mantida — e generalizada: adiantamento passa a respeitar `optante_adiantamento` do mesmo jeito.
+- Aprovação/descarte em lote, correção de competência inline, pré-visualização do PDF, download por link assinado, exclusão do arquivo + registro, status disponível/pendente/recusado.
+- Filtros de colaborador, mês, ano, status e unidade, ordenação por competência e nome, contadores de pendências — todos migrados para o Histórico (que já tem busca, ordenação por coluna e paginação).
+
+### 8. Navegação e rotas
 
 - Grupo "Documentos" passa a ter: **Importar Documentos** e **Histórico de Documentos**.
 - A tela ACT/CCT é renomeada para **Negociações Sindicais** e vai para o grupo **Cadastro** (`/dp/cadastros/negociacoes-sindicais`, com redirect de `/dp/documentos/act-cct`).
