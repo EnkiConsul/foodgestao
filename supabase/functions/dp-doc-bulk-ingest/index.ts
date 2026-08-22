@@ -12,7 +12,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { z } from "npm:zod@3";
 import { extractPeriodo, extractPeriodoFromFilename } from "../_shared/competencia.ts";
-import { detectTipoFromText, parseNaturezaLine, type DocTipo } from "../_shared/doc-tipos.ts";
+import { detectTipoFromText, parseNaturezaLine, assinaturaDocumento, type DocTipo } from "../_shared/doc-tipos.ts";
 
 const BUCKET = "dp-bulk-import";
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -198,15 +198,32 @@ async function processPage(args: {
       extractPeriodoFromFilename(batch.source_file_name ?? ""); // "YYYY-MM" ou null
     const unidadeDetectada = cnpjs.map((c) => cnpjToUnidade.get(c)).find(Boolean) ?? null;
 
-    // Natureza (só relevante quando o lote está em detecção automática, mas
-    // guardamos sempre para permitir correção manual na revisão).
-    const tipoDetectado: DocTipo | null =
-      parseNaturezaLine(ocr) ??
-      detectTipoFromText(ocr) ??
-      detectTipoFromText(batch.source_file_name ?? "");
+    // Natureza: regra aprendida da empresa > IA > heurística por palavra-chave.
+    const assinatura = assinaturaDocumento(batch.source_file_name ?? "", ocr);
+    let tipoAprendido: DocTipo | null = null;
+    if (assinatura) {
+      const { data: regra } = await svc.from("dp_doc_tipo_aprendizado")
+        .select("id, tipo, hits")
+        .eq("company_id", batch.company_id)
+        .eq("assinatura", assinatura)
+        .limit(1).maybeSingle();
+      if (regra?.tipo) {
+        tipoAprendido = regra.tipo as DocTipo;
+        await svc.from("dp_doc_tipo_aprendizado")
+          .update({ hits: (regra.hits ?? 1) + 1, last_used_at: new Date().toISOString() })
+          .eq("id", regra.id);
+      }
+
+    }
+    const tipoIa: DocTipo | null = parseNaturezaLine(ocr);
+    const tipoHeuristica: DocTipo | null =
+      detectTipoFromText(ocr) ?? detectTipoFromText(batch.source_file_name ?? "");
+    const tipoDetectado: DocTipo | null = tipoAprendido ?? tipoIa ?? tipoHeuristica;
+    const tipoOrigem = tipoAprendido ? "aprendido" : tipoIa ? "ia" : tipoHeuristica ? "keyword" : null;
     const tipoEfetivo = batch.deteccao_automatica
       ? (tipoDetectado ?? "outros")
       : batch.tipo;
+
 
     // Restrição por unidade + possui_folha_ponto (para tipo=ponto)
     const restrictPonto = tipoEfetivo === "ponto";
@@ -272,7 +289,9 @@ async function processPage(args: {
       detected_cnpj: cnpjs[0] ?? null,
       detected_competencia: competencia,
       tipo_detectado: tipoEfetivo,
-      tipo_confidence: tipoDetectado ? 0.9 : 0,
+      tipo_confidence: tipoAprendido ? 1 : tipoDetectado ? 0.9 : 0,
+      tipo_origem: tipoOrigem,
+      tipo_assinatura: assinatura || null,
       duplicate_of: duplicateOf,
       confidence,
       status: "pending",

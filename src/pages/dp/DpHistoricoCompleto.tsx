@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { DP_DOC_TIPOS, docTipoBadgeClass } from "@/lib/dp/documentoTipos";
+import { DP_DOC_TIPOS, DP_DOC_GRUPOS, docTipoBadgeClass, docTipoGrupo } from "@/lib/dp/documentoTipos";
 
 type UnifiedDoc = {
   id: string;
@@ -90,6 +90,12 @@ export default function DpHistoricoCompleto() {
   const unidades = useDpUnidades();
 
   const [tipo, setTipo] = useState("all");
+  const [grupo, setGrupo] = useState("all");
+  const [colFilters, setColFilters] = useState({
+    colaborador: "", tipo: "", competencia: "", unidade: "", status: "",
+  });
+  const setColFilter = (k: keyof typeof colFilters, v: string) =>
+    setColFilters((prev) => ({ ...prev, [k]: v }));
   const [unidadeId, setUnidadeId] = useState("all");
   const [colabId, setColabId] = useState("all");
   const [mes, setMes] = useState("all");
@@ -263,20 +269,29 @@ export default function DpHistoricoCompleto() {
 
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
+    const cf = (v: string) => v.trim().toLowerCase();
     return (query.data ?? []).filter((r) => {
       if (tipo !== "all" && r.tipo_key !== tipo) return false;
+      if (grupo !== "all" && docTipoGrupo(r.tipo_key) !== grupo) return false;
       if (unidadeId !== "all" && r.unidade_id !== unidadeId) return false;
       if (colabId !== "all" && r.colaborador_id !== colabId) return false;
       if (status !== "all" && r.status_key !== status) return false;
       if (ano !== "all" && !r.competencia_sort.startsWith(ano)) return false;
       if (mes !== "all" && r.competencia_sort.slice(5, 7) !== mes) return false;
+      // Filtros por coluna (estilo planilha)
+      if (colFilters.colaborador && !r.colaborador_nome.toLowerCase().includes(cf(colFilters.colaborador))) return false;
+      if (colFilters.tipo && !r.tipo_label.toLowerCase().includes(cf(colFilters.tipo))) return false;
+      if (colFilters.competencia && !r.competencia.toLowerCase().includes(cf(colFilters.competencia))) return false;
+      if (colFilters.unidade && !r.unidade_nome.toLowerCase().includes(cf(colFilters.unidade))) return false;
+      if (colFilters.status && !r.status_label.toLowerCase().includes(cf(colFilters.status))) return false;
       if (q) {
         const hay = `${r.colaborador_nome} ${r.tipo_label} ${r.status_label} ${r.unidade_nome} ${r.titulo}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [query.data, tipo, unidadeId, colabId, mes, ano, status, busca]);
+  }, [query.data, tipo, grupo, unidadeId, colabId, mes, ano, status, busca, colFilters]);
+
 
   // ---------------- Ordenação ----------------
   type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "status_label" | "data";
@@ -304,13 +319,14 @@ export default function DpHistoricoCompleto() {
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  useEffect(() => { setPage(1); }, [tipo, unidadeId, colabId, mes, ano, status, busca, pageSize]);
+  useEffect(() => { setPage(1); }, [tipo, grupo, unidadeId, colabId, mes, ano, status, busca, pageSize, colFilters]);
   useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
   const paged = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
 
   const limpar = () => {
-    setTipo("all"); setUnidadeId("all"); setColabId("all");
+    setTipo("all"); setGrupo("all"); setUnidadeId("all"); setColabId("all");
     setMes("all"); setAno("all"); setStatus("all"); setBusca("");
+    setColFilters({ colaborador: "", tipo: "", competencia: "", unidade: "", status: "" });
   };
 
   const SortIcon = ({ k }: { k: SortKey }) =>
@@ -334,15 +350,66 @@ export default function DpHistoricoCompleto() {
 
   return (
     <DpPage>
-      <Helmet><title>Histórico Completo — Pessoas 360°</title></Helmet>
+      <Helmet><title>Histórico — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={FileText}
-        title="Histórico Completo de Documentos"
+        title="Histórico"
         description="Visualize todos os documentos de todos os colaboradores em um único lugar."
       />
 
+      {/* Barra de naturezas: grupos e tipos sempre à mostra */}
+      <div className="rounded-lg border bg-card p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="text-sm font-semibold">Natureza do Documento</div>
+          {(grupo !== "all" || tipo !== "all") && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setGrupo("all"); setTipo("all"); }}>
+              Limpar natureza
+            </Button>
+          )}
+        </div>
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+          <button
+            type="button"
+            onClick={() => { setGrupo("all"); setTipo("all"); }}
+            className={`h-7 rounded-full border px-3 text-xs font-semibold transition-colors ${
+              grupo === "all" && tipo === "all" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
+            }`}
+          >
+            Todos
+          </button>
+          {DP_DOC_GRUPOS.map((g) => (
+            <div key={g.grupo} className="min-w-0">
+              <button
+                type="button"
+                onClick={() => { setGrupo(g.grupo); setTipo("all"); }}
+                className={`mb-1 block text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+                  grupo === g.grupo && tipo === "all" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {g.label}
+              </button>
+              <div className="flex flex-wrap gap-1.5">
+                {g.tipos.filter((t) => t.value !== "ferias").map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => { setGrupo("all"); setTipo(tipo === t.value ? "all" : t.value); }}
+                    className={`h-6 rounded-full border px-2.5 text-[11px] transition-colors ${
+                      tipo === t.value ? "border-primary bg-primary text-primary-foreground" : `${t.badgeClass} hover:bg-muted`
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <DpFilterCard>
         <div className="mb-3 text-sm font-semibold">Filtros</div>
+
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase text-muted-foreground">Tipo</Label>
@@ -452,7 +519,24 @@ export default function DpHistoricoCompleto() {
                 <TableHead className="uppercase text-xs cursor-pointer select-none w-[9%]" onClick={() => toggleSort("data")}>Data<SortIcon k="data" /></TableHead>
                 <TableHead className="uppercase text-xs text-right w-[9%]">Ações</TableHead>
               </TableRow>
+              {/* Filtros por coluna (estilo planilha) */}
+              <TableRow className="hover:bg-transparent">
+                {(["colaborador", "tipo", "competencia", "unidade", "status"] as const).map((k) => (
+                  <TableHead key={k} className="py-1.5">
+                    <Input
+                      value={colFilters[k]}
+                      onChange={(e) => setColFilter(k, e.target.value)}
+                      placeholder="Filtrar…"
+                      className="h-7 text-xs"
+                    />
+                  </TableHead>
+                ))}
+                <TableHead className="py-1.5" />
+                <TableHead className="py-1.5" />
+                <TableHead className="py-1.5" />
+              </TableRow>
             </TableHeader>
+
             <TableBody>
               {paged.map((r) => (
                 <TableRow key={r.id}>
