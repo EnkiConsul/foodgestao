@@ -3234,6 +3234,7 @@ export type Database = {
           tipo_detectado:
             | Database["public"]["Enums"]["dp_documento_tipo"]
             | null
+          tipo_origem: string | null
           updated_at: string
         }
         Insert: {
@@ -3263,6 +3264,7 @@ export type Database = {
           tipo_detectado?:
             | Database["public"]["Enums"]["dp_documento_tipo"]
             | null
+          tipo_origem?: string | null
           updated_at?: string
         }
         Update: {
@@ -3292,6 +3294,7 @@ export type Database = {
           tipo_detectado?:
             | Database["public"]["Enums"]["dp_documento_tipo"]
             | null
+          tipo_origem?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4838,6 +4841,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      dp_doc_tipo_aprendizado: {
+        Row: {
+          assinatura: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          hits: number
+          id: string
+          last_used_at: string
+          origem: string
+          tipo: Database["public"]["Enums"]["dp_documento_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          assinatura: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          hits?: number
+          id?: string
+          last_used_at?: string
+          origem?: string
+          tipo: Database["public"]["Enums"]["dp_documento_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          assinatura?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          hits?: number
+          id?: string
+          last_used_at?: string
+          origem?: string
+          tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
+          updated_at?: string
+        }
+        Relationships: []
       }
       dp_documento_aceites: {
         Row: {
@@ -14992,6 +15034,18 @@ export type Database = {
         | "aviso_ferias"
         | "recibo_ferias"
         | "informe_rendimentos"
+        | "plr"
+        | "outros_pagamentos"
+        | "banco_horas"
+        | "ajuste_jornada"
+        | "termos"
+        | "aviso_previo"
+        | "trct"
+        | "demonstrativo_rescisorio"
+        | "outros_ferias"
+        | "outros_admissao"
+        | "outros_desligamento"
+        | "outros_fiscais"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
       dp_escala_item_origem: "gerado" | "manual" | "troca" | "convocacao"
       dp_escala_item_tipo:
@@ -15513,6 +15567,18 @@ export const Constants = {
         "aviso_ferias",
         "recibo_ferias",
         "informe_rendimentos",
+        "plr",
+        "outros_pagamentos",
+        "banco_horas",
+        "ajuste_jornada",
+        "termos",
+        "aviso_previo",
+        "trct",
+        "demonstrativo_rescisorio",
+        "outros_ferias",
+        "outros_admissao",
+        "outros_desligamento",
+        "outros_fiscais",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
       dp_escala_item_origem: ["gerado", "manual", "troca", "convocacao"],
