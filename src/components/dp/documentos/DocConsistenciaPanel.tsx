@@ -25,6 +25,17 @@ type Alerta = {
 
 const TIPO_LABEL = { ponto: "Folha de Ponto", adiantamento: "Adiantamento Salarial" } as const;
 
+const MAX_NOMES = 6;
+
+type Grupo = {
+  key: string;
+  tipo: "ponto" | "adiantamento";
+  problema: "faltando" | "inconsistente";
+  nomes: string[];
+  total: number;
+  completo: boolean;
+};
+
 /**
  * Confere, por competência, se os documentos de Folha de Ponto e Adiantamento
  * batem com o que está marcado no cadastro do colaborador.
@@ -32,6 +43,7 @@ const TIPO_LABEL = { ponto: "Folha de Ponto", adiantamento: "Adiantamento Salari
 export function DocConsistenciaPanel() {
   const { selectedCompanyId } = useCompanyContext();
   const [competencia, setCompetencia] = useState(competenciaAnterior());
+  const [aberto, setAberto] = useState<Record<string, boolean>>({});
 
   const ref = competencia ? `${competencia}-01` : null;
 
@@ -59,12 +71,14 @@ export function DocConsistenciaPanel() {
         (docsRes.data ?? []).map((d: any) => `${d.colaborador_id}::${d.tipo}`),
       );
       const alertas: Alerta[] = [];
+      const elegiveis: Record<"ponto" | "adiantamento", number> = { ponto: 0, adiantamento: 0 };
       for (const c of (colabsRes.data ?? []) as any[]) {
         const checks: Array<["ponto" | "adiantamento", boolean]> = [
           ["ponto", c.possui_folha_ponto === true],
           ["adiantamento", c.optante_adiantamento === true],
         ];
         for (const [tipo, ativo] of checks) {
+          if (ativo) elegiveis[tipo] += 1;
           const temDoc = importados.has(`${c.id}::${tipo}`);
           if (ativo && !temDoc) {
             alertas.push({ colaborador_id: c.id, nome: c.nome, tipo, problema: "faltando" });
@@ -73,18 +87,89 @@ export function DocConsistenciaPanel() {
           }
         }
       }
-      return { alertas, totalColabs: (colabsRes.data ?? []).length };
+      return { alertas, elegiveis, totalColabs: (colabsRes.data ?? []).length };
     },
   });
 
-  const faltando = useMemo(
-    () => (query.data?.alertas ?? []).filter((a) => a.problema === "faltando"),
-    [query.data],
-  );
-  const inconsistentes = useMemo(
-    () => (query.data?.alertas ?? []).filter((a) => a.problema === "inconsistente"),
-    [query.data],
-  );
+  const competenciaLabel = competencia
+    ? `${competencia.slice(5, 7)}/${competencia.slice(0, 4)}`
+    : "";
+
+  const grupos = useMemo(() => {
+    const alertas = query.data?.alertas ?? [];
+    const elegiveis = query.data?.elegiveis ?? { ponto: 0, adiantamento: 0 };
+    const out: Grupo[] = [];
+    for (const problema of ["faltando", "inconsistente"] as const) {
+      for (const tipo of ["ponto", "adiantamento"] as const) {
+        const nomes = alertas
+          .filter((a) => a.problema === problema && a.tipo === tipo)
+          .map((a) => a.nome)
+          .sort((a, b) => a.localeCompare(b, "pt-BR"));
+        if (nomes.length === 0) continue;
+        const total = elegiveis[tipo];
+        out.push({
+          key: `${problema}-${tipo}`,
+          tipo,
+          problema,
+          nomes,
+          total,
+          completo: problema === "faltando" && total > 0 && nomes.length >= total,
+        });
+      }
+    }
+    return out;
+  }, [query.data]);
+
+  const faltando = grupos.filter((g) => g.problema === "faltando");
+  const inconsistentes = grupos.filter((g) => g.problema === "inconsistente");
+
+  const renderGrupo = (g: Grupo) => {
+    const expandido = !!aberto[g.key];
+    const visiveis = expandido ? g.nomes : g.nomes.slice(0, MAX_NOMES);
+    const restantes = g.nomes.length - visiveis.length;
+    return (
+      <div key={g.key} className="rounded-md border bg-background/60 p-2.5 space-y-1.5">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="font-medium">{TIPO_LABEL[g.tipo]}</span>
+          <Badge variant="secondary" className="text-[11px]">{competenciaLabel}</Badge>
+          <span className="text-xs text-muted-foreground">
+            {g.completo
+              ? `lote completo pendente (${g.nomes.length} colaborador${g.nomes.length === 1 ? "" : "es"})`
+              : `${g.nomes.length}${g.total ? ` de ${g.total}` : ""} ${
+                  g.problema === "faltando" ? "pendentes" : "com inconsistência"
+                }`}
+          </span>
+        </div>
+        {!g.completo && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {visiveis.map((nome) => (
+              <Badge key={nome} variant="outline" className="text-[11px]">
+                {nome}
+              </Badge>
+            ))}
+            {restantes > 0 && (
+              <button
+                type="button"
+                className="text-[11px] text-primary underline underline-offset-2"
+                onClick={() => setAberto((prev) => ({ ...prev, [g.key]: true }))}
+              >
+                +{restantes}
+              </button>
+            )}
+            {expandido && g.nomes.length > MAX_NOMES && (
+              <button
+                type="button"
+                className="text-[11px] text-muted-foreground underline underline-offset-2"
+                onClick={() => setAberto((prev) => ({ ...prev, [g.key]: false }))}
+              >
+                ver menos
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <Card className="dp-content-card">
@@ -118,15 +203,9 @@ export function DocConsistenciaPanel() {
               <AlertTriangle className="h-4 w-4" /> Falta Importar ({faltando.length})
             </div>
             <p className="text-xs text-muted-foreground">
-              Cadastro marcado como ativo para o documento, mas nada foi importado nesta competência.
+              Documento esperado pelo cadastro e ainda não importado nesta competência.
             </p>
-            <div className="flex flex-wrap gap-1.5">
-              {faltando.map((a) => (
-                <Badge key={`${a.colaborador_id}-${a.tipo}`} variant="outline" className="text-[11px]">
-                  {a.nome} · {TIPO_LABEL[a.tipo]}
-                </Badge>
-              ))}
-            </div>
+            <div className="space-y-2">{faltando.map(renderGrupo)}</div>
           </div>
         )}
 
@@ -138,13 +217,7 @@ export function DocConsistenciaPanel() {
             <p className="text-xs text-muted-foreground">
               Documento importado, mas o cadastro do colaborador está com esse item desativado.
             </p>
-            <div className="flex flex-wrap gap-1.5">
-              {inconsistentes.map((a) => (
-                <Badge key={`${a.colaborador_id}-${a.tipo}`} variant="outline" className="text-[11px]">
-                  {a.nome} · {TIPO_LABEL[a.tipo]}
-                </Badge>
-              ))}
-            </div>
+            <div className="space-y-2">{inconsistentes.map(renderGrupo)}</div>
           </div>
         )}
       </CardContent>
