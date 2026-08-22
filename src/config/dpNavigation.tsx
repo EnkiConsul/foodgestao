@@ -143,16 +143,17 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     hubTo: "/dp/documentos",
     matchPrefixes: ["/dp/documentos", "/dp/disciplinar", "/dp/atestados"],
     items: [
-      { label: "Importar Documentos", to: "/dp/documentos", icon: FileText, end: true, shortcut: true, shortLabel: "Importar" },
+      { label: "Importar", to: "/dp/documentos", icon: FileText, end: true, shortcut: true, shortLabel: "Importar" },
       {
-        label: "Histórico de Documentos",
+        label: "Histórico",
         to: "/dp/documentos/historico",
         icon: ListChecks,
         shortcut: true,
         shortLabel: "Histórico",
       },
       { label: "Atestados", to: "/dp/atestados", icon: HeartPulse },
-      { label: "Registros Disciplinares", to: "/dp/disciplinar", icon: ShieldAlert },
+      { label: "Disciplinares", to: "/dp/disciplinar", icon: ShieldAlert },
+
     ],
   },
   {
