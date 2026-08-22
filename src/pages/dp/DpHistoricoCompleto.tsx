@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import {
   FileText, Eye, Download, Search, ArrowUp, ArrowDown, ChevronsUpDown,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, GripVertical, RotateCcw,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, RotateCcw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -414,7 +414,7 @@ export default function DpHistoricoCompleto() {
       cellClass: "truncate",
     },
     tipo: {
-      label: "Tipo", width: "w-[15%]", sortKey: "tipo_label",
+      label: "Tipo", width: "w-[14%]", sortKey: "tipo_label",
       value: (r) => r.tipo_label,
       render: (r) => (
         <Badge variant="outline" className={`max-w-full truncate ${tipoBadgeClass(r.tipo_key)}`}>{r.tipo_label}</Badge>
@@ -422,7 +422,7 @@ export default function DpHistoricoCompleto() {
       cellClass: "truncate",
     },
     competencia: {
-      label: "Competência", width: "w-[12%]", sortKey: "competencia_sort",
+      label: "Competência", width: "w-[11%]", sortKey: "competencia_sort",
       value: (r) => r.competencia,
       render: (r) => <span className="font-mono text-sm">{r.competencia}</span>,
       cellClass: "whitespace-nowrap",
@@ -434,7 +434,7 @@ export default function DpHistoricoCompleto() {
       cellClass: "truncate",
     },
     status: {
-      label: "Status", width: "w-[11%]", sortKey: "status_label",
+      label: "Status", width: "w-[12%]", sortKey: "status_label",
       value: (r) => r.status_label,
       render: (r) => (
         <Badge variant="outline" className={`max-w-full truncate ${statusBadgeClass(r.status_key)}`}>{r.status_label}</Badge>
@@ -442,7 +442,7 @@ export default function DpHistoricoCompleto() {
       cellClass: "truncate",
     },
     aceite: {
-      label: "Aceite", width: "w-[10%]", sortKey: "aceite_label",
+      label: "Aceite", width: "w-[12%]", sortKey: "aceite_label",
       value: (r) => aceiteLabel(r),
       render: (r) => (
         r.aceite === null ? <span className="text-xs text-muted-foreground">—</span>
@@ -453,7 +453,7 @@ export default function DpHistoricoCompleto() {
       cellClass: "truncate",
     },
     data: {
-      label: "Data", width: "w-[9%]", sortKey: "data",
+      label: "Data", width: "w-[10%]", sortKey: "data",
       value: (r) => new Date(r.data).toLocaleDateString("pt-BR"),
       render: (r) => (
         <span className="font-mono text-sm text-muted-foreground">{new Date(r.data).toLocaleDateString("pt-BR")}</span>
@@ -755,7 +755,7 @@ export default function DpHistoricoCompleto() {
             <TableHeader>
               <TableRow>
                 {colOrder.map((k) => renderColunaHeader(k))}
-                <TableHead className="uppercase text-xs text-right w-[9%]">Ações</TableHead>
+                <TableHead className="uppercase text-xs text-right w-[7%]">Ações</TableHead>
               </TableRow>
             </TableHeader>
 
