@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Download, FileText, Eye, DownloadCloud, Upload, Ban,
-  CheckCircle2, Clock, XCircle, HeartPulse, ShieldAlert, Scale, Coins, FileClock, Files,
+  CheckCircle2, Clock, XCircle, HeartPulse, ShieldAlert, Scale, Coins, FileClock, Files, PenLine,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,11 @@ type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
 
 const TIPO_ICON: Record<UnifiedTipo, any> = {
   contracheque: FileText,
+  contracheque_13: FileText,
+  contracheque_ferias: FileText,
+  aviso_ferias: FileText,
+  recibo_ferias: FileText,
+  informe_rendimentos: FileText,
   adiantamento: Coins,
   ponto: FileClock,
   atestado: HeartPulse,
@@ -45,6 +50,11 @@ const MESES = ["Todos", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junh
 const ALL_TABS: { key: "all" | UnifiedTipo; label: string; requiresPonto?: boolean; hasEnvio?: boolean }[] = [
   { key: "all", label: "Todos" },
   { key: "contracheque", label: "Contracheques" },
+  { key: "contracheque_13", label: "13º Salário" },
+  { key: "contracheque_ferias", label: "Contracheque Férias" },
+  { key: "aviso_ferias", label: "Aviso de Férias" },
+  { key: "recibo_ferias", label: "Recibo de Férias" },
+  { key: "informe_rendimentos", label: "Informe de Rendimentos" },
   { key: "adiantamento", label: "Adiantamentos" },
   { key: "ponto", label: "Folha de Ponto", requiresPonto: true },
   { key: "atestado", label: "Atestados", hasEnvio: true },
@@ -192,6 +202,31 @@ export default function DpMeuDocumentos() {
       setUploading(false);
     }
   };
+
+  /** Aceite digital do documento — registra data, hora e dispositivo. */
+  const aceitar = useMutation({
+    mutationFn: async (d: UnifiedDoc) => {
+      if (!colaborador) throw new Error("Colaborador não encontrado");
+      const documentoId = d.meta?.originalId as string | undefined;
+      if (!documentoId) throw new Error("Documento inválido");
+      const { error } = await supabase.from("dp_documento_aceites").insert({
+        company_id: colaborador.company_id,
+        colaborador_id: colaborador.id,
+        documento_id: documentoId,
+        modelo: d.tipo_key,
+        modelo_versao: "documento",
+        conteudo_hash: d.file_path ?? documentoId,
+        aceito_por: user?.id ?? null,
+        user_agent: navigator.userAgent.slice(0, 500),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Recebimento confirmado com data, hora e dispositivo");
+      qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao registrar o aceite"),
+  });
 
   const cancelar = useMutation({
     mutationFn: async (d: UnifiedDoc) => {
@@ -362,6 +397,16 @@ export default function DpMeuDocumentos() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium truncate">{d.titulo}</p>
                         <StatusBadge d={d} />
+                        {d.aceite === true && (
+                          <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> Recebimento confirmado
+                          </Badge>
+                        )}
+                        {d.aceite === false && (
+                          <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">
+                            <Clock className="h-3 w-3 mr-1" /> Aguardando seu aceite
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         <span className="capitalize">{d.tipo_label}</span> · Competência {d.competencia_label}
@@ -379,6 +424,16 @@ export default function DpMeuDocumentos() {
                         <Button size="sm" variant="outline" onClick={() => download(d)} disabled={!d.file_path} className="min-h-9 flex-1 sm:flex-none">
                           <Download className="h-4 w-4 mr-1" /> Baixar
                         </Button>
+                        {d.aceite === false && (
+                          <Button
+                            size="sm"
+                            onClick={() => aceitar.mutate(d)}
+                            disabled={aceitar.isPending}
+                            className="min-h-9 flex-1 sm:flex-none"
+                          >
+                            <PenLine className="h-4 w-4 mr-1" /> Confirmar Recebimento
+                          </Button>
+                        )}
                         {d.origem === "meu_envio" && d.status_key === "pendente" && (
                           <Button
                             size="sm"
