@@ -25,6 +25,17 @@ type Alerta = {
 
 const TIPO_LABEL = { ponto: "Folha de Ponto", adiantamento: "Adiantamento Salarial" } as const;
 
+const MAX_NOMES = 6;
+
+type Grupo = {
+  key: string;
+  tipo: "ponto" | "adiantamento";
+  problema: "faltando" | "inconsistente";
+  nomes: string[];
+  total: number;
+  completo: boolean;
+};
+
 /**
  * Confere, por competência, se os documentos de Folha de Ponto e Adiantamento
  * batem com o que está marcado no cadastro do colaborador.
