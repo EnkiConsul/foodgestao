@@ -43,6 +43,7 @@ type Grupo = {
 export function DocConsistenciaPanel() {
   const { selectedCompanyId } = useCompanyContext();
   const [competencia, setCompetencia] = useState(competenciaAnterior());
+  const [aberto, setAberto] = useState<Record<string, boolean>>({});
 
   const ref = competencia ? `${competencia}-01` : null;
 
