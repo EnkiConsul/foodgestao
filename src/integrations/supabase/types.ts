@@ -3136,6 +3136,7 @@ export type Database = {
           approved_count: number
           company_id: string
           created_at: string
+          deteccao_automatica: boolean
           error_message: string | null
           id: string
           matched_count: number
@@ -3154,6 +3155,7 @@ export type Database = {
           approved_count?: number
           company_id: string
           created_at?: string
+          deteccao_automatica?: boolean
           error_message?: string | null
           id?: string
           matched_count?: number
@@ -3172,6 +3174,7 @@ export type Database = {
           approved_count?: number
           company_id?: string
           created_at?: string
+          deteccao_automatica?: boolean
           error_message?: string | null
           id?: string
           matched_count?: number
@@ -3227,6 +3230,10 @@ export type Database = {
           page_index: number
           page_thumb_url: string | null
           status: string
+          tipo_confidence: number | null
+          tipo_detectado:
+            | Database["public"]["Enums"]["dp_documento_tipo"]
+            | null
           updated_at: string
         }
         Insert: {
@@ -3252,6 +3259,10 @@ export type Database = {
           page_index: number
           page_thumb_url?: string | null
           status?: string
+          tipo_confidence?: number | null
+          tipo_detectado?:
+            | Database["public"]["Enums"]["dp_documento_tipo"]
+            | null
           updated_at?: string
         }
         Update: {
@@ -3277,6 +3288,10 @@ export type Database = {
           page_index?: number
           page_thumb_url?: string | null
           status?: string
+          tipo_confidence?: number | null
+          tipo_detectado?:
+            | Database["public"]["Enums"]["dp_documento_tipo"]
+            | null
           updated_at?: string
         }
         Relationships: [
@@ -4989,6 +5004,7 @@ export type Database = {
           company_id: string
           created_at: string
           descricao: string | null
+          exige_aceite: boolean
           file_name: string | null
           file_path: string
           file_size: number | null
@@ -5010,6 +5026,7 @@ export type Database = {
           company_id: string
           created_at?: string
           descricao?: string | null
+          exige_aceite?: boolean
           file_name?: string | null
           file_path: string
           file_size?: number | null
@@ -5031,6 +5048,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           descricao?: string | null
+          exige_aceite?: boolean
           file_name?: string | null
           file_path?: string
           file_size?: number | null
@@ -14969,6 +14987,11 @@ export type Database = {
         | "seguro_veiculo"
         | "dependente"
         | "ficha_registro"
+        | "contracheque_13"
+        | "contracheque_ferias"
+        | "aviso_ferias"
+        | "recibo_ferias"
+        | "informe_rendimentos"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
       dp_escala_item_origem: "gerado" | "manual" | "troca" | "convocacao"
       dp_escala_item_tipo:
@@ -15485,6 +15508,11 @@ export const Constants = {
         "seguro_veiculo",
         "dependente",
         "ficha_registro",
+        "contracheque_13",
+        "contracheque_ferias",
+        "aviso_ferias",
+        "recibo_ferias",
+        "informe_rendimentos",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
       dp_escala_item_origem: ["gerado", "manual", "troca", "convocacao"],
