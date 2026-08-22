@@ -263,20 +263,29 @@ export default function DpHistoricoCompleto() {
 
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
+    const cf = (v: string) => v.trim().toLowerCase();
     return (query.data ?? []).filter((r) => {
       if (tipo !== "all" && r.tipo_key !== tipo) return false;
+      if (grupo !== "all" && docTipoGrupo(r.tipo_key) !== grupo) return false;
       if (unidadeId !== "all" && r.unidade_id !== unidadeId) return false;
       if (colabId !== "all" && r.colaborador_id !== colabId) return false;
       if (status !== "all" && r.status_key !== status) return false;
       if (ano !== "all" && !r.competencia_sort.startsWith(ano)) return false;
       if (mes !== "all" && r.competencia_sort.slice(5, 7) !== mes) return false;
+      // Filtros por coluna (estilo planilha)
+      if (colFilters.colaborador && !r.colaborador_nome.toLowerCase().includes(cf(colFilters.colaborador))) return false;
+      if (colFilters.tipo && !r.tipo_label.toLowerCase().includes(cf(colFilters.tipo))) return false;
+      if (colFilters.competencia && !r.competencia.toLowerCase().includes(cf(colFilters.competencia))) return false;
+      if (colFilters.unidade && !r.unidade_nome.toLowerCase().includes(cf(colFilters.unidade))) return false;
+      if (colFilters.status && !r.status_label.toLowerCase().includes(cf(colFilters.status))) return false;
       if (q) {
         const hay = `${r.colaborador_nome} ${r.tipo_label} ${r.status_label} ${r.unidade_nome} ${r.titulo}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [query.data, tipo, unidadeId, colabId, mes, ano, status, busca]);
+  }, [query.data, tipo, grupo, unidadeId, colabId, mes, ano, status, busca, colFilters]);
+
 
   // ---------------- Ordenação ----------------
   type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "status_label" | "data";
