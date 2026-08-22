@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { DP_DOC_TIPOS, docTipoBadgeClass } from "@/lib/dp/documentoTipos";
+import { DP_DOC_TIPOS, DP_DOC_GRUPOS, docTipoBadgeClass, docTipoGrupo } from "@/lib/dp/documentoTipos";
 
 type UnifiedDoc = {
   id: string;
@@ -90,6 +90,12 @@ export default function DpHistoricoCompleto() {
   const unidades = useDpUnidades();
 
   const [tipo, setTipo] = useState("all");
+  const [grupo, setGrupo] = useState("all");
+  const [colFilters, setColFilters] = useState({
+    colaborador: "", tipo: "", competencia: "", unidade: "", status: "",
+  });
+  const setColFilter = (k: keyof typeof colFilters, v: string) =>
+    setColFilters((prev) => ({ ...prev, [k]: v }));
   const [unidadeId, setUnidadeId] = useState("all");
   const [colabId, setColabId] = useState("all");
   const [mes, setMes] = useState("all");
@@ -313,13 +319,14 @@ export default function DpHistoricoCompleto() {
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  useEffect(() => { setPage(1); }, [tipo, unidadeId, colabId, mes, ano, status, busca, pageSize]);
+  useEffect(() => { setPage(1); }, [tipo, grupo, unidadeId, colabId, mes, ano, status, busca, pageSize, colFilters]);
   useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
   const paged = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
 
   const limpar = () => {
-    setTipo("all"); setUnidadeId("all"); setColabId("all");
+    setTipo("all"); setGrupo("all"); setUnidadeId("all"); setColabId("all");
     setMes("all"); setAno("all"); setStatus("all"); setBusca("");
+    setColFilters({ colaborador: "", tipo: "", competencia: "", unidade: "", status: "" });
   };
 
   const SortIcon = ({ k }: { k: SortKey }) =>
