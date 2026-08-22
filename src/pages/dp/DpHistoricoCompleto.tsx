@@ -443,10 +443,10 @@ export default function DpHistoricoCompleto() {
           <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-xs cursor-pointer select-none w-[24%]" onClick={() => toggleSort("colaborador_nome")}>Colaborador<SortIcon k="colaborador_nome" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none w-[20%]" onClick={() => toggleSort("colaborador_nome")}>Colaborador<SortIcon k="colaborador_nome" /></TableHead>
                 <TableHead className="uppercase text-xs cursor-pointer select-none w-[15%]" onClick={() => toggleSort("tipo_label")}>Tipo<SortIcon k="tipo_label" /></TableHead>
                 <TableHead className="uppercase text-xs cursor-pointer select-none w-[12%]" onClick={() => toggleSort("competencia_sort")}>Competência<SortIcon k="competencia_sort" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none w-[16%]" onClick={() => toggleSort("unidade_nome")}>Unidade<SortIcon k="unidade_nome" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none w-[14%]" onClick={() => toggleSort("unidade_nome")}>Unidade<SortIcon k="unidade_nome" /></TableHead>
                 <TableHead className="uppercase text-xs cursor-pointer select-none w-[11%]" onClick={() => toggleSort("status_label")}>Status<SortIcon k="status_label" /></TableHead>
                 <TableHead className="uppercase text-xs w-[10%]">Aceite</TableHead>
                 <TableHead className="uppercase text-xs cursor-pointer select-none w-[9%]" onClick={() => toggleSort("data")}>Data<SortIcon k="data" /></TableHead>
