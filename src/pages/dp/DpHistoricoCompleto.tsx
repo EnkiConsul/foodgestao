@@ -135,9 +135,13 @@ function ColunaFiltroHeader(props: {
     >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button type="button" className="flex w-full items-center gap-1 text-left uppercase hover:text-foreground">
-            <GripVertical className="h-3 w-3 shrink-0 cursor-grab opacity-30" />
+          <button
+            type="button"
+            title="Clique para ordenar/filtrar · arraste para mover a coluna"
+            className="flex w-full cursor-grab items-center gap-1 text-left uppercase hover:text-foreground"
+          >
             <span className="truncate">{props.label}</span>
+
             {props.sortAtivo
               ? (props.sortDir === "asc" ? <ArrowUp className="h-3 w-3 shrink-0" /> : <ArrowDown className="h-3 w-3 shrink-0" />)
               : <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-40" />}
