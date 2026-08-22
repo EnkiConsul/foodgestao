@@ -198,15 +198,32 @@ async function processPage(args: {
       extractPeriodoFromFilename(batch.source_file_name ?? ""); // "YYYY-MM" ou null
     const unidadeDetectada = cnpjs.map((c) => cnpjToUnidade.get(c)).find(Boolean) ?? null;
 
-    // Natureza (só relevante quando o lote está em detecção automática, mas
-    // guardamos sempre para permitir correção manual na revisão).
-    const tipoDetectado: DocTipo | null =
-      parseNaturezaLine(ocr) ??
-      detectTipoFromText(ocr) ??
-      detectTipoFromText(batch.source_file_name ?? "");
+    // Natureza: regra aprendida da empresa > IA > heurística por palavra-chave.
+    const assinatura = assinaturaDocumento(batch.source_file_name ?? "", ocr);
+    let tipoAprendido: DocTipo | null = null;
+    if (assinatura) {
+      const { data: regra } = await svc.from("dp_doc_tipo_aprendizado")
+        .select("id, tipo")
+        .eq("company_id", batch.company_id)
+        .eq("assinatura", assinatura)
+        .limit(1).maybeSingle();
+      if (regra?.tipo) {
+        tipoAprendido = regra.tipo as DocTipo;
+        await svc.rpc?.("noop")?.catch?.(() => {});
+        await svc.from("dp_doc_tipo_aprendizado")
+          .update({ hits: (regra as any).hits ? undefined : undefined, last_used_at: new Date().toISOString() })
+          .eq("id", regra.id);
+      }
+    }
+    const tipoIa: DocTipo | null = parseNaturezaLine(ocr);
+    const tipoHeuristica: DocTipo | null =
+      detectTipoFromText(ocr) ?? detectTipoFromText(batch.source_file_name ?? "");
+    const tipoDetectado: DocTipo | null = tipoAprendido ?? tipoIa ?? tipoHeuristica;
+    const tipoOrigem = tipoAprendido ? "aprendido" : tipoIa ? "ia" : tipoHeuristica ? "keyword" : null;
     const tipoEfetivo = batch.deteccao_automatica
       ? (tipoDetectado ?? "outros")
       : batch.tipo;
+
 
     // Restrição por unidade + possui_folha_ponto (para tipo=ponto)
     const restrictPonto = tipoEfetivo === "ponto";
