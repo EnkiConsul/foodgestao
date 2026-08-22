@@ -175,7 +175,7 @@ export function useDpPendencias() {
               tipo: "Contracheque",
               vencimento: ymd(vencimento),
               atrasoDias: dias,
-              url: "/dp/documentos/contracheque",
+              url: "/dp/documentos/historico?tipo=contracheque",
             });
           }
         } catch (e) {
@@ -321,7 +321,7 @@ export function useDpPendencias() {
                 tipo: "Negociação",
                 vencimento: ymd(today),
                 atrasoDias: 0,
-                url: "/dp/documentos/act-cct",
+                url: "/dp/cadastros/negociacoes-sindicais",
               });
               continue;
             }
@@ -345,7 +345,7 @@ export function useDpPendencias() {
                 tipo: "Negociação",
                 vencimento: ymd(vencimento),
                 atrasoDias: dias,
-                url: "/dp/documentos/act-cct",
+                url: "/dp/cadastros/negociacoes-sindicais",
               });
             }
           }

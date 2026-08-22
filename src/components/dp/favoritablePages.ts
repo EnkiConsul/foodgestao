@@ -62,7 +62,7 @@ export const FAVORITABLE_PAGES: FavoritablePage[] = [
   { pattern: "/dp/cadastros/unidades", label: "Unidades", icon: Building2 },
   { pattern: "/dp/cadastros/cargos", label: "Cargos e Salários", icon: Briefcase },
   { pattern: "/dp/cadastros/cargos?aba=sindicatos", label: "Sindicatos Laborais", icon: HandshakeIcon },
-  { pattern: "/dp/documentos/act-cct", label: "ACT-CCT", icon: FileSignature },
+  { pattern: "/dp/cadastros/negociacoes-sindicais", label: "Negociações Sindicais", icon: FileSignature },
 
   // ----- Portal do Colaborador -----
   { pattern: "/dp/meu/perfil", label: "Meu Perfil", icon: User },
