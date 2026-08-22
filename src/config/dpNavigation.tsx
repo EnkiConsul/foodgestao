@@ -155,7 +155,8 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Registros Disciplinares", to: "/dp/disciplinar", icon: ShieldAlert },
     ],
   },
-      id: "comunicacao",
+  {
+    id: "comunicacao",
     label: "Comunicação",
     icon: MessageSquare,
     hubTo: "/dp/comunicacao",
