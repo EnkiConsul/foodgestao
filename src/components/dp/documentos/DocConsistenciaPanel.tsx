@@ -21,6 +21,7 @@ type Alerta = {
   nome: string;
   tipo: "ponto" | "adiantamento";
   problema: "faltando" | "inconsistente";
+  unidade_id: string | null;
 };
 
 const TIPO_LABEL = { ponto: "Folha de Ponto", adiantamento: "Adiantamento Salarial" } as const;
@@ -31,10 +32,13 @@ type Grupo = {
   key: string;
   tipo: "ponto" | "adiantamento";
   problema: "faltando" | "inconsistente";
+  unidade_id: string | null;
+  nome_unidade: string | null;
   nomes: string[];
   total: number;
   completo: boolean;
 };
+
 
 /**
  * Confere, por competência, se os documentos de Folha de Ponto e Adiantamento
@@ -51,10 +55,10 @@ export function DocConsistenciaPanel() {
     queryKey: ["dp_doc_consistencia", selectedCompanyId, ref],
     enabled: !!selectedCompanyId && !!ref,
     queryFn: async () => {
-      const [colabsRes, docsRes] = await Promise.all([
+      const [colabsRes, docsRes, unidadesRes] = await Promise.all([
         supabase
           .from("dp_colaboradores")
-          .select("id, nome, possui_folha_ponto, optante_adiantamento")
+          .select("id, nome, possui_folha_ponto, optante_adiantamento, unidade_id")
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true),
         supabase
@@ -63,32 +67,65 @@ export function DocConsistenciaPanel() {
           .eq("company_id", selectedCompanyId!)
           .eq("referencia_data", ref!)
           .in("tipo", ["ponto", "adiantamento"]),
+        supabase
+          .from("dp_unidades")
+          .select("id, nome")
+          .eq("company_id", selectedCompanyId!)
+          .eq("ativo", true),
       ]);
       if (colabsRes.error) throw colabsRes.error;
       if (docsRes.error) throw docsRes.error;
+      if (unidadesRes.error) throw unidadesRes.error;
+
+      const unidadesMap = new Map(
+        (unidadesRes.data ?? []).map((u: any) => [u.id as string, u.nome as string]),
+      );
 
       const importados = new Set(
         (docsRes.data ?? []).map((d: any) => `${d.colaborador_id}::${d.tipo}`),
       );
       const alertas: Alerta[] = [];
-      const elegiveis: Record<"ponto" | "adiantamento", number> = { ponto: 0, adiantamento: 0 };
+      const elegiveisPorUnidade: Record<string, Record<"ponto" | "adiantamento", number>> = {};
+      // Garante chaves para unidades sem pendência futura e para colaboradores sem unidade.
+      for (const uid of unidadesMap.keys()) {
+        elegiveisPorUnidade[uid] = { ponto: 0, adiantamento: 0 };
+      }
+      elegiveisPorUnidade["sem-unidade"] = { ponto: 0, adiantamento: 0 };
+
       for (const c of (colabsRes.data ?? []) as any[]) {
         const checks: Array<["ponto" | "adiantamento", boolean]> = [
           ["ponto", c.possui_folha_ponto === true],
           ["adiantamento", c.optante_adiantamento === true],
         ];
         for (const [tipo, ativo] of checks) {
-          if (ativo) elegiveis[tipo] += 1;
+          const uid = (c.unidade_id as string | null) ?? "sem-unidade";
+          if (ativo) {
+            if (!elegiveisPorUnidade[uid]) elegiveisPorUnidade[uid] = { ponto: 0, adiantamento: 0 };
+            elegiveisPorUnidade[uid][tipo] += 1;
+          }
           const temDoc = importados.has(`${c.id}::${tipo}`);
           if (ativo && !temDoc) {
-            alertas.push({ colaborador_id: c.id, nome: c.nome, tipo, problema: "faltando" });
+            alertas.push({
+              colaborador_id: c.id,
+              nome: c.nome,
+              tipo,
+              problema: "faltando",
+              unidade_id: c.unidade_id ?? null,
+            });
           } else if (!ativo && temDoc) {
-            alertas.push({ colaborador_id: c.id, nome: c.nome, tipo, problema: "inconsistente" });
+            alertas.push({
+              colaborador_id: c.id,
+              nome: c.nome,
+              tipo,
+              problema: "inconsistente",
+              unidade_id: c.unidade_id ?? null,
+            });
           }
         }
       }
-      return { alertas, elegiveis, totalColabs: (colabsRes.data ?? []).length };
+      return { alertas, elegiveisPorUnidade, unidadesMap, totalColabs: (colabsRes.data ?? []).length };
     },
+
   });
 
   const competenciaLabel = competencia
@@ -97,28 +134,50 @@ export function DocConsistenciaPanel() {
 
   const grupos = useMemo(() => {
     const alertas = query.data?.alertas ?? [];
-    const elegiveis = query.data?.elegiveis ?? { ponto: 0, adiantamento: 0 };
+    const elegiveisPorUnidade = query.data?.elegiveisPorUnidade ?? {};
+    const unidadesMap = query.data?.unidadesMap ?? new Map<string, string>();
     const out: Grupo[] = [];
-    for (const problema of ["faltando", "inconsistente"] as const) {
-      for (const tipo of ["ponto", "adiantamento"] as const) {
-        const nomes = alertas
-          .filter((a) => a.problema === problema && a.tipo === tipo)
-          .map((a) => a.nome)
-          .sort((a, b) => a.localeCompare(b, "pt-BR"));
-        if (nomes.length === 0) continue;
-        const total = elegiveis[tipo];
-        out.push({
-          key: `${problema}-${tipo}`,
-          tipo,
-          problema,
-          nomes,
-          total,
-          completo: problema === "faltando" && total > 0 && nomes.length >= total,
-        });
-      }
+
+    // Agrupa os alertas por problema + tipo + unidade.
+    const porChave = new Map<string, Alerta[]>();
+    for (const a of alertas) {
+      const uid = a.unidade_id ?? "sem-unidade";
+      const key = `${a.problema}-${a.tipo}-${uid}`;
+      if (!porChave.has(key)) porChave.set(key, []);
+      porChave.get(key)!.push(a);
     }
-    return out;
+
+    for (const [key, alertasGrupo] of porChave) {
+      const problema = alertasGrupo[0].problema;
+      const tipo = alertasGrupo[0].tipo;
+      const uid = alertasGrupo[0].unidade_id ?? "sem-unidade";
+      const nomes = alertasGrupo
+        .map((a) => a.nome)
+        .sort((a, b) => a.localeCompare(b, "pt-BR"));
+      const total = elegiveisPorUnidade[uid]?.[tipo] ?? 0;
+      const completo = problema === "faltando" && total > 0 && nomes.length >= total;
+      out.push({
+        key,
+        tipo,
+        problema,
+        unidade_id: uid === "sem-unidade" ? null : uid,
+        nome_unidade: uid === "sem-unidade" ? null : (unidadesMap.get(uid) ?? "Unidade"),
+        nomes,
+        total,
+        completo,
+      });
+    }
+
+    // Ordenação estável: problema, tipo, nome da unidade.
+    return out.sort((a, b) => {
+      if (a.problema !== b.problema) return a.problema === "faltando" ? -1 : 1;
+      if (a.tipo !== b.tipo) return a.tipo === "ponto" ? -1 : 1;
+      const nomeA = a.nome_unidade ?? "Sem unidade";
+      const nomeB = b.nome_unidade ?? "Sem unidade";
+      return nomeA.localeCompare(nomeB, "pt-BR");
+    });
   }, [query.data]);
+
 
   const faltando = grupos.filter((g) => g.problema === "faltando");
   const inconsistentes = grupos.filter((g) => g.problema === "inconsistente");
@@ -127,6 +186,7 @@ export function DocConsistenciaPanel() {
     const expandido = !!aberto[g.key];
     const visiveis = expandido ? g.nomes : g.nomes.slice(0, MAX_NOMES);
     const restantes = g.nomes.length - visiveis.length;
+    const unidadeLabel = g.nome_unidade ?? "Sem unidade";
     return (
       <div key={g.key} className="rounded-md border bg-background/60 p-2.5 space-y-1.5">
         <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -134,12 +194,15 @@ export function DocConsistenciaPanel() {
           <Badge variant="secondary" className="text-[11px]">{competenciaLabel}</Badge>
           <span className="text-xs text-muted-foreground">
             {g.completo
-              ? `lote completo pendente (${g.nomes.length} colaborador${g.nomes.length === 1 ? "" : "es"})`
-              : `${g.nomes.length}${g.total ? ` de ${g.total}` : ""} ${
+              ? `lote completo pendente na ${unidadeLabel} (${g.nomes.length} colaborador${
+                  g.nomes.length === 1 ? "" : "es"
+                })`
+              : `${unidadeLabel}: ${g.nomes.length}${g.total ? ` de ${g.total}` : ""} ${
                   g.problema === "faltando" ? "pendentes" : "com inconsistência"
                 }`}
           </span>
         </div>
+
         {!g.completo && (
           <div className="flex flex-wrap items-center gap-1.5">
             {visiveis.map((nome) => (
