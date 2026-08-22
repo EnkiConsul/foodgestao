@@ -186,6 +186,7 @@ export function DocConsistenciaPanel() {
     const expandido = !!aberto[g.key];
     const visiveis = expandido ? g.nomes : g.nomes.slice(0, MAX_NOMES);
     const restantes = g.nomes.length - visiveis.length;
+    const unidadeLabel = g.nome_unidade ?? "Sem unidade";
     return (
       <div key={g.key} className="rounded-md border bg-background/60 p-2.5 space-y-1.5">
         <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -193,12 +194,15 @@ export function DocConsistenciaPanel() {
           <Badge variant="secondary" className="text-[11px]">{competenciaLabel}</Badge>
           <span className="text-xs text-muted-foreground">
             {g.completo
-              ? `lote completo pendente (${g.nomes.length} colaborador${g.nomes.length === 1 ? "" : "es"})`
-              : `${g.nomes.length}${g.total ? ` de ${g.total}` : ""} ${
+              ? `lote completo pendente na ${unidadeLabel} (${g.nomes.length} colaborador${
+                  g.nomes.length === 1 ? "" : "es"
+                })`
+              : `${unidadeLabel}: ${g.nomes.length}${g.total ? ` de ${g.total}` : ""} ${
                   g.problema === "faltando" ? "pendentes" : "com inconsistência"
                 }`}
           </span>
         </div>
+
         {!g.completo && (
           <div className="flex flex-wrap items-center gap-1.5">
             {visiveis.map((nome) => (
