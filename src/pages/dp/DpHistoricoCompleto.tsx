@@ -480,84 +480,26 @@ export default function DpHistoricoCompleto() {
     ? DP_DOC_GRUPOS
     : DP_DOC_GRUPOS.filter((g) => g.grupo === grupo);
 
-  const ColunaHeader = ({ k }: { k: ColKey }) => {
-    const col = COLS[k];
-    const [buscaOpcao, setBuscaOpcao] = useState("");
-    const ativos = colFilters[k];
-    const opcoes = opcoesColuna(k).filter((o) => o.toLowerCase().includes(buscaOpcao.trim().toLowerCase()));
-    return (
-      <TableHead
-        className={`uppercase text-xs select-none ${col.width} ${dragCol === k ? "opacity-50" : ""}`}
-        draggable
-        onDragStart={() => setDragCol(k)}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={() => soltarSobre(k)}
-        onDragEnd={() => setDragCol(null)}
-      >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className="flex w-full items-center gap-1 text-left uppercase hover:text-foreground">
-              <GripVertical className="h-3 w-3 shrink-0 cursor-grab opacity-30" />
-              <span className="truncate">{col.label}</span>
-              {sortKey === col.sortKey
-                ? (sortDir === "asc" ? <ArrowUp className="h-3 w-3 shrink-0" /> : <ArrowDown className="h-3 w-3 shrink-0" />)
-                : <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-40" />}
-              <Filter className={`h-3 w-3 shrink-0 ${ativos.length ? "text-primary" : "opacity-30"}`} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-64 p-0">
-            <div className="p-1">
-              <DropdownMenuItem onClick={() => aplicarSort(col.sortKey, "asc")}>
-                <ArrowUp className="mr-2 h-3.5 w-3.5" /> Ordenar Crescente
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => aplicarSort(col.sortKey, "desc")}>
-                <ArrowDown className="mr-2 h-3.5 w-3.5" /> Ordenar Decrescente
-              </DropdownMenuItem>
-            </div>
-            <DropdownMenuSeparator />
-            <div className="p-2 space-y-2">
-              <Input
-                autoFocus
-                value={buscaOpcao}
-                onChange={(e) => setBuscaOpcao(e.target.value)}
-                onKeyDown={(e) => e.stopPropagation()}
-                placeholder="Buscar…"
-                className="h-7 text-xs"
-              />
-              <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
-                {opcoes.length === 0 && (
-                  <p className="py-2 text-center text-xs text-muted-foreground">Sem opções</p>
-                )}
-                {opcoes.map((o) => (
-                  <label key={o} className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-xs normal-case hover:bg-muted">
-                    <Checkbox
-                      checked={ativos.includes(o)}
-                      onCheckedChange={() => toggleColValue(k, o)}
-                    />
-                    <span className="truncate" title={o}>{o}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <Button
-                  variant="ghost" size="sm" className="h-7 text-xs"
-                  onClick={() => setColFilters((p) => ({ ...p, [k]: opcoesColuna(k) }))}
-                >
-                  Selecionar Todos
-                </Button>
-                <Button
-                  variant="ghost" size="sm" className="h-7 text-xs"
-                  onClick={() => setColFilters((p) => ({ ...p, [k]: [] }))}
-                >
-                  Limpar
-                </Button>
-              </div>
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableHead>
-    );
-  };
+  const renderColunaHeader = (k: ColKey) => (
+    <ColunaFiltroHeader
+      key={k}
+      label={COLS[k].label}
+      width={COLS[k].width}
+      sortAtivo={sortKey === COLS[k].sortKey}
+      sortDir={sortDir}
+      onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
+      ativos={colFilters[k]}
+      getOpcoes={() => opcoesColuna(k)}
+      onToggle={(v) => toggleColValue(k, v)}
+      onSelecionarTodos={() => setColFilters((p) => ({ ...p, [k]: opcoesColuna(k) }))}
+      onLimpar={() => setColFilters((p) => ({ ...p, [k]: [] }))}
+      arrastando={dragCol === k}
+      onDragStart={() => setDragCol(k)}
+      onDrop={() => soltarSobre(k)}
+      onDragEnd={() => setDragCol(null)}
+    />
+  );
+
 
   return (
     <DpPage>
