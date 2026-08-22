@@ -203,17 +203,17 @@ async function processPage(args: {
     let tipoAprendido: DocTipo | null = null;
     if (assinatura) {
       const { data: regra } = await svc.from("dp_doc_tipo_aprendizado")
-        .select("id, tipo")
+        .select("id, tipo, hits")
         .eq("company_id", batch.company_id)
         .eq("assinatura", assinatura)
         .limit(1).maybeSingle();
       if (regra?.tipo) {
         tipoAprendido = regra.tipo as DocTipo;
-        await svc.rpc?.("noop")?.catch?.(() => {});
         await svc.from("dp_doc_tipo_aprendizado")
-          .update({ hits: (regra as any).hits ? undefined : undefined, last_used_at: new Date().toISOString() })
+          .update({ hits: (regra.hits ?? 1) + 1, last_used_at: new Date().toISOString() })
           .eq("id", regra.id);
       }
+
     }
     const tipoIa: DocTipo | null = parseNaturezaLine(ocr);
     const tipoHeuristica: DocTipo | null =
