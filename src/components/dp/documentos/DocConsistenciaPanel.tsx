@@ -4,9 +4,10 @@ import { AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+/** Quantidade de competências fechadas analisadas (mês anterior para trás). */
+const JANELA_MESES = 6;
 
 /** YYYY-MM do mês anterior (competência usual de importação). */
 function competenciaAnterior(): string {
@@ -16,12 +17,37 @@ function competenciaAnterior(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function addMeses(competencia: string, delta: number): string {
+  const ano = Number(competencia.slice(0, 4));
+  const mes = Number(competencia.slice(5, 7));
+  const d = new Date(ano, mes - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function primeiroDia(competencia: string) {
+  return `${competencia}-01`;
+}
+
+function ultimoDia(competencia: string) {
+  const ano = Number(competencia.slice(0, 4));
+  const mes = Number(competencia.slice(5, 7));
+  const d = new Date(ano, mes, 0);
+  return `${competencia}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function labelCompetencia(competencia: string) {
+  return `${competencia.slice(5, 7)}/${competencia.slice(0, 4)}`;
+}
+
+type Tipo = "ponto" | "adiantamento";
+
 type Alerta = {
   colaborador_id: string;
   nome: string;
-  tipo: "ponto" | "adiantamento";
+  tipo: Tipo;
   problema: "faltando" | "inconsistente";
   unidade_id: string | null;
+  competencia: string;
 };
 
 const TIPO_LABEL = { ponto: "Folha de Ponto", adiantamento: "Adiantamento Salarial" } as const;
@@ -30,42 +56,72 @@ const MAX_NOMES = 6;
 
 type Grupo = {
   key: string;
-  tipo: "ponto" | "adiantamento";
+  tipo: Tipo;
   problema: "faltando" | "inconsistente";
   unidade_id: string | null;
   nome_unidade: string | null;
+  competencia: string;
   nomes: string[];
   total: number;
   completo: boolean;
 };
 
-
 /**
- * Confere, por competência, se os documentos de Folha de Ponto e Adiantamento
- * batem com o que está marcado no cadastro do colaborador.
+ * Confere, nas últimas competências fechadas, se os documentos de Folha de Ponto
+ * e Adiantamento batem com o que está marcado no cadastro do colaborador.
+ * Não há filtro de competência: pendências antigas continuam visíveis.
  */
 export function DocConsistenciaPanel() {
   const { selectedCompanyId } = useCompanyContext();
-  const [competencia, setCompetencia] = useState(competenciaAnterior());
   const [aberto, setAberto] = useState<Record<string, boolean>>({});
 
-  const ref = competencia ? `${competencia}-01` : null;
-
   const query = useQuery({
-    queryKey: ["dp_doc_consistencia", selectedCompanyId, ref],
-    enabled: !!selectedCompanyId && !!ref,
+    queryKey: ["dp_doc_consistencia_janela", selectedCompanyId],
+    enabled: !!selectedCompanyId,
     queryFn: async () => {
+      const fim = competenciaAnterior();
+      const inicioJanela = addMeses(fim, -(JANELA_MESES - 1));
+
+      const companyRes = await supabase
+        .from("companies")
+        .select("created_at")
+        .eq("id", selectedCompanyId!)
+        .maybeSingle();
+      if (companyRes.error) throw companyRes.error;
+
+      let inicio = inicioJanela;
+      const createdAt = companyRes.data?.created_at as string | undefined;
+      if (createdAt) {
+        const compCriacao = createdAt.slice(0, 7);
+        if (compCriacao > inicio) inicio = compCriacao;
+      }
+      // Empresa criada depois da última competência fechada: nada a conferir.
+      if (inicio > fim) {
+        return {
+          alertas: [] as Alerta[],
+          elegiveis: {} as Record<string, number>,
+          unidadesMap: new Map<string, string>(),
+          janela: { inicio, fim },
+        };
+      }
+
+      const competencias: string[] = [];
+      for (let c = inicio; c <= fim; c = addMeses(c, 1)) competencias.push(c);
+
       const [colabsRes, docsRes, unidadesRes] = await Promise.all([
         supabase
           .from("dp_colaboradores")
-          .select("id, nome, possui_folha_ponto, optante_adiantamento, unidade_id")
+          .select(
+            "id, nome, possui_folha_ponto, optante_adiantamento, unidade_id, data_admissao, data_desligamento",
+          )
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true),
         supabase
           .from("dp_documentos")
-          .select("colaborador_id, tipo")
+          .select("colaborador_id, tipo, referencia_data")
           .eq("company_id", selectedCompanyId!)
-          .eq("referencia_data", ref!)
+          .gte("referencia_data", primeiroDia(inicio))
+          .lte("referencia_data", ultimoDia(fim))
           .in("tipo", ["ponto", "adiantamento"]),
         supabase
           .from("dp_unidades")
@@ -82,84 +138,96 @@ export function DocConsistenciaPanel() {
       );
 
       const importados = new Set(
-        (docsRes.data ?? []).map((d: any) => `${d.colaborador_id}::${d.tipo}`),
+        (docsRes.data ?? []).map(
+          (d: any) => `${d.colaborador_id}::${d.tipo}::${String(d.referencia_data).slice(0, 7)}`,
+        ),
       );
+
       const alertas: Alerta[] = [];
-      const elegiveisPorUnidade: Record<string, Record<"ponto" | "adiantamento", number>> = {};
-      // Garante chaves para unidades sem pendência futura e para colaboradores sem unidade.
-      for (const uid of unidadesMap.keys()) {
-        elegiveisPorUnidade[uid] = { ponto: 0, adiantamento: 0 };
-      }
-      elegiveisPorUnidade["sem-unidade"] = { ponto: 0, adiantamento: 0 };
+      // chave: competencia::tipo::unidade
+      const elegiveis: Record<string, number> = {};
 
       for (const c of (colabsRes.data ?? []) as any[]) {
-        const checks: Array<["ponto" | "adiantamento", boolean]> = [
+        const admissao = (c.data_admissao as string | null) ?? null;
+        const desligamento = (c.data_desligamento as string | null) ?? null;
+        const uid = (c.unidade_id as string | null) ?? "sem-unidade";
+        const checks: Array<[Tipo, boolean]> = [
           ["ponto", c.possui_folha_ponto === true],
           ["adiantamento", c.optante_adiantamento === true],
         ];
-        for (const [tipo, ativo] of checks) {
-          const uid = (c.unidade_id as string | null) ?? "sem-unidade";
-          if (ativo) {
-            if (!elegiveisPorUnidade[uid]) elegiveisPorUnidade[uid] = { ponto: 0, adiantamento: 0 };
-            elegiveisPorUnidade[uid][tipo] += 1;
-          }
-          const temDoc = importados.has(`${c.id}::${tipo}`);
-          if (ativo && !temDoc) {
-            alertas.push({
-              colaborador_id: c.id,
-              nome: c.nome,
-              tipo,
-              problema: "faltando",
-              unidade_id: c.unidade_id ?? null,
-            });
-          } else if (!ativo && temDoc) {
-            alertas.push({
-              colaborador_id: c.id,
-              nome: c.nome,
-              tipo,
-              problema: "inconsistente",
-              unidade_id: c.unidade_id ?? null,
-            });
+
+        for (const comp of competencias) {
+          const ini = primeiroDia(comp);
+          const fimComp = ultimoDia(comp);
+          // Só considera competências em que o colaborador estava no quadro.
+          if (admissao && admissao > fimComp) continue;
+          if (desligamento && desligamento < ini) continue;
+
+          for (const [tipo, ativo] of checks) {
+            const temDoc = importados.has(`${c.id}::${tipo}::${comp}`);
+            if (ativo) {
+              const key = `${comp}::${tipo}::${uid}`;
+              elegiveis[key] = (elegiveis[key] ?? 0) + 1;
+            }
+            if (ativo && !temDoc) {
+              alertas.push({
+                colaborador_id: c.id,
+                nome: c.nome,
+                tipo,
+                problema: "faltando",
+                unidade_id: c.unidade_id ?? null,
+                competencia: comp,
+              });
+            } else if (!ativo && temDoc) {
+              alertas.push({
+                colaborador_id: c.id,
+                nome: c.nome,
+                tipo,
+                problema: "inconsistente",
+                unidade_id: c.unidade_id ?? null,
+                competencia: comp,
+              });
+            }
           }
         }
       }
-      return { alertas, elegiveisPorUnidade, unidadesMap, totalColabs: (colabsRes.data ?? []).length };
-    },
 
+      return { alertas, elegiveis, unidadesMap, janela: { inicio, fim } };
+    },
   });
 
-  const competenciaLabel = competencia
-    ? `${competencia.slice(5, 7)}/${competencia.slice(0, 4)}`
+  const janelaLabel = query.data?.janela
+    ? `${labelCompetencia(query.data.janela.inicio)} a ${labelCompetencia(query.data.janela.fim)}`
     : "";
 
   const grupos = useMemo(() => {
     const alertas = query.data?.alertas ?? [];
-    const elegiveisPorUnidade = query.data?.elegiveisPorUnidade ?? {};
+    const elegiveis = query.data?.elegiveis ?? {};
     const unidadesMap = query.data?.unidadesMap ?? new Map<string, string>();
     const out: Grupo[] = [];
 
-    // Agrupa os alertas por problema + tipo + unidade.
+    // Agrupa por competência + problema + tipo + unidade.
     const porChave = new Map<string, Alerta[]>();
     for (const a of alertas) {
       const uid = a.unidade_id ?? "sem-unidade";
-      const key = `${a.problema}-${a.tipo}-${uid}`;
+      const key = `${a.competencia}-${a.problema}-${a.tipo}-${uid}`;
       if (!porChave.has(key)) porChave.set(key, []);
       porChave.get(key)!.push(a);
     }
 
     for (const [key, alertasGrupo] of porChave) {
-      const problema = alertasGrupo[0].problema;
-      const tipo = alertasGrupo[0].tipo;
+      const { problema, tipo, competencia } = alertasGrupo[0];
       const uid = alertasGrupo[0].unidade_id ?? "sem-unidade";
       const nomes = alertasGrupo
         .map((a) => a.nome)
         .sort((a, b) => a.localeCompare(b, "pt-BR"));
-      const total = elegiveisPorUnidade[uid]?.[tipo] ?? 0;
+      const total = elegiveis[`${competencia}::${tipo}::${uid}`] ?? 0;
       const completo = problema === "faltando" && total > 0 && nomes.length >= total;
       out.push({
         key,
         tipo,
         problema,
+        competencia,
         unidade_id: uid === "sem-unidade" ? null : uid,
         nome_unidade: uid === "sem-unidade" ? null : (unidadesMap.get(uid) ?? "Unidade"),
         nomes,
@@ -168,8 +236,9 @@ export function DocConsistenciaPanel() {
       });
     }
 
-    // Ordenação estável: problema, tipo, nome da unidade.
+    // Competência mais recente primeiro; depois problema, tipo e unidade.
     return out.sort((a, b) => {
+      if (a.competencia !== b.competencia) return a.competencia < b.competencia ? 1 : -1;
       if (a.problema !== b.problema) return a.problema === "faltando" ? -1 : 1;
       if (a.tipo !== b.tipo) return a.tipo === "ponto" ? -1 : 1;
       const nomeA = a.nome_unidade ?? "Sem unidade";
@@ -177,7 +246,6 @@ export function DocConsistenciaPanel() {
       return nomeA.localeCompare(nomeB, "pt-BR");
     });
   }, [query.data]);
-
 
   const faltando = grupos.filter((g) => g.problema === "faltando");
   const inconsistentes = grupos.filter((g) => g.problema === "inconsistente");
@@ -191,7 +259,9 @@ export function DocConsistenciaPanel() {
       <div key={g.key} className="rounded-md border bg-background/60 p-2.5 space-y-1.5">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="font-medium">{TIPO_LABEL[g.tipo]}</span>
-          <Badge variant="secondary" className="text-[11px]">{competenciaLabel}</Badge>
+          <Badge variant="secondary" className="text-[11px]">
+            {labelCompetencia(g.competencia)}
+          </Badge>
           <span className="text-xs text-muted-foreground">
             {g.completo
               ? `lote completo pendente na ${unidadeLabel} (${g.nomes.length} colaborador${
@@ -236,19 +306,13 @@ export function DocConsistenciaPanel() {
 
   return (
     <Card className="dp-content-card">
-      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <CardTitle className="text-base">Conferência da Competência</CardTitle>
-        <div className="flex items-end gap-2">
-          <div className="space-y-1">
-            <Label className="text-xs">Competência</Label>
-            <Input
-              type="month"
-              className="h-9 w-[160px]"
-              value={competencia}
-              onChange={(e) => setCompetencia(e.target.value)}
-            />
-          </div>
-        </div>
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-base">Conferência de Documentos</CardTitle>
+        {janelaLabel && (
+          <p className="text-xs text-muted-foreground">
+            Competências analisadas: {janelaLabel}
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-3">
         {query.isLoading && <p className="text-sm text-muted-foreground">Conferindo…</p>}
@@ -266,7 +330,7 @@ export function DocConsistenciaPanel() {
               <AlertTriangle className="h-4 w-4" /> Falta Importar ({faltando.length})
             </div>
             <p className="text-xs text-muted-foreground">
-              Documento esperado pelo cadastro e ainda não importado nesta competência.
+              Documento esperado pelo cadastro e ainda não importado nessas competências.
             </p>
             <div className="space-y-2">{faltando.map(renderGrupo)}</div>
           </div>
