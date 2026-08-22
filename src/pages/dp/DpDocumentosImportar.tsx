@@ -16,7 +16,7 @@ export default function DpDocumentosImportar() {
   return (
     <DpPage>
       <Helmet>
-        <title>Importar Documentos — Pessoas 360°</title>
+        <title>Importar — Pessoas 360°</title>
         <meta
           name="description"
           content="Importe contracheques, 13º, férias, folhas de ponto e adiantamentos em um único lugar, com distribuição automática por colaborador."
@@ -25,12 +25,12 @@ export default function DpDocumentosImportar() {
 
       <DpPageHeader
         icon={FileUp}
-        title="Importar Documentos"
+        title="Importar"
         description="Envie o PDF do escritório contábil. O sistema identifica a natureza, a competência e o colaborador de cada página."
         actions={
           <Button asChild size="sm" variant="outline">
             <Link to="/dp/documentos/historico">
-              <ListChecks className="h-4 w-4 mr-1" /> Histórico de Documentos
+              <ListChecks className="h-4 w-4 mr-1" /> Histórico
             </Link>
           </Button>
         }

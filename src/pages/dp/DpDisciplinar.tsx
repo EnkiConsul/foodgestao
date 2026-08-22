@@ -266,10 +266,10 @@ export default function DpDisciplinar() {
 
   return (
     <DpPage>
-      <Helmet><title>Registros Disciplinares — Pessoas 360°</title></Helmet>
+      <Helmet><title>Disciplinares — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={ShieldAlert}
-        title="Registros Disciplinares"
+        title="Disciplinares"
         description="Gerencie advertências, suspensões e outros registros disciplinares."
       />
 
