@@ -134,28 +134,50 @@ export function DocConsistenciaPanel() {
 
   const grupos = useMemo(() => {
     const alertas = query.data?.alertas ?? [];
-    const elegiveis = query.data?.elegiveis ?? { ponto: 0, adiantamento: 0 };
+    const elegiveisPorUnidade = query.data?.elegiveisPorUnidade ?? {};
+    const unidadesMap = query.data?.unidadesMap ?? new Map<string, string>();
     const out: Grupo[] = [];
-    for (const problema of ["faltando", "inconsistente"] as const) {
-      for (const tipo of ["ponto", "adiantamento"] as const) {
-        const nomes = alertas
-          .filter((a) => a.problema === problema && a.tipo === tipo)
-          .map((a) => a.nome)
-          .sort((a, b) => a.localeCompare(b, "pt-BR"));
-        if (nomes.length === 0) continue;
-        const total = elegiveis[tipo];
-        out.push({
-          key: `${problema}-${tipo}`,
-          tipo,
-          problema,
-          nomes,
-          total,
-          completo: problema === "faltando" && total > 0 && nomes.length >= total,
-        });
-      }
+
+    // Agrupa os alertas por problema + tipo + unidade.
+    const porChave = new Map<string, Alerta[]>();
+    for (const a of alertas) {
+      const uid = a.unidade_id ?? "sem-unidade";
+      const key = `${a.problema}-${a.tipo}-${uid}`;
+      if (!porChave.has(key)) porChave.set(key, []);
+      porChave.get(key)!.push(a);
     }
-    return out;
+
+    for (const [key, alertasGrupo] of porChave) {
+      const problema = alertasGrupo[0].problema;
+      const tipo = alertasGrupo[0].tipo;
+      const uid = alertasGrupo[0].unidade_id ?? "sem-unidade";
+      const nomes = alertasGrupo
+        .map((a) => a.nome)
+        .sort((a, b) => a.localeCompare(b, "pt-BR"));
+      const total = elegiveisPorUnidade[uid]?.[tipo] ?? 0;
+      const completo = problema === "faltando" && total > 0 && nomes.length >= total;
+      out.push({
+        key,
+        tipo,
+        problema,
+        unidade_id: uid === "sem-unidade" ? null : uid,
+        nome_unidade: uid === "sem-unidade" ? null : (unidadesMap.get(uid) ?? "Unidade"),
+        nomes,
+        total,
+        completo,
+      });
+    }
+
+    // Ordenação estável: problema, tipo, nome da unidade.
+    return out.sort((a, b) => {
+      if (a.problema !== b.problema) return a.problema === "faltando" ? -1 : 1;
+      if (a.tipo !== b.tipo) return a.tipo === "ponto" ? -1 : 1;
+      const nomeA = a.nome_unidade ?? "Sem unidade";
+      const nomeB = b.nome_unidade ?? "Sem unidade";
+      return nomeA.localeCompare(nomeB, "pt-BR");
+    });
   }, [query.data]);
+
 
   const faltando = grupos.filter((g) => g.problema === "faltando");
   const inconsistentes = grupos.filter((g) => g.problema === "inconsistente");
