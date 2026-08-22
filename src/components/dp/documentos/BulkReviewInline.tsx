@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
@@ -25,7 +25,7 @@ import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@
 import { VincularUnidadeLote } from "./VincularUnidadeLote";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { cn } from "@/lib/utils";
-import { DP_DOC_TIPOS_IMPORTAVEIS, docTipoLabel } from "@/lib/dp/documentoTipos";
+import { DP_DOC_GRUPOS, docTipoLabel, assinaturaDocumento } from "@/lib/dp/documentoTipos";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -80,7 +80,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_bulk_import_batches" as any)
-        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,unidade_id,referencia_data,deteccao_automatica")
+        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,unidade_id,referencia_data,deteccao_automatica,source_file_name")
         .eq("id", batchId)
         .maybeSingle();
       if (error) throw error;
@@ -670,8 +670,15 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                     <SelectValue className="truncate" />
                   </SelectTrigger>
                   <SelectContent>
-                    {DP_DOC_TIPOS_IMPORTAVEIS.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    {DP_DOC_GRUPOS.map((g) => (
+                      g.tipos.filter((t) => t.importavel).length ? (
+                        <SelectGroup key={g.grupo}>
+                          <SelectLabel>{g.label}</SelectLabel>
+                          {g.tipos.filter((t) => t.importavel).map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ) : null
                     ))}
                   </SelectContent>
                 </Select>
