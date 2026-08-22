@@ -519,7 +519,24 @@ export default function DpHistoricoCompleto() {
                 <TableHead className="uppercase text-xs cursor-pointer select-none w-[9%]" onClick={() => toggleSort("data")}>Data<SortIcon k="data" /></TableHead>
                 <TableHead className="uppercase text-xs text-right w-[9%]">Ações</TableHead>
               </TableRow>
+              {/* Filtros por coluna (estilo planilha) */}
+              <TableRow className="hover:bg-transparent">
+                {(["colaborador", "tipo", "competencia", "unidade", "status"] as const).map((k) => (
+                  <TableHead key={k} className="py-1.5">
+                    <Input
+                      value={colFilters[k]}
+                      onChange={(e) => setColFilter(k, e.target.value)}
+                      placeholder="Filtrar…"
+                      className="h-7 text-xs"
+                    />
+                  </TableHead>
+                ))}
+                <TableHead className="py-1.5" />
+                <TableHead className="py-1.5" />
+                <TableHead className="py-1.5" />
+              </TableRow>
             </TableHeader>
+
             <TableBody>
               {paged.map((r) => (
                 <TableRow key={r.id}>
