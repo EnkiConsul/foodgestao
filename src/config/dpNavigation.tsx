@@ -32,12 +32,14 @@ import {
   Settings,
   ShieldAlert,
   ShieldCheck,
+  Upload,
   User,
   UserCheck,
   Users,
   Wand2,
   type LucideIcon,
 } from "lucide-react";
+
 
 /**
  * ─────────────────────────────────────────────────────────────────────────
@@ -143,7 +145,8 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     hubTo: "/dp/documentos",
     matchPrefixes: ["/dp/documentos", "/dp/disciplinar", "/dp/atestados"],
     items: [
-      { label: "Importar", to: "/dp/documentos", icon: FileText, end: true, shortcut: true, shortLabel: "Importar" },
+      { label: "Importar", to: "/dp/documentos", icon: Upload, end: true, shortcut: true, shortLabel: "Importar" },
+
       {
         label: "Histórico",
         to: "/dp/documentos/historico",
