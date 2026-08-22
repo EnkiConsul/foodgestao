@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Eye, Download, Search, ArrowUp, ArrowDown, ChevronsUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import {
+  FileText, Eye, Download, Search, ArrowUp, ArrowDown, ChevronsUpDown,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, RotateCcw,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
@@ -11,7 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
@@ -84,18 +93,119 @@ function tipoBadgeClass(key: string) {
   return docTipoBadgeClass(key);
 }
 
+type ColKey = "colaborador" | "tipo" | "competencia" | "unidade" | "status" | "aceite" | "data";
+type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "status_label" | "aceite_label" | "data";
+
+const COL_ORDER_STORAGE = "dp_historico_col_order";
+const DEFAULT_COL_ORDER: ColKey[] = ["colaborador", "tipo", "competencia", "unidade", "status", "aceite", "data"];
+
+function aceiteLabel(r: UnifiedDoc) {
+  return r.aceite === null ? "—" : r.aceite ? "Aceito" : "Aguardando";
+}
+
+/** Cabeçalho de coluna com menu de ordenação + filtro por valores e suporte a arrastar. */
+function ColunaFiltroHeader(props: {
+  label: string;
+  width: string;
+  sortAtivo: boolean;
+  sortDir: "asc" | "desc";
+  onSort: (dir: "asc" | "desc") => void;
+  ativos: string[];
+  getOpcoes: () => string[];
+  onToggle: (v: string) => void;
+  onSelecionarTodos: () => void;
+  onLimpar: () => void;
+  arrastando: boolean;
+  onDragStart: () => void;
+  onDrop: () => void;
+  onDragEnd: () => void;
+}) {
+  const [buscaOpcao, setBuscaOpcao] = useState("");
+  const opcoes = props.getOpcoes().filter((o) =>
+    o.toLowerCase().includes(buscaOpcao.trim().toLowerCase()),
+  );
+  return (
+    <TableHead
+      className={`uppercase text-xs select-none ${props.width} ${props.arrastando ? "opacity-50" : ""}`}
+      draggable
+      onDragStart={props.onDragStart}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={props.onDrop}
+      onDragEnd={props.onDragEnd}
+    >
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            title="Clique para ordenar/filtrar · arraste para mover a coluna"
+            className="flex w-full cursor-grab items-center gap-1 text-left uppercase hover:text-foreground"
+          >
+            <span className="truncate">{props.label}</span>
+
+            {props.sortAtivo
+              ? (props.sortDir === "asc" ? <ArrowUp className="h-3 w-3 shrink-0" /> : <ArrowDown className="h-3 w-3 shrink-0" />)
+              : <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-40" />}
+            <Filter className={`h-3 w-3 shrink-0 ${props.ativos.length ? "text-primary" : "opacity-30"}`} />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-64 p-0">
+          <div className="p-1">
+            <DropdownMenuItem onClick={() => props.onSort("asc")}>
+              <ArrowUp className="mr-2 h-3.5 w-3.5" /> Ordenar Crescente
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => props.onSort("desc")}>
+              <ArrowDown className="mr-2 h-3.5 w-3.5" /> Ordenar Decrescente
+            </DropdownMenuItem>
+          </div>
+          <DropdownMenuSeparator />
+          <div className="p-2 space-y-2">
+            <Input
+              value={buscaOpcao}
+              onChange={(e) => setBuscaOpcao(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
+              placeholder="Buscar…"
+              className="h-7 text-xs"
+            />
+            <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
+              {opcoes.length === 0 && (
+                <p className="py-2 text-center text-xs text-muted-foreground">Sem opções</p>
+              )}
+              {opcoes.map((o) => (
+                <label
+                  key={o}
+                  className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-xs normal-case hover:bg-muted"
+                >
+                  <Checkbox checked={props.ativos.includes(o)} onCheckedChange={() => props.onToggle(o)} />
+                  <span className="truncate" title={o}>{o}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={props.onSelecionarTodos}>
+                Selecionar Todos
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={props.onLimpar}>
+                Limpar
+              </Button>
+            </div>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </TableHead>
+  );
+}
+
 export default function DpHistoricoCompleto() {
+
   const { selectedCompanyId } = useCompanyContext();
   const colabs = useDpColaboradores();
   const unidades = useDpUnidades();
 
   const [tipo, setTipo] = useState("all");
   const [grupo, setGrupo] = useState("all");
-  const [colFilters, setColFilters] = useState({
-    colaborador: "", tipo: "", competencia: "", unidade: "", status: "",
+  const [colFilters, setColFilters] = useState<Record<ColKey, string[]>>({
+    colaborador: [], tipo: [], competencia: [], unidade: [], status: [], aceite: [], data: [],
   });
-  const setColFilter = (k: keyof typeof colFilters, v: string) =>
-    setColFilters((prev) => ({ ...prev, [k]: v }));
   const [unidadeId, setUnidadeId] = useState("all");
   const [colabId, setColabId] = useState("all");
   const [mes, setMes] = useState("all");
@@ -103,6 +213,27 @@ export default function DpHistoricoCompleto() {
   const [status, setStatus] = useState("all");
   const [busca, setBusca] = useState("");
   const [preview, setPreview] = useState<UnifiedDoc | null>(null);
+
+  const [sortKey, setSortKey] = useState<SortKey>("data");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const [colOrder, setColOrder] = useState<ColKey[]>(() => {
+    try {
+      const raw = localStorage.getItem(COL_ORDER_STORAGE);
+      if (raw) {
+        const parsed = JSON.parse(raw) as ColKey[];
+        const validos = parsed.filter((k) => DEFAULT_COL_ORDER.includes(k));
+        const faltantes = DEFAULT_COL_ORDER.filter((k) => !validos.includes(k));
+        if (validos.length) return [...validos, ...faltantes];
+      }
+    } catch { /* ignora storage inválido */ }
+    return DEFAULT_COL_ORDER;
+  });
+  const [dragCol, setDragCol] = useState<ColKey | null>(null);
+
+  useEffect(() => {
+    try { localStorage.setItem(COL_ORDER_STORAGE, JSON.stringify(colOrder)); } catch { /* noop */ }
+  }, [colOrder]);
 
   const colabMap = useMemo(() => {
     const m = new Map<string, { nome: string; unidade_id: string | null; unidade_nome: string | null }>();
@@ -267,9 +398,73 @@ export default function DpHistoricoCompleto() {
     return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
   }, [query.data]);
 
-  const filtered = useMemo(() => {
+  // ---------------- Descritores de coluna ----------------
+  const COLS: Record<ColKey, {
+    label: string;
+    width: string;
+    sortKey: SortKey;
+    value: (r: UnifiedDoc) => string;
+    render: (r: UnifiedDoc) => JSX.Element;
+    cellClass?: string;
+  }> = {
+    colaborador: {
+      label: "Colaborador", width: "w-[20%]", sortKey: "colaborador_nome",
+      value: (r) => r.colaborador_nome,
+      render: (r) => <span className="font-semibold" title={r.colaborador_nome}>{r.colaborador_nome}</span>,
+      cellClass: "truncate",
+    },
+    tipo: {
+      label: "Tipo", width: "w-[14%]", sortKey: "tipo_label",
+      value: (r) => r.tipo_label,
+      render: (r) => (
+        <Badge variant="outline" className={`max-w-full truncate ${tipoBadgeClass(r.tipo_key)}`}>{r.tipo_label}</Badge>
+      ),
+      cellClass: "truncate",
+    },
+    competencia: {
+      label: "Competência", width: "w-[11%]", sortKey: "competencia_sort",
+      value: (r) => r.competencia,
+      render: (r) => <span className="font-mono text-sm">{r.competencia}</span>,
+      cellClass: "whitespace-nowrap",
+    },
+    unidade: {
+      label: "Unidade", width: "w-[14%]", sortKey: "unidade_nome",
+      value: (r) => r.unidade_nome,
+      render: (r) => <span title={r.unidade_nome}>{r.unidade_nome}</span>,
+      cellClass: "truncate",
+    },
+    status: {
+      label: "Status", width: "w-[12%]", sortKey: "status_label",
+      value: (r) => r.status_label,
+      render: (r) => (
+        <Badge variant="outline" className={`max-w-full truncate ${statusBadgeClass(r.status_key)}`}>{r.status_label}</Badge>
+      ),
+      cellClass: "truncate",
+    },
+    aceite: {
+      label: "Aceite", width: "w-[12%]", sortKey: "aceite_label",
+      value: (r) => aceiteLabel(r),
+      render: (r) => (
+        r.aceite === null ? <span className="text-xs text-muted-foreground">—</span>
+          : r.aceite
+            ? <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">Aceito</Badge>
+            : <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">Aguardando</Badge>
+      ),
+      cellClass: "truncate",
+    },
+    data: {
+      label: "Data", width: "w-[10%]", sortKey: "data",
+      value: (r) => new Date(r.data).toLocaleDateString("pt-BR"),
+      render: (r) => (
+        <span className="font-mono text-sm text-muted-foreground">{new Date(r.data).toLocaleDateString("pt-BR")}</span>
+      ),
+      cellClass: "whitespace-nowrap",
+    },
+  };
+
+  // ---------------- Filtros ----------------
+  const baseFiltered = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    const cf = (v: string) => v.trim().toLowerCase();
     return (query.data ?? []).filter((r) => {
       if (tipo !== "all" && r.tipo_key !== tipo) return false;
       if (grupo !== "all" && docTipoGrupo(r.tipo_key) !== grupo) return false;
@@ -278,31 +473,53 @@ export default function DpHistoricoCompleto() {
       if (status !== "all" && r.status_key !== status) return false;
       if (ano !== "all" && !r.competencia_sort.startsWith(ano)) return false;
       if (mes !== "all" && r.competencia_sort.slice(5, 7) !== mes) return false;
-      // Filtros por coluna (estilo planilha)
-      if (colFilters.colaborador && !r.colaborador_nome.toLowerCase().includes(cf(colFilters.colaborador))) return false;
-      if (colFilters.tipo && !r.tipo_label.toLowerCase().includes(cf(colFilters.tipo))) return false;
-      if (colFilters.competencia && !r.competencia.toLowerCase().includes(cf(colFilters.competencia))) return false;
-      if (colFilters.unidade && !r.unidade_nome.toLowerCase().includes(cf(colFilters.unidade))) return false;
-      if (colFilters.status && !r.status_label.toLowerCase().includes(cf(colFilters.status))) return false;
       if (q) {
         const hay = `${r.colaborador_nome} ${r.tipo_label} ${r.status_label} ${r.unidade_nome} ${r.titulo}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [query.data, tipo, grupo, unidadeId, colabId, mes, ano, status, busca, colFilters]);
+  }, [query.data, tipo, grupo, unidadeId, colabId, mes, ano, status, busca]);
 
+  const filtered = useMemo(() => {
+    return baseFiltered.filter((r) =>
+      (Object.keys(colFilters) as ColKey[]).every((k) => {
+        const sel = colFilters[k];
+        if (!sel.length) return true;
+        return sel.includes(COLS[k].value(r));
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseFiltered, colFilters]);
+
+  /** Opções de cada coluna: valores presentes considerando os demais filtros. */
+  const opcoesColuna = (k: ColKey) => {
+    const outros = baseFiltered.filter((r) =>
+      (Object.keys(colFilters) as ColKey[]).every((other) => {
+        if (other === k) return true;
+        const sel = colFilters[other];
+        if (!sel.length) return true;
+        return sel.includes(COLS[other].value(r));
+      }),
+    );
+    const set = new Set<string>();
+    outros.forEach((r) => set.add(COLS[k].value(r)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  };
+
+  const toggleColValue = (k: ColKey, v: string) =>
+    setColFilters((prev) => {
+      const sel = prev[k];
+      return { ...prev, [k]: sel.includes(v) ? sel.filter((x) => x !== v) : [...sel, v] };
+    });
 
   // ---------------- Ordenação ----------------
-  type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "status_label" | "data";
-  const [sortKey, setSortKey] = useState<SortKey>("data");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-
   const sorted = useMemo(() => {
     const arr = [...filtered];
+    const get = (r: UnifiedDoc) => (sortKey === "aceite_label" ? aceiteLabel(r) : ((r as any)[sortKey] ?? ""));
     arr.sort((a, b) => {
-      const av = (a as any)[sortKey] ?? "";
-      const bv = (b as any)[sortKey] ?? "";
+      const av = get(a);
+      const bv = get(b);
       if (av === bv) return 0;
       const cmp = av > bv ? 1 : -1;
       return sortDir === "asc" ? cmp : -cmp;
@@ -310,10 +527,7 @@ export default function DpHistoricoCompleto() {
     return arr;
   }, [filtered, sortKey, sortDir]);
 
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(key); setSortDir(key === "data" || key === "competencia_sort" ? "desc" : "asc"); }
-  };
+  const aplicarSort = (key: SortKey, dir: "asc" | "desc") => { setSortKey(key); setSortDir(dir); };
 
   // ---------------- Paginação ----------------
   const [pageSize, setPageSize] = useState(25);
@@ -326,13 +540,8 @@ export default function DpHistoricoCompleto() {
   const limpar = () => {
     setTipo("all"); setGrupo("all"); setUnidadeId("all"); setColabId("all");
     setMes("all"); setAno("all"); setStatus("all"); setBusca("");
-    setColFilters({ colaborador: "", tipo: "", competencia: "", unidade: "", status: "" });
+    setColFilters({ colaborador: [], tipo: [], competencia: [], unidade: [], status: [], aceite: [], data: [] });
   };
-
-  const SortIcon = ({ k }: { k: SortKey }) =>
-    sortKey !== k ? <ChevronsUpDown className="ml-1 inline h-3 w-3 opacity-40" />
-    : sortDir === "asc" ? <ArrowUp className="ml-1 inline h-3 w-3" />
-    : <ArrowDown className="ml-1 inline h-3 w-3" />;
 
   const download = async (row: UnifiedDoc) => {
     if (!row.file_path) return toast.error("Arquivo indisponível");
@@ -348,6 +557,43 @@ export default function DpHistoricoCompleto() {
     document.body.removeChild(a);
   };
 
+  // ---------------- Drag & drop de colunas ----------------
+  const soltarSobre = (alvo: ColKey) => {
+    if (!dragCol || dragCol === alvo) return setDragCol(null);
+    setColOrder((prev) => {
+      const arr = prev.filter((k) => k !== dragCol);
+      const idx = arr.indexOf(alvo);
+      arr.splice(idx, 0, dragCol);
+      return arr;
+    });
+    setDragCol(null);
+  };
+
+  const tiposDoSelect = grupo === "all"
+    ? DP_DOC_GRUPOS
+    : DP_DOC_GRUPOS.filter((g) => g.grupo === grupo);
+
+  const renderColunaHeader = (k: ColKey) => (
+    <ColunaFiltroHeader
+      key={k}
+      label={COLS[k].label}
+      width={COLS[k].width}
+      sortAtivo={sortKey === COLS[k].sortKey}
+      sortDir={sortDir}
+      onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
+      ativos={colFilters[k]}
+      getOpcoes={() => opcoesColuna(k)}
+      onToggle={(v) => toggleColValue(k, v)}
+      onSelecionarTodos={() => setColFilters((p) => ({ ...p, [k]: opcoesColuna(k) }))}
+      onLimpar={() => setColFilters((p) => ({ ...p, [k]: [] }))}
+      arrastando={dragCol === k}
+      onDragStart={() => setDragCol(k)}
+      onDrop={() => soltarSobre(k)}
+      onDragEnd={() => setDragCol(null)}
+    />
+  );
+
+
   return (
     <DpPage>
       <Helmet><title>Histórico — Pessoas 360°</title></Helmet>
@@ -357,58 +603,51 @@ export default function DpHistoricoCompleto() {
         description="Visualize todos os documentos de todos os colaboradores em um único lugar."
       />
 
-      {/* Barra de naturezas: grupos e tipos sempre à mostra */}
+      {/* Barra de naturezas: somente os grupos */}
       <div className="rounded-lg border bg-card p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="text-sm font-semibold">Natureza do Documento</div>
-          {(grupo !== "all" || tipo !== "all") && (
+          {grupo !== "all" && (
             <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setGrupo("all"); setTipo("all"); }}>
-              Limpar natureza
+              Limpar Natureza
             </Button>
           )}
         </div>
-        <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => { setGrupo("all"); setTipo("all"); }}
-            className={`h-7 rounded-full border px-3 text-xs font-semibold transition-colors ${
-              grupo === "all" && tipo === "all" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
+            className={`h-8 rounded-full border px-3 text-xs font-semibold transition-colors ${
+              grupo === "all" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
             }`}
           >
             Todos
           </button>
           {DP_DOC_GRUPOS.map((g) => (
-            <div key={g.grupo} className="min-w-0">
-              <button
-                type="button"
-                onClick={() => { setGrupo(g.grupo); setTipo("all"); }}
-                className={`mb-1 block text-[11px] font-semibold uppercase tracking-wide transition-colors ${
-                  grupo === g.grupo && tipo === "all" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {g.label}
-              </button>
-              <div className="flex flex-wrap gap-1.5">
-                {g.tipos.filter((t) => t.value !== "ferias").map((t) => (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => { setGrupo("all"); setTipo(tipo === t.value ? "all" : t.value); }}
-                    className={`h-6 rounded-full border px-2.5 text-[11px] transition-colors ${
-                      tipo === t.value ? "border-primary bg-primary text-primary-foreground" : `${t.badgeClass} hover:bg-muted`
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <button
+              key={g.grupo}
+              type="button"
+              onClick={() => { setGrupo(grupo === g.grupo ? "all" : g.grupo); setTipo("all"); }}
+              className={`h-8 rounded-full border px-3 text-xs font-semibold transition-colors ${
+                grupo === g.grupo ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
+              }`}
+            >
+              {g.label}
+            </button>
           ))}
         </div>
       </div>
 
       <DpFilterCard>
-        <div className="mb-3 text-sm font-semibold">Filtros</div>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="text-sm font-semibold">Filtros</div>
+          <Button
+            variant="ghost" size="sm" className="h-7 text-xs"
+            onClick={() => setColOrder(DEFAULT_COL_ORDER)}
+          >
+            <RotateCcw className="mr-1 h-3 w-3" /> Restaurar Colunas
+          </Button>
+        </div>
 
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
           <div className="space-y-1.5">
@@ -417,8 +656,13 @@ export default function DpHistoricoCompleto() {
               <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                {TIPO_OPTIONS.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                {tiposDoSelect.map((g) => (
+                  <SelectGroup key={g.grupo}>
+                    <SelectLabel>{g.label}</SelectLabel>
+                    {g.tipos.filter((t) => t.value !== "ferias" && t.value !== "sindicato").map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>
@@ -510,61 +754,17 @@ export default function DpHistoricoCompleto() {
           <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-xs cursor-pointer select-none w-[20%]" onClick={() => toggleSort("colaborador_nome")}>Colaborador<SortIcon k="colaborador_nome" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none w-[15%]" onClick={() => toggleSort("tipo_label")}>Tipo<SortIcon k="tipo_label" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none w-[12%]" onClick={() => toggleSort("competencia_sort")}>Competência<SortIcon k="competencia_sort" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none w-[14%]" onClick={() => toggleSort("unidade_nome")}>Unidade<SortIcon k="unidade_nome" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none w-[11%]" onClick={() => toggleSort("status_label")}>Status<SortIcon k="status_label" /></TableHead>
-                <TableHead className="uppercase text-xs w-[10%]">Aceite</TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none w-[9%]" onClick={() => toggleSort("data")}>Data<SortIcon k="data" /></TableHead>
-                <TableHead className="uppercase text-xs text-right w-[9%]">Ações</TableHead>
-              </TableRow>
-              {/* Filtros por coluna (estilo planilha) */}
-              <TableRow className="hover:bg-transparent">
-                {(["colaborador", "tipo", "competencia", "unidade", "status"] as const).map((k) => (
-                  <TableHead key={k} className="py-1.5">
-                    <Input
-                      value={colFilters[k]}
-                      onChange={(e) => setColFilter(k, e.target.value)}
-                      placeholder="Filtrar…"
-                      className="h-7 text-xs"
-                    />
-                  </TableHead>
-                ))}
-                <TableHead className="py-1.5" />
-                <TableHead className="py-1.5" />
-                <TableHead className="py-1.5" />
+                {colOrder.map((k) => renderColunaHeader(k))}
+                <TableHead className="uppercase text-xs text-right w-[7%]">Ações</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
               {paged.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="font-semibold truncate" title={r.colaborador_nome}>{r.colaborador_nome}</TableCell>
-                  <TableCell className="truncate">
-                    <Badge variant="outline" className={`max-w-full truncate ${tipoBadgeClass(r.tipo_key)}`}>
-                      {r.tipo_label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap font-mono text-sm">{r.competencia}</TableCell>
-                  <TableCell className="truncate" title={r.unidade_nome}>{r.unidade_nome}</TableCell>
-                  <TableCell className="truncate">
-                    <Badge variant="outline" className={`max-w-full truncate ${statusBadgeClass(r.status_key)}`}>
-                      {r.status_label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="truncate">
-                    {r.aceite === null ? (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    ) : r.aceite ? (
-                      <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">Aceito</Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">Aguardando</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap font-mono text-sm text-muted-foreground">
-                    {new Date(r.data).toLocaleDateString("pt-BR")}
-                  </TableCell>
+                  {colOrder.map((k) => (
+                    <TableCell key={k} className={COLS[k].cellClass}>{COLS[k].render(r)}</TableCell>
+                  ))}
                   <TableCell className="text-right">
                     <Button size="icon" variant="ghost" title="Pré-visualizar" onClick={() => setPreview(r)} disabled={!r.file_path}>
                       <Eye className="h-4 w-4 text-primary" />
@@ -577,7 +777,7 @@ export default function DpHistoricoCompleto() {
               ))}
               {paged.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={colOrder.length + 1} className="text-center text-muted-foreground py-10">
                     Nenhum documento encontrado com esses filtros.
                   </TableCell>
                 </TableRow>
@@ -625,7 +825,6 @@ export default function DpHistoricoCompleto() {
         ))}
       </div>
 
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>
@@ -661,7 +860,6 @@ export default function DpHistoricoCompleto() {
           </Button>
         </div>
       </div>
-
 
       <DocumentPreview
         open={!!preview}
