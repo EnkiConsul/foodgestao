@@ -4,6 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type UnifiedTipo =
   | "contracheque"
+  | "contracheque_13"
+  | "contracheque_ferias"
+  | "aviso_ferias"
+  | "recibo_ferias"
+  | "informe_rendimentos"
   | "adiantamento"
   | "ponto"
   | "atestado"
@@ -31,11 +36,18 @@ export type UnifiedDoc = {
   created_at: string;
   observacao?: string | null;
   motivo_recusao?: string | null;
+  /** null = não exige aceite; false = aguardando aceite; true = já aceito */
+  aceite?: boolean | null;
   meta?: Record<string, any>;
 };
 
 const TIPO_LABEL: Record<UnifiedTipo, string> = {
   contracheque: "Contracheque",
+  contracheque_13: "Contracheque 13º",
+  contracheque_ferias: "Contracheque Férias",
+  aviso_ferias: "Aviso de Férias",
+  recibo_ferias: "Recibo de Férias",
+  informe_rendimentos: "Informe de Rendimentos",
   adiantamento: "Adiantamento",
   ponto: "Folha de Ponto",
   atestado: "Atestado",
@@ -48,6 +60,11 @@ const TIPO_LABEL: Record<UnifiedTipo, string> = {
 
 const KNOWN = new Set<string>([
   "contracheque",
+  "contracheque_13",
+  "contracheque_ferias",
+  "aviso_ferias",
+  "recibo_ferias",
+  "informe_rendimentos",
   "adiantamento",
   "ponto",
   "atestado",
@@ -102,10 +119,17 @@ export function useMeusDocumentos() {
       const { data: docs } = await supabase
         .from("dp_documentos")
         .select(
-          "id, titulo, tipo, referencia_data, file_path, mime_type, aprovacao_status, motivo_recusao, submetido_por_colaborador, descricao, created_at"
+          "id, titulo, tipo, referencia_data, file_path, mime_type, aprovacao_status, motivo_recusao, submetido_por_colaborador, descricao, created_at, exige_aceite"
         )
         .eq("colaborador_id", colab.id)
         .order("created_at", { ascending: false });
+
+      const { data: aceites } = await supabase
+        .from("dp_documento_aceites")
+        .select("documento_id")
+        .eq("colaborador_id", colab.id)
+        .not("documento_id", "is", null);
+      const aceitos = new Set((aceites ?? []).map((a: any) => a.documento_id as string));
 
       for (const d of (docs ?? []) as any[]) {
         const tipo = normalizeTipo(d.tipo);
@@ -136,6 +160,7 @@ export function useMeusDocumentos() {
           created_at: d.created_at,
           observacao: d.descricao ?? null,
           motivo_recusao: d.motivo_recusao ?? null,
+          aceite: d.exige_aceite && !d.submetido_por_colaborador ? aceitos.has(d.id) : null,
           meta: { originalId: d.id, submetido: d.submetido_por_colaborador },
         });
       }

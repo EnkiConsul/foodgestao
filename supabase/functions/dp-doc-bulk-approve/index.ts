@@ -7,6 +7,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
+import { DOC_TIPO_EXIGE_ACEITE, DOC_TIPO_LABEL } from "../_shared/doc-tipos.ts";
 
 const SRC_BUCKET = "dp-bulk-import";
 const DST_BUCKET = "dp-documentos";
@@ -41,7 +42,7 @@ Deno.serve(async (req) => {
 
     const { data: items, error: iErr } = await userClient
       .from("dp_bulk_import_items")
-      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name, source_file_path)")
+      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name, source_file_path, deteccao_automatica)")
       .in("id", parsed.data.item_ids);
     if (iErr) return json({ error: iErr.message }, 500);
     if (!items || items.length === 0) return json({ error: "Nenhum item encontrado" }, 404);
@@ -90,6 +91,8 @@ Deno.serve(async (req) => {
         const batch = it.dp_bulk_import_batches;
 
         const referenciaData = normalizeReferenciaData(it.detected_competencia) ?? batch.referencia_data ?? null;
+        // Natureza efetiva: a escolhida/detectada por página tem prioridade.
+        const tipoDoc: string = it.tipo_detectado ?? batch.tipo;
 
         // Duplicidade: já existe documento para (colaborador, tipo, referencia_data)?
         let replacedFlag = false;
@@ -99,7 +102,7 @@ Deno.serve(async (req) => {
             .select("id, file_path")
             .eq("company_id", batch.company_id)
             .eq("colaborador_id", it.matched_colaborador_id)
-            .eq("tipo", batch.tipo)
+            .eq("tipo", tipoDoc)
             .eq("referencia_data", referenciaData)
             .limit(1)
             .maybeSingle();
@@ -131,12 +134,13 @@ Deno.serve(async (req) => {
         if (up.error) throw new Error(up.error.message);
 
         const nowIso = new Date().toISOString();
-        const titulo = `${prettyTipo(batch.tipo)} p.${it.page_index} — ${batch.source_file_name ?? "lote"}`;
+        const titulo = `${prettyTipo(tipoDoc)} p.${it.page_index} — ${batch.source_file_name ?? "lote"}`;
         const { data: doc, error: dErr } = await svc.from("dp_documentos").insert({
           company_id: batch.company_id,
           colaborador_id: it.matched_colaborador_id,
-          tipo: batch.tipo,
+          tipo: tipoDoc,
           titulo,
+          exige_aceite: DOC_TIPO_EXIGE_ACEITE[tipoDoc] ?? false,
           file_path: dstPath,
           file_name: `${batch.id}_p${it.page_index}.pdf`,
           file_size: bytes.byteLength,
@@ -204,14 +208,7 @@ function json(body: unknown, status = 200) {
 }
 
 function prettyTipo(t: string) {
-  return ({
-    contracheque: "Contracheque",
-    ponto: "Ponto",
-    atestado: "Atestado",
-    ferias: "Férias",
-    adiantamento: "Adiantamento",
-    outros: "Documento",
-  } as Record<string, string>)[t] ?? "Documento";
+  return DOC_TIPO_LABEL[t] ?? "Documento";
 }
 
 function normalizeReferenciaData(value: unknown): string | null {

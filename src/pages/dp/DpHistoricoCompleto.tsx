@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DP_DOC_TIPOS, docTipoBadgeClass } from "@/lib/dp/documentoTipos";
 
 type UnifiedDoc = {
   id: string;
@@ -34,18 +35,13 @@ type UnifiedDoc = {
   file_path: string | null;
   mime_type?: string | null;
   titulo: string;
+  /** null = não exige aceite; false = aguardando; true = aceito */
+  aceite: boolean | null;
 };
 
 const TIPO_OPTIONS = [
-  { value: "contracheque", label: "Contracheque" },
-  { value: "adiantamento", label: "Adiantamento" },
-  { value: "ponto", label: "Folha de Ponto" },
-  { value: "atestado", label: "Atestado" },
-  { value: "disciplinar", label: "Disciplinar" },
-  { value: "act_cct", label: "ACT/CCT" },
-  { value: "contrato", label: "Contrato" },
-  { value: "ferias", label: "Férias" },
-  { value: "outros", label: "Outros" },
+  ...DP_DOC_TIPOS.filter((t) => t.value !== "sindicato").map((t) => ({ value: t.value as string, label: t.label })),
+  { value: "act_cct", label: "Negociação Sindical" },
 ];
 
 const STATUS_OPTIONS = [
@@ -84,22 +80,8 @@ function statusBadgeClass(key: string) {
 }
 
 function tipoBadgeClass(key: string) {
-  switch (key) {
-    case "act_cct":
-      return "border-rose-300 text-rose-700";
-    case "atestado":
-      return "border-blue-300 text-blue-700";
-    case "adiantamento":
-      return "border-violet-300 text-violet-700";
-    case "contracheque":
-      return "border-emerald-300 text-emerald-700";
-    case "ponto":
-      return "border-amber-300 text-amber-700";
-    case "disciplinar":
-      return "border-orange-300 text-orange-700";
-    default:
-      return "border-muted-foreground/40 text-muted-foreground";
-  }
+  if (key === "act_cct") return "border-rose-300 text-rose-700";
+  return docTipoBadgeClass(key);
 }
 
 export default function DpHistoricoCompleto() {
@@ -135,10 +117,10 @@ export default function DpHistoricoCompleto() {
     enabled: !!selectedCompanyId && !!colabs.data,
     queryFn: async (): Promise<UnifiedDoc[]> => {
       const cId = selectedCompanyId!;
-      const [docsRes, solRes, sindRes, discRes] = await Promise.all([
+      const [docsRes, solRes, sindRes, discRes, aceitesRes] = await Promise.all([
         supabase
           .from("dp_documentos")
-          .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status")
+          .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite")
           .eq("company_id", cId),
         supabase
           .from("dp_solicitacoes")
@@ -153,7 +135,14 @@ export default function DpHistoricoCompleto() {
           .from("dp_registros_disciplinares")
           .select("id, motivo, tipo, data, pdf_storage_path, created_at, colaborador_id")
           .eq("company_id", cId),
+        supabase
+          .from("dp_documento_aceites")
+          .select("documento_id")
+          .eq("company_id", cId)
+          .not("documento_id", "is", null),
       ]);
+
+      const aceitos = new Set((aceitesRes.data ?? []).map((a: any) => a.documento_id as string));
 
       const rows: UnifiedDoc[] = [];
 
@@ -178,6 +167,7 @@ export default function DpHistoricoCompleto() {
           file_path: d.file_path,
           mime_type: d.mime_type,
           titulo: d.titulo,
+          aceite: d.exige_aceite ? aceitos.has(d.id) : null,
         });
       });
 
@@ -204,6 +194,7 @@ export default function DpHistoricoCompleto() {
           bucket: "dp-atestados",
           file_path: s.arquivo_path,
           titulo: `Atestado — ${c?.nome ?? ""}`.trim(),
+          aceite: null,
         });
       });
 
@@ -229,7 +220,8 @@ export default function DpHistoricoCompleto() {
           data: n.created_at,
           bucket: "dp-sindicato",
           file_path: n.pdf_path,
-          titulo: n.arquivo_nome ?? `ACT/CCT ${unidadeNome}`,
+          titulo: n.arquivo_nome ?? `Negociação Sindical ${unidadeNome}`,
+          aceite: null,
         });
       });
 
@@ -252,6 +244,7 @@ export default function DpHistoricoCompleto() {
           bucket: "dp-disciplinar",
           file_path: r.pdf_storage_path,
           titulo: r.motivo ?? "Registro Disciplinar",
+          aceite: null,
         });
       });
 
@@ -442,21 +435,22 @@ export default function DpHistoricoCompleto() {
         {query.isLoading ? (
           <div className="p-4">
             <TableSkeleton
-              columns={7}
-              headers={["Colaborador", "Tipo", "Competência", "Unidade", "Status", "Data", "Ações"]}
+              columns={8}
+              headers={["Colaborador", "Tipo", "Competência", "Unidade", "Status", "Aceite", "Data", "Ações"]}
             />
           </div>
         ) : (
           <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-xs cursor-pointer select-none w-[24%]" onClick={() => toggleSort("colaborador_nome")}>Colaborador<SortIcon k="colaborador_nome" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none w-[20%]" onClick={() => toggleSort("colaborador_nome")}>Colaborador<SortIcon k="colaborador_nome" /></TableHead>
                 <TableHead className="uppercase text-xs cursor-pointer select-none w-[15%]" onClick={() => toggleSort("tipo_label")}>Tipo<SortIcon k="tipo_label" /></TableHead>
                 <TableHead className="uppercase text-xs cursor-pointer select-none w-[12%]" onClick={() => toggleSort("competencia_sort")}>Competência<SortIcon k="competencia_sort" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none w-[16%]" onClick={() => toggleSort("unidade_nome")}>Unidade<SortIcon k="unidade_nome" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none w-[13%]" onClick={() => toggleSort("status_label")}>Status<SortIcon k="status_label" /></TableHead>
-                <TableHead className="uppercase text-xs cursor-pointer select-none w-[10%]" onClick={() => toggleSort("data")}>Data<SortIcon k="data" /></TableHead>
-                <TableHead className="uppercase text-xs text-right w-[10%]">Ações</TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none w-[14%]" onClick={() => toggleSort("unidade_nome")}>Unidade<SortIcon k="unidade_nome" /></TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none w-[11%]" onClick={() => toggleSort("status_label")}>Status<SortIcon k="status_label" /></TableHead>
+                <TableHead className="uppercase text-xs w-[10%]">Aceite</TableHead>
+                <TableHead className="uppercase text-xs cursor-pointer select-none w-[9%]" onClick={() => toggleSort("data")}>Data<SortIcon k="data" /></TableHead>
+                <TableHead className="uppercase text-xs text-right w-[9%]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -474,6 +468,15 @@ export default function DpHistoricoCompleto() {
                     <Badge variant="outline" className={`max-w-full truncate ${statusBadgeClass(r.status_key)}`}>
                       {r.status_label}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="truncate">
+                    {r.aceite === null ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : r.aceite ? (
+                      <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">Aceito</Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">Aguardando</Badge>
+                    )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap font-mono text-sm text-muted-foreground">
                     {new Date(r.data).toLocaleDateString("pt-BR")}

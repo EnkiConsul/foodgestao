@@ -4,6 +4,8 @@ export interface DuplicateInput {
   item_id: string;
   colaborador_id: string;
   colaborador_nome: string;
+  /** Natureza específica da página (lotes mistos). Se ausente, usa a do lote. */
+  tipo?: string | null;
   referencia_data: string | null; // YYYY-MM-DD ou null
 }
 
@@ -29,22 +31,23 @@ export async function detectDuplicates(params: {
 
   const colabIds = [...new Set(withRef.map((i) => i.colaborador_id))];
   const refs = [...new Set(withRef.map((i) => i.referencia_data as string))];
+  const tipos = [...new Set(withRef.map((i) => i.tipo || tipo))];
 
   const { data, error } = await supabase
     .from("dp_documentos" as any)
-    .select("colaborador_id, referencia_data")
+    .select("colaborador_id, referencia_data, tipo")
     .eq("company_id", company_id)
-    .eq("tipo", tipo)
+    .in("tipo", tipos)
     .in("colaborador_id", colabIds)
     .in("referencia_data", refs);
   if (error) throw error;
 
   const existing = new Set(
-    (data ?? []).map((d: any) => `${d.colaborador_id}::${d.referencia_data}`),
+    (data ?? []).map((d: any) => `${d.colaborador_id}::${d.tipo}::${d.referencia_data}`),
   );
 
   return withRef
-    .filter((i) => existing.has(`${i.colaborador_id}::${i.referencia_data}`))
+    .filter((i) => existing.has(`${i.colaborador_id}::${i.tipo || tipo}::${i.referencia_data}`))
     .map((i) => ({
       item_id: i.item_id,
       colaborador_nome: i.colaborador_nome,

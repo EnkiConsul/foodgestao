@@ -79,9 +79,7 @@ const DpHome = lazyWithRetry(() => import("./pages/dp/DpHome"));
 const DpColaboradores = lazyWithRetry(() => import("./pages/dp/DpColaboradores"));
 const DpColaboradoresLixeira = lazyWithRetry(() => import("./pages/dp/DpColaboradoresLixeira"));
 const DpSolicitacoes = lazyWithRetry(() => import("./pages/dp/DpSolicitacoes"));
-const DpDocumentos = lazyWithRetry(() => import("./pages/dp/DpDocumentos"));
-const DpDocumentosHub = lazyWithRetry(() => import("./pages/dp/DpDocumentosHub"));
-const DpDocumentosPorTipo = lazyWithRetry(() => import("./pages/dp/DpDocumentosPorTipo"));
+const DpDocumentosImportar = lazyWithRetry(() => import("./pages/dp/DpDocumentosImportar"));
 const DpFolgas = lazyWithRetry(() => import("./pages/dp/DpFolgas"));
 const DpFerias = lazyWithRetry(() => import("./pages/dp/DpFerias"));
 const DpConformidade = lazyWithRetry(() => import("./pages/dp/DpConformidade"));
@@ -442,13 +440,12 @@ const AppRoutes = () => (
         <Route path="analytics" element={<DpAnalytics />} />
 
         <Route path="calendario" element={<DpAdminCalendario />} />
-        <Route path="documentos" element={<DpDocumentosHub />} />
-        <Route path="documentos/todos" element={<DpDocumentos />} />
+        <Route path="documentos" element={<DpDocumentosImportar />} />
         <Route path="documentos/historico" element={<DpHistoricoCompleto />} />
-        <Route path="documentos/contracheque" element={<DpDocumentosPorTipo tipo="contracheque" />} />
-        <Route path="documentos/ponto" element={<DpDocumentosPorTipo tipo="ponto" />} />
-        <Route path="documentos/adiantamento" element={<DpDocumentosPorTipo tipo="adiantamento" />} />
-        <Route path="documentos/:categoria" element={<DpDocumentos />} />
+        <Route path="documentos/todos" element={<Navigate to="/dp/documentos/historico" replace />} />
+        <Route path="documentos/contracheque" element={<Navigate to="/dp/documentos/historico?tipo=contracheque" replace />} />
+        <Route path="documentos/ponto" element={<Navigate to="/dp/documentos/historico?tipo=ponto" replace />} />
+        <Route path="documentos/adiantamento" element={<Navigate to="/dp/documentos/historico?tipo=adiantamento" replace />} />
         <Route path="atestados" element={<DpAtestados />} />
         <Route path="avisos" element={<DpAvisos />} />
         <Route path="mensagens" element={<DpMensagens />} />
@@ -460,6 +457,7 @@ const AppRoutes = () => (
         <Route path="trocas" element={<DpTrocas />} />
         <Route path="aprovacoes" element={<DpAprovacoes />} />
         <Route path="documentos/importar" element={<Navigate to="/dp/documentos" replace />} />
+        <Route path="documentos/:categoria" element={<Navigate to="/dp/documentos/historico" replace />} />
         <Route path="cadastros" element={<DpCadastrosHub />} />
         <Route path="cadastros/unidades" element={<DpUnidades />} />
         <Route path="cadastros/cargos" element={<DpCargos />} />
@@ -488,14 +486,15 @@ const AppRoutes = () => (
         <Route path="folha/:id" element={<Navigate to="/dp" replace />} />
 
 
-        <Route path="documentos/act-cct" element={<DpSindicatoNegociacoes />} />
+        <Route path="cadastros/negociacoes-sindicais" element={<DpSindicatoNegociacoes />} />
+        <Route path="documentos/act-cct" element={<Navigate to="/dp/cadastros/negociacoes-sindicais" replace />} />
         <Route path="configuracoes" element={<DpConfiguracoes />} />
         <Route path="sindicatos" element={<Navigate to="/dp/cadastros/unidades" replace />} />
         <Route path="unidades" element={<Navigate to="/dp/cadastros/unidades" replace />} />
         <Route path="cargos" element={<Navigate to="/dp/cadastros/cargos" replace />} />
-        <Route path="sindicatos/negociacoes" element={<Navigate to="/dp/documentos/act-cct" replace />} />
-        <Route path="cadastros/sindicatos/negociacoes" element={<Navigate to="/dp/documentos/act-cct" replace />} />
-        <Route path="documentos/sindicato" element={<Navigate to="/dp/documentos/act-cct" replace />} />
+        <Route path="sindicatos/negociacoes" element={<Navigate to="/dp/cadastros/negociacoes-sindicais" replace />} />
+        <Route path="cadastros/sindicatos/negociacoes" element={<Navigate to="/dp/cadastros/negociacoes-sindicais" replace />} />
+        <Route path="documentos/sindicato" element={<Navigate to="/dp/cadastros/negociacoes-sindicais" replace />} />
         <Route path="comunicacao/avisos" element={<Navigate to="/dp/avisos" replace />} />
         <Route path="comunicacao/mensagens" element={<Navigate to="/dp/mensagens" replace />} />
         <Route path="mais" element={<Mais />} />

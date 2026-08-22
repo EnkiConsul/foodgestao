@@ -25,6 +25,7 @@ import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@
 import { VincularUnidadeLote } from "./VincularUnidadeLote";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { cn } from "@/lib/utils";
+import { DP_DOC_TIPOS_IMPORTAVEIS, docTipoLabel } from "@/lib/dp/documentoTipos";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -79,7 +80,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_bulk_import_batches" as any)
-        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,unidade_id,referencia_data")
+        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,unidade_id,referencia_data,deteccao_automatica")
         .eq("id", batchId)
         .maybeSingle();
       if (error) throw error;
@@ -228,6 +229,18 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
   });
 
+  const setTipoItem = useMutation({
+    mutationFn: async ({ id, tipo }: { id: string; tipo: string }) => {
+      const { error } = await supabase.from("dp_bulk_import_items" as any).update({
+        tipo_detectado: tipo,
+        tipo_confidence: 1,
+      }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao alterar natureza"),
+  });
+
   const reject = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("dp_bulk_import_items" as any)
@@ -327,6 +340,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
             item_id: r.id,
             colaborador_id: r.matched_colaborador_id,
             colaborador_nome: colab?.nome ?? "(colaborador)",
+            tipo: r.tipo_detectado ?? bInfo.tipo,
             referencia_data: normalizeRefDate(r.detected_competencia) ?? bInfo?.referencia_data ?? null,
           };
         }),
@@ -528,6 +542,9 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                 {current.duplicate_of && (
                   <Badge variant="destructive" className="text-[10px]">Duplicado</Badge>
                 )}
+                <Badge variant="outline" className="text-[10px] whitespace-nowrap">
+                  {docTipoLabel(current.tipo_detectado ?? (batchInfo.data as any)?.tipo)}
+                </Badge>
                 {current.detected_competencia && (
                   <Badge variant="outline" className="text-[10px] whitespace-nowrap">
                     Competência {formatCompetencia(current.detected_competencia)}
@@ -573,7 +590,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
 
 
             {/* Editor: colaborador + competência + ações */}
-            <div className="p-3 border-t bg-background grid gap-3 grid-cols-1 md:grid-cols-[2fr_1fr_auto] md:items-end">
+            <div className="p-3 border-t bg-background grid gap-3 grid-cols-1 md:grid-cols-[2fr_1.2fr_1fr_auto] md:items-end">
 
               <div className="space-y-1">
                 <Label className="text-xs">Colaborador</Label>
@@ -614,6 +631,24 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                     {matchedColab.cpf ? `CPF ${matchedColab.cpf}` : ""}
                   </div>
                 )}
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Natureza</Label>
+                <Select
+                  value={current.tipo_detectado ?? (batchInfo.data as any)?.tipo ?? "outros"}
+                  onValueChange={(v) => setTipoItem.mutate({ id: current.id, tipo: v })}
+                  disabled={current.status === "imported"}
+                >
+                  <SelectTrigger className="h-10 min-w-0">
+                    <SelectValue className="truncate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DP_DOC_TIPOS_IMPORTAVEIS.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1">
