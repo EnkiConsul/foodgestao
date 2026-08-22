@@ -25,14 +25,13 @@ import { cn } from "@/lib/utils";
 import { BulkReviewDialog } from "./BulkReviewDialog";
 import { BulkReviewInline } from "./BulkReviewInline";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
+import { DP_DOC_TIPOS_IMPORTAVEIS, docTipoLabel } from "@/lib/dp/documentoTipos";
+
+const AUTO_TIPO = "__auto";
 
 const TIPO_OPTS = [
-  { v: "contracheque", l: "Contracheque" },
-  { v: "ponto", l: "Ponto" },
-  { v: "adiantamento", l: "Adiantamento" },
-  { v: "ferias", l: "Férias" },
-  { v: "atestado", l: "Atestado" },
-  { v: "outros", l: "Outros" },
+  { v: AUTO_TIPO, l: "Detectar Automaticamente (Lote Misto)" },
+  ...DP_DOC_TIPOS_IMPORTAVEIS.map((t) => ({ v: t.value, l: t.label })),
 ];
 
 const MAX_SIZE_MB = 20;
@@ -60,7 +59,7 @@ export function BulkImportPanel({
 
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [tipo, setTipo] = useState<string>(tipoFixed ?? "contracheque");
+  const [tipo, setTipo] = useState<string>(tipoFixed ?? AUTO_TIPO);
   const [referencia, setReferencia] = useState<string>(referenciaFixed ?? "");
   const [uploading, setUploading] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -146,7 +145,8 @@ export function BulkImportPanel({
       const insertRes = await (supabase.from("dp_bulk_import_batches" as any) as any)
         .insert({
           company_id: selectedCompanyId,
-          tipo,
+          tipo: tipo === AUTO_TIPO ? "outros" : tipo,
+          deteccao_automatica: tipo === AUTO_TIPO,
           source_file_path: provisional,
           source_file_name: file.name,
           referencia_data: competenciaToDate(referencia),
@@ -316,11 +316,16 @@ export function BulkImportPanel({
           )}>
             {!tipoFixed && (
               <div className="space-y-1">
-                <Label>Tipo</Label>
+                <Label>Natureza do documento</Label>
                 <Select value={tipo} onValueChange={setTipo}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{TIPO_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
                 </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  {tipo === AUTO_TIPO
+                    ? "O sistema identifica a natureza de cada página (contracheque, 13º, férias, ponto…). Você confere antes de salvar."
+                    : "Todas as páginas do PDF serão salvas com esta natureza."}
+                </p>
               </div>
             )}
             {!referenciaFixed && (
@@ -392,7 +397,7 @@ export function BulkImportPanel({
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium truncate">{b.source_file_name ?? b.id.slice(0, 8)}</div>
                       <div className="text-xs text-muted-foreground truncate">
-                        {b.tipo} ·{" "}
+                        {b.deteccao_automatica ? "Misto (detecção automática)" : docTipoLabel(b.tipo)} ·{" "}
                         {isProcessing && totalPag > 0
                           ? `OCR ${processed}/${totalPag}`
                           : `${totalPag} pág · ${b.matched_count ?? 0} vinc.`}
