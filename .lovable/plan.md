@@ -40,7 +40,8 @@ Adicionar ao enum: `contracheque_13` e `contracheque_ferias`. Rótulos e cores c
 ### 5. Navegação e rotas
 
 - Grupo "Documentos" da sidebar/menu Mais passa a ter: **Importar Documentos** e **Histórico de Documentos**.
-- Atestados, Registros Disciplinares e ACT/CCT saem do grupo Documentos e continuam existindo nos seus lugares próprios (Atestados junto de Folgas/Férias, Disciplinar e ACT/CCT nos cadastros), pois têm fluxo de aprovação próprio e não são importação de arquivo. Continuam aparecendo no Histórico.
+- Atestados e Registros Disciplinares saem do grupo Documentos e continuam nos seus lugares próprios (Atestados junto de Folgas/Férias, Disciplinar nos cadastros), pois têm fluxo de aprovação próprio e não são importação de arquivo. Continuam aparecendo no Histórico.
+- A tela ACT/CCT é renomeada para **Negociações Sindicais** e passa a viver no grupo **Cadastro** (nova rota `/dp/cadastros/negociacoes-sindicais`, com `/dp/documentos/act-cct` redirecionando para ela). Título, breadcrumb e rótulo do menu atualizados; rótulo no Histórico e no portal passa a "Negociações Sindicais".
 - Rotas antigas (`/dp/documentos/contracheque`, `/ponto`, `/adiantamento`, `/todos`, hub) passam a redirecionar para as duas novas telas, preservando links salvos.
 - Portal do colaborador segue igual (`/dp/meu/documentos`), apenas ganhando os rótulos dos novos tipos.
 
