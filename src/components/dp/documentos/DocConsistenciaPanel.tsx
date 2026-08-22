@@ -55,10 +55,10 @@ export function DocConsistenciaPanel() {
     queryKey: ["dp_doc_consistencia", selectedCompanyId, ref],
     enabled: !!selectedCompanyId && !!ref,
     queryFn: async () => {
-      const [colabsRes, docsRes] = await Promise.all([
+      const [colabsRes, docsRes, unidadesRes] = await Promise.all([
         supabase
           .from("dp_colaboradores")
-          .select("id, nome, possui_folha_ponto, optante_adiantamento")
+          .select("id, nome, possui_folha_ponto, optante_adiantamento, unidade_id")
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true),
         supabase
@@ -67,32 +67,65 @@ export function DocConsistenciaPanel() {
           .eq("company_id", selectedCompanyId!)
           .eq("referencia_data", ref!)
           .in("tipo", ["ponto", "adiantamento"]),
+        supabase
+          .from("dp_unidades")
+          .select("id, nome")
+          .eq("company_id", selectedCompanyId!)
+          .eq("ativo", true),
       ]);
       if (colabsRes.error) throw colabsRes.error;
       if (docsRes.error) throw docsRes.error;
+      if (unidadesRes.error) throw unidadesRes.error;
+
+      const unidadesMap = new Map(
+        (unidadesRes.data ?? []).map((u: any) => [u.id as string, u.nome as string]),
+      );
 
       const importados = new Set(
         (docsRes.data ?? []).map((d: any) => `${d.colaborador_id}::${d.tipo}`),
       );
       const alertas: Alerta[] = [];
-      const elegiveis: Record<"ponto" | "adiantamento", number> = { ponto: 0, adiantamento: 0 };
+      const elegiveisPorUnidade: Record<string, Record<"ponto" | "adiantamento", number>> = {};
+      // Garante chaves para unidades sem pendência futura e para colaboradores sem unidade.
+      for (const uid of unidadesMap.keys()) {
+        elegiveisPorUnidade[uid] = { ponto: 0, adiantamento: 0 };
+      }
+      elegiveisPorUnidade["sem-unidade"] = { ponto: 0, adiantamento: 0 };
+
       for (const c of (colabsRes.data ?? []) as any[]) {
         const checks: Array<["ponto" | "adiantamento", boolean]> = [
           ["ponto", c.possui_folha_ponto === true],
           ["adiantamento", c.optante_adiantamento === true],
         ];
         for (const [tipo, ativo] of checks) {
-          if (ativo) elegiveis[tipo] += 1;
+          const uid = (c.unidade_id as string | null) ?? "sem-unidade";
+          if (ativo) {
+            if (!elegiveisPorUnidade[uid]) elegiveisPorUnidade[uid] = { ponto: 0, adiantamento: 0 };
+            elegiveisPorUnidade[uid][tipo] += 1;
+          }
           const temDoc = importados.has(`${c.id}::${tipo}`);
           if (ativo && !temDoc) {
-            alertas.push({ colaborador_id: c.id, nome: c.nome, tipo, problema: "faltando" });
+            alertas.push({
+              colaborador_id: c.id,
+              nome: c.nome,
+              tipo,
+              problema: "faltando",
+              unidade_id: c.unidade_id ?? null,
+            });
           } else if (!ativo && temDoc) {
-            alertas.push({ colaborador_id: c.id, nome: c.nome, tipo, problema: "inconsistente" });
+            alertas.push({
+              colaborador_id: c.id,
+              nome: c.nome,
+              tipo,
+              problema: "inconsistente",
+              unidade_id: c.unidade_id ?? null,
+            });
           }
         }
       }
-      return { alertas, elegiveis, totalColabs: (colabsRes.data ?? []).length };
+      return { alertas, elegiveisPorUnidade, unidadesMap, totalColabs: (colabsRes.data ?? []).length };
     },
+
   });
 
   const competenciaLabel = competencia
