@@ -1,0 +1,1 @@
+ALTER TABLE public.dp_bulk_import_items ADD COLUMN IF NOT EXISTS tipo_assinatura TEXT;

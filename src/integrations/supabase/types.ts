@@ -3230,6 +3230,7 @@ export type Database = {
           page_index: number
           page_thumb_url: string | null
           status: string
+          tipo_assinatura: string | null
           tipo_confidence: number | null
           tipo_detectado:
             | Database["public"]["Enums"]["dp_documento_tipo"]
@@ -3260,6 +3261,7 @@ export type Database = {
           page_index: number
           page_thumb_url?: string | null
           status?: string
+          tipo_assinatura?: string | null
           tipo_confidence?: number | null
           tipo_detectado?:
             | Database["public"]["Enums"]["dp_documento_tipo"]
@@ -3290,6 +3292,7 @@ export type Database = {
           page_index?: number
           page_thumb_url?: string | null
           status?: string
+          tipo_assinatura?: string | null
           tipo_confidence?: number | null
           tipo_detectado?:
             | Database["public"]["Enums"]["dp_documento_tipo"]
