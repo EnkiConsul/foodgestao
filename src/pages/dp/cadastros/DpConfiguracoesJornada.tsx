@@ -223,7 +223,7 @@ export default function DpConfiguracoesJornada() {
 
       <DpPageHeader
         title="Regras De Folgas"
-        description="Parâmetros de DSR, folga dominical e férias — aplicados a toda a empresa ou por unidade de loja."
+        description="Parâmetros de DSR e folga dominical — aplicados a toda a empresa ou por unidade de loja."
         icon={Scale}
         actions={
           <Button onClick={handleSave} disabled={saving || isLoading} className="gap-2">
