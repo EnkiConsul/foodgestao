@@ -32,7 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
-import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
 import { ColaboradorAcessoPanel } from "./ColaboradorAcessoPanel";
@@ -65,6 +65,7 @@ import {
   remuneracaoBlank,
   numeroBR,
   type RemuneracaoFormState,
+  type SocioRemuneracao,
 } from "@/components/dp/RemuneracaoFields";
 import {
   formaPagamentoPadrao,
