@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { matchPath } from "react-router-dom";
 import {
   Users, Wallet, ClipboardList, FileText, Megaphone, MessageSquare, ShieldAlert,
-  Calendar, Repeat, CheckSquare, Building2, Briefcase, HandshakeIcon, Ban, CalendarX,
+  Calendar, Repeat, Building2, Briefcase, HandshakeIcon, Ban, CalendarX,
   User, ScrollText, FileSignature, History, Upload, Mail,
 } from "lucide-react";
 
