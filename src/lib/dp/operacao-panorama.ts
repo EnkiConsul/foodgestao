@@ -107,6 +107,8 @@ export interface PessoaPanorama {
   cargo_id: string | null;
   cargo_nome: string | null;
   socio: boolean;
+  /** Sócio vinculado a uma unidade e com jornada: conta como parte do quadro. */
+  socio_integrado?: boolean;
   /** Origem do horário: jornada habitual, escala publicada ou convocação. */
   origem: "jornada" | "escala" | "convocacao";
 }
@@ -209,11 +211,18 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       origem: PessoaPanorama["origem"];
     },
   ) => {
-    // Ausência de sócio é contabilizada apenas no card "Folga Sócio": sócio não
-    // tem jornada obrigatória, então não entra nas contagens de folga/férias.
+    // Sócio com unidade definida e jornada cadastrada faz parte do quadro daquela
+    // unidade: entra nas contagens normais (fixo e folga padrão da jornada).
+    // Sócio em "Geral" ou sem jornada fica fora das contagens CLT e aparece
+    // apenas no card "Folga Sócio" quando marca folga ou férias. Folga extra e
+    // férias de qualquer sócio seguem contando somente em "Folga Sócio".
+    const socioIntegrado = !!colab.socio && !!colab.unidade_id && !!colab.config;
     const ausenciaDeSocio =
-      !!colab.socio && (categoria === "folga_padrao" || categoria === "folga_extra" || categoria === "ferias");
+      !!colab.socio &&
+      (categoria === "folga_padrao" || categoria === "folga_extra" || categoria === "ferias") &&
+      !(socioIntegrado && categoria === "folga_padrao");
     if (!ausenciaDeSocio) contagens[categoria] += 1;
+
     const entrada = hora(horario?.entrada);
     const saida = hora(horario?.saida);
     pessoas.push({
@@ -233,7 +242,9 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       cargo_id: colab.cargo_id ?? null,
       cargo_nome: colab.cargo_nome ?? null,
       socio: !!colab.socio,
+      socio_integrado: socioIntegrado,
       origem: horario?.origem ?? "jornada",
+
     });
   };
 

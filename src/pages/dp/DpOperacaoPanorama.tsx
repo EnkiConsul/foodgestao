@@ -40,6 +40,7 @@ import {
   mensagemAlerta,
   somarDias,
   type CategoriaDia,
+  type PessoaPanorama,
 } from "@/lib/dp/operacao-panorama";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
@@ -330,13 +331,16 @@ export default function DpOperacaoPanorama() {
 
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
 
+  // Sócios ausentes seguem visíveis nas listas (com a tag "Folga sócio"),
+  // mesmo não somando nos números dos cards de folga/férias.
   const pessoasDaCategoria = detalheCategoria
-    ? (dia?.pessoas ?? []).filter(
-        (p) =>
-          p.categoria === detalheCategoria &&
-          !(p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria)),
-      )
+    ? (dia?.pessoas ?? []).filter((p) => p.categoria === detalheCategoria)
     : [];
+
+  /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
+  const tagSocio = (p: PessoaPanorama) =>
+    p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria) && !p.socio_integrado;
+
 
   return (
     <DpPage>
@@ -528,9 +532,15 @@ export default function DpOperacaoPanorama() {
                                       {formatarHoras(p.carga_prevista_horas)}
                                     </p>
                                   </div>
-                                  <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
-                                    {CATEGORIA_LABEL[p.categoria]}
-                                  </Badge>
+                                  <div className="flex shrink-0 items-center gap-1.5">
+                                    {p.socio && (
+                                      <Badge variant="outline" className="border-primary/40 text-primary">Sócio</Badge>
+                                    )}
+                                    <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
+                                      {CATEGORIA_LABEL[p.categoria]}
+                                    </Badge>
+                                  </div>
+
                                 </li>
                               ))}
                             </ul>
@@ -554,8 +564,8 @@ export default function DpOperacaoPanorama() {
                 </Secao>
               )}
 
-              {(["folga_padrao", "folga_extra", "ferias", "atestado"] as CategoriaDia[]).some(
-                (c) => dia.contagens[c] > 0,
+              {dia.pessoas.some((p) =>
+                ["folga_padrao", "folga_extra", "ferias", "atestado"].includes(p.categoria),
               ) && (
                 <Secao title="Fora da Operação" description="Folgas, férias e afastamentos do dia">
                   <ul className="divide-y">
@@ -566,12 +576,18 @@ export default function DpOperacaoPanorama() {
                       .map((p) => (
                         <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
                           <span className="truncate text-sm">{p.nome}</span>
-                          <Badge variant="outline">{CATEGORIA_LABEL[p.categoria]}</Badge>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            {tagSocio(p) && (
+                              <Badge variant="outline" className="border-primary/40 text-primary">Folga sócio</Badge>
+                            )}
+                            <Badge variant="outline">{CATEGORIA_LABEL[p.categoria]}</Badge>
+                          </div>
                         </li>
                       ))}
                   </ul>
                 </Secao>
               )}
+
             </>
           )}
         </TabsContent>
@@ -756,11 +772,17 @@ export default function DpOperacaoPanorama() {
             {pessoasDaCategoria.map((p) => (
               <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
                 <span className="truncate text-sm">{p.nome}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {p.entrada ? `${p.entrada} às ${p.saida ?? "--:--"}` : "—"}
-                </span>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {tagSocio(p) && (
+                    <Badge variant="outline" className="border-primary/40 text-primary">Folga sócio</Badge>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {p.entrada ? `${p.entrada} às ${p.saida ?? "--:--"}` : "—"}
+                  </span>
+                </div>
               </li>
             ))}
+
           </ul>
         </DialogContent>
       </Dialog>

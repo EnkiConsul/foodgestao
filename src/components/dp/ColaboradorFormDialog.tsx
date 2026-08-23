@@ -875,7 +875,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     !form.nome.trim() ||
     form.cpf.replace(/\D/g, "").length !== 11 ||
     !form.cargo_id ||
-    !form.unidade_id ||
+    (!form.unidade_id && !socioSelecionado) ||
     !form.data_admissao ||
     !form.data_nascimento ||
     (isDesligado && !form.data_desligamento);
@@ -1141,7 +1141,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
       if (cpfDigits.length !== 11) return erro("cpf", "CPF deve ter 11 dígitos");
       if (!isValidCpf(cpfDigits)) return erro("cpf", "CPF inválido");
       if (!form.cargo_id) return erro("cargo_id", "Cargo é obrigatório");
-      if (!form.unidade_id) return erro("unidade_id", "Unidade é obrigatória");
+      if (!form.unidade_id && !socioSelecionado) return erro("unidade_id", "Unidade é obrigatória");
       if (!form.data_admissao) return erro("data_admissao", "Data de admissão é obrigatória");
       if (!form.data_nascimento) return erro("data_nascimento", "Data de nascimento é obrigatória");
       if (exigeDomingosFolga && form.domingos_folga_mes === "none") {
@@ -1653,11 +1653,16 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           </div>
 
           <div className="space-y-2">
-            <Label>Unidade *</Label>
+            <Label>Unidade {socioSelecionado ? "" : "*"}</Label>
             <div className="flex items-center gap-2">
-              <Select value={form.unidade_id} onValueChange={(v) => setForm({ ...form, unidade_id: v })}>
+              {/* Sócio pode ficar em "Geral" (sem unidade): o sentinela representa unidade_id vazio. */}
+              <Select
+                value={socioSelecionado && !form.unidade_id ? "geral" : form.unidade_id}
+                onValueChange={(v) => setForm({ ...form, unidade_id: v === "geral" ? "" : v })}
+              >
                 <SelectTrigger {...marca("unidade_id")}><SelectValue placeholder="Nenhuma" /></SelectTrigger>
                 <SelectContent>
+                  {socioSelecionado && <SelectItem value="geral">Geral (todas as unidades)</SelectItem>}
                   {(unidades.data ?? []).map((u) => (
                     <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
                   ))}
@@ -1668,9 +1673,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Esta é a unidade usada também no horário de trabalho. Unidades criadas aqui já entram na tela de Unidades.
+              {socioSelecionado
+                ? "Em “Geral” o sócio não entra no quadro de nenhuma unidade. Ao escolher uma unidade, ele passa a aparecer na Operação daquela unidade."
+                : "Esta é a unidade usada também no horário de trabalho. Unidades criadas aqui já entram na tela de Unidades."}
             </p>
           </div>
+
 
 
           <SindicatoEnquadramentoField

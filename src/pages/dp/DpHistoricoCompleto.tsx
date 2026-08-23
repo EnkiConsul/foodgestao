@@ -37,6 +37,8 @@ import { DocDetalhesDialog } from "@/components/dp/documentos/DocDetalhesDialog"
 import { DocEventosDialog } from "@/components/dp/documentos/DocEventosDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { docSourceConfig, excluirDocumentoHistorico } from "@/lib/dp/historicoDocAcoes";
+import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
+import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 
 
 type UnifiedDoc = {
@@ -255,9 +257,6 @@ export default function DpHistoricoCompleto() {
 
   const [tipo, setTipo] = useState("all");
   const [grupo, setGrupo] = useState("all");
-  const [colFilters, setColFilters] = useState<Record<ColKey, string[]>>({
-    colaborador: [], tipo: [], competencia: [], unidade: [], aceite: [],
-  });
 
   const [unidadeId, setUnidadeId] = useState("all");
   const [colabId, setColabId] = useState("all");
@@ -274,52 +273,21 @@ export default function DpHistoricoCompleto() {
   const queryClient = useQueryClient();
 
 
-  const [sortKey, setSortKey] = useState<SortKey>("data");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-
-  const [colOrder, setColOrder] = useState<ColKey[]>(() => {
-    try {
-      const raw = localStorage.getItem(COL_ORDER_STORAGE);
-      if (raw) {
-        const parsed = JSON.parse(raw) as ColKey[];
-        const validos = parsed.filter((k) => DEFAULT_COL_ORDER.includes(k));
-        const faltantes = DEFAULT_COL_ORDER.filter((k) => !validos.includes(k));
-        if (validos.length) return [...validos, ...faltantes];
-      }
-    } catch { /* ignora storage inválido */ }
-    return DEFAULT_COL_ORDER;
-  });
-  const [dragCol, setDragCol] = useState<ColKey | null>(null);
-
-  /** Larguras das colunas em px, ajustáveis pelo usuário e persistidas no navegador. */
-  const [colWidths, setColWidths] = useState<Record<ColKey, number>>(() => {
-    try {
-      const raw = localStorage.getItem(COL_WIDTH_STORAGE);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<Record<ColKey, number>>;
-        const merged = { ...DEFAULT_COL_WIDTHS };
-        (Object.keys(DEFAULT_COL_WIDTHS) as ColKey[]).forEach((k) => {
-          const v = Number(parsed[k]);
-          if (Number.isFinite(v) && v >= COL_MIN_WIDTH) merged[k] = v;
-        });
-        return merged;
-      }
-    } catch { /* ignora storage inválido */ }
-    return DEFAULT_COL_WIDTHS;
+  const {
+    colOrder, colWidths, resize, resetWidth,
+    dragCol, setDragCol, soltarSobre,
+    colFilters, setColFilters, toggleColValue,
+    sortKey, sortDir, aplicarSort,
+    larguraTotal,
+  } = useDpTableColumns<ColKey, SortKey>({
+    storageKey: "dp_historico_col",
+    defaultOrder: DEFAULT_COL_ORDER,
+    defaultWidths: DEFAULT_COL_WIDTHS,
+    acoesWidth: ACOES_WIDTH,
+    defaultSortKey: "data",
+    defaultSortDir: "desc",
   });
 
-  useEffect(() => {
-    try { localStorage.setItem(COL_ORDER_STORAGE, JSON.stringify(colOrder)); } catch { /* noop */ }
-  }, [colOrder]);
-
-  useEffect(() => {
-    try { localStorage.setItem(COL_WIDTH_STORAGE, JSON.stringify(colWidths)); } catch { /* noop */ }
-  }, [colWidths]);
-
-  const larguraTotal = useMemo(
-    () => colOrder.reduce((acc, k) => acc + colWidths[k], ACOES_WIDTH),
-    [colOrder, colWidths],
-  );
 
 
   const colabMap = useMemo(() => {
@@ -558,11 +526,6 @@ export default function DpHistoricoCompleto() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
   };
 
-  const toggleColValue = (k: ColKey, v: string) =>
-    setColFilters((prev) => {
-      const sel = prev[k];
-      return { ...prev, [k]: sel.includes(v) ? sel.filter((x) => x !== v) : [...sel, v] };
-    });
 
   // ---------------- Ordenação ----------------
   const sorted = useMemo(() => {
@@ -578,7 +541,7 @@ export default function DpHistoricoCompleto() {
     return arr;
   }, [filtered, sortKey, sortDir]);
 
-  const aplicarSort = (key: SortKey, dir: "asc" | "desc") => { setSortKey(key); setSortDir(dir); };
+  
 
   // ---------------- Paginação ----------------
   const [pageSize, setPageSize] = useState(25);
@@ -656,24 +619,12 @@ export default function DpHistoricoCompleto() {
   });
 
 
-  // ---------------- Drag & drop de colunas ----------------
-  const soltarSobre = (alvo: ColKey) => {
-    if (!dragCol || dragCol === alvo) return setDragCol(null);
-    setColOrder((prev) => {
-      const arr = prev.filter((k) => k !== dragCol);
-      const idx = arr.indexOf(alvo);
-      arr.splice(idx, 0, dragCol);
-      return arr;
-    });
-    setDragCol(null);
-  };
-
   const tiposDoSelect = grupo === "all"
     ? DP_DOC_GRUPOS
     : DP_DOC_GRUPOS.filter((g) => g.grupo === grupo);
 
   const renderColunaHeader = (k: ColKey) => (
-    <ColunaFiltroHeader
+    <DpTableColumnHeader
       key={k}
       label={COLS[k].label}
       width={colWidths[k]}
@@ -690,10 +641,11 @@ export default function DpHistoricoCompleto() {
       onDragStart={() => setDragCol(k)}
       onDrop={() => soltarSobre(k)}
       onDragEnd={() => setDragCol(null)}
-      onResize={(largura) => setColWidths((p) => ({ ...p, [k]: largura }))}
-      onResetWidth={() => setColWidths((p) => ({ ...p, [k]: DEFAULT_COL_WIDTHS[k] }))}
+      onResize={(largura) => resize(k, largura)}
+      onResetWidth={() => resetWidth(k)}
     />
   );
+
 
 
   return (
