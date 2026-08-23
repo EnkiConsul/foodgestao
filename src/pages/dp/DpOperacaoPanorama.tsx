@@ -558,8 +558,8 @@ export default function DpOperacaoPanorama() {
                 </Secao>
               )}
 
-              {(["folga_padrao", "folga_extra", "ferias", "atestado"] as CategoriaDia[]).some(
-                (c) => dia.contagens[c] > 0,
+              {dia.pessoas.some((p) =>
+                ["folga_padrao", "folga_extra", "ferias", "atestado"].includes(p.categoria),
               ) && (
                 <Secao title="Fora da Operação" description="Folgas, férias e afastamentos do dia">
                   <ul className="divide-y">
@@ -570,12 +570,18 @@ export default function DpOperacaoPanorama() {
                       .map((p) => (
                         <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
                           <span className="truncate text-sm">{p.nome}</span>
-                          <Badge variant="outline">{CATEGORIA_LABEL[p.categoria]}</Badge>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            {tagSocio(p) && (
+                              <Badge variant="outline" className="border-primary/40 text-primary">Folga sócio</Badge>
+                            )}
+                            <Badge variant="outline">{CATEGORIA_LABEL[p.categoria]}</Badge>
+                          </div>
                         </li>
                       ))}
                   </ul>
                 </Secao>
               )}
+
             </>
           )}
         </TabsContent>
