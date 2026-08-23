@@ -1788,7 +1788,29 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 ))}
               </SelectContent>
             </Select>
-            {risco && (
+            {/* Sócio: a orientação é informativa (não é risco de pejotização),
+                então fica recolhida num "i" para não poluir o formulário. */}
+            {risco && risco.tipo === "socio" && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 text-left text-xs text-amber-700 hover:underline dark:text-amber-400"
+                  >
+                    <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>{risco.titulo}</span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-80 text-[11px] leading-relaxed text-muted-foreground">
+                  {risco.mensagem}
+                  {risco.reforco && (
+                    <span className="mt-1 block font-medium text-foreground">{risco.reforco}</span>
+                  )}
+                </PopoverContent>
+              </Popover>
+            )}
+            {risco && risco.tipo !== "socio" && (
+
               <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
                 <p className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
