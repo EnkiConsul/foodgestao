@@ -443,7 +443,8 @@ export default function DpColaboradores() {
                       </TableCell>
                     ))}
                     <TableCell className="align-top" style={{ width: COLAB_ACOES_WIDTH }} onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-0.5 justify-end">
+                      <div className="flex gap-0.5 justify-center">
+
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); abrirCadastro(c); }} title="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>
