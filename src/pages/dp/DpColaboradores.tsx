@@ -30,7 +30,7 @@ import { Link } from "react-router-dom";
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { DpCopyColWidthsButton } from "@/components/dp/DpCopyColWidthsButton";
+import { DpSalvarLargurasButton } from "@/components/dp/DpSalvarLargurasButton";
 
 import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
