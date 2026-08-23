@@ -90,7 +90,19 @@ type ColKey = "colaborador" | "tipo" | "competencia" | "unidade" | "aceite";
 type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "aceite_label" | "data";
 
 const COL_ORDER_STORAGE = "dp_historico_col_order_v2";
+const COL_WIDTH_STORAGE = "dp_historico_col_width_v1";
 const DEFAULT_COL_ORDER: ColKey[] = ["colaborador", "tipo", "competencia", "unidade", "aceite"];
+/** Larguras padrão em px (somam ~1090 + 96 de ações, caindo bem em telas >= 1280). */
+const DEFAULT_COL_WIDTHS: Record<ColKey, number> = {
+  colaborador: 250,
+  tipo: 230,
+  competencia: 130,
+  unidade: 220,
+  aceite: 120,
+};
+const COL_MIN_WIDTH = 80;
+const ACOES_WIDTH = 96;
+
 
 
 function aceiteLabel(r: UnifiedDoc) {
@@ -98,10 +110,13 @@ function aceiteLabel(r: UnifiedDoc) {
   return r.aceite ? "Aceito" : "Aguardando";
 }
 
-/** Cabeçalho de coluna com menu de ordenação + filtro por valores e suporte a arrastar. */
+/**
+ * Cabeçalho de coluna com menu de ordenação + filtro por valores,
+ * suporte a arrastar para reordenar e alça de redimensionamento na borda direita.
+ */
 function ColunaFiltroHeader(props: {
   label: string;
-  width: string;
+  width: number;
   sortAtivo: boolean;
   sortDir: "asc" | "desc";
   onSort: (dir: "asc" | "desc") => void;
@@ -114,20 +129,47 @@ function ColunaFiltroHeader(props: {
   onDragStart: () => void;
   onDrop: () => void;
   onDragEnd: () => void;
+  onResize: (largura: number) => void;
+  onResetWidth: () => void;
 }) {
   const [buscaOpcao, setBuscaOpcao] = useState("");
+  const [redimensionando, setRedimensionando] = useState(false);
   const opcoes = props.getOpcoes().filter((o) =>
     o.toLowerCase().includes(buscaOpcao.trim().toLowerCase()),
   );
+
+  /** Arraste da alça: converte o deslocamento do ponteiro em nova largura. */
+  const iniciarResize = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const xInicial = e.clientX;
+    const larguraInicial = props.width;
+    setRedimensionando(true);
+    const mover = (ev: PointerEvent) => {
+      props.onResize(Math.max(COL_MIN_WIDTH, larguraInicial + (ev.clientX - xInicial)));
+    };
+    const soltar = () => {
+      setRedimensionando(false);
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", soltar);
+      document.body.style.cursor = "";
+    };
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", soltar);
+  };
+
   return (
     <TableHead
-      className={`uppercase text-xs select-none ${props.width} ${props.arrastando ? "opacity-50" : ""}`}
-      draggable
+      className={`relative uppercase text-xs select-none ${props.arrastando ? "opacity-50" : ""}`}
+      style={{ width: props.width, minWidth: props.width, maxWidth: props.width }}
+      draggable={!redimensionando}
       onDragStart={props.onDragStart}
       onDragOver={(e) => e.preventDefault()}
       onDrop={props.onDrop}
       onDragEnd={props.onDragEnd}
     >
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -186,7 +228,22 @@ function ColunaFiltroHeader(props: {
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Alça de redimensionamento: arraste para ajustar, duplo clique restaura o padrão */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        title="Arraste para ajustar a largura · duplo clique restaura"
+        onPointerDown={iniciarResize}
+        onDoubleClick={(e) => { e.stopPropagation(); props.onResetWidth(); }}
+        onClick={(e) => e.stopPropagation()}
+        draggable={false}
+        className={`absolute right-0 top-0 h-full w-2 cursor-col-resize touch-none after:absolute after:right-[3px] after:top-1/4 after:h-1/2 after:w-px after:bg-border after:content-[''] hover:after:bg-primary ${
+          redimensionando ? "after:bg-primary" : ""
+        }`}
+      />
     </TableHead>
+
   );
 }
 
@@ -234,9 +291,36 @@ export default function DpHistoricoCompleto() {
   });
   const [dragCol, setDragCol] = useState<ColKey | null>(null);
 
+  /** Larguras das colunas em px, ajustáveis pelo usuário e persistidas no navegador. */
+  const [colWidths, setColWidths] = useState<Record<ColKey, number>>(() => {
+    try {
+      const raw = localStorage.getItem(COL_WIDTH_STORAGE);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<Record<ColKey, number>>;
+        const merged = { ...DEFAULT_COL_WIDTHS };
+        (Object.keys(DEFAULT_COL_WIDTHS) as ColKey[]).forEach((k) => {
+          const v = Number(parsed[k]);
+          if (Number.isFinite(v) && v >= COL_MIN_WIDTH) merged[k] = v;
+        });
+        return merged;
+      }
+    } catch { /* ignora storage inválido */ }
+    return DEFAULT_COL_WIDTHS;
+  });
+
   useEffect(() => {
     try { localStorage.setItem(COL_ORDER_STORAGE, JSON.stringify(colOrder)); } catch { /* noop */ }
   }, [colOrder]);
+
+  useEffect(() => {
+    try { localStorage.setItem(COL_WIDTH_STORAGE, JSON.stringify(colWidths)); } catch { /* noop */ }
+  }, [colWidths]);
+
+  const larguraTotal = useMemo(
+    () => colOrder.reduce((acc, k) => acc + colWidths[k], ACOES_WIDTH),
+    [colOrder, colWidths],
+  );
+
 
   const colabMap = useMemo(() => {
     const m = new Map<string, { nome: string; unidade_id: string | null; unidade_nome: string | null }>();
@@ -405,20 +489,21 @@ export default function DpHistoricoCompleto() {
   // ---------------- Descritores de coluna ----------------
   const COLS: Record<ColKey, {
     label: string;
-    width: string;
     sortKey: SortKey;
     value: (r: UnifiedDoc) => string;
     render: (r: UnifiedDoc) => JSX.Element;
     cellClass?: string;
   }> = {
     colaborador: {
-      label: "Colaborador", width: "w-[26%]", sortKey: "colaborador_nome",
+      label: "Colaborador", sortKey: "colaborador_nome",
       value: (r) => r.colaborador_nome,
-      render: (r) => <span className="font-semibold">{r.colaborador_nome}</span>,
-      cellClass: "whitespace-normal break-words align-top",
+      render: (r) => (
+        <span className="block truncate font-semibold" title={r.colaborador_nome}>{r.colaborador_nome}</span>
+      ),
+      cellClass: "align-top overflow-hidden",
     },
     tipo: {
-      label: "Tipo", width: "w-[22%]", sortKey: "tipo_label",
+      label: "Tipo", sortKey: "tipo_label",
       value: (r) => r.tipo_label,
       render: (r) => (
         <Badge
@@ -431,19 +516,19 @@ export default function DpHistoricoCompleto() {
       cellClass: "whitespace-normal break-words align-top",
     },
     competencia: {
-      label: "Competência", width: "w-[13%]", sortKey: "competencia_sort",
+      label: "Competência", sortKey: "competencia_sort",
       value: (r) => r.competencia,
       render: (r) => <span className="font-mono text-sm">{r.competencia}</span>,
       cellClass: "whitespace-nowrap align-top",
     },
     unidade: {
-      label: "Unidade", width: "w-[21%]", sortKey: "unidade_nome",
+      label: "Unidade", sortKey: "unidade_nome",
       value: (r) => r.unidade_nome,
       render: (r) => <span className="leading-tight">{r.unidade_nome}</span>,
       cellClass: "whitespace-normal break-words align-top",
     },
     aceite: {
-      label: "Aceite", width: "w-[11%]", sortKey: "aceite_label",
+      label: "Aceite", sortKey: "aceite_label",
       value: (r) => aceiteLabel(r),
       render: (r) => (
         r.aceite === null
@@ -623,7 +708,7 @@ export default function DpHistoricoCompleto() {
     <ColunaFiltroHeader
       key={k}
       label={COLS[k].label}
-      width={COLS[k].width}
+      width={colWidths[k]}
       sortAtivo={sortKey === COLS[k].sortKey}
       sortDir={sortDir}
       onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
@@ -636,6 +721,8 @@ export default function DpHistoricoCompleto() {
       onDragStart={() => setDragCol(k)}
       onDrop={() => soltarSobre(k)}
       onDragEnd={() => setDragCol(null)}
+      onResize={(largura) => setColWidths((p) => ({ ...p, [k]: largura }))}
+      onResetWidth={() => setColWidths((p) => ({ ...p, [k]: DEFAULT_COL_WIDTHS[k] }))}
     />
   );
 
@@ -786,13 +873,15 @@ export default function DpHistoricoCompleto() {
             />
           </div>
         ) : (
-          <Table className="w-full table-fixed">
+          <div className="w-full overflow-x-auto">
+          <Table className="table-fixed" style={{ width: "100%", minWidth: larguraTotal }}>
             <TableHeader>
               <TableRow>
                 {colOrder.map((k) => renderColunaHeader(k))}
-                <TableHead className="uppercase text-xs text-right w-[96px]">Ações</TableHead>
+                <TableHead className="uppercase text-xs text-right" style={{ width: ACOES_WIDTH }}>Ações</TableHead>
               </TableRow>
             </TableHeader>
+
 
             <TableBody>
               {paged.map((r) => (
@@ -803,9 +892,15 @@ export default function DpHistoricoCompleto() {
                   title="Ver detalhes do documento"
                 >
                   {colOrder.map((k) => (
-                    <TableCell key={k} className={COLS[k].cellClass}>{COLS[k].render(r)}</TableCell>
+                    <TableCell
+                      key={k}
+                      className={COLS[k].cellClass}
+                      style={{ width: colWidths[k], maxWidth: colWidths[k] }}
+                    >
+                      {COLS[k].render(r)}
+                    </TableCell>
                   ))}
-                  <TableCell className="align-middle" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="align-middle" style={{ width: ACOES_WIDTH }} onClick={(e) => e.stopPropagation()}>
                     <div className="grid grid-cols-2 gap-0.5 justify-items-center">
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Pré-visualizar" onClick={() => setPreview(r)} disabled={!r.file_path}>
                         <Eye className="h-4 w-4 text-primary" />
@@ -832,8 +927,10 @@ export default function DpHistoricoCompleto() {
               )}
             </TableBody>
           </Table>
+          </div>
         )}
       </DpContentCard>
+
 
 
       {/* Mobile: lista de cards */}
