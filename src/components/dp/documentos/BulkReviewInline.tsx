@@ -782,8 +782,16 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
       {/* Rodapé de aprovação */}
       {stats.total > 0 && (
         <div className="px-3 sm:px-4 py-3 border-t bg-muted/10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="hidden sm:block text-xs text-muted-foreground">
-            Use ← / → para navegar entre páginas
+          <div className="flex flex-wrap items-center gap-2">
+            <Switch
+              id="lote-aceite"
+              checked={(batchInfo.data as any)?.exigir_aceite !== false}
+              disabled={setExigeAceiteLote.isPending}
+              onCheckedChange={(v) => setExigeAceiteLote.mutate(v)}
+            />
+            <Label htmlFor="lote-aceite" className="text-xs text-muted-foreground cursor-pointer">
+              Exigir validação digital em todo o lote
+            </Label>
           </div>
           <Button
             className="w-full sm:w-auto h-11"
