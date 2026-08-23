@@ -527,11 +527,6 @@ export default function DpHistoricoCompleto() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
   };
 
-  const toggleColValue = (k: ColKey, v: string) =>
-    setColFilters((prev) => {
-      const sel = prev[k];
-      return { ...prev, [k]: sel.includes(v) ? sel.filter((x) => x !== v) : [...sel, v] };
-    });
 
   // ---------------- Ordenação ----------------
   const sorted = useMemo(() => {
