@@ -330,11 +330,21 @@ export default function DpConfiguracoesJornada() {
           )}
         </div>
 
-        {unidades.length === 0 && (
+        {unidadesErro && (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+            <span>Não foi possível carregar as unidades.</span>
+            <Button variant="outline" size="sm" onClick={() => void refetchUnidades()}>
+              Tentar novamente
+            </Button>
+          </div>
+        )}
+
+        {!carregandoUnidades && !unidadesErro && unidades.length === 0 && (
           <p className="text-xs text-destructive">
             Cadastre ao menos uma unidade em Cadastros → Unidades para definir as regras de folgas.
           </p>
         )}
+
 
         {unidadeId && (
           <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
