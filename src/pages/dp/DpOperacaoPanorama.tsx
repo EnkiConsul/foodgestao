@@ -766,11 +766,17 @@ export default function DpOperacaoPanorama() {
             {pessoasDaCategoria.map((p) => (
               <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
                 <span className="truncate text-sm">{p.nome}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {p.entrada ? `${p.entrada} às ${p.saida ?? "--:--"}` : "—"}
-                </span>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {tagSocio(p) && (
+                    <Badge variant="outline" className="border-primary/40 text-primary">Folga sócio</Badge>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {p.entrada ? `${p.entrada} às ${p.saida ?? "--:--"}` : "—"}
+                  </span>
+                </div>
               </li>
             ))}
+
           </ul>
         </DialogContent>
       </Dialog>
