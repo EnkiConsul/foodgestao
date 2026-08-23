@@ -333,6 +333,37 @@ export default function DpFolgas() {
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
 
+  /**
+   * Gera as folgas dominicais do mês para a unidade selecionada quando a regra
+   * de folgas dela segue o padrão legal (CLT). Não duplica folgas existentes.
+   */
+  const gerarFolgasClt = useMutation({
+    mutationFn: async () => {
+      if (unidadeFilter === "todas") throw new Error("Selecione uma unidade para gerar as folgas da CLT.");
+      const { data, error } = await supabase.rpc("dp_gerar_folgas_clt", {
+        _unidade_id: unidadeFilter,
+        _ano: cursor.getFullYear(),
+        _mes: cursor.getMonth() + 1,
+      });
+      if (error) throw error;
+      return Number(data ?? 0);
+    },
+    onSuccess: (criadas) => {
+      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
+      if (criadas > 0) {
+        toast.success(`${criadas} folga(s) dominical(is) geradas pela CLT.`);
+      } else {
+        toast.info("Nenhuma folga nova a gerar", {
+          description: "As folgas do mês já existem ou a unidade não segue o padrão legal (CLT).",
+        });
+      }
+    },
+    onError: (e) =>
+      toast.error("Erro ao gerar folgas", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+
+
   const {
     unidadesQuery,
     diaConfigQuery,
