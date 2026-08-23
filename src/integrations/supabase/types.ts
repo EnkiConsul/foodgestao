@@ -4132,6 +4132,7 @@ export type Database = {
           salario_base: number | null
           sexo: string | null
           sindicato_id: string | null
+          socio_remuneracao: string | null
           telefone: string | null
           unidade_id: string | null
           updated_at: string
@@ -4229,6 +4230,7 @@ export type Database = {
           salario_base?: number | null
           sexo?: string | null
           sindicato_id?: string | null
+          socio_remuneracao?: string | null
           telefone?: string | null
           unidade_id?: string | null
           updated_at?: string
@@ -4326,6 +4328,7 @@ export type Database = {
           salario_base?: number | null
           sexo?: string | null
           sindicato_id?: string | null
+          socio_remuneracao?: string | null
           telefone?: string | null
           unidade_id?: string | null
           updated_at?: string
