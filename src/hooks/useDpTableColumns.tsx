@@ -1,15 +1,31 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { DP_COL_MIN_WIDTH } from "@/components/dp/DpTableColumnHeader";
+import { supabase } from "@/integrations/supabase/client";
+
+interface TableLayout {
+  screen_key: string;
+  column_order: string[];
+  column_widths: Record<string, number>;
+  updated_at: string;
+}
 
 /**
  * Estado de colunas em formato de planilha para as listas do módulo Pessoas:
  * ordem (drag & drop), largura (arraste da alça), ordenação e filtros por valor.
  * Tudo persistido no navegador a partir de uma chave de tela.
+ *
+ * Quando `screenKey` é informado, o layout padrão global salvo no banco
+ * (app_table_layouts) é aplicado automaticamente. Super admins podem salvar
+ * o layout atual como padrão global. O localStorage continua funcionando como
+ * camada pessoal de override.
  */
 export function useDpTableColumns<K extends string, S extends string>(opts: {
   /** Prefixo das chaves de localStorage, ex.: "dp_colabs_col". */
   storageKey: string;
+  /** Identificador da tela no padrão global, ex.: "dp_colaboradores". */
+  screenKey?: string;
   defaultOrder: K[];
   defaultWidths: Record<K, number>;
   /** Largura fixa da coluna de ações (somada ao total). */
@@ -17,9 +33,10 @@ export function useDpTableColumns<K extends string, S extends string>(opts: {
   defaultSortKey: S;
   defaultSortDir?: "asc" | "desc";
 }) {
-  const { storageKey, defaultOrder, defaultWidths, acoesWidth = 0, defaultSortKey } = opts;
+  const { storageKey, screenKey, defaultOrder, defaultWidths, acoesWidth = 0, defaultSortKey } = opts;
   const orderStorage = `${storageKey}_order`;
   const widthStorage = `${storageKey}_width`;
+  const layoutTsStorage = `${storageKey}_layout_ts`;
 
   const [sortKey, setSortKey] = useState<S>(defaultSortKey);
   const [sortDir, setSortDir] = useState<"asc" | "desc">(opts.defaultSortDir ?? "asc");
@@ -63,6 +80,55 @@ export function useDpTableColumns<K extends string, S extends string>(opts: {
   });
 
   const [dragCol, setDragCol] = useState<K | null>(null);
+
+  const layoutQuery = useQuery<TableLayout | null>({
+    queryKey: ["app-table-layout", screenKey],
+    queryFn: async () => {
+      if (!screenKey) return null;
+      const { data, error } = await supabase
+        .from("app_table_layouts")
+        .select("screen_key, column_order, column_widths, updated_at")
+        .eq("screen_key", screenKey)
+        .single();
+      if (error) {
+        if (error.code === "PGRST116") return null; // nenhum registro encontrado
+        throw error;
+      }
+      return data as TableLayout;
+    },
+    enabled: !!screenKey,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  /** Aplica o layout global quando ele for mais recente que o armazenado localmente. */
+  useEffect(() => {
+    const layout = layoutQuery.data;
+    if (!layout || !screenKey) return;
+
+    try {
+      const storedTs = localStorage.getItem(layoutTsStorage);
+      const dbTs = new Date(layout.updated_at).getTime();
+      if (storedTs && Number(storedTs) >= dbTs) return; // local já reflete o padrão atual
+
+      const order = (layout.column_order ?? []).filter((k) => defaultOrder.includes(k as K)) as K[];
+      const faltantes = defaultOrder.filter((k) => !order.includes(k));
+      const nextOrder = order.length ? [...order, ...faltantes] : defaultOrder;
+
+      const nextWidths = { ...defaultWidths };
+      Object.entries(layout.column_widths ?? {}).forEach(([k, v]) => {
+        if (!defaultOrder.includes(k as K)) return;
+        const n = Number(v);
+        if (Number.isFinite(n) && n >= DP_COL_MIN_WIDTH) nextWidths[k as K] = n;
+      });
+
+      setColOrder(nextOrder);
+      setColWidths(nextWidths);
+      localStorage.setItem(orderStorage, JSON.stringify(nextOrder));
+      localStorage.setItem(widthStorage, JSON.stringify(nextWidths));
+      localStorage.setItem(layoutTsStorage, String(dbTs));
+    } catch { /* noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutQuery.data, screenKey]);
 
   useEffect(() => {
     try { localStorage.setItem(orderStorage, JSON.stringify(colOrder)); } catch { /* noop */ }
@@ -119,5 +185,6 @@ export function useDpTableColumns<K extends string, S extends string>(opts: {
     colFilters, setColFilters, toggleColValue, limparFiltros,
     sortKey, sortDir, aplicarSort,
     larguraTotal,
+    layoutLoading: layoutQuery.isLoading,
   };
 }
