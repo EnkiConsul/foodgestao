@@ -195,7 +195,7 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal, socio = fal
       )}
 
 
-      {alertas.length > 0 && (
+      {!socio && alertas.length > 0 && (
         <div className="space-y-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
           <p className="flex items-center gap-2 font-medium text-amber-700 dark:text-amber-300">
             <AlertTriangle className="h-4 w-4" /> Documentos pendentes para manter o benefício
