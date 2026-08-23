@@ -319,7 +319,7 @@ export default function DpColaboradores() {
         description="Gerencie a equipe, cargos e acessos ao sistema."
         actions={
           <>
-            <DpCopyColWidthsButton tela="colaboradores" colOrder={colOrder} colWidths={colWidths} />
+            <DpSalvarLargurasButton screenKey="dp_colaboradores" colOrder={colOrder} colWidths={colWidths} />
             <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
 
               <Link to="/dp/colaboradores/lixeira">
