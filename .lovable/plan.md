@@ -1,32 +1,52 @@
-# Simplificar Rotina: aposentar as telas de Escala
+# Painel da Operação (substitui a geração de escala)
 
-## Contexto (respondendo à dúvida)
+A tela `/dp/escalas/mes` deixa de "gerar escala" e passa a ser um painel de leitura da operação, montado automaticamente do que já existe: jornada habitual dos fixos, folgas marcadas, convocações aceitas, férias e atestados. Duas abas: **Dia** e **Mês**.
 
-Na operação da Pakerê a escala já está definida sem nenhuma geração:
+## Aba Dia
 
-- jornada habitual por dia da semana, cadastrada em cada colaborador (inclusive horários diferentes Seg-Qui / Sex-Dom);
-- folga semanal do cadastro + folgas dominicais e extras marcadas no calendário;
-- intermitentes entram pelas convocações aceitas.
+Cabeçalho com data (setas para navegar), unidade e um bloco de indicadores:
 
-O sistema já resolve o horário previsto nesta ordem: convocação aceita > escala publicada > rascunho > jornada habitual. Sem escala publicada, Operação do Dia, cobertura mínima, Minha Escala (portal) e a calculadora de VA/VT usam a jornada habitual e descontam folgas, férias e atestados. Ou seja, nada depende da geração da escala.
+- Fixos escalados
+- Intermitentes convocados (aceitos)
+- Folga padrão (folga semanal da jornada)
+- Folga extra
+- Férias
+- Atestado / licença
 
-O que só a Escala do Mês oferece hoje: snapshot congelado do turno por dia, alteração de horário de um dia isolado sem mexer no cadastro, validação em lote de carga/DSR antes de publicar e o ato de "publicar" o mês. Esses ganhos são pequenos no seu caso, e exceções de um dia já são resolvidas por folga extra ou convocação.
+Abaixo, a quebra por turno (quem trabalha, horário) e a lista de ausentes com o motivo, no mesmo padrão visual da Operação do Dia. Comparação com a cobertura mínima cadastrada continua sinalizando descoberto.
 
-## O que será feito
+## Aba Mês
 
-1. Ocultar as entradas "Escala do Mês" e "Gerar Escala" do menu Rotina e dos atalhos/favoritos, usando o mecanismo de telas ocultas já existente (reversível a qualquer momento pelo painel de Super Admin).
-2. Manter as rotas e o código intactos, para não perder nada caso a operação mude (rodízio de turnos, nova unidade com escala variável).
-3. Manter os dados já publicados: nenhum registro de escala é apagado, e a prioridade de horário previsto continua respeitando escalas publicadas existentes.
-4. Deixar a Operação do Dia como ponto de entrada do grupo Rotina, reforçando que ela monta o dia a partir de jornada + folgas + convocações.
+Uma linha por dia da competência, com as mesmas seis colunas de contagem + total de pessoas trabalhando (fixos + convocados). Cada dia mostra:
+
+- selo do dia da semana e destaque para fim de semana/feriado;
+- comparação com o padrão histórico daquele dia da semana naquela unidade;
+- clique no dia abre a aba Dia já posicionada nele.
+
+Rodapé com médias do mês e os dias fora do padrão listados em destaque.
+
+## Sinalização de padrão (aprendizado)
+
+O padrão é aprendido dos dados reais: para cada unidade e cada dia da semana, o sistema calcula a mediana de pessoas trabalhando nas últimas 8 semanas. Enquanto houver menos de 3 semanas de histórico, o dia aparece como "aprendendo" e não gera alerta.
+
+Sinalização por dia:
+
+- **Abaixo do padrão** (âmbar/vermelho) quando o previsto fica abaixo da mediana além da tolerância;
+- **Acima do padrão** (azul) quando ultrapassa;
+- tolerância padrão de 20%, ajustável na própria tela pelo gestor e memorizada na preferência do usuário.
+
+Cada alerta explica o número: "previsto 7, padrão 10 para sextas na T-63".
 
 ## Detalhes técnicos
 
-- `src/config/dpNavigation.tsx`: remover/ocultar os itens `/dp/escalas/mes` e `/dp/escalas` do grupo Rotina e ajustar os prefixos de rota do grupo.
-- `src/config/favoritablePages.ts`: retirar as duas telas da lista de páginas favoritáveis.
-- Registrar as telas como ocultas em `app_hidden_screens`, de modo que o Super Admin possa reexibi-las em `/admin/telas` com um clique.
-- Sem migração de banco e sem alteração em `useDpHorarioPrevisto`, `useDpValeCalculadora` ou `dp_escala_itens`.
+- Novo hook `useDpOperacaoPanorama(competencia, unidadeId)`: uma única carga por competência com colaboradores ativos, `dp_colaborador_config_trabalho` + `dp_colaborador_config_dias` (vigência), `dp_turnos`, `dp_folgas` (tipos `normal`, `extra`, `licenca`), `dp_ferias_gozos`, `dp_convocacoes` aceitas e `dp_solicitacoes` de atestado aprovadas. Itens de `dp_escala_itens` publicados, quando existirem, continuam tendo prioridade sobre a jornada habitual (mesma regra de `useDpHorarioPrevisto`).
+- Novo módulo puro `src/lib/dp/operacao-panorama.ts` com `contarDia()` (classifica cada colaborador em trabalho fixo / convocado / folga padrão / folga extra / férias / atestado, sem dupla contagem, na ordem férias > atestado > folga extra > folga padrão > trabalho) e `baselinePorDow()` (mediana das últimas 8 semanas + desvio), com testes unitários.
+- `src/pages/dp/DpEscalaMes.tsx` reescrita como `DpOperacaoPanorama` com `DpTabsBar` (Dia | Mês), `DpStatCard` nos indicadores e tabela responsiva no mês (cards empilhados no mobile).
+- A aba Dia reaproveita `montarOperacaoDia`, `alertasDoDia` e `resolverCoberturaMinima` já existentes.
+- Menu: item renomeado para "Painel da Operação" em `src/config/dpNavigation.tsx`; o item "Gerar Escala" (`/dp/escalas`) sai do menu (rota e código preservados).
+- Sem migração de banco e sem alteração nas tabelas de escala; nada é apagado.
 
 ## Fora de escopo
 
-- Excluir definitivamente as telas e as tabelas de escala.
-- Alterar convocações, calendário de folgas ou Operação do Dia.
+- Editar a escala por esta tela (ajustes continuam por folgas, trocas e convocações).
+- Alterar o portal do colaborador, cobertura mínima ou convocações.
