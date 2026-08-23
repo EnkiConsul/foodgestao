@@ -783,39 +783,45 @@ export default function DpHistoricoCompleto() {
         {query.isLoading ? (
           <div className="p-4">
             <TableSkeleton
-              columns={8}
-              headers={["Colaborador", "Tipo", "Competência", "Unidade", "Status", "Aceite", "Data", "Ações"]}
+              columns={6}
+              headers={["Colaborador", "Tipo", "Competência", "Unidade", "Aceite", "Ações"]}
             />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-          <Table className="w-full min-w-[1300px] table-fixed">
+          <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
                 {colOrder.map((k) => renderColunaHeader(k))}
-                <TableHead className="uppercase text-xs text-right w-[150px]">Ações</TableHead>
+                <TableHead className="uppercase text-xs text-right w-[96px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
               {paged.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow
+                  key={r.id}
+                  className="cursor-pointer"
+                  onClick={() => setDetalhe(r)}
+                  title="Ver detalhes do documento"
+                >
                   {colOrder.map((k) => (
                     <TableCell key={k} className={COLS[k].cellClass}>{COLS[k].render(r)}</TableCell>
                   ))}
-                  <TableCell className="whitespace-nowrap text-right">
-                    <Button size="icon" variant="ghost" title="Pré-visualizar" onClick={() => setPreview(r)} disabled={!r.file_path}>
-                      <Eye className="h-4 w-4 text-primary" />
-                    </Button>
-                    <Button size="icon" variant="ghost" title="Baixar" onClick={() => download(r)} disabled={!r.file_path}>
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" title="Substituir arquivo" onClick={() => abrirSubstituir(r)}>
-                      <Replace className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" title="Excluir documento" onClick={() => setExcluir(r)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                  <TableCell className="align-middle" onClick={(e) => e.stopPropagation()}>
+                    <div className="grid grid-cols-2 gap-0.5 justify-items-center">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Pré-visualizar" onClick={() => setPreview(r)} disabled={!r.file_path}>
+                        <Eye className="h-4 w-4 text-primary" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Baixar" onClick={() => download(r)} disabled={!r.file_path}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Substituir arquivo" onClick={() => abrirSubstituir(r)}>
+                        <Replace className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Excluir documento" onClick={() => setExcluir(r)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -828,9 +834,9 @@ export default function DpHistoricoCompleto() {
               )}
             </TableBody>
           </Table>
-          </div>
         )}
       </DpContentCard>
+
 
       {/* Mobile: lista de cards */}
       <div className="md:hidden space-y-3">
