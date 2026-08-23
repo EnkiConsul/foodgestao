@@ -240,7 +240,9 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       cargo_id: colab.cargo_id ?? null,
       cargo_nome: colab.cargo_nome ?? null,
       socio: !!colab.socio,
+      socio_integrado: socioIntegrado,
       origem: horario?.origem ?? "jornada",
+
     });
   };
 
