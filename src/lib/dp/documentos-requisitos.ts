@@ -142,6 +142,8 @@ export function requisitoAplicaColaborador(
 ): boolean {
   if (requisito.obrigatoriedade === "desativado") return false;
   const regime = (colab.regime ?? "").toLowerCase();
+  const socio = (colab.tipo_vinculo ?? "").toLowerCase().includes("sócio")
+    || (colab.tipo_vinculo ?? "").toLowerCase().includes("socio");
   const idade = idadeEmAnos(colab.data_nascimento);
   switch (requisito.aplica_a) {
     case "todos":
