@@ -18,6 +18,15 @@ export const REGRAS_CAMPO_LABEL: Record<string, string> = {
   dias_descanso_negociados: "Dias de descanso negociados",
   negociacao_id: "Negociação coletiva vinculada",
   folgas_fds_por_mes: "Folgas em fim de semana por mês",
+  // Campos de outras regras registradas no mesmo histórico (jornada do colaborador)
+  dias: "Dias da semana configurados",
+  horario: "Horário de trabalho",
+  alertas: "Alertas legais",
+  turno_id: "Turno",
+  jornada_id: "Jornada",
+  carga_semanal: "Carga semanal",
+  colaborador_id: "Colaborador",
+  regime: "Regime de contratação",
 };
 
 const REGRA_DSR_LABEL: Record<string, string> = {
