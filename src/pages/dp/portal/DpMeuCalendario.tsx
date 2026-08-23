@@ -387,6 +387,15 @@ export default function DpMeuCalendario() {
         throw new Error('Apenas fins de semana podem ser marcados diretamente. Use "Solicitar exceção".');
       }
 
+      // 2b) folga dominical automática (padrão CLT): definida pelo sistema
+      if (wd === 0 && folgaCltAutomatica) {
+        throw new Error(
+          "No padrão CLT a folga dominical é definida automaticamente pelo sistema. Use uma troca ou solicite exceção.",
+        );
+      }
+
+
+
       // 3) folga fixa própria
       const fixa = normalizeWeekday(meRef.data.folga_fixa_semana);
       if (fixa != null && fixa === wd) {
