@@ -90,7 +90,19 @@ type ColKey = "colaborador" | "tipo" | "competencia" | "unidade" | "aceite";
 type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "aceite_label" | "data";
 
 const COL_ORDER_STORAGE = "dp_historico_col_order_v2";
+const COL_WIDTH_STORAGE = "dp_historico_col_width_v1";
 const DEFAULT_COL_ORDER: ColKey[] = ["colaborador", "tipo", "competencia", "unidade", "aceite"];
+/** Larguras padrão em px (somam ~1090 + 96 de ações, caindo bem em telas >= 1280). */
+const DEFAULT_COL_WIDTHS: Record<ColKey, number> = {
+  colaborador: 250,
+  tipo: 230,
+  competencia: 130,
+  unidade: 220,
+  aceite: 120,
+};
+const COL_MIN_WIDTH = 80;
+const ACOES_WIDTH = 96;
+
 
 
 function aceiteLabel(r: UnifiedDoc) {
