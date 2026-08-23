@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
     const { data: items, error: iErr } = await userClient
       .from("dp_bulk_import_items")
-      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name, source_file_path, deteccao_automatica)")
+      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name, source_file_path, deteccao_automatica, exigir_aceite, unidade_id)")
       .in("id", parsed.data.item_ids);
     if (iErr) return json({ error: iErr.message }, 500);
     if (!items || items.length === 0) return json({ error: "Nenhum item encontrado" }, 404);
@@ -135,12 +135,19 @@ Deno.serve(async (req) => {
 
         const nowIso = new Date().toISOString();
         const titulo = `${prettyTipo(tipoDoc)} p.${it.page_index} — ${batch.source_file_name ?? "lote"}`;
+        // Validação digital: decisão da página tem prioridade; sem decisão,
+        // o padrão é exigir aceite (salvo lote configurado para dispensar).
+        const exigeAceite = typeof it.exige_aceite === "boolean"
+          ? it.exige_aceite
+          : (batch.exigir_aceite !== false) && (DOC_TIPO_EXIGE_ACEITE[tipoDoc] ?? false);
         const { data: doc, error: dErr } = await svc.from("dp_documentos").insert({
           company_id: batch.company_id,
           colaborador_id: it.matched_colaborador_id,
           tipo: tipoDoc,
           titulo,
-          exige_aceite: DOC_TIPO_EXIGE_ACEITE[tipoDoc] ?? false,
+          exige_aceite: exigeAceite,
+          assinatura_detectada: it.assinatura_detectada ?? null,
+          unidade_id: it.detected_unidade_id ?? batch.unidade_id ?? null,
           file_path: dstPath,
           file_name: `${batch.id}_p${it.page_index}.pdf`,
           file_size: bytes.byteLength,

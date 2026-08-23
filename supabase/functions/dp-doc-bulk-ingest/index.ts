@@ -12,7 +12,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { z } from "npm:zod@3";
 import { extractPeriodo, extractPeriodoFromFilename } from "../_shared/competencia.ts";
-import { detectTipoFromText, parseNaturezaLine, assinaturaDocumento, type DocTipo } from "../_shared/doc-tipos.ts";
+import { detectTipoFromText, parseNaturezaLine, assinaturaDocumento, detectarAssinatura, DOC_TIPO_EXIGE_ACEITE, type DocTipo } from "../_shared/doc-tipos.ts";
 
 const BUCKET = "dp-bulk-import";
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -276,6 +276,13 @@ async function processPage(args: {
       if (dup?.id) duplicateOf = dup.id as string;
     }
 
+    // Assinatura do colaborador na página: se já vier assinado, o padrão é
+    // dispensar a validação digital (o usuário confirma na revisão).
+    const assin = detectarAssinatura(ocr);
+    const exigeAceiteTipo = DOC_TIPO_EXIGE_ACEITE[tipoEfetivo] ?? false;
+    const exigirLote = batch.exigir_aceite !== false;
+    const exigeAceite = exigirLote && exigeAceiteTipo && !assin.detectada;
+
     await svc.from("dp_bulk_import_items").upsert({
       batch_id,
       company_id: batch.company_id,
@@ -287,11 +294,15 @@ async function processPage(args: {
       matched_colaborador_id: match?.id ?? null,
       matched_colaborador_ativo: match ? match.ativo : null,
       detected_cnpj: cnpjs[0] ?? null,
+      detected_unidade_id: unidadeDetectada,
       detected_competencia: competencia,
       tipo_detectado: tipoEfetivo,
       tipo_confidence: tipoAprendido ? 1 : tipoDetectado ? 0.9 : 0,
       tipo_origem: tipoOrigem,
       tipo_assinatura: assinatura || null,
+      assinatura_detectada: assin.detectada,
+      assinatura_evidencia: assin.evidencia,
+      exige_aceite: exigeAceite,
       duplicate_of: duplicateOf,
       confidence,
       status: "pending",
@@ -381,7 +392,7 @@ async function ocrPage(apiKey: string, pdfB64: string): Promise<string> {
         content: [
           {
             type: "text",
-            text: "Extraia TODO o texto legível deste documento de departamento pessoal. Responda apenas com o texto puro extraído, sem comentários. Inclua CPF, CNPJ, matrícula e nome do colaborador. Na PENÚLTIMA linha, acrescente exatamente `COMPETENCIA: MM/AAAA` com o mês/ano de referência do documento (o período trabalhado ou a folha a que ele se refere). NUNCA use a data de emissão, impressão, admissão ou pagamento como competência. Se não for possível determinar, escreva `COMPETENCIA: DESCONHECIDA`. Na ÚLTIMA linha, acrescente exatamente `NATUREZA: x` onde x é UM destes valores, conforme o documento: contracheque (contracheque/holerite mensal), contracheque_13 (décimo terceiro), contracheque_ferias (folha de pagamento de férias), adiantamento (adiantamento/antecipação salarial), ponto (folha/espelho de ponto), aviso_ferias, recibo_ferias, informe_rendimentos (comprovante anual de rendimentos), atestado, disciplinar (advertência/suspensão), contrato, outros. Se não tiver certeza, escreva `NATUREZA: outros`.",
+            text: "Extraia TODO o texto legível deste documento de departamento pessoal. Responda apenas com o texto puro extraído, sem comentários. Inclua CPF, CNPJ, matrícula e nome do colaborador. Na ANTEPENÚLTIMA linha, acrescente exatamente `COMPETENCIA: MM/AAAA` com o mês/ano de referência do documento (o período trabalhado ou a folha a que ele se refere). NUNCA use a data de emissão, impressão, admissão ou pagamento como competência. Se não for possível determinar, escreva `COMPETENCIA: DESCONHECIDA`. Na PENÚLTIMA linha, acrescente exatamente `NATUREZA: x` onde x é UM destes valores, conforme o documento: contracheque (contracheque/holerite mensal), contracheque_13 (décimo terceiro), contracheque_ferias (folha de pagamento de férias), adiantamento (adiantamento/antecipação salarial), ponto (folha/espelho de ponto), aviso_ferias, recibo_ferias, informe_rendimentos (comprovante anual de rendimentos), atestado, disciplinar (advertência/suspensão), contrato, outros. Se não tiver certeza, escreva `NATUREZA: outros`. Na ÚLTIMA linha, acrescente exatamente `ASSINADO: SIM` se o documento JÁ contiver a assinatura do colaborador (rubrica manuscrita sobre a linha de assinatura, campo de assinatura preenchido, carimbo/selo de assinatura eletrônica como ICP-Brasil, Gov.br, DocuSign, Clicksign), ou `ASSINADO: NAO` se a linha de assinatura estiver em branco ou não houver assinatura do colaborador.",
           },
           {
             type: "file",

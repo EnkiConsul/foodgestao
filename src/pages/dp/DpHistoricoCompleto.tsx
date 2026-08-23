@@ -46,6 +46,8 @@ type UnifiedDoc = {
   titulo: string;
   /** null = não exige aceite; false = aguardando; true = aceito */
   aceite: boolean | null;
+  /** Validação digital dispensada porque o documento já veio assinado. */
+  aceiteDispensado?: boolean;
 };
 
 const TIPO_OPTIONS = [
@@ -100,7 +102,8 @@ const COL_ORDER_STORAGE = "dp_historico_col_order";
 const DEFAULT_COL_ORDER: ColKey[] = ["colaborador", "tipo", "competencia", "unidade", "status", "aceite", "data"];
 
 function aceiteLabel(r: UnifiedDoc) {
-  return r.aceite === null ? "—" : r.aceite ? "Aceito" : "Aguardando";
+  if (r.aceite === null) return r.aceiteDispensado ? "Dispensado" : "—";
+  return r.aceite ? "Aceito" : "Aguardando";
 }
 
 /** Cabeçalho de coluna com menu de ordenação + filtro por valores e suporte a arrastar. */
@@ -257,7 +260,7 @@ export default function DpHistoricoCompleto() {
       const [docsRes, solRes, sindRes, discRes, aceitesRes] = await Promise.all([
         supabase
           .from("dp_documentos")
-          .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite")
+          .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada")
           .eq("company_id", cId),
         supabase
           .from("dp_solicitacoes")
@@ -305,6 +308,7 @@ export default function DpHistoricoCompleto() {
           mime_type: d.mime_type,
           titulo: d.titulo,
           aceite: d.exige_aceite ? aceitos.has(d.id) : null,
+          aceiteDispensado: !d.exige_aceite && d.assinatura_detectada === true,
         });
       });
 
@@ -445,7 +449,10 @@ export default function DpHistoricoCompleto() {
       label: "Aceite", width: "w-[12%]", sortKey: "aceite_label",
       value: (r) => aceiteLabel(r),
       render: (r) => (
-        r.aceite === null ? <span className="text-xs text-muted-foreground">—</span>
+        r.aceite === null
+          ? (r.aceiteDispensado
+              ? <Badge variant="outline" className="border-sky-300 text-sky-700 text-[11px]">Dispensado</Badge>
+              : <span className="text-xs text-muted-foreground">—</span>)
           : r.aceite
             ? <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">Aceito</Badge>
             : <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">Aguardando</Badge>

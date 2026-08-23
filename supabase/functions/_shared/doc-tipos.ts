@@ -138,3 +138,44 @@ export function assinaturaDocumento(nomeArquivo?: string | null, ocr?: string | 
     .slice(0, 90);
   return [nome, cabecalho].filter(Boolean).join(" | ");
 }
+
+/** Indícios de assinatura eletrônica/digital já aplicada ao documento. */
+const ASSINATURA_KEYS: string[] = [
+  "assinado digitalmente",
+  "assinatura eletronica",
+  "assinatura digital",
+  "icp-brasil",
+  "icp brasil",
+  "docusign",
+  "clicksign",
+  "d4sign",
+  "zapsign",
+  "autentique",
+  "assinado eletronicamente",
+];
+
+/**
+ * Detecta se a página já contém assinatura do colaborador.
+ * A linha `ASSINADO: SIM/NAO` devolvida pelo OCR é a fonte principal (ela
+ * enxerga a rubrica manuscrita). Sem essa linha, cai para os marcadores de
+ * assinatura eletrônica — rótulos como "Assinatura do empregado" NÃO contam,
+ * pois aparecem também em documentos em branco.
+ */
+export function detectarAssinatura(ocr: string | null | undefined): {
+  detectada: boolean;
+  evidencia: string | null;
+} {
+  const texto = ocr ?? "";
+  const t = norm(texto);
+  const chave = ASSINATURA_KEYS.find((k) => t.includes(norm(k))) ?? null;
+  const linha = texto.match(/ASSINADO:\s*(SIM|NAO|N[\u00C3A]O)/i);
+
+  if (linha) {
+    const sim = /^s/i.test(linha[1]);
+    if (sim) return { detectada: true, evidencia: chave ?? "assinatura identificada na p\u00e1gina" };
+    if (chave) return { detectada: true, evidencia: chave };
+    return { detectada: false, evidencia: null };
+  }
+  if (chave) return { detectada: true, evidencia: chave };
+  return { detectada: false, evidencia: null };
+}

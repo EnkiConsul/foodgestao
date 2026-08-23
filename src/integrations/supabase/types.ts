@@ -3138,6 +3138,7 @@ export type Database = {
           created_at: string
           deteccao_automatica: boolean
           error_message: string | null
+          exigir_aceite: boolean
           id: string
           matched_count: number
           processed_pages: number
@@ -3157,6 +3158,7 @@ export type Database = {
           created_at?: string
           deteccao_automatica?: boolean
           error_message?: string | null
+          exigir_aceite?: boolean
           id?: string
           matched_count?: number
           processed_pages?: number
@@ -3176,6 +3178,7 @@ export type Database = {
           created_at?: string
           deteccao_automatica?: boolean
           error_message?: string | null
+          exigir_aceite?: boolean
           id?: string
           matched_count?: number
           processed_pages?: number
@@ -3208,6 +3211,8 @@ export type Database = {
       }
       dp_bulk_import_items: {
         Row: {
+          assinatura_detectada: boolean | null
+          assinatura_evidencia: string | null
           batch_id: string
           company_id: string
           confidence: number
@@ -3216,8 +3221,10 @@ export type Database = {
           decided_by: string | null
           detected_cnpj: string | null
           detected_competencia: string | null
+          detected_unidade_id: string | null
           duplicate_of: string | null
           error_message: string | null
+          exige_aceite: boolean | null
           id: string
           imported_documento_id: string | null
           manual_override: boolean
@@ -3239,6 +3246,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assinatura_detectada?: boolean | null
+          assinatura_evidencia?: string | null
           batch_id: string
           company_id: string
           confidence?: number
@@ -3247,8 +3256,10 @@ export type Database = {
           decided_by?: string | null
           detected_cnpj?: string | null
           detected_competencia?: string | null
+          detected_unidade_id?: string | null
           duplicate_of?: string | null
           error_message?: string | null
+          exige_aceite?: boolean | null
           id?: string
           imported_documento_id?: string | null
           manual_override?: boolean
@@ -3270,6 +3281,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assinatura_detectada?: boolean | null
+          assinatura_evidencia?: string | null
           batch_id?: string
           company_id?: string
           confidence?: number
@@ -3278,8 +3291,10 @@ export type Database = {
           decided_by?: string | null
           detected_cnpj?: string | null
           detected_competencia?: string | null
+          detected_unidade_id?: string | null
           duplicate_of?: string | null
           error_message?: string | null
+          exige_aceite?: boolean | null
           id?: string
           imported_documento_id?: string | null
           manual_override?: boolean
@@ -3313,6 +3328,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_bulk_import_items_detected_unidade_id_fkey"
+            columns: ["detected_unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
           },
           {
@@ -5045,6 +5067,7 @@ export type Database = {
       dp_documentos: {
         Row: {
           aprovacao_status: Database["public"]["Enums"]["dp_documento_aprovacao_status"]
+          assinatura_detectada: boolean | null
           colaborador_id: string | null
           company_id: string
           created_at: string
@@ -5062,11 +5085,13 @@ export type Database = {
           submetido_por_colaborador: boolean
           tipo: Database["public"]["Enums"]["dp_documento_tipo"]
           titulo: string
+          unidade_id: string | null
           updated_at: string
           uploaded_by: string | null
         }
         Insert: {
           aprovacao_status?: Database["public"]["Enums"]["dp_documento_aprovacao_status"]
+          assinatura_detectada?: boolean | null
           colaborador_id?: string | null
           company_id: string
           created_at?: string
@@ -5084,11 +5109,13 @@ export type Database = {
           submetido_por_colaborador?: boolean
           tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
           titulo: string
+          unidade_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
         }
         Update: {
           aprovacao_status?: Database["public"]["Enums"]["dp_documento_aprovacao_status"]
+          assinatura_detectada?: boolean | null
           colaborador_id?: string | null
           company_id?: string
           created_at?: string
@@ -5106,6 +5133,7 @@ export type Database = {
           submetido_por_colaborador?: boolean
           tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
           titulo?: string
+          unidade_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
         }
@@ -5129,6 +5157,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documentos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
           },
         ]

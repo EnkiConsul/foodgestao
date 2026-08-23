@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft, ChevronRight, X, Check, Loader2, AlertTriangle,
-  ExternalLink, RotateCcw, ZoomIn, ZoomOut, CheckCircle2,
+  ExternalLink, RotateCcw, ZoomIn, ZoomOut, CheckCircle2, PenLine, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import * as pdfjsLib from "pdfjs-dist";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
@@ -80,7 +81,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_bulk_import_batches" as any)
-        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,unidade_id,referencia_data,deteccao_automatica,source_file_name")
+        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,unidade_id,referencia_data,deteccao_automatica,source_file_name,exigir_aceite")
         .eq("id", batchId)
         .maybeSingle();
       if (error) throw error;
@@ -227,6 +228,35 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
+  });
+
+  const setExigeAceite = useMutation({
+    mutationFn: async ({ id, exige }: { id: string; exige: boolean }) => {
+      const { error } = await supabase.from("dp_bulk_import_items" as any)
+        .update({ exige_aceite: exige }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao alterar validação digital"),
+  });
+
+  /** Interruptor do lote: aplica a todas as páginas ainda não importadas. */
+  const setExigeAceiteLote = useMutation({
+    mutationFn: async (exige: boolean) => {
+      const up = await supabase.from("dp_bulk_import_batches" as any)
+        .update({ exigir_aceite: exige }).eq("id", batchId);
+      if (up.error) throw up.error;
+      const { error } = await supabase.from("dp_bulk_import_items" as any)
+        .update({ exige_aceite: exige })
+        .eq("batch_id", batchId)
+        .neq("status", "imported");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao alterar validação digital do lote"),
   });
 
   const setTipoItem = useMutation({
@@ -576,6 +606,14 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                     Competência {formatCompetencia(current.detected_competencia)}
                   </Badge>
                 )}
+                {current.assinatura_detectada === true && (
+                  <Badge
+                    className="bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/40 text-[10px] whitespace-nowrap"
+                    title={current.assinatura_evidencia ?? "Assinatura identificada no documento"}
+                  >
+                    <PenLine className="mr-1 h-3 w-3" /> Já Assinado
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center justify-end gap-0.5 shrink-0">
                 <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} title="Diminuir zoom">
@@ -711,6 +749,32 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
               </div>
             </div>
 
+            {/* Validação digital desta página */}
+            <div className="mt-3 rounded-lg border bg-muted/20 p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+                  Exigir validação digital do colaborador
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {current.assinatura_detectada === true
+                    ? "Este documento já parece assinado pelo colaborador. É necessário mesmo assim pedir a validação digital?"
+                    : "Padrão do sistema: o colaborador precisa dar o aceite eletrônico no portal."}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Switch
+                  checked={current.exige_aceite !== false}
+                  disabled={current.status === "imported" || setExigeAceite.isPending}
+                  onCheckedChange={(v) => setExigeAceite.mutate({ id: current.id, exige: v })}
+                  aria-label="Exigir validação digital"
+                />
+                <span className="text-xs text-muted-foreground w-20">
+                  {current.exige_aceite !== false ? "Com validação" : "Dispensado"}
+                </span>
+              </div>
+            </div>
+
           </div>
         )}
       </div>
@@ -718,8 +782,16 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
       {/* Rodapé de aprovação */}
       {stats.total > 0 && (
         <div className="px-3 sm:px-4 py-3 border-t bg-muted/10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="hidden sm:block text-xs text-muted-foreground">
-            Use ← / → para navegar entre páginas
+          <div className="flex flex-wrap items-center gap-2">
+            <Switch
+              id="lote-aceite"
+              checked={(batchInfo.data as any)?.exigir_aceite !== false}
+              disabled={setExigeAceiteLote.isPending}
+              onCheckedChange={(v) => setExigeAceiteLote.mutate(v)}
+            />
+            <Label htmlFor="lote-aceite" className="text-xs text-muted-foreground cursor-pointer">
+              Exigir validação digital em todo o lote
+            </Label>
           </div>
           <Button
             className="w-full sm:w-auto h-11"
