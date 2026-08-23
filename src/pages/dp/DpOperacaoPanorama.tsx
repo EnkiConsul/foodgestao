@@ -222,7 +222,6 @@ export default function DpOperacaoPanorama() {
   const unidadeId = !unidade || unidade === "todas" ? null : unidade;
   const competencia = data.slice(0, 7);
   const panorama = useDpOperacaoPanorama(competencia, unidadeId);
-  const { regras: regrasCobertura } = useDpCoberturaMinima();
 
   /** Abre já em uma unidade: a última escolhida ou a de maior quadro. */
   useEffect(() => {
@@ -341,7 +340,7 @@ export default function DpOperacaoPanorama() {
       onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível reativar o alerta."),
     });
 
-  if (panorama.error) return <DpErrorState message="Não foi possível carregar o painel da operação." />;
+  if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
 
   const pessoasDaCategoria = detalheCategoria
     ? (dia?.pessoas ?? []).filter((p) => p.categoria === detalheCategoria)
@@ -350,7 +349,7 @@ export default function DpOperacaoPanorama() {
   return (
     <DpPage>
       <Helmet>
-        <title>Painel da Operação | Pessoas 360°FOOD</title>
+        <title>Operação | Pessoas 360°FOOD</title>
         <meta
           name="description"
           content="Acompanhe quantos colaboradores fixos, intermitentes convocados, folgas, férias e atestados a operação tem em cada dia."
@@ -358,7 +357,7 @@ export default function DpOperacaoPanorama() {
       </Helmet>
 
       <DpPageHeader
-        title="Painel da Operação"
+        title="Operação"
         description="Quantas pessoas a operação tem em cada dia — sem precisar gerar escala."
         icon={CalendarClock}
       />
@@ -407,7 +406,7 @@ export default function DpOperacaoPanorama() {
           </div>
           <div className="space-y-1.5">
             <Label>Unidade</Label>
-            <Select value={unidade} onValueChange={setUnidade}>
+            <Select value={unidade || "todas"} onValueChange={trocarUnidade}>
               <SelectTrigger>
                 <SelectValue placeholder="Todas as unidades" />
               </SelectTrigger>
@@ -447,24 +446,43 @@ export default function DpOperacaoPanorama() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {CATEGORIA_ORDEM.map((cat) => (
-                  <DpStatCard
-                    key={cat}
-                    icon={CATEGORIA_ICON[cat]}
-                    tone={CATEGORIA_TONE[cat]}
-                    label={CATEGORIA_LABEL[cat]}
-                    value={dia.contagens[cat]}
-                    onClick={dia.contagens[cat] > 0 ? () => setDetalheCategoria(cat) : undefined}
-                  />
-                ))}
-                <DpStatCard
-                  icon={Clock}
-                  tone="muted"
-                  label="Carga Prevista"
-                  value={formatarHoras(cargaPrevista)}
-                  hint={`${dia.trabalhando} pessoa(s) na operação`}
-                />
+              <GradeCards
+                ordem={ordemDia}
+                onReordenar={(next) => salvarOrdem("dia", next)}
+                render={(k) => {
+                  if (k === "folga_socio") {
+                    return (
+                      <DpStatCard
+                        icon={Handshake}
+                        tone={sociosAusentes.length ? "warning" : "muted"}
+                        label="Folga Sócio"
+                        value={sociosAusentes.length}
+                        hint={
+                          sociosAusentes.length
+                            ? "Clique para ver quem está ausente"
+                            : `${formatarHoras(cargaPrevista)} previstas no dia`
+                        }
+                        onClick={sociosAusentes.length ? () => setVerSocios(true) : undefined}
+                      />
+                    );
+                  }
+                  const cat = k as CategoriaDia;
+                  return (
+                    <DpStatCard
+                      icon={CATEGORIA_ICON[cat]}
+                      tone={CATEGORIA_TONE[cat]}
+                      label={CATEGORIA_LABEL[cat]}
+                      value={dia.contagens[cat]}
+                      onClick={dia.contagens[cat] > 0 ? () => setDetalheCategoria(cat) : undefined}
+                    />
+                  );
+                }}
+              />
+              <div className="flex justify-end">
+                <Button variant="ghost" size="sm" onClick={() => restaurarOrdem("dia")}>
+                  <RotateCcw className="mr-1.5 h-4 w-4" />
+                  Restaurar ordem padrão
+                </Button>
               </div>
 
               {dia.avaliacao.situacao !== "sem_padrao" && dia.avaliacao.situacao !== "ok" && (
