@@ -310,10 +310,6 @@ export default function DpOperacaoPanorama() {
     [panorama.dias],
   );
 
-  const cargaPrevista = useMemo(
-    () => (dia?.pessoas ?? []).reduce((acc, p) => acc + p.carga_prevista_horas, 0),
-    [dia],
-  );
 
   const diasAlerta = useMemo(() => panorama.dias.filter((d) => d.alerta), [panorama.dias]);
 
