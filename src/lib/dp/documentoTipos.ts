@@ -37,6 +37,7 @@ export const DP_DOC_GRUPO_ORDEM: DpDocGrupo[] = [
 export type DpDocTipo =
   | "contracheque"
   | "adiantamento"
+  | "pro_labore"
   | "contracheque_13"
   | "contracheque_ferias"
   | "plr"
@@ -96,6 +97,15 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
     exigeAceite: true,
     keywords: ["adiantamento", "vale salarial", "antecipacao salarial"],
     badgeClass: "border-violet-300 text-violet-700",
+  },
+  {
+    value: "pro_labore",
+    label: "Recibo de Pró-Labore",
+    grupo: "remuneracao",
+    importavel: true,
+    exigeAceite: false,
+    keywords: ["pro labore", "pró-labore", "prolabore", "recibo de pro labore", "recibo de pró-labore"],
+    badgeClass: "border-amber-300 text-amber-700",
   },
   {
     value: "contracheque_13",
@@ -394,6 +404,7 @@ export function detectarTipoDocumento(texto: string | null | undefined): DpDocTi
     "recibo_ferias",
     "informe_rendimentos",
     "plr",
+    "pro_labore",
     "adiantamento",
     "banco_horas",
     "ajuste_jornada",
