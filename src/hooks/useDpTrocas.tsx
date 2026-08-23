@@ -27,7 +27,7 @@ export function useDpTrocas(filtro: string = "todos") {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_trocas")
-        .select("*, solicitante:solicitante_id(nome), destino:destino_id(nome)")
+        .select("*, solicitante:solicitante_id(nome), destino:destino_id(nome, unidade_id)")
         .eq("company_id", selectedCompanyId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
