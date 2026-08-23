@@ -52,6 +52,8 @@ import {
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import { cn } from "@/lib/utils";
 import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
+import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
+import { isSocio } from "@/lib/dp/contrato-policy";
 
 const STATUS_LABEL: Record<DateStatusKind, string> = {
   available: "Disponível",
@@ -93,6 +95,9 @@ export default function DpMeuCalendario() {
   const [tradeOpen, setTradeOpen] = useState<{ occupantId: string; occupantName: string; iso: string } | null>(null);
   const [tradeMyDate, setTradeMyDate] = useState<string>("");
   const [tradeMotivo, setTradeMotivo] = useState("");
+  const [socioBloqueio, setSocioBloqueio] = useState<{ nome: string; datas: string[]; unidadeId: string | null } | null>(
+    null,
+  );
 
   const meRef = useQuery({
     queryKey: ["dp_colaborador_of", user?.id],
@@ -102,7 +107,7 @@ export default function DpMeuCalendario() {
       if (!data) return null;
       const { data: c } = await supabase
         .from("dp_colaboradores")
-        .select("id, company_id, nome, sexo, domingos_folga_mes, folga_fixa_semana, ativo, unidade_id")
+        .select("id, company_id, nome, sexo, domingos_folga_mes, folga_fixa_semana, ativo, unidade_id, vinculo_label")
         .eq("id", data)
         .single();
       return c;
@@ -415,10 +420,14 @@ export default function DpMeuCalendario() {
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, iso: string) => {
       toast.success("Folga marcada!");
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+      const me = meRef.data as { nome?: string; unidade_id?: string | null; vinculo_label?: string | null } | null;
+      if (me && isSocio(me.vinculo_label)) {
+        setSocioBloqueio({ nome: me.nome ?? "Sócio", datas: [iso], unidadeId: me.unidade_id ?? null });
+      }
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao marcar folga"),
   });
@@ -865,6 +874,19 @@ export default function DpMeuCalendario() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {socioBloqueio && companyId && (
+        <SocioBloqueioDialog
+          open
+          onOpenChange={(o) => !o && setSocioBloqueio(null)}
+          companyId={companyId}
+          nome={socioBloqueio.nome}
+          datas={socioBloqueio.datas}
+          unidadeId={socioBloqueio.unidadeId}
+          unidades={unidadesLista}
+          tipo="folga"
+        />
+      )}
     </div>
   );
 }
