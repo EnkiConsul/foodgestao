@@ -166,7 +166,20 @@ export function DocSubstituirDialog(props: {
               </div>
             </div>
           )}
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase text-muted-foreground">Motivo da Substituição</Label>
+            <Input
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ex.: arquivo importado errado"
+            />
+            <p className="text-xs text-muted-foreground">
+              O motivo fica registrado no log de alterações do documento.
+            </p>
+          </div>
         </div>
+
 
         <DialogFooter>
           <Button variant="outline" onClick={() => props.onOpenChange(false)} disabled={saving}>
