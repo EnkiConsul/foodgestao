@@ -61,6 +61,21 @@ const PERFIL_LABEL: Record<string, string> = {
   admin: "Admin",
 };
 
+type ColabColKey = "colaborador" | "cargo" | "unidade" | "status" | "perfil";
+type ColabSortKey = "padrao" | "nome" | "cargo" | "unidade" | "status" | "perfil";
+
+const DEFAULT_COLAB_COL_ORDER: ColabColKey[] = ["colaborador", "cargo", "unidade", "status", "perfil"];
+/** Larguras padrão em px (somam ~980 + 96 de ações). */
+const DEFAULT_COLAB_COL_WIDTHS: Record<ColabColKey, number> = {
+  colaborador: 280,
+  cargo: 170,
+  unidade: 170,
+  status: 240,
+  perfil: 120,
+};
+const COLAB_ACOES_WIDTH = 96;
+
+
 export default function DpColaboradores() {
   const list = useDpColaboradores();
   const unidades = useDpUnidades();
