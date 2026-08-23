@@ -8,7 +8,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import { useDpTrocas } from "@/hooks/useDpTrocas";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,7 @@ const statusMeta: Record<string, { label: string; className: string }> = {
 };
 
 export default function DpTrocas() {
+  const embedded = useDpEmbedded();
   const [filtro, setFiltro] = useState<string>("todos");
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
   const [recusa, setRecusa] = useState<{ id: string; etapa: "colega" | "gestor" } | null>(null);
@@ -60,7 +61,9 @@ export default function DpTrocas() {
 
   return (
     <DpPage>
-      <Helmet><title>Trocas — Pessoas 360°</title></Helmet>
+      {!embedded && (
+        <Helmet><title>Trocas — Pessoas 360°</title></Helmet>
+      )}
       <DpPageHeader
         icon={ArrowLeftRight}
         title="Histórico de Trocas Inteligentes"

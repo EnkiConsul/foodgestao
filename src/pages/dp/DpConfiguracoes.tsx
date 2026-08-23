@@ -250,7 +250,7 @@ export default function DpConfiguracoes() {
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" className="w-full">
-              <Link to="/dp/bloqueios">Abrir gestão de bloqueios</Link>
+              <Link to="/dp/folgas?aba=regras">Abrir gestão de bloqueios</Link>
             </Button>
           </CardContent>
         </Card>

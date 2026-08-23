@@ -1,6 +1,4 @@
 import {
-  ArrowLeftRight,
-  Ban,
   BarChart3,
   Bell,
   BellRing,
@@ -99,24 +97,19 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       "/dp/escalas",
       "/dp/operacao",
       "/dp/convocacoes",
-      "/dp/folgas/calendario",
+      "/dp/folgas",
       "/dp/solicitacoes",
       "/dp/trocas",
       "/dp/ferias",
       "/dp/bloqueios",
-      "/dp/folgas/configuracoes",
       "/dp/conformidade-dsr",
     ],
     items: [
       { label: "Painel da Operação", to: "/dp/escalas/mes", icon: CalendarClock, shortcut: true },
 
       { label: "Convocações", to: "/dp/convocacoes", icon: BellRing },
-      { label: "Calendário Geral", to: "/dp/folgas/calendario", icon: Calendar },
-      { label: "Solicitações", to: "/dp/solicitacoes", icon: ClipboardList, shortcut: true },
-      { label: "Trocas", to: "/dp/trocas", icon: ArrowLeftRight },
+      { label: "Folgas", to: "/dp/folgas", icon: Calendar, shortcut: true },
       { label: "Férias", to: "/dp/ferias", icon: Palmtree, shortcut: true },
-      { label: "Datas Bloqueadas", to: "/dp/bloqueios", icon: Ban },
-      { label: "Regras de Folgas", to: "/dp/folgas/configuracoes/regras", icon: Settings },
       { label: "Conformidade DSR", to: "/dp/conformidade-dsr", icon: Scale },
     ],
   },
@@ -191,7 +184,6 @@ export const DP_ADMIN_NAV: DpNavSurface = {
   groups: ADMIN_GROUPS,
   // Hubs mantidos como opção de atalho para preservar defaults já salvos.
   extraShortcuts: [
-    { label: "Calendário", to: "/dp/folgas", icon: Calendar, shortcut: true },
     { label: "Documentos", to: "/dp/documentos", icon: FileText, shortcut: true },
     { label: "Comunicação", to: "/dp/comunicacao", icon: BellRing, shortcut: true },
   ],

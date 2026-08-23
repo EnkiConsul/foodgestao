@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { matchPath } from "react-router-dom";
 import {
   Users, Wallet, ClipboardList, FileText, Megaphone, MessageSquare, ShieldAlert,
-  Calendar, Repeat, Building2, Briefcase, HandshakeIcon, Ban, CalendarX,
+  Calendar, Repeat, Building2, Briefcase, HandshakeIcon,
   User, ScrollText, FileSignature, History, Upload, Mail,
 } from "lucide-react";
 
@@ -35,8 +35,6 @@ export const FAVORITABLE_PAGES: FavoritablePage[] = [
   { pattern: "/dp/colaboradores", label: "Colaboradores", icon: Users },
   { pattern: "/dp/folgas", label: "Folgas", icon: Calendar },
   { pattern: "/dp/calendario", label: "Calendário", icon: Calendar },
-  { pattern: "/dp/trocas", label: "Trocas", icon: Repeat },
-  { pattern: "/dp/solicitacoes", label: "Solicitações", icon: ClipboardList },
   { pattern: "/dp/avisos", label: "Avisos", icon: Megaphone },
   { pattern: "/dp/mensagens", label: "Mensagens", icon: MessageSquare },
   { pattern: "/dp/modelos-mensagem", label: "Modelos", icon: Mail },
@@ -48,7 +46,6 @@ export const FAVORITABLE_PAGES: FavoritablePage[] = [
     labelFor: (p) => `Comunicação #${(p.id ?? "").slice(0, 6)}`,
   },
   { pattern: "/dp/disciplinar", label: "Disciplinar", icon: ShieldAlert },
-  { pattern: "/dp/bloqueios", label: "Datas Bloqueadas", icon: CalendarX },
   { pattern: "/dp/documentos", label: "Documentos", icon: FileText },
   
   {

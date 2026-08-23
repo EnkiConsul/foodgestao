@@ -55,7 +55,7 @@ export function AtestadosPendentesPopout() {
         <DialogFooter className="gap-2 sm:justify-between">
           <Button variant="ghost" onClick={dismiss}>Fechar</Button>
           <Button asChild className="bg-amber-600 hover:bg-amber-700" onClick={dismiss}>
-            <Link to="/dp/solicitacoes?tipo=atestado">
+            <Link to="/dp/folgas?aba=solicitacoes&tipo=atestado">
               Analisar agora <ArrowRight className="h-3 w-3 ml-1" />
             </Link>
           </Button>

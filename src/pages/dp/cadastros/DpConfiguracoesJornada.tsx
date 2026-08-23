@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import { Save, Scale, History, Info, Store, Trash2, Landmark } from "lucide-react";
-import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
+import { DpPage, DpPageHeader, DpContentCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { FeriasRegrasSection } from "@/components/dp/ferias/FeriasRegrasSection";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
@@ -55,6 +55,7 @@ const STORAGE_KEY = "dp:regras-folgas:unidade";
 
 
 export default function DpConfiguracoesJornada() {
+  const embedded = useDpEmbedded();
   const { selectedCompanyId } = useCompanyContext();
   const [unidadeId, setUnidadeId] = useState<string | null>(
     () => localStorage.getItem(STORAGE_KEY) || null,
@@ -215,10 +216,12 @@ export default function DpConfiguracoesJornada() {
 
   return (
     <DpPage>
-      <Helmet>
-        <title>Regras De Folgas | Pessoas 360°FOOD</title>
-        <meta name="description" content="Configure a periodicidade de folga dominical, o descanso por acordo coletivo e as regras de férias do Departamento Pessoal, por empresa ou por unidade." />
-      </Helmet>
+      {!embedded && (
+        <Helmet>
+          <title>Regras De Folgas | Pessoas 360°FOOD</title>
+          <meta name="description" content="Configure a periodicidade de folga dominical, o descanso por acordo coletivo e as regras de férias do Departamento Pessoal, por empresa ou por unidade." />
+        </Helmet>
+      )}
 
       <DpPageHeader
         title="Regras De Folgas"

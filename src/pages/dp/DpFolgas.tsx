@@ -62,7 +62,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpContentCard, DpFilterCard, DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
 import { DpStatusBadge, statusToneFor } from "@/components/dp/DpStatusBadge";
 import { normalizeWeekday } from "@/lib/dp/folga-rules";
 import {
@@ -121,6 +121,7 @@ function loadPrefs(companyId: string | null): SavedPrefs {
 }
 
 export default function DpFolgas() {
+  const embedded = useDpEmbedded();
   const { selectedCompanyId } = useCompanyContext();
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -567,13 +568,15 @@ export default function DpFolgas() {
 
   return (
     <DpPage>
-      <Helmet>
-        <title>Calendário Geral — Pessoas 360°</title>
-      </Helmet>
+      {!embedded && (
+        <Helmet>
+          <title>Folgas — Pessoas 360°</title>
+        </Helmet>
+      )}
 
       <DpPageHeader
         icon={CalendarDays}
-        title="Calendário Geral"
+        title="Calendário de Folgas"
         description="Gestão centralizada de escalas e folgas da equipe."
         actions={
           <div className="flex items-center gap-2">

@@ -36,7 +36,7 @@ export function FeriasRestricoesAviso() {
         </span>
       )}
       <Button asChild variant="ghost" size="sm" className="ml-auto">
-        <Link to="/dp/folgas/configuracoes/regras">Configurar</Link>
+        <Link to="/dp/folgas?aba=regras">Configurar</Link>
       </Button>
     </DpContentCard>
   );

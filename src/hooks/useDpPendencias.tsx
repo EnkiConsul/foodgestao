@@ -70,7 +70,7 @@ export function useDpPendencias() {
             tipo: "Solicitação",
             vencimento: ymd(vencimento),
             atrasoDias: dias,
-            url: "/dp/solicitacoes",
+            url: "/dp/folgas?aba=solicitacoes",
           });
         });
       } catch (e) {
@@ -98,7 +98,7 @@ export function useDpPendencias() {
             tipo: "Troca",
             vencimento: ymd(vencimento),
             atrasoDias: dias,
-            url: "/dp/trocas",
+            url: "/dp/folgas?aba=trocas",
           });
         });
       } catch (e) {
