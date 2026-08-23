@@ -885,7 +885,7 @@ export default function DpHistoricoCompleto() {
             <TableHeader>
               <TableRow>
                 {colOrder.map((k) => renderColunaHeader(k))}
-                <TableHead className="uppercase text-xs text-right" style={{ width: ACOES_WIDTH }}>Ações</TableHead>
+                <TableHead className="uppercase text-xs text-center" style={{ width: ACOES_WIDTH }}>Ações</TableHead>
               </TableRow>
             </TableHeader>
 
