@@ -214,8 +214,9 @@ export default function DpHistoricoCompleto() {
   const [tipo, setTipo] = useState("all");
   const [grupo, setGrupo] = useState("all");
   const [colFilters, setColFilters] = useState<Record<ColKey, string[]>>({
-    colaborador: [], tipo: [], competencia: [], unidade: [], status: [], aceite: [], data: [],
+    colaborador: [], tipo: [], competencia: [], unidade: [], aceite: [],
   });
+
   const [unidadeId, setUnidadeId] = useState("all");
   const [colabId, setColabId] = useState("all");
   const [mes, setMes] = useState("all");
