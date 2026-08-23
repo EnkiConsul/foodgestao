@@ -130,8 +130,10 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal, socio = fal
 
   return (
     <div className="space-y-4">
-      {/* Resumo do benefício */}
+      {/* Resumo do benefício — salário-família é exclusivo de segurado empregado. */}
+      {!socio && (
       <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+
         <div className="flex flex-wrap items-center gap-2">
           <Baby className="h-4 w-4 text-primary" />
           <span className="font-medium text-foreground">Salário-família</span>
