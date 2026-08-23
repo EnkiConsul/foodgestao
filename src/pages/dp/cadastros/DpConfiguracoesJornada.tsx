@@ -307,49 +307,8 @@ export default function DpConfiguracoesJornada() {
           </div>
         )}
 
-        {outrasUnidades.length > 0 && (
-          <div className="space-y-2 rounded-md border p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Label className="text-sm">Aplicar a mesma regra também em</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button" variant="ghost" size="sm"
-                  onClick={() => setAlvosExtras(outrasUnidades.map((u) => u.id))}
-                >
-                  Selecionar todas
-                </Button>
-                <Button
-                  type="button" variant="ghost" size="sm"
-                  onClick={() => setAlvosExtras([])}
-                  disabled={alvosExtras.length === 0}
-                >
-                  Limpar seleção
-                </Button>
-              </div>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {outrasUnidades.map((u) => (
-                <label
-                  key={u.id}
-                  className="flex items-start gap-2 rounded-md border p-2 text-sm"
-                  htmlFor={`alvo-${u.id}`}
-                >
-                  <Checkbox
-                    id={`alvo-${u.id}`}
-                    checked={alvosExtras.includes(u.id)}
-                    onCheckedChange={(c) => toggleAlvoExtra(u.id, c === true)}
-                  />
-                  <span className="leading-tight">
-                    {u.nome}
-                    {!u.configurada && (
-                      <span className="block text-xs text-muted-foreground">ainda não configurada</span>
-                    )}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
+
+
 
         {naoConfigurada && unidadeId && (
           <p className="text-xs text-muted-foreground">
