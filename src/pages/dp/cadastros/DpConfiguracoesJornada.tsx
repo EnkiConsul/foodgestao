@@ -446,24 +446,13 @@ export default function DpConfiguracoesJornada() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="regra-dsr">Base da regra de DSR</Label>
-            <Select
-              value={form.regra_dsr}
-              onValueChange={(v) => setBaseRegra(v as DpConfigDpForm["regra_dsr"])}
-            >
-              <SelectTrigger id="regra-dsr"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="clt">CLT (padrão legal)</SelectItem>
-                <SelectItem value="cct">Acordo/Convenção coletiva</SelectItem>
-                <SelectItem value="propria">Política própria da empresa</SelectItem>
-              </SelectContent>
-            </Select>
             <p className="text-xs text-muted-foreground">
               {travadoClt
-                ? "Valores fixados pelo padrão CLT — mude a base da regra para editar a frequência."
+                ? "Valores fixados pelo padrão CLT — mude a base da regra de folgas para editar a frequência. No padrão CLT o sistema já gera as folgas dominicais do colaborador."
                 : "Frequências livres: os campos abaixo podem divergir do padrão CLT, com registro de ciência."}
             </p>
           </div>
+
 
           <div className="sm:col-span-2 flex items-start justify-between gap-4 rounded-lg border p-3">
             <div>
