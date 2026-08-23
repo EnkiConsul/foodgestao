@@ -530,8 +530,8 @@ export default function DpMeuCalendario() {
         .select("id")
         .eq("solicitante_id", meRef.data.id)
         .eq("destino_id", tradeOpen.occupantId)
-
         .eq("data_proposta", tradeOpen.iso)
+
         .eq("status", "pendente_colega")
         .maybeSingle();
       if (existing) throw new Error("Você já enviou uma troca pendente para este dia com este colega.");
