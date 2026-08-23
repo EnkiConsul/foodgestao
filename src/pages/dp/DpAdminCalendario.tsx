@@ -81,6 +81,9 @@ import {
 } from "@/lib/dp/bloqueio-rules";
 import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
 import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
+import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
+import { isSocio } from "@/lib/dp/contrato-policy";
+
 
 const isoWeekKey = (d: Date) => `${getISOWeekYear(d)}-${getISOWeek(d)}`;
 
