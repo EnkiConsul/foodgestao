@@ -142,6 +142,7 @@ export default function DpOperacaoPanorama() {
   const { regras: regrasCobertura } = useDpCoberturaMinima();
 
   const dia = panorama.diaDe(data);
+  const nomeUnidade = unidadeId ? panorama.unidades.find((u) => u.id === unidadeId)?.nome ?? null : null;
 
   const trocarAba = (v: string) => {
     setAba(v);
@@ -330,7 +331,7 @@ export default function DpOperacaoPanorama() {
               {dia.avaliacao.situacao !== "sem_padrao" && dia.avaliacao.situacao !== "ok" && (
                 <Secao
                   title="Fora do Padrão"
-                  description={mensagemAlerta(dia, dia.avaliacao, unidadeId ? undefined : null)}
+                  description={mensagemAlerta(dia, dia.avaliacao, nomeUnidade)}
                   action={
                     dia.dispensado ? (
                       <Button variant="ghost" size="sm" onClick={() => reativar(dia)}>
@@ -521,7 +522,7 @@ export default function DpOperacaoPanorama() {
                           <span className="first-letter:uppercase">{dataExtenso(d.data)}</span>
                         </button>
                         <p className="text-xs text-muted-foreground">
-                          {mensagemAlerta(d, d.avaliacao, null)}
+                          {mensagemAlerta(d, d.avaliacao, nomeUnidade)}
                         </p>
                       </div>
                       <Button variant="outline" size="sm" onClick={() => dispensar(d)}>
