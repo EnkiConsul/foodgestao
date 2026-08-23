@@ -428,9 +428,9 @@ const AppRoutes = () => (
         <Route index element={<DpHome />} />
         <Route path="colaboradores" element={<DpColaboradores />} />
         <Route path="colaboradores/lixeira" element={<DpColaboradoresLixeira />} />
-        <Route path="solicitacoes" element={<DpSolicitacoes />} />
+        <Route path="solicitacoes" element={<Navigate to="/dp/folgas?aba=solicitacoes" replace />} />
         <Route path="folgas" element={<DpFolgasHub />} />
-        <Route path="folgas/calendario" element={<DpFolgas />} />
+        <Route path="folgas/calendario" element={<Navigate to="/dp/folgas?aba=calendario" replace />} />
         <Route path="ferias" element={<DpFerias />} />
         <Route path="conformidade" element={<ModuloEmDesenvolvimentoGate titulo="SESMT"><DpConformidade /></ModuloEmDesenvolvimentoGate>} />
         <Route path="beneficios" element={<Navigate to="/dp/cadastros/beneficios" replace />} />
@@ -450,8 +450,8 @@ const AppRoutes = () => (
         <Route path="comunicacao" element={<DpComunicacaoHub />} />
         <Route path="notificacoes" element={<DpNotificacoes />} />
         <Route path="disciplinar" element={<DpDisciplinar />} />
-        <Route path="bloqueios" element={<DpBloqueios />} />
-        <Route path="trocas" element={<DpTrocas />} />
+        <Route path="bloqueios" element={<Navigate to="/dp/folgas?aba=regras" replace />} />
+        <Route path="trocas" element={<Navigate to="/dp/folgas?aba=trocas" replace />} />
         <Route path="documentos/importar" element={<Navigate to="/dp/documentos" replace />} />
         <Route path="documentos/:categoria" element={<Navigate to="/dp/documentos/historico" replace />} />
         <Route path="cadastros" element={<DpCadastrosHub />} />
@@ -464,8 +464,8 @@ const AppRoutes = () => (
         <Route path="cadastros/beneficios" element={<DpBeneficios />} />
         <Route path="cadastros/turnos" element={<Navigate to="/dp/cadastros/cargos?aba=turnos" replace />} />
         <Route path="turnos" element={<Navigate to="/dp/cadastros/cargos?aba=turnos" replace />} />
-        <Route path="folgas/configuracoes/regras" element={<DpConfiguracoesJornada />} />
-        <Route path="cadastros/regras-jornada" element={<Navigate to="/dp/folgas/configuracoes/regras" replace />} />
+        <Route path="folgas/configuracoes/regras" element={<Navigate to="/dp/folgas?aba=regras" replace />} />
+        <Route path="cadastros/regras-jornada" element={<Navigate to="/dp/folgas?aba=regras" replace />} />
         <Route path="conformidade-dsr" element={<DpConformidadeDsr />} />
         <Route path="escalas" element={<DpEscalas />} />
         <Route path="escalas/mes" element={<DpOperacaoPanorama />} />
