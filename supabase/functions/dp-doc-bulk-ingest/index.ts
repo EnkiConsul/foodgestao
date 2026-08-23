@@ -276,6 +276,13 @@ async function processPage(args: {
       if (dup?.id) duplicateOf = dup.id as string;
     }
 
+    // Assinatura do colaborador na página: se já vier assinado, o padrão é
+    // dispensar a validação digital (o usuário confirma na revisão).
+    const assin = detectarAssinatura(ocr);
+    const exigeAceiteTipo = DOC_TIPO_EXIGE_ACEITE[tipoEfetivo] ?? false;
+    const exigirLote = batch.exigir_aceite !== false;
+    const exigeAceite = exigirLote && exigeAceiteTipo && !assin.detectada;
+
     await svc.from("dp_bulk_import_items").upsert({
       batch_id,
       company_id: batch.company_id,
@@ -287,11 +294,15 @@ async function processPage(args: {
       matched_colaborador_id: match?.id ?? null,
       matched_colaborador_ativo: match ? match.ativo : null,
       detected_cnpj: cnpjs[0] ?? null,
+      detected_unidade_id: unidadeDetectada,
       detected_competencia: competencia,
       tipo_detectado: tipoEfetivo,
       tipo_confidence: tipoAprendido ? 1 : tipoDetectado ? 0.9 : 0,
       tipo_origem: tipoOrigem,
       tipo_assinatura: assinatura || null,
+      assinatura_detectada: assin.detectada,
+      assinatura_evidencia: assin.evidencia,
+      exige_aceite: exigeAceite,
       duplicate_of: duplicateOf,
       confidence,
       status: "pending",
