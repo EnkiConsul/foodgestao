@@ -213,14 +213,60 @@ function SituacaoBadge({ dia }: { dia: DiaPanorama }) {
 export default function DpOperacaoPanorama() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState(() => params.get("data") || hojeIso());
-  const [unidade, setUnidade] = useState<string>("todas");
+  const [unidade, setUnidade] = useState<string>("");
   const [aba, setAba] = useState(params.get("aba") === "mes" ? "mes" : "dia");
   const [detalheCategoria, setDetalheCategoria] = useState<CategoriaDia | null>(null);
+  const [verSocios, setVerSocios] = useState(false);
 
-  const unidadeId = unidade === "todas" ? null : unidade;
+  const { prefs, save } = useDpUserPrefs();
+  const unidadeId = !unidade || unidade === "todas" ? null : unidade;
   const competencia = data.slice(0, 7);
   const panorama = useDpOperacaoPanorama(competencia, unidadeId);
   const { regras: regrasCobertura } = useDpCoberturaMinima();
+
+  /** Abre já em uma unidade: a última escolhida ou a de maior quadro. */
+  useEffect(() => {
+    if (unidade || !panorama.unidades.length) return;
+    const salva = (prefs.extras as Record<string, unknown>)?.[UNIDADE_KEY];
+    if (typeof salva === "string" && (salva === "todas" || panorama.unidades.some((u) => u.id === salva))) {
+      setUnidade(salva);
+      return;
+    }
+    const maior = [...panorama.unidades].sort(
+      (a, b) => (panorama.contagemPorUnidade.get(b.id) ?? 0) - (panorama.contagemPorUnidade.get(a.id) ?? 0),
+    )[0];
+    setUnidade(maior?.id ?? "todas");
+  }, [unidade, panorama.unidades, panorama.contagemPorUnidade, prefs.extras]);
+
+  const trocarUnidade = (v: string) => {
+    setUnidade(v);
+    save({ extras: { ...(prefs.extras ?? {}), [UNIDADE_KEY]: v } });
+  };
+
+  // Ordem dos cards por aba, salva nas preferências do usuário.
+  const ordemSalva = (prefs.extras as Record<string, unknown>)?.[PREFS_KEY] as
+    | Record<string, string[]>
+    | undefined;
+
+  const ordenar = (padrao: readonly string[], salvo?: string[]) => {
+    const validos = (salvo ?? []).filter((k) => padrao.includes(k));
+    return [...validos, ...padrao.filter((k) => !validos.includes(k))];
+  };
+
+  const ordemDia = useMemo(() => ordenar(CARDS_DIA, ordemSalva?.dia), [ordemSalva?.dia]);
+  const ordemMes = useMemo(() => ordenar(CARDS_MES, ordemSalva?.mes), [ordemSalva?.mes]);
+
+  const salvarOrdem = (chave: "dia" | "mes", next: string[]) =>
+    save({
+      extras: { ...(prefs.extras ?? {}), [PREFS_KEY]: { ...(ordemSalva ?? {}), [chave]: next } },
+    });
+
+  const restaurarOrdem = (chave: "dia" | "mes") => {
+    const map = { ...(ordemSalva ?? {}) };
+    delete map[chave];
+    save({ extras: { ...(prefs.extras ?? {}), [PREFS_KEY]: map } });
+    toast.success("Ordem dos cards restaurada.");
+  };
 
   const dia = panorama.diaDe(data);
   const nomeUnidade = unidadeId ? panorama.unidades.find((u) => u.id === unidadeId)?.nome ?? null : null;
@@ -237,29 +283,41 @@ export default function DpOperacaoPanorama() {
     trocarAba("dia");
   };
 
-  /** Turnos presentes no dia, com cobertura mínima exigida. */
+  /** Blocos do dia pelos períodos de funcionamento da loja, agrupados por cargo. */
   const blocos = useMemo(() => {
     if (!dia) return [];
     const trabalhando = dia.pessoas.filter(
       (p) => p.categoria === "fixo" || p.categoria === "convocado_aceito" || p.categoria === "convocado_pendente",
     );
-    const mapa = new Map<string, { id: string | null; nome: string; pessoas: PessoaPanorama[] }>();
-    for (const p of trabalhando) {
-      const chave = p.turno_id ?? "sem-turno";
-      const atual = mapa.get(chave) ?? { id: p.turno_id, nome: p.turno_nome ?? "Sem turno definido", pessoas: [] };
-      atual.pessoas.push(p);
-      mapa.set(chave, atual);
-    }
-    const minimos = resolverCoberturaMinima({
-      regras: regrasCobertura,
+    return blocosPorFuncionamento({
       data,
+      pessoas: trabalhando,
+      funcionamentoPorUnidade: panorama.funcionamentoPorUnidade,
+      unidades: panorama.unidades,
       unidadeId,
-      turnoIds: panorama.turnos.map((t) => t.id),
     });
-    return [...mapa.values()]
-      .map((b) => ({ ...b, minimo: b.id ? minimos[b.id] ?? 0 : 0 }))
-      .sort((a, b) => (a.pessoas[0]?.entrada ?? "").localeCompare(b.pessoas[0]?.entrada ?? ""));
-  }, [dia, regrasCobertura, data, unidadeId, panorama.turnos]);
+  }, [dia, data, unidadeId, panorama.funcionamentoPorUnidade, panorama.unidades]);
+
+  /** Sócios em folga ou férias no dia — substitui o antigo card de carga. */
+  const sociosAusentes = useMemo(
+    () =>
+      (dia?.pessoas ?? []).filter(
+        (p) => p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria),
+      ),
+    [dia],
+  );
+
+  const diasComSocioAusente = useMemo(
+    () =>
+      new Set(
+        panorama.dias
+          .filter((d) =>
+            d.pessoas.some((p) => p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria)),
+          )
+          .map((d) => d.data),
+      ),
+    [panorama.dias],
+  );
 
   const cargaPrevista = useMemo(
     () => (dia?.pessoas ?? []).reduce((acc, p) => acc + p.carga_prevista_horas, 0),
