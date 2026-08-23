@@ -613,11 +613,55 @@ export default function DpConfiguracoesJornada() {
         </div>
         </SubSection>
 
+        <Separator />
+
+        <SubSection
+          title="Troca De Folga Entre Colaboradores"
+          description="Define se os colaboradores podem trocar folgas entre si e sobre quais folgas a troca vale."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="troca-modo">Troca de folga</Label>
+              <Select
+                value={form.troca_folga_modo}
+                onValueChange={(v) => set("troca_folga_modo", v as DpConfigDpForm["troca_folga_modo"])}
+              >
+                <SelectTrigger id="troca-modo"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(TROCA_FOLGA_MODO_LABEL) as TrocaFolgaModo[]).map((m) => (
+                    <SelectItem key={m} value={m}>{TROCA_FOLGA_MODO_LABEL[m]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Na troca direta, o aceite do colega já efetiva a troca no calendário.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="troca-escopo">Troca permitida sobre</Label>
+              <Select
+                disabled={form.troca_folga_modo === "proibida"}
+                value={form.troca_folga_escopo}
+                onValueChange={(v) => set("troca_folga_escopo", v as DpConfigDpForm["troca_folga_escopo"])}
+              >
+                <SelectTrigger id="troca-escopo"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(TROCA_FOLGA_ESCOPO_LABEL) as TrocaFolgaEscopo[]).map((m) => (
+                    <SelectItem key={m} value={m}>{TROCA_FOLGA_ESCOPO_LABEL[m]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Folgas fora do escopo permitido são recusadas pelo sistema, com o motivo informado ao colaborador.
+              </p>
+            </div>
+          </div>
+        </SubSection>
+
         <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
           <p className="text-xs text-muted-foreground">
-            {alvosExtras.length > 0
-              ? `Será salvo em ${alvosExtras.length + 1} unidades.`
-              : `Será salvo apenas em ${unidadeAtual?.nome ?? "esta unidade"}.`}
+            Ao salvar você pode aplicar a mesma regra em outras unidades.
           </p>
           <Button onClick={handleSave} disabled={saving || isLoading} className="gap-2">
             <Save className="h-4 w-4" aria-hidden="true" />
@@ -625,6 +669,19 @@ export default function DpConfiguracoesJornada() {
           </Button>
         </div>
       </DpContentCard>
+
+      <SalvarRegrasDialog
+        open={salvarAberto}
+        onOpenChange={setSalvarAberto}
+        unidadeNome={unidadeAtual?.nome ?? "esta unidade"}
+        outrasUnidades={outrasUnidades}
+        saving={saving}
+        onConfirm={(extras) => {
+          setSalvarAberto(false);
+          concluirSalvamento(extras);
+        }}
+      />
+
 
 
 
