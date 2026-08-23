@@ -1,4 +1,4 @@
-# Sexo no Cadastro + Aba "Horário" com Regra de Folga Dominical
+# Gênero no Cadastro + Aba "Horário" com Regra de Folga Dominical
 
 ## Contexto verificado
 
@@ -8,26 +8,30 @@
 
 ## O que será feito
 
-### 1. Campo Sexo na aba Dados
-- Novo select **Sexo** (Feminino / Masculino / Outro / Não informado) ao lado de Data de Nascimento.
-- Salvo em `dp_colaboradores.sexo` e carregado na edição.
-- Sem obrigatoriedade bloqueante: se estiver vazio e o vínculo for CLT, aparece um aviso leve na aba Dados explicando que sem o sexo o sistema aplica a regra geral de folga dominical.
-- Exibir o dado também na ficha resumo do colaborador.
+### 1. Campo Gênero na aba Dados
+- Novo select **Gênero** (Feminino / Masculino / Outro / Prefiro não informar) ao lado de Data de Nascimento, gravado em `dp_colaboradores.sexo`.
+- **Quando o gênero for diferente de Masculino ou Feminino** (Outro / Prefiro não informar), abre um campo obrigatório logo abaixo:
+  **"Folgas dominicais por mês (padrão CLT)"** com as opções **1 por mês** e **2 por mês**.
+  - Bloqueia o salvamento enquanto não for escolhido, explicando que essa frequência define quantas folgas dominicais o colaborador pode escolher.
+  - Texto de apoio: 1 por mês = regra geral do comércio; 2 por mês = regra do Art. 386 da CLT.
+- Para Masculino e Feminino o campo não aparece: o sistema segue a regra da unidade (geral / mulheres) como hoje.
+- Exibir gênero e, quando houver, a frequência dominical escolhida na ficha resumo do colaborador.
 
 ### 2. Renomear a aba para "Horário"
 - Título da aba e textos que citam "Horário de Trabalho" nas telas do colaborador passam a "Horário" (rota e dados não mudam).
 
 ### 3. Bloco de folga dominical na aba Horário
-Novo painel informativo, logo abaixo dos dias da semana, mostrando a regra efetiva da unidade do colaborador:
+Novo painel informativo, logo abaixo dos dias da semana, mostrando a regra efetiva do colaborador:
 - Base do descanso (legal ou acordo/convenção coletiva) e dias negociados.
-- Domingos de folga por mês exigidos para **este** colaborador — usando a regra de mulheres quando `sexo = F`, e a geral nos demais casos.
-- Aviso quando os domingos previstos no horário habitual não atingem o mínimo da regra, ou quando o sexo não está informado (regra feminina não avaliada).
+- Domingos de folga por mês exigidos para **este** colaborador: regra de mulheres quando gênero = Feminino, regra geral para Masculino e a **frequência informada no cadastro** quando o gênero for Outro / Não informado.
+- Aviso quando os domingos previstos no horário habitual não atingem o mínimo da regra.
 - Texto explícito: "A folga dominical é definida na tela Folgas; o sindicato pode alterar essa frequência."
-- Botão/atalho **Ver regras de folgas** abrindo `/dp/folgas?aba=regras` (nova aba, para não perder o cadastro em edição).
+- Botão/atalho **Ver regras de folgas** abrindo `/dp/folgas?aba=regras` em nova aba, para não perder o cadastro em edição.
 
 ## Detalhes técnicos
 
-- `ColaboradorFormDialog.tsx`: novo campo no estado do form (`sexo`), no mapeamento de carga (`c.sexo`) e no payload de insert/update; rótulo da aba `jornada` → "Horário".
-- `ColaboradorJornadaPanel.tsx`: recebe `sexo` e `unidadeId` por prop; usa `useDpRegrasColaborador(companyId, unidadeId, sexo)` (já existente) + `tetoFolgasMes`/`resumoEscolhaFolgas` de `dsr-rules.ts` para montar o bloco. Nenhuma nova regra de cálculo é criada — apenas leitura das funções atuais.
-- `ColaboradorFichaDialog.tsx`: linha "Sexo" no card de dados.
-- Sem migração de banco: a coluna e o check constraint já existem.
+- Migração: nova coluna `dp_colaboradores.domingos_folga_mes smallint` com check `IN (1,2)` (nula para M/F) e trigger de validação exigindo o valor quando `sexo` não for `F`/`M` e o regime for CLT.
+- `ColaboradorFormDialog.tsx`: campos `sexo` e `domingos_folga_mes` no estado, na carga da edição e no payload; validação da etapa Dados; rótulo da aba `jornada` → "Horário".
+- `dsr-rules.ts`: `tetoFolgasMes`, `domingosFolgaNoPeriodo` e `resumoEscolhaFolgas` passam a aceitar um override de domingos por mês do colaborador, aplicado antes da regra geral. Conformidade DSR, portal, escalas e calculadora de vales herdam o mesmo override.
+- `ColaboradorJornadaPanel.tsx`: recebe `sexo`, `domingos_folga_mes` e `unidadeId` por prop e usa `useDpRegrasColaborador` + as funções acima para montar o bloco informativo.
+- `ColaboradorFichaDialog.tsx`: linhas "Gênero" e "Folgas dominicais/mês".
