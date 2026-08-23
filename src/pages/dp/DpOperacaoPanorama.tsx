@@ -105,6 +105,74 @@ const CATEGORIA_ICON: Record<CategoriaDia, typeof Users> = {
   atestado: HeartPulse,
 };
 
+type CardKey = CategoriaDia | "folga_socio";
+
+const CARDS_DIA: CardKey[] = [...CATEGORIA_ORDEM, "folga_socio"];
+const CARDS_MES = ["dias_mes", "media_pessoas", "dias_fora_padrao", "dias_sem_ninguem"] as const;
+type CardMesKey = (typeof CARDS_MES)[number];
+
+const PREFS_KEY = "operacao_cards";
+const UNIDADE_KEY = "operacao_unidade";
+
+/** Card arrastável: o conteúdo é o DpStatCard normal com um handle discreto. */
+function CardArrastavel({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`relative ${isDragging ? "z-10 opacity-80" : ""}`}
+    >
+      {children}
+      <button
+        type="button"
+        aria-label="Reordenar card"
+        className="absolute right-1 top-1 rounded p-1 text-muted-foreground/60 hover:bg-muted hover:text-muted-foreground"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function GradeCards({
+  ordem,
+  onReordenar,
+  render,
+}: {
+  ordem: string[];
+  onReordenar: (next: string[]) => void;
+  render: (key: string) => React.ReactNode;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+  );
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const from = ordem.indexOf(String(active.id));
+    const to = ordem.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    onReordenar(arrayMove(ordem, from, to));
+  };
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={ordem} strategy={rectSortingStrategy}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {ordem.map((k) => (
+            <CardArrastavel key={k} id={k}>
+              {render(k)}
+            </CardArrastavel>
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
 function Secao({
   title,
   description,
