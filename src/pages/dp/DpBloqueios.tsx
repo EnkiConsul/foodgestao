@@ -6,7 +6,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
+import { DpPage, DpPageHeader, DpContentCard, useDpEmbedded } from "@/components/dp/DpPage";
+import { DpTabsBar } from "@/components/dp/DpTabsBar";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import {
   MESES, getMonthName,
   emptyRegraForm, regraToFormState,
