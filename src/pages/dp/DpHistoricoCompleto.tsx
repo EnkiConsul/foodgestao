@@ -27,7 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { DpCopyColWidthsButton } from "@/components/dp/DpCopyColWidthsButton";
+import { DpSalvarLargurasButton } from "@/components/dp/DpSalvarLargurasButton";
 
 import { DP_DOC_TIPOS, DP_DOC_GRUPOS, docTipoBadgeClass, docTipoGrupo } from "@/lib/dp/documentoTipos";
 import {
@@ -283,6 +283,7 @@ export default function DpHistoricoCompleto() {
     larguraTotal,
   } = useDpTableColumns<ColKey, SortKey>({
     storageKey: "dp_historico_col",
+    screenKey: "dp_historico_documentos",
     defaultOrder: DEFAULT_COL_ORDER,
     defaultWidths: DEFAULT_COL_WIDTHS,
     acoesWidth: ACOES_WIDTH,
@@ -659,7 +660,7 @@ export default function DpHistoricoCompleto() {
         description="Visualize todos os documentos de todos os colaboradores em um único lugar."
         actions={
           <>
-            <DpCopyColWidthsButton tela="historico" colOrder={colOrder} colWidths={colWidths} />
+            <DpSalvarLargurasButton screenKey="dp_historico_documentos" colOrder={colOrder} colWidths={colWidths} />
             <Button variant="outline" onClick={() => setLogAberto(true)}>
               <HistoryIcon className="mr-1 h-4 w-4" /> Registro De Alterações
             </Button>

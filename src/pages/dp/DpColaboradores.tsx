@@ -30,7 +30,7 @@ import { Link } from "react-router-dom";
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
-import { DpCopyColWidthsButton } from "@/components/dp/DpCopyColWidthsButton";
+import { DpSalvarLargurasButton } from "@/components/dp/DpSalvarLargurasButton";
 
 import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
@@ -155,6 +155,7 @@ export default function DpColaboradores() {
     larguraTotal,
   } = useDpTableColumns<ColabColKey, ColabSortKey>({
     storageKey: "dp_colabs_col",
+    screenKey: "dp_colaboradores",
     defaultOrder: DEFAULT_COLAB_COL_ORDER,
     defaultWidths: DEFAULT_COLAB_COL_WIDTHS,
     acoesWidth: COLAB_ACOES_WIDTH,
@@ -319,7 +320,7 @@ export default function DpColaboradores() {
         description="Gerencie a equipe, cargos e acessos ao sistema."
         actions={
           <>
-            <DpCopyColWidthsButton tela="colaboradores" colOrder={colOrder} colWidths={colWidths} />
+            <DpSalvarLargurasButton screenKey="dp_colaboradores" colOrder={colOrder} colWidths={colWidths} />
             <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
 
               <Link to="/dp/colaboradores/lixeira">

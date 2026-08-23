@@ -115,6 +115,33 @@ export type Database = {
         }
         Relationships: []
       }
+      app_table_layouts: {
+        Row: {
+          column_order: Json
+          column_widths: Json
+          created_at: string
+          id: string
+          screen_key: string
+          updated_at: string
+        }
+        Insert: {
+          column_order?: Json
+          column_widths?: Json
+          created_at?: string
+          id?: string
+          screen_key: string
+          updated_at?: string
+        }
+        Update: {
+          column_order?: Json
+          column_widths?: Json
+          created_at?: string
+          id?: string
+          screen_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       asaas_webhook_events: {
         Row: {
           created_at: string
