@@ -101,11 +101,12 @@ function tipoBadgeClass(key: string) {
   return docTipoBadgeClass(key);
 }
 
-type ColKey = "colaborador" | "tipo" | "competencia" | "unidade" | "status" | "aceite" | "data";
-type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "status_label" | "aceite_label" | "data";
+type ColKey = "colaborador" | "tipo" | "competencia" | "unidade" | "aceite";
+type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "aceite_label" | "data";
 
-const COL_ORDER_STORAGE = "dp_historico_col_order";
-const DEFAULT_COL_ORDER: ColKey[] = ["colaborador", "tipo", "competencia", "unidade", "status", "aceite", "data"];
+const COL_ORDER_STORAGE = "dp_historico_col_order_v2";
+const DEFAULT_COL_ORDER: ColKey[] = ["colaborador", "tipo", "competencia", "unidade", "aceite"];
+
 
 function aceiteLabel(r: UnifiedDoc) {
   if (r.aceite === null) return r.aceiteDispensado ? "Dispensado" : "—";
