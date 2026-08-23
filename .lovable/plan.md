@@ -17,24 +17,24 @@ Hoje a tabela usa larguras percentuais fixas e todos os títulos ficam em uma li
 
 ## 3. Excluir documento importado
 
-Nova ação de lixeira na linha (e no card mobile), disponível somente para documentos importados/enviados no acervo do DP — solicitações, negociações sindicais e registros disciplinares seguem sendo geridos nas telas de origem.
+Nova ação de lixeira na linha (e no card mobile) para **qualquer** documento listado no histórico, incluindo atestados/solicitações, negociações sindicais e registros disciplinares — cada um é excluído na sua origem correta, sem sair da tela de histórico.
 
 - Confirmação com nome do colaborador, tipo e competência, além de aviso explícito: "a pendência deste documento voltará a aparecer na Conferência".
-- Exclusão remove o registro do documento, o arquivo no armazenamento e os aceites vinculados.
+- Exclusão remove o registro, o arquivo no armazenamento e os aceites vinculados.
 - A Conferência de Competências é recalculada a partir dos documentos existentes, então a pendência reaparece automaticamente; as listas de pendência e histórico são atualizadas na hora.
 
 ## 4. Substituir documento
 
-Ação "Substituir" na mesma linha: o usuário escolhe um novo arquivo (PDF/imagem) e o documento é corrigido mantendo colaborador, tipo e competência.
+Ação "Substituir" na mesma linha, também para todos os tipos de documento do histórico: o usuário escolhe um novo arquivo (PDF/imagem) e o registro é corrigido mantendo colaborador, tipo e competência.
 
 - O arquivo antigo é apagado e o novo assume o lugar, com data de atualização renovada.
 - Se o documento já tinha aceite do colaborador, o aceite é invalidado e o documento volta para "Aguardando" validação digital (o conteúdo mudou).
-- Campos de colaborador, tipo e competência podem ser ajustados na mesma janela, para corrigir importações classificadas errado sem precisar excluir e reimportar.
+- Para documentos do acervo do DP, colaborador, tipo e competência podem ser ajustados na mesma janela, corrigindo importações classificadas errado sem excluir e reimportar. Nas outras origens (atestado, sindicato, disciplinar) a substituição troca apenas o arquivo, pois a classificação vem do próprio registro.
 
 ## Detalhes técnicos
 
 - `src/pages/dp/DpHistoricoCompleto.tsx`: ajuste das larguras/`table-fixed`, remoção do botão de restaurar colunas, reorganização do cabeçalho do `DpFilterCard`, novas ações por linha e no card mobile.
 - Novo componente `src/components/dp/documentos/DocSubstituirDialog.tsx` para upload do arquivo substituto e edição de colaborador/tipo/competência.
-- Exclusão e substituição atuam em `dp_documentos` + bucket `dp-documentos` + `dp_documento_aceites`; a política de escrita de administrador já cobre essas operações.
+- Cada linha do histórico já carrega sua origem (bucket + tabela); exclusão/substituição roteiam para `dp_documentos`, `dp_solicitacoes`, `dp_sindicato_negociacoes` ou `dp_registros_disciplinares` com o bucket correspondente, mais limpeza em `dp_documento_aceites`. Se alguma dessas tabelas não permitir exclusão pelo administrador, a política é ajustada por migração no mesmo passo.
 - Após ambas as ações, invalidação das queries do histórico e do painel de conferência (`DocConsistenciaPanel` deriva as pendências dos documentos existentes, sem tabela de pendência a reabrir).
 - Ordem das colunas continua persistida como hoje; só o botão de reset sai.
