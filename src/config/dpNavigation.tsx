@@ -93,8 +93,8 @@ export type DpNavSurface = {
 
 const ADMIN_GROUPS: DpNavGroup[] = [
   {
-    id: "rotina-dia",
-    label: "Rotina do Dia",
+    id: "rotina",
+    label: "Rotina",
     icon: CalendarClock,
     hubTo: "/dp/operacao",
     matchPrefixes: [
@@ -102,20 +102,6 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       "/dp/escalas",
       "/dp/convocacoes",
       "/dp/folgas/calendario",
-    ],
-    items: [
-      { label: "Operação do Dia", to: "/dp/operacao", icon: CalendarClock, shortcut: true },
-      { label: "Escala do Mês", to: "/dp/escalas/mes", icon: CalendarRange, shortcut: true },
-      { label: "Gerar Escala", to: "/dp/escalas", icon: Wand2, end: true, shortcut: true },
-      { label: "Convocações", to: "/dp/convocacoes", icon: BellRing },
-      { label: "Calendário Geral", to: "/dp/folgas/calendario", icon: Calendar },
-    ],
-  },
-  {
-    id: "folgas-ferias",
-    label: "Folgas e Férias",
-    icon: Calendar,
-    matchPrefixes: [
       "/dp/solicitacoes",
       "/dp/aprovacoes",
       "/dp/trocas",
@@ -125,6 +111,11 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       "/dp/conformidade-dsr",
     ],
     items: [
+      { label: "Operação do Dia", to: "/dp/operacao", icon: CalendarClock, shortcut: true },
+      { label: "Escala do Mês", to: "/dp/escalas/mes", icon: CalendarRange, shortcut: true },
+      { label: "Gerar Escala", to: "/dp/escalas", icon: Wand2, end: true, shortcut: true },
+      { label: "Convocações", to: "/dp/convocacoes", icon: BellRing },
+      { label: "Calendário Geral", to: "/dp/folgas/calendario", icon: Calendar },
       { label: "Solicitações", to: "/dp/solicitacoes", icon: ClipboardList, shortcut: true },
       { label: "Aprovações", to: "/dp/aprovacoes", icon: UserCheck, shortcut: true },
       { label: "Trocas", to: "/dp/trocas", icon: ArrowLeftRight },
