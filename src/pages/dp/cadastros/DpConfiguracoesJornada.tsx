@@ -566,34 +566,6 @@ export default function DpConfiguracoesJornada() {
       </Section>
 
 
-      <FeriasRegrasSection />
-
-      <Section
-        title="Histórico de alterações"
-        description="Registro imutável de mudanças nas regras, com confirmações de ciência."
-      >
-        {historicoRecente.length === 0 ? (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Info className="h-4 w-4" aria-hidden="true" /> Nenhuma alteração registrada ainda.
-          </p>
-        ) : (
-          <ul className="divide-y">
-            {historicoRecente.map((h) => (
-              <li key={h.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                <History className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <span className="text-muted-foreground">
-                  {new Date(h.created_at).toLocaleString("pt-BR")}
-                </span>
-                <span className="font-medium">{h.tabela}</span>
-                {h.ciencia_confirmada && <Badge variant="destructive">Ciência confirmada</Badge>}
-                {h.justificativa && (
-                  <span className="w-full text-xs text-muted-foreground sm:w-auto">“{h.justificativa}”</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
 
       <ReplicarRegrasDialog
         open={replicarAberto}

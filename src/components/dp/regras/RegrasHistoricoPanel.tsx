@@ -34,12 +34,12 @@ export function RegrasHistoricoPanel() {
     queryFn: async (): Promise<Record<string, string>> => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name")
-        .in("id", userIds);
+        .select("user_id, full_name")
+        .in("user_id", userIds);
       if (error) throw error;
       const map: Record<string, string> = {};
       for (const p of data ?? []) {
-        if (p.full_name) map[p.id as string] = p.full_name as string;
+        if (p.full_name) map[p.user_id as string] = p.full_name as string;
       }
       return map;
     },
