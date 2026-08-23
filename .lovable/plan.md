@@ -28,7 +28,21 @@ Quando um sócio marca folga (calendário do portal) ou o admin lança folga/fé
 - Ao excluir a folga/férias do sócio, o sistema pergunta se os bloqueios gerados por ela também devem ser removidos.
 - O comportamento de exceção continua igual: colaborador pode pedir folga em data bloqueada como solicitação de exceção, que o DP aprova ou recusa.
 
+## 5. Uma unidade selecionada por padrão
+- Ao abrir a Operação, o filtro já vem com uma unidade escolhida: a unidade ativa com maior número de colaboradores ativos.
+- "Todas as unidades" continua disponível, mas passa a ser uma escolha explícita do usuário.
+- A última unidade escolhida é lembrada por usuário/empresa nas preferências do DP; se ela não existir mais, volta para a de maior quadro.
+
+## 6. Blocos por turno de funcionamento da loja, com cargos
+- Na Rotina do Dia, os blocos deixam de ser os turnos cadastrados dos colaboradores e passam a ser os períodos de funcionamento da unidade naquele dia da semana (ex.: "Almoço 11:00 → 15:00", "Jantar 17:00 → 00:35").
+- Cada colaborador previsto para o dia entra no período de funcionamento em que o horário dele se encaixa (sobreposição de horário). Quem trabalha em dois períodos aparece nos dois; quem não se encaixa em nenhum vai para um bloco "Fora do horário de funcionamento".
+- Dentro de cada período, as pessoas são agrupadas por cargo, com contagem por cargo no topo do grupo (ex.: "Atendente (3)", "Pizzaiolo (1)").
+- Cada linha mantém nome, horário previsto, regime/vínculo e a origem (convocação aceita, escala, habitual).
+- Se a unidade estiver fechada no dia, o bloco mostra o aviso de unidade fechada e lista quem porventura estiver previsto.
+- Com "Todas as unidades", os períodos são exibidos agrupados por unidade.
+
 ## Detalhes técnicos
+
 - `src/config/dpNavigation.tsx`: rótulo do item.
 - `src/pages/dp/DpOperacaoPanorama.tsx`: ordem persistida dos cards, novo card Folga Sócio, dialog de detalhe por sócio, marcador no calendário.
 - `src/hooks/useDpOperacaoPanorama.tsx` + `src/lib/dp/operacao-panorama.ts`: incluir `vinculo_label` na consulta de colaboradores e derivar, por dia, a lista de sócios em folga/férias usando `isSocio` de `contrato-policy.ts`.
