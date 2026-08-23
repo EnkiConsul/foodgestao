@@ -105,7 +105,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       "/dp/conformidade-dsr",
     ],
     items: [
-      { label: "Painel da Operação", to: "/dp/escalas/mes", icon: CalendarClock, shortcut: true },
+      { label: "Operação", to: "/dp/escalas/mes", icon: CalendarClock, shortcut: true },
 
       { label: "Convocações", to: "/dp/convocacoes", icon: BellRing },
       { label: "Folgas", to: "/dp/folgas", icon: Calendar, shortcut: true },
