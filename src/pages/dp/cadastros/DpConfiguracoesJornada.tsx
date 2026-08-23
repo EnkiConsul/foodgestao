@@ -86,6 +86,8 @@ export default function DpConfiguracoesJornada() {
 
   useEffect(() => {
     if (unidadeId) localStorage.setItem(STORAGE_KEY, unidadeId);
+    // Trocar de unidade zera a replicação para evitar salvar em lojas por engano.
+    setAlvosExtras([]);
   }, [unidadeId]);
 
   useEffect(() => { setForm(config); }, [config]);
