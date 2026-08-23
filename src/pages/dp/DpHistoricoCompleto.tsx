@@ -933,10 +933,24 @@ export default function DpHistoricoCompleto() {
       />
 
       <DocDetalhesDialog
-        doc={detalhe}
+        target={detalhe ? {
+          rowId: detalhe.id,
+          titulo: detalhe.titulo,
+          tipo_key: detalhe.tipo_key,
+          tipo_label: detalhe.tipo_label,
+          competencia: detalhe.competencia,
+          colaborador_nome: detalhe.colaborador_nome,
+          unidade_nome: detalhe.unidade_nome,
+          data: detalhe.data,
+          file_path: detalhe.file_path ?? null,
+          aceite: detalhe.aceite ?? null,
+        } : null}
+        companyId={selectedCompanyId ?? null}
         onOpenChange={(v) => { if (!v) setDetalhe(null); }}
-        onPreview={(d) => { setDetalhe(null); setPreview(d); }}
-        onDownload={download}
+        onPreview={() => { const d = detalhe; setDetalhe(null); if (d) setPreview(d); }}
+        onDownload={() => { if (detalhe) download(detalhe); }}
+        onSubstituir={() => { const d = detalhe; setDetalhe(null); if (d) abrirSubstituir(d); }}
+        onExcluir={() => { const d = detalhe; setDetalhe(null); if (d) setExcluir(d); }}
       />
 
       <DocEventosDialog
@@ -944,6 +958,7 @@ export default function DpHistoricoCompleto() {
         companyId={selectedCompanyId ?? null}
         onOpenChange={setLogAberto}
       />
+
 
       <AlertDialog open={!!excluir} onOpenChange={(v) => { if (!v) { setExcluir(null); setMotivoExclusao(""); } }}>
         <AlertDialogContent>
