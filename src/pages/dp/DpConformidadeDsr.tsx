@@ -169,10 +169,12 @@ export default function DpConformidadeDsr() {
 
   return (
     <DpPage>
-      <Helmet>
-        <title>Conformidade de DSR | Pessoas 360°FOOD</title>
-        <meta name="description" content="Relatório de domingos trabalhados e folgados por colaborador, comparado à periodicidade legal configurada." />
-      </Helmet>
+      {!embedded && (
+        <Helmet>
+          <title>Conformidade de DSR | Pessoas 360°FOOD</title>
+          <meta name="description" content="Relatório de domingos trabalhados e folgados por colaborador, comparado à periodicidade legal configurada." />
+        </Helmet>
+      )}
 
       <DpPageHeader
         title="Conformidade de DSR"
