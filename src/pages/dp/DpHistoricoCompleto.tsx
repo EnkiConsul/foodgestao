@@ -491,6 +491,7 @@ export default function DpHistoricoCompleto() {
   const COLS: Record<ColKey, {
     label: string;
     sortKey: SortKey;
+    center?: boolean;
     value: (r: UnifiedDoc) => string;
     render: (r: UnifiedDoc) => JSX.Element;
     cellClass?: string;
@@ -499,48 +500,52 @@ export default function DpHistoricoCompleto() {
       label: "Colaborador", sortKey: "colaborador_nome",
       value: (r) => r.colaborador_nome,
       render: (r) => (
-        <span className="block truncate font-semibold" title={r.colaborador_nome}>{r.colaborador_nome}</span>
+        <span className="block truncate font-semibold text-left" title={r.colaborador_nome}>{r.colaborador_nome}</span>
       ),
       cellClass: "align-top overflow-hidden",
     },
     tipo: {
-      label: "Tipo", sortKey: "tipo_label",
+      label: "Tipo", sortKey: "tipo_label", center: true,
       value: (r) => r.tipo_label,
       render: (r) => (
-        <Badge
-          variant="outline"
-          className={`max-w-full whitespace-normal break-words text-left leading-tight ${tipoBadgeClass(r.tipo_key)}`}
-        >
-          {r.tipo_label}
-        </Badge>
+        <div className="flex justify-center">
+          <Badge
+            variant="outline"
+            className={`max-w-full whitespace-normal break-words text-center leading-tight ${tipoBadgeClass(r.tipo_key)}`}
+          >
+            {r.tipo_label}
+          </Badge>
+        </div>
       ),
-      cellClass: "whitespace-normal break-words align-top",
+      cellClass: "whitespace-normal break-words align-top text-center",
     },
     competencia: {
-      label: "Competência", sortKey: "competencia_sort",
+      label: "Competência", sortKey: "competencia_sort", center: true,
       value: (r) => r.competencia,
       render: (r) => <span className="font-mono text-sm">{r.competencia}</span>,
-      cellClass: "whitespace-nowrap align-top",
+      cellClass: "whitespace-nowrap align-top text-center",
     },
     unidade: {
-      label: "Unidade", sortKey: "unidade_nome",
+      label: "Unidade", sortKey: "unidade_nome", center: true,
       value: (r) => r.unidade_nome,
       render: (r) => <span className="leading-tight">{r.unidade_nome}</span>,
-      cellClass: "whitespace-normal break-words align-top",
+      cellClass: "whitespace-normal break-words align-top text-center",
     },
     aceite: {
-      label: "Aceite", sortKey: "aceite_label",
+      label: "Aceite", sortKey: "aceite_label", center: true,
       value: (r) => aceiteLabel(r),
       render: (r) => (
-        r.aceite === null
-          ? (r.aceiteDispensado
-              ? <Badge variant="outline" className="border-sky-300 text-sky-700 text-[11px]">Dispensado</Badge>
-              : <span className="text-xs text-muted-foreground">—</span>)
-          : r.aceite
-            ? <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">Aceito</Badge>
-            : <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">Aguardando</Badge>
+        <div className="flex justify-center">
+          {r.aceite === null
+            ? (r.aceiteDispensado
+                ? <Badge variant="outline" className="border-sky-300 text-sky-700 text-[11px]">Dispensado</Badge>
+                : <span className="text-xs text-muted-foreground">—</span>)
+            : r.aceite
+              ? <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">Aceito</Badge>
+              : <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">Aguardando</Badge>}
+        </div>
       ),
-      cellClass: "whitespace-normal align-top",
+      cellClass: "whitespace-normal align-top text-center",
     },
   };
 
