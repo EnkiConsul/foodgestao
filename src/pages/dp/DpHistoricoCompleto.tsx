@@ -162,7 +162,7 @@ function ColunaFiltroHeader(props: {
 
   return (
     <TableHead
-      className={`relative uppercase text-xs select-none ${props.arrastando ? "opacity-50" : ""}`}
+      className={`relative uppercase text-xs select-none ${props.arrastando ? "opacity-50" : ""} ${props.center ? "text-center" : ""}`}
       style={{ width: props.width, minWidth: props.width, maxWidth: props.width }}
       draggable={!redimensionando}
       onDragStart={props.onDragStart}
@@ -176,7 +176,7 @@ function ColunaFiltroHeader(props: {
           <button
             type="button"
             title="Clique para ordenar/filtrar · arraste para mover a coluna"
-            className="flex w-full cursor-grab items-center gap-1 text-left uppercase hover:text-foreground"
+            className={`flex w-full cursor-grab items-center gap-1 uppercase hover:text-foreground ${props.center ? "justify-center text-center" : "text-left"}`}
           >
             <span className="whitespace-nowrap">{props.label}</span>
 
