@@ -38,6 +38,9 @@ export interface ColaboradorPanorama {
   /** Intermitente só entra na operação quando convocado. */
   intermitente: boolean;
   config: ConfigTrabalho | null;
+  ativo?: boolean;
+  data_admissao?: string | null;
+  data_desligamento?: string | null;
 }
 
 export interface ConvocacaoPanorama {
