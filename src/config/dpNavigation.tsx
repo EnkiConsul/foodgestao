@@ -14,7 +14,6 @@ import {
   Clock,
   Coins,
   FileBarChart,
-  FileSignature,
   FileText,
   Fingerprint,
   FolderOpen,

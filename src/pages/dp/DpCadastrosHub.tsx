@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { Users, Users2, Briefcase, Building2, Handshake, Settings, BellRing, Scale } from "lucide-react";
+import { Users, Users2, Briefcase, Building2, Settings, BellRing, Scale } from "lucide-react";
 import { NavigationCard } from "@/components/dp/NavigationCard";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 

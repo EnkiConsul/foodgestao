@@ -330,12 +330,6 @@ export default function DpHistoricoCompleto() {
     return m;
   }, [colabs.data]);
 
-  const unidadeMap = useMemo(() => {
-    const m = new Map<string, string>();
-    (unidades.data ?? []).forEach((u) => m.set(u.id, u.nome));
-    return m;
-  }, [unidades.data]);
-
   const query = useQuery({
     queryKey: ["dp_historico_unified", selectedCompanyId],
     enabled: !!selectedCompanyId && !!colabs.data,
