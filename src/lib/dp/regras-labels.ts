@@ -42,7 +42,22 @@ export function formatRegraValor(campo: string, valor: unknown): string {
       .map((d) => DIA_SEMANA_CURTO[Number(d)] ?? String(d))
       .join(", ");
   }
-  if (Array.isArray(valor)) return valor.length ? valor.join(", ") : "—";
+  if (Array.isArray(valor)) {
+    if (valor.length === 0) return "—";
+    const todosSimples = valor.every((v) => typeof v !== "object" || v === null);
+    if (todosSimples) return valor.join(", ");
+    return `${valor.length} registro(s)`;
+  }
+  if (typeof valor === "object") {
+    const entradas = Object.entries(valor as Record<string, unknown>)
+      .filter(([, v]) => v !== null && v !== undefined && v !== "")
+      .slice(0, 4)
+      .map(([k, v]) => {
+        const rotulo = REGRAS_CAMPO_LABEL[k] ?? k.replace(/_/g, " ");
+        return `${rotulo}: ${typeof v === "object" ? "…" : String(v)}`;
+      });
+    return entradas.length ? entradas.join(" · ") : "—";
+  }
 
   const texto = String(valor);
   if (campo === "regra_dsr") return REGRA_DSR_LABEL[texto] ?? texto;
