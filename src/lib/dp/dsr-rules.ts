@@ -86,6 +86,10 @@ export interface DpConfigDp {
   negociacao_id: string | null;
   /** Folgas de fim de semana garantidas por mês (sábado ou domingo). */
   folgas_fds_por_mes: number;
+  /** Regime de troca de folga entre colaboradores. */
+  troca_folga_modo: TrocaFolgaModo;
+  /** Folgas sobre as quais a troca é permitida. */
+  troca_folga_escopo: TrocaFolgaEscopo;
 }
 
 export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id" | "unidade_id"> = {
@@ -102,7 +106,10 @@ export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id" | "unidade_id">
   dias_descanso_negociados: [0],
   negociacao_id: null,
   folgas_fds_por_mes: 1,
+  troca_folga_modo: "aprovacao_admin",
+  troca_folga_escopo: "ambas",
 };
+
 
 
 /** Intervalo em semanas efetivamente aplicado (regra geral). */
