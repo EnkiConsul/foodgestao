@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   FileText, Eye, Download, Search, ArrowUp, ArrowDown, ChevronsUpDown,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, RotateCcw,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Trash2, Replace,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
