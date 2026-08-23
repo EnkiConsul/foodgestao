@@ -60,6 +60,9 @@ const formatarDataCurta = (isoData: string) => {
 };
 
 
+/** Forma de remuneração do sócio (dp_colaboradores.socio_remuneracao). */
+export type SocioRemuneracao = "pro_labore" | "somente_lucros";
+
 export interface RemuneracaoFormState {
   forma_pagamento: FormaPagamento;
   salario_base: string;
@@ -196,6 +199,13 @@ interface Props {
   cargoInsalubreHint?: string;
   /** Regime do vínculo — restringe as formas de pagamento admitidas. */
   regime?: string | null;
+  /**
+   * Sócio: dono do negócio. Não entra em folha CLT — a remuneração é pró-labore
+   * ou somente distribuição de lucros, sem benefícios nem complementos legais.
+   */
+  socio?: boolean;
+  socioRemuneracao?: SocioRemuneracao;
+  onSocioRemuneracaoChange?: (v: SocioRemuneracao) => void;
   /** Dias da semana da jornada do colaborador (aba Horário de Trabalho). */
   diasJornada?: DiaSemanaTrabalho[] | null;
   /** Folgas de fim de semana por mês (DSR da unidade/empresa). */
@@ -230,6 +240,9 @@ export function RemuneracaoFields({
 
 
   regime,
+  socio = false,
+  socioRemuneracao = "pro_labore",
+  onSocioRemuneracaoChange,
   diasJornada,
   folgasFimDeSemanaMes,
   campoErro,
@@ -382,6 +395,65 @@ export function RemuneracaoFields({
     setPrefillSugerido(true);
     onChange({ base_salarial: paraBR(salarioCargo) });
   }, [usaBase, salarioCargo, value.base_salarial]);
+
+  if (socio) {
+    const proLabore = socioRemuneracao === "pro_labore";
+    return (
+      <div className="md:col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-sm font-semibold">Remuneração do sócio</div>
+          <Badge variant="outline" className="text-[10px]">Fora da folha CLT</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Forma de remuneração *</Label>
+            <Select
+              value={socioRemuneracao}
+              onValueChange={(v: SocioRemuneracao) => onSocioRemuneracaoChange?.(v)}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pro_labore">Pró-labore</SelectItem>
+                <SelectItem value="somente_lucros">Somente participação de lucros</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {proLabore && (
+            <div className="space-y-2">
+              <Label>Valor do pró-labore (mensal)</Label>
+              <Input
+                inputMode="decimal"
+                value={value.salario_base}
+                {...marca("salario_base")}
+                onChange={(e) => onChange({ salario_base: e.target.value })}
+                placeholder="Ex: 3500,00"
+              />
+            </div>
+          )}
+        </div>
+
+        <p className="flex items-start gap-2 rounded-md border border-border bg-background p-2 text-[11px] text-muted-foreground">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>
+            {proLabore ? (
+              <>
+                O pró-labore é retirada do sócio: não gera 13º, férias, FGTS nem adiantamento salarial.
+                O sistema espera apenas o <strong className="text-foreground">recibo de pró-labore</strong> mensal
+                na conferência de documentos.
+              </>
+            ) : (
+              <>
+                Sem remuneração fixa registrada — o sócio recebe apenas distribuição de lucros, definida fora
+                do módulo Pessoas. Nenhum documento de folha é cobrado na conferência.
+              </>
+            )}
+          </span>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="md:col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
