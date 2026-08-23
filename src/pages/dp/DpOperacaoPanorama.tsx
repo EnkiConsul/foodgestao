@@ -259,13 +259,6 @@ export default function DpOperacaoPanorama() {
       extras: { ...(prefs.extras ?? {}), [PREFS_KEY]: { ...(ordemSalva ?? {}), [chave]: next } },
     });
 
-  const restaurarOrdem = (chave: "dia" | "mes") => {
-    const map = { ...(ordemSalva ?? {}) };
-    delete map[chave];
-    save({ extras: { ...(prefs.extras ?? {}), [PREFS_KEY]: map } });
-    toast.success("Ordem dos cards restaurada.");
-  };
-
   const dia = panorama.diaDe(data);
   const nomeUnidade = unidadeId ? panorama.unidades.find((u) => u.id === unidadeId)?.nome ?? null : null;
 
@@ -317,10 +310,6 @@ export default function DpOperacaoPanorama() {
     [panorama.dias],
   );
 
-  const cargaPrevista = useMemo(
-    () => (dia?.pessoas ?? []).reduce((acc, p) => acc + p.carga_prevista_horas, 0),
-    [dia],
-  );
 
   const diasAlerta = useMemo(() => panorama.dias.filter((d) => d.alerta), [panorama.dias]);
 
@@ -342,7 +331,11 @@ export default function DpOperacaoPanorama() {
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
 
   const pessoasDaCategoria = detalheCategoria
-    ? (dia?.pessoas ?? []).filter((p) => p.categoria === detalheCategoria)
+    ? (dia?.pessoas ?? []).filter(
+        (p) =>
+          p.categoria === detalheCategoria &&
+          !(p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria)),
+      )
     : [];
 
   return (
@@ -456,11 +449,6 @@ export default function DpOperacaoPanorama() {
                         tone={sociosAusentes.length ? "warning" : "muted"}
                         label="Folga Sócio"
                         value={sociosAusentes.length}
-                        hint={
-                          sociosAusentes.length
-                            ? "Clique para ver quem está ausente"
-                            : `${formatarHoras(cargaPrevista)} previstas no dia`
-                        }
                         onClick={sociosAusentes.length ? () => setVerSocios(true) : undefined}
                       />
                     );
@@ -477,12 +465,6 @@ export default function DpOperacaoPanorama() {
                   );
                 }}
               />
-              <div className="flex justify-end">
-                <Button variant="ghost" size="sm" onClick={() => restaurarOrdem("dia")}>
-                  <RotateCcw className="mr-1.5 h-4 w-4" />
-                  Restaurar ordem padrão
-                </Button>
-              </div>
 
               {dia.avaliacao.situacao !== "sem_padrao" && dia.avaliacao.situacao !== "ok" && (
                 <Secao
@@ -646,12 +628,6 @@ export default function DpOperacaoPanorama() {
                   );
                 }}
               />
-              <div className="flex justify-end">
-                <Button variant="ghost" size="sm" onClick={() => restaurarOrdem("mes")}>
-                  <RotateCcw className="mr-1.5 h-4 w-4" />
-                  Restaurar ordem padrão
-                </Button>
-              </div>
 
               <Secao
                 title="Calendário da Operação"
