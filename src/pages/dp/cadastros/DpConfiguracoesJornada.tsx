@@ -62,7 +62,7 @@ const STORAGE_KEY = "dp:regras-folgas:unidade";
 
 export default function DpConfiguracoesJornada() {
   const embedded = useDpEmbedded();
-  const { selectedCompanyId } = useCompanyContext();
+  const { selectedCompanyId, companies } = useCompanyContext();
   const [unidadeId, setUnidadeId] = useState<string | null>(
     () => localStorage.getItem(STORAGE_KEY) || null,
   );
@@ -70,11 +70,23 @@ export default function DpConfiguracoesJornada() {
     config, configPadrao, temExcecao, unidadesConfiguradas, temMulheres,
     isLoading, isError, refetch, save, saveMany, saving, removerExcecao, removendo,
   } = useDpConfigDp(unidadeId);
-  const { data: todasUnidades = [] } = useDpUnidades();
+  const {
+    data: todasUnidades = [],
+    isLoading: unidadesCarregando,
+    isFetching: unidadesBuscando,
+    isError: unidadesErro,
+    refetch: refetchUnidades,
+  } = useDpUnidades();
+  // Também considera o intervalo em que a lista de empresas ainda não chegou
+  // (a busca de unidades fica desabilitada), para não piscar o aviso de "sem unidade".
+  const carregandoUnidades =
+    unidadesCarregando || unidadesBuscando || (companies?.length ?? 0) === 0;
+
   const unidades = useMemo(
     () => todasUnidades.filter((u) => u.company_id === selectedCompanyId),
     [todasUnidades, selectedCompanyId],
   );
+
   const { data: contextoSindical } = useSindicatoContextoUnidade(unidadeId);
 
   const [form, setForm] = useState<DpConfigDpForm>(DP_CONFIG_DP_DEFAULT);
@@ -273,8 +285,17 @@ export default function DpConfiguracoesJornada() {
               disabled={unidades.length === 0}
             >
               <SelectTrigger id="alvo-regra">
-                <SelectValue placeholder="Nenhuma unidade cadastrada" />
+                <SelectValue
+                  placeholder={
+                    carregandoUnidades
+                      ? "Carregando unidades..."
+                      : unidadesErro
+                        ? "Não foi possível carregar as unidades"
+                        : "Nenhuma unidade cadastrada"
+                  }
+                />
               </SelectTrigger>
+
               <SelectContent>
                 {unidades.map((u) => (
                   <SelectItem key={u.id} value={u.id}>
@@ -309,11 +330,21 @@ export default function DpConfiguracoesJornada() {
           )}
         </div>
 
-        {unidades.length === 0 && (
+        {unidadesErro && (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+            <span>Não foi possível carregar as unidades.</span>
+            <Button variant="outline" size="sm" onClick={() => void refetchUnidades()}>
+              Tentar novamente
+            </Button>
+          </div>
+        )}
+
+        {!carregandoUnidades && !unidadesErro && unidades.length === 0 && (
           <p className="text-xs text-destructive">
             Cadastre ao menos uma unidade em Cadastros → Unidades para definir as regras de folgas.
           </p>
         )}
+
 
         {unidadeId && (
           <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
