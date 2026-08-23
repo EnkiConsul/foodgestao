@@ -40,6 +40,7 @@ import {
   mensagemAlerta,
   somarDias,
   type CategoriaDia,
+  type PessoaPanorama,
 } from "@/lib/dp/operacao-panorama";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
