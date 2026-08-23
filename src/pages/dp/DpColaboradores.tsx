@@ -36,7 +36,7 @@ import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { supabase } from "@/integrations/supabase/client";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
-import { MOTIVO_DESLIGAMENTO_LABEL, ELEGIBILIDADE_LABEL, acessoPortalAtivo, diasRestantesCarencia } from "@/lib/dp/desligamento";
+import { acessoPortalAtivo, diasRestantesCarencia } from "@/lib/dp/desligamento";
 
 const fmtDate = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 
@@ -162,6 +162,8 @@ export default function DpColaboradores() {
   const COLS: Record<ColabColKey, {
     label: string;
     sortKey: ColabSortKey;
+    /** Colunas centralizadas (todas, exceto Colaborador). */
+    center?: boolean;
     value: (c: DpColaborador) => string;
     render: (c: DpColaborador) => JSX.Element;
   }> = {
@@ -187,41 +189,37 @@ export default function DpColaboradores() {
       },
     },
     cargo: {
-      label: "Cargo", sortKey: "cargo",
+      label: "Cargo", sortKey: "cargo", center: true,
       value: (c) => c.cargo_nome ?? c.cargo ?? "—",
       render: (c) => (
-        <span className="block truncate" title={c.cargo_nome ?? c.cargo ?? ""}>
+        <span className="block truncate text-center" title={c.cargo_nome ?? c.cargo ?? ""}>
           {c.cargo_nome ?? c.cargo ?? "—"}
         </span>
       ),
     },
     unidade: {
-      label: "Unidade", sortKey: "unidade",
+      label: "Unidade", sortKey: "unidade", center: true,
       value: (c) => c.unidade_nome ?? "—",
       render: (c) => (
-        <span className="block truncate" title={c.unidade_nome ?? ""}>{c.unidade_nome ?? "—"}</span>
+        <span className="block whitespace-normal break-words text-center" title={c.unidade_nome ?? ""}>
+          {c.unidade_nome ?? "—"}
+        </span>
       ),
     },
     status: {
-      label: "Status", sortKey: "status",
+      label: "Status", sortKey: "status", center: true,
       value: (c) => (c.ativo ? "Ativo" : "Desligado"),
       render: (c) => (c.ativo ? (
-        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
-          Ativo
-        </Badge>
+        <div className="text-center">
+          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+            Ativo
+          </Badge>
+        </div>
       ) : (
-        <div className="space-y-0.5">
-          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 whitespace-normal text-left leading-tight">
+        <div className="space-y-0.5 text-center">
+          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 whitespace-normal leading-tight">
             Desligado em {fmtDate(c.data_desligamento)}
           </Badge>
-          <div className="text-[11px] text-muted-foreground">
-            {(c as any).motivo_desligamento
-              ? MOTIVO_DESLIGAMENTO_LABEL[(c as any).motivo_desligamento as keyof typeof MOTIVO_DESLIGAMENTO_LABEL]
-              : "Motivo não informado"}
-            {(c as any).elegivel_recontratacao
-              ? ` • ${ELEGIBILIDADE_LABEL[(c as any).elegivel_recontratacao as keyof typeof ELEGIBILIDADE_LABEL]}`
-              : ""}
-          </div>
           <div className="text-[11px] text-muted-foreground">
             {acessoPortalAtivo((c as any).acesso_portal_ate)
               ? `Portal até ${fmtDate((c as any).acesso_portal_ate)} (${diasRestantesCarencia((c as any).acesso_portal_ate)} d)`
@@ -230,24 +228,28 @@ export default function DpColaboradores() {
         </div>
       )),
     },
+
     perfil: {
-      label: "Perfil", sortKey: "perfil",
+      label: "Perfil", sortKey: "perfil", center: true,
       value: (c) => PERFIL_LABEL[((c as any).perfil_acesso as string | null) ?? "colaborador"],
       render: (c) => {
         const perfil = (c as any).perfil_acesso as string | null;
         return (
-          <Badge
-            variant="outline"
-            className={
-              perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30"
-              : perfil === "gestor" ? "bg-primary/10 text-primary border-primary/30"
-              : ""
-            }
-          >
-            {PERFIL_LABEL[perfil ?? "colaborador"]}
-          </Badge>
+          <div className="text-center">
+            <Badge
+              variant="outline"
+              className={
+                perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30"
+                : perfil === "gestor" ? "bg-primary/10 text-primary border-primary/30"
+                : ""
+              }
+            >
+              {PERFIL_LABEL[perfil ?? "colaborador"]}
+            </Badge>
+          </div>
         );
       },
+
     },
   };
 
@@ -398,6 +400,7 @@ export default function DpColaboradores() {
                       key={k}
                       label={COLS[k].label}
                       width={colWidths[k]}
+                      center={COLS[k].center}
                       sortAtivo={sortKey === COLS[k].sortKey}
                       sortDir={sortDir}
                       onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
@@ -415,11 +418,12 @@ export default function DpColaboradores() {
                     />
                   ))}
                   <TableHead
-                    className="uppercase text-xs tracking-wider text-right"
+                    className="uppercase text-xs tracking-wider text-center"
                     style={{ width: COLAB_ACOES_WIDTH }}
                   >
                     Ações
                   </TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -439,7 +443,8 @@ export default function DpColaboradores() {
                       </TableCell>
                     ))}
                     <TableCell className="align-top" style={{ width: COLAB_ACOES_WIDTH }} onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-0.5 justify-end">
+                      <div className="flex gap-0.5 justify-center">
+
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); abrirCadastro(c); }} title="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>

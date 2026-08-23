@@ -117,17 +117,19 @@ const TIPOS_VINCULO: { value: string; label: string }[] = [
 /** Traduz o erro do backend para uma mensagem sempre visível ao usuário. */
 function mensagemErro(e: unknown): string {
   const any = e as any;
-  const bruto: string =
-    (typeof any?.message === "string" && any.message) ||
-    (typeof any?.details === "string" && any.details) ||
-    (typeof any?.hint === "string" && any.hint) ||
+  const partes = [any?.message, any?.details, any?.hint]
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+  const codigo = typeof any?.code === "string" && any.code ? ` (código ${any.code})` : "";
+  const bruto =
+    (partes.length ? partes.join(" — ") : "") ||
     (typeof e === "string" ? e : "") ||
     "Não foi possível concluir a gravação. Tente novamente.";
   if (bruto.includes("data de demissão")) {
     return "Este colaborador está inativo sem data de demissão. Informe a data da demissão na aba Dados ou reintegre o colaborador.";
   }
-  return bruto;
+  return `${bruto}${codigo}`;
 }
+
 
 
 // (Dropdown "Regime de Trabalho" removido: duplicava o Tipo de Vínculo e não era persistido.
@@ -1235,11 +1237,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
       const e = erroRemuneracao();
       if (e) { toast.error(e.mensagem); setTab("remuneracao"); setCampoErro(e.campo); return; }
 
-      // Benefícios desmarcados exigem ciência de isonomia.
-      if (!isonomiaConfirmada.current) {
+      // Benefícios desmarcados exigem ciência de isonomia — sócio não é comparável ao quadro CLT.
+      if (!socioSelecionado && !isonomiaConfirmada.current) {
         const pendentes = dispensasPendentes();
         if (pendentes.length > 0) { setTab("remuneracao"); setDispensas(pendentes); return; }
       }
+
 
       // Mensalista com cargo remunerado: o salário vem travado do cargo, sem conflito possível.
       const salarioTravadoNoCargo =
@@ -1285,7 +1288,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         matricula: form.matricula.trim() || null,
         cargo: cargoNome,
         cargo_id: form.cargo_id,
-        unidade_id: form.unidade_id,
+        unidade_id: form.unidade_id || null,
         sindicato_id: form.sindicato_id || null,
 
         regime: regimeSelecionado,
@@ -1972,7 +1975,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 value={rem}
                 onChange={patchRem}
                 campoErro={campoErro}
-                isonomia={divergenciasIso}
+                isonomia={socioSelecionado ? [] : divergenciasIso}
                 onAplicarPadraoIsonomia={aplicarPadraoIsonomia}
                 salarioCargo={salarioCargo}
                 cargoNome={cargoSelecionado?.nome ?? null}

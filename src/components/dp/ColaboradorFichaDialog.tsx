@@ -32,7 +32,7 @@ import {
   type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
 import { diasTrabalhaveisNoMes } from "@/lib/dp/beneficios-regras";
-import { MOTIVO_DESLIGAMENTO_LABEL, ELEGIBILIDADE_LABEL } from "@/lib/dp/desligamento";
+
 
 import {
   User, Briefcase, Mail, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil, X, Users, Award,
@@ -663,22 +663,11 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           {isDesligado && (
             <Section icon={LogOut} title="Desligamento">
               <Field label="Data da Demissão" value={fmtDate(colaborador?.data_desligamento)} />
-              <Field
-                label="Motivo"
-                value={
-                  MOTIVO_DESLIGAMENTO_LABEL[(colaborador as any)?.motivo_desligamento as keyof typeof MOTIVO_DESLIGAMENTO_LABEL]
-                }
-              />
-              <Field
-                label="Elegibilidade para Recontratação"
-                value={
-                  ELEGIBILIDADE_LABEL[(colaborador as any)?.elegivel_recontratacao as keyof typeof ELEGIBILIDADE_LABEL]
-                }
-              />
               <Field label="Acesso ao Portal Até" value={fmtDate(acessoPortalAte)} />
               <Field label="Observações" value={(colaborador as any)?.observacao_desligamento} />
             </Section>
           )}
+
         </div>
 
       </DialogContent>
