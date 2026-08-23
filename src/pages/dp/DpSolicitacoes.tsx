@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useAuth } from "@/hooks/useAuth";
-import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
 import { MobileDetailsSheet } from "@/components/dp/MobileCardKit";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -46,6 +46,7 @@ function formatBR(iso: string | null): string {
 }
 
 export default function DpSolicitacoes() {
+  const embedded = useDpEmbedded();
   const { selectedCompanyId } = useCompanyContext();
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -143,7 +144,9 @@ export default function DpSolicitacoes() {
 
   return (
     <DpPage>
-      <Helmet><title>Solicitações — Pessoas 360°</title></Helmet>
+      {!embedded && (
+        <Helmet><title>Solicitações — Pessoas 360°</title></Helmet>
+      )}
 
       <DpPageHeader
         icon={ClipboardList}

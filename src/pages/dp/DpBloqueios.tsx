@@ -6,7 +6,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
 import {
   MESES, getMonthName,
   emptyRegraForm, regraToFormState,
@@ -20,6 +20,7 @@ import { RegraRow as RegraRowUI } from "@/components/dp/bloqueios/RegraRow";
 import { DataRow } from "@/components/dp/bloqueios/DataRow";
 
 export default function DpBloqueios() {
+  const embedded = useDpEmbedded();
   // Filtros
   const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear());
   const [mesFiltro, setMesFiltro] = useState<string>("all");
@@ -75,7 +76,9 @@ export default function DpBloqueios() {
 
   return (
     <DpPage>
-      <Helmet><title>Datas Bloqueadas — Pessoas 360°</title></Helmet>
+      {!embedded && (
+        <Helmet><title>Datas Bloqueadas — Pessoas 360°</title></Helmet>
+      )}
       <DpPageHeader
         icon={CalendarX}
         title="Datas Bloqueadas"
