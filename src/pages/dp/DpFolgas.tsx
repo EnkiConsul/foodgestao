@@ -570,13 +570,13 @@ export default function DpFolgas() {
     <DpPage>
       {!embedded && (
         <Helmet>
-          <title>Calendário Geral — Pessoas 360°</title>
+          <title>Folgas — Pessoas 360°</title>
         </Helmet>
       )}
 
       <DpPageHeader
         icon={CalendarDays}
-        title="Calendário Geral"
+        title="Calendário de Folgas"
         description="Gestão centralizada de escalas e folgas da equipe."
         actions={
           <div className="flex items-center gap-2">
