@@ -246,7 +246,14 @@ export default function DpConfiguracoesJornada() {
         title="Regras De Folgas"
         description="Parâmetros de DSR e folga dominical — aplicados a toda a empresa ou por unidade de loja."
         icon={Scale}
+        actions={
+          <Button onClick={handleSave} disabled={saving || isLoading} className="gap-2">
+            <Save className="h-4 w-4" aria-hidden="true" />
+            {saving ? "Salvando..." : "Salvar regras"}
+          </Button>
+        }
       />
+
 
       <DpContentCard contentClassName="space-y-5 p-4 md:p-5">
         <div>
@@ -623,13 +630,10 @@ export default function DpConfiguracoesJornada() {
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
           <p className="text-xs text-muted-foreground">
-            Ao salvar você pode aplicar a mesma regra em outras unidades.
+            Ao salvar (botão no topo da tela) você pode aplicar a mesma regra em outras unidades.
           </p>
-          <Button onClick={handleSave} disabled={saving || isLoading} className="gap-2">
-            <Save className="h-4 w-4" aria-hidden="true" />
-            {saving ? "Salvando..." : "Salvar"}
-          </Button>
         </div>
+
       </DpContentCard>
 
       <SalvarRegrasDialog
