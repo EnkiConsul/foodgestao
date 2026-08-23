@@ -699,10 +699,11 @@ export default function DpHistoricoCompleto() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"
-              placeholder="Buscar por nome, tipo ou status..."
+              placeholder="Buscar por nome, tipo ou unidade..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
+
           </div>
           <Button variant="ghost" className="sm:ml-auto" onClick={limpar}>Limpar</Button>
         </div>
