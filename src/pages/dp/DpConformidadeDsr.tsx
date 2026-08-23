@@ -12,7 +12,7 @@ import {
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 
 import { cn } from "@/lib/utils";
-import { DpPage, DpPageHeader, DpContentCard, DpFilterCard } from "@/components/dp/DpPage";
+import { DpPage, DpPageHeader, DpContentCard, DpFilterCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +49,7 @@ interface LinhaComUnidade extends ConformidadeInput {
 }
 
 export default function DpConformidadeDsr() {
+  const embedded = useDpEmbedded();
   const { selectedCompanyId } = useCompanyContext();
   const { config: configPadraoEmpresa, rows } = useDpConfigDp();
   const [competencia, setCompetencia] = useState(competenciaAtual);
