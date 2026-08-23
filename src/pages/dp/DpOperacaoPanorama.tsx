@@ -600,37 +600,58 @@ export default function DpOperacaoPanorama() {
             <Skeleton className="h-64 w-full" />
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <DpStatCard
-                  icon={CalendarDays}
-                  label="Dias no Mês"
-                  value={panorama.dias.length}
-                  hint={competenciaExtenso(competencia)}
-                />
-                <DpStatCard
-                  icon={Users}
-                  label="Média de Pessoas por Dia"
-                  value={
-                    panorama.dias.length
-                      ? Math.round(
-                          panorama.dias.reduce((a, d) => a + d.trabalhando, 0) / panorama.dias.length,
-                        )
-                      : 0
-                  }
-                />
-                <DpStatCard
-                  icon={AlertTriangle}
-                  tone={diasAlerta.length ? "warning" : "muted"}
-                  label="Dias Fora do Padrão"
-                  value={diasAlerta.length}
-                  hint="Sem alertas resolvidos"
-                />
-                <DpStatCard
-                  icon={UserX}
-                  tone="muted"
-                  label="Dias Sem Ninguém"
-                  value={panorama.dias.filter((d) => d.trabalhando === 0).length}
-                />
+              <GradeCards
+                ordem={ordemMes}
+                onReordenar={(next) => salvarOrdem("mes", next)}
+                render={(k) => {
+                  if (k === "dias_mes")
+                    return (
+                      <DpStatCard
+                        icon={CalendarDays}
+                        label="Dias no Mês"
+                        value={panorama.dias.length}
+                        hint={competenciaExtenso(competencia)}
+                      />
+                    );
+                  if (k === "media_pessoas")
+                    return (
+                      <DpStatCard
+                        icon={Users}
+                        label="Média de Pessoas por Dia"
+                        value={
+                          panorama.dias.length
+                            ? Math.round(
+                                panorama.dias.reduce((a, d) => a + d.trabalhando, 0) / panorama.dias.length,
+                              )
+                            : 0
+                        }
+                      />
+                    );
+                  if (k === "dias_fora_padrao")
+                    return (
+                      <DpStatCard
+                        icon={AlertTriangle}
+                        tone={diasAlerta.length ? "warning" : "muted"}
+                        label="Dias Fora do Padrão"
+                        value={diasAlerta.length}
+                        hint="Sem alertas resolvidos"
+                      />
+                    );
+                  return (
+                    <DpStatCard
+                      icon={UserX}
+                      tone="muted"
+                      label="Dias Sem Ninguém"
+                      value={panorama.dias.filter((d) => d.trabalhando === 0).length}
+                    />
+                  );
+                }}
+              />
+              <div className="flex justify-end">
+                <Button variant="ghost" size="sm" onClick={() => restaurarOrdem("mes")}>
+                  <RotateCcw className="mr-1.5 h-4 w-4" />
+                  Restaurar ordem padrão
+                </Button>
               </div>
 
               <Secao
@@ -665,6 +686,12 @@ export default function DpOperacaoPanorama() {
                         <span className="text-xs font-semibold">{Number(d.data.slice(-2))}</span>
                         {d.dispensado && <Check className="h-3 w-3 text-muted-foreground" />}
                         {d.alerta && <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />}
+                        {diasComSocioAusente.has(d.data) && (
+                          <span
+                            aria-label="Sócio em folga ou férias"
+                            className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                          />
+                        )}
                       </div>
                       <p className="text-[11px] font-medium">{d.trabalhando} pessoa(s)</p>
                       <p className="text-[10px] leading-tight text-muted-foreground">
@@ -678,7 +705,8 @@ export default function DpOperacaoPanorama() {
                   ))}
                 </div>
                 <p className="mt-3 text-[11px] text-muted-foreground">
-                  F = fixos escalados · I = intermitentes convocados · FG = folgas
+                  F = fixos escalados · I = intermitentes convocados · FG = folgas · ponto âmbar = sócio
+                  em folga/férias
                 </p>
               </Secao>
 
@@ -722,6 +750,26 @@ export default function DpOperacaoPanorama() {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={verSocios} onOpenChange={setVerSocios}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Folga Sócio</DialogTitle>
+            <DialogDescription className="first-letter:uppercase">{dataExtenso(data)}</DialogDescription>
+          </DialogHeader>
+          <ul className="max-h-[60vh] divide-y overflow-y-auto">
+            {sociosAusentes.map((p) => (
+              <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+                <span className="truncate text-sm">{p.nome}</span>
+                <Badge variant="outline">{p.categoria === "ferias" ? "Férias" : "Folga"}</Badge>
+              </li>
+            ))}
+            {!sociosAusentes.length && (
+              <li className="py-2 text-sm text-muted-foreground">Nenhum sócio ausente neste dia.</li>
+            )}
+          </ul>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!detalheCategoria} onOpenChange={(o) => !o && setDetalheCategoria(null)}>
         <DialogContent>
