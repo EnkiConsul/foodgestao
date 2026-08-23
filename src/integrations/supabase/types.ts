@@ -4098,6 +4098,7 @@ export type Database = {
           dependentes_irrf: number
           desligado_em: string | null
           desligado_por: string | null
+          domingos_folga_mes: number | null
           dp_permissions: Json
           elegivel_recontratacao:
             | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
@@ -4194,6 +4195,7 @@ export type Database = {
           dependentes_irrf?: number
           desligado_em?: string | null
           desligado_por?: string | null
+          domingos_folga_mes?: number | null
           dp_permissions?: Json
           elegivel_recontratacao?:
             | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
@@ -4290,6 +4292,7 @@ export type Database = {
           dependentes_irrf?: number
           desligado_em?: string | null
           desligado_por?: string | null
+          domingos_folga_mes?: number | null
           dp_permissions?: Json
           elegivel_recontratacao?:
             | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]

@@ -17,6 +17,7 @@ import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
+import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { useDpModelosHorario, type ModeloHorarioColaborador } from "@/hooks/useDpModelosHorario";
 import { chaveHorarioBase, contarHorariosBase, horarioBaseMaisComum, sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
@@ -84,6 +85,10 @@ export interface JornadaColaborador {
   data_admissao?: string | null;
   /** Usada apenas para os alertas de menor de 18 anos. */
   data_nascimento?: string | null;
+  /** Gênero informado no cadastro: define a regra de folga dominical aplicada. */
+  sexo?: string | null;
+  /** Override individual de folgas dominicais por mês (gênero fora de F/M). */
+  domingos_folga_mes?: number | null;
 }
 
 /** Resultado do salvamento acionado de fora (pelo rodapé do cadastro). */
@@ -132,6 +137,21 @@ export function ColaboradorJornadaPanel({
    */
   const unidadeId = colaborador?.unidade_id ?? "none";
   const unidadeNome = unidades.find((u) => u.id === colaborador?.unidade_id)?.nome ?? null;
+
+  /**
+   * Regra de folgas da unidade (exceção da unidade → padrão da empresa), com o
+   * override individual de domingos por mês quando o gênero é fora de F/M.
+   */
+  const {
+    config: regrasCfg,
+    diasElegiveis: diasElegiveisFolga,
+    tetoMensal: tetoDomingos,
+  } = useDpRegrasColaborador(
+    selectedCompanyId ?? null,
+    colaborador?.unidade_id ?? null,
+    colaborador?.sexo ?? null,
+    colaborador?.domingos_folga_mes ?? null,
+  );
 
 
   /**
@@ -342,6 +362,48 @@ export function ColaboradorJornadaPanel({
   const carga = cargaSemanalConfig(config, turnosTela);
   const bloqueado = configTemErro(validacoes);
   const folgas = folgaFixaDerivada(dias);
+
+  /**
+   * Regra de folga dominical efetiva deste colaborador.
+   *
+   * A frequência sai da configuração da unidade (tela Folgas > Regras); quando o
+   * gênero informado não é feminino nem masculino, vale o override individual
+   * cadastrado na aba Dados.
+   */
+  const regraDominical = useMemo(() => {
+    const domingosMes = tetoDomingos;
+    const trabalhaDomingo = dias.some((d) => d.dow === 0 && d.trabalha);
+    const generoDefinido = colaborador?.sexo === "F" || colaborador?.sexo === "M";
+    const override = colaborador?.domingos_folga_mes ?? null;
+
+    const baseTexto =
+      regrasCfg.tipo_descanso_domingo === "acordo_coletivo"
+        ? `Base: acordo/convenção coletiva — dias negociados: ${
+            diasElegiveisFolga.map((d) => DOW_CURTO[d]).join(", ") || "—"
+          }.`
+        : "Base: legislação (folga no domingo).";
+
+    const origem = override
+      ? " (definido no cadastro deste colaborador)"
+      : colaborador?.sexo === "F"
+        ? " (regra de mulheres da unidade — Art. 386 da CLT)"
+        : " (regra geral da unidade)";
+
+    let alerta: string | null = null;
+    if (!generoDefinido && !override) {
+      alerta =
+        "Gênero não informado na aba Dados: o sistema está aplicando a regra geral da unidade.";
+    } else if (!trabalhaDomingo) {
+      alerta = null;
+    } else if (folgaVariavel) {
+      alerta = null;
+    }
+
+    return { domingosMes, baseTexto, origem, alerta, trabalhaDomingo };
+  }, [
+    tetoDomingos, dias, folgaVariavel, diasElegiveisFolga,
+    regrasCfg.tipo_descanso_domingo, colaborador?.sexo, colaborador?.domingos_folga_mes,
+  ]);
 
   /**
    * Alertas trabalhistas do horário resolvido de cada dia.
@@ -904,6 +966,43 @@ export function ColaboradorJornadaPanel({
               />
               Varia conforme a escala
             </label>
+          </div>
+        )}
+
+        {/* Folga dominical: a regra é da tela Folgas (e pode ser alterada pelo
+            sindicato). Aqui só mostramos o resultado para este colaborador. */}
+        {policy.folgaSemanal !== "nao_se_aplica" && (
+          <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0 space-y-1 text-xs">
+                <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <CalendarOff className="h-4 w-4" aria-hidden="true" />
+                  {tituloSistema("Folga Dominical Do Colaborador")}
+                </p>
+                <p className="text-muted-foreground">{regraDominical.baseTexto}</p>
+                <p className="text-muted-foreground">
+                  Domingos de folga por mês para este colaborador:{" "}
+                  <strong className="text-foreground">{regraDominical.domingosMes}</strong>
+                  {regraDominical.origem}
+                </p>
+                <p className="text-muted-foreground">
+                  A folga dominical é definida na tela Folgas; o sindicato pode alterar essa
+                  frequência.
+                </p>
+              </div>
+              <Button
+                type="button" variant="outline" size="sm" className="gap-2"
+                onClick={() => window.open("/dp/folgas?aba=regras", "_blank", "noopener")}
+              >
+                <CalendarOff className="h-4 w-4" aria-hidden="true" /> Ver Regras De Folgas
+              </Button>
+            </div>
+            {regraDominical.alerta && (
+              <p className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {regraDominical.alerta}
+              </p>
+            )}
           </div>
         )}
       </section>
