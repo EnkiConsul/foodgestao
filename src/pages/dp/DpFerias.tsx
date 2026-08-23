@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
+import { isSocio } from "@/lib/dp/contrato-policy";
 import {
   useDpFerias, type FeriasGozo, type FeriasPeriodo, type FeriasPeriodoStatus,
 } from "@/hooks/useDpFerias";
@@ -49,6 +50,14 @@ const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR 
 export default function DpFerias() {
   const embedded = useDpEmbedded();
   const { data: colaboradores = [] } = useDpColaboradores();
+  /**
+   * Sócio não tem período aquisitivo: as férias dele são só marcação de ausência
+   * no calendário, então ele fica fora da geração de períodos.
+   */
+  const colaboradoresComFerias = useMemo(
+    () => colaboradores.filter((c: any) => !isSocio(c.vinculo_label)),
+    [colaboradores],
+  );
   const [colabFilter, setColabFilter] = useState("todos");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [gerarColab, setGerarColab] = useState("");
@@ -174,7 +183,7 @@ export default function DpFerias() {
             <Select value={gerarColab} onValueChange={setGerarColab}>
               <SelectTrigger className="min-w-0 flex-1"><SelectValue placeholder="Escolha o colaborador" /></SelectTrigger>
               <SelectContent className="max-h-72">
-                {colaboradores.map((c) => (
+                {colaboradoresComFerias.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                 ))}
               </SelectContent>
