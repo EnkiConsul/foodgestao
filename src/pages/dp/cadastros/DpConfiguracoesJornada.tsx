@@ -209,7 +209,7 @@ export default function DpConfiguracoesJornada() {
       toast.error("Selecione ao menos um dia de descanso negociado.");
       return;
     }
-    concluirSalvamento(alvosExtras.filter((id) => id !== unidadeId));
+    setSalvarAberto(true);
   };
 
   const handleLimparRegras = async () => {
