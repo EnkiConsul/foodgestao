@@ -49,3 +49,7 @@ Quando um sócio marca folga (calendário do portal) ou o admin lança folga/fé
 - Ordem dos cards em `dp_user_prefs.extras` (chave nova `operacao_cards`), seguindo o padrão de `menu_layout`.
 - Novo componente `SocioBloqueioDialog` (folga/férias do sócio → bloqueio), usado em `DpAdminCalendario.tsx` e `src/pages/dp/portal/DpMeuCalendario.tsx`; grava linhas em `dp_datas_bloqueadas` (uma por data × unidade, `unidade_id` nulo quando o admin escolher "todas as unidades" como bloqueio global) com `motivo` identificando o sócio.
 - Sem mudança de schema: `dp_datas_bloqueadas` já tem `data`, `unidade_id`, `motivo`, `liberada` e `liberada_por_solicitacao`.
+- Unidade padrão: `useDpOperacaoPanorama` já retorna `unidades`; a contagem de colaboradores ativos por unidade vem de `dp_colaboradores` (já carregado). Preferência salva em `dp_user_prefs.extras.operacao_unidade`.
+- Blocos por funcionamento: usar `dp_unidade_horarios_funcionamento` (via o padrão de `useDpHorariosFuncionamento`) e os helpers `periodosDoDia` / `periodoCompleto` / `formatarPeriodo` de `src/lib/dp/turno-utils.ts` para montar os períodos do dia da semana.
+- Agrupamento: nova função em `src/lib/dp/operacao-panorama.ts` que recebe as pessoas previstas do dia (com entrada/saída) + períodos da unidade e devolve `{ periodo, unidade, grupos: [{ cargo, pessoas }] }`, tratando turnos que viram o dia (+1). Cargos vêm de `dp_cargos` (nova consulta id/nome no hook).
+
