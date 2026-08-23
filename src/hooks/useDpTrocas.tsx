@@ -58,8 +58,23 @@ export function useDpTrocas(filtro: string = "todos") {
           status: aceito ? "pendente_gestor" : "recusada",
         }).eq("id", id);
         if (error) throw error;
+        if (!aceito) return;
+
+        // Unidade com troca direta: o aceite do colega já efetiva a troca.
+        const troca = ((list.data ?? []) as any[]).find((r) => r.id === id);
+        const unidadeId = troca?.destino?.unidade_id ?? null;
+        const { data: cfg } = await supabase.rpc("dp_config_resolvida", {
+          _company_id: selectedCompanyId!,
+          _unidade_id: unidadeId ?? undefined,
+        });
+        const row = (Array.isArray(cfg) ? cfg[0] : cfg) as { troca_folga_modo?: string } | null;
+        if (row?.troca_folga_modo === "direta") {
+          const { error: dirErr } = await supabase.rpc("dp_processar_troca_direta", { _troca_id: id });
+          if (dirErr) throw dirErr;
+        }
         return;
       }
+
 
       if (!aceito) {
         const { error } = await supabase.from("dp_trocas").update({
