@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
     const { data: items, error: iErr } = await userClient
       .from("dp_bulk_import_items")
-      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name, source_file_path, deteccao_automatica)")
+      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name, source_file_path, deteccao_automatica, exigir_aceite, unidade_id)")
       .in("id", parsed.data.item_ids);
     if (iErr) return json({ error: iErr.message }, 500);
     if (!items || items.length === 0) return json({ error: "Nenhum item encontrado" }, 404);
