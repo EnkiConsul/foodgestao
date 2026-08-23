@@ -46,6 +46,25 @@ interface DpPageHeaderProps {
 }
 
 export function DpPageHeader({ icon: Icon, title, description, actions, className }: DpPageHeaderProps) {
+  const embedded = useDpEmbedded();
+  if (embedded) {
+    return (
+      <header className={cn("dp-page-header-embedded flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-base font-semibold leading-tight sm:text-lg">
+            <Icon className="h-4 w-4 shrink-0 text-primary" />
+            {toTitleCase(title)}
+          </h2>
+          {description && <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{description}</p>}
+        </div>
+        {actions && (
+          <div className="dp-page-actions -mx-3 flex shrink-0 items-center gap-2 overflow-x-auto px-3 pb-0.5 [scrollbar-width:none] [&>*]:shrink-0 [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:justify-end sm:overflow-visible sm:px-0">
+            {actions}
+          </div>
+        )}
+      </header>
+    );
+  }
   return (
     <header className={cn("dp-page-header flex flex-col gap-2 sm:gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
       <div className="flex min-w-0 items-start gap-2 sm:gap-3">
