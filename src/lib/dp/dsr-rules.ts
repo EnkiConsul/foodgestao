@@ -314,6 +314,64 @@ export function padroesCltDe(setorComercio: boolean): Pick<
   };
 }
 
+/**
+ * Aplica ao formulário a base da regra de folgas escolhida.
+ * Em `clt`, as frequências (geral e mulheres) voltam ao padrão legal e o descanso
+ * dominical passa a ser estritamente legal, sem dias negociados.
+ */
+export function aplicarBaseRegra<T extends Partial<DpConfigDp> & { setor_comercio?: boolean }>(
+  form: T,
+  base: RegraDsr,
+): T {
+  if (base !== "clt") return { ...form, regra_dsr: base };
+  return {
+    ...form,
+    regra_dsr: "clt",
+    tipo_descanso_domingo: "legal",
+    dias_descanso_negociados: [0],
+    ...padroesCltDe(form.setor_comercio !== false),
+  };
+}
+
+/** A base da regra é o padrão legal (folga dominical gerada automaticamente)? */
+export function folgaDominicalAutomatica(cfg: Pick<DpConfigDp, "regra_dsr" | "tipo_descanso_domingo">): boolean {
+  return cfg.regra_dsr === "clt" && cfg.tipo_descanso_domingo === "legal";
+}
+
+export interface TrocaFolgaCheck {
+  permitida: boolean;
+  /** Precisa de aprovação do administrador depois do aceite do colega. */
+  exigeAprovacao: boolean;
+  motivo?: string;
+}
+
+/**
+ * A troca de folga é permitida pela regra da unidade?
+ * `dominical` = a folga trocada cai em domingo (DSR); `semanal` = qualquer outro dia.
+ */
+export function podeTrocarFolga(
+  cfg: Pick<DpConfigDp, "troca_folga_modo" | "troca_folga_escopo">,
+  tipo: "semanal" | "dominical",
+): TrocaFolgaCheck {
+  if (cfg.troca_folga_modo === "proibida") {
+    return { permitida: false, exigeAprovacao: false, motivo: "A troca de folgas não é permitida nesta unidade." };
+  }
+  const escopo = cfg.troca_folga_escopo ?? "ambas";
+  if (escopo !== "ambas" && escopo !== tipo) {
+    return {
+      permitida: false,
+      exigeAprovacao: false,
+      motivo:
+        escopo === "dominical"
+          ? "Nesta unidade a troca é permitida apenas para a folga dominical (DSR)."
+          : "Nesta unidade a troca é permitida apenas para a folga semanal.",
+    };
+  }
+  return { permitida: true, exigeAprovacao: cfg.troca_folga_modo === "aprovacao_admin" };
+}
+
+
+
 export interface BaseLegal {
   titulo: string;
   texto: string;
