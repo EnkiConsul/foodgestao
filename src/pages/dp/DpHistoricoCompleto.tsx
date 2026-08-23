@@ -715,6 +715,7 @@ export default function DpHistoricoCompleto() {
       key={k}
       label={COLS[k].label}
       width={colWidths[k]}
+      center={COLS[k].center}
       sortAtivo={sortKey === COLS[k].sortKey}
       sortDir={sortDir}
       onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
