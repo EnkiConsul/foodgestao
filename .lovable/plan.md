@@ -34,15 +34,15 @@ Detalhes:
 
 - Colunas legíveis: larguras recalculadas (Colaborador maior, Competência/Data/Aceite menores), rótulos curtos ("Compet.") e cabeçalho sem truncar; ícones de ordenar/filtrar aparecem sem comer o texto.
 - Remover o botão **Restaurar Colunas**; a ordem padrão volta pelo menu do próprio cabeçalho.
+- **Filtros**: busca e o botão "Limpar" sobem para a mesma linha do título "Filtros", economizando uma faixa vertical.
 
 ## 4. Detecção de assinatura e aceite digital opcional
 
 - Na importação, cada página passa por uma checagem de assinatura do colaborador: o OCR/IA procura indícios como campo de assinatura preenchido, texto "Assinatura do empregado/colaborador", rubrica manuscrita ou marca de assinatura eletrônica (ICP-Brasil, DocuSign, Gov.br) no PDF.
-- Páginas com assinatura detectada aparecem na revisão com o selo **Já assinado** e a pergunta "Este documento precisa de validação digital?", com resposta padrão sugerida "Não precisa".
+- Páginas com assinatura detectada aparecem na revisão com o selo **Já Assinado** e a pergunta "Este documento precisa de validação digital?", já sugerindo "Não precisa" — mas a decisão final é sempre do usuário.
 - **O padrão do sistema é sempre com validação digital.** Só páginas com assinatura detectada vêm pré-marcadas como dispensadas; todas as outras seguem exigindo aceite do colaborador.
 - Um interruptor **Exigir Validação Digital** fica disponível em dois níveis: no lote inteiro (antes de salvar, ligado por padrão) e por página na revisão, para o usuário desligar caso a caso mesmo sem assinatura detectada.
-- Documentos salvos sem exigência de aceite entram no histórico com o selo **Dispensado** na coluna Aceite (em vez de "Aguardando"), e não geram pendência de aceite no portal do colaborador.
-- **Filtros**: busca e o botão "Limpar" sobem para a mesma linha do título "Filtros", economizando uma faixa vertical.
+- Documentos salvos sem exigência de aceite entram no histórico com o selo **Dispensado** na coluna Aceite (em vez de "Aguardando") e não geram pendência de aceite no portal do colaborador.
 
 
 ## Detalhes técnicos
