@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { regimeRisco } from "@/lib/dp/regime-riscos";
 import { RegimeRiscoDialog } from "@/components/dp/RegimeRiscoDialog";
 import { toProperName } from "@/lib/text/properName";
