@@ -79,8 +79,9 @@ export default function DpConfiguracoesJornada() {
 
   const [form, setForm] = useState<DpConfigDpForm>(DP_CONFIG_DP_DEFAULT);
   const [alertas, setAlertas] = useState<AlertaCiencia[]>([]);
-  const [alvosExtras, setAlvosExtras] = useState<string[]>([]);
+  const [salvarAberto, setSalvarAberto] = useState(false);
   const [limparAberto, setLimparAberto] = useState(false);
+
 
   /** Seleciona a primeira unidade quando não há escolha válida guardada. */
   useEffect(() => {
