@@ -149,7 +149,7 @@ function ColunaFiltroHeader(props: {
             title="Clique para ordenar/filtrar · arraste para mover a coluna"
             className="flex w-full cursor-grab items-center gap-1 text-left uppercase hover:text-foreground"
           >
-            <span className="truncate">{props.label}</span>
+            <span className="whitespace-nowrap">{props.label}</span>
 
             {props.sortAtivo
               ? (props.sortDir === "asc" ? <ArrowUp className="h-3 w-3 shrink-0" /> : <ArrowDown className="h-3 w-3 shrink-0" />)
