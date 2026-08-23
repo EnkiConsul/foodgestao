@@ -489,20 +489,21 @@ export default function DpHistoricoCompleto() {
   // ---------------- Descritores de coluna ----------------
   const COLS: Record<ColKey, {
     label: string;
-    width: string;
     sortKey: SortKey;
     value: (r: UnifiedDoc) => string;
     render: (r: UnifiedDoc) => JSX.Element;
     cellClass?: string;
   }> = {
     colaborador: {
-      label: "Colaborador", width: "w-[26%]", sortKey: "colaborador_nome",
+      label: "Colaborador", sortKey: "colaborador_nome",
       value: (r) => r.colaborador_nome,
-      render: (r) => <span className="font-semibold">{r.colaborador_nome}</span>,
-      cellClass: "whitespace-normal break-words align-top",
+      render: (r) => (
+        <span className="block truncate font-semibold" title={r.colaborador_nome}>{r.colaborador_nome}</span>
+      ),
+      cellClass: "align-top overflow-hidden",
     },
     tipo: {
-      label: "Tipo", width: "w-[22%]", sortKey: "tipo_label",
+      label: "Tipo", sortKey: "tipo_label",
       value: (r) => r.tipo_label,
       render: (r) => (
         <Badge
@@ -515,19 +516,19 @@ export default function DpHistoricoCompleto() {
       cellClass: "whitespace-normal break-words align-top",
     },
     competencia: {
-      label: "Competência", width: "w-[13%]", sortKey: "competencia_sort",
+      label: "Competência", sortKey: "competencia_sort",
       value: (r) => r.competencia,
       render: (r) => <span className="font-mono text-sm">{r.competencia}</span>,
       cellClass: "whitespace-nowrap align-top",
     },
     unidade: {
-      label: "Unidade", width: "w-[21%]", sortKey: "unidade_nome",
+      label: "Unidade", sortKey: "unidade_nome",
       value: (r) => r.unidade_nome,
       render: (r) => <span className="leading-tight">{r.unidade_nome}</span>,
       cellClass: "whitespace-normal break-words align-top",
     },
     aceite: {
-      label: "Aceite", width: "w-[11%]", sortKey: "aceite_label",
+      label: "Aceite", sortKey: "aceite_label",
       value: (r) => aceiteLabel(r),
       render: (r) => (
         r.aceite === null
@@ -707,7 +708,7 @@ export default function DpHistoricoCompleto() {
     <ColunaFiltroHeader
       key={k}
       label={COLS[k].label}
-      width={COLS[k].width}
+      width={colWidths[k]}
       sortAtivo={sortKey === COLS[k].sortKey}
       sortDir={sortDir}
       onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
@@ -720,6 +721,8 @@ export default function DpHistoricoCompleto() {
       onDragStart={() => setDragCol(k)}
       onDrop={() => soltarSobre(k)}
       onDragEnd={() => setDragCol(null)}
+      onResize={(largura) => setColWidths((p) => ({ ...p, [k]: largura }))}
+      onResetWidth={() => setColWidths((p) => ({ ...p, [k]: DEFAULT_COL_WIDTHS[k] }))}
     />
   );
 
