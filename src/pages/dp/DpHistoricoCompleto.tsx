@@ -64,7 +64,6 @@ type UnifiedDoc = {
 
 const TIPO_OPTIONS = [
   ...DP_DOC_TIPOS.filter((t) => t.value !== "sindicato").map((t) => ({ value: t.value as string, label: t.label })),
-  { value: "act_cct", label: "Negociação Sindical" },
 ];
 
 const MESES = [
@@ -342,7 +341,7 @@ export default function DpHistoricoCompleto() {
     enabled: !!selectedCompanyId && !!colabs.data,
     queryFn: async (): Promise<UnifiedDoc[]> => {
       const cId = selectedCompanyId!;
-      const [docsRes, solRes, sindRes, discRes, aceitesRes] = await Promise.all([
+      const [docsRes, solRes, discRes, aceitesRes] = await Promise.all([
         supabase
           .from("dp_documentos")
           .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada")
@@ -352,10 +351,6 @@ export default function DpHistoricoCompleto() {
           .select("id, tipo, status, data_alvo, arquivo_path, created_at, colaborador_id")
           .eq("company_id", cId)
           .eq("tipo", "atestado" as any),
-        supabase
-          .from("dp_sindicato_negociacoes")
-          .select("id, arquivo_nome, pdf_path, ano, mes, data_base, tipo_documento, unidade_id, created_at, dp_unidades(nome)")
-          .eq("company_id", cId),
         supabase
           .from("dp_registros_disciplinares")
           .select("id, motivo, tipo, data, pdf_storage_path, created_at, colaborador_id")
@@ -420,33 +415,6 @@ export default function DpHistoricoCompleto() {
           bucket: "dp-atestados",
           file_path: s.arquivo_path,
           titulo: `Atestado — ${c?.nome ?? ""}`.trim(),
-          aceite: null,
-        });
-      });
-
-      (sindRes.data ?? []).forEach((n: any) => {
-        if (!n.pdf_path) return;
-        const unidadeNome = n.dp_unidades?.nome ?? (n.unidade_id ? unidadeMap.get(n.unidade_id) ?? "—" : "—");
-        const mm = n.mes ? String(n.mes).padStart(2, "0") : (n.data_base ? String(new Date(n.data_base).getMonth() + 1).padStart(2, "0") : "");
-        const yyyy = n.ano ?? (n.data_base ? new Date(n.data_base).getFullYear() : "");
-        const compLabel = mm && yyyy ? `${mm}/${yyyy}` : "—";
-        const compSort = mm && yyyy ? `${yyyy}-${mm}` : "";
-        rows.push({
-          id: `sind:${n.id}`,
-          colaborador_nome: `ACT/CCT - ${unidadeNome}`,
-          colaborador_id: null,
-          tipo_key: "act_cct",
-          tipo_label: "ACT/CCT",
-          competencia: compLabel,
-          competencia_sort: compSort,
-          unidade_nome: unidadeNome,
-          unidade_id: n.unidade_id,
-          status_key: "disponivel",
-          status_label: "Disponível",
-          data: n.created_at,
-          bucket: "dp-sindicato",
-          file_path: n.pdf_path,
-          titulo: n.arquivo_nome ?? `Negociação Sindical ${unidadeNome}`,
           aceite: null,
         });
       });

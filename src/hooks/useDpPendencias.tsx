@@ -321,7 +321,7 @@ export function useDpPendencias() {
                 tipo: "Negociação",
                 vencimento: ymd(today),
                 atrasoDias: 0,
-                url: "/dp/cadastros/negociacoes-sindicais",
+                url: "/dp/cadastros/unidades",
               });
               continue;
             }
@@ -345,7 +345,7 @@ export function useDpPendencias() {
                 tipo: "Negociação",
                 vencimento: ymd(vencimento),
                 atrasoDias: dias,
-                url: "/dp/cadastros/negociacoes-sindicais",
+                url: "/dp/cadastros/unidades",
               });
             }
           }
