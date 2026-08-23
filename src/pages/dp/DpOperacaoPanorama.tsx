@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -10,6 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  GripVertical,
+  Handshake,
   HeartPulse,
   Plane,
   RotateCcw,
@@ -19,10 +21,21 @@ import {
   UserX,
 } from "lucide-react";
 import { useDpOperacaoPanorama, type DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
-import { useDpCoberturaMinima } from "@/hooks/useDpCoberturaMinima";
-import { resolverCoberturaMinima } from "@/lib/dp/cobertura-utils";
+import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import {
+  blocosPorFuncionamento,
   CATEGORIA_LABEL,
   mensagemAlerta,
   somarDias,
