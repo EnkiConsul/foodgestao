@@ -139,7 +139,7 @@ export function assinaturaDocumento(nomeArquivo?: string | null, ocr?: string | 
   return [nome, cabecalho].filter(Boolean).join(" | ");
 }
 
-/** Indícios textuais de que o documento já vem assinado pelo colaborador. */
+/** Indícios de assinatura eletrônica/digital já aplicada ao documento. */
 const ASSINATURA_KEYS: string[] = [
   "assinado digitalmente",
   "assinatura eletronica",
@@ -151,30 +151,30 @@ const ASSINATURA_KEYS: string[] = [
   "d4sign",
   "zapsign",
   "autentique",
-  "gov.br",
-  "assinatura do empregado",
-  "assinatura do colaborador",
-  "assinatura do funcionario",
-  "assinatura do trabalhador",
-  "ciente e de acordo",
+  "assinado eletronicamente",
 ];
 
 /**
  * Detecta se a página já contém assinatura do colaborador.
- * Usa a linha `ASSINADO: SIM/NAO` devolvida pelo OCR e, como reforço,
- * palavras-chave de assinatura manuscrita ou eletrônica.
+ * A linha `ASSINADO: SIM/NAO` devolvida pelo OCR é a fonte principal (ela
+ * enxerga a rubrica manuscrita). Sem essa linha, cai para os marcadores de
+ * assinatura eletrônica — rótulos como "Assinatura do empregado" NÃO contam,
+ * pois aparecem também em documentos em branco.
  */
 export function detectarAssinatura(ocr: string | null | undefined): {
   detectada: boolean;
   evidencia: string | null;
 } {
   const texto = ocr ?? "";
-  const linha = texto.match(/ASSINADO:\s*(SIM|NAO|N[ÃA]O)/i);
   const t = norm(texto);
   const chave = ASSINATURA_KEYS.find((k) => t.includes(norm(k))) ?? null;
+  const linha = texto.match(/ASSINADO:\s*(SIM|NAO|N[\u00C3A]O)/i);
 
-  if (linha && /^s/i.test(linha[1])) {
-    return { detectada: true, evidencia: chave ?? "assinatura identificada na página" };
+  if (linha) {
+    const sim = /^s/i.test(linha[1]);
+    if (sim) return { detectada: true, evidencia: chave ?? "assinatura identificada na p\u00e1gina" };
+    if (chave) return { detectada: true, evidencia: chave };
+    return { detectada: false, evidencia: null };
   }
   if (chave) return { detectada: true, evidencia: chave };
   return { detectada: false, evidencia: null };
