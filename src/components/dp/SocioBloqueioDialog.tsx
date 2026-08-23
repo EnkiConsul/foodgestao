@@ -82,7 +82,14 @@ export function SocioBloqueioDialog({
       );
       onOpenChange(false);
     },
-    onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível bloquear."),
+    onError: (e: unknown) => {
+      const err = e as { code?: string; message?: string };
+      if (err?.code === "42501") {
+        toast.error("Somente o DP pode bloquear datas. Peça ao administrador para aplicar o bloqueio.");
+        return;
+      }
+      toast.error(err?.message ?? "Não foi possível bloquear.");
+    },
   });
 
   const alternar = (id: string) =>
