@@ -107,6 +107,8 @@ export interface PessoaPanorama {
   cargo_id: string | null;
   cargo_nome: string | null;
   socio: boolean;
+  /** Sócio vinculado a uma unidade e com jornada: conta como parte do quadro. */
+  socio_integrado?: boolean;
   /** Origem do horário: jornada habitual, escala publicada ou convocação. */
   origem: "jornada" | "escala" | "convocacao";
 }
