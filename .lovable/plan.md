@@ -60,8 +60,10 @@ A regra é aplicada de verdade: no portal o botão de troca fica indisponível q
 - Banco: em `dp_config_dp`, adicionar `troca_folga_modo text not null default 'aprovacao_admin'` (valores `direta` | `aprovacao_admin` | `proibida`) e `troca_folga_escopo text not null default 'ambas'` (valores `semanal` | `dominical` | `ambas`); manter `tipo_descanso_domingo` derivado de `regra_dsr` (`clt` → `legal`, senão `acordo_coletivo`) para não quebrar o motor atual. Em `dp_folgas`, usar `origem` = `automatica_clt` (enum `dp_folga_origem`) para as folgas geradas.
 - `src/lib/dp/dsr-rules.ts`: função `aplicarBaseRegra(form, base)` centralizando o reset CLT (já existe `padroesCltDe`) e sincronizando `tipo_descanso_domingo`/`dias_descanso_negociados`.
 - Novo `src/lib/dp/folgas-clt.ts`: dado admissão, mês/ano e regra efetiva, retorna os domingos de DSR do colaborador (usa `semanasEfetivas`/`semanasEfetivasMulher` e o gênero). Coberto por testes unitários em `src/test/unit/`.
-- `src/pages/dp/cadastros/DpConfiguracoesJornada.tsx`: remove o card de replicação, cria `SalvarRegrasDialog`, unifica os dois selects, adiciona o campo de troca de folga.
+- `src/pages/dp/cadastros/DpConfiguracoesJornada.tsx`: remove o card de replicação, cria `SalvarRegrasDialog`, unifica os dois selects, adiciona os campos de modo e escopo de troca.
 - `src/hooks/useDpConfigDp.tsx`: `saveMany` já aceita lista de alvos — segue igual, chamado a partir do diálogo.
-- `src/pages/dp/portal/DpMeuCalendario.tsx`: bloqueia edição em domingos com `origem = automatica_clt`, mantém os botões de troca/solicitação conforme `troca_folga_modo`.
-- `src/pages/dp/portal/DpMeuTrocas.tsx` e `src/hooks/useDpTrocas.tsx`: no modo `direta`, o aceite do colega grava `status = 'aprovada'` em vez de `pendente_gestor`.
+- Helper `podeTrocarFolga(config, folga)` em `src/lib/dp/dsr-rules.ts`: classifica a folga como dominical (domingo ou origem `automatica_clt`) ou semanal e devolve permissão + motivo, usado no portal e na tela de Trocas.
+- `src/pages/dp/portal/DpMeuCalendario.tsx`: bloqueia edição em domingos com `origem = automatica_clt`, mantém os botões de troca/solicitação conforme `troca_folga_modo` e `troca_folga_escopo`.
+- `src/pages/dp/portal/DpMeuTrocas.tsx` e `src/hooks/useDpTrocas.tsx`: no modo `direta`, o aceite do colega grava `status = 'aprovada'` em vez de `pendente_gestor`; trocas fora do escopo são recusadas com mensagem.
+
 - Geração das folgas CLT: RPC no banco (`dp_gerar_folgas_clt(unidade, ano, mes)`) para rodar em lote com segurança de RLS, acionada pelo botão no admin.
