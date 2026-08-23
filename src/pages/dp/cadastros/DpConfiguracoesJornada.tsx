@@ -110,13 +110,26 @@ export default function DpConfiguracoesJornada() {
   const resumoFolgas = useMemo(() => resumoEscolhaFolgas(form), [form]);
 
   const travadoClt = form.regra_dsr === "clt";
+  /** Base única da regra de folgas (unifica regra_dsr + tipo_descanso_domingo). */
+  const baseRegra: BaseRegraOpcao = porAcordo ? "cct" : form.regra_dsr === "clt" ? "clt" : "propria";
 
   const set = <K extends keyof DpConfigDpForm>(k: K, v: DpConfigDpForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
   /** Alterna a base da regra: CLT restaura e trava os padrões legais. */
-  const setBaseRegra = (v: DpConfigDpForm["regra_dsr"]) =>
-    setForm((f) => (v === "clt" ? { ...f, regra_dsr: v, ...padroesCltDe(f.setor_comercio) } : { ...f, regra_dsr: v }));
+  const setBaseRegra = (v: BaseRegraOpcao) =>
+    setForm((f) => {
+      if (v === "clt") return aplicarBaseRegra(f, "clt");
+      if (v === "cct") {
+        return {
+          ...f,
+          regra_dsr: "cct",
+          tipo_descanso_domingo: "acordo_coletivo",
+          dias_descanso_negociados: (f.dias_descanso_negociados ?? []).length ? f.dias_descanso_negociados : [0],
+        };
+      }
+      return { ...f, regra_dsr: "propria", tipo_descanso_domingo: "legal", dias_descanso_negociados: [0] };
+    });
 
   const setSetorComercio = (v: boolean) =>
     setForm((f) => ({
@@ -132,6 +145,8 @@ export default function DpConfiguracoesJornada() {
       return { ...f, dias_descanso_negociados: proximo.sort((a, b) => a - b) };
     });
   };
+
+
 
   /** Marca/desmarca uma unidade adicional que recebe a mesma regra. */
   const toggleAlvoExtra = (id: string, marcado: boolean) =>
