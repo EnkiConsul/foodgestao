@@ -864,12 +864,18 @@ export default function DpHistoricoCompleto() {
               <span className="font-mono text-muted-foreground">Comp. {r.competencia}</span>
               <span className="font-mono text-muted-foreground">· {new Date(r.data).toLocaleDateString("pt-BR")}</span>
             </div>
-            <div className="flex gap-1 pt-1 border-t border-border/60">
-              <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => setPreview(r)} disabled={!r.file_path}>
+            <div className="grid grid-cols-2 gap-1 pt-1 border-t border-border/60">
+              <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setPreview(r)} disabled={!r.file_path}>
                 <Eye className="h-4 w-4 mr-1 text-primary" /> Ver
               </Button>
-              <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => download(r)} disabled={!r.file_path}>
+              <Button size="sm" variant="ghost" className="min-h-11" onClick={() => download(r)} disabled={!r.file_path}>
                 <Download className="h-4 w-4 mr-1" /> Baixar
+              </Button>
+              <Button size="sm" variant="ghost" className="min-h-11" onClick={() => abrirSubstituir(r)}>
+                <Replace className="h-4 w-4 mr-1" /> Substituir
+              </Button>
+              <Button size="sm" variant="ghost" className="min-h-11 text-destructive" onClick={() => setExcluir(r)}>
+                <Trash2 className="h-4 w-4 mr-1" /> Excluir
               </Button>
             </div>
           </div>
