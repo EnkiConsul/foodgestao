@@ -398,10 +398,30 @@ export function RemuneracaoFields({
 
   if (socio) {
     const proLabore = socioRemuneracao === "pro_labore";
+    const detalheSocio = proLabore
+      ? "O pró-labore é retirada do sócio: não gera 13º, férias, FGTS nem adiantamento salarial. O sistema espera apenas o recibo de pró-labore mensal na conferência de documentos."
+      : "Sem remuneração fixa registrada — o sócio recebe apenas distribuição de lucros, definida fora do módulo Pessoas. Nenhum documento de folha é cobrado na conferência.";
     return (
       <div className="md:col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="text-sm font-semibold">Remuneração do sócio</div>
+          <div className="flex items-center gap-1.5 text-sm font-semibold">
+            <span>Remuneração do sócio</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  title={detalheSocio}
+                  aria-label="Ver informações sobre a remuneração do sócio"
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Info className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-80 text-[11px] leading-relaxed text-muted-foreground">
+                {detalheSocio}
+              </PopoverContent>
+            </Popover>
+          </div>
           <Badge variant="outline" className="text-[10px]">Fora da folha CLT</Badge>
         </div>
 
@@ -434,26 +454,15 @@ export function RemuneracaoFields({
           )}
         </div>
 
-        <p className="flex items-start gap-2 rounded-md border border-border bg-background p-2 text-[11px] text-muted-foreground">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span>
-            {proLabore ? (
-              <>
-                O pró-labore é retirada do sócio: não gera 13º, férias, FGTS nem adiantamento salarial.
-                O sistema espera apenas o <strong className="text-foreground">recibo de pró-labore</strong> mensal
-                na conferência de documentos.
-              </>
-            ) : (
-              <>
-                Sem remuneração fixa registrada — o sócio recebe apenas distribuição de lucros, definida fora
-                do módulo Pessoas. Nenhum documento de folha é cobrado na conferência.
-              </>
-            )}
-          </span>
+        <p className="text-[11px] text-muted-foreground">
+          {proLabore
+            ? "Retirada do sócio — fora das obrigações CLT."
+            : "Somente distribuição de lucros — fora das obrigações CLT."}
         </p>
       </div>
     );
   }
+
 
   return (
     <div className="md:col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
