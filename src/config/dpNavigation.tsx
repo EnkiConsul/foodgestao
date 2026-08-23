@@ -186,7 +186,6 @@ export const DP_ADMIN_NAV: DpNavSurface = {
   groups: ADMIN_GROUPS,
   // Hubs mantidos como opção de atalho para preservar defaults já salvos.
   extraShortcuts: [
-    { label: "Calendário", to: "/dp/folgas", icon: Calendar, shortcut: true },
     { label: "Documentos", to: "/dp/documentos", icon: FileText, shortcut: true },
     { label: "Comunicação", to: "/dp/comunicacao", icon: BellRing, shortcut: true },
   ],
