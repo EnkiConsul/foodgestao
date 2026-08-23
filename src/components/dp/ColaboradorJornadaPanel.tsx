@@ -79,6 +79,8 @@ export interface JornadaColaborador {
   id?: string | null;
   nome?: string | null;
   regime?: string | null;
+  /** Rótulo do vínculo: o regime não distingue sócio de PJ. */
+  vinculo_label?: string | null;
   unidade_id?: string | null;
   cargo_id?: string | null;
   /** Base da vigência inicial da jornada. */
@@ -123,7 +125,7 @@ interface Props {
 export function ColaboradorJornadaPanel({
   colaborador, active = true, showSaveButton = true, onRegistrarSalvar,
 }: Props) {
-  const policy = contratoPolicy(colaborador?.regime);
+  const policy = contratoPolicy(colaborador?.regime, colaborador?.vinculo_label);
   const { selectedCompanyId } = useCompanyContext();
   const { data: unidades = [] } = useDpUnidades();
   const { configs, vigente, isLoading, salvar, encerrar, remover, saving } =

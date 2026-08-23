@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, CalendarClock, CheckCircle2, Clock, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { isSocio } from "@/lib/dp/contrato-policy";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -65,7 +66,13 @@ function labelData(iso: string) {
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 }
 
-type Tipo = "contracheque" | "contracheque_13" | "contracheque_ferias" | "ponto" | "adiantamento";
+type Tipo =
+  | "contracheque"
+  | "contracheque_13"
+  | "contracheque_ferias"
+  | "ponto"
+  | "adiantamento"
+  | "pro_labore";
 
 const TIPO_LABEL: Record<Tipo, string> = {
   contracheque: "Contracheque",
@@ -73,6 +80,7 @@ const TIPO_LABEL: Record<Tipo, string> = {
   contracheque_ferias: "Contracheque de Férias",
   ponto: "Folha de Ponto",
   adiantamento: "Adiantamento Salarial",
+  pro_labore: "Recibo de Pró-Labore",
 };
 
 const TIPO_ORDEM: Tipo[] = [
@@ -81,6 +89,7 @@ const TIPO_ORDEM: Tipo[] = [
   "contracheque_ferias",
   "ponto",
   "adiantamento",
+  "pro_labore",
 ];
 
 /** Prazo legal de cada parcela do 13º dentro do ano da competência. */
@@ -181,7 +190,7 @@ export function DocConsistenciaPanel() {
         supabase
           .from("dp_colaboradores")
           .select(
-            "id, nome, regime, possui_folha_ponto, optante_adiantamento, unidade_id, data_admissao, data_desligamento",
+            "id, nome, regime, possui_folha_ponto, optante_adiantamento, unidade_id, data_admissao, data_desligamento, vinculo_label, socio_remuneracao",
           )
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true),
@@ -255,7 +264,11 @@ export function DocConsistenciaPanel() {
         const desligamento = (c.data_desligamento as string | null) ?? null;
         const uid = (c.unidade_id as string | null) ?? "sem-unidade";
         const regime = String(c.regime ?? "").toLowerCase();
-        const assalariado = REGIMES_ASSALARIADOS.has(regime);
+        // Sócio não é empregado: nada de contracheque, 13º, férias ou ponto.
+        // Com pró-labore, espera-se apenas o recibo mensal da retirada.
+        const socio = isSocio(c.vinculo_label);
+        const socioProLabore = socio && c.socio_remuneracao === "pro_labore";
+        const assalariado = REGIMES_ASSALARIADOS.has(regime) && !socio;
         const temRelogio = c.unidade_id ? relogioMap.get(c.unidade_id) === true : false;
         const gozos = gozosPorColab.get(c.id as string);
 
@@ -269,13 +282,15 @@ export function DocConsistenciaPanel() {
           const prazoDecimo = prazo13(comp);
           const decimoNoPrazo = !!prazoDecimo && hoje <= prazoDecimo;
 
-          const checks: Array<[Tipo, boolean]> = [
-            ["contracheque", assalariado],
-            ["contracheque_13", assalariado && !!prazoDecimo && !decimoNoPrazo],
-            ["contracheque_ferias", !!gozos?.has(comp)],
-            ["ponto", temRelogio && c.possui_folha_ponto === true],
-            ["adiantamento", c.optante_adiantamento === true],
-          ];
+          const checks: Array<[Tipo, boolean]> = socio
+            ? [["pro_labore", socioProLabore]]
+            : [
+                ["contracheque", assalariado],
+                ["contracheque_13", assalariado && !!prazoDecimo && !decimoNoPrazo],
+                ["contracheque_ferias", !!gozos?.has(comp)],
+                ["ponto", temRelogio && c.possui_folha_ponto === true],
+                ["adiantamento", c.optante_adiantamento === true],
+              ];
 
           // 13º dentro do prazo legal: aviso informativo, não pendência.
           if (assalariado && prazoDecimo && decimoNoPrazo) {
@@ -328,11 +343,21 @@ export function DocConsistenciaPanel() {
         }
       }
 
+      const sociosSet = new Set(
+        ((colabsRes.data ?? []) as any[])
+          .filter((c) => isSocio(c.vinculo_label))
+          .map((c) => c.id as string),
+      );
       const nomePorColab = new Map(
         ((colabsRes.data ?? []) as any[]).map((c) => [c.id as string, c.nome as string]),
       );
       const ferias: FeriasAlerta[] = ((periodosRes.data ?? []) as any[])
-        .filter((p) => nomePorColab.has(p.colaborador_id) && !comAgendamento.has(p.colaborador_id))
+        .filter(
+          (p) =>
+            nomePorColab.has(p.colaborador_id) &&
+            !comAgendamento.has(p.colaborador_id) &&
+            !sociosSet.has(p.colaborador_id),
+        )
         .map((p) => ({
           colaborador_id: p.colaborador_id as string,
           nome: nomePorColab.get(p.colaborador_id as string) ?? "Colaborador",

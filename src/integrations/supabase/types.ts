@@ -4132,6 +4132,7 @@ export type Database = {
           salario_base: number | null
           sexo: string | null
           sindicato_id: string | null
+          socio_remuneracao: string | null
           telefone: string | null
           unidade_id: string | null
           updated_at: string
@@ -4229,6 +4230,7 @@ export type Database = {
           salario_base?: number | null
           sexo?: string | null
           sindicato_id?: string | null
+          socio_remuneracao?: string | null
           telefone?: string | null
           unidade_id?: string | null
           updated_at?: string
@@ -4326,6 +4328,7 @@ export type Database = {
           salario_base?: number | null
           sexo?: string | null
           sindicato_id?: string | null
+          socio_remuneracao?: string | null
           telefone?: string | null
           unidade_id?: string | null
           updated_at?: string
@@ -15201,6 +15204,7 @@ export type Database = {
         | "outros_admissao"
         | "outros_desligamento"
         | "outros_fiscais"
+        | "pro_labore"
       dp_elegibilidade_recontratacao: "sim" | "nao" | "com_ressalvas"
       dp_escala_item_origem: "gerado" | "manual" | "troca" | "convocacao"
       dp_escala_item_tipo:
@@ -15734,6 +15738,7 @@ export const Constants = {
         "outros_admissao",
         "outros_desligamento",
         "outros_fiscais",
+        "pro_labore",
       ],
       dp_elegibilidade_recontratacao: ["sim", "nao", "com_ressalvas"],
       dp_escala_item_origem: ["gerado", "manual", "troca", "convocacao"],

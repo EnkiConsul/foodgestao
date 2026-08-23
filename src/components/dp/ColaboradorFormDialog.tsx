@@ -32,7 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
-import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
 import { ColaboradorAcessoPanel } from "./ColaboradorAcessoPanel";
@@ -65,6 +65,7 @@ import {
   remuneracaoBlank,
   numeroBR,
   type RemuneracaoFormState,
+  type SocioRemuneracao,
 } from "@/components/dp/RemuneracaoFields";
 import {
   formaPagamentoPadrao,
@@ -295,7 +296,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   // Inativo sem data de demissão também conta como desligado: o banco exige a data.
   const isDesligado = isEdit && (!!colaborador?.data_desligamento || colaborador?.ativo === false);
   // Comportamento da jornada/folga é derivado do contrato, nunca testado inline.
-  const policy = contratoPolicy(VINCULO_TO_REGIME[form.tipo_vinculo]);
+  const policy = contratoPolicy(VINCULO_TO_REGIME[form.tipo_vinculo], form.tipo_vinculo);
 
 
   const [rem, setRem] = useState<RemuneracaoFormState>(remuneracaoBlank);
@@ -303,6 +304,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   const [cargoSemSalario, setCargoSemSalario] = useState<{ salarioInformado: number } | null>(null);
   const [salvandoPiso, setSalvandoPiso] = useState(false);
   const [adiantamentoOpen, setAdiantamentoOpen] = useState(false);
+  /** Forma de remuneração do sócio: pró-labore ou somente participação de lucros. */
+  const [socioRem, setSocioRem] = useState<SocioRemuneracao>("pro_labore");
   const patchRem = (patch: Partial<RemuneracaoFormState>) => setRem((r) => ({ ...r, ...patch }));
 
   /**
@@ -612,6 +615,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
       possui_folha_ponto: c.possui_folha_ponto ?? false,
       optante_adiantamento: c.optante_adiantamento ?? false,
     });
+    setSocioRem(((c as any).socio_remuneracao as SocioRemuneracao) ?? "pro_labore");
     setResetKey((k) => k + 1);
   }, [open, colaborador, atribuicoes]);
 
@@ -620,6 +624,10 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   }, [open]);
 
   const regimeSelecionado = VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt";
+  /** Sócio tem remuneração societária e fica fora dos complementos CLT. */
+  const socioSelecionado = isSocio(form.tipo_vinculo);
+  /** Sócio só por lucros não tem valor de remuneração registrado no sistema. */
+  const socioSemRemuneracao = socioSelecionado && socioRem === "somente_lucros";
 
   /**
    * Gênero fora de masculino/feminino não tem regra dominical própria na
@@ -871,7 +879,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     !form.data_admissao ||
     !form.data_nascimento ||
     (isDesligado && !form.data_desligamento);
-  const remPendente = !!remuneracaoPendente({
+  const remPendente = socioSemRemuneracao ? false : !!remuneracaoPendente({
     forma_pagamento: rem.forma_pagamento,
     salario_base: numeroBR(rem.salario_base) || null,
     valor_hora: numeroBR(rem.valor_hora) || null,
@@ -1184,6 +1192,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
     /** Erros da aba Remuneração. */
     const erroRemuneracao = (): ErroCampo | null => {
+      // Sócio que recebe só participação de lucros não tem salário nem folha:
+      // nada a validar nessa aba.
+      if (socioSemRemuneracao) return null;
       // Remuneração é pré-requisito da folha: bloqueia o cadastro novo sem valor.
       // Editando um colaborador existente, a falta não trava — avisamos após gravar.
       if (pendencia && !isEdit && !criadoId) {
@@ -1279,6 +1290,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
         regime: regimeSelecionado,
         vinculo_label: form.tipo_vinculo,
+        socio_remuneracao: socioSelecionado ? socioRem : null,
         data_admissao: form.data_admissao || null,
         data_nascimento: form.data_nascimento || null,
         sexo: form.sexo === "none" ? null : form.sexo,
@@ -1296,7 +1308,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         optante_adiantamento: permiteAdiantamento ? form.optante_adiantamento : false,
 
         forma_pagamento: rem.forma_pagamento,
-        salario_base: rem.forma_pagamento === "horista" ? null : salarioNum || null,
+        salario_base:
+          socioSemRemuneracao || rem.forma_pagamento === "horista" ? null : salarioNum || null,
         valor_hora: rem.forma_pagamento === "horista" ? valorHoraNum || null : null,
         dependentes_irrf: Math.max(0, Math.trunc(numeroBR(rem.dependentes_irrf))),
         adicional_percentual: adicionalNum,
@@ -1501,7 +1514,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                   </Tooltip>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="jornada">Horário de Trabalho</TabsTrigger>
+              <TabsTrigger value="jornada">
+                {socioSelecionado ? "Horário de Trabalho (opcional)" : "Horário de Trabalho"}
+              </TabsTrigger>
               <TabsTrigger value="remuneracao" className="gap-2">
                 Remuneração
                 {remPendente && (
@@ -1859,6 +1874,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 id: colaborador?.id ?? criadoId ?? null,
                 nome: form.nome,
                 regime: regimeSelecionado,
+                vinculo_label: form.tipo_vinculo,
                 unidade_id: form.unidade_id || null,
                 cargo_id: form.cargo_id || null,
                 data_admissao: form.data_admissao || null,
@@ -1956,6 +1972,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 cargoInsalubre={!!cargoSelecionado?.insalubre || !!cargoSelecionado?.insalubre_periculoso}
                 cargoPerigoso={!!cargoSelecionado?.perigoso}
                 regime={regimeSelecionado}
+                socio={socioSelecionado}
+                socioRemuneracao={socioRem}
+                onSocioRemuneracaoChange={setSocioRem}
                 beneficios={beneficios}
                 onNovoBeneficio={() => {
                   setBeneficioEditando(null);
@@ -1977,7 +1996,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               />
 
               {/* Regra coletiva de anuênio/triênio aplicável a este colaborador */}
-              <AdicionalTempoServicoCard
+              {!socioSelecionado && <AdicionalTempoServicoCard
                 admissao={form.data_admissao || null}
                 cargoId={form.cargo_id || null}
                 unidadeId={form.unidade_id || null}
@@ -1985,13 +2004,13 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 base={baseSalarialInformada()}
                 pisoCargo={salarioCargo ?? null}
                 onBeforeNavigate={() => onOpenChange(false)}
-              />
+              />}
 
 
 
 
               {/* Adiantamento — apenas para contratos com salário mensal em folha */}
-              {permiteAdiantamento ? (
+              {socioSelecionado ? null : permiteAdiantamento ? (
                 <div className="md:col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-border p-3">
                   <Switch
                     id="optante_adiantamento"
