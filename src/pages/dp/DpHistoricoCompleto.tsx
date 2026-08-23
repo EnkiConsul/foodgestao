@@ -652,15 +652,20 @@ export default function DpHistoricoCompleto() {
       </div>
 
       <DpFilterCard>
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <div className="text-sm font-semibold">Filtros</div>
-          <Button
-            variant="ghost" size="sm" className="h-7 text-xs"
-            onClick={() => setColOrder(DEFAULT_COL_ORDER)}
-          >
-            <RotateCcw className="mr-1 h-3 w-3" /> Restaurar Colunas
-          </Button>
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="text-sm font-semibold sm:w-20">Filtros</div>
+          <div className="relative flex-1 sm:max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Buscar por nome, tipo ou status..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
+          <Button variant="ghost" className="sm:ml-auto" onClick={limpar}>Limpar</Button>
         </div>
+
 
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
           <div className="space-y-1.5">
