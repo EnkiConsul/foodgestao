@@ -34,7 +34,6 @@ import {
   Upload,
   User,
   Users,
-  Wand2,
   type LucideIcon,
 } from "lucide-react";
 
