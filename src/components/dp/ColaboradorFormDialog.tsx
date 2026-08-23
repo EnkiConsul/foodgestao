@@ -1141,7 +1141,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
       if (cpfDigits.length !== 11) return erro("cpf", "CPF deve ter 11 dígitos");
       if (!isValidCpf(cpfDigits)) return erro("cpf", "CPF inválido");
       if (!form.cargo_id) return erro("cargo_id", "Cargo é obrigatório");
-      if (!form.unidade_id) return erro("unidade_id", "Unidade é obrigatória");
+      if (!form.unidade_id && !socioSelecionado) return erro("unidade_id", "Unidade é obrigatória");
       if (!form.data_admissao) return erro("data_admissao", "Data de admissão é obrigatória");
       if (!form.data_nascimento) return erro("data_nascimento", "Data de nascimento é obrigatória");
       if (exigeDomingosFolga && form.domingos_folga_mes === "none") {
