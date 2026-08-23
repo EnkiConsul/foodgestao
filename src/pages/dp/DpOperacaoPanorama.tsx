@@ -330,13 +330,16 @@ export default function DpOperacaoPanorama() {
 
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
 
+  // Sócios ausentes seguem visíveis nas listas (com a tag "Folga sócio"),
+  // mesmo não somando nos números dos cards de folga/férias.
   const pessoasDaCategoria = detalheCategoria
-    ? (dia?.pessoas ?? []).filter(
-        (p) =>
-          p.categoria === detalheCategoria &&
-          !(p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria)),
-      )
+    ? (dia?.pessoas ?? []).filter((p) => p.categoria === detalheCategoria)
     : [];
+
+  /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
+  const tagSocio = (p: PessoaPanorama) =>
+    p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria) && !p.socio_integrado;
+
 
   return (
     <DpPage>
