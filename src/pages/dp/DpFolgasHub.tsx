@@ -6,14 +6,16 @@ import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { DpPage, DpPageHeader, DpEmbeddedProvider } from "@/components/dp/DpPage";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { Separator } from "@/components/ui/separator";
+import { RegrasHistoricoPanel } from "@/components/dp/regras/RegrasHistoricoPanel";
 
 const CalendarioPanel = lazy(() => import("./DpFolgas"));
 const RegrasPanel = lazy(() => import("./cadastros/DpConfiguracoesJornada"));
 const BloqueiosPanel = lazy(() => import("./DpBloqueios"));
 const SolicitacoesPanel = lazy(() => import("./DpSolicitacoes"));
 const TrocasPanel = lazy(() => import("./DpTrocas"));
+const ConformidadePanel = lazy(() => import("./DpConformidadeDsr"));
 
-const ABAS = ["calendario", "regras", "solicitacoes", "trocas"] as const;
+const ABAS = ["calendario", "regras", "solicitacoes", "trocas", "conformidade"] as const;
 type Aba = (typeof ABAS)[number];
 
 function PanelFallback() {
@@ -50,7 +52,7 @@ export default function DpFolgasHub() {
       <DpPageHeader
         icon={Calendar}
         title="Folgas"
-        description="Calendário de folgas, regras e datas bloqueadas, solicitações e trocas da equipe."
+        description="Calendário de folgas, regras e datas bloqueadas, solicitações, trocas e conformidade de DSR."
       />
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
@@ -59,6 +61,7 @@ export default function DpFolgasHub() {
           <TabsTrigger value="regras">Regras</TabsTrigger>
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
           <TabsTrigger value="trocas">Trocas</TabsTrigger>
+          <TabsTrigger value="conformidade">Conformidade</TabsTrigger>
         </DpTabsBar>
 
         <TabsContent value="calendario" className="m-0">
@@ -75,6 +78,8 @@ export default function DpFolgasHub() {
               <RegrasPanel />
               <Separator />
               <BloqueiosPanel />
+              <Separator />
+              <RegrasHistoricoPanel />
             </Embedded>
           )}
         </TabsContent>
@@ -91,6 +96,14 @@ export default function DpFolgasHub() {
           {aba === "trocas" && (
             <Embedded>
               <TrocasPanel />
+            </Embedded>
+          )}
+        </TabsContent>
+
+        <TabsContent value="conformidade" className="m-0">
+          {aba === "conformidade" && (
+            <Embedded>
+              <ConformidadePanel />
             </Embedded>
           )}
         </TabsContent>
