@@ -879,7 +879,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     !form.data_admissao ||
     !form.data_nascimento ||
     (isDesligado && !form.data_desligamento);
-  const remPendente = !!remuneracaoPendente({
+  const remPendente = socioSemRemuneracao ? false : !!remuneracaoPendente({
     forma_pagamento: rem.forma_pagamento,
     salario_base: numeroBR(rem.salario_base) || null,
     valor_hora: numeroBR(rem.valor_hora) || null,
@@ -1192,6 +1192,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
     /** Erros da aba Remuneração. */
     const erroRemuneracao = (): ErroCampo | null => {
+      // Sócio que recebe só participação de lucros não tem salário nem folha:
+      // nada a validar nessa aba.
+      if (socioSemRemuneracao) return null;
       // Remuneração é pré-requisito da folha: bloqueia o cadastro novo sem valor.
       // Editando um colaborador existente, a falta não trava — avisamos após gravar.
       if (pendencia && !isEdit && !criadoId) {
@@ -1511,7 +1514,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                   </Tooltip>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="jornada">Horário de Trabalho</TabsTrigger>
+              <TabsTrigger value="jornada">
+                {socioSelecionado ? "Horário de Trabalho (opcional)" : "Horário de Trabalho"}
+              </TabsTrigger>
               <TabsTrigger value="remuneracao" className="gap-2">
                 Remuneração
                 {remPendente && (
