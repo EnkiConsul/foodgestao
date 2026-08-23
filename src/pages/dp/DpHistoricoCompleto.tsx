@@ -588,9 +588,20 @@ export default function DpHistoricoCompleto() {
     if (!excluir) return;
     setExcluindo(true);
     try {
-      await excluirDocumentoHistorico(excluir.id, excluir.file_path);
+      await excluirDocumentoHistorico(excluir.id, excluir.file_path, {
+        companyId: selectedCompanyId ?? "",
+        titulo: excluir.titulo,
+        tipo: excluir.tipo_label,
+        competencia: excluir.competencia,
+        colaborador_id: excluir.colaborador_id,
+        colaborador_nome: excluir.colaborador_nome,
+        unidade_id: excluir.unidade_id,
+        unidade_nome: excluir.unidade_nome,
+        motivo: motivoExclusao.trim() || null,
+      });
       toast.success("Documento excluído. A pendência voltará a aparecer na Conferência.");
       setExcluir(null);
+      setMotivoExclusao("");
       recarregar();
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao excluir o documento");
@@ -598,6 +609,7 @@ export default function DpHistoricoCompleto() {
       setExcluindo(false);
     }
   };
+
 
   const abrirSubstituir = (r: UnifiedDoc) => setSubstituir({
     rowId: r.id,
