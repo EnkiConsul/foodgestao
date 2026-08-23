@@ -291,9 +291,36 @@ export default function DpHistoricoCompleto() {
   });
   const [dragCol, setDragCol] = useState<ColKey | null>(null);
 
+  /** Larguras das colunas em px, ajustáveis pelo usuário e persistidas no navegador. */
+  const [colWidths, setColWidths] = useState<Record<ColKey, number>>(() => {
+    try {
+      const raw = localStorage.getItem(COL_WIDTH_STORAGE);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<Record<ColKey, number>>;
+        const merged = { ...DEFAULT_COL_WIDTHS };
+        (Object.keys(DEFAULT_COL_WIDTHS) as ColKey[]).forEach((k) => {
+          const v = Number(parsed[k]);
+          if (Number.isFinite(v) && v >= COL_MIN_WIDTH) merged[k] = v;
+        });
+        return merged;
+      }
+    } catch { /* ignora storage inválido */ }
+    return DEFAULT_COL_WIDTHS;
+  });
+
   useEffect(() => {
     try { localStorage.setItem(COL_ORDER_STORAGE, JSON.stringify(colOrder)); } catch { /* noop */ }
   }, [colOrder]);
+
+  useEffect(() => {
+    try { localStorage.setItem(COL_WIDTH_STORAGE, JSON.stringify(colWidths)); } catch { /* noop */ }
+  }, [colWidths]);
+
+  const larguraTotal = useMemo(
+    () => colOrder.reduce((acc, k) => acc + colWidths[k], ACOES_WIDTH),
+    [colOrder, colWidths],
+  );
+
 
   const colabMap = useMemo(() => {
     const m = new Map<string, { nome: string; unidade_id: string | null; unidade_nome: string | null }>();
