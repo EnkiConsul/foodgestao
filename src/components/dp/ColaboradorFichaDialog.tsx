@@ -32,7 +32,7 @@ import {
   type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
 import { diasTrabalhaveisNoMes } from "@/lib/dp/beneficios-regras";
-import { MOTIVO_DESLIGAMENTO_LABEL, ELEGIBILIDADE_LABEL } from "@/lib/dp/desligamento";
+
 
 import {
   User, Briefcase, Mail, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil, X, Users, Award,
