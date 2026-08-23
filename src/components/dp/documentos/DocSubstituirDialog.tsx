@@ -24,7 +24,10 @@ export type DocSubstituirTarget = {
   /** MM/YYYY ou "—" */
   competencia: string;
   file_path: string | null;
+  unidade_id?: string | null;
+  unidade_nome?: string | null;
 };
+
 
 /** Converte "MM/YYYY" no formato aceito pelo input month (YYYY-MM). */
 function competenciaParaInput(v: string) {
