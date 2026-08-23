@@ -139,10 +139,13 @@ export async function substituirDocumentoHistorico(params: {
   filePathAtual?: string | null;
   file: File;
   patch?: SubstituirPatch;
+  /** Descrição do documento para o log de alterações. */
+  meta?: Omit<DocEventoMeta, "companyId">;
 }) {
-  const { rowId, companyId, filePathAtual, file, patch } = params;
+  const { rowId, companyId, filePathAtual, file, patch, meta } = params;
   const { source, id } = parseDocRowId(rowId);
   const cfg = CFG[source];
+
 
   const ext = (file.name.split(".").pop() || "pdf").toLowerCase();
   const novoPath = `${companyId}/${id}/${Date.now()}.${ext}`;
