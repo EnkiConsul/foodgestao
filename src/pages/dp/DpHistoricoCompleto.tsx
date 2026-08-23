@@ -794,11 +794,12 @@ export default function DpHistoricoCompleto() {
             />
           </div>
         ) : (
-          <Table className="w-full table-fixed">
+          <div className="overflow-x-auto">
+          <Table className="w-full min-w-[1300px] table-fixed">
             <TableHeader>
               <TableRow>
                 {colOrder.map((k) => renderColunaHeader(k))}
-                <TableHead className="uppercase text-xs text-right w-[7%]">Ações</TableHead>
+                <TableHead className="uppercase text-xs text-right w-[150px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
 
@@ -808,12 +809,18 @@ export default function DpHistoricoCompleto() {
                   {colOrder.map((k) => (
                     <TableCell key={k} className={COLS[k].cellClass}>{COLS[k].render(r)}</TableCell>
                   ))}
-                  <TableCell className="text-right">
+                  <TableCell className="whitespace-nowrap text-right">
                     <Button size="icon" variant="ghost" title="Pré-visualizar" onClick={() => setPreview(r)} disabled={!r.file_path}>
                       <Eye className="h-4 w-4 text-primary" />
                     </Button>
                     <Button size="icon" variant="ghost" title="Baixar" onClick={() => download(r)} disabled={!r.file_path}>
                       <Download className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" title="Substituir arquivo" onClick={() => abrirSubstituir(r)}>
+                      <Replace className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" title="Excluir documento" onClick={() => setExcluir(r)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </TableCell>
                 </TableRow>
