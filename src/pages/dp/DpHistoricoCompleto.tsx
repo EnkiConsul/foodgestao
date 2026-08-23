@@ -543,15 +543,16 @@ export default function DpHistoricoCompleto() {
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  useEffect(() => { setPage(1); }, [tipo, grupo, unidadeId, colabId, mes, ano, status, busca, pageSize, colFilters]);
+  useEffect(() => { setPage(1); }, [tipo, grupo, unidadeId, colabId, mes, ano, busca, pageSize, colFilters]);
   useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
   const paged = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
 
   const limpar = () => {
     setTipo("all"); setGrupo("all"); setUnidadeId("all"); setColabId("all");
-    setMes("all"); setAno("all"); setStatus("all"); setBusca("");
-    setColFilters({ colaborador: [], tipo: [], competencia: [], unidade: [], status: [], aceite: [], data: [] });
+    setMes("all"); setAno("all"); setBusca("");
+    setColFilters({ colaborador: [], tipo: [], competencia: [], unidade: [], aceite: [] });
   };
+
 
   const download = async (row: UnifiedDoc) => {
     if (!row.file_path) return toast.error("Arquivo indisponível");
