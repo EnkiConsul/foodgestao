@@ -709,7 +709,7 @@ export default function DpHistoricoCompleto() {
         </div>
 
 
-        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase text-muted-foreground">Tipo</Label>
             <Select value={tipo} onValueChange={setTipo}>
