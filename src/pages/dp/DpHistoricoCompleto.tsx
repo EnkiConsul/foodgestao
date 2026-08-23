@@ -547,7 +547,7 @@ export default function DpHistoricoCompleto() {
     return arr;
   }, [filtered, sortKey, sortDir]);
 
-  const aplicarSort = (key: SortKey, dir: "asc" | "desc") => { setSortKey(key); setSortDir(dir); };
+  
 
   // ---------------- Paginação ----------------
   const [pageSize, setPageSize] = useState(25);
