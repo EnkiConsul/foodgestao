@@ -85,51 +85,44 @@ export default function DpBloqueios() {
         description="Configure regras automáticas e bloqueios manuais. Regras ativas passam a valer imediatamente em todo o sistema."
       />
 
-      {/* Filtros */}
-      <div className="bg-card border border-border rounded-2xl p-4 flex flex-wrap gap-4 items-end">
-        <div className="space-y-2">
-          <Label className="text-xs font-bold uppercase text-muted-foreground">Ano</Label>
-          <Input type="number" value={anoFiltro} onChange={(e) => setAnoFiltro(Number(e.target.value))} className="w-[120px]" />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs font-bold uppercase text-muted-foreground">Mês</Label>
-          <select value={mesFiltro} onChange={(e) => setMesFiltro(e.target.value)}
-            className="bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary w-[180px]">
-            <option value="all">Todos</option>
-            {MESES.map((m) => <option key={m} value={m}>{getMonthName(m)}</option>)}
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs font-bold uppercase text-muted-foreground">Aplicação</Label>
-          <select value={aplicacaoFiltro} onChange={(e) => setAplicacaoFiltro(e.target.value)}
-            className="bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary w-[160px]">
-            <option value="all">Todas</option>
-            <option value="anual">🔄 Anual</option>
-            <option value="unica">🔹 Única vez</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs font-bold uppercase text-muted-foreground">Unidade</Label>
-          <select value={unidadeFiltro} onChange={(e) => setUnidadeFiltro(e.target.value)}
-            className="bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary w-[180px]">
-            <option value="all">Todas</option>
-            <option value="__global__">Global</option>
-            {(unidades).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </select>
-        </div>
-        <Button variant="ghost" size="sm" onClick={() => setShowPast(!showPast)} className="flex items-center gap-2">
-          {showPast ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
-          {showPast ? "Ocultar passadas" : "Mostrar passadas"}
-        </Button>
-      </div>
-
-      {/* Regras de Bloqueio */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Calendar className="size-5 text-primary" /> Regras de Bloqueio
-          </h2>
-          <div className="flex gap-2">
+      <DpContentCard contentClassName="space-y-4 p-4 md:p-5">
+        {/* Filtros + ações: valem para as duas listas */}
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs font-bold uppercase text-muted-foreground">Ano</Label>
+            <Input type="number" value={anoFiltro} onChange={(e) => setAnoFiltro(Number(e.target.value))} className="w-[120px]" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-bold uppercase text-muted-foreground">Mês</Label>
+            <select value={mesFiltro} onChange={(e) => setMesFiltro(e.target.value)}
+              className="bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary w-full sm:w-[180px]">
+              <option value="all">Todos</option>
+              {MESES.map((m) => <option key={m} value={m}>{getMonthName(m)}</option>)}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-bold uppercase text-muted-foreground">Aplicação</Label>
+            <select value={aplicacaoFiltro} onChange={(e) => setAplicacaoFiltro(e.target.value)}
+              className="bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary w-full sm:w-[160px]">
+              <option value="all">Todas</option>
+              <option value="anual">🔄 Anual</option>
+              <option value="unica">🔹 Única vez</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-bold uppercase text-muted-foreground">Unidade</Label>
+            <select value={unidadeFiltro} onChange={(e) => setUnidadeFiltro(e.target.value)}
+              className="bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary w-full sm:w-[180px]">
+              <option value="all">Todas</option>
+              <option value="__global__">Global</option>
+              {(unidades).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+            </select>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setShowPast(!showPast)} className="flex items-center gap-2">
+            {showPast ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+            {showPast ? "Ocultar passadas" : "Mostrar passadas"}
+          </Button>
+          <div className="flex flex-1 flex-wrap justify-end gap-2">
             <Button className="rounded-full px-6" onClick={openNovaRegra}>
               <Plus className="size-4 mr-2" /> Nova Regra
             </Button>
@@ -139,53 +132,64 @@ export default function DpBloqueios() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          {regrasLoading ? (
-            <div className="p-8 text-center text-muted-foreground">Carregando…</div>
-          ) : regrasFiltradas.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">Nenhuma regra configurada.</div>
-          ) : (
-            <div className="divide-y divide-border">
-              {regrasFiltradas.map((r) => (
-                <RegraRowUI
-                  key={r.id}
-                  regra={r}
-                  onEdit={openEditRegra}
-                  onDelete={(id) => delRegra.mutate(id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+        <Separator />
 
-      {/* Próximas Datas Bloqueadas */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <CalendarX className="size-5 text-rose-500" /> Próximas Datas Bloqueadas
-          <span className="text-sm font-normal text-muted-foreground">({datasFiltradas.length} datas)</span>
-        </h2>
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          {datasLoading ? (
-            <div className="p-8 text-center text-muted-foreground">Carregando…</div>
-          ) : datasFiltradas.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">Nenhuma data bloqueada neste período.</div>
-          ) : (
-            <div className="divide-y divide-border">
-              {datasFiltradas.map((d) => (
-                <DataRow
-                  key={d.id}
-                  data={d}
-                  onEdit={openEditData}
-                  onDelete={(id) => delData.mutate(id)}
-                  onRebloquear={(row) => rebloquear.mutate(row)}
-                  onLiberar={(row) => liberar.mutate(row)}
-                />
-              ))}
+        <Tabs defaultValue="regras" className="space-y-4">
+          <DpTabsBar>
+            <TabsTrigger value="regras" className="gap-2">
+              <Calendar className="size-4" /> Regras Automáticas ({regrasFiltradas.length})
+            </TabsTrigger>
+            <TabsTrigger value="datas" className="gap-2">
+              <CalendarX className="size-4" /> Datas Bloqueadas ({datasFiltradas.length})
+            </TabsTrigger>
+          </DpTabsBar>
+
+          <TabsContent value="regras" className="mt-0">
+            <div className="rounded-2xl border border-border overflow-hidden">
+              {regrasLoading ? (
+                <div className="p-8 text-center text-muted-foreground">Carregando…</div>
+              ) : regrasFiltradas.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">Nenhuma regra configurada.</div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {regrasFiltradas.map((r) => (
+                    <RegraRowUI
+                      key={r.id}
+                      regra={r}
+                      onEdit={openEditRegra}
+                      onDelete={(id) => delRegra.mutate(id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </section>
+          </TabsContent>
+
+          <TabsContent value="datas" className="mt-0">
+            <div className="rounded-2xl border border-border overflow-hidden">
+              {datasLoading ? (
+                <div className="p-8 text-center text-muted-foreground">Carregando…</div>
+              ) : datasFiltradas.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">Nenhuma data bloqueada neste período.</div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {datasFiltradas.map((d) => (
+                    <DataRow
+                      key={d.id}
+                      data={d}
+                      onEdit={openEditData}
+                      onDelete={(id) => delData.mutate(id)}
+                      onRebloquear={(row) => rebloquear.mutate(row)}
+                      onLiberar={(row) => liberar.mutate(row)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </DpContentCard>
+
 
       <RegraDialog
         open={regraOpen}
