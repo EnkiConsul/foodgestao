@@ -155,9 +155,11 @@ export function requisitoAplicaColaborador(
     case "menor":
       return !!colab.aprendiz || (idade !== null && idade < 18);
     case "regime_pj":
-      return regime === "pj" || regime === "mei";
+      // Sócio é cadastrado com regime "pj" mas não presta serviço via contrato
+      // PJ/MEI: não exige contrato social de prestador nem nota fiscal.
+      return !socio && (regime === "pj" || regime === "mei");
     case "regime_clt":
-      return regime === "clt" || !!colab.possui_folha_ponto;
+      return !socio && (regime === "clt" || !!colab.possui_folha_ponto);
     case "estado_civil_casado":
       return ["casado", "casada", "uniao_estavel", "união estável"].includes(
         (colab.estado_civil ?? "").toLowerCase(),
