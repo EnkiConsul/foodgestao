@@ -38,7 +38,9 @@ import {
   MapPin,
   Globe2,
   ChevronDown,
+  Scale,
 } from "lucide-react";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
