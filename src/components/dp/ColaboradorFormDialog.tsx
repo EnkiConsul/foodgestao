@@ -1286,7 +1286,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         matricula: form.matricula.trim() || null,
         cargo: cargoNome,
         cargo_id: form.cargo_id,
-        unidade_id: form.unidade_id,
+        unidade_id: form.unidade_id || null,
         sindicato_id: form.sindicato_id || null,
 
         regime: regimeSelecionado,
