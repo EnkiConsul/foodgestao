@@ -12,7 +12,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { z } from "npm:zod@3";
 import { extractPeriodo, extractPeriodoFromFilename } from "../_shared/competencia.ts";
-import { detectTipoFromText, parseNaturezaLine, assinaturaDocumento, type DocTipo } from "../_shared/doc-tipos.ts";
+import { detectTipoFromText, parseNaturezaLine, assinaturaDocumento, detectarAssinatura, DOC_TIPO_EXIGE_ACEITE, type DocTipo } from "../_shared/doc-tipos.ts";
 
 const BUCKET = "dp-bulk-import";
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
