@@ -575,6 +575,38 @@ export default function DpHistoricoCompleto() {
     document.body.removeChild(a);
   };
 
+  /** Recarrega histórico e painel de conferência (as pendências derivam dos documentos). */
+  const recarregar = () => {
+    queryClient.invalidateQueries({ queryKey: ["dp_historico_unified"] });
+    queryClient.invalidateQueries({ queryKey: ["dp_doc_consistencia"] });
+    queryClient.invalidateQueries({ queryKey: ["dp_documentos"] });
+  };
+
+  const confirmarExclusao = async () => {
+    if (!excluir) return;
+    setExcluindo(true);
+    try {
+      await excluirDocumentoHistorico(excluir.id, excluir.file_path);
+      toast.success("Documento excluído. A pendência voltará a aparecer na Conferência.");
+      setExcluir(null);
+      recarregar();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao excluir o documento");
+    } finally {
+      setExcluindo(false);
+    }
+  };
+
+  const abrirSubstituir = (r: UnifiedDoc) => setSubstituir({
+    rowId: r.id,
+    titulo: r.titulo,
+    tipo_key: r.tipo_key,
+    colaborador_id: r.colaborador_id,
+    colaborador_nome: r.colaborador_nome,
+    competencia: r.competencia,
+    file_path: r.file_path,
+  });
+
   // ---------------- Drag & drop de colunas ----------------
   const soltarSobre = (alvo: ColKey) => {
     if (!dragCol || dragCol === alvo) return setDragCol(null);
