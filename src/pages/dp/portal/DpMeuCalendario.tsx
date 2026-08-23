@@ -124,6 +124,9 @@ export default function DpMeuCalendario() {
   const myUnidade = meRef.data?.unidade_id ?? null;
   const { config: regrasConfig, diasElegiveis, tetoMensal } = useDpRegrasColaborador(companyId, myUnidade, (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null, (meRef.data as { domingos_folga_mes?: number | null } | undefined)?.domingos_folga_mes ?? null);
   const resumoFolgas = resumoEscolhaFolgas(regrasConfig, { sexo: (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null });
+  /** No padrão CLT o sistema gera a folga dominical — o colaborador não marca nem remove. */
+  const folgaCltAutomatica = folgaDominicalAutomatica(regrasConfig);
+
 
 
   const colaboradoresQuery = useQuery({
