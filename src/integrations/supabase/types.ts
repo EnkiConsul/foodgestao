@@ -13734,6 +13734,7 @@ export type Database = {
         Returns: boolean
       }
       dp_processar_troca: { Args: { _troca_id: string }; Returns: Json }
+      dp_processar_troca_direta: { Args: { _troca_id: string }; Returns: Json }
       dp_purgar_colaborador: {
         Args: { p_colaborador_id: string; p_motivo?: string }
         Returns: undefined
