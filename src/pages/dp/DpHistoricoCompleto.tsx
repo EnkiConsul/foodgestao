@@ -274,52 +274,21 @@ export default function DpHistoricoCompleto() {
   const queryClient = useQueryClient();
 
 
-  const [sortKey, setSortKey] = useState<SortKey>("data");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-
-  const [colOrder, setColOrder] = useState<ColKey[]>(() => {
-    try {
-      const raw = localStorage.getItem(COL_ORDER_STORAGE);
-      if (raw) {
-        const parsed = JSON.parse(raw) as ColKey[];
-        const validos = parsed.filter((k) => DEFAULT_COL_ORDER.includes(k));
-        const faltantes = DEFAULT_COL_ORDER.filter((k) => !validos.includes(k));
-        if (validos.length) return [...validos, ...faltantes];
-      }
-    } catch { /* ignora storage inválido */ }
-    return DEFAULT_COL_ORDER;
-  });
-  const [dragCol, setDragCol] = useState<ColKey | null>(null);
-
-  /** Larguras das colunas em px, ajustáveis pelo usuário e persistidas no navegador. */
-  const [colWidths, setColWidths] = useState<Record<ColKey, number>>(() => {
-    try {
-      const raw = localStorage.getItem(COL_WIDTH_STORAGE);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<Record<ColKey, number>>;
-        const merged = { ...DEFAULT_COL_WIDTHS };
-        (Object.keys(DEFAULT_COL_WIDTHS) as ColKey[]).forEach((k) => {
-          const v = Number(parsed[k]);
-          if (Number.isFinite(v) && v >= COL_MIN_WIDTH) merged[k] = v;
-        });
-        return merged;
-      }
-    } catch { /* ignora storage inválido */ }
-    return DEFAULT_COL_WIDTHS;
+  const {
+    colOrder, colWidths, resize, resetWidth,
+    dragCol, setDragCol, soltarSobre,
+    colFilters, setColFilters, toggleColValue,
+    sortKey, sortDir, aplicarSort,
+    larguraTotal,
+  } = useDpTableColumns<ColKey, SortKey>({
+    storageKey: "dp_historico_col",
+    defaultOrder: DEFAULT_COL_ORDER,
+    defaultWidths: DEFAULT_COL_WIDTHS,
+    acoesWidth: ACOES_WIDTH,
+    defaultSortKey: "data",
+    defaultSortDir: "desc",
   });
 
-  useEffect(() => {
-    try { localStorage.setItem(COL_ORDER_STORAGE, JSON.stringify(colOrder)); } catch { /* noop */ }
-  }, [colOrder]);
-
-  useEffect(() => {
-    try { localStorage.setItem(COL_WIDTH_STORAGE, JSON.stringify(colWidths)); } catch { /* noop */ }
-  }, [colWidths]);
-
-  const larguraTotal = useMemo(
-    () => colOrder.reduce((acc, k) => acc + colWidths[k], ACOES_WIDTH),
-    [colOrder, colWidths],
-  );
 
 
   const colabMap = useMemo(() => {
