@@ -4420,6 +4420,8 @@ export type Database = {
           salario_familia_vigencia: string | null
           setor_comercio: boolean
           tipo_descanso_domingo: string
+          troca_folga_escopo: string
+          troca_folga_modo: string
           turno_categoria_labels: Json
           unidade_id: string | null
           updated_at: string
@@ -4466,6 +4468,8 @@ export type Database = {
           salario_familia_vigencia?: string | null
           setor_comercio?: boolean
           tipo_descanso_domingo?: string
+          troca_folga_escopo?: string
+          troca_folga_modo?: string
           turno_categoria_labels?: Json
           unidade_id?: string | null
           updated_at?: string
@@ -4512,6 +4516,8 @@ export type Database = {
           salario_familia_vigencia?: string | null
           setor_comercio?: boolean
           tipo_descanso_domingo?: string
+          troca_folga_escopo?: string
+          troca_folga_modo?: string
           turno_categoria_labels?: Json
           unidade_id?: string | null
           updated_at?: string
@@ -13608,6 +13614,8 @@ export type Database = {
           salario_familia_vigencia: string | null
           setor_comercio: boolean
           tipo_descanso_domingo: string
+          troca_folga_escopo: string
+          troca_folga_modo: string
           turno_categoria_labels: Json
           unidade_id: string | null
           updated_at: string
@@ -15240,6 +15248,7 @@ export type Database = {
         | "solicitacao"
         | "admin_manual"
         | "ferias"
+        | "automatica_clt"
       dp_folga_status: "agendada" | "cancelada" | "realizada"
       dp_folga_tipo: "normal" | "extra" | "ferias" | "abono" | "licenca"
       dp_folha_lancamento_status:
@@ -15779,6 +15788,7 @@ export const Constants = {
         "solicitacao",
         "admin_manual",
         "ferias",
+        "automatica_clt",
       ],
       dp_folga_status: ["agendada", "cancelada", "realizada"],
       dp_folga_tipo: ["normal", "extra", "ferias", "abono", "licenca"],
