@@ -33,7 +33,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { DocSubstituirDialog, type DocSubstituirTarget } from "@/components/dp/documentos/DocSubstituirDialog";
+import { DocDetalhesDialog } from "@/components/dp/documentos/DocDetalhesDialog";
+import { DocEventosDialog } from "@/components/dp/documentos/DocEventosDialog";
+import { Textarea } from "@/components/ui/textarea";
 import { docSourceConfig, excluirDocumentoHistorico } from "@/lib/dp/historicoDocAcoes";
+
 
 type UnifiedDoc = {
   id: string;
