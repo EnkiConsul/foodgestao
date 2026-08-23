@@ -723,6 +723,26 @@ export function ColaboradorJornadaPanel({
     return () => onRegistrarSalvar(null);
   }, [onRegistrarSalvar]);
 
+  // ── Atalho para as Regras de Folgas ────────────────────────────────────
+  // Sem alteração pendente vai direto; com alteração pergunta se salva antes.
+  const navigate = useNavigate();
+  const [irRegrasOpen, setIrRegrasOpen] = useState(false);
+  const ROTA_REGRAS = "/dp/folgas?aba=regras";
+
+  const abrirRegrasFolgas = () => {
+    if (!colaborador?.id || !alterado) { navigate(ROTA_REGRAS); return; }
+    setIrRegrasOpen(true);
+  };
+
+  const salvarEIrRegras = async () => {
+    const r = await salvarExterno();
+    if (r === "erro" || r === "cancelado") return;
+    setIrRegrasOpen(false);
+    navigate(ROTA_REGRAS);
+  };
+
+
+
 
   return (
     <div ref={topoRef} className="space-y-5">
