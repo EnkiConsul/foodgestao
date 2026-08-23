@@ -99,6 +99,10 @@ const CLT_LIKE: ContratoPolicy = {
   entraEmFolha: true,
   exigeCienciaLegal: false,
   cienciaLegalMensagem: null,
+  exigeJornada: true,
+  isentoRegrasFolga: false,
+  feriasComPeriodoAquisitivo: true,
+  remuneracaoSocietaria: false,
 };
 
 const INTERMITENTE: ContratoPolicy = {
@@ -125,6 +129,10 @@ const INTERMITENTE: ContratoPolicy = {
   entraEmFolha: true,
   exigeCienciaLegal: false,
   cienciaLegalMensagem: null,
+  exigeJornada: true,
+  isentoRegrasFolga: false,
+  feriasComPeriodoAquisitivo: true,
+  remuneracaoSocietaria: false,
 };
 
 const FREELANCER: ContratoPolicy = {
@@ -150,6 +158,10 @@ const FREELANCER: ContratoPolicy = {
   exigeCienciaLegal: true,
   cienciaLegalMensagem:
     "Freelancer sem registro em carteira não possui vínculo formalizado. Havendo habitualidade, subordinação, pessoalidade e onerosidade, a Justiça do Trabalho pode reconhecer vínculo empregatício (arts. 2º e 3º da CLT), com recolhimento retroativo de verbas e encargos. O pagamento fica fora da folha CLT, como acerto avulso.",
+  exigeJornada: true,
+  isentoRegrasFolga: false,
+  feriasComPeriodoAquisitivo: false,
+  remuneracaoSocietaria: false,
 };
 
 const PJ_LIKE: ContratoPolicy = {
@@ -172,6 +184,38 @@ const PJ_LIKE: ContratoPolicy = {
   entraEmFolha: false,
   exigeCienciaLegal: false,
   cienciaLegalMensagem: null,
+  exigeJornada: true,
+  isentoRegrasFolga: false,
+  feriasComPeriodoAquisitivo: true,
+  remuneracaoSocietaria: false,
+};
+
+/**
+ * Sócio: dono do negócio, não empregado.
+ *
+ * Não tem jornada contratual nem DSR, marca folga/férias livremente no
+ * calendário (é apenas registro de ausência para a operação) e é remunerado por
+ * pró-labore ou só por distribuição de lucros — nunca por folha CLT.
+ */
+const SOCIO: ContratoPolicy = {
+  ...PJ_LIKE,
+  label: "Sócio",
+  validaCargaSemanal: false,
+  exigeFolgaSemanal: false,
+  folgaSemanal: "nao_se_aplica",
+  folgaHint: null,
+  participaConformidadeDsr: false,
+  participaEscalaAutomatica: false,
+  jornadaLabel: "Horário de referência (opcional)",
+  jornadaHint:
+    "Sócio não tem jornada contratual. Se preencher, o horário serve apenas como referência para a operação.",
+  permiteAdiantamento: false,
+  adiantamentoHint: "Sócio é remunerado por pró-labore/lucros, fora da folha — não há adiantamento salarial.",
+  entraEmFolha: false,
+  exigeJornada: false,
+  isentoRegrasFolga: true,
+  feriasComPeriodoAquisitivo: false,
+  remuneracaoSocietaria: true,
 };
 
 const POLICIES: Record<RegimeTrabalho, ContratoPolicy> = {
@@ -184,8 +228,21 @@ const POLICIES: Record<RegimeTrabalho, ContratoPolicy> = {
   freelancer: FREELANCER,
 };
 
-/** Política do regime informado. Regime desconhecido/ausente cai no padrão CLT. */
-export function contratoPolicy(regime?: string | null): ContratoPolicy {
+/** Rótulos de vínculo (dp_colaboradores.vinculo_label) que identificam sócio. */
+export function isSocio(vinculoLabel?: string | null): boolean {
+  const v = String(vinculoLabel ?? "").toLowerCase();
+  return v === "socio" || v === "sócio";
+}
+
+/**
+ * Política do contrato.
+ *
+ * O regime do banco não distingue sócio de PJ (ambos gravam `pj`), então quem
+ * tem o rótulo do vínculo em mãos deve informá-lo para o comportamento de sócio
+ * ser aplicado. Regime desconhecido/ausente cai no padrão CLT.
+ */
+export function contratoPolicy(regime?: string | null, vinculoLabel?: string | null): ContratoPolicy {
+  if (isSocio(vinculoLabel)) return SOCIO;
   if (!regime) return CLT_LIKE;
   return POLICIES[regime as RegimeTrabalho] ?? CLT_LIKE;
 }
