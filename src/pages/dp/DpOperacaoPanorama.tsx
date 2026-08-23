@@ -335,7 +335,11 @@ export default function DpOperacaoPanorama() {
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
 
   const pessoasDaCategoria = detalheCategoria
-    ? (dia?.pessoas ?? []).filter((p) => p.categoria === detalheCategoria)
+    ? (dia?.pessoas ?? []).filter(
+        (p) =>
+          p.categoria === detalheCategoria &&
+          !(p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria)),
+      )
     : [];
 
   return (
