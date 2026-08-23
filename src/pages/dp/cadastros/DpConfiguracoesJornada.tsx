@@ -5,12 +5,13 @@ import { Save, Scale, Info, Store, Trash2, Landmark } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
-import { ReplicarRegrasDialog } from "@/components/dp/ReplicarRegrasDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
