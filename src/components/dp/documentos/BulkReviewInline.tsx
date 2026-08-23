@@ -749,6 +749,32 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
               </div>
             </div>
 
+            {/* Validação digital desta página */}
+            <div className="mt-3 rounded-lg border bg-muted/20 p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+                  Exigir validação digital do colaborador
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {current.assinatura_detectada === true
+                    ? "Este documento já parece assinado pelo colaborador. É necessário mesmo assim pedir a validação digital?"
+                    : "Padrão do sistema: o colaborador precisa dar o aceite eletrônico no portal."}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Switch
+                  checked={current.exige_aceite !== false}
+                  disabled={current.status === "imported" || setExigeAceite.isPending}
+                  onCheckedChange={(v) => setExigeAceite.mutate({ id: current.id, exige: v })}
+                  aria-label="Exigir validação digital"
+                />
+                <span className="text-xs text-muted-foreground w-20">
+                  {current.exige_aceite !== false ? "Com validação" : "Dispensado"}
+                </span>
+              </div>
+            </div>
+
           </div>
         )}
       </div>
