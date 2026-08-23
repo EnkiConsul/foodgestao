@@ -619,7 +619,10 @@ export default function DpHistoricoCompleto() {
     colaborador_nome: r.colaborador_nome,
     competencia: r.competencia,
     file_path: r.file_path,
+    unidade_id: r.unidade_id,
+    unidade_nome: r.unidade_nome,
   });
+
 
   // ---------------- Drag & drop de colunas ----------------
   const soltarSobre = (alvo: ColKey) => {
