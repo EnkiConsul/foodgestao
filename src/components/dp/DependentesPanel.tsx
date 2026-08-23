@@ -233,7 +233,7 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal, socio = fal
                 </p>
               </div>
               {dep.conta_irrf && <Badge variant="outline">IRRF</Badge>}
-              {dependenteElegivel(dep) && <Badge variant="secondary">Salário-família</Badge>}
+              {!socio && dependenteElegivel(dep) && <Badge variant="secondary">Salário-família</Badge>}
               <Button type="button" size="icon" variant="ghost" onClick={() => editar(dep)}>
                 <Pencil className="h-4 w-4" />
               </Button>
