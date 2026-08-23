@@ -875,7 +875,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     !form.nome.trim() ||
     form.cpf.replace(/\D/g, "").length !== 11 ||
     !form.cargo_id ||
-    !form.unidade_id ||
+    (!form.unidade_id && !socioSelecionado) ||
     !form.data_admissao ||
     !form.data_nascimento ||
     (isDesligado && !form.data_desligamento);
