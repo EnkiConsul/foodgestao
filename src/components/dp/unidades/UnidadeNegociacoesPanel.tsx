@@ -1,8 +1,7 @@
-import { useMemo, useRef, useState } from "react";
-import { Helmet } from "react-helmet-async";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { FileText, Plus, Pencil, Trash2, Eye, Download, Building2, Users, Calendar } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Calendar, Download, Eye, FileText, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -12,11 +11,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useDpSindicatos, useDpUnidades } from "@/hooks/useDpCadastros";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useDpSindicatos } from "@/hooks/useDpCadastros";
 import { AplicarPisoUnidadeDialog } from "@/components/dp/AplicarPisoUnidadeDialog";
-import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
-
 import type { Database } from "@/integrations/supabase/types";
 
 type Negociacao = Database["public"]["Tables"]["dp_sindicato_negociacoes"]["Row"] & {
@@ -40,7 +40,6 @@ const TIPO_LABEL: Record<TipoDoc, string> = {
 
 type FormState = {
   id?: string;
-  unidade_id: string;
   sindicato_patronal_id: string;
   sindicato_laboral_id: string;
   ano: string;
@@ -52,7 +51,6 @@ type FormState = {
 
 const currentYear = new Date().getFullYear();
 const emptyForm: FormState = {
-  unidade_id: "",
   sindicato_patronal_id: "",
   sindicato_laboral_id: "",
   ano: String(currentYear),
@@ -62,28 +60,48 @@ const emptyForm: FormState = {
   arquivo_nome: null,
 };
 
-export default function DpSindicatoNegociacoes() {
+const tipoBadgeClass = (tipo: TipoDoc) => {
+  switch (tipo) {
+    case "act":
+      return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
+    case "cct":
+      return "bg-primary text-primary-foreground hover:bg-primary/90";
+    case "aditivo":
+      return "bg-amber-500 text-white hover:bg-amber-500/90";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+};
+
+interface Props {
+  /** Unidade em edição. Quando ausente, a unidade ainda não foi salva. */
+  unidadeId?: string | null;
+  unidadeNome?: string;
+}
+
+/**
+ * Negociações coletivas (ACT/CCT/aditivos) da unidade em edição.
+ * Fica na aba Sindicato do cadastro da unidade — mesma tabela e mesmos
+ * vínculos usados no piso salarial e no enquadramento sindical.
+ */
+export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
   const sindicatos = useDpSindicatos();
-  const unidades = useDpUnidades();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [toDelete, setToDelete] = useState<Negociacao | null>(null);
-  // Aplicação do piso negociado aos cargos da unidade da negociação.
-  const [aplicar, setAplicar] = useState<{
-    unidadeId: string; unidadeNome: string; sindicatoPatronalId: string | null; vigenciaInicio: string;
-  } | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [aplicar, setAplicar] = useState<{ sindicatoPatronalId: string | null; vigenciaInicio: string } | null>(null);
 
   const list = useQuery({
-    queryKey: ["dp_sindicato_negociacoes", selectedCompanyId],
-    enabled: !!selectedCompanyId,
+    queryKey: ["dp_sindicato_negociacoes", selectedCompanyId, unidadeId],
+    enabled: !!selectedCompanyId && !!unidadeId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_sindicato_negociacoes")
         .select("*")
         .eq("company_id", selectedCompanyId!)
+        .eq("unidade_id", unidadeId!)
         .order("ano", { ascending: false })
         .order("mes", { ascending: false });
       if (error) throw error;
@@ -91,7 +109,7 @@ export default function DpSindicatoNegociacoes() {
     },
   });
 
-  // Vínculos sindicato ↔ unidade (para filtrar dropdowns por unidade selecionada)
+  // Vínculos sindicato ↔ unidade, para filtrar os selects pela unidade atual.
   const vinculos = useQuery({
     queryKey: ["dp_sindicato_unidades_all", selectedCompanyId],
     enabled: !!selectedCompanyId,
@@ -106,32 +124,25 @@ export default function DpSindicatoNegociacoes() {
 
   const sindicatoMap = useMemo(() => {
     const m = new Map<string, { nome: string; tipo: string }>();
-    (sindicatos.data ?? []).forEach((s) => m.set(s.id, { nome: s.nome, tipo: s.tipo }));
+    (sindicatos.data ?? []).forEach((s) => m.set(s.id, { nome: s.nome, tipo: (s as any).tipo ?? "patronal" }));
     return m;
   }, [sindicatos.data]);
 
-  const unidadeMap = useMemo(() => {
-    const m = new Map<string, string>();
-    (unidades.data ?? []).forEach((u) => m.set(u.id, u.nome));
-    return m;
-  }, [unidades.data]);
-
-  const sindicatosPorUnidade = (unidadeId: string, tipo: "patronal" | "laboral") => {
-    if (!unidadeId) return [];
-    const todosDoTipo = (sindicatos.data ?? []).filter((s) => s.tipo === tipo);
+  const opcoes = (tipo: "patronal" | "laboral") => {
+    const todosDoTipo = (sindicatos.data ?? []).filter((s) => ((s as any).tipo ?? "patronal") === tipo);
+    if (!unidadeId) return todosDoTipo;
     const idsVinculados = new Set(
       (vinculos.data ?? []).filter((v) => v.unidade_id === unidadeId).map((v) => v.sindicato_id),
     );
     const vinculados = todosDoTipo.filter((s) => idsVinculados.has(s.id));
-    // Fallback: se nenhum sindicato deste tipo estiver vinculado à unidade,
-    // mostra todos os sindicatos do tipo cadastrados na empresa.
+    // Fallback: sem vínculo cadastrado, mostra todos os sindicatos do tipo.
     return vinculados.length > 0 ? vinculados : todosDoTipo;
   };
 
   const upsert = useMutation({
     mutationFn: async () => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      if (!form.unidade_id) throw new Error("Selecione a unidade");
+      if (!unidadeId) throw new Error("Salve a unidade primeiro");
       if (!form.sindicato_patronal_id) throw new Error("Selecione o sindicato patronal");
       if (!form.sindicato_laboral_id) throw new Error("Selecione o sindicato laboral");
       if (!form.ano || !form.mes) throw new Error("Informe ano e mês base");
@@ -145,8 +156,7 @@ export default function DpSindicatoNegociacoes() {
       let arquivo_nome: string | null = form.arquivo_nome ?? null;
       if (form.arquivo) {
         const file = form.arquivo;
-        const safeName = sanitizeStorageFilename(file.name);
-        const path = `${selectedCompanyId}/sindicato-negociacoes/${form.unidade_id}/${Date.now()}-${safeName}`;
+        const path = `${selectedCompanyId}/sindicato-negociacoes/${unidadeId}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
         const { error: upErr } = await supabase.storage
           .from("dp-documentos")
           .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
@@ -157,7 +167,7 @@ export default function DpSindicatoNegociacoes() {
 
       const payload: any = {
         company_id: selectedCompanyId,
-        unidade_id: form.unidade_id,
+        unidade_id: unidadeId,
         sindicato_id: form.sindicato_patronal_id,
         sindicato_laboral_id: form.sindicato_laboral_id,
         ano,
@@ -200,10 +210,8 @@ export default function DpSindicatoNegociacoes() {
   });
 
   const openPdf = async (path: string, download = false) => {
-    const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60, {
-      download: download || false,
-    });
-    if (error) return toast.error(error.message);
+    const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60, { download });
+    if (error || !data) return toast.error(error?.message ?? "Erro ao gerar link");
     if (download) {
       const a = document.createElement("a");
       a.href = data.signedUrl;
@@ -225,7 +233,6 @@ export default function DpSindicatoNegociacoes() {
   const openEdit = (n: Negociacao) => {
     setForm({
       id: n.id,
-      unidade_id: n.unidade_id ?? "",
       sindicato_patronal_id: n.sindicato_id,
       sindicato_laboral_id: n.sindicato_laboral_id ?? "",
       ano: String(n.ano ?? new Date(n.data_base).getFullYear()),
@@ -237,58 +244,59 @@ export default function DpSindicatoNegociacoes() {
     setOpen(true);
   };
 
-  const tipoBadgeClass = (tipo: TipoDoc) => {
-    switch (tipo) {
-      case "act":
-        return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
-      case "cct":
-        return "bg-primary text-primary-foreground hover:bg-primary/90";
-      case "aditivo":
-        return "bg-amber-500 text-white hover:bg-amber-500/90";
-      default:
-        return "bg-muted text-muted-foreground";
-    }
-  };
+  if (!unidadeId) {
+    return (
+      <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+        Salve a unidade primeiro para cadastrar as negociações coletivas.
+      </div>
+    );
+  }
 
-  const patronalOptions = sindicatosPorUnidade(form.unidade_id, "patronal");
-  const laboralOptions = sindicatosPorUnidade(form.unidade_id, "laboral");
+  const rows = list.data ?? [];
+  const patronalOptions = opcoes("patronal");
+  const laboralOptions = opcoes("laboral");
 
   return (
-    <DpPage>
-      <Helmet><title>Negociações Coletivas — Pessoas 360°</title></Helmet>
-
-      <DpPageHeader
-        icon={FileText}
-        title="Negociações Coletivas"
-        description="Registre acordos entre sindicatos patronais e laborais, vinculados a uma unidade."
-        actions={
-          <Button onClick={openNew} disabled={(unidades.data ?? []).length === 0}>
-            <Plus className="h-4 w-4 mr-2" /> Nova Negociação
-          </Button>
-        }
-      />
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1">
+          <Label className="flex items-center gap-1.5">
+            <FileText className="h-4 w-4" aria-hidden="true" />
+            Negociações Coletivas
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Acordos ACT/CCT e aditivos desta unidade, entre o sindicato patronal e o laboral.
+          </p>
+        </div>
+        <Button variant="outline" className="h-11" onClick={openNew}>
+          <Plus className="mr-2 size-4" /> Nova Negociação
+        </Button>
+      </div>
 
       {list.isLoading ? (
-        <DpContentCard><div className="p-6 text-sm text-muted-foreground">Carregando...</div></DpContentCard>
-      ) : (list.data ?? []).length === 0 ? (
-        <DpEmptyState icon={FileText} dashed>
-          Nenhuma negociação cadastrada ainda.
-        </DpEmptyState>
+        <div className="rounded-xl border border-border p-4 text-sm text-muted-foreground">Carregando...</div>
+      ) : rows.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+          Nenhuma negociação cadastrada para {unidadeNome || "esta unidade"}.
+        </div>
       ) : (
         <div className="space-y-3">
-          {(list.data ?? []).map((n) => {
+          {rows.map((n) => {
             const patronal = sindicatoMap.get(n.sindicato_id);
             const laboral = n.sindicato_laboral_id ? sindicatoMap.get(n.sindicato_laboral_id) : null;
-            const unidadeNome = n.unidade_id ? unidadeMap.get(n.unidade_id) : null;
             const mesLabel = n.mes ? MESES[n.mes - 1] : null;
             const arquivoNome = n.arquivo_nome ?? (n.pdf_path ? n.pdf_path.split("/").pop() : null);
             return (
-              <DpContentCard key={n.id} contentClassName="p-4 md:p-5">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="flex items-center gap-2 text-base font-semibold">
-                      <Building2 className="h-4 w-4 text-primary" />
-                      <span className="truncate">{unidadeNome ?? "—"}</span>
+              <div key={n.id} className="rounded-xl border border-border bg-muted/30 p-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Badge className={tipoBadgeClass(n.tipo_documento)}>{n.tipo_documento.toUpperCase()}</Badge>
+                      {mesLabel && n.ano && (
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="h-3.5 w-3.5" /> {mesLabel}/{n.ano}
+                        </span>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       {patronal && (
@@ -301,58 +309,48 @@ export default function DpSindicatoNegociacoes() {
                           <Users className="h-3.5 w-3.5" /> {laboral.nome}
                         </span>
                       )}
-                      {mesLabel && n.ano && (
-                        <span className="inline-flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5" /> {mesLabel}/{n.ano}
-                        </span>
-                      )}
-                      <Badge className={tipoBadgeClass(n.tipo_documento)}>{n.tipo_documento.toUpperCase()}</Badge>
                     </div>
                   </div>
-                  <div className="flex gap-1 md:justify-end">
-                    {n.unidade_id && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setAplicar({
-                            unidadeId: n.unidade_id!,
-                            unidadeNome: unidadeNome ?? "unidade",
-                            sindicatoPatronalId: n.sindicato_id ?? null,
-                            vigenciaInicio: `${n.ano ?? currentYear}-${String(n.mes ?? 1).padStart(2, "0")}-01`,
-                          })
-                        }
-                      >
-                        Aplicar aos cargos
-                      </Button>
-                    )}
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(n)} aria-label="Editar">
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="min-h-10"
+                      onClick={() =>
+                        setAplicar({
+                          sindicatoPatronalId: n.sindicato_id ?? null,
+                          vigenciaInicio: `${n.ano ?? currentYear}-${String(n.mes ?? 1).padStart(2, "0")}-01`,
+                        })
+                      }
+                    >
+                      Aplicar Aos Cargos
+                    </Button>
+                    <Button size="icon" variant="ghost" className="min-h-10" onClick={() => openEdit(n)} aria-label="Editar">
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => setToDelete(n)} aria-label="Excluir">
+                    <Button size="icon" variant="ghost" className="min-h-10" onClick={() => setToDelete(n)} aria-label="Excluir">
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
-
                 </div>
 
                 {n.pdf_path && (
-                  <div className="mt-3 flex flex-col gap-2 rounded-md border bg-muted/40 px-3 py-2 md:flex-row md:items-center md:justify-between">
+                  <div className="mt-3 flex flex-col gap-2 rounded-md border bg-background px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-2 text-sm">
-                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <span className="truncate">{arquivoNome ?? "arquivo.pdf"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => openPdf(n.pdf_path!, false)}>
-                        <Eye className="h-4 w-4 mr-1.5" /> Visualizar
+                      <Button size="sm" variant="outline" className="min-h-10" onClick={() => openPdf(n.pdf_path!, false)}>
+                        <Eye className="mr-1.5 h-4 w-4" /> Visualizar
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => openPdf(n.pdf_path!, true)}>
-                        <Download className="h-4 w-4 mr-1.5" /> Baixar
+                      <Button size="sm" variant="outline" className="min-h-10" onClick={() => openPdf(n.pdf_path!, true)}>
+                        <Download className="mr-1.5 h-4 w-4" /> Baixar
                       </Button>
                     </div>
                   </div>
                 )}
-              </DpContentCard>
+              </div>
             );
           })}
         </div>
@@ -364,34 +362,18 @@ export default function DpSindicatoNegociacoes() {
             <DialogTitle>{form.id ? "Editar Negociação" : "Nova Negociação"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>Unidade *</Label>
-              <Select
-                value={form.unidade_id}
-                onValueChange={(v) => setForm({ ...form, unidade_id: v, sindicato_patronal_id: "", sindicato_laboral_id: "" })}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
-                <SelectContent>
-                  {(unidades.data ?? []).map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <p className="text-xs text-muted-foreground">Unidade: {unidadeNome || "—"}</p>
 
             <div className="space-y-1.5">
               <Label>Sindicato Patronal *</Label>
               <Select
                 value={form.sindicato_patronal_id}
                 onValueChange={(v) => setForm({ ...form, sindicato_patronal_id: v })}
-                disabled={!form.unidade_id}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={form.unidade_id ? "Selecione o patronal" : "Selecione uma unidade primeiro"} />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione o patronal" /></SelectTrigger>
                 <SelectContent>
                   {patronalOptions.length === 0 ? (
-                    <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum sindicato patronal vinculado a esta unidade.</div>
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum sindicato patronal cadastrado.</div>
                   ) : patronalOptions.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
                   ))}
@@ -404,14 +386,11 @@ export default function DpSindicatoNegociacoes() {
               <Select
                 value={form.sindicato_laboral_id}
                 onValueChange={(v) => setForm({ ...form, sindicato_laboral_id: v })}
-                disabled={!form.unidade_id}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={form.unidade_id ? "Selecione o laboral" : "Selecione uma unidade primeiro"} />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione o laboral" /></SelectTrigger>
                 <SelectContent>
                   {laboralOptions.length === 0 ? (
-                    <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum sindicato laboral vinculado a esta unidade.</div>
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum sindicato laboral cadastrado.</div>
                   ) : laboralOptions.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
                   ))}
@@ -452,7 +431,6 @@ export default function DpSindicatoNegociacoes() {
             <div className="space-y-1.5">
               <Label>Arquivo (PDF) {form.id ? "" : "*"}</Label>
               <Input
-                ref={fileRef}
                 type="file"
                 accept="application/pdf"
                 onChange={(e) => setForm({ ...form, arquivo: e.target.files?.[0] ?? null })}
@@ -488,16 +466,17 @@ export default function DpSindicatoNegociacoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
       {aplicar && (
         <AplicarPisoUnidadeDialog
           open
           onOpenChange={(v) => { if (!v) setAplicar(null); }}
-          unidadeId={aplicar.unidadeId}
-          unidadeNome={aplicar.unidadeNome}
+          unidadeId={unidadeId}
+          unidadeNome={unidadeNome || "unidade"}
           sindicatoPatronalId={aplicar.sindicatoPatronalId}
           vigenciaInicio={aplicar.vigenciaInicio}
         />
       )}
-    </DpPage>
+    </div>
   );
 }
