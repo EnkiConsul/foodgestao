@@ -221,13 +221,16 @@ export default function DpHistoricoCompleto() {
   const [colabId, setColabId] = useState("all");
   const [mes, setMes] = useState("all");
   const [ano, setAno] = useState("all");
-  const [status, setStatus] = useState("all");
   const [busca, setBusca] = useState("");
   const [preview, setPreview] = useState<UnifiedDoc | null>(null);
+  const [detalhe, setDetalhe] = useState<UnifiedDoc | null>(null);
+  const [logAberto, setLogAberto] = useState(false);
   const [excluir, setExcluir] = useState<UnifiedDoc | null>(null);
+  const [motivoExclusao, setMotivoExclusao] = useState("");
   const [excluindo, setExcluindo] = useState(false);
   const [substituir, setSubstituir] = useState<DocSubstituirTarget | null>(null);
   const queryClient = useQueryClient();
+
 
   const [sortKey, setSortKey] = useState<SortKey>("data");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
