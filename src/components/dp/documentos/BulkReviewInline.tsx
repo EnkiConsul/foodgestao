@@ -606,6 +606,14 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
                     Competência {formatCompetencia(current.detected_competencia)}
                   </Badge>
                 )}
+                {current.assinatura_detectada === true && (
+                  <Badge
+                    className="bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/40 text-[10px] whitespace-nowrap"
+                    title={current.assinatura_evidencia ?? "Assinatura identificada no documento"}
+                  >
+                    <PenLine className="mr-1 h-3 w-3" /> Já Assinado
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center justify-end gap-0.5 shrink-0">
                 <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} title="Diminuir zoom">
