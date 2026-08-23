@@ -131,9 +131,13 @@ export default function DpConfiguracoesJornada() {
     });
   };
 
+  /** Marca/desmarca uma unidade adicional que recebe a mesma regra. */
+  const toggleAlvoExtra = (id: string, marcado: boolean) =>
+    setAlvosExtras((prev) => (marcado ? [...new Set([...prev, id])] : prev.filter((x) => x !== id)));
+
   /** Grava nas unidades alvo; mantém a retaguarda da empresa quando replica para todas. */
   const persist = async (
-    alvosExtras: string[],
+    extras: string[],
     cienciaConfirmada: boolean,
     justificativa?: string,
   ) => {
@@ -141,7 +145,7 @@ export default function DpConfiguracoesJornada() {
     const nomes: Record<string, string> = {};
     unidades.forEach((u) => { nomes[u.id] = u.nome; });
 
-    const alvos: (string | null)[] = [unidadeId, ...alvosExtras];
+    const alvos: (string | null)[] = [unidadeId, ...extras];
     // Replicou para todas as unidades: atualiza também a retaguarda da empresa.
     const todas = unidades.length > 0 && alvos.length === unidades.length;
     if (todas) alvos.push(null);
@@ -149,10 +153,9 @@ export default function DpConfiguracoesJornada() {
     try {
       await saveMany({ patch: form, alvos, nomes, cienciaConfirmada, justificativa: justificativa || null });
       setAlertas([]);
-      setReplicarAberto(false);
       toast.success(
-        alvosExtras.length > 0
-          ? `Regras salvas em ${alvosExtras.length + 1} unidades`
+        extras.length > 0
+          ? `Regras salvas em ${extras.length + 1} unidades`
           : `Regras de ${unidadeAtual?.nome ?? "unidade"} atualizadas`,
       );
     } catch (e) {
@@ -163,15 +166,14 @@ export default function DpConfiguracoesJornada() {
   const [alvosPendentes, setAlvosPendentes] = useState<string[]>([]);
 
   /** Etapa final: exige ciência legal quando a regra é menos protetiva. */
-  const concluirSalvamento = (alvosExtras: string[]) => {
-    setAlvosPendentes(alvosExtras);
+  const concluirSalvamento = (extras: string[]) => {
+    setAlvosPendentes(extras);
     const pendentes = alertasDeCiencia(form, { temMulheres });
     if (pendentes.length > 0) {
-      setReplicarAberto(false);
       setAlertas(pendentes);
       return;
     }
-    void persist(alvosExtras, false);
+    void persist(extras, false);
   };
 
   const handleSave = () => {
@@ -183,11 +185,7 @@ export default function DpConfiguracoesJornada() {
       toast.error("Selecione ao menos um dia de descanso negociado.");
       return;
     }
-    if (outrasUnidades.length > 0) {
-      setReplicarAberto(true);
-      return;
-    }
-    concluirSalvamento([]);
+    concluirSalvamento(alvosExtras.filter((id) => id !== unidadeId));
   };
 
   const handleLimparRegras = async () => {
