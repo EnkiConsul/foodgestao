@@ -139,6 +139,24 @@ export default function DpMeuCalendario() {
     },
   });
 
+  const unidadesQuery = useQuery({
+    queryKey: ["dp_unidades_ativas", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_unidades")
+        .select("id, nome")
+        .eq("company_id", companyId!)
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+  const unidadesLista = unidadesQuery.data ?? [];
+
+
+
   const folgasQuery = useQuery({
     queryKey: ["dp_folgas_meu_cal", companyId, ano, mes],
     enabled: !!companyId,
