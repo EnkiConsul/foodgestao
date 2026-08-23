@@ -5,12 +5,13 @@ import { Save, Scale, Info, Store, Trash2, Landmark } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
-import { ReplicarRegrasDialog } from "@/components/dp/ReplicarRegrasDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -33,15 +34,15 @@ import {
 } from "@/lib/dp/dsr-rules";
 
 
-function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+function SubSection({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <DpContentCard contentClassName="space-y-4 p-4 md:p-5">
+    <section className="space-y-4">
       <div>
-        <h2 className="text-base font-semibold">{title}</h2>
+        <h3 className="text-sm font-semibold">{title}</h3>
         {description && <p className="text-xs text-muted-foreground">{description}</p>}
       </div>
       {children}
-    </DpContentCard>
+    </section>
   );
 }
 
@@ -72,7 +73,7 @@ export default function DpConfiguracoesJornada() {
 
   const [form, setForm] = useState<DpConfigDpForm>(DP_CONFIG_DP_DEFAULT);
   const [alertas, setAlertas] = useState<AlertaCiencia[]>([]);
-  const [replicarAberto, setReplicarAberto] = useState(false);
+  const [alvosExtras, setAlvosExtras] = useState<string[]>([]);
   const [limparAberto, setLimparAberto] = useState(false);
 
   /** Seleciona a primeira unidade quando não há escolha válida guardada. */
@@ -85,6 +86,8 @@ export default function DpConfiguracoesJornada() {
 
   useEffect(() => {
     if (unidadeId) localStorage.setItem(STORAGE_KEY, unidadeId);
+    // Trocar de unidade zera a replicação para evitar salvar em lojas por engano.
+    setAlvosExtras([]);
   }, [unidadeId]);
 
   useEffect(() => { setForm(config); }, [config]);
@@ -130,9 +133,13 @@ export default function DpConfiguracoesJornada() {
     });
   };
 
+  /** Marca/desmarca uma unidade adicional que recebe a mesma regra. */
+  const toggleAlvoExtra = (id: string, marcado: boolean) =>
+    setAlvosExtras((prev) => (marcado ? [...new Set([...prev, id])] : prev.filter((x) => x !== id)));
+
   /** Grava nas unidades alvo; mantém a retaguarda da empresa quando replica para todas. */
   const persist = async (
-    alvosExtras: string[],
+    extras: string[],
     cienciaConfirmada: boolean,
     justificativa?: string,
   ) => {
@@ -140,7 +147,7 @@ export default function DpConfiguracoesJornada() {
     const nomes: Record<string, string> = {};
     unidades.forEach((u) => { nomes[u.id] = u.nome; });
 
-    const alvos: (string | null)[] = [unidadeId, ...alvosExtras];
+    const alvos: (string | null)[] = [unidadeId, ...extras];
     // Replicou para todas as unidades: atualiza também a retaguarda da empresa.
     const todas = unidades.length > 0 && alvos.length === unidades.length;
     if (todas) alvos.push(null);
@@ -148,10 +155,9 @@ export default function DpConfiguracoesJornada() {
     try {
       await saveMany({ patch: form, alvos, nomes, cienciaConfirmada, justificativa: justificativa || null });
       setAlertas([]);
-      setReplicarAberto(false);
       toast.success(
-        alvosExtras.length > 0
-          ? `Regras salvas em ${alvosExtras.length + 1} unidades`
+        extras.length > 0
+          ? `Regras salvas em ${extras.length + 1} unidades`
           : `Regras de ${unidadeAtual?.nome ?? "unidade"} atualizadas`,
       );
     } catch (e) {
@@ -162,15 +168,14 @@ export default function DpConfiguracoesJornada() {
   const [alvosPendentes, setAlvosPendentes] = useState<string[]>([]);
 
   /** Etapa final: exige ciência legal quando a regra é menos protetiva. */
-  const concluirSalvamento = (alvosExtras: string[]) => {
-    setAlvosPendentes(alvosExtras);
+  const concluirSalvamento = (extras: string[]) => {
+    setAlvosPendentes(extras);
     const pendentes = alertasDeCiencia(form, { temMulheres });
     if (pendentes.length > 0) {
-      setReplicarAberto(false);
       setAlertas(pendentes);
       return;
     }
-    void persist(alvosExtras, false);
+    void persist(extras, false);
   };
 
   const handleSave = () => {
@@ -182,11 +187,7 @@ export default function DpConfiguracoesJornada() {
       toast.error("Selecione ao menos um dia de descanso negociado.");
       return;
     }
-    if (outrasUnidades.length > 0) {
-      setReplicarAberto(true);
-      return;
-    }
-    concluirSalvamento([]);
+    concluirSalvamento(alvosExtras.filter((id) => id !== unidadeId));
   };
 
   const handleLimparRegras = async () => {
@@ -225,18 +226,17 @@ export default function DpConfiguracoesJornada() {
         title="Regras De Folgas"
         description="Parâmetros de DSR e folga dominical — aplicados a toda a empresa ou por unidade de loja."
         icon={Scale}
-        actions={
-          <Button onClick={handleSave} disabled={saving || isLoading} className="gap-2">
-            <Save className="h-4 w-4" aria-hidden="true" />
-            {saving ? "Salvando..." : "Salvar"}
-          </Button>
-        }
       />
 
-      <Section
-        title="Unidade"
-        description="Cada unidade tem suas próprias regras — normalmente negociadas com sindicatos diferentes. Ao salvar você pode replicar a configuração para outras lojas."
-      >
+      <DpContentCard contentClassName="space-y-5 p-4 md:p-5">
+        <div>
+          <h2 className="text-base font-semibold">Regras De Folgas Da Unidade</h2>
+          <p className="text-xs text-muted-foreground">
+            Um único cadastro por unidade: descanso dominical e frequência de DSR. Você pode aplicar
+            a mesma regra a outras lojas ao salvar.
+          </p>
+        </div>
+
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1 space-y-1.5">
             <Label htmlFor="alvo-regra">Configurando as regras de</Label>
@@ -307,18 +307,63 @@ export default function DpConfiguracoesJornada() {
           </div>
         )}
 
+        {outrasUnidades.length > 0 && (
+          <div className="space-y-2 rounded-md border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Label className="text-sm">Aplicar a mesma regra também em</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button" variant="ghost" size="sm"
+                  onClick={() => setAlvosExtras(outrasUnidades.map((u) => u.id))}
+                >
+                  Selecionar todas
+                </Button>
+                <Button
+                  type="button" variant="ghost" size="sm"
+                  onClick={() => setAlvosExtras([])}
+                  disabled={alvosExtras.length === 0}
+                >
+                  Limpar seleção
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {outrasUnidades.map((u) => (
+                <label
+                  key={u.id}
+                  className="flex items-start gap-2 rounded-md border p-2 text-sm"
+                  htmlFor={`alvo-${u.id}`}
+                >
+                  <Checkbox
+                    id={`alvo-${u.id}`}
+                    checked={alvosExtras.includes(u.id)}
+                    onCheckedChange={(c) => toggleAlvoExtra(u.id, c === true)}
+                  />
+                  <span className="leading-tight">
+                    {u.nome}
+                    {!u.configurada && (
+                      <span className="block text-xs text-muted-foreground">ainda não configurada</span>
+                    )}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
         {naoConfigurada && unidadeId && (
           <p className="text-xs text-muted-foreground">
             Os campos abaixo partem do padrão legal (CLT). Ajuste e clique em Salvar para gravar as regras desta unidade.
           </p>
         )}
-      </Section>
 
+        <Separator />
 
-      <Section
-        title="Descanso Dominical"
-        description="Define se o descanso semanal segue a legislação ou um acordo/convenção coletiva vigente."
-      >
+        <SubSection
+          title="Descanso Dominical"
+          description="Define se o descanso semanal segue a legislação ou um acordo/convenção coletiva vigente."
+        >
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="tipo-descanso">Base do descanso dominical</Label>
@@ -390,10 +435,15 @@ export default function DpConfiguracoesJornada() {
             </div>
           )}
         </div>
-      </Section>
+        </SubSection>
 
+        <Separator />
 
-      <Section title="Folga dominical (DSR)">
+        <SubSection
+          title="Frequência Da Folga Dominical (DSR)"
+          description="Quantas vezes o colaborador folga no domingo, conforme a base legal ou negociada."
+        >
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="regra-dsr">Base da regra de DSR</Label>
@@ -561,18 +611,22 @@ export default function DpConfiguracoesJornada() {
 
 
         </div>
-      </Section>
+        </SubSection>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+          <p className="text-xs text-muted-foreground">
+            {alvosExtras.length > 0
+              ? `Será salvo em ${alvosExtras.length + 1} unidades.`
+              : `Será salvo apenas em ${unidadeAtual?.nome ?? "esta unidade"}.`}
+          </p>
+          <Button onClick={handleSave} disabled={saving || isLoading} className="gap-2">
+            <Save className="h-4 w-4" aria-hidden="true" />
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
+      </DpContentCard>
 
 
-
-      <ReplicarRegrasDialog
-        open={replicarAberto}
-        unidadeAtualNome={unidadeAtual?.nome ?? "esta unidade"}
-        outrasUnidades={outrasUnidades}
-        saving={saving}
-        onCancel={() => setReplicarAberto(false)}
-        onConfirm={(alvos) => concluirSalvamento(alvos)}
-      />
 
       <AlertDialog open={limparAberto} onOpenChange={setLimparAberto}>
         <AlertDialogContent>
