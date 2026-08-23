@@ -67,13 +67,6 @@ const TIPO_OPTIONS = [
   { value: "act_cct", label: "Negociação Sindical" },
 ];
 
-const STATUS_OPTIONS = [
-  { value: "aprovado", label: "Aprovado" },
-  { value: "pendente", label: "Pendente" },
-  { value: "recusado", label: "Recusado" },
-  { value: "disponivel", label: "Disponível" },
-];
-
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
@@ -86,20 +79,6 @@ function fmtCompetencia(iso?: string | null): { label: string; sort: string } {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const yyyy = d.getFullYear();
   return { label: `${mm}/${yyyy}`, sort: `${yyyy}-${mm}` };
-}
-
-function statusBadgeClass(key: string) {
-  switch (key) {
-    case "aprovado":
-    case "disponivel":
-      return "bg-emerald-100 text-emerald-700 border-emerald-200";
-    case "pendente":
-      return "bg-amber-100 text-amber-700 border-amber-200";
-    case "recusado":
-      return "bg-rose-100 text-rose-700 border-rose-200";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
 }
 
 function tipoBadgeClass(key: string) {
