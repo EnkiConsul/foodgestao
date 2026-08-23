@@ -578,7 +578,7 @@ export default function DpHistoricoCompleto() {
   /** Recarrega histórico e painel de conferência (as pendências derivam dos documentos). */
   const recarregar = () => {
     queryClient.invalidateQueries({ queryKey: ["dp_historico_unified"] });
-    queryClient.invalidateQueries({ queryKey: ["dp_doc_consistencia"] });
+    queryClient.invalidateQueries({ queryKey: ["dp_doc_consistencia_janela"] });
     queryClient.invalidateQueries({ queryKey: ["dp_documentos"] });
   };
 
