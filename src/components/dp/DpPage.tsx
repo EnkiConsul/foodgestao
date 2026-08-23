@@ -1,8 +1,23 @@
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/titleCase";
+
+/**
+ * Quando uma tela é renderizada dentro de outra (como aba), o wrapper
+ * `DpPage` deixa de aplicar largura máxima e o `DpPageHeader` mostra apenas
+ * as ações — o título fica a cargo da tela hospedeira.
+ */
+const DpEmbeddedContext = createContext(false);
+
+export function DpEmbeddedProvider({ children }: { children: ReactNode }) {
+  return <DpEmbeddedContext.Provider value={true}>{children}</DpEmbeddedContext.Provider>;
+}
+
+export function useDpEmbedded() {
+  return useContext(DpEmbeddedContext);
+}
 
 interface DpPageProps {
   children: ReactNode;
@@ -11,6 +26,10 @@ interface DpPageProps {
 }
 
 export function DpPage({ children, className, narrow = false }: DpPageProps) {
+  const embedded = useDpEmbedded();
+  if (embedded) {
+    return <div className={cn("dp-page-embedded space-y-4 md:space-y-6 w-full", className)}>{children}</div>;
+  }
   return (
     <div className={cn("dp-page space-y-4 md:space-y-6 mx-auto w-full", narrow ? "max-w-5xl" : "max-w-7xl", className)}>
       {children}
