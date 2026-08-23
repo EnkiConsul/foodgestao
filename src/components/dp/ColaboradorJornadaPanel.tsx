@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { CalendarOff, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert, CopyPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -717,6 +723,26 @@ export function ColaboradorJornadaPanel({
     return () => onRegistrarSalvar(null);
   }, [onRegistrarSalvar]);
 
+  // ── Atalho para as Regras de Folgas ────────────────────────────────────
+  // Sem alteração pendente vai direto; com alteração pergunta se salva antes.
+  const navigate = useNavigate();
+  const [irRegrasOpen, setIrRegrasOpen] = useState(false);
+  const ROTA_REGRAS = "/dp/folgas?aba=regras";
+
+  const abrirRegrasFolgas = () => {
+    if (!colaborador?.id || !alterado) { navigate(ROTA_REGRAS); return; }
+    setIrRegrasOpen(true);
+  };
+
+  const salvarEIrRegras = async () => {
+    const r = await salvarExterno();
+    if (r === "erro" || r === "cancelado") return;
+    setIrRegrasOpen(false);
+    navigate(ROTA_REGRAS);
+  };
+
+
+
 
   return (
     <div ref={topoRef} className="space-y-5">
@@ -994,8 +1020,9 @@ export function ColaboradorJornadaPanel({
               </div>
               <Button
                 type="button" variant="outline" size="sm" className="gap-2"
-                onClick={() => window.open("/dp/folgas?aba=regras", "_blank", "noopener")}
+                onClick={abrirRegrasFolgas}
               >
+
                 <CalendarOff className="h-4 w-4" aria-hidden="true" /> Ver Regras De Folgas
               </Button>
             </div>
@@ -1141,6 +1168,34 @@ export function ColaboradorJornadaPanel({
         onCancel={() => onFecharCiencia(false)}
         onConfirm={(j) => void onConfirmarCiencia(j)}
       />
+
+      <AlertDialog open={irRegrasOpen} onOpenChange={setIrRegrasOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar o horário antes de ir?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações não salvas no horário de trabalho. Deseja salvar antes de abrir
+              as Regras de Folgas?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button
+              type="button" variant="outline"
+              onClick={() => { setIrRegrasOpen(false); navigate(ROTA_REGRAS); }}
+            >
+              Ir sem salvar
+            </Button>
+            <AlertDialogAction
+              disabled={saving}
+              onClick={(e) => { e.preventDefault(); void salvarEIrRegras(); }}
+            >
+              {saving ? "Salvando..." : "Salvar e ir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <CopiarConfigColaboradorDialog
         open={copiarOpen}
