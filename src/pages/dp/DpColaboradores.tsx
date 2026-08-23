@@ -400,6 +400,7 @@ export default function DpColaboradores() {
                       key={k}
                       label={COLS[k].label}
                       width={colWidths[k]}
+                      center={COLS[k].center}
                       sortAtivo={sortKey === COLS[k].sortKey}
                       sortDir={sortDir}
                       onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
@@ -417,11 +418,12 @@ export default function DpColaboradores() {
                     />
                   ))}
                   <TableHead
-                    className="uppercase text-xs tracking-wider text-right"
+                    className="uppercase text-xs tracking-wider text-center"
                     style={{ width: COLAB_ACOES_WIDTH }}
                   >
                     Ações
                   </TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
