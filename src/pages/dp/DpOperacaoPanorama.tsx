@@ -532,9 +532,15 @@ export default function DpOperacaoPanorama() {
                                       {formatarHoras(p.carga_prevista_horas)}
                                     </p>
                                   </div>
-                                  <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
-                                    {CATEGORIA_LABEL[p.categoria]}
-                                  </Badge>
+                                  <div className="flex shrink-0 items-center gap-1.5">
+                                    {p.socio && (
+                                      <Badge variant="outline" className="border-primary/40 text-primary">Sócio</Badge>
+                                    )}
+                                    <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
+                                      {CATEGORIA_LABEL[p.categoria]}
+                                    </Badge>
+                                  </div>
+
                                 </li>
                               ))}
                             </ul>
