@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -10,6 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  GripVertical,
+  Handshake,
   HeartPulse,
   Plane,
   RotateCcw,
@@ -19,15 +21,25 @@ import {
   UserX,
 } from "lucide-react";
 import { useDpOperacaoPanorama, type DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
-import { useDpCoberturaMinima } from "@/hooks/useDpCoberturaMinima";
-import { resolverCoberturaMinima } from "@/lib/dp/cobertura-utils";
+import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import {
+  blocosPorFuncionamento,
   CATEGORIA_LABEL,
   mensagemAlerta,
   somarDias,
   type CategoriaDia,
-  type PessoaPanorama,
 } from "@/lib/dp/operacao-panorama";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
@@ -92,6 +104,74 @@ const CATEGORIA_ICON: Record<CategoriaDia, typeof Users> = {
   atestado: HeartPulse,
 };
 
+type CardKey = CategoriaDia | "folga_socio";
+
+const CARDS_DIA: CardKey[] = [...CATEGORIA_ORDEM, "folga_socio"];
+const CARDS_MES = ["dias_mes", "media_pessoas", "dias_fora_padrao", "dias_sem_ninguem"] as const;
+type CardMesKey = (typeof CARDS_MES)[number];
+
+const PREFS_KEY = "operacao_cards";
+const UNIDADE_KEY = "operacao_unidade";
+
+/** Card arrastável: o conteúdo é o DpStatCard normal com um handle discreto. */
+function CardArrastavel({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`relative ${isDragging ? "z-10 opacity-80" : ""}`}
+    >
+      {children}
+      <button
+        type="button"
+        aria-label="Reordenar card"
+        className="absolute right-1 top-1 rounded p-1 text-muted-foreground/60 hover:bg-muted hover:text-muted-foreground"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function GradeCards({
+  ordem,
+  onReordenar,
+  render,
+}: {
+  ordem: string[];
+  onReordenar: (next: string[]) => void;
+  render: (key: string) => React.ReactNode;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+  );
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const from = ordem.indexOf(String(active.id));
+    const to = ordem.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    onReordenar(arrayMove(ordem, from, to));
+  };
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={ordem} strategy={rectSortingStrategy}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {ordem.map((k) => (
+            <CardArrastavel key={k} id={k}>
+              {render(k)}
+            </CardArrastavel>
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
 function Secao({
   title,
   description,
@@ -132,14 +212,59 @@ function SituacaoBadge({ dia }: { dia: DiaPanorama }) {
 export default function DpOperacaoPanorama() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState(() => params.get("data") || hojeIso());
-  const [unidade, setUnidade] = useState<string>("todas");
+  const [unidade, setUnidade] = useState<string>("");
   const [aba, setAba] = useState(params.get("aba") === "mes" ? "mes" : "dia");
   const [detalheCategoria, setDetalheCategoria] = useState<CategoriaDia | null>(null);
+  const [verSocios, setVerSocios] = useState(false);
 
-  const unidadeId = unidade === "todas" ? null : unidade;
+  const { prefs, save } = useDpUserPrefs();
+  const unidadeId = !unidade || unidade === "todas" ? null : unidade;
   const competencia = data.slice(0, 7);
   const panorama = useDpOperacaoPanorama(competencia, unidadeId);
-  const { regras: regrasCobertura } = useDpCoberturaMinima();
+
+  /** Abre já em uma unidade: a última escolhida ou a de maior quadro. */
+  useEffect(() => {
+    if (unidade || !panorama.unidades.length) return;
+    const salva = (prefs.extras as Record<string, unknown>)?.[UNIDADE_KEY];
+    if (typeof salva === "string" && (salva === "todas" || panorama.unidades.some((u) => u.id === salva))) {
+      setUnidade(salva);
+      return;
+    }
+    const maior = [...panorama.unidades].sort(
+      (a, b) => (panorama.contagemPorUnidade.get(b.id) ?? 0) - (panorama.contagemPorUnidade.get(a.id) ?? 0),
+    )[0];
+    setUnidade(maior?.id ?? "todas");
+  }, [unidade, panorama.unidades, panorama.contagemPorUnidade, prefs.extras]);
+
+  const trocarUnidade = (v: string) => {
+    setUnidade(v);
+    save({ extras: { ...(prefs.extras ?? {}), [UNIDADE_KEY]: v } });
+  };
+
+  // Ordem dos cards por aba, salva nas preferências do usuário.
+  const ordemSalva = (prefs.extras as Record<string, unknown>)?.[PREFS_KEY] as
+    | Record<string, string[]>
+    | undefined;
+
+  const ordenar = (padrao: readonly string[], salvo?: string[]) => {
+    const validos = (salvo ?? []).filter((k) => padrao.includes(k));
+    return [...validos, ...padrao.filter((k) => !validos.includes(k))];
+  };
+
+  const ordemDia = useMemo(() => ordenar(CARDS_DIA, ordemSalva?.dia), [ordemSalva?.dia]);
+  const ordemMes = useMemo(() => ordenar(CARDS_MES, ordemSalva?.mes), [ordemSalva?.mes]);
+
+  const salvarOrdem = (chave: "dia" | "mes", next: string[]) =>
+    save({
+      extras: { ...(prefs.extras ?? {}), [PREFS_KEY]: { ...(ordemSalva ?? {}), [chave]: next } },
+    });
+
+  const restaurarOrdem = (chave: "dia" | "mes") => {
+    const map = { ...(ordemSalva ?? {}) };
+    delete map[chave];
+    save({ extras: { ...(prefs.extras ?? {}), [PREFS_KEY]: map } });
+    toast.success("Ordem dos cards restaurada.");
+  };
 
   const dia = panorama.diaDe(data);
   const nomeUnidade = unidadeId ? panorama.unidades.find((u) => u.id === unidadeId)?.nome ?? null : null;
@@ -156,29 +281,41 @@ export default function DpOperacaoPanorama() {
     trocarAba("dia");
   };
 
-  /** Turnos presentes no dia, com cobertura mínima exigida. */
+  /** Blocos do dia pelos períodos de funcionamento da loja, agrupados por cargo. */
   const blocos = useMemo(() => {
     if (!dia) return [];
     const trabalhando = dia.pessoas.filter(
       (p) => p.categoria === "fixo" || p.categoria === "convocado_aceito" || p.categoria === "convocado_pendente",
     );
-    const mapa = new Map<string, { id: string | null; nome: string; pessoas: PessoaPanorama[] }>();
-    for (const p of trabalhando) {
-      const chave = p.turno_id ?? "sem-turno";
-      const atual = mapa.get(chave) ?? { id: p.turno_id, nome: p.turno_nome ?? "Sem turno definido", pessoas: [] };
-      atual.pessoas.push(p);
-      mapa.set(chave, atual);
-    }
-    const minimos = resolverCoberturaMinima({
-      regras: regrasCobertura,
+    return blocosPorFuncionamento({
       data,
+      pessoas: trabalhando,
+      funcionamentoPorUnidade: panorama.funcionamentoPorUnidade,
+      unidades: panorama.unidades,
       unidadeId,
-      turnoIds: panorama.turnos.map((t) => t.id),
     });
-    return [...mapa.values()]
-      .map((b) => ({ ...b, minimo: b.id ? minimos[b.id] ?? 0 : 0 }))
-      .sort((a, b) => (a.pessoas[0]?.entrada ?? "").localeCompare(b.pessoas[0]?.entrada ?? ""));
-  }, [dia, regrasCobertura, data, unidadeId, panorama.turnos]);
+  }, [dia, data, unidadeId, panorama.funcionamentoPorUnidade, panorama.unidades]);
+
+  /** Sócios em folga ou férias no dia — substitui o antigo card de carga. */
+  const sociosAusentes = useMemo(
+    () =>
+      (dia?.pessoas ?? []).filter(
+        (p) => p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria),
+      ),
+    [dia],
+  );
+
+  const diasComSocioAusente = useMemo(
+    () =>
+      new Set(
+        panorama.dias
+          .filter((d) =>
+            d.pessoas.some((p) => p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria)),
+          )
+          .map((d) => d.data),
+      ),
+    [panorama.dias],
+  );
 
   const cargaPrevista = useMemo(
     () => (dia?.pessoas ?? []).reduce((acc, p) => acc + p.carga_prevista_horas, 0),
@@ -202,7 +339,7 @@ export default function DpOperacaoPanorama() {
       onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível reativar o alerta."),
     });
 
-  if (panorama.error) return <DpErrorState message="Não foi possível carregar o painel da operação." />;
+  if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
 
   const pessoasDaCategoria = detalheCategoria
     ? (dia?.pessoas ?? []).filter((p) => p.categoria === detalheCategoria)
@@ -211,7 +348,7 @@ export default function DpOperacaoPanorama() {
   return (
     <DpPage>
       <Helmet>
-        <title>Painel da Operação | Pessoas 360°FOOD</title>
+        <title>Operação | Pessoas 360°FOOD</title>
         <meta
           name="description"
           content="Acompanhe quantos colaboradores fixos, intermitentes convocados, folgas, férias e atestados a operação tem em cada dia."
@@ -219,7 +356,7 @@ export default function DpOperacaoPanorama() {
       </Helmet>
 
       <DpPageHeader
-        title="Painel da Operação"
+        title="Operação"
         description="Quantas pessoas a operação tem em cada dia — sem precisar gerar escala."
         icon={CalendarClock}
       />
@@ -268,7 +405,7 @@ export default function DpOperacaoPanorama() {
           </div>
           <div className="space-y-1.5">
             <Label>Unidade</Label>
-            <Select value={unidade} onValueChange={setUnidade}>
+            <Select value={unidade || "todas"} onValueChange={trocarUnidade}>
               <SelectTrigger>
                 <SelectValue placeholder="Todas as unidades" />
               </SelectTrigger>
@@ -308,24 +445,43 @@ export default function DpOperacaoPanorama() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {CATEGORIA_ORDEM.map((cat) => (
-                  <DpStatCard
-                    key={cat}
-                    icon={CATEGORIA_ICON[cat]}
-                    tone={CATEGORIA_TONE[cat]}
-                    label={CATEGORIA_LABEL[cat]}
-                    value={dia.contagens[cat]}
-                    onClick={dia.contagens[cat] > 0 ? () => setDetalheCategoria(cat) : undefined}
-                  />
-                ))}
-                <DpStatCard
-                  icon={Clock}
-                  tone="muted"
-                  label="Carga Prevista"
-                  value={formatarHoras(cargaPrevista)}
-                  hint={`${dia.trabalhando} pessoa(s) na operação`}
-                />
+              <GradeCards
+                ordem={ordemDia}
+                onReordenar={(next) => salvarOrdem("dia", next)}
+                render={(k) => {
+                  if (k === "folga_socio") {
+                    return (
+                      <DpStatCard
+                        icon={Handshake}
+                        tone={sociosAusentes.length ? "warning" : "muted"}
+                        label="Folga Sócio"
+                        value={sociosAusentes.length}
+                        hint={
+                          sociosAusentes.length
+                            ? "Clique para ver quem está ausente"
+                            : `${formatarHoras(cargaPrevista)} previstas no dia`
+                        }
+                        onClick={sociosAusentes.length ? () => setVerSocios(true) : undefined}
+                      />
+                    );
+                  }
+                  const cat = k as CategoriaDia;
+                  return (
+                    <DpStatCard
+                      icon={CATEGORIA_ICON[cat]}
+                      tone={CATEGORIA_TONE[cat]}
+                      label={CATEGORIA_LABEL[cat]}
+                      value={dia.contagens[cat]}
+                      onClick={dia.contagens[cat] > 0 ? () => setDetalheCategoria(cat) : undefined}
+                    />
+                  );
+                }}
+              />
+              <div className="flex justify-end">
+                <Button variant="ghost" size="sm" onClick={() => restaurarOrdem("dia")}>
+                  <RotateCcw className="mr-1.5 h-4 w-4" />
+                  Restaurar ordem padrão
+                </Button>
               </div>
 
               {dia.avaliacao.situacao !== "sem_padrao" && dia.avaliacao.situacao !== "ok" && (
@@ -356,33 +512,56 @@ export default function DpOperacaoPanorama() {
               {blocos.length ? (
                 blocos.map((bloco) => (
                   <Secao
-                    key={bloco.id ?? "sem-turno"}
-                    title={bloco.nome}
-                    description={`${bloco.pessoas.length} pessoa(s)${bloco.minimo ? ` · mínimo ${bloco.minimo}` : ""}`}
+                    key={bloco.key}
+                    title={bloco.titulo}
+                    description={[
+                      bloco.horario,
+                      !unidadeId && bloco.unidade_nome ? bloco.unidade_nome : null,
+                      `${bloco.pessoas.length} pessoa(s)`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                     action={
-                      bloco.minimo > bloco.pessoas.length ? (
-                        <Badge variant="destructive">
-                          Falta {bloco.minimo - bloco.pessoas.length}
-                        </Badge>
-                      ) : undefined
+                      bloco.fechado ? <Badge variant="outline">Fora do funcionamento</Badge> : undefined
                     }
                   >
-                    <ul className="divide-y">
-                      {bloco.pessoas.map((p) => (
-                        <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{p.nome}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {p.entrada ?? "--:--"} às {p.saida ?? "--:--"}
-                              {p.termina_no_dia_seguinte ? " (+1)" : ""} · {formatarHoras(p.carga_prevista_horas)}
+                    {bloco.pessoas.length ? (
+                      <div className="space-y-3">
+                        {bloco.grupos.map((g) => (
+                          <div key={g.cargo_id ?? "sem-cargo"}>
+                            <p className="mb-1 text-xs font-semibold text-muted-foreground">
+                              {g.cargo_nome} ({g.pessoas.length})
                             </p>
+                            <ul className="divide-y">
+                              {g.pessoas.map((p) => (
+                                <li
+                                  key={p.colaborador_id}
+                                  className="flex items-center justify-between gap-3 py-2"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium">{p.nome}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {p.entrada ?? "--:--"} às {p.saida ?? "--:--"}
+                                      {p.termina_no_dia_seguinte ? " (+1)" : ""} ·{" "}
+                                      {formatarHoras(p.carga_prevista_horas)}
+                                    </p>
+                                  </div>
+                                  <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
+                                    {CATEGORIA_LABEL[p.categoria]}
+                                  </Badge>
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                          <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
-                            {CATEGORIA_LABEL[p.categoria]}
-                          </Badge>
-                        </li>
-                      ))}
-                    </ul>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {bloco.fechado
+                          ? "A unidade está fechada neste dia e ninguém está previsto."
+                          : "Ninguém previsto neste período."}
+                      </p>
+                    )}
                   </Secao>
                 ))
               ) : (
@@ -420,37 +599,58 @@ export default function DpOperacaoPanorama() {
             <Skeleton className="h-64 w-full" />
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <DpStatCard
-                  icon={CalendarDays}
-                  label="Dias no Mês"
-                  value={panorama.dias.length}
-                  hint={competenciaExtenso(competencia)}
-                />
-                <DpStatCard
-                  icon={Users}
-                  label="Média de Pessoas por Dia"
-                  value={
-                    panorama.dias.length
-                      ? Math.round(
-                          panorama.dias.reduce((a, d) => a + d.trabalhando, 0) / panorama.dias.length,
-                        )
-                      : 0
-                  }
-                />
-                <DpStatCard
-                  icon={AlertTriangle}
-                  tone={diasAlerta.length ? "warning" : "muted"}
-                  label="Dias Fora do Padrão"
-                  value={diasAlerta.length}
-                  hint="Sem alertas resolvidos"
-                />
-                <DpStatCard
-                  icon={UserX}
-                  tone="muted"
-                  label="Dias Sem Ninguém"
-                  value={panorama.dias.filter((d) => d.trabalhando === 0).length}
-                />
+              <GradeCards
+                ordem={ordemMes}
+                onReordenar={(next) => salvarOrdem("mes", next)}
+                render={(k) => {
+                  if (k === "dias_mes")
+                    return (
+                      <DpStatCard
+                        icon={CalendarDays}
+                        label="Dias no Mês"
+                        value={panorama.dias.length}
+                        hint={competenciaExtenso(competencia)}
+                      />
+                    );
+                  if (k === "media_pessoas")
+                    return (
+                      <DpStatCard
+                        icon={Users}
+                        label="Média de Pessoas por Dia"
+                        value={
+                          panorama.dias.length
+                            ? Math.round(
+                                panorama.dias.reduce((a, d) => a + d.trabalhando, 0) / panorama.dias.length,
+                              )
+                            : 0
+                        }
+                      />
+                    );
+                  if (k === "dias_fora_padrao")
+                    return (
+                      <DpStatCard
+                        icon={AlertTriangle}
+                        tone={diasAlerta.length ? "warning" : "muted"}
+                        label="Dias Fora do Padrão"
+                        value={diasAlerta.length}
+                        hint="Sem alertas resolvidos"
+                      />
+                    );
+                  return (
+                    <DpStatCard
+                      icon={UserX}
+                      tone="muted"
+                      label="Dias Sem Ninguém"
+                      value={panorama.dias.filter((d) => d.trabalhando === 0).length}
+                    />
+                  );
+                }}
+              />
+              <div className="flex justify-end">
+                <Button variant="ghost" size="sm" onClick={() => restaurarOrdem("mes")}>
+                  <RotateCcw className="mr-1.5 h-4 w-4" />
+                  Restaurar ordem padrão
+                </Button>
               </div>
 
               <Secao
@@ -485,6 +685,12 @@ export default function DpOperacaoPanorama() {
                         <span className="text-xs font-semibold">{Number(d.data.slice(-2))}</span>
                         {d.dispensado && <Check className="h-3 w-3 text-muted-foreground" />}
                         {d.alerta && <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />}
+                        {diasComSocioAusente.has(d.data) && (
+                          <span
+                            aria-label="Sócio em folga ou férias"
+                            className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                          />
+                        )}
                       </div>
                       <p className="text-[11px] font-medium">{d.trabalhando} pessoa(s)</p>
                       <p className="text-[10px] leading-tight text-muted-foreground">
@@ -498,7 +704,8 @@ export default function DpOperacaoPanorama() {
                   ))}
                 </div>
                 <p className="mt-3 text-[11px] text-muted-foreground">
-                  F = fixos escalados · I = intermitentes convocados · FG = folgas
+                  F = fixos escalados · I = intermitentes convocados · FG = folgas · ponto âmbar = sócio
+                  em folga/férias
                 </p>
               </Secao>
 
@@ -542,6 +749,26 @@ export default function DpOperacaoPanorama() {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={verSocios} onOpenChange={setVerSocios}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Folga Sócio</DialogTitle>
+            <DialogDescription className="first-letter:uppercase">{dataExtenso(data)}</DialogDescription>
+          </DialogHeader>
+          <ul className="max-h-[60vh] divide-y overflow-y-auto">
+            {sociosAusentes.map((p) => (
+              <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+                <span className="truncate text-sm">{p.nome}</span>
+                <Badge variant="outline">{p.categoria === "ferias" ? "Férias" : "Folga"}</Badge>
+              </li>
+            ))}
+            {!sociosAusentes.length && (
+              <li className="py-2 text-sm text-muted-foreground">Nenhum sócio ausente neste dia.</li>
+            )}
+          </ul>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!detalheCategoria} onOpenChange={(o) => !o && setDetalheCategoria(null)}>
         <DialogContent>

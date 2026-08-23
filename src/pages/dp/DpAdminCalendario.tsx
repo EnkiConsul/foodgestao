@@ -81,6 +81,9 @@ import {
 } from "@/lib/dp/bloqueio-rules";
 import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDialog";
 import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
+import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
+import { isSocio } from "@/lib/dp/contrato-policy";
+
 
 const isoWeekKey = (d: Date) => `${getISOWeekYear(d)}-${getISOWeek(d)}`;
 
@@ -100,6 +103,13 @@ export default function DpAdminCalendario() {
   const [dayOpen, setDayOpen] = useState<string | null>(null);
   const [assignUser, setAssignUser] = useState("");
   const [editLimit, setEditLimit] = useState<number>(1);
+  const [socioBloqueio, setSocioBloqueio] = useState<{
+    nome: string;
+    datas: string[];
+    unidadeId: string | null;
+    tipo: "folga" | "ferias";
+  } | null>(null);
+
 
   const range = useMemo(() => {
     const start = startOfMonth(new Date(ano, mes - 1, 1));
@@ -567,10 +577,20 @@ export default function DpAdminCalendario() {
       toast.success(input.modo === "extra" ? "Folga extra atribuída" : "Folga atribuída");
       qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
       setConfirmDialog(null);
+      const colab = colaboradores.find((c: any) => c.id === assignUser);
+      if (colab && isSocio(colab.vinculo_label)) {
+        setSocioBloqueio({
+          nome: colab.nome,
+          datas: [input.iso],
+          unidadeId: colab.unidade_id ?? null,
+          tipo: "folga",
+        });
+      }
       setAssignUser("");
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao atribuir"),
   });
+
 
   const prepararAtribuicao = async () => {
     if (!dayOpen) return;
@@ -1032,6 +1052,20 @@ export default function DpAdminCalendario() {
         }}
         onLiberarGlobal={() => liberarData.mutate({ unidadeId: null })}
       />
+
+      {socioBloqueio && selectedCompanyId && (
+        <SocioBloqueioDialog
+          open
+          onOpenChange={(o) => !o && setSocioBloqueio(null)}
+          companyId={selectedCompanyId}
+          nome={socioBloqueio.nome}
+          datas={socioBloqueio.datas}
+          unidadeId={socioBloqueio.unidadeId}
+          unidades={unidades.map((u: any) => ({ id: u.id, nome: u.nome }))}
+          tipo={socioBloqueio.tipo}
+        />
+      )}
     </DpPage>
+
   );
 }
