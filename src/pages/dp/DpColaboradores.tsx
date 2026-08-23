@@ -230,23 +230,26 @@ export default function DpColaboradores() {
     },
 
     perfil: {
-      label: "Perfil", sortKey: "perfil",
+      label: "Perfil", sortKey: "perfil", center: true,
       value: (c) => PERFIL_LABEL[((c as any).perfil_acesso as string | null) ?? "colaborador"],
       render: (c) => {
         const perfil = (c as any).perfil_acesso as string | null;
         return (
-          <Badge
-            variant="outline"
-            className={
-              perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30"
-              : perfil === "gestor" ? "bg-primary/10 text-primary border-primary/30"
-              : ""
-            }
-          >
-            {PERFIL_LABEL[perfil ?? "colaborador"]}
-          </Badge>
+          <div className="text-center">
+            <Badge
+              variant="outline"
+              className={
+                perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30"
+                : perfil === "gestor" ? "bg-primary/10 text-primary border-primary/30"
+                : ""
+              }
+            >
+              {PERFIL_LABEL[perfil ?? "colaborador"]}
+            </Badge>
+          </div>
         );
       },
+
     },
   };
 
