@@ -34,7 +34,6 @@ import {
   Upload,
   User,
   Users,
-  Wand2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -95,10 +94,10 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     id: "rotina",
     label: "Rotina",
     icon: CalendarClock,
-    hubTo: "/dp/operacao",
+    hubTo: "/dp/escalas/mes",
     matchPrefixes: [
-      "/dp/operacao",
       "/dp/escalas",
+      "/dp/operacao",
       "/dp/convocacoes",
       "/dp/folgas/calendario",
       "/dp/solicitacoes",
@@ -109,9 +108,8 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       "/dp/conformidade-dsr",
     ],
     items: [
-      { label: "Operação do Dia", to: "/dp/operacao", icon: CalendarClock, shortcut: true },
-      { label: "Escala do Mês", to: "/dp/escalas/mes", icon: CalendarRange, shortcut: true },
-      { label: "Gerar Escala", to: "/dp/escalas", icon: Wand2, end: true, shortcut: true },
+      { label: "Painel da Operação", to: "/dp/escalas/mes", icon: CalendarClock, shortcut: true },
+
       { label: "Convocações", to: "/dp/convocacoes", icon: BellRing },
       { label: "Calendário Geral", to: "/dp/folgas/calendario", icon: Calendar },
       { label: "Solicitações", to: "/dp/solicitacoes", icon: ClipboardList, shortcut: true },

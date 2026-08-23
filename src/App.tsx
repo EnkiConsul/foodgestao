@@ -93,8 +93,7 @@ const DpCadastroPendencias = lazyWithRetry(() => import("./pages/dp/cadastros/Dp
 const DpConfiguracoesJornada = lazyWithRetry(() => import("./pages/dp/cadastros/DpConfiguracoesJornada"));
 const DpConformidadeDsr = lazyWithRetry(() => import("./pages/dp/DpConformidadeDsr"));
 const DpEscalas = lazyWithRetry(() => import("./pages/dp/DpEscalas"));
-const DpEscalaMes = lazyWithRetry(() => import("./pages/dp/DpEscalaMes"));
-const DpOperacaoDia = lazyWithRetry(() => import("./pages/dp/DpOperacaoDia"));
+const DpOperacaoPanorama = lazyWithRetry(() => import("./pages/dp/DpOperacaoPanorama"));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
@@ -469,8 +468,8 @@ const AppRoutes = () => (
         <Route path="cadastros/regras-jornada" element={<Navigate to="/dp/folgas/configuracoes/regras" replace />} />
         <Route path="conformidade-dsr" element={<DpConformidadeDsr />} />
         <Route path="escalas" element={<DpEscalas />} />
-        <Route path="escalas/mes" element={<DpEscalaMes />} />
-        <Route path="operacao" element={<DpOperacaoDia />} />
+        <Route path="escalas/mes" element={<DpOperacaoPanorama />} />
+        <Route path="operacao" element={<Navigate to="/dp/escalas/mes" replace />} />
         <Route path="convocacoes" element={<DpConvocacoes />} />
         {/* Folha de pagamento e ponto desativados: gerados fora do sistema por ora. */}
         <Route path="ponto" element={<Navigate to="/dp" replace />} />

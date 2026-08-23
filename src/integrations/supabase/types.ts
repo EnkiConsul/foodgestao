@@ -6656,6 +6656,60 @@ export type Database = {
           },
         ]
       }
+      dp_operacao_alertas_dispensas: {
+        Row: {
+          company_id: string
+          created_at: string
+          data: string
+          dispensado_em: string
+          dispensado_por: string | null
+          id: string
+          observacao: string | null
+          padrao_snapshot: number
+          previsto_snapshot: number
+          unidade_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          data: string
+          dispensado_em?: string
+          dispensado_por?: string | null
+          id?: string
+          observacao?: string | null
+          padrao_snapshot: number
+          previsto_snapshot: number
+          unidade_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          data?: string
+          dispensado_em?: string
+          dispensado_por?: string | null
+          id?: string
+          observacao?: string | null
+          padrao_snapshot?: number
+          previsto_snapshot?: number
+          unidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_operacao_alertas_dispensas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_operacao_alertas_dispensas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_pendencias_config: {
         Row: {
           alerta_adiantamento_offset: number
