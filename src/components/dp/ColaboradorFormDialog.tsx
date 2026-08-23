@@ -1957,7 +1957,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               />
             )}
 
-            {padraoAplicado && !isEdit && (
+            {padraoAplicado && !isEdit && !socioSelecionado && (
               <div className="mb-4 rounded-xl border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
                 Benefícios sugeridos pelo padrão{" "}
                 {padraoAplicado === "cargo"
