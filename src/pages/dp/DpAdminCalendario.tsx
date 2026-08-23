@@ -1045,6 +1045,20 @@ export default function DpAdminCalendario() {
         }}
         onLiberarGlobal={() => liberarData.mutate({ unidadeId: null })}
       />
+
+      {socioBloqueio && selectedCompanyId && (
+        <SocioBloqueioDialog
+          open
+          onOpenChange={(o) => !o && setSocioBloqueio(null)}
+          companyId={selectedCompanyId}
+          nome={socioBloqueio.nome}
+          datas={socioBloqueio.datas}
+          unidadeId={socioBloqueio.unidadeId}
+          unidades={unidades.map((u: any) => ({ id: u.id, nome: u.nome }))}
+          tipo={socioBloqueio.tipo}
+        />
+      )}
     </DpPage>
+
   );
 }
