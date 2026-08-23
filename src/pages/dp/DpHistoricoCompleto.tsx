@@ -117,6 +117,7 @@ function aceiteLabel(r: UnifiedDoc) {
 function ColunaFiltroHeader(props: {
   label: string;
   width: number;
+  center?: boolean;
   sortAtivo: boolean;
   sortDir: "asc" | "desc";
   onSort: (dir: "asc" | "desc") => void;
