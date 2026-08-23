@@ -873,13 +873,15 @@ export default function DpHistoricoCompleto() {
             />
           </div>
         ) : (
-          <Table className="w-full table-fixed">
+          <div className="w-full overflow-x-auto">
+          <Table className="table-fixed" style={{ width: "100%", minWidth: larguraTotal }}>
             <TableHeader>
               <TableRow>
                 {colOrder.map((k) => renderColunaHeader(k))}
-                <TableHead className="uppercase text-xs text-right w-[96px]">Ações</TableHead>
+                <TableHead className="uppercase text-xs text-right" style={{ width: ACOES_WIDTH }}>Ações</TableHead>
               </TableRow>
             </TableHeader>
+
 
             <TableBody>
               {paged.map((r) => (
