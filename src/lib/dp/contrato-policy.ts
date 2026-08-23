@@ -55,6 +55,23 @@ export interface ContratoPolicy {
   entraEmFolha: boolean;
   /** Exige ciência formal do risco jurídico no cadastro (sem registro em carteira). */
   exigeCienciaLegal: boolean;
+  /**
+   * A jornada/horário é obrigatória no cadastro. Falso no sócio: quem é dono do
+   * negócio não tem horário contratual, então a aba fica opcional.
+   */
+  exigeJornada: boolean;
+  /**
+   * Dispensa as travas de autoatendimento de folga (teto de fim de semana,
+   * folga fixa e reserva de aniversariante). Sócio marca folga livremente.
+   */
+  isentoRegrasFolga: boolean;
+  /**
+   * Tem período aquisitivo/saldo de férias (CLT). No sócio as férias são apenas
+   * marcação de ausência no calendário.
+   */
+  feriasComPeriodoAquisitivo: boolean;
+  /** Remunerado por pró-labore/lucros, não por salário (rótulos e blocos da UI). */
+  remuneracaoSocietaria: boolean;
   /** Mensagem da ciência jurídica exibida no cadastro. */
   cienciaLegalMensagem: string | null;
 }
