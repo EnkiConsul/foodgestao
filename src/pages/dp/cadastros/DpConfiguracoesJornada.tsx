@@ -360,34 +360,28 @@ export default function DpConfiguracoesJornada() {
         <Separator />
 
         <SubSection
-          title="Descanso Dominical"
-          description="Define se o descanso semanal segue a legislação ou um acordo/convenção coletiva vigente."
+          title="Base Da Regra De Folgas"
+          description="Define de onde vem a regra de descanso: a legislação, um acordo/convenção coletiva ou uma política própria."
         >
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="tipo-descanso">Base do descanso dominical</Label>
-            <Select
-              value={form.tipo_descanso_domingo}
-              onValueChange={(v) => {
-                const tipo = v as DpConfigDpForm["tipo_descanso_domingo"];
-                setForm((f) => ({
-                  ...f,
-                  tipo_descanso_domingo: tipo,
-                  dias_descanso_negociados: tipo === "legal" ? [0] : f.dias_descanso_negociados,
-                }));
-              }}
-            >
-              <SelectTrigger id="tipo-descanso"><SelectValue /></SelectTrigger>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="base-regra">Base da regra de folgas</Label>
+            <Select value={baseRegra} onValueChange={(v) => setBaseRegra(v as BaseRegraOpcao)}>
+              <SelectTrigger id="base-regra"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="legal">Conforme legislação (domingo estrito)</SelectItem>
-                <SelectItem value="acordo_coletivo">Acordo coletivo (dias negociados)</SelectItem>
+                <SelectItem value="clt">Conforme legislação (CLT — domingo estrito)</SelectItem>
+                <SelectItem value="cct">Acordo/convenção coletiva (dias negociados)</SelectItem>
+                <SelectItem value="propria">Política própria da empresa</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              No modo acordo coletivo, a folga nos dias negociados abaixo conta como descanso semanal.
+              {travadoClt
+                ? "No padrão CLT as frequências voltam ao mínimo legal e o sistema gera automaticamente as folgas dominicais do colaborador a partir da data de admissão — ele não precisa marcá-las no portal, apenas solicitar troca ou exceção."
+                : "Fora do padrão CLT você define livremente a frequência das folgas dominicais, com registro de ciência quando a regra for menos protetiva."}
             </p>
           </div>
+
 
           {porAcordo && (
             <div className="space-y-1.5 sm:col-span-2">
