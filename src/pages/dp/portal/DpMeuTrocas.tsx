@@ -101,14 +101,28 @@ export default function DpMeuTrocas() {
         status: aceito ? "pendente_gestor" : "recusada",
       }).eq("id", id);
       if (error) throw error;
+      if (!aceito) return false;
+
+      // Regra da unidade: na troca direta o aceite já efetiva a troca.
+      const { data: cfg } = await supabase.rpc("dp_config_resolvida", {
+        _company_id: meRef.data!.company_id!,
+        _unidade_id: (meRef.data as { unidade_id?: string | null } | undefined)?.unidade_id ?? undefined,
+      });
+      const row = (Array.isArray(cfg) ? cfg[0] : cfg) as { troca_folga_modo?: string } | null;
+      if (row?.troca_folga_modo !== "direta") return false;
+      const { error: dirErr } = await supabase.rpc("dp_processar_troca_direta", { _troca_id: id });
+      if (dirErr) throw dirErr;
+      return true;
     },
-    onSuccess: () => {
-      toast.success("Resposta registrada");
+    onSuccess: (efetivada) => {
+      toast.success(efetivada ? "Troca efetivada no calendário" : "Resposta registrada");
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
+
 
   const cancelar = useMutation({
     mutationFn: async (id: string) => {
