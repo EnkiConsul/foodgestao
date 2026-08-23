@@ -81,7 +81,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_bulk_import_batches" as any)
-        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,unidade_id,referencia_data,deteccao_automatica,source_file_name")
+        .select("id,status,total_pages,processed_pages,approved_count,company_id,tipo,unidade_id,referencia_data,deteccao_automatica,source_file_name,exigir_aceite")
         .eq("id", batchId)
         .maybeSingle();
       if (error) throw error;
