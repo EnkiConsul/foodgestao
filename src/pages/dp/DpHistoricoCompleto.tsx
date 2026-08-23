@@ -656,24 +656,12 @@ export default function DpHistoricoCompleto() {
   });
 
 
-  // ---------------- Drag & drop de colunas ----------------
-  const soltarSobre = (alvo: ColKey) => {
-    if (!dragCol || dragCol === alvo) return setDragCol(null);
-    setColOrder((prev) => {
-      const arr = prev.filter((k) => k !== dragCol);
-      const idx = arr.indexOf(alvo);
-      arr.splice(idx, 0, dragCol);
-      return arr;
-    });
-    setDragCol(null);
-  };
-
   const tiposDoSelect = grupo === "all"
     ? DP_DOC_GRUPOS
     : DP_DOC_GRUPOS.filter((g) => g.grupo === grupo);
 
   const renderColunaHeader = (k: ColKey) => (
-    <ColunaFiltroHeader
+    <DpTableColumnHeader
       key={k}
       label={COLS[k].label}
       width={colWidths[k]}
@@ -690,10 +678,11 @@ export default function DpHistoricoCompleto() {
       onDragStart={() => setDragCol(k)}
       onDrop={() => soltarSobre(k)}
       onDragEnd={() => setDragCol(null)}
-      onResize={(largura) => setColWidths((p) => ({ ...p, [k]: largura }))}
-      onResetWidth={() => setColWidths((p) => ({ ...p, [k]: DEFAULT_COL_WIDTHS[k] }))}
+      onResize={(largura) => resize(k, largura)}
+      onResetWidth={() => resetWidth(k)}
     />
   );
+
 
 
   return (
