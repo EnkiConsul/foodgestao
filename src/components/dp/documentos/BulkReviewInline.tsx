@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft, ChevronRight, X, Check, Loader2, AlertTriangle,
-  ExternalLink, RotateCcw, ZoomIn, ZoomOut, CheckCircle2,
+  ExternalLink, RotateCcw, ZoomIn, ZoomOut, CheckCircle2, PenLine, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import * as pdfjsLib from "pdfjs-dist";
