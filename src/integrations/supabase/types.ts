@@ -13720,6 +13720,10 @@ export type Database = {
         Args: { _ano: number; _company_id: string }
         Returns: number
       }
+      dp_gerar_folgas_clt: {
+        Args: { _ano: number; _mes: number; _unidade_id: string }
+        Returns: number
+      }
       dp_gerar_prioridades_aniversario: {
         Args: { _ano: number; _company_id: string; _mes: number }
         Returns: number
