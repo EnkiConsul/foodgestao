@@ -932,7 +932,20 @@ export default function DpHistoricoCompleto() {
         onDone={recarregar}
       />
 
-      <AlertDialog open={!!excluir} onOpenChange={(v) => { if (!v) setExcluir(null); }}>
+      <DocDetalhesDialog
+        doc={detalhe}
+        onOpenChange={(v) => { if (!v) setDetalhe(null); }}
+        onPreview={(d) => { setDetalhe(null); setPreview(d); }}
+        onDownload={download}
+      />
+
+      <DocEventosDialog
+        open={logAberto}
+        companyId={selectedCompanyId ?? null}
+        onOpenChange={setLogAberto}
+      />
+
+      <AlertDialog open={!!excluir} onOpenChange={(v) => { if (!v) { setExcluir(null); setMotivoExclusao(""); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Documento?</AlertDialogTitle>
@@ -943,11 +956,20 @@ export default function DpHistoricoCompleto() {
                 </p>
                 <p className="rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-800">
                   O arquivo será apagado definitivamente e a pendência deste documento voltará a
-                  aparecer na Conferência de Competências.
+                  aparecer na Conferência de Competências. A exclusão fica registrada no log.
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase text-muted-foreground">Motivo Da Exclusão</Label>
+            <Textarea
+              rows={2}
+              placeholder="Ex.: arquivo importado na competência errada"
+              value={motivoExclusao}
+              onChange={(e) => setMotivoExclusao(e.target.value)}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
@@ -961,5 +983,6 @@ export default function DpHistoricoCompleto() {
         </AlertDialogContent>
       </AlertDialog>
     </DpPage>
+
   );
 }
