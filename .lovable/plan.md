@@ -52,4 +52,6 @@ Detalhes:
 - `src/pages/dp/DpHistoricoCompleto.tsx`: novas ações de linha (substituir/excluir) usando `dp_documentos` + bucket `dp-documentos`; invalidar `["dp_documentos"]` e `["dp_doc_consistencia_janela"]`; ajustar larguras/rótulos, remover `RotateCcw`/"Restaurar Colunas" e mover busca + Limpar para o cabeçalho do card.
 - Exclusão: apagar objeto do storage e a linha de `dp_documentos`; registrar motivo em `audit_logs` (padrão já usado no módulo).
 - `supabase/functions/dp-doc-bulk-ingest`: persistir a unidade resolvida pelo CNPJ no item do lote e propagar ao documento aprovado (migração para a coluna, se necessário, com GRANTs); sinalizar na revisão quando o CNPJ do PDF não existir em Unidades.
+- Assinatura: novas colunas em `dp_bulk_import_items` (assinatura detectada, evidência) e em `dp_documentos` (exigência de aceite), com migração e GRANTs; a função `dp-doc-bulk-ingest` retorna o indício de assinatura por página e `BulkReviewInline.tsx` expõe o selo e o interruptor por página, além do interruptor global do lote.
+- Aceite: o portal e os contadores de aceite passam a ignorar documentos marcados como dispensados; o histórico ganha o estado "Dispensado" na coluna Aceite.
 - Sem alteração de RLS: todas as leituras e escritas seguem por `company_id`.
