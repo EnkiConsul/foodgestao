@@ -103,6 +103,13 @@ export default function DpAdminCalendario() {
   const [dayOpen, setDayOpen] = useState<string | null>(null);
   const [assignUser, setAssignUser] = useState("");
   const [editLimit, setEditLimit] = useState<number>(1);
+  const [socioBloqueio, setSocioBloqueio] = useState<{
+    nome: string;
+    datas: string[];
+    unidadeId: string | null;
+    tipo: "folga" | "ferias";
+  } | null>(null);
+
 
   const range = useMemo(() => {
     const start = startOfMonth(new Date(ano, mes - 1, 1));
