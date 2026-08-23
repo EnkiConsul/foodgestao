@@ -26,12 +26,18 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
 import { useSindicatoContextoUnidade } from "@/hooks/useSindicatoContextoUnidade";
 import { MenosProtetivaBadge } from "@/components/dp/MenosProtetivaBadge";
+import { SalvarRegrasDialog } from "@/components/dp/SalvarRegrasDialog";
 import {
   DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo, isMenosProtetiva,
   semanasDaConfig, MODO_FREQUENCIA_LABEL, DIA_SEMANA_CURTO, ORDEM_DIAS_SEG_DOM,
-  padroesCltDe, PADRAO_LEGAL_DOMINGO_MULHER, resumoEscolhaFolgas,
-  type AlertaCiencia, type ModoFrequencia,
+  padroesCltDe, PADRAO_LEGAL_DOMINGO_MULHER, resumoEscolhaFolgas, aplicarBaseRegra,
+  TROCA_FOLGA_MODO_LABEL, TROCA_FOLGA_ESCOPO_LABEL,
+  type AlertaCiencia, type ModoFrequencia, type TrocaFolgaModo, type TrocaFolgaEscopo,
 } from "@/lib/dp/dsr-rules";
+
+/** Opções da base única da regra de folgas exibida na tela. */
+type BaseRegraOpcao = "clt" | "cct" | "propria";
+
 
 
 function SubSection({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
