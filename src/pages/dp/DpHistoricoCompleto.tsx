@@ -424,41 +424,38 @@ export default function DpHistoricoCompleto() {
     cellClass?: string;
   }> = {
     colaborador: {
-      label: "Colaborador", width: "w-[230px]", sortKey: "colaborador_nome",
+      label: "Colaborador", width: "w-[26%]", sortKey: "colaborador_nome",
       value: (r) => r.colaborador_nome,
-      render: (r) => <span className="font-semibold" title={r.colaborador_nome}>{r.colaborador_nome}</span>,
-      cellClass: "truncate",
+      render: (r) => <span className="font-semibold">{r.colaborador_nome}</span>,
+      cellClass: "whitespace-normal break-words align-top",
     },
     tipo: {
-      label: "Tipo", width: "w-[190px]", sortKey: "tipo_label",
+      label: "Tipo", width: "w-[22%]", sortKey: "tipo_label",
       value: (r) => r.tipo_label,
       render: (r) => (
-        <Badge variant="outline" className={`max-w-full truncate ${tipoBadgeClass(r.tipo_key)}`}>{r.tipo_label}</Badge>
+        <Badge
+          variant="outline"
+          className={`max-w-full whitespace-normal break-words text-left leading-tight ${tipoBadgeClass(r.tipo_key)}`}
+        >
+          {r.tipo_label}
+        </Badge>
       ),
-      cellClass: "truncate",
+      cellClass: "whitespace-normal break-words align-top",
     },
     competencia: {
-      label: "Competência", width: "w-[150px]", sortKey: "competencia_sort",
+      label: "Competência", width: "w-[13%]", sortKey: "competencia_sort",
       value: (r) => r.competencia,
       render: (r) => <span className="font-mono text-sm">{r.competencia}</span>,
-      cellClass: "whitespace-nowrap",
+      cellClass: "whitespace-nowrap align-top",
     },
     unidade: {
-      label: "Unidade", width: "w-[180px]", sortKey: "unidade_nome",
+      label: "Unidade", width: "w-[21%]", sortKey: "unidade_nome",
       value: (r) => r.unidade_nome,
-      render: (r) => <span title={r.unidade_nome}>{r.unidade_nome}</span>,
-      cellClass: "truncate",
-    },
-    status: {
-      label: "Status", width: "w-[140px]", sortKey: "status_label",
-      value: (r) => r.status_label,
-      render: (r) => (
-        <Badge variant="outline" className={`max-w-full truncate ${statusBadgeClass(r.status_key)}`}>{r.status_label}</Badge>
-      ),
-      cellClass: "truncate",
+      render: (r) => <span className="leading-tight">{r.unidade_nome}</span>,
+      cellClass: "whitespace-normal break-words align-top",
     },
     aceite: {
-      label: "Aceite", width: "w-[140px]", sortKey: "aceite_label",
+      label: "Aceite", width: "w-[11%]", sortKey: "aceite_label",
       value: (r) => aceiteLabel(r),
       render: (r) => (
         r.aceite === null
@@ -469,17 +466,10 @@ export default function DpHistoricoCompleto() {
             ? <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">Aceito</Badge>
             : <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">Aguardando</Badge>
       ),
-      cellClass: "truncate",
-    },
-    data: {
-      label: "Data", width: "w-[120px]", sortKey: "data",
-      value: (r) => new Date(r.data).toLocaleDateString("pt-BR"),
-      render: (r) => (
-        <span className="font-mono text-sm text-muted-foreground">{new Date(r.data).toLocaleDateString("pt-BR")}</span>
-      ),
-      cellClass: "whitespace-nowrap",
+      cellClass: "whitespace-normal align-top",
     },
   };
+
 
 
   // ---------------- Filtros ----------------
