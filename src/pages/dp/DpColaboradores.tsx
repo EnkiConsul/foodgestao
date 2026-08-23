@@ -36,7 +36,7 @@ import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { supabase } from "@/integrations/supabase/client";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
-import { MOTIVO_DESLIGAMENTO_LABEL, ELEGIBILIDADE_LABEL, acessoPortalAtivo, diasRestantesCarencia } from "@/lib/dp/desligamento";
+import { acessoPortalAtivo, diasRestantesCarencia } from "@/lib/dp/desligamento";
 
 const fmtDate = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 
