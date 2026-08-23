@@ -162,6 +162,8 @@ export default function DpColaboradores() {
   const COLS: Record<ColabColKey, {
     label: string;
     sortKey: ColabSortKey;
+    /** Colunas centralizadas (todas, exceto Colaborador). */
+    center?: boolean;
     value: (c: DpColaborador) => string;
     render: (c: DpColaborador) => JSX.Element;
   }> = {
@@ -187,41 +189,37 @@ export default function DpColaboradores() {
       },
     },
     cargo: {
-      label: "Cargo", sortKey: "cargo",
+      label: "Cargo", sortKey: "cargo", center: true,
       value: (c) => c.cargo_nome ?? c.cargo ?? "—",
       render: (c) => (
-        <span className="block truncate" title={c.cargo_nome ?? c.cargo ?? ""}>
+        <span className="block truncate text-center" title={c.cargo_nome ?? c.cargo ?? ""}>
           {c.cargo_nome ?? c.cargo ?? "—"}
         </span>
       ),
     },
     unidade: {
-      label: "Unidade", sortKey: "unidade",
+      label: "Unidade", sortKey: "unidade", center: true,
       value: (c) => c.unidade_nome ?? "—",
       render: (c) => (
-        <span className="block truncate" title={c.unidade_nome ?? ""}>{c.unidade_nome ?? "—"}</span>
+        <span className="block whitespace-normal break-words text-center" title={c.unidade_nome ?? ""}>
+          {c.unidade_nome ?? "—"}
+        </span>
       ),
     },
     status: {
-      label: "Status", sortKey: "status",
+      label: "Status", sortKey: "status", center: true,
       value: (c) => (c.ativo ? "Ativo" : "Desligado"),
       render: (c) => (c.ativo ? (
-        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
-          Ativo
-        </Badge>
+        <div className="text-center">
+          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+            Ativo
+          </Badge>
+        </div>
       ) : (
-        <div className="space-y-0.5">
-          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 whitespace-normal text-left leading-tight">
+        <div className="space-y-0.5 text-center">
+          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 whitespace-normal leading-tight">
             Desligado em {fmtDate(c.data_desligamento)}
           </Badge>
-          <div className="text-[11px] text-muted-foreground">
-            {(c as any).motivo_desligamento
-              ? MOTIVO_DESLIGAMENTO_LABEL[(c as any).motivo_desligamento as keyof typeof MOTIVO_DESLIGAMENTO_LABEL]
-              : "Motivo não informado"}
-            {(c as any).elegivel_recontratacao
-              ? ` • ${ELEGIBILIDADE_LABEL[(c as any).elegivel_recontratacao as keyof typeof ELEGIBILIDADE_LABEL]}`
-              : ""}
-          </div>
           <div className="text-[11px] text-muted-foreground">
             {acessoPortalAtivo((c as any).acesso_portal_ate)
               ? `Portal até ${fmtDate((c as any).acesso_portal_ate)} (${diasRestantesCarencia((c as any).acesso_portal_ate)} d)`
@@ -230,6 +228,7 @@ export default function DpColaboradores() {
         </div>
       )),
     },
+
     perfil: {
       label: "Perfil", sortKey: "perfil",
       value: (c) => PERFIL_LABEL[((c as any).perfil_acesso as string | null) ?? "colaborador"],
