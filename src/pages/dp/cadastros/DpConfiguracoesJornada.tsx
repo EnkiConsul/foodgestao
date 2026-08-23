@@ -62,7 +62,7 @@ const STORAGE_KEY = "dp:regras-folgas:unidade";
 
 export default function DpConfiguracoesJornada() {
   const embedded = useDpEmbedded();
-  const { selectedCompanyId } = useCompanyContext();
+  const { selectedCompanyId, companies } = useCompanyContext();
   const [unidadeId, setUnidadeId] = useState<string | null>(
     () => localStorage.getItem(STORAGE_KEY) || null,
   );
@@ -77,7 +77,11 @@ export default function DpConfiguracoesJornada() {
     isError: unidadesErro,
     refetch: refetchUnidades,
   } = useDpUnidades();
-  const carregandoUnidades = unidadesCarregando || unidadesBuscando;
+  // Também considera o intervalo em que a lista de empresas ainda não chegou
+  // (a busca de unidades fica desabilitada), para não piscar o aviso de "sem unidade".
+  const carregandoUnidades =
+    unidadesCarregando || unidadesBuscando || (companies?.length ?? 0) === 0;
+
   const unidades = useMemo(
     () => todasUnidades.filter((u) => u.company_id === selectedCompanyId),
     [todasUnidades, selectedCompanyId],
