@@ -59,6 +59,8 @@ export type ColaboradorContexto = {
   id: string;
   data_nascimento?: string | null;
   regime?: string | null;
+  /** Vínculo do cadastro; sócio não segue requisitos de folha CLT nem de PJ/MEI. */
+  tipo_vinculo?: string | null;
   estado_civil?: string | null;
   veiculo_proprio?: boolean | null;
   aprendiz?: boolean | null;
@@ -66,6 +68,7 @@ export type ColaboradorContexto = {
   cargo_exige_cnh?: boolean | null;
   cargo_exige_epi?: boolean | null;
 };
+
 
 export type DependenteContexto = {
   id: string;
