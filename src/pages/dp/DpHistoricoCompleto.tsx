@@ -228,7 +228,22 @@ function ColunaFiltroHeader(props: {
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Alça de redimensionamento: arraste para ajustar, duplo clique restaura o padrão */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        title="Arraste para ajustar a largura · duplo clique restaura"
+        onPointerDown={iniciarResize}
+        onDoubleClick={(e) => { e.stopPropagation(); props.onResetWidth(); }}
+        onClick={(e) => e.stopPropagation()}
+        draggable={false}
+        className={`absolute right-0 top-0 h-full w-2 cursor-col-resize touch-none after:absolute after:right-[3px] after:top-1/4 after:h-1/2 after:w-px after:bg-border after:content-[''] hover:after:bg-primary ${
+          redimensionando ? "after:bg-primary" : ""
+        }`}
+      />
     </TableHead>
+
   );
 }
 
