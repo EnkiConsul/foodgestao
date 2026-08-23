@@ -7,7 +7,7 @@ A tela `/dp/escalas/mes` deixa de "gerar escala" e passa a ser um painel de leit
 Cabeçalho com data (setas para navegar), unidade e um bloco de indicadores:
 
 - Fixos escalados
-- Intermitentes convocados (aceitos)
+- Intermitentes convocados — total, com detalhe "aceitos" e "aguardando resposta"; convocação recusada ou expirada não entra na contagem
 - Folga padrão (folga semanal da jornada)
 - Folga extra
 - Férias
