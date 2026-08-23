@@ -32,6 +32,8 @@ import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
+import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
+import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { supabase } from "@/integrations/supabase/client";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import { MOTIVO_DESLIGAMENTO_LABEL, ELEGIBILIDADE_LABEL, acessoPortalAtivo, diasRestantesCarencia } from "@/lib/dp/desligamento";
