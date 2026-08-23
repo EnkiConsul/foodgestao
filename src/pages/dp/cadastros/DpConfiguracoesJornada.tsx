@@ -26,12 +26,18 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
 import { useSindicatoContextoUnidade } from "@/hooks/useSindicatoContextoUnidade";
 import { MenosProtetivaBadge } from "@/components/dp/MenosProtetivaBadge";
+import { SalvarRegrasDialog } from "@/components/dp/SalvarRegrasDialog";
 import {
   DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo, isMenosProtetiva,
   semanasDaConfig, MODO_FREQUENCIA_LABEL, DIA_SEMANA_CURTO, ORDEM_DIAS_SEG_DOM,
-  padroesCltDe, PADRAO_LEGAL_DOMINGO_MULHER, resumoEscolhaFolgas,
-  type AlertaCiencia, type ModoFrequencia,
+  padroesCltDe, PADRAO_LEGAL_DOMINGO_MULHER, resumoEscolhaFolgas, aplicarBaseRegra,
+  TROCA_FOLGA_MODO_LABEL, TROCA_FOLGA_ESCOPO_LABEL,
+  type AlertaCiencia, type ModoFrequencia, type TrocaFolgaModo, type TrocaFolgaEscopo,
 } from "@/lib/dp/dsr-rules";
+
+/** Opções da base única da regra de folgas exibida na tela. */
+type BaseRegraOpcao = "clt" | "cct" | "propria";
+
 
 
 function SubSection({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
@@ -73,8 +79,9 @@ export default function DpConfiguracoesJornada() {
 
   const [form, setForm] = useState<DpConfigDpForm>(DP_CONFIG_DP_DEFAULT);
   const [alertas, setAlertas] = useState<AlertaCiencia[]>([]);
-  const [alvosExtras, setAlvosExtras] = useState<string[]>([]);
+  const [salvarAberto, setSalvarAberto] = useState(false);
   const [limparAberto, setLimparAberto] = useState(false);
+
 
   /** Seleciona a primeira unidade quando não há escolha válida guardada. */
   useEffect(() => {
@@ -86,9 +93,8 @@ export default function DpConfiguracoesJornada() {
 
   useEffect(() => {
     if (unidadeId) localStorage.setItem(STORAGE_KEY, unidadeId);
-    // Trocar de unidade zera a replicação para evitar salvar em lojas por engano.
-    setAlvosExtras([]);
   }, [unidadeId]);
+
 
   useEffect(() => { setForm(config); }, [config]);
 
@@ -110,13 +116,26 @@ export default function DpConfiguracoesJornada() {
   const resumoFolgas = useMemo(() => resumoEscolhaFolgas(form), [form]);
 
   const travadoClt = form.regra_dsr === "clt";
+  /** Base única da regra de folgas (unifica regra_dsr + tipo_descanso_domingo). */
+  const baseRegra: BaseRegraOpcao = porAcordo ? "cct" : form.regra_dsr === "clt" ? "clt" : "propria";
 
   const set = <K extends keyof DpConfigDpForm>(k: K, v: DpConfigDpForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
   /** Alterna a base da regra: CLT restaura e trava os padrões legais. */
-  const setBaseRegra = (v: DpConfigDpForm["regra_dsr"]) =>
-    setForm((f) => (v === "clt" ? { ...f, regra_dsr: v, ...padroesCltDe(f.setor_comercio) } : { ...f, regra_dsr: v }));
+  const setBaseRegra = (v: BaseRegraOpcao) =>
+    setForm((f) => {
+      if (v === "clt") return aplicarBaseRegra(f, "clt");
+      if (v === "cct") {
+        return {
+          ...f,
+          regra_dsr: "cct",
+          tipo_descanso_domingo: "acordo_coletivo",
+          dias_descanso_negociados: (f.dias_descanso_negociados ?? []).length ? f.dias_descanso_negociados : [0],
+        };
+      }
+      return { ...f, regra_dsr: "propria", tipo_descanso_domingo: "legal", dias_descanso_negociados: [0] };
+    });
 
   const setSetorComercio = (v: boolean) =>
     setForm((f) => ({
@@ -133,9 +152,10 @@ export default function DpConfiguracoesJornada() {
     });
   };
 
-  /** Marca/desmarca uma unidade adicional que recebe a mesma regra. */
-  const toggleAlvoExtra = (id: string, marcado: boolean) =>
-    setAlvosExtras((prev) => (marcado ? [...new Set([...prev, id])] : prev.filter((x) => x !== id)));
+
+
+
+
 
   /** Grava nas unidades alvo; mantém a retaguarda da empresa quando replica para todas. */
   const persist = async (
@@ -187,7 +207,7 @@ export default function DpConfiguracoesJornada() {
       toast.error("Selecione ao menos um dia de descanso negociado.");
       return;
     }
-    concluirSalvamento(alvosExtras.filter((id) => id !== unidadeId));
+    setSalvarAberto(true);
   };
 
   const handleLimparRegras = async () => {
@@ -307,49 +327,8 @@ export default function DpConfiguracoesJornada() {
           </div>
         )}
 
-        {outrasUnidades.length > 0 && (
-          <div className="space-y-2 rounded-md border p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Label className="text-sm">Aplicar a mesma regra também em</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button" variant="ghost" size="sm"
-                  onClick={() => setAlvosExtras(outrasUnidades.map((u) => u.id))}
-                >
-                  Selecionar todas
-                </Button>
-                <Button
-                  type="button" variant="ghost" size="sm"
-                  onClick={() => setAlvosExtras([])}
-                  disabled={alvosExtras.length === 0}
-                >
-                  Limpar seleção
-                </Button>
-              </div>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {outrasUnidades.map((u) => (
-                <label
-                  key={u.id}
-                  className="flex items-start gap-2 rounded-md border p-2 text-sm"
-                  htmlFor={`alvo-${u.id}`}
-                >
-                  <Checkbox
-                    id={`alvo-${u.id}`}
-                    checked={alvosExtras.includes(u.id)}
-                    onCheckedChange={(c) => toggleAlvoExtra(u.id, c === true)}
-                  />
-                  <span className="leading-tight">
-                    {u.nome}
-                    {!u.configurada && (
-                      <span className="block text-xs text-muted-foreground">ainda não configurada</span>
-                    )}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
+
+
 
         {naoConfigurada && unidadeId && (
           <p className="text-xs text-muted-foreground">
@@ -360,34 +339,28 @@ export default function DpConfiguracoesJornada() {
         <Separator />
 
         <SubSection
-          title="Descanso Dominical"
-          description="Define se o descanso semanal segue a legislação ou um acordo/convenção coletiva vigente."
+          title="Base Da Regra De Folgas"
+          description="Define de onde vem a regra de descanso: a legislação, um acordo/convenção coletiva ou uma política própria."
         >
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="tipo-descanso">Base do descanso dominical</Label>
-            <Select
-              value={form.tipo_descanso_domingo}
-              onValueChange={(v) => {
-                const tipo = v as DpConfigDpForm["tipo_descanso_domingo"];
-                setForm((f) => ({
-                  ...f,
-                  tipo_descanso_domingo: tipo,
-                  dias_descanso_negociados: tipo === "legal" ? [0] : f.dias_descanso_negociados,
-                }));
-              }}
-            >
-              <SelectTrigger id="tipo-descanso"><SelectValue /></SelectTrigger>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="base-regra">Base da regra de folgas</Label>
+            <Select value={baseRegra} onValueChange={(v) => setBaseRegra(v as BaseRegraOpcao)}>
+              <SelectTrigger id="base-regra"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="legal">Conforme legislação (domingo estrito)</SelectItem>
-                <SelectItem value="acordo_coletivo">Acordo coletivo (dias negociados)</SelectItem>
+                <SelectItem value="clt">Conforme legislação (CLT — domingo estrito)</SelectItem>
+                <SelectItem value="cct">Acordo/convenção coletiva (dias negociados)</SelectItem>
+                <SelectItem value="propria">Política própria da empresa</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              No modo acordo coletivo, a folga nos dias negociados abaixo conta como descanso semanal.
+              {travadoClt
+                ? "No padrão CLT as frequências voltam ao mínimo legal e o sistema gera automaticamente as folgas dominicais do colaborador a partir da data de admissão — ele não precisa marcá-las no portal, apenas solicitar troca ou exceção."
+                : "Fora do padrão CLT você define livremente a frequência das folgas dominicais, com registro de ciência quando a regra for menos protetiva."}
             </p>
           </div>
+
 
           {porAcordo && (
             <div className="space-y-1.5 sm:col-span-2">
@@ -446,24 +419,13 @@ export default function DpConfiguracoesJornada() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="regra-dsr">Base da regra de DSR</Label>
-            <Select
-              value={form.regra_dsr}
-              onValueChange={(v) => setBaseRegra(v as DpConfigDpForm["regra_dsr"])}
-            >
-              <SelectTrigger id="regra-dsr"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="clt">CLT (padrão legal)</SelectItem>
-                <SelectItem value="cct">Acordo/Convenção coletiva</SelectItem>
-                <SelectItem value="propria">Política própria da empresa</SelectItem>
-              </SelectContent>
-            </Select>
             <p className="text-xs text-muted-foreground">
               {travadoClt
-                ? "Valores fixados pelo padrão CLT — mude a base da regra para editar a frequência."
+                ? "Valores fixados pelo padrão CLT — mude a base da regra de folgas para editar a frequência. No padrão CLT o sistema já gera as folgas dominicais do colaborador."
                 : "Frequências livres: os campos abaixo podem divergir do padrão CLT, com registro de ciência."}
             </p>
           </div>
+
 
           <div className="sm:col-span-2 flex items-start justify-between gap-4 rounded-lg border p-3">
             <div>
@@ -613,11 +575,55 @@ export default function DpConfiguracoesJornada() {
         </div>
         </SubSection>
 
+        <Separator />
+
+        <SubSection
+          title="Troca De Folga Entre Colaboradores"
+          description="Define se os colaboradores podem trocar folgas entre si e sobre quais folgas a troca vale."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="troca-modo">Troca de folga</Label>
+              <Select
+                value={form.troca_folga_modo}
+                onValueChange={(v) => set("troca_folga_modo", v as DpConfigDpForm["troca_folga_modo"])}
+              >
+                <SelectTrigger id="troca-modo"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(TROCA_FOLGA_MODO_LABEL) as TrocaFolgaModo[]).map((m) => (
+                    <SelectItem key={m} value={m}>{TROCA_FOLGA_MODO_LABEL[m]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Na troca direta, o aceite do colega já efetiva a troca no calendário.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="troca-escopo">Troca permitida sobre</Label>
+              <Select
+                disabled={form.troca_folga_modo === "proibida"}
+                value={form.troca_folga_escopo}
+                onValueChange={(v) => set("troca_folga_escopo", v as DpConfigDpForm["troca_folga_escopo"])}
+              >
+                <SelectTrigger id="troca-escopo"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(TROCA_FOLGA_ESCOPO_LABEL) as TrocaFolgaEscopo[]).map((m) => (
+                    <SelectItem key={m} value={m}>{TROCA_FOLGA_ESCOPO_LABEL[m]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Folgas fora do escopo permitido são recusadas pelo sistema, com o motivo informado ao colaborador.
+              </p>
+            </div>
+          </div>
+        </SubSection>
+
         <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
           <p className="text-xs text-muted-foreground">
-            {alvosExtras.length > 0
-              ? `Será salvo em ${alvosExtras.length + 1} unidades.`
-              : `Será salvo apenas em ${unidadeAtual?.nome ?? "esta unidade"}.`}
+            Ao salvar você pode aplicar a mesma regra em outras unidades.
           </p>
           <Button onClick={handleSave} disabled={saving || isLoading} className="gap-2">
             <Save className="h-4 w-4" aria-hidden="true" />
@@ -625,6 +631,19 @@ export default function DpConfiguracoesJornada() {
           </Button>
         </div>
       </DpContentCard>
+
+      <SalvarRegrasDialog
+        open={salvarAberto}
+        onOpenChange={setSalvarAberto}
+        unidadeNome={unidadeAtual?.nome ?? "esta unidade"}
+        outrasUnidades={outrasUnidades}
+        saving={saving}
+        onConfirm={(extras) => {
+          setSalvarAberto(false);
+          concluirSalvamento(extras);
+        }}
+      />
+
 
 
 

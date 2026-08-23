@@ -6,11 +6,34 @@ export type RegraDsr = "clt" | "cct" | "propria";
 export type TipoDescansoDomingo = "legal" | "acordo_coletivo";
 /** Modelo de frequência: intervalo em semanas OU quantidade por mês. Mutuamente exclusivos. */
 export type ModoFrequencia = "semanas" | "por_mes";
+/** Como a troca de folga entre colaboradores é tratada na unidade. */
+export type TrocaFolgaModo = "direta" | "aprovacao_admin" | "proibida";
+/** Sobre qual folga a permissão de troca se aplica. */
+export type TrocaFolgaEscopo = "semanal" | "dominical" | "ambas";
 
 export const MODO_FREQUENCIA_LABEL: Record<ModoFrequencia, string> = {
   semanas: "A cada X semanas",
   por_mes: "X domingos por mês",
 };
+
+export const REGRA_DSR_LABEL: Record<RegraDsr, string> = {
+  clt: "CLT (padrão legal)",
+  cct: "Acordo / convenção coletiva",
+  propria: "Política própria da empresa",
+};
+
+export const TROCA_FOLGA_MODO_LABEL: Record<TrocaFolgaModo, string> = {
+  direta: "Direta (vale no aceite do colega)",
+  aprovacao_admin: "Somente com aprovação do administrador",
+  proibida: "Não permitida",
+};
+
+export const TROCA_FOLGA_ESCOPO_LABEL: Record<TrocaFolgaEscopo, string> = {
+  semanal: "Apenas folga semanal",
+  dominical: "Apenas folga dominical (DSR)",
+  ambas: "Folga semanal e dominical",
+};
+
 
 export const DIA_SEMANA_LABEL = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 export const DIA_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -63,6 +86,10 @@ export interface DpConfigDp {
   negociacao_id: string | null;
   /** Folgas de fim de semana garantidas por mês (sábado ou domingo). */
   folgas_fds_por_mes: number;
+  /** Regime de troca de folga entre colaboradores. */
+  troca_folga_modo: TrocaFolgaModo;
+  /** Folgas sobre as quais a troca é permitida. */
+  troca_folga_escopo: TrocaFolgaEscopo;
 }
 
 export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id" | "unidade_id"> = {
@@ -79,7 +106,10 @@ export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id" | "unidade_id">
   dias_descanso_negociados: [0],
   negociacao_id: null,
   folgas_fds_por_mes: 1,
+  troca_folga_modo: "aprovacao_admin",
+  troca_folga_escopo: "ambas",
 };
+
 
 
 /** Intervalo em semanas efetivamente aplicado (regra geral). */
@@ -283,6 +313,64 @@ export function padroesCltDe(setorComercio: boolean): Pick<
     periodicidade_domingo_mulher: PADRAO_LEGAL_DOMINGO_MULHER,
   };
 }
+
+/**
+ * Aplica ao formulário a base da regra de folgas escolhida.
+ * Em `clt`, as frequências (geral e mulheres) voltam ao padrão legal e o descanso
+ * dominical passa a ser estritamente legal, sem dias negociados.
+ */
+export function aplicarBaseRegra<T extends Partial<DpConfigDp> & { setor_comercio?: boolean }>(
+  form: T,
+  base: RegraDsr,
+): T {
+  if (base !== "clt") return { ...form, regra_dsr: base };
+  return {
+    ...form,
+    regra_dsr: "clt",
+    tipo_descanso_domingo: "legal",
+    dias_descanso_negociados: [0],
+    ...padroesCltDe(form.setor_comercio !== false),
+  };
+}
+
+/** A base da regra é o padrão legal (folga dominical gerada automaticamente)? */
+export function folgaDominicalAutomatica(cfg: Pick<DpConfigDp, "regra_dsr" | "tipo_descanso_domingo">): boolean {
+  return cfg.regra_dsr === "clt" && cfg.tipo_descanso_domingo === "legal";
+}
+
+export interface TrocaFolgaCheck {
+  permitida: boolean;
+  /** Precisa de aprovação do administrador depois do aceite do colega. */
+  exigeAprovacao: boolean;
+  motivo?: string;
+}
+
+/**
+ * A troca de folga é permitida pela regra da unidade?
+ * `dominical` = a folga trocada cai em domingo (DSR); `semanal` = qualquer outro dia.
+ */
+export function podeTrocarFolga(
+  cfg: Pick<DpConfigDp, "troca_folga_modo" | "troca_folga_escopo">,
+  tipo: "semanal" | "dominical",
+): TrocaFolgaCheck {
+  if (cfg.troca_folga_modo === "proibida") {
+    return { permitida: false, exigeAprovacao: false, motivo: "A troca de folgas não é permitida nesta unidade." };
+  }
+  const escopo = cfg.troca_folga_escopo ?? "ambas";
+  if (escopo !== "ambas" && escopo !== tipo) {
+    return {
+      permitida: false,
+      exigeAprovacao: false,
+      motivo:
+        escopo === "dominical"
+          ? "Nesta unidade a troca é permitida apenas para a folga dominical (DSR)."
+          : "Nesta unidade a troca é permitida apenas para a folga semanal.",
+    };
+  }
+  return { permitida: true, exigeAprovacao: cfg.troca_folga_modo === "aprovacao_admin" };
+}
+
+
 
 export interface BaseLegal {
   titulo: string;

@@ -4420,6 +4420,8 @@ export type Database = {
           salario_familia_vigencia: string | null
           setor_comercio: boolean
           tipo_descanso_domingo: string
+          troca_folga_escopo: string
+          troca_folga_modo: string
           turno_categoria_labels: Json
           unidade_id: string | null
           updated_at: string
@@ -4466,6 +4468,8 @@ export type Database = {
           salario_familia_vigencia?: string | null
           setor_comercio?: boolean
           tipo_descanso_domingo?: string
+          troca_folga_escopo?: string
+          troca_folga_modo?: string
           turno_categoria_labels?: Json
           unidade_id?: string | null
           updated_at?: string
@@ -4512,6 +4516,8 @@ export type Database = {
           salario_familia_vigencia?: string | null
           setor_comercio?: boolean
           tipo_descanso_domingo?: string
+          troca_folga_escopo?: string
+          troca_folga_modo?: string
           turno_categoria_labels?: Json
           unidade_id?: string | null
           updated_at?: string
@@ -13608,6 +13614,8 @@ export type Database = {
           salario_familia_vigencia: string | null
           setor_comercio: boolean
           tipo_descanso_domingo: string
+          troca_folga_escopo: string
+          troca_folga_modo: string
           turno_categoria_labels: Json
           unidade_id: string | null
           updated_at: string
@@ -13712,6 +13720,10 @@ export type Database = {
         Args: { _ano: number; _company_id: string }
         Returns: number
       }
+      dp_gerar_folgas_clt: {
+        Args: { _ano: number; _mes: number; _unidade_id: string }
+        Returns: number
+      }
       dp_gerar_prioridades_aniversario: {
         Args: { _ano: number; _company_id: string; _mes: number }
         Returns: number
@@ -13722,6 +13734,7 @@ export type Database = {
         Returns: boolean
       }
       dp_processar_troca: { Args: { _troca_id: string }; Returns: Json }
+      dp_processar_troca_direta: { Args: { _troca_id: string }; Returns: Json }
       dp_purgar_colaborador: {
         Args: { p_colaborador_id: string; p_motivo?: string }
         Returns: undefined
@@ -15240,6 +15253,7 @@ export type Database = {
         | "solicitacao"
         | "admin_manual"
         | "ferias"
+        | "automatica_clt"
       dp_folga_status: "agendada" | "cancelada" | "realizada"
       dp_folga_tipo: "normal" | "extra" | "ferias" | "abono" | "licenca"
       dp_folha_lancamento_status:
@@ -15779,6 +15793,7 @@ export const Constants = {
         "solicitacao",
         "admin_manual",
         "ferias",
+        "automatica_clt",
       ],
       dp_folga_status: ["agendada", "cancelada", "realizada"],
       dp_folga_tipo: ["normal", "extra", "ferias", "abono", "licenca"],

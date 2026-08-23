@@ -34,7 +34,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
-import { resumoEscolhaFolgas } from "@/lib/dp/dsr-rules";
+import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga } from "@/lib/dp/dsr-rules";
+
 
 import {
   buildOccupantsByDate,
@@ -124,6 +125,9 @@ export default function DpMeuCalendario() {
   const myUnidade = meRef.data?.unidade_id ?? null;
   const { config: regrasConfig, diasElegiveis, tetoMensal } = useDpRegrasColaborador(companyId, myUnidade, (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null, (meRef.data as { domingos_folga_mes?: number | null } | undefined)?.domingos_folga_mes ?? null);
   const resumoFolgas = resumoEscolhaFolgas(regrasConfig, { sexo: (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null });
+  /** No padrão CLT o sistema gera a folga dominical — o colaborador não marca nem remove. */
+  const folgaCltAutomatica = folgaDominicalAutomatica(regrasConfig);
+
 
 
   const colaboradoresQuery = useQuery({
@@ -387,6 +391,15 @@ export default function DpMeuCalendario() {
         throw new Error('Apenas fins de semana podem ser marcados diretamente. Use "Solicitar exceção".');
       }
 
+      // 2b) folga dominical automática (padrão CLT): definida pelo sistema
+      if (wd === 0 && folgaCltAutomatica) {
+        throw new Error(
+          "No padrão CLT a folga dominical é definida automaticamente pelo sistema. Use uma troca ou solicite exceção.",
+        );
+      }
+
+
+
       // 3) folga fixa própria
       const fixa = normalizeWeekday(meRef.data.folga_fixa_semana);
       if (fixa != null && fixa === wd) {
@@ -460,6 +473,12 @@ export default function DpMeuCalendario() {
         (f) => f.colaborador_id === meRef.data!.id && f.data === iso && f.status !== "cancelada",
       );
       if (!folga) throw new Error("Folga não encontrada.");
+      if (folga.origem === "automatica_clt") {
+        throw new Error(
+          "Esta folga dominical é definida pela CLT e não pode ser removida. Solicite uma troca ou uma exceção.",
+        );
+      }
+
       const { error } = await supabase.from("dp_folgas").delete().eq("id", folga.id);
       if (error) throw error;
     },
@@ -500,6 +519,11 @@ export default function DpMeuCalendario() {
       if (!meRef.data || !tradeOpen) throw new Error("Sem contexto");
       if (!tradeMyDate) throw new Error("Escolha uma folga sua para oferecer.");
       const motivo = tradeMotivo.trim() || "Solicitação de troca via calendário";
+      // regra da unidade: modo e escopo da troca
+      const tipoTroca = parseYMD(tradeMyDate).getDay() === 0 ? "dominical" : "semanal";
+      const check = podeTrocarFolga(regrasConfig, tipoTroca);
+      if (!check.permitida) throw new Error(check.motivo ?? "Troca de folga não permitida.");
+
       // duplicidade
       const { data: existing } = await supabase
         .from("dp_trocas")
@@ -507,6 +531,7 @@ export default function DpMeuCalendario() {
         .eq("solicitante_id", meRef.data.id)
         .eq("destino_id", tradeOpen.occupantId)
         .eq("data_proposta", tradeOpen.iso)
+
         .eq("status", "pendente_colega")
         .maybeSingle();
       if (existing) throw new Error("Você já enviou uma troca pendente para este dia com este colega.");
