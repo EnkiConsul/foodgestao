@@ -19,6 +19,8 @@ import {
   type ItemEscalaPanorama,
   type ResultadoDia,
 } from "@/lib/dp/operacao-panorama";
+import { isSocio } from "@/lib/dp/contrato-policy";
+import type { HorarioFuncionamentoDia } from "@/lib/dp/turno-utils";
 
 export interface DiaPanorama extends ResultadoDia {
   avaliacao: AvaliacaoDia;
@@ -48,11 +50,25 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     queryKey: ["dp_panorama_base", selectedCompanyId, competencia, unidadeId],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
-      const [colabs, turnosRes, configs, ferias, folgas, convocacoes, atestados, escalas, unidades] =
+      const [
+        colabs,
+        turnosRes,
+        configs,
+        ferias,
+        folgas,
+        convocacoes,
+        atestados,
+        escalas,
+        unidades,
+        cargos,
+        funcionamento,
+      ] =
         await Promise.all([
           supabase
             .from("dp_colaboradores")
-            .select("id, nome, regime, unidade_id, cargo_id, ativo, data_admissao, data_desligamento")
+            .select(
+              "id, nome, regime, vinculo_label, unidade_id, cargo_id, ativo, data_admissao, data_desligamento",
+            )
             .eq("company_id", selectedCompanyId!)
             .order("nome"),
           supabase
@@ -103,11 +119,28 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .select("id, nome, ativo")
             .eq("company_id", selectedCompanyId!)
             .order("nome"),
+          supabase.from("dp_cargos").select("id, nome").eq("company_id", selectedCompanyId!),
+          supabase
+            .from("dp_unidade_horarios_funcionamento")
+            .select("unidade_id, dia_semana, aberto, hora_abertura, hora_fechamento, nome, ordem")
+            .eq("company_id", selectedCompanyId!)
+            .order("dia_semana")
+            .order("ordem"),
         ]);
 
-      const err = [colabs, turnosRes, configs, ferias, folgas, convocacoes, atestados, escalas, unidades].find(
-        (r) => r.error,
-      );
+      const err = [
+        colabs,
+        turnosRes,
+        configs,
+        ferias,
+        folgas,
+        convocacoes,
+        atestados,
+        escalas,
+        unidades,
+        cargos,
+        funcionamento,
+      ].find((r) => r.error);
       if (err?.error) throw err.error;
 
       const escalaIds = (escalas.data ?? [])
@@ -143,6 +176,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         convocacoes: convocacoes.data ?? [],
         atestados: atestados.data ?? [],
         unidades: unidades.data ?? [],
+        cargos: cargos.data ?? [],
+        funcionamento: funcionamento.data ?? [],
         itens,
       };
     },
@@ -186,6 +221,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     return d.colaboradores
       .filter((c) => !unidadeId || c.unidade_id === unidadeId)
       .map((c) => {
+        const cargoNome = d.cargos.find((x) => x.id === c.cargo_id)?.nome ?? null;
         const vigente = d.configs.find(
           (cfg) =>
             cfg.colaborador_id === c.id &&
@@ -214,6 +250,9 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           unidade_id: c.unidade_id,
           intermitente: c.regime === "intermitente" || c.regime === "freelancer",
           config,
+          cargo_id: c.cargo_id,
+          cargo_nome: cargoNome,
+          socio: isSocio((c as { vinculo_label?: string | null }).vinculo_label),
           ativo: c.ativo !== false,
           data_admissao: c.data_admissao,
           data_desligamento: c.data_desligamento,
@@ -353,9 +392,44 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_panorama_dispensas"] }),
   });
 
+  /** Funcionamento por unidade, no formato de períodos por dia da semana. */
+  const funcionamentoPorUnidade = useMemo(() => {
+    const out = new Map<string, HorarioFuncionamentoDia[]>();
+    for (const r of base.data?.funcionamento ?? []) {
+      const lista = out.get(r.unidade_id) ?? [];
+      let dia = lista.find((d) => d.dia_semana === r.dia_semana);
+      if (!dia) {
+        dia = { dia_semana: r.dia_semana, aberto: false, periodos: [] };
+        lista.push(dia);
+      }
+      dia.aberto = dia.aberto || r.aberto;
+      if (r.aberto && (r.hora_abertura || r.hora_fechamento)) {
+        dia.periodos!.push({
+          nome: (r as { nome?: string | null }).nome ?? null,
+          hora_abertura: r.hora_abertura ? r.hora_abertura.slice(0, 5) : null,
+          hora_fechamento: r.hora_fechamento ? r.hora_fechamento.slice(0, 5) : null,
+        });
+      }
+      out.set(r.unidade_id, lista);
+    }
+    return out;
+  }, [base.data]);
+
+  /** Colaboradores ativos por unidade — define a unidade padrão da tela. */
+  const contagemPorUnidade = useMemo(() => {
+    const out = new Map<string, number>();
+    for (const c of base.data?.colaboradores ?? []) {
+      if (c.ativo === false || !c.unidade_id) continue;
+      out.set(c.unidade_id, (out.get(c.unidade_id) ?? 0) + 1);
+    }
+    return out;
+  }, [base.data]);
+
   return {
     dias: diasPanorama,
     turnos,
+    funcionamentoPorUnidade,
+    contagemPorUnidade,
     colaboradores,
     unidades: (base.data?.unidades ?? []).filter((u) => u.ativo !== false),
     padrao,
