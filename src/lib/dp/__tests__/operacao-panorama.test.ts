@@ -131,3 +131,65 @@ describe("diasDaCompetencia", () => {
     expect(diasDaCompetencia("2026-08")[0]).toBe("2026-08-01");
   });
 });
+
+describe("sócio na operação", () => {
+  const vazio = { convocacoes: [], folgas: [], ausencias: [] };
+
+  const socioComUnidade = (id: string): ColaboradorPanorama => ({
+    id,
+    nome: `Sócio ${id}`,
+    regime: "socio",
+    socio: true,
+    unidade_id: "u1",
+    intermitente: false,
+    config: { turno_padrao_id: "t1", folga_variavel: false, folga_fixa_dow: 0, dias: dias([1, 2, 3, 4, 5, 6]) },
+  });
+
+  const socioGeral = (id: string): ColaboradorPanorama => ({
+    id,
+    nome: `Sócio geral ${id}`,
+    regime: "socio",
+    socio: true,
+    unidade_id: null,
+    intermitente: false,
+    config: null,
+  });
+
+  it("sócio com unidade e jornada conta como fixo e como folga padrão no domingo", () => {
+    const colaboradores = [socioComUnidade("s1")];
+    const seg = contarDia({ data: SEGUNDA, colaboradores, turnos, ...vazio });
+    expect(seg.contagens.fixo).toBe(1);
+    expect(seg.pessoas[0].socio_integrado).toBe(true);
+
+    const dom = contarDia({ data: DOMINGO, colaboradores, turnos, ...vazio });
+    expect(dom.contagens.folga_padrao).toBe(1);
+  });
+
+  it("sócio em Geral não entra nas contagens CLT, mas segue listado", () => {
+    const colaboradores = [socioGeral("s2")];
+    const dom = contarDia({
+      data: DOMINGO,
+      colaboradores,
+      turnos,
+      convocacoes: [],
+      ausencias: [],
+      folgas: [{ colaborador_id: "s2", data: DOMINGO, tipo: "extra", extra: true }],
+    });
+    expect(dom.contagens.folga_extra).toBe(0);
+    expect(dom.pessoas).toHaveLength(1);
+    expect(dom.pessoas[0].socio_integrado).toBe(false);
+  });
+
+  it("folga extra de sócio com unidade continua fora da contagem de folga extra", () => {
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [socioComUnidade("s3")],
+      turnos,
+      convocacoes: [],
+      ausencias: [],
+      folgas: [{ colaborador_id: "s3", data: SEGUNDA, tipo: "extra", extra: true }],
+    });
+    expect(r.contagens.folga_extra).toBe(0);
+    expect(r.pessoas[0].categoria).toBe("folga_extra");
+  });
+});
