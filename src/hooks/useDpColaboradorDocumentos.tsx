@@ -77,6 +77,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
           company_id: colab.company_id,
           data_nascimento: colab.data_nascimento,
           regime: colab.regime as string | null,
+          tipo_vinculo: (colab as any).vinculo_label as string | null,
           estado_civil: (colab as any).estado_civil as string | null,
           veiculo_proprio: (colab as any).veiculo_proprio as boolean | null,
           aprendiz: colab.aprendiz,
