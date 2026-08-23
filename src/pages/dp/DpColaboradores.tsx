@@ -127,6 +127,154 @@ export default function DpColaboradores() {
       });
   }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, statusFilter]);
 
+  // ---------- Colunas em formato de planilha (ordem, largura, ordenação e filtros) ----------
+  const {
+    colOrder, colWidths, resize, resetWidth,
+    dragCol, setDragCol, soltarSobre,
+    colFilters, setColFilters, toggleColValue,
+    sortKey, sortDir, aplicarSort,
+    larguraTotal,
+  } = useDpTableColumns<ColabColKey, ColabSortKey>({
+    storageKey: "dp_colabs_col",
+    defaultOrder: DEFAULT_COLAB_COL_ORDER,
+    defaultWidths: DEFAULT_COLAB_COL_WIDTHS,
+    acoesWidth: COLAB_ACOES_WIDTH,
+    defaultSortKey: "padrao",
+  });
+
+  const COLS: Record<ColabColKey, {
+    label: string;
+    sortKey: ColabSortKey;
+    value: (c: DpColaborador) => string;
+    render: (c: DpColaborador) => JSX.Element;
+  }> = {
+    colaborador: {
+      label: "Colaborador", sortKey: "nome",
+      value: (c) => c.nome,
+      render: (c) => {
+        const folha = (c as any).possui_folha_ponto as boolean | null;
+        const adiantamento = (c as any).optante_adiantamento as boolean | null;
+        return (
+          <>
+            <div className="font-semibold uppercase truncate" title={c.nome}>{c.nome}</div>
+            <div className="font-mono text-[11px] text-muted-foreground">{c.cpf ?? "—"}</div>
+            <div className="mt-1 flex flex-wrap gap-1">
+              <Badge variant="outline" className="h-4 px-1 text-[10px] uppercase border-primary/30 text-primary bg-primary/5">
+                {vinculoLabel(c as any)}
+              </Badge>
+              {folha && <Badge variant="outline" className="h-4 px-1 text-[10px]">Ponto</Badge>}
+              {adiantamento && <Badge variant="outline" className="h-4 px-1 text-[10px]">Adiantamento</Badge>}
+            </div>
+          </>
+        );
+      },
+    },
+    cargo: {
+      label: "Cargo", sortKey: "cargo",
+      value: (c) => c.cargo_nome ?? c.cargo ?? "—",
+      render: (c) => (
+        <span className="block truncate" title={c.cargo_nome ?? c.cargo ?? ""}>
+          {c.cargo_nome ?? c.cargo ?? "—"}
+        </span>
+      ),
+    },
+    unidade: {
+      label: "Unidade", sortKey: "unidade",
+      value: (c) => c.unidade_nome ?? "—",
+      render: (c) => (
+        <span className="block truncate" title={c.unidade_nome ?? ""}>{c.unidade_nome ?? "—"}</span>
+      ),
+    },
+    status: {
+      label: "Status", sortKey: "status",
+      value: (c) => (c.ativo ? "Ativo" : "Desligado"),
+      render: (c) => (c.ativo ? (
+        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+          Ativo
+        </Badge>
+      ) : (
+        <div className="space-y-0.5">
+          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 whitespace-normal text-left leading-tight">
+            Desligado em {fmtDate(c.data_desligamento)}
+          </Badge>
+          <div className="text-[11px] text-muted-foreground">
+            {(c as any).motivo_desligamento
+              ? MOTIVO_DESLIGAMENTO_LABEL[(c as any).motivo_desligamento as keyof typeof MOTIVO_DESLIGAMENTO_LABEL]
+              : "Motivo não informado"}
+            {(c as any).elegivel_recontratacao
+              ? ` • ${ELEGIBILIDADE_LABEL[(c as any).elegivel_recontratacao as keyof typeof ELEGIBILIDADE_LABEL]}`
+              : ""}
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            {acessoPortalAtivo((c as any).acesso_portal_ate)
+              ? `Portal até ${fmtDate((c as any).acesso_portal_ate)} (${diasRestantesCarencia((c as any).acesso_portal_ate)} d)`
+              : "Portal encerrado"}
+          </div>
+        </div>
+      )),
+    },
+    perfil: {
+      label: "Perfil", sortKey: "perfil",
+      value: (c) => PERFIL_LABEL[((c as any).perfil_acesso as string | null) ?? "colaborador"],
+      render: (c) => {
+        const perfil = (c as any).perfil_acesso as string | null;
+        return (
+          <Badge
+            variant="outline"
+            className={
+              perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30"
+              : perfil === "gestor" ? "bg-primary/10 text-primary border-primary/30"
+              : ""
+            }
+          >
+            {PERFIL_LABEL[perfil ?? "colaborador"]}
+          </Badge>
+        );
+      },
+    },
+  };
+
+  /** Aplica os filtros por valor de cada coluna sobre a lista já filtrada no topo. */
+  const filtradoPorColuna = useMemo(() => {
+    return filtered.filter((c) =>
+      (Object.keys(colFilters) as ColabColKey[]).every((k) => {
+        const sel = colFilters[k] ?? [];
+        if (!sel.length) return true;
+        return sel.includes(COLS[k].value(c));
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, colFilters]);
+
+  /** Opções de filtro de uma coluna considerando os filtros das demais. */
+  const opcoesColuna = (k: ColabColKey) => {
+    const outros = filtered.filter((c) =>
+      (Object.keys(colFilters) as ColabColKey[]).every((other) => {
+        if (other === k) return true;
+        const sel = colFilters[other] ?? [];
+        if (!sel.length) return true;
+        return sel.includes(COLS[other].value(c));
+      }),
+    );
+    const set = new Set<string>();
+    outros.forEach((c) => set.add(COLS[k].value(c)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  };
+
+  /** Ordenação escolhida no cabeçalho; "padrao" mantém o agrupamento original. */
+  const visiveis = useMemo(() => {
+    if (sortKey === "padrao") return filtradoPorColuna;
+    const col = (Object.keys(COLS) as ColabColKey[]).find((k) => COLS[k].sortKey === sortKey);
+    if (!col) return filtradoPorColuna;
+    const arr = [...filtradoPorColuna];
+    arr.sort((a, b) => {
+      const cmp = COLS[col].value(a).localeCompare(COLS[col].value(b), "pt-BR", { sensitivity: "base" });
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtradoPorColuna, sortKey, sortDir]);
+
   const handleDelete = async (motivo: string) => {
     if (!toDelete) return;
     try {
@@ -137,6 +285,7 @@ export default function DpColaboradores() {
     }
     setToDelete(null);
   };
+
 
 
   return (
