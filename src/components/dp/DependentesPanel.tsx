@@ -188,8 +188,9 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal, socio = fal
           </div>
         )}
       </div>
+      )}
 
-      {podeConfigurar && (
+      {!socio && podeConfigurar && (
         <SalarioFamiliaTabelaDialog open={tabelaAberta} onOpenChange={setTabelaAberta} />
       )}
 
