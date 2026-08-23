@@ -70,11 +70,19 @@ export default function DpConfiguracoesJornada() {
     config, configPadrao, temExcecao, unidadesConfiguradas, temMulheres,
     isLoading, isError, refetch, save, saveMany, saving, removerExcecao, removendo,
   } = useDpConfigDp(unidadeId);
-  const { data: todasUnidades = [] } = useDpUnidades();
+  const {
+    data: todasUnidades = [],
+    isLoading: unidadesCarregando,
+    isFetching: unidadesBuscando,
+    isError: unidadesErro,
+    refetch: refetchUnidades,
+  } = useDpUnidades();
+  const carregandoUnidades = unidadesCarregando || unidadesBuscando;
   const unidades = useMemo(
     () => todasUnidades.filter((u) => u.company_id === selectedCompanyId),
     [todasUnidades, selectedCompanyId],
   );
+
   const { data: contextoSindical } = useSindicatoContextoUnidade(unidadeId);
 
   const [form, setForm] = useState<DpConfigDpForm>(DP_CONFIG_DP_DEFAULT);
