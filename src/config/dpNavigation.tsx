@@ -1,6 +1,4 @@
 import {
-  ArrowLeftRight,
-  Ban,
   BarChart3,
   Bell,
   BellRing,
