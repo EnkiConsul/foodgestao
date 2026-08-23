@@ -519,12 +519,18 @@ export default function DpMeuCalendario() {
       if (!meRef.data || !tradeOpen) throw new Error("Sem contexto");
       if (!tradeMyDate) throw new Error("Escolha uma folga sua para oferecer.");
       const motivo = tradeMotivo.trim() || "Solicitação de troca via calendário";
+      // regra da unidade: modo e escopo da troca
+      const tipoTroca = parseYMD(tradeMyDate).getDay() === 0 ? "dominical" : "semanal";
+      const check = podeTrocarFolga(regrasConfig, tipoTroca);
+      if (!check.permitida) throw new Error(check.motivo ?? "Troca de folga não permitida.");
+
       // duplicidade
       const { data: existing } = await supabase
         .from("dp_trocas")
         .select("id")
         .eq("solicitante_id", meRef.data.id)
         .eq("destino_id", tradeOpen.occupantId)
+
         .eq("data_proposta", tradeOpen.iso)
         .eq("status", "pendente_colega")
         .maybeSingle();
