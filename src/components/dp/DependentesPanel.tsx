@@ -45,13 +45,15 @@ interface Props {
   colaboradorId: string | null | undefined;
   /** Remuneração mensal usada para o teste do teto de baixa renda. */
   remuneracaoMensal: number;
+  /** Sócio não é segurado empregado: sem salário-família. */
+  socio?: boolean;
 }
 
 /**
  * Cadastro de dependentes do colaborador, com cálculo da cota do
  * salário-família e alertas de manutenção do benefício.
  */
-export function DependentesPanel({ colaboradorId, remuneracaoMensal }: Props) {
+export function DependentesPanel({ colaboradorId, remuneracaoMensal, socio = false }: Props) {
   const { dependentes, isLoading, salvar, salvando, remover, removendo } =
     useDpDependentes(colaboradorId);
   const { config } = useDpSalarioFamiliaConfig();
