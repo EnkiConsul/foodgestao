@@ -45,13 +45,15 @@ interface Props {
   colaboradorId: string | null | undefined;
   /** Remuneração mensal usada para o teste do teto de baixa renda. */
   remuneracaoMensal: number;
+  /** Sócio não é segurado empregado: sem salário-família. */
+  socio?: boolean;
 }
 
 /**
  * Cadastro de dependentes do colaborador, com cálculo da cota do
  * salário-família e alertas de manutenção do benefício.
  */
-export function DependentesPanel({ colaboradorId, remuneracaoMensal }: Props) {
+export function DependentesPanel({ colaboradorId, remuneracaoMensal, socio = false }: Props) {
   const { dependentes, isLoading, salvar, salvando, remover, removendo } =
     useDpDependentes(colaboradorId);
   const { config } = useDpSalarioFamiliaConfig();
@@ -128,8 +130,10 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Resumo do benefício */}
+      {/* Resumo do benefício — salário-família é exclusivo de segurado empregado. */}
+      {!socio && (
       <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+
         <div className="flex flex-wrap items-center gap-2">
           <Baby className="h-4 w-4 text-primary" />
           <span className="font-medium text-foreground">Salário-família</span>
@@ -184,13 +188,14 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal }: Props) {
           </div>
         )}
       </div>
+      )}
 
-      {podeConfigurar && (
+      {!socio && podeConfigurar && (
         <SalarioFamiliaTabelaDialog open={tabelaAberta} onOpenChange={setTabelaAberta} />
       )}
 
 
-      {alertas.length > 0 && (
+      {!socio && alertas.length > 0 && (
         <div className="space-y-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
           <p className="flex items-center gap-2 font-medium text-amber-700 dark:text-amber-300">
             <AlertTriangle className="h-4 w-4" /> Documentos pendentes para manter o benefício
@@ -228,7 +233,7 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal }: Props) {
                 </p>
               </div>
               {dep.conta_irrf && <Badge variant="outline">IRRF</Badge>}
-              {dependenteElegivel(dep) && <Badge variant="secondary">Salário-família</Badge>}
+              {!socio && dependenteElegivel(dep) && <Badge variant="secondary">Salário-família</Badge>}
               <Button type="button" size="icon" variant="ghost" onClick={() => editar(dep)}>
                 <Pencil className="h-4 w-4" />
               </Button>

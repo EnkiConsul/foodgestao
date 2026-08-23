@@ -45,7 +45,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       const { data: colab, error: e1 } = await supabase
         .from("dp_colaboradores")
         .select(
-          "id, company_id, data_nascimento, regime, estado_civil, veiculo_proprio, aprendiz, possui_folha_ponto, cargo_id, dp_cargos(exige_cnh, exige_epi)",
+          "id, company_id, data_nascimento, regime, vinculo_label, estado_civil, veiculo_proprio, aprendiz, possui_folha_ponto, cargo_id, dp_cargos(exige_cnh, exige_epi)",
         )
         .eq("id", colaboradorId!)
         .maybeSingle();
@@ -77,6 +77,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
           company_id: colab.company_id,
           data_nascimento: colab.data_nascimento,
           regime: colab.regime as string | null,
+          tipo_vinculo: (colab as any).vinculo_label as string | null,
           estado_civil: (colab as any).estado_civil as string | null,
           veiculo_proprio: (colab as any).veiculo_proprio as boolean | null,
           aprendiz: colab.aprendiz,

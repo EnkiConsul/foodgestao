@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { regimeRisco } from "@/lib/dp/regime-riscos";
 import { RegimeRiscoDialog } from "@/components/dp/RegimeRiscoDialog";
 import { toProperName } from "@/lib/text/properName";
@@ -434,11 +436,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   const [avisoPadraoDispensado, setAvisoPadraoDispensado] = useState(false);
   const diferencasDoPadrao = useMemo(() => {
     if (!isEdit || !colaborador || avisoPadraoDispensado) return [];
+    // Sócio é remunerado por pró-labore/lucros: o padrão da empresa é de folha
+    // CLT, então "fora do padrão" não é divergência e sim a regra do vínculo.
+    if (isSocio(form.tipo_vinculo)) return [];
     return divergenciasColaboradorVsPadrao(
       colaborador as unknown as Record<string, unknown>,
       padraoAplicavel?.payload,
     );
-  }, [isEdit, colaborador, padraoAplicavel, avisoPadraoDispensado]);
+  }, [isEdit, colaborador, padraoAplicavel, avisoPadraoDispensado, form.tipo_vinculo]);
+
   const origemPadrao = () => {
     const nivel = nivelPadrao(padraoAplicavel);
     if (nivel === "cargo") {
@@ -1684,14 +1690,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
 
 
-          <SindicatoEnquadramentoField
-            cargoId={form.cargo_id}
-            cargoNome={cargoSelecionado?.nome ?? null}
-            unidadeId={form.unidade_id}
-            value={form.sindicato_id}
-            onChange={(id) => setForm((f) => ({ ...f, sindicato_id: id }))}
-            onBeforeNavigate={() => onOpenChange(false)}
-          />
+          {/* Sócio não é representado por convenção coletiva: sem enquadramento. */}
+          {!socioSelecionado && (
+            <SindicatoEnquadramentoField
+              cargoId={form.cargo_id}
+              cargoNome={cargoSelecionado?.nome ?? null}
+              unidadeId={form.unidade_id}
+              value={form.sindicato_id}
+              onChange={(id) => setForm((f) => ({ ...f, sindicato_id: id }))}
+              onBeforeNavigate={() => onOpenChange(false)}
+            />
+          )}
+
 
 
 
@@ -1784,7 +1794,29 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 ))}
               </SelectContent>
             </Select>
-            {risco && (
+            {/* Sócio: a orientação é informativa (não é risco de pejotização),
+                então fica recolhida num "i" para não poluir o formulário. */}
+            {risco && risco.tipo === "socio" && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 text-left text-xs text-amber-700 hover:underline dark:text-amber-400"
+                  >
+                    <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>{risco.titulo}</span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-80 text-[11px] leading-relaxed text-muted-foreground">
+                  {risco.mensagem}
+                  {risco.reforco && (
+                    <span className="mt-1 block font-medium text-foreground">{risco.reforco}</span>
+                  )}
+                </PopoverContent>
+              </Popover>
+            )}
+            {risco && risco.tipo !== "socio" && (
+
               <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
                 <p className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -1868,11 +1900,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               <div id="acesso-portal" className="scroll-mt-4">
                 <ColaboradorAcessoPanel colaborador={colaboradorAtual} />
               </div>
-              <div id="desligamento" className="scroll-mt-4">
-                <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
-              </div>
+              {/* Saída de sócio é alteração de contrato social, não rescisão. */}
+              {!socioSelecionado && (
+                <div id="desligamento" className="scroll-mt-4">
+                  <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
+                </div>
+              )}
             </div>
           )}
+
             </div>
           </TabsContent>
 
@@ -1921,7 +1957,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               />
             )}
 
-            {padraoAplicado && !isEdit && (
+            {padraoAplicado && !isEdit && !socioSelecionado && (
               <div className="mb-4 rounded-xl border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
                 Benefícios sugeridos pelo padrão{" "}
                 {padraoAplicado === "cargo"
@@ -2051,6 +2087,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             <DependentesPanel
               colaboradorId={colaborador?.id ?? criadoId ?? null}
               remuneracaoMensal={baseSalarialInformada()}
+              socio={socioSelecionado}
             />
           </TabsContent>
 
