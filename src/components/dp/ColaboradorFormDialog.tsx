@@ -2087,6 +2087,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             <DependentesPanel
               colaboradorId={colaborador?.id ?? criadoId ?? null}
               remuneracaoMensal={baseSalarialInformada()}
+              socio={socioSelecionado}
             />
           </TabsContent>
 
