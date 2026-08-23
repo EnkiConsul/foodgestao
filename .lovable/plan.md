@@ -36,6 +36,15 @@ Detalhes:
 - Remover o botão **Restaurar Colunas**; a ordem padrão volta pelo menu do próprio cabeçalho.
 - **Filtros**: busca e o botão "Limpar" sobem para a mesma linha do título "Filtros", economizando uma faixa vertical.
 
+## 4. Detecção de assinatura e aceite digital opcional
+
+- Na importação, cada página passa por uma checagem de assinatura do colaborador: o OCR/IA procura indícios como campo de assinatura preenchido, texto "Assinatura do empregado/colaborador", rubrica manuscrita ou marca de assinatura eletrônica (ICP-Brasil, DocuSign, Gov.br) no PDF.
+- Páginas com assinatura detectada aparecem na revisão com o selo **Já Assinado** e a pergunta "Este documento precisa de validação digital?", já sugerindo "Não precisa" — mas a decisão final é sempre do usuário.
+- **O padrão do sistema é sempre com validação digital.** Só páginas com assinatura detectada vêm pré-marcadas como dispensadas; todas as outras seguem exigindo aceite do colaborador.
+- Um interruptor **Exigir Validação Digital** fica disponível em dois níveis: no lote inteiro (antes de salvar, ligado por padrão) e por página na revisão, para o usuário desligar caso a caso mesmo sem assinatura detectada.
+- Documentos salvos sem exigência de aceite entram no histórico com o selo **Dispensado** na coluna Aceite (em vez de "Aguardando") e não geram pendência de aceite no portal do colaborador.
+
+
 ## Detalhes técnicos
 
 - `src/components/dp/documentos/DocConsistenciaPanel.tsx`: expandir o conjunto de tipos esperados (`contracheque`, `contracheque_13`, `ponto`, `adiantamento`), ler `dp_unidades.possui_relogio_ponto` para condicionar a folha de ponto, aplicar prazos legais do 13º (30/11 e 20/12) e adicionar bloco de férias a partir de `dp_ferias_periodos` (saldo > 0, `limite_concessivo` vencido/próximo) cruzado com `dp_ferias_gozos` sem agendamento.
@@ -43,4 +52,6 @@ Detalhes:
 - `src/pages/dp/DpHistoricoCompleto.tsx`: novas ações de linha (substituir/excluir) usando `dp_documentos` + bucket `dp-documentos`; invalidar `["dp_documentos"]` e `["dp_doc_consistencia_janela"]`; ajustar larguras/rótulos, remover `RotateCcw`/"Restaurar Colunas" e mover busca + Limpar para o cabeçalho do card.
 - Exclusão: apagar objeto do storage e a linha de `dp_documentos`; registrar motivo em `audit_logs` (padrão já usado no módulo).
 - `supabase/functions/dp-doc-bulk-ingest`: persistir a unidade resolvida pelo CNPJ no item do lote e propagar ao documento aprovado (migração para a coluna, se necessário, com GRANTs); sinalizar na revisão quando o CNPJ do PDF não existir em Unidades.
+- Assinatura: novas colunas em `dp_bulk_import_items` (assinatura detectada, evidência) e em `dp_documentos` (exigência de aceite), com migração e GRANTs; a função `dp-doc-bulk-ingest` retorna o indício de assinatura por página e `BulkReviewInline.tsx` expõe o selo e o interruptor por página, além do interruptor global do lote.
+- Aceite: o portal e os contadores de aceite passam a ignorar documentos marcados como dispensados; o histórico ganha o estado "Dispensado" na coluna Aceite.
 - Sem alteração de RLS: todas as leituras e escritas seguem por `company_id`.
