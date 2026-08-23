@@ -40,6 +40,54 @@ export function podeEditarClassificacao(rowId: string) {
   return docSourceConfig(rowId).editavel;
 }
 
+/** Dados descritivos do documento, preservados no log mesmo após a exclusão. */
+export type DocEventoMeta = {
+  companyId: string;
+  titulo?: string | null;
+  tipo?: string | null;
+  competencia?: string | null;
+  colaborador_id?: string | null;
+  colaborador_nome?: string | null;
+  unidade_id?: string | null;
+  unidade_nome?: string | null;
+  motivo?: string | null;
+};
+
+/**
+ * Grava o log da ação em `dp_documento_eventos`.
+ * Falhas de log não impedem a operação principal, mas são reportadas no console.
+ */
+async function registrarEvento(params: {
+  rowId: string;
+  acao: "excluido" | "substituido";
+  meta?: DocEventoMeta;
+  arquivo_anterior?: string | null;
+  arquivo_novo?: string | null;
+}) {
+  const { meta } = params;
+  if (!meta?.companyId) return;
+  const { source, id } = parseDocRowId(params.rowId);
+  const { data: auth } = await supabase.auth.getUser();
+  const { error } = await supabase.from("dp_documento_eventos").insert({
+    company_id: meta.companyId,
+    documento_id: id,
+    origem: source,
+    acao: params.acao,
+    titulo: meta.titulo ?? null,
+    tipo: meta.tipo ?? null,
+    competencia: meta.competencia ?? null,
+    colaborador_id: meta.colaborador_id ?? null,
+    colaborador_nome: meta.colaborador_nome ?? null,
+    unidade_id: meta.unidade_id ?? null,
+    unidade_nome: meta.unidade_nome ?? null,
+    arquivo_anterior: params.arquivo_anterior ?? null,
+    arquivo_novo: params.arquivo_novo ?? null,
+    motivo: meta.motivo ?? null,
+    autor_id: auth?.user?.id ?? null,
+  } as any);
+  if (error) console.error("Falha ao registrar log do documento", error);
+}
+
 /** Remove o arquivo do armazenamento, ignorando falhas de arquivo inexistente. */
 async function removerArquivo(bucket: string, path?: string | null) {
   if (!path) return;
@@ -51,9 +99,15 @@ async function removerArquivo(bucket: string, path?: string | null) {
  * Para o acervo do DP, os aceites eletrônicos vinculados também são removidos,
  * de modo que a pendência do documento volte a aparecer na Conferência.
  */
-export async function excluirDocumentoHistorico(rowId: string, filePath?: string | null) {
+export async function excluirDocumentoHistorico(
+  rowId: string,
+  filePath?: string | null,
+  meta?: DocEventoMeta,
+) {
   const { source, id } = parseDocRowId(rowId);
   const cfg = CFG[source];
+
+  await registrarEvento({ rowId, acao: "excluido", meta, arquivo_anterior: filePath });
 
   if (source === "doc") {
     const del = await supabase.from("dp_documento_aceites").delete().eq("documento_id", id);
@@ -65,6 +119,7 @@ export async function excluirDocumentoHistorico(rowId: string, filePath?: string
 
   await removerArquivo(cfg.bucket, filePath);
 }
+
 
 export type SubstituirPatch = {
   colaborador_id?: string | null;
@@ -84,10 +139,13 @@ export async function substituirDocumentoHistorico(params: {
   filePathAtual?: string | null;
   file: File;
   patch?: SubstituirPatch;
+  /** Descrição do documento para o log de alterações. */
+  meta?: Omit<DocEventoMeta, "companyId">;
 }) {
-  const { rowId, companyId, filePathAtual, file, patch } = params;
+  const { rowId, companyId, filePathAtual, file, patch, meta } = params;
   const { source, id } = parseDocRowId(rowId);
   const cfg = CFG[source];
+
 
   const ext = (file.name.split(".").pop() || "pdf").toLowerCase();
   const novoPath = `${companyId}/${id}/${Date.now()}.${ext}`;
@@ -123,6 +181,16 @@ export async function substituirDocumentoHistorico(params: {
     // Conteúdo novo exige nova validação digital do colaborador.
     await supabase.from("dp_documento_aceites").delete().eq("documento_id", id);
   }
+
+  await registrarEvento({
+    rowId,
+    acao: "substituido",
+    meta: { ...(meta ?? {}), companyId },
+    arquivo_anterior: filePathAtual,
+    arquivo_novo: novoPath,
+  });
+
+
 
   if (filePathAtual && filePathAtual !== novoPath) {
     await removerArquivo(cfg.bucket, filePathAtual);

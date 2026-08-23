@@ -4987,6 +4987,66 @@ export type Database = {
           },
         ]
       }
+      dp_documento_eventos: {
+        Row: {
+          acao: string
+          arquivo_anterior: string | null
+          arquivo_novo: string | null
+          autor_id: string | null
+          colaborador_id: string | null
+          colaborador_nome: string | null
+          company_id: string
+          competencia: string | null
+          created_at: string
+          documento_id: string | null
+          id: string
+          motivo: string | null
+          origem: string
+          tipo: string | null
+          titulo: string | null
+          unidade_id: string | null
+          unidade_nome: string | null
+        }
+        Insert: {
+          acao: string
+          arquivo_anterior?: string | null
+          arquivo_novo?: string | null
+          autor_id?: string | null
+          colaborador_id?: string | null
+          colaborador_nome?: string | null
+          company_id: string
+          competencia?: string | null
+          created_at?: string
+          documento_id?: string | null
+          id?: string
+          motivo?: string | null
+          origem?: string
+          tipo?: string | null
+          titulo?: string | null
+          unidade_id?: string | null
+          unidade_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          arquivo_anterior?: string | null
+          arquivo_novo?: string | null
+          autor_id?: string | null
+          colaborador_id?: string | null
+          colaborador_nome?: string | null
+          company_id?: string
+          competencia?: string | null
+          created_at?: string
+          documento_id?: string | null
+          id?: string
+          motivo?: string | null
+          origem?: string
+          tipo?: string | null
+          titulo?: string | null
+          unidade_id?: string | null
+          unidade_nome?: string | null
+        }
+        Relationships: []
+      }
       dp_documento_requisitos: {
         Row: {
           aplica_a: string

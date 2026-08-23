@@ -4,7 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   FileText, Eye, Download, Search, ArrowUp, ArrowDown, ChevronsUpDown,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Trash2, Replace,
+  History as HistoryIcon,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
@@ -31,7 +33,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { DocSubstituirDialog, type DocSubstituirTarget } from "@/components/dp/documentos/DocSubstituirDialog";
+import { DocDetalhesDialog } from "@/components/dp/documentos/DocDetalhesDialog";
+import { DocEventosDialog } from "@/components/dp/documentos/DocEventosDialog";
+import { Textarea } from "@/components/ui/textarea";
 import { docSourceConfig, excluirDocumentoHistorico } from "@/lib/dp/historicoDocAcoes";
+
 
 type UnifiedDoc = {
   id: string;
@@ -61,13 +67,6 @@ const TIPO_OPTIONS = [
   { value: "act_cct", label: "Negociação Sindical" },
 ];
 
-const STATUS_OPTIONS = [
-  { value: "aprovado", label: "Aprovado" },
-  { value: "pendente", label: "Pendente" },
-  { value: "recusado", label: "Recusado" },
-  { value: "disponivel", label: "Disponível" },
-];
-
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
@@ -82,30 +81,17 @@ function fmtCompetencia(iso?: string | null): { label: string; sort: string } {
   return { label: `${mm}/${yyyy}`, sort: `${yyyy}-${mm}` };
 }
 
-function statusBadgeClass(key: string) {
-  switch (key) {
-    case "aprovado":
-    case "disponivel":
-      return "bg-emerald-100 text-emerald-700 border-emerald-200";
-    case "pendente":
-      return "bg-amber-100 text-amber-700 border-amber-200";
-    case "recusado":
-      return "bg-rose-100 text-rose-700 border-rose-200";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-}
-
 function tipoBadgeClass(key: string) {
   if (key === "act_cct") return "border-rose-300 text-rose-700";
   return docTipoBadgeClass(key);
 }
 
-type ColKey = "colaborador" | "tipo" | "competencia" | "unidade" | "status" | "aceite" | "data";
-type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "status_label" | "aceite_label" | "data";
+type ColKey = "colaborador" | "tipo" | "competencia" | "unidade" | "aceite";
+type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "aceite_label" | "data";
 
-const COL_ORDER_STORAGE = "dp_historico_col_order";
-const DEFAULT_COL_ORDER: ColKey[] = ["colaborador", "tipo", "competencia", "unidade", "status", "aceite", "data"];
+const COL_ORDER_STORAGE = "dp_historico_col_order_v2";
+const DEFAULT_COL_ORDER: ColKey[] = ["colaborador", "tipo", "competencia", "unidade", "aceite"];
+
 
 function aceiteLabel(r: UnifiedDoc) {
   if (r.aceite === null) return r.aceiteDispensado ? "Dispensado" : "—";
@@ -213,19 +199,23 @@ export default function DpHistoricoCompleto() {
   const [tipo, setTipo] = useState("all");
   const [grupo, setGrupo] = useState("all");
   const [colFilters, setColFilters] = useState<Record<ColKey, string[]>>({
-    colaborador: [], tipo: [], competencia: [], unidade: [], status: [], aceite: [], data: [],
+    colaborador: [], tipo: [], competencia: [], unidade: [], aceite: [],
   });
+
   const [unidadeId, setUnidadeId] = useState("all");
   const [colabId, setColabId] = useState("all");
   const [mes, setMes] = useState("all");
   const [ano, setAno] = useState("all");
-  const [status, setStatus] = useState("all");
   const [busca, setBusca] = useState("");
   const [preview, setPreview] = useState<UnifiedDoc | null>(null);
+  const [detalhe, setDetalhe] = useState<UnifiedDoc | null>(null);
+  const [logAberto, setLogAberto] = useState(false);
   const [excluir, setExcluir] = useState<UnifiedDoc | null>(null);
+  const [motivoExclusao, setMotivoExclusao] = useState("");
   const [excluindo, setExcluindo] = useState(false);
   const [substituir, setSubstituir] = useState<DocSubstituirTarget | null>(null);
   const queryClient = useQueryClient();
+
 
   const [sortKey, setSortKey] = useState<SortKey>("data");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -422,41 +412,38 @@ export default function DpHistoricoCompleto() {
     cellClass?: string;
   }> = {
     colaborador: {
-      label: "Colaborador", width: "w-[230px]", sortKey: "colaborador_nome",
+      label: "Colaborador", width: "w-[26%]", sortKey: "colaborador_nome",
       value: (r) => r.colaborador_nome,
-      render: (r) => <span className="font-semibold" title={r.colaborador_nome}>{r.colaborador_nome}</span>,
-      cellClass: "truncate",
+      render: (r) => <span className="font-semibold">{r.colaborador_nome}</span>,
+      cellClass: "whitespace-normal break-words align-top",
     },
     tipo: {
-      label: "Tipo", width: "w-[190px]", sortKey: "tipo_label",
+      label: "Tipo", width: "w-[22%]", sortKey: "tipo_label",
       value: (r) => r.tipo_label,
       render: (r) => (
-        <Badge variant="outline" className={`max-w-full truncate ${tipoBadgeClass(r.tipo_key)}`}>{r.tipo_label}</Badge>
+        <Badge
+          variant="outline"
+          className={`max-w-full whitespace-normal break-words text-left leading-tight ${tipoBadgeClass(r.tipo_key)}`}
+        >
+          {r.tipo_label}
+        </Badge>
       ),
-      cellClass: "truncate",
+      cellClass: "whitespace-normal break-words align-top",
     },
     competencia: {
-      label: "Competência", width: "w-[150px]", sortKey: "competencia_sort",
+      label: "Competência", width: "w-[13%]", sortKey: "competencia_sort",
       value: (r) => r.competencia,
       render: (r) => <span className="font-mono text-sm">{r.competencia}</span>,
-      cellClass: "whitespace-nowrap",
+      cellClass: "whitespace-nowrap align-top",
     },
     unidade: {
-      label: "Unidade", width: "w-[180px]", sortKey: "unidade_nome",
+      label: "Unidade", width: "w-[21%]", sortKey: "unidade_nome",
       value: (r) => r.unidade_nome,
-      render: (r) => <span title={r.unidade_nome}>{r.unidade_nome}</span>,
-      cellClass: "truncate",
-    },
-    status: {
-      label: "Status", width: "w-[140px]", sortKey: "status_label",
-      value: (r) => r.status_label,
-      render: (r) => (
-        <Badge variant="outline" className={`max-w-full truncate ${statusBadgeClass(r.status_key)}`}>{r.status_label}</Badge>
-      ),
-      cellClass: "truncate",
+      render: (r) => <span className="leading-tight">{r.unidade_nome}</span>,
+      cellClass: "whitespace-normal break-words align-top",
     },
     aceite: {
-      label: "Aceite", width: "w-[140px]", sortKey: "aceite_label",
+      label: "Aceite", width: "w-[11%]", sortKey: "aceite_label",
       value: (r) => aceiteLabel(r),
       render: (r) => (
         r.aceite === null
@@ -467,17 +454,10 @@ export default function DpHistoricoCompleto() {
             ? <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">Aceito</Badge>
             : <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">Aguardando</Badge>
       ),
-      cellClass: "truncate",
-    },
-    data: {
-      label: "Data", width: "w-[120px]", sortKey: "data",
-      value: (r) => new Date(r.data).toLocaleDateString("pt-BR"),
-      render: (r) => (
-        <span className="font-mono text-sm text-muted-foreground">{new Date(r.data).toLocaleDateString("pt-BR")}</span>
-      ),
-      cellClass: "whitespace-nowrap",
+      cellClass: "whitespace-normal align-top",
     },
   };
+
 
 
   // ---------------- Filtros ----------------
@@ -488,16 +468,16 @@ export default function DpHistoricoCompleto() {
       if (grupo !== "all" && docTipoGrupo(r.tipo_key) !== grupo) return false;
       if (unidadeId !== "all" && r.unidade_id !== unidadeId) return false;
       if (colabId !== "all" && r.colaborador_id !== colabId) return false;
-      if (status !== "all" && r.status_key !== status) return false;
       if (ano !== "all" && !r.competencia_sort.startsWith(ano)) return false;
       if (mes !== "all" && r.competencia_sort.slice(5, 7) !== mes) return false;
       if (q) {
-        const hay = `${r.colaborador_nome} ${r.tipo_label} ${r.status_label} ${r.unidade_nome} ${r.titulo}`.toLowerCase();
+        const hay = `${r.colaborador_nome} ${r.tipo_label} ${r.unidade_nome} ${r.titulo}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [query.data, tipo, grupo, unidadeId, colabId, mes, ano, status, busca]);
+  }, [query.data, tipo, grupo, unidadeId, colabId, mes, ano, busca]);
+
 
   const filtered = useMemo(() => {
     return baseFiltered.filter((r) =>
@@ -551,15 +531,16 @@ export default function DpHistoricoCompleto() {
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  useEffect(() => { setPage(1); }, [tipo, grupo, unidadeId, colabId, mes, ano, status, busca, pageSize, colFilters]);
+  useEffect(() => { setPage(1); }, [tipo, grupo, unidadeId, colabId, mes, ano, busca, pageSize, colFilters]);
   useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
   const paged = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
 
   const limpar = () => {
     setTipo("all"); setGrupo("all"); setUnidadeId("all"); setColabId("all");
-    setMes("all"); setAno("all"); setStatus("all"); setBusca("");
-    setColFilters({ colaborador: [], tipo: [], competencia: [], unidade: [], status: [], aceite: [], data: [] });
+    setMes("all"); setAno("all"); setBusca("");
+    setColFilters({ colaborador: [], tipo: [], competencia: [], unidade: [], aceite: [] });
   };
+
 
   const download = async (row: UnifiedDoc) => {
     if (!row.file_path) return toast.error("Arquivo indisponível");
@@ -586,9 +567,20 @@ export default function DpHistoricoCompleto() {
     if (!excluir) return;
     setExcluindo(true);
     try {
-      await excluirDocumentoHistorico(excluir.id, excluir.file_path);
+      await excluirDocumentoHistorico(excluir.id, excluir.file_path, {
+        companyId: selectedCompanyId ?? "",
+        titulo: excluir.titulo,
+        tipo: excluir.tipo_label,
+        competencia: excluir.competencia,
+        colaborador_id: excluir.colaborador_id,
+        colaborador_nome: excluir.colaborador_nome,
+        unidade_id: excluir.unidade_id,
+        unidade_nome: excluir.unidade_nome,
+        motivo: motivoExclusao.trim() || null,
+      });
       toast.success("Documento excluído. A pendência voltará a aparecer na Conferência.");
       setExcluir(null);
+      setMotivoExclusao("");
       recarregar();
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao excluir o documento");
@@ -596,6 +588,7 @@ export default function DpHistoricoCompleto() {
       setExcluindo(false);
     }
   };
+
 
   const abrirSubstituir = (r: UnifiedDoc) => setSubstituir({
     rowId: r.id,
@@ -605,7 +598,10 @@ export default function DpHistoricoCompleto() {
     colaborador_nome: r.colaborador_nome,
     competencia: r.competencia,
     file_path: r.file_path,
+    unidade_id: r.unidade_id,
+    unidade_nome: r.unidade_nome,
   });
+
 
   // ---------------- Drag & drop de colunas ----------------
   const soltarSobre = (alvo: ColKey) => {
@@ -651,7 +647,13 @@ export default function DpHistoricoCompleto() {
         icon={FileText}
         title="Histórico"
         description="Visualize todos os documentos de todos os colaboradores em um único lugar."
+        actions={
+          <Button variant="outline" onClick={() => setLogAberto(true)}>
+            <HistoryIcon className="mr-1 h-4 w-4" /> Registro De Alterações
+          </Button>
+        }
       />
+
 
       {/* Barra de naturezas: somente os grupos */}
       <div className="rounded-lg border bg-card p-3">
@@ -695,16 +697,17 @@ export default function DpHistoricoCompleto() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"
-              placeholder="Buscar por nome, tipo ou status..."
+              placeholder="Buscar por nome, tipo ou unidade..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
+
           </div>
           <Button variant="ghost" className="sm:ml-auto" onClick={limpar}>Limpar</Button>
         </div>
 
 
-        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase text-muted-foreground">Tipo</Label>
             <Select value={tipo} onValueChange={setTipo}>
@@ -770,58 +773,53 @@ export default function DpHistoricoCompleto() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase text-muted-foreground">Status</Label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
+
       </DpFilterCard>
 
       <DpContentCard contentClassName="p-0 hidden md:block">
         {query.isLoading ? (
           <div className="p-4">
             <TableSkeleton
-              columns={8}
-              headers={["Colaborador", "Tipo", "Competência", "Unidade", "Status", "Aceite", "Data", "Ações"]}
+              columns={6}
+              headers={["Colaborador", "Tipo", "Competência", "Unidade", "Aceite", "Ações"]}
             />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-          <Table className="w-full min-w-[1300px] table-fixed">
+          <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
                 {colOrder.map((k) => renderColunaHeader(k))}
-                <TableHead className="uppercase text-xs text-right w-[150px]">Ações</TableHead>
+                <TableHead className="uppercase text-xs text-right w-[96px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
               {paged.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow
+                  key={r.id}
+                  className="cursor-pointer"
+                  onClick={() => setDetalhe(r)}
+                  title="Ver detalhes do documento"
+                >
                   {colOrder.map((k) => (
                     <TableCell key={k} className={COLS[k].cellClass}>{COLS[k].render(r)}</TableCell>
                   ))}
-                  <TableCell className="whitespace-nowrap text-right">
-                    <Button size="icon" variant="ghost" title="Pré-visualizar" onClick={() => setPreview(r)} disabled={!r.file_path}>
-                      <Eye className="h-4 w-4 text-primary" />
-                    </Button>
-                    <Button size="icon" variant="ghost" title="Baixar" onClick={() => download(r)} disabled={!r.file_path}>
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" title="Substituir arquivo" onClick={() => abrirSubstituir(r)}>
-                      <Replace className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" title="Excluir documento" onClick={() => setExcluir(r)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                  <TableCell className="align-middle" onClick={(e) => e.stopPropagation()}>
+                    <div className="grid grid-cols-2 gap-0.5 justify-items-center">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Pré-visualizar" onClick={() => setPreview(r)} disabled={!r.file_path}>
+                        <Eye className="h-4 w-4 text-primary" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Baixar" onClick={() => download(r)} disabled={!r.file_path}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Substituir arquivo" onClick={() => abrirSubstituir(r)}>
+                        <Replace className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Excluir documento" onClick={() => setExcluir(r)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -834,9 +832,9 @@ export default function DpHistoricoCompleto() {
               )}
             </TableBody>
           </Table>
-          </div>
         )}
       </DpContentCard>
+
 
       {/* Mobile: lista de cards */}
       <div className="md:hidden space-y-3">
@@ -850,20 +848,17 @@ export default function DpHistoricoCompleto() {
         )}
         {!query.isLoading && paged.map((r) => (
           <div key={r.id} className="rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
+            <button type="button" className="w-full text-left" onClick={() => setDetalhe(r)}>
+              <div className="min-w-0">
                 <div className="font-semibold truncate">{r.colaborador_nome}</div>
                 <div className="text-[11px] text-muted-foreground truncate">{r.unidade_nome}</div>
               </div>
-              <Badge variant="outline" className={statusBadgeClass(r.status_key) + " shrink-0 text-[10px]"}>
-                {r.status_label}
-              </Badge>
-            </div>
-            <div className="flex flex-wrap gap-1.5 text-[11px]">
-              <Badge variant="outline" className={tipoBadgeClass(r.tipo_key) + " text-[10px]"}>{r.tipo_label}</Badge>
-              <span className="font-mono text-muted-foreground">Comp. {r.competencia}</span>
-              <span className="font-mono text-muted-foreground">· {new Date(r.data).toLocaleDateString("pt-BR")}</span>
-            </div>
+              <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+                <Badge variant="outline" className={tipoBadgeClass(r.tipo_key) + " text-[10px]"}>{r.tipo_label}</Badge>
+                <span className="font-mono text-muted-foreground">Comp. {r.competencia}</span>
+              </div>
+            </button>
+
             <div className="grid grid-cols-2 gap-1 pt-1 border-t border-border/60">
               <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setPreview(r)} disabled={!r.file_path}>
                 <Eye className="h-4 w-4 mr-1 text-primary" /> Ver
@@ -935,7 +930,35 @@ export default function DpHistoricoCompleto() {
         onDone={recarregar}
       />
 
-      <AlertDialog open={!!excluir} onOpenChange={(v) => { if (!v) setExcluir(null); }}>
+      <DocDetalhesDialog
+        target={detalhe ? {
+          rowId: detalhe.id,
+          titulo: detalhe.titulo,
+          tipo_key: detalhe.tipo_key,
+          tipo_label: detalhe.tipo_label,
+          competencia: detalhe.competencia,
+          colaborador_nome: detalhe.colaborador_nome,
+          unidade_nome: detalhe.unidade_nome,
+          data: detalhe.data,
+          file_path: detalhe.file_path ?? null,
+          aceite: detalhe.aceite ?? null,
+        } : null}
+        companyId={selectedCompanyId ?? null}
+        onOpenChange={(v) => { if (!v) setDetalhe(null); }}
+        onPreview={() => { const d = detalhe; setDetalhe(null); if (d) setPreview(d); }}
+        onDownload={() => { if (detalhe) download(detalhe); }}
+        onSubstituir={() => { const d = detalhe; setDetalhe(null); if (d) abrirSubstituir(d); }}
+        onExcluir={() => { const d = detalhe; setDetalhe(null); if (d) setExcluir(d); }}
+      />
+
+      <DocEventosDialog
+        open={logAberto}
+        companyId={selectedCompanyId ?? null}
+        onOpenChange={setLogAberto}
+      />
+
+
+      <AlertDialog open={!!excluir} onOpenChange={(v) => { if (!v) { setExcluir(null); setMotivoExclusao(""); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Documento?</AlertDialogTitle>
@@ -946,11 +969,20 @@ export default function DpHistoricoCompleto() {
                 </p>
                 <p className="rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-800">
                   O arquivo será apagado definitivamente e a pendência deste documento voltará a
-                  aparecer na Conferência de Competências.
+                  aparecer na Conferência de Competências. A exclusão fica registrada no log.
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase text-muted-foreground">Motivo Da Exclusão</Label>
+            <Textarea
+              rows={2}
+              placeholder="Ex.: arquivo importado na competência errada"
+              value={motivoExclusao}
+              onChange={(e) => setMotivoExclusao(e.target.value)}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
@@ -964,5 +996,6 @@ export default function DpHistoricoCompleto() {
         </AlertDialogContent>
       </AlertDialog>
     </DpPage>
+
   );
 }

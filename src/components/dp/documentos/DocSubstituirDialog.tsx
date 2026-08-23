@@ -24,7 +24,10 @@ export type DocSubstituirTarget = {
   /** MM/YYYY ou "—" */
   competencia: string;
   file_path: string | null;
+  unidade_id?: string | null;
+  unidade_nome?: string | null;
 };
+
 
 /** Converte "MM/YYYY" no formato aceito pelo input month (YYYY-MM). */
 function competenciaParaInput(v: string) {
@@ -46,6 +49,7 @@ export function DocSubstituirDialog(props: {
   const [tipo, setTipo] = useState("");
   const [colabId, setColabId] = useState("");
   const [competencia, setCompetencia] = useState("");
+  const [motivo, setMotivo] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -54,6 +58,7 @@ export function DocSubstituirDialog(props: {
     setTipo(target.tipo_key);
     setColabId(target.colaborador_id ?? "");
     setCompetencia(competenciaParaInput(target.competencia));
+    setMotivo("");
   }, [target]);
 
   const submit = async () => {
@@ -73,10 +78,21 @@ export function DocSubstituirDialog(props: {
               competencia: competencia || null,
             }
           : undefined,
+        meta: {
+          titulo: target.titulo,
+          tipo: target.tipo_key,
+          competencia: target.competencia,
+          colaborador_id: target.colaborador_id,
+          colaborador_nome: target.colaborador_nome,
+          unidade_id: target.unidade_id ?? null,
+          unidade_nome: target.unidade_nome ?? null,
+          motivo: motivo.trim() || null,
+        },
       });
       toast.success("Documento substituído");
       props.onDone();
       props.onOpenChange(false);
+
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao substituir o documento");
     } finally {
@@ -150,7 +166,20 @@ export function DocSubstituirDialog(props: {
               </div>
             </div>
           )}
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase text-muted-foreground">Motivo da Substituição</Label>
+            <Input
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ex.: arquivo importado errado"
+            />
+            <p className="text-xs text-muted-foreground">
+              O motivo fica registrado no log de alterações do documento.
+            </p>
+          </div>
         </div>
+
 
         <DialogFooter>
           <Button variant="outline" onClick={() => props.onOpenChange(false)} disabled={saving}>
