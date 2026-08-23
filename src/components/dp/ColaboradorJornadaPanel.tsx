@@ -1020,8 +1020,9 @@ export function ColaboradorJornadaPanel({
               </div>
               <Button
                 type="button" variant="outline" size="sm" className="gap-2"
-                onClick={() => window.open("/dp/folgas?aba=regras", "_blank", "noopener")}
+                onClick={abrirRegrasFolgas}
               >
+
                 <CalendarOff className="h-4 w-4" aria-hidden="true" /> Ver Regras De Folgas
               </Button>
             </div>
