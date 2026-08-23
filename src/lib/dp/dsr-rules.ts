@@ -126,15 +126,37 @@ type CfgTeto = Pick<DpConfigDp, "modo_frequencia_domingo" | "periodicidade_domin
   >;
 
 /**
+ * Opções por colaborador que ajustam a regra de folga dominical.
+ *
+ * `domingosMes` é o override individual: usado quando o gênero informado não é
+ * "F" nem "M" e o cadastro definiu a frequência CLT (1 ou 2 domingos por mês).
+ */
+export interface OptsColabDsr {
+  sexo?: string | null;
+  domingosMes?: number | null;
+}
+
+/** Override individual válido (1 ou 2 domingos por mês), ou null. */
+export function overrideDomingosMes(opts?: OptsColabDsr): number | null {
+  const v = Number(opts?.domingosMes);
+  if (!Number.isFinite(v) || v <= 0) return null;
+  return Math.max(1, Math.floor(v));
+}
+
+/**
  * Teto de folgas que o colaborador pode marcar sozinho no mês.
  * Deriva exclusivamente da frequência de folga dominical configurada.
  * Para colaboradoras, aplica-se a frequência feminina quando mais protetiva.
  */
-export function tetoFolgasMes(cfg: CfgTeto, opts?: { sexo?: string | null }): number {
+export function tetoFolgasMes(cfg: CfgTeto, opts?: OptsColabDsr): number {
   const derivar = (semanas: number) =>
     semanas <= 0 ? 1 : Math.max(1, Math.ceil(SEMANAS_POR_MES / semanas));
 
   const geral = derivar(semanasEfetivas(cfg));
+
+  const override = overrideDomingosMes(opts);
+  if (override !== null) return Math.max(geral, override);
+
   if (opts?.sexo !== "F") return geral;
 
   const mulher = derivar(
@@ -157,7 +179,7 @@ export function tetoFolgasMes(cfg: CfgTeto, opts?: { sexo?: string | null }): nu
 export function domingosFolgaNoPeriodo(
   cfg: CfgTeto,
   domingosNoPeriodo: number,
-  opts?: { sexo?: string | null },
+  opts?: OptsColabDsr,
 ): number {
   const domingos = Math.max(0, Math.floor(Number(domingosNoPeriodo) || 0));
   if (domingos === 0) return 0;
@@ -184,6 +206,10 @@ export function domingosFolgaNoPeriodo(
     cfg.periodicidade_domingo ?? 0,
     cfg.domingos_por_mes ?? 0,
   );
+
+  const override = overrideDomingosMes(opts);
+  if (override !== null) return Math.min(domingos, Math.max(geral, override));
+
   if (opts?.sexo !== "F") return geral;
 
   const mulher = calcular(
@@ -210,7 +236,7 @@ export interface ResumoEscolhaFolgas {
  */
 export function resumoEscolhaFolgas(
   cfg: CfgTeto & Pick<DpConfigDp, "tipo_descanso_domingo" | "dias_descanso_negociados">,
-  opts?: { sexo?: string | null },
+  opts?: OptsColabDsr,
 ): ResumoEscolhaFolgas {
   const dias = diasElegiveisDaConfig(cfg);
   const teto = tetoFolgasMes(cfg, opts);
@@ -405,6 +431,12 @@ export interface ConformidadeInput {
   diasNegociadosFolgados?: string[];
   /** Total de domingos existentes no período analisado. */
   domingosNoPeriodo: number;
+  /**
+   * Override individual de domingos de folga por mês, cadastrado no colaborador
+   * quando o gênero informado não é feminino nem masculino. Quando presente,
+   * substitui a frequência da unidade na avaliação.
+   */
+  domingosMesOverride?: number | null;
 }
 
 export interface ConformidadeLinha extends ConformidadeInput {
@@ -443,7 +475,13 @@ export function avaliarConformidade(
     const periodicidade =
       l.sexo === "F" ? Math.min(mulher || Infinity, geral || Infinity) : geral;
     const p = Number.isFinite(periodicidade) ? periodicidade : 0;
-    const esperado = domingosEsperados(l.domingosNoPeriodo, p);
+    // O override individual é mensal: 1 ou 2 domingos por mês vira uma
+    // periodicidade equivalente (4 ou 2 semanas) para o período analisado.
+    const pAplicada = l.domingosMesOverride
+      ? Math.min(p || Infinity, l.domingosMesOverride >= 2 ? 2 : 4)
+      : p;
+    const pFinal = Number.isFinite(pAplicada) ? pAplicada : 0;
+    const esperado = domingosEsperados(l.domingosNoPeriodo, pFinal);
     const domingos = l.domingosFolgados.length;
     const negociados = porAcordo ? (l.diasNegociadosFolgados?.length ?? 0) : 0;
     // No modo acordo, os dias negociados só complementam o que faltar de domingo.
@@ -453,7 +491,7 @@ export function avaliarConformidade(
     const folgasConsideradas = domingos + negociadosAproveitados;
     return {
       ...l,
-      periodicidadeAplicada: p,
+      periodicidadeAplicada: pFinal,
       esperado,
       folgasConsideradas,
       negociadosAproveitados,

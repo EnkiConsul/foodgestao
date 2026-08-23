@@ -177,6 +177,8 @@ const blank = {
 
   data_admissao: "",
   data_nascimento: "",
+  sexo: "none",
+  domingos_folga_mes: "none",
   data_desligamento: "",
   motivo_desligamento: NONE_DESLIG,
   elegivel_recontratacao: NONE_DESLIG,
@@ -266,7 +268,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
    * Folgas de fim de semana por mês da regra de DSR vigente (exceção da unidade
    * → padrão da empresa) — entram na simulação do vale-alimentação diário.
    */
-  const regrasDsr = useDpRegrasColaborador(selectedCompanyId, form.unidade_id || null);
+  const regrasDsr = useDpRegrasColaborador(
+    selectedCompanyId,
+    form.unidade_id || null,
+    form.sexo === "none" ? null : form.sexo,
+    form.domingos_folga_mes !== "none" ? Number(form.domingos_folga_mes) : null,
+  );
   const folgasFimDeSemanaMes = regrasDsr.config.folgas_fds_por_mes;
 
 
@@ -585,6 +592,9 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
       data_admissao: c.data_admissao ?? "",
       data_nascimento: c.data_nascimento ?? "",
+      sexo: c.sexo ?? "none",
+      domingos_folga_mes:
+        c.domingos_folga_mes != null ? String(c.domingos_folga_mes) : "none",
       data_desligamento: c.data_desligamento ?? "",
       motivo_desligamento: c.motivo_desligamento ?? NONE_DESLIG,
       elegivel_recontratacao: c.elegivel_recontratacao ?? NONE_DESLIG,
@@ -610,6 +620,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   }, [open]);
 
   const regimeSelecionado = VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt";
+
+  /**
+   * Gênero fora de masculino/feminino não tem regra dominical própria na
+   * configuração da unidade: a frequência CLT (1 ou 2 domingos por mês) passa a
+   * ser informada por colaborador, porque é ela que limita as folgas do mês.
+   */
+  const exigeDomingosFolga = form.sexo !== "none" && form.sexo !== "F" && form.sexo !== "M";
+  /** Override individual efetivo (null quando a regra vem da unidade). */
+  const domingosFolgaMes =
+    exigeDomingosFolga && form.domingos_folga_mes !== "none"
+      ? Number(form.domingos_folga_mes)
+      : null;
 
   // Orientação jurídica: vínculos sem previsão legal (freelancer), de risco de
   // pejotização (PJ/MEI) ou de sócio sem gestão ganham faixa de alerta.
@@ -1114,6 +1136,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
       if (!form.unidade_id) return erro("unidade_id", "Unidade é obrigatória");
       if (!form.data_admissao) return erro("data_admissao", "Data de admissão é obrigatória");
       if (!form.data_nascimento) return erro("data_nascimento", "Data de nascimento é obrigatória");
+      if (exigeDomingosFolga && form.domingos_folga_mes === "none") {
+        return erro(
+          "domingos_folga_mes",
+          "Informe quantas folgas dominicais por mês (1 ou 2) se aplicam a este colaborador",
+        );
+      }
 
       const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
       const nascimento = new Date(form.data_nascimento + "T00:00:00");
@@ -1253,6 +1281,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         vinculo_label: form.tipo_vinculo,
         data_admissao: form.data_admissao || null,
         data_nascimento: form.data_nascimento || null,
+        sexo: form.sexo === "none" ? null : form.sexo,
+        domingos_folga_mes: domingosFolgaMes,
         email: form.email.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
 
@@ -1661,6 +1691,59 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             />
           </div>
 
+          {/* Gênero: define a regra de folga dominical aplicada ao colaborador.
+              Quando não é masculino nem feminino, a frequência CLT é informada
+              manualmente, pois é ela que limita as folgas permitidas no mês. */}
+          <div className="space-y-2">
+            <Label>Gênero</Label>
+            <Select
+              value={form.sexo}
+              onValueChange={(v) =>
+                setForm({
+                  ...form,
+                  sexo: v,
+                  // M/F seguem a regra da unidade: o override individual é limpo.
+                  domingos_folga_mes: v === "F" || v === "M" ? "none" : form.domingos_folga_mes,
+                })
+              }
+            >
+              <SelectTrigger {...marca("sexo")}><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Não informado</SelectItem>
+                <SelectItem value="F">Feminino</SelectItem>
+                <SelectItem value="M">Masculino</SelectItem>
+                <SelectItem value="outro">Outro</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Usado para validar a quantidade de folgas dominicais exigidas pela CLT.
+            </p>
+          </div>
+
+          {exigeDomingosFolga && (
+            <div className="space-y-2">
+              <Label>Folgas Dominicais Por Mês (Padrão CLT) *</Label>
+              <Select
+                value={form.domingos_folga_mes}
+                onValueChange={(v) => setForm({ ...form, domingos_folga_mes: v })}
+              >
+                <SelectTrigger {...marca("domingos_folga_mes")}>
+                  <SelectValue placeholder="Selecione a frequência" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 por mês</SelectItem>
+                  <SelectItem value="2">2 por mês</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                1 por mês = regra geral do comércio; 2 por mês = regra do Art. 386 da CLT.
+                Define quantas folgas dominicais este colaborador pode escolher.
+              </p>
+            </div>
+          )}
+
+
+
           {/* Tipo de Vínculo (o regime do banco é derivado deste campo) */}
           <div className="space-y-2">
             <Label>Tipo de Vínculo</Label>
@@ -1780,6 +1863,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 cargo_id: form.cargo_id || null,
                 data_admissao: form.data_admissao || null,
                 data_nascimento: form.data_nascimento || null,
+                sexo: form.sexo === "none" ? null : form.sexo,
+                domingos_folga_mes: domingosFolgaMes,
               }}
               active={tab === "jornada"}
               showSaveButton={false}

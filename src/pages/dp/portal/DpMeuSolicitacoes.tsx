@@ -82,7 +82,7 @@ export default function DpMeuSolicitacoes() {
       if (!data) return null;
       const { data: c } = await supabase
         .from("dp_colaboradores")
-        .select("id, company_id, unidade_id, sexo, folga_fixa_semana, ativo, nome")
+        .select("id, company_id, unidade_id, sexo, domingos_folga_mes, folga_fixa_semana, ativo, nome")
         .eq("id", data)
         .single();
       return c;
@@ -133,7 +133,7 @@ export default function DpMeuSolicitacoes() {
     },
   });
 
-  const { config: regrasConfig, diasElegiveis, tetoMensal } = useDpRegrasColaborador(meRef.data?.company_id ?? null, meRef.data?.unidade_id ?? null, (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null);
+  const { config: regrasConfig, diasElegiveis, tetoMensal } = useDpRegrasColaborador(meRef.data?.company_id ?? null, meRef.data?.unidade_id ?? null, (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null, (meRef.data as { domingos_folga_mes?: number | null } | undefined)?.domingos_folga_mes ?? null);
   const resumoFolgas = resumoEscolhaFolgas(regrasConfig, { sexo: (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null });
 
   const dataAlvoIso = toIso(form.data_alvo);

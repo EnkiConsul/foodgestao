@@ -17,6 +17,8 @@ export function useDpRegrasColaborador(
   companyId?: string | null,
   unidadeId?: string | null,
   sexo?: string | null,
+  /** Override individual de domingos de folga por mês (gênero fora de F/M). */
+  domingosMes?: number | null,
 ) {
   const query = useQuery({
     queryKey: ["dp_config_resolvida", companyId, unidadeId ?? null],
@@ -52,8 +54,9 @@ export function useDpRegrasColaborador(
   return {
     config,
     sexo: sexo ?? null,
+    domingosMes: domingosMes ?? null,
     diasElegiveis: diasElegiveisDaConfig(config),
-    tetoMensal: tetoFolgasMes(config, { sexo }),
+    tetoMensal: tetoFolgasMes(config, { sexo, domingosMes }),
     isLoading: query.isLoading,
   };
 }
