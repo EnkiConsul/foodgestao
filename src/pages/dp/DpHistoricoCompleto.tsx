@@ -892,9 +892,15 @@ export default function DpHistoricoCompleto() {
                   title="Ver detalhes do documento"
                 >
                   {colOrder.map((k) => (
-                    <TableCell key={k} className={COLS[k].cellClass}>{COLS[k].render(r)}</TableCell>
+                    <TableCell
+                      key={k}
+                      className={COLS[k].cellClass}
+                      style={{ width: colWidths[k], maxWidth: colWidths[k] }}
+                    >
+                      {COLS[k].render(r)}
+                    </TableCell>
                   ))}
-                  <TableCell className="align-middle" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="align-middle" style={{ width: ACOES_WIDTH }} onClick={(e) => e.stopPropagation()}>
                     <div className="grid grid-cols-2 gap-0.5 justify-items-center">
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Pré-visualizar" onClick={() => setPreview(r)} disabled={!r.file_path}>
                         <Eye className="h-4 w-4 text-primary" />
@@ -921,8 +927,10 @@ export default function DpHistoricoCompleto() {
               )}
             </TableBody>
           </Table>
+          </div>
         )}
       </DpContentCard>
+
 
 
       {/* Mobile: lista de cards */}
