@@ -1169,6 +1169,34 @@ export function ColaboradorJornadaPanel({
         onConfirm={(j) => void onConfirmarCiencia(j)}
       />
 
+      <AlertDialog open={irRegrasOpen} onOpenChange={setIrRegrasOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar o horário antes de ir?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações não salvas no horário de trabalho. Deseja salvar antes de abrir
+              as Regras de Folgas?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button
+              type="button" variant="outline"
+              onClick={() => { setIrRegrasOpen(false); navigate(ROTA_REGRAS); }}
+            >
+              Ir sem salvar
+            </Button>
+            <AlertDialogAction
+              disabled={saving}
+              onClick={(e) => { e.preventDefault(); void salvarEIrRegras(); }}
+            >
+              {saving ? "Salvando..." : "Salvar e ir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       <CopiarConfigColaboradorDialog
         open={copiarOpen}
         onOpenChange={setCopiarOpen}
