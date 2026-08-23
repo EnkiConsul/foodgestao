@@ -38,3 +38,22 @@ Mudanças de comportamento:
 - Remover o uso de `ReplicarRegrasDialog` neste arquivo (o componente permanece no projeto para outras telas, se houver uso).
 - Manter `CienciaLegalDialog`, o diálogo de "Limpar Regras", o `localStorage` da unidade selecionada e o `RegrasHistoricoPanel` no fim da aba.
 - Layout mobile: cabeçalho empilhado, checkboxes em grid de 1 coluna no mobile e 2–3 colunas no desktop.
+
+## Unificar também as Datas Bloqueadas
+
+Na mesma aba Regras, o bloco de Datas Bloqueadas hoje aparece em três caixas soltas (filtros, "Regras de Bloqueio" e "Próximas Datas Bloqueadas"), dando a mesma impressão de cadastros independentes. Passa a ser um único painel:
+
+```text
+┌ Datas Bloqueadas ────────────────────────────────────────┐
+│ Ano [2026] Mês [Todos] Aplicação [Todas] Unidade [Todas] │
+│ [Mostrar passadas]        [+ Nova Regra] [Bloquear Data] │
+│ ──────────────────────────────────────────────────────── │
+│ [ Regras automáticas (3) ] [ Datas bloqueadas (12) ]     │
+│ ...lista correspondente à aba escolhida...               │
+└──────────────────────────────────────────────────────────┘
+```
+
+- Um só card com cabeçalho (filtros + ações de criar) e, abaixo, duas abas internas: "Regras Automáticas" e "Datas Bloqueadas", cada uma com a contagem de itens.
+- Filtros valem para as duas listas, como já valem hoje.
+- Os botões "Nova Regra" e "Bloquear Data" ficam no cabeçalho do painel; os diálogos `RegraDialog` e `DataDialog` continuam iguais.
+- Nada muda em dados, permissões ou regras de negócio: apenas agrupamento visual em `src/pages/dp/DpBloqueios.tsx`, usando `DpContentCard` e `DpTabsBar` para ficar consistente com o resto do módulo (inclusive no mobile).
