@@ -98,7 +98,7 @@ export default function DpNotificacoes() {
             </TableHeader>
             <TableBody>
               {filtered.map((n) => {
-                const path = REF_TO_PATH[n.ref_table] ?? "/dp/aprovacoes";
+                const path = REF_TO_PATH[n.ref_table] ?? "/dp/notificacoes";
                 return (
                   <TableRow key={n.id} className={n.lida_em ? "opacity-70" : ""}>
                     <TableCell>
@@ -127,7 +127,7 @@ export default function DpNotificacoes() {
         {/* Mobile: lista de cards */}
         <div className="md:hidden space-y-3">
           {filtered.map((n) => {
-            const path = REF_TO_PATH[n.ref_table] ?? "/dp/aprovacoes";
+            const path = REF_TO_PATH[n.ref_table] ?? "/dp/notificacoes";
             return (
               <div key={n.id} className={"rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform " + (n.lida_em ? "opacity-70" : "")}>
                 <div className="flex items-start justify-between gap-2">

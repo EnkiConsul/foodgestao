@@ -46,7 +46,7 @@ export function DpNotificacoesBell() {
               Marcar todas
             </Button>
             <Button size="sm" variant="ghost" asChild onClick={() => setOpen(false)}>
-              <Link to="/dp/aprovacoes">Ver todas</Link>
+              <Link to="/dp/notificacoes">Ver todas</Link>
             </Button>
           </div>
         </div>
@@ -69,7 +69,7 @@ export function DpNotificacoesBell() {
           ) : (
             <ul className="divide-y">
               {list.slice(0, 15).map((n) => {
-                const path = REF_TO_PATH[n.ref_table] ?? "/dp/aprovacoes";
+                const path = REF_TO_PATH[n.ref_table] ?? "/dp/notificacoes";
                 return (
                   <li key={n.id} className={n.lida_em ? "opacity-60" : ""}>
                     <Link

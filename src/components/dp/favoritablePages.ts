@@ -37,7 +37,6 @@ export const FAVORITABLE_PAGES: FavoritablePage[] = [
   { pattern: "/dp/calendario", label: "Calendário", icon: Calendar },
   { pattern: "/dp/trocas", label: "Trocas", icon: Repeat },
   { pattern: "/dp/solicitacoes", label: "Solicitações", icon: ClipboardList },
-  { pattern: "/dp/aprovacoes", label: "Aprovações", icon: CheckSquare },
   { pattern: "/dp/avisos", label: "Avisos", icon: Megaphone },
   { pattern: "/dp/mensagens", label: "Mensagens", icon: MessageSquare },
   { pattern: "/dp/modelos-mensagem", label: "Modelos", icon: Mail },
