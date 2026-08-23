@@ -926,6 +926,43 @@ export default function DpHistoricoCompleto() {
         path={preview?.file_path ?? undefined}
         mime={preview?.mime_type}
       />
+
+      <DocSubstituirDialog
+        target={substituir}
+        companyId={selectedCompanyId ?? null}
+        colaboradores={(colabs.data ?? []).map((c) => ({ id: c.id, nome: c.nome }))}
+        onOpenChange={(v) => { if (!v) setSubstituir(null); }}
+        onDone={recarregar}
+      />
+
+      <AlertDialog open={!!excluir} onOpenChange={(v) => { if (!v) setExcluir(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Documento?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  {excluir ? `${docSourceConfig(excluir.id).label} · ${excluir.tipo_label} · ${excluir.colaborador_nome} · ${excluir.competencia}` : ""}
+                </p>
+                <p className="rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-800">
+                  O arquivo será apagado definitivamente e a pendência deste documento voltará a
+                  aparecer na Conferência de Competências.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => { e.preventDefault(); confirmarExclusao(); }}
+              disabled={excluindo}
+            >
+              {excluindo ? "Excluindo…" : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DpPage>
   );
 }
