@@ -110,7 +110,6 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Convocações", to: "/dp/convocacoes", icon: BellRing },
       { label: "Folgas", to: "/dp/folgas", icon: Calendar, shortcut: true },
       { label: "Férias", to: "/dp/ferias", icon: Palmtree, shortcut: true },
-      { label: "Conformidade DSR", to: "/dp/conformidade-dsr", icon: Scale },
     ],
   },
 

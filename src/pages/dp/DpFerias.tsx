@@ -5,7 +5,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Palmtree, Plus, RefreshCw, Pencil, Trash2, AlertTriangle, CalendarClock, CheckCircle2,
 } from "lucide-react";
-import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
+import { DpPage, DpPageHeader, DpContentCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -47,6 +47,7 @@ const GOZO_LABEL: Record<string, string> = {
 const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
 export default function DpFerias() {
+  const embedded = useDpEmbedded();
   const { data: colaboradores = [] } = useDpColaboradores();
   const [colabFilter, setColabFilter] = useState("todos");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
@@ -111,7 +112,7 @@ export default function DpFerias() {
 
   return (
     <DpPage>
-      <Helmet><title>Férias — Pessoas 360°</title></Helmet>
+      {!embedded && <Helmet><title>Férias — Pessoas 360°</title></Helmet>}
       <DpPageHeader
         icon={Palmtree}
         title="Férias"

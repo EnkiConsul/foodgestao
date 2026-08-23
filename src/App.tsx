@@ -79,7 +79,7 @@ const DpHome = lazyWithRetry(() => import("./pages/dp/DpHome"));
 const DpColaboradores = lazyWithRetry(() => import("./pages/dp/DpColaboradores"));
 const DpColaboradoresLixeira = lazyWithRetry(() => import("./pages/dp/DpColaboradoresLixeira"));
 const DpDocumentosImportar = lazyWithRetry(() => import("./pages/dp/DpDocumentosImportar"));
-const DpFerias = lazyWithRetry(() => import("./pages/dp/DpFerias"));
+const DpFerias = lazyWithRetry(() => import("./pages/dp/DpFeriasHub"));
 const DpConformidade = lazyWithRetry(() => import("./pages/dp/DpConformidade"));
 const DpBeneficios = lazyWithRetry(() => import("./pages/dp/DpBeneficios"));
 const DpAnalytics = lazyWithRetry(() => import("./pages/dp/DpAnalytics"));
@@ -88,7 +88,6 @@ const DpFolgasHub = lazyWithRetry(() => import("./pages/dp/DpFolgasHub"));
 const DpCadastrosHub = lazyWithRetry(() => import("./pages/dp/DpCadastrosHub"));
 const DpCadastroPendencias = lazyWithRetry(() => import("./pages/dp/cadastros/DpCadastroPendencias"));
 
-const DpConformidadeDsr = lazyWithRetry(() => import("./pages/dp/DpConformidadeDsr"));
 const DpEscalas = lazyWithRetry(() => import("./pages/dp/DpEscalas"));
 const DpOperacaoPanorama = lazyWithRetry(() => import("./pages/dp/DpOperacaoPanorama"));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
@@ -461,7 +460,7 @@ const AppRoutes = () => (
         <Route path="turnos" element={<Navigate to="/dp/cadastros/cargos?aba=turnos" replace />} />
         <Route path="folgas/configuracoes/regras" element={<Navigate to="/dp/folgas?aba=regras" replace />} />
         <Route path="cadastros/regras-jornada" element={<Navigate to="/dp/folgas?aba=regras" replace />} />
-        <Route path="conformidade-dsr" element={<DpConformidadeDsr />} />
+        <Route path="conformidade-dsr" element={<Navigate to="/dp/folgas?aba=conformidade" replace />} />
         <Route path="escalas" element={<DpEscalas />} />
         <Route path="escalas/mes" element={<DpOperacaoPanorama />} />
         <Route path="operacao" element={<Navigate to="/dp/escalas/mes" replace />} />

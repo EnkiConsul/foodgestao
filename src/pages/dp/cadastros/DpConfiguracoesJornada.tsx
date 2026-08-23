@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Save, Scale, History, Info, Store, Trash2, Landmark } from "lucide-react";
+import { Save, Scale, Info, Store, Trash2, Landmark } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
-import { FeriasRegrasSection } from "@/components/dp/ferias/FeriasRegrasSection";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { ReplicarRegrasDialog } from "@/components/dp/ReplicarRegrasDialog";
 import { Button } from "@/components/ui/button";
@@ -61,7 +60,7 @@ export default function DpConfiguracoesJornada() {
     () => localStorage.getItem(STORAGE_KEY) || null,
   );
   const {
-    config, configPadrao, temExcecao, unidadesConfiguradas, temMulheres, historico,
+    config, configPadrao, temExcecao, unidadesConfiguradas, temMulheres,
     isLoading, isError, refetch, save, saveMany, saving, removerExcecao, removendo,
   } = useDpConfigDp(unidadeId);
   const { data: todasUnidades = [] } = useDpUnidades();
@@ -202,7 +201,6 @@ export default function DpConfiguracoesJornada() {
     }
   };
 
-  const historicoRecente = useMemo(() => historico.slice(0, 10), [historico]);
 
 
   if (isError) {
@@ -225,7 +223,7 @@ export default function DpConfiguracoesJornada() {
 
       <DpPageHeader
         title="Regras De Folgas"
-        description="Parâmetros de DSR, folga dominical e férias — aplicados a toda a empresa ou por unidade de loja."
+        description="Parâmetros de DSR e folga dominical — aplicados a toda a empresa ou por unidade de loja."
         icon={Scale}
         actions={
           <Button onClick={handleSave} disabled={saving || isLoading} className="gap-2">
@@ -566,34 +564,6 @@ export default function DpConfiguracoesJornada() {
       </Section>
 
 
-      <FeriasRegrasSection />
-
-      <Section
-        title="Histórico de alterações"
-        description="Registro imutável de mudanças nas regras, com confirmações de ciência."
-      >
-        {historicoRecente.length === 0 ? (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Info className="h-4 w-4" aria-hidden="true" /> Nenhuma alteração registrada ainda.
-          </p>
-        ) : (
-          <ul className="divide-y">
-            {historicoRecente.map((h) => (
-              <li key={h.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                <History className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <span className="text-muted-foreground">
-                  {new Date(h.created_at).toLocaleString("pt-BR")}
-                </span>
-                <span className="font-medium">{h.tabela}</span>
-                {h.ciencia_confirmada && <Badge variant="destructive">Ciência confirmada</Badge>}
-                {h.justificativa && (
-                  <span className="w-full text-xs text-muted-foreground sm:w-auto">“{h.justificativa}”</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
 
       <ReplicarRegrasDialog
         open={replicarAberto}
