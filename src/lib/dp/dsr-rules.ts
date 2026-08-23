@@ -6,11 +6,34 @@ export type RegraDsr = "clt" | "cct" | "propria";
 export type TipoDescansoDomingo = "legal" | "acordo_coletivo";
 /** Modelo de frequência: intervalo em semanas OU quantidade por mês. Mutuamente exclusivos. */
 export type ModoFrequencia = "semanas" | "por_mes";
+/** Como a troca de folga entre colaboradores é tratada na unidade. */
+export type TrocaFolgaModo = "direta" | "aprovacao_admin" | "proibida";
+/** Sobre qual folga a permissão de troca se aplica. */
+export type TrocaFolgaEscopo = "semanal" | "dominical" | "ambas";
 
 export const MODO_FREQUENCIA_LABEL: Record<ModoFrequencia, string> = {
   semanas: "A cada X semanas",
   por_mes: "X domingos por mês",
 };
+
+export const REGRA_DSR_LABEL: Record<RegraDsr, string> = {
+  clt: "CLT (padrão legal)",
+  cct: "Acordo / convenção coletiva",
+  propria: "Política própria da empresa",
+};
+
+export const TROCA_FOLGA_MODO_LABEL: Record<TrocaFolgaModo, string> = {
+  direta: "Direta (vale no aceite do colega)",
+  aprovacao_admin: "Somente com aprovação do administrador",
+  proibida: "Não permitida",
+};
+
+export const TROCA_FOLGA_ESCOPO_LABEL: Record<TrocaFolgaEscopo, string> = {
+  semanal: "Apenas folga semanal",
+  dominical: "Apenas folga dominical (DSR)",
+  ambas: "Folga semanal e dominical",
+};
+
 
 export const DIA_SEMANA_LABEL = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 export const DIA_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
