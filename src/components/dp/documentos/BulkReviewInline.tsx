@@ -229,6 +229,35 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
   });
 
+  const setExigeAceite = useMutation({
+    mutationFn: async ({ id, exige }: { id: string; exige: boolean }) => {
+      const { error } = await supabase.from("dp_bulk_import_items" as any)
+        .update({ exige_aceite: exige }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao alterar validação digital"),
+  });
+
+  /** Interruptor do lote: aplica a todas as páginas ainda não importadas. */
+  const setExigeAceiteLote = useMutation({
+    mutationFn: async (exige: boolean) => {
+      const up = await supabase.from("dp_bulk_import_batches" as any)
+        .update({ exigir_aceite: exige }).eq("id", batchId);
+      if (up.error) throw up.error;
+      const { error } = await supabase.from("dp_bulk_import_items" as any)
+        .update({ exige_aceite: exige })
+        .eq("batch_id", batchId)
+        .neq("status", "imported");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao alterar validação digital do lote"),
+  });
+
   const setTipoItem = useMutation({
     mutationFn: async ({ id, tipo }: { id: string; tipo: string }) => {
       const { error } = await supabase.from("dp_bulk_import_items" as any).update({
