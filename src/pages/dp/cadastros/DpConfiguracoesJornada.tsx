@@ -440,10 +440,15 @@ export default function DpConfiguracoesJornada() {
             </div>
           )}
         </div>
-      </Section>
+        </SubSection>
 
+        <Separator />
 
-      <Section title="Folga dominical (DSR)">
+        <SubSection
+          title="Frequência Da Folga Dominical (DSR)"
+          description="Quantas vezes o colaborador folga no domingo, conforme a base legal ou negociada."
+        >
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="regra-dsr">Base da regra de DSR</Label>
