@@ -182,6 +182,16 @@ export async function substituirDocumentoHistorico(params: {
     await supabase.from("dp_documento_aceites").delete().eq("documento_id", id);
   }
 
+  await registrarEvento({
+    rowId,
+    acao: "substituido",
+    meta: { ...(meta ?? {}), companyId },
+    arquivo_anterior: filePathAtual,
+    arquivo_novo: novoPath,
+  });
+
+
+
   if (filePathAtual && filePathAtual !== novoPath) {
     await removerArquivo(cfg.bucket, filePathAtual);
   }
