@@ -480,16 +480,16 @@ export default function DpHistoricoCompleto() {
       if (grupo !== "all" && docTipoGrupo(r.tipo_key) !== grupo) return false;
       if (unidadeId !== "all" && r.unidade_id !== unidadeId) return false;
       if (colabId !== "all" && r.colaborador_id !== colabId) return false;
-      if (status !== "all" && r.status_key !== status) return false;
       if (ano !== "all" && !r.competencia_sort.startsWith(ano)) return false;
       if (mes !== "all" && r.competencia_sort.slice(5, 7) !== mes) return false;
       if (q) {
-        const hay = `${r.colaborador_nome} ${r.tipo_label} ${r.status_label} ${r.unidade_nome} ${r.titulo}`.toLowerCase();
+        const hay = `${r.colaborador_nome} ${r.tipo_label} ${r.unidade_nome} ${r.titulo}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [query.data, tipo, grupo, unidadeId, colabId, mes, ano, status, busca]);
+  }, [query.data, tipo, grupo, unidadeId, colabId, mes, ano, busca]);
+
 
   const filtered = useMemo(() => {
     return baseFiltered.filter((r) =>
