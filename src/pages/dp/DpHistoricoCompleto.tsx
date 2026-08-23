@@ -647,7 +647,13 @@ export default function DpHistoricoCompleto() {
         icon={FileText}
         title="Histórico"
         description="Visualize todos os documentos de todos os colaboradores em um único lugar."
+        actions={
+          <Button variant="outline" onClick={() => setLogAberto(true)}>
+            <History className="mr-1 h-4 w-4" /> Registro De Alterações
+          </Button>
+        }
       />
+
 
       {/* Barra de naturezas: somente os grupos */}
       <div className="rounded-lg border bg-card p-3">
