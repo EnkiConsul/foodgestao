@@ -30,6 +30,8 @@ import { Link } from "react-router-dom";
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpCopyColWidthsButton } from "@/components/dp/DpCopyColWidthsButton";
+
 import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
@@ -317,7 +319,9 @@ export default function DpColaboradores() {
         description="Gerencie a equipe, cargos e acessos ao sistema."
         actions={
           <>
+            <DpCopyColWidthsButton tela="colaboradores" colOrder={colOrder} colWidths={colWidths} />
             <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
+
               <Link to="/dp/colaboradores/lixeira">
                 <Trash2 className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Lixeira</span>
               </Link>
