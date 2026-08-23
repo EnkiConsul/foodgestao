@@ -1690,14 +1690,18 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
 
 
 
-          <SindicatoEnquadramentoField
-            cargoId={form.cargo_id}
-            cargoNome={cargoSelecionado?.nome ?? null}
-            unidadeId={form.unidade_id}
-            value={form.sindicato_id}
-            onChange={(id) => setForm((f) => ({ ...f, sindicato_id: id }))}
-            onBeforeNavigate={() => onOpenChange(false)}
-          />
+          {/* Sócio não é representado por convenção coletiva: sem enquadramento. */}
+          {!socioSelecionado && (
+            <SindicatoEnquadramentoField
+              cargoId={form.cargo_id}
+              cargoNome={cargoSelecionado?.nome ?? null}
+              unidadeId={form.unidade_id}
+              value={form.sindicato_id}
+              onChange={(id) => setForm((f) => ({ ...f, sindicato_id: id }))}
+              onBeforeNavigate={() => onOpenChange(false)}
+            />
+          )}
+
 
 
 
