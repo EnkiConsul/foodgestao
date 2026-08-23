@@ -98,7 +98,6 @@ const DpOperacaoDia = lazyWithRetry(() => import("./pages/dp/DpOperacaoDia"));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
-const DpAprovacoes = lazyWithRetry(() => import("./pages/dp/DpAprovacoes"));
 const DpAvisos = lazyWithRetry(() => import("./pages/dp/DpAvisos"));
 const DpMensagens = lazyWithRetry(() => import("./pages/dp/DpMensagens"));
 const DpDisciplinar = lazyWithRetry(() => import("./pages/dp/DpDisciplinar"));
@@ -454,7 +453,6 @@ const AppRoutes = () => (
         <Route path="disciplinar" element={<DpDisciplinar />} />
         <Route path="bloqueios" element={<DpBloqueios />} />
         <Route path="trocas" element={<DpTrocas />} />
-        <Route path="aprovacoes" element={<DpAprovacoes />} />
         <Route path="documentos/importar" element={<Navigate to="/dp/documentos" replace />} />
         <Route path="documentos/:categoria" element={<Navigate to="/dp/documentos/historico" replace />} />
         <Route path="cadastros" element={<DpCadastrosHub />} />
