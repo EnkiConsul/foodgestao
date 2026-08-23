@@ -616,18 +616,22 @@ export default function DpConfiguracoesJornada() {
 
 
         </div>
-      </Section>
+        </SubSection>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+          <p className="text-xs text-muted-foreground">
+            {alvosExtras.length > 0
+              ? `Será salvo em ${alvosExtras.length + 1} unidades.`
+              : `Será salvo apenas em ${unidadeAtual?.nome ?? "esta unidade"}.`}
+          </p>
+          <Button onClick={handleSave} disabled={saving || isLoading} className="gap-2">
+            <Save className="h-4 w-4" aria-hidden="true" />
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
+      </DpContentCard>
 
 
-
-      <ReplicarRegrasDialog
-        open={replicarAberto}
-        unidadeAtualNome={unidadeAtual?.nome ?? "esta unidade"}
-        outrasUnidades={outrasUnidades}
-        saving={saving}
-        onCancel={() => setReplicarAberto(false)}
-        onConfirm={(alvos) => concluirSalvamento(alvos)}
-      />
 
       <AlertDialog open={limparAberto} onOpenChange={setLimparAberto}>
         <AlertDialogContent>
