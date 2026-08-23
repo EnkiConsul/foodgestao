@@ -8,7 +8,16 @@
 // Funções puras — nenhuma dependência de React ou Supabase.
 // ------------------------------------------------------------------
 
-import { cargaLiquidaHoras, turnoViraODia } from "@/lib/dp/turno-utils";
+import {
+  cargaLiquidaHoras,
+  turnoViraODia,
+  periodosDoDia,
+  periodoCompleto,
+  formatarPeriodo,
+  type HorarioFuncionamentoDia,
+  type HorarioFuncionamentoPeriodo,
+} from "@/lib/dp/turno-utils";
+import { paraMinutos } from "@/lib/dp/jornada-utils";
 import { turnoDoDia, type ConfigTrabalho, type TurnoResolvido } from "@/lib/dp/config-trabalho";
 
 export type CategoriaDia =
@@ -38,6 +47,10 @@ export interface ColaboradorPanorama {
   /** Intermitente só entra na operação quando convocado. */
   intermitente: boolean;
   config: ConfigTrabalho | null;
+  cargo_id?: string | null;
+  cargo_nome?: string | null;
+  /** Sócio: aparece na operação mas sem regras CLT. */
+  socio?: boolean;
   ativo?: boolean;
   data_admissao?: string | null;
   data_desligamento?: string | null;
@@ -90,6 +103,10 @@ export interface PessoaPanorama {
   saida: string | null;
   termina_no_dia_seguinte: boolean;
   carga_prevista_horas: number;
+  unidade_id: string | null;
+  cargo_id: string | null;
+  cargo_nome: string | null;
+  socio: boolean;
   /** Origem do horário: jornada habitual, escala publicada ou convocação. */
   origem: "jornada" | "escala" | "convocacao";
 }
@@ -208,6 +225,10 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
         entrada && saida
           ? cargaLiquidaHoras({ entrada, saida, intervalo_minutos: horario?.intervalo_minutos ?? 0 })
           : 0,
+      unidade_id: colab.unidade_id ?? null,
+      cargo_id: colab.cargo_id ?? null,
+      cargo_nome: colab.cargo_nome ?? null,
+      socio: !!colab.socio,
       origem: horario?.origem ?? "jornada",
     });
   };
@@ -366,4 +387,144 @@ export function mensagemAlerta(dia: ResultadoDia, avaliacao: AvaliacaoDia, unida
   const alvo = `${DOW_PLURAL[dia.dow]}${unidade ? ` na ${unidade}` : ""}`;
   const rotulo = avaliacao.situacao === "abaixo" ? "abaixo do padrão" : "acima do padrão";
   return `Previsto ${dia.trabalhando}, padrão ${avaliacao.padrao} para ${alvo} — ${rotulo}.`;
+}
+
+// ------------------------------------------------------------------
+// Blocos por período de funcionamento da unidade, agrupados por cargo
+// ------------------------------------------------------------------
+
+export interface GrupoCargo {
+  cargo_id: string | null;
+  cargo_nome: string;
+  pessoas: PessoaPanorama[];
+}
+
+export interface BlocoFuncionamento {
+  key: string;
+  /** Nome do período (ex.: "Jantar") ou rótulo do bloco especial. */
+  titulo: string;
+  horario: string | null;
+  unidade_id: string | null;
+  unidade_nome: string | null;
+  fechado: boolean;
+  pessoas: PessoaPanorama[];
+  grupos: GrupoCargo[];
+}
+
+const SEM_CARGO = "Sem cargo definido";
+
+function agruparPorCargo(pessoas: PessoaPanorama[]): GrupoCargo[] {
+  const mapa = new Map<string, GrupoCargo>();
+  for (const p of pessoas) {
+    const chave = p.cargo_id ?? "sem-cargo";
+    const atual = mapa.get(chave) ?? {
+      cargo_id: p.cargo_id ?? null,
+      cargo_nome: p.cargo_nome ?? SEM_CARGO,
+      pessoas: [],
+    };
+    atual.pessoas.push(p);
+    mapa.set(chave, atual);
+  }
+  return [...mapa.values()]
+    .map((g) => ({ ...g, pessoas: [...g.pessoas].sort((a, b) => a.nome.localeCompare(b.nome)) }))
+    .sort((a, b) => a.cargo_nome.localeCompare(b.cargo_nome));
+}
+
+/** Minutos do período, esticando o fechamento quando ele vira o dia. */
+function janelaPeriodo(p: HorarioFuncionamentoPeriodo): { abre: number; fecha: number } | null {
+  const abre = paraMinutos(p.hora_abertura ?? "");
+  const fecha0 = paraMinutos(p.hora_fechamento ?? "");
+  if (abre === null || fecha0 === null) return null;
+  return { abre, fecha: fecha0 <= abre ? fecha0 + 24 * 60 : fecha0 };
+}
+
+/** Sobreposição entre a jornada da pessoa e a janela do período. */
+function encaixa(p: PessoaPanorama, janela: { abre: number; fecha: number }): boolean {
+  const entrada = paraMinutos(p.entrada ?? "");
+  if (entrada === null) return false;
+  const saida0 = paraMinutos(p.saida ?? "");
+  const saida = saida0 === null ? entrada : saida0 <= entrada ? saida0 + 24 * 60 : saida0;
+  return entrada < janela.fecha && saida > janela.abre;
+}
+
+/**
+ * Monta os blocos do dia a partir do funcionamento da loja (não do turno
+ * cadastrado do colaborador). Cada pessoa entra no período em que a jornada
+ * dela se sobrepõe; quem não encaixa em nenhum vai para um bloco à parte.
+ */
+export function blocosPorFuncionamento(input: {
+  data: string;
+  pessoas: PessoaPanorama[];
+  /** Funcionamento por unidade: unidade_id → dias. */
+  funcionamentoPorUnidade: Map<string, HorarioFuncionamentoDia[]>;
+  unidades: { id: string; nome: string }[];
+  /** Quando null, agrupa por unidade. */
+  unidadeId: string | null;
+}): BlocoFuncionamento[] {
+  const dow = dowDaData(input.data);
+  const nomeUnidade = new Map(input.unidades.map((u) => [u.id, u.nome]));
+  const alvos = input.unidadeId
+    ? [input.unidadeId]
+    : [...new Set(input.pessoas.map((p) => p.unidade_id).filter((x): x is string => !!x))];
+
+  const out: BlocoFuncionamento[] = [];
+  const semUnidade = input.pessoas.filter((p) => !p.unidade_id);
+
+  for (const uid of alvos) {
+    const daUnidade = input.pessoas.filter((p) => p.unidade_id === uid || (input.unidadeId && !p.unidade_id));
+    const dias = input.funcionamentoPorUnidade.get(uid) ?? [];
+    const dia = dias.find((d) => d.dia_semana === dow);
+    const periodos = dia && dia.aberto ? periodosDoDia(dia).filter(periodoCompleto) : [];
+    const alocadas = new Set<string>();
+
+    periodos.forEach((per, i) => {
+      const janela = janelaPeriodo(per);
+      const pessoas = janela ? daUnidade.filter((p) => encaixa(p, janela)) : [];
+      pessoas.forEach((p) => alocadas.add(p.colaborador_id));
+      out.push({
+        key: `${uid}-${i}`,
+        titulo: per.nome?.trim() || `Período ${i + 1}`,
+        horario: formatarPeriodo(per),
+        unidade_id: uid,
+        unidade_nome: nomeUnidade.get(uid) ?? null,
+        fechado: false,
+        pessoas,
+        grupos: agruparPorCargo(pessoas),
+      });
+    });
+
+    const restantes = daUnidade.filter((p) => !alocadas.has(p.colaborador_id));
+    if (restantes.length || (!periodos.length && daUnidade.length)) {
+      const fechado = !periodos.length;
+      out.push({
+        key: `${uid}-fora`,
+        titulo: fechado
+          ? dia && dia.aberto
+            ? "Sem Horário de Funcionamento Cadastrado"
+            : "Unidade Fechada Neste Dia"
+          : "Fora do Horário de Funcionamento",
+        horario: null,
+        unidade_id: uid,
+        unidade_nome: nomeUnidade.get(uid) ?? null,
+        fechado,
+        pessoas: restantes,
+        grupos: agruparPorCargo(restantes),
+      });
+    }
+  }
+
+  if (!input.unidadeId && semUnidade.length) {
+    out.push({
+      key: "sem-unidade",
+      titulo: "Sem Unidade Definida",
+      horario: null,
+      unidade_id: null,
+      unidade_nome: null,
+      fechado: false,
+      pessoas: semUnidade,
+      grupos: agruparPorCargo(semUnidade),
+    });
+  }
+
+  return out;
 }
