@@ -1235,11 +1235,12 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
       const e = erroRemuneracao();
       if (e) { toast.error(e.mensagem); setTab("remuneracao"); setCampoErro(e.campo); return; }
 
-      // Benefícios desmarcados exigem ciência de isonomia.
-      if (!isonomiaConfirmada.current) {
+      // Benefícios desmarcados exigem ciência de isonomia — sócio não é comparável ao quadro CLT.
+      if (!socioSelecionado && !isonomiaConfirmada.current) {
         const pendentes = dispensasPendentes();
         if (pendentes.length > 0) { setTab("remuneracao"); setDispensas(pendentes); return; }
       }
+
 
       // Mensalista com cargo remunerado: o salário vem travado do cargo, sem conflito possível.
       const salarioTravadoNoCargo =
