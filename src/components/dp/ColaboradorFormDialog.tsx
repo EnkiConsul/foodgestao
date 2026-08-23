@@ -434,11 +434,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   const [avisoPadraoDispensado, setAvisoPadraoDispensado] = useState(false);
   const diferencasDoPadrao = useMemo(() => {
     if (!isEdit || !colaborador || avisoPadraoDispensado) return [];
+    // Sócio é remunerado por pró-labore/lucros: o padrão da empresa é de folha
+    // CLT, então "fora do padrão" não é divergência e sim a regra do vínculo.
+    if (isSocio(form.tipo_vinculo)) return [];
     return divergenciasColaboradorVsPadrao(
       colaborador as unknown as Record<string, unknown>,
       padraoAplicavel?.payload,
     );
-  }, [isEdit, colaborador, padraoAplicavel, avisoPadraoDispensado]);
+  }, [isEdit, colaborador, padraoAplicavel, avisoPadraoDispensado, form.tipo_vinculo]);
+
   const origemPadrao = () => {
     const nivel = nivelPadrao(padraoAplicavel);
     if (nivel === "cargo") {
