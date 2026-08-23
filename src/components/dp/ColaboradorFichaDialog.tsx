@@ -663,22 +663,11 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           {isDesligado && (
             <Section icon={LogOut} title="Desligamento">
               <Field label="Data da Demissão" value={fmtDate(colaborador?.data_desligamento)} />
-              <Field
-                label="Motivo"
-                value={
-                  MOTIVO_DESLIGAMENTO_LABEL[(colaborador as any)?.motivo_desligamento as keyof typeof MOTIVO_DESLIGAMENTO_LABEL]
-                }
-              />
-              <Field
-                label="Elegibilidade para Recontratação"
-                value={
-                  ELEGIBILIDADE_LABEL[(colaborador as any)?.elegivel_recontratacao as keyof typeof ELEGIBILIDADE_LABEL]
-                }
-              />
               <Field label="Acesso ao Portal Até" value={fmtDate(acessoPortalAte)} />
               <Field label="Observações" value={(colaborador as any)?.observacao_desligamento} />
             </Section>
           )}
+
         </div>
 
       </DialogContent>
