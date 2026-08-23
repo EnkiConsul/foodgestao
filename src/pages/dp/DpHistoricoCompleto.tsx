@@ -110,10 +110,13 @@ function aceiteLabel(r: UnifiedDoc) {
   return r.aceite ? "Aceito" : "Aguardando";
 }
 
-/** Cabeçalho de coluna com menu de ordenação + filtro por valores e suporte a arrastar. */
+/**
+ * Cabeçalho de coluna com menu de ordenação + filtro por valores,
+ * suporte a arrastar para reordenar e alça de redimensionamento na borda direita.
+ */
 function ColunaFiltroHeader(props: {
   label: string;
-  width: string;
+  width: number;
   sortAtivo: boolean;
   sortDir: "asc" | "desc";
   onSort: (dir: "asc" | "desc") => void;
@@ -126,20 +129,47 @@ function ColunaFiltroHeader(props: {
   onDragStart: () => void;
   onDrop: () => void;
   onDragEnd: () => void;
+  onResize: (largura: number) => void;
+  onResetWidth: () => void;
 }) {
   const [buscaOpcao, setBuscaOpcao] = useState("");
+  const [redimensionando, setRedimensionando] = useState(false);
   const opcoes = props.getOpcoes().filter((o) =>
     o.toLowerCase().includes(buscaOpcao.trim().toLowerCase()),
   );
+
+  /** Arraste da alça: converte o deslocamento do ponteiro em nova largura. */
+  const iniciarResize = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const xInicial = e.clientX;
+    const larguraInicial = props.width;
+    setRedimensionando(true);
+    const mover = (ev: PointerEvent) => {
+      props.onResize(Math.max(COL_MIN_WIDTH, larguraInicial + (ev.clientX - xInicial)));
+    };
+    const soltar = () => {
+      setRedimensionando(false);
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", soltar);
+      document.body.style.cursor = "";
+    };
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", soltar);
+  };
+
   return (
     <TableHead
-      className={`uppercase text-xs select-none ${props.width} ${props.arrastando ? "opacity-50" : ""}`}
-      draggable
+      className={`relative uppercase text-xs select-none ${props.arrastando ? "opacity-50" : ""}`}
+      style={{ width: props.width, minWidth: props.width, maxWidth: props.width }}
+      draggable={!redimensionando}
       onDragStart={props.onDragStart}
       onDragOver={(e) => e.preventDefault()}
       onDrop={props.onDrop}
       onDragEnd={props.onDragEnd}
     >
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
