@@ -350,6 +350,21 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
             <Field label="Matrícula" value={colaborador?.matricula} />
             <Field label="Tipo de Vínculo" value={vinculoLabel(colaborador as any)} />
             <Field label="Data de Nascimento" value={fmtDate((colaborador as any)?.data_nascimento)} />
+            <Field
+              label="Gênero"
+              value={
+                (colaborador as any)?.sexo === "F" ? "Feminino"
+                  : (colaborador as any)?.sexo === "M" ? "Masculino"
+                    : (colaborador as any)?.sexo === "outro" ? "Outro" : "—"
+              }
+            />
+            {/* Só aparece quando há override individual: gênero fora de F/M. */}
+            {(colaborador as any)?.domingos_folga_mes && (
+              <Field
+                label="Folgas Dominicais Por Mês"
+                value={`${(colaborador as any).domingos_folga_mes} por mês`}
+              />
+            )}
           </Section>
 
           {/* Contato e vínculo */}
