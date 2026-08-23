@@ -354,6 +354,42 @@ export function useDpPendencias() {
         console.warn("pendencias/negociacoes:", e);
       }
 
+      // 6.1. Regras de folgas não cadastradas — sem elas a rotina de folgas fica travada
+      try {
+        const { data: regras } = await supabase
+          .from("dp_config_dp")
+          .select("unidade_id")
+          .eq("company_id", selectedCompanyId!);
+        const comRegra = new Set((regras ?? []).map((r: any) => r.unidade_id).filter(Boolean));
+        const semRegra = unidades.filter((u) => !comRegra.has(u.id));
+        if ((regras ?? []).length === 0) {
+          results.push({
+            id: "regras-folgas-empresa",
+            icon: Scale,
+            titulo: "Regras de folgas não cadastradas",
+            subtitulo: "Sem as regras de folga o sistema não gera a folga dominical nem valida trocas. Cadastre agora.",
+            tipo: "Regras",
+            atrasoDias: 0,
+            url: "/dp/folgas?aba=regras",
+          });
+        } else {
+          semRegra.slice(0, 10).forEach((u) => {
+            results.push({
+              id: `regras-folgas-${u.id}`,
+              icon: Scale,
+              titulo: "Regras de folgas não cadastradas",
+              subtitulo: `${u.nome} — a unidade está sem regra própria de folgas. Revise e salve as regras.`,
+              tipo: "Regras",
+              atrasoDias: 0,
+              url: "/dp/folgas?aba=regras",
+            });
+          });
+        }
+      } catch (e) {
+        console.warn("pendencias/regras-folgas:", e);
+      }
+
+
       // 7. Férias — períodos aquisitivos com saldo perto do limite concessivo
       try {
         const limite = new Date(today);
