@@ -155,9 +155,8 @@ export default function DpConfiguracoesJornada() {
 
 
 
-  /** Marca/desmarca uma unidade adicional que recebe a mesma regra. */
-  const toggleAlvoExtra = (id: string, marcado: boolean) =>
-    setAlvosExtras((prev) => (marcado ? [...new Set([...prev, id])] : prev.filter((x) => x !== id)));
+
+
 
   /** Grava nas unidades alvo; mantém a retaguarda da empresa quando replica para todas. */
   const persist = async (
