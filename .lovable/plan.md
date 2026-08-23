@@ -46,7 +46,14 @@ Novo campo na regra da unidade, "Troca de folga entre colaboradores", com três 
 - **Com aprovação do admin** (padrão) — depois do colega aceitar, ainda precisa do gestor.
 - **Não permitida** — a unidade não aceita troca entre colaboradores; só mudança solicitada ao admin.
 
-A regra é aplicada de verdade: no portal o botão de troca fica indisponível quando "não permitida" (com o motivo), e quando "direta" a troca é concluída no aceite do colega, sem etapa de gestor. A tela de Trocas do DP mostra o modo vigente da unidade.
+E um segundo campo, "Troca permitida sobre", definindo a que folga a permissão se aplica:
+
+- **Folga semanal** — só folgas de dias comuns podem ser trocadas.
+- **Folga dominical (DSR)** — só a folga de domingo pode ser trocada.
+- **Ambas** (padrão) — qualquer folga pode ser trocada.
+
+A regra é aplicada de verdade: no portal o botão de troca fica indisponível quando "não permitida" ou quando o tipo daquela folga está fora do escopo (com o motivo em texto, ex.: "Esta unidade permite troca apenas da folga dominical"); quando "direta" a troca é concluída no aceite do colega, sem etapa de gestor. A tela de Trocas do DP mostra o modo e o escopo vigentes da unidade, e recusa trocas fora do escopo.
+
 
 ## Detalhes técnicos
 
