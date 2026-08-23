@@ -1972,7 +1972,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
                 value={rem}
                 onChange={patchRem}
                 campoErro={campoErro}
-                isonomia={divergenciasIso}
+                isonomia={socioSelecionado ? [] : divergenciasIso}
                 onAplicarPadraoIsonomia={aplicarPadraoIsonomia}
                 salarioCargo={salarioCargo}
                 cargoNome={cargoSelecionado?.nome ?? null}
