@@ -123,7 +123,7 @@ interface Props {
 export function ColaboradorJornadaPanel({
   colaborador, active = true, showSaveButton = true, onRegistrarSalvar,
 }: Props) {
-  const policy = contratoPolicy(colaborador?.regime);
+  const policy = contratoPolicy(colaborador?.regime, colaborador?.vinculo_label);
   const { selectedCompanyId } = useCompanyContext();
   const { data: unidades = [] } = useDpUnidades();
   const { configs, vigente, isLoading, salvar, encerrar, remover, saving } =

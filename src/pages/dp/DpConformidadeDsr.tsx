@@ -71,7 +71,7 @@ export default function DpConformidadeDsr() {
     queryFn: async (): Promise<LinhaComUnidade[]> => {
       const { data: colaboradores, error: cErr } = await supabase
         .from("dp_colaboradores")
-        .select("id, nome, sexo, domingos_folga_mes, ativo, unidade_id, regime")
+        .select("id, nome, sexo, domingos_folga_mes, ativo, unidade_id, regime, vinculo_label")
         .eq("company_id", selectedCompanyId!)
         .eq("ativo", true)
         .order("nome");
@@ -97,7 +97,7 @@ export default function DpConformidadeDsr() {
 
       // DSR só se aplica a contratos celetistas; intermitente/PJ ficam fora do relatório.
       return (colaboradores ?? [])
-        .filter((c) => contratoPolicy(c.regime).participaConformidadeDsr)
+        .filter((c) => contratoPolicy(c.regime, c.vinculo_label).participaConformidadeDsr)
         .map((c) => {
 
         const cfg = configDaUnidade(c.unidade_id ?? null);

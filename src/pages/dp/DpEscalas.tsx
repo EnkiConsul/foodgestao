@@ -66,7 +66,7 @@ export default function DpEscalas() {
     enabled: !!selectedCompanyId,
     queryFn: async () => {
       const [colabs, unidades, vinculos, ferias, folgas, diaConfig, datas, regras, regraUnid] = await Promise.all([
-        supabase.from("dp_colaboradores").select("id, nome, sexo, unidade_id, regime")
+        supabase.from("dp_colaboradores").select("id, nome, sexo, unidade_id, regime, vinculo_label")
           .eq("company_id", selectedCompanyId!).eq("ativo", true).order("nome"),
 
         supabase.from("dp_unidades").select("id, nome").eq("company_id", selectedCompanyId!).order("nome"),
@@ -111,7 +111,7 @@ export default function DpEscalas() {
     // Contratos sem escala automática (ex.: intermitente) trabalham por convocação.
     const colaboradores: EscalaColaborador[] = d.colaboradores
       .filter((c) => unidade === "todas" || c.unidade_id === unidade)
-      .filter((c) => contratoPolicy(c.regime).participaEscalaAutomatica)
+      .filter((c) => contratoPolicy(c.regime, c.vinculo_label).participaEscalaAutomatica)
       .map((c) => {
 
         const vinculo = d.vinculos
@@ -186,7 +186,7 @@ export default function DpEscalas() {
 
     // Só contratos com limite legal de carga entram na checagem de 44h semanais.
     const validaCarga = new Set(
-      d.colaboradores.filter((c) => contratoPolicy(c.regime).validaCargaSemanal).map((c) => c.id),
+      d.colaboradores.filter((c) => contratoPolicy(c.regime, c.vinculo_label).validaCargaSemanal).map((c) => c.id),
     );
     const porSemana = new Map<string, { colaboradorId: string; nome: string; semana: string; dias: number[] }>();
     for (const c of colaboradores) {

@@ -295,7 +295,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
   // Inativo sem data de demissão também conta como desligado: o banco exige a data.
   const isDesligado = isEdit && (!!colaborador?.data_desligamento || colaborador?.ativo === false);
   // Comportamento da jornada/folga é derivado do contrato, nunca testado inline.
-  const policy = contratoPolicy(VINCULO_TO_REGIME[form.tipo_vinculo]);
+  const policy = contratoPolicy(VINCULO_TO_REGIME[form.tipo_vinculo], form.tipo_vinculo);
 
 
   const [rem, setRem] = useState<RemuneracaoFormState>(remuneracaoBlank);

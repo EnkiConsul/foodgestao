@@ -57,7 +57,7 @@ const VINCULO_LABEL: Record<string, string> = {
 
 const vinculoLabel = (c: { regime?: string | null; vinculo_label?: string | null }): string =>
   (c.vinculo_label ? VINCULO_LABEL[c.vinculo_label] : null) ??
-  (c.regime ? contratoPolicy(c.regime).label : null) ??
+  (c.regime ? contratoPolicy(c.regime, c.vinculo_label).label : null) ??
   "—";
 
 const PERFIL_LABEL: Record<string, string> = {
