@@ -567,10 +567,20 @@ export default function DpAdminCalendario() {
       toast.success(input.modo === "extra" ? "Folga extra atribuída" : "Folga atribuída");
       qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
       setConfirmDialog(null);
+      const colab = colaboradores.find((c: any) => c.id === assignUser);
+      if (colab && isSocio(colab.vinculo_label)) {
+        setSocioBloqueio({
+          nome: colab.nome,
+          datas: [input.iso],
+          unidadeId: colab.unidade_id ?? null,
+          tipo: "folga",
+        });
+      }
       setAssignUser("");
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao atribuir"),
   });
+
 
   const prepararAtribuicao = async () => {
     if (!dayOpen) return;
