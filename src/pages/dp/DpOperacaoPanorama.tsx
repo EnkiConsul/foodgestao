@@ -513,33 +513,56 @@ export default function DpOperacaoPanorama() {
               {blocos.length ? (
                 blocos.map((bloco) => (
                   <Secao
-                    key={bloco.id ?? "sem-turno"}
-                    title={bloco.nome}
-                    description={`${bloco.pessoas.length} pessoa(s)${bloco.minimo ? ` · mínimo ${bloco.minimo}` : ""}`}
+                    key={bloco.key}
+                    title={bloco.titulo}
+                    description={[
+                      bloco.horario,
+                      !unidadeId && bloco.unidade_nome ? bloco.unidade_nome : null,
+                      `${bloco.pessoas.length} pessoa(s)`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                     action={
-                      bloco.minimo > bloco.pessoas.length ? (
-                        <Badge variant="destructive">
-                          Falta {bloco.minimo - bloco.pessoas.length}
-                        </Badge>
-                      ) : undefined
+                      bloco.fechado ? <Badge variant="outline">Fora do funcionamento</Badge> : undefined
                     }
                   >
-                    <ul className="divide-y">
-                      {bloco.pessoas.map((p) => (
-                        <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{p.nome}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {p.entrada ?? "--:--"} às {p.saida ?? "--:--"}
-                              {p.termina_no_dia_seguinte ? " (+1)" : ""} · {formatarHoras(p.carga_prevista_horas)}
+                    {bloco.pessoas.length ? (
+                      <div className="space-y-3">
+                        {bloco.grupos.map((g) => (
+                          <div key={g.cargo_id ?? "sem-cargo"}>
+                            <p className="mb-1 text-xs font-semibold text-muted-foreground">
+                              {g.cargo_nome} ({g.pessoas.length})
                             </p>
+                            <ul className="divide-y">
+                              {g.pessoas.map((p) => (
+                                <li
+                                  key={p.colaborador_id}
+                                  className="flex items-center justify-between gap-3 py-2"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium">{p.nome}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {p.entrada ?? "--:--"} às {p.saida ?? "--:--"}
+                                      {p.termina_no_dia_seguinte ? " (+1)" : ""} ·{" "}
+                                      {formatarHoras(p.carga_prevista_horas)}
+                                    </p>
+                                  </div>
+                                  <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
+                                    {CATEGORIA_LABEL[p.categoria]}
+                                  </Badge>
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                          <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
-                            {CATEGORIA_LABEL[p.categoria]}
-                          </Badge>
-                        </li>
-                      ))}
-                    </ul>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {bloco.fechado
+                          ? "A unidade está fechada neste dia e ninguém está previsto."
+                          : "Ninguém previsto neste período."}
+                      </p>
+                    )}
                   </Secao>
                 ))
               ) : (
