@@ -155,6 +155,7 @@ export default function DpColaboradores() {
     larguraTotal,
   } = useDpTableColumns<ColabColKey, ColabSortKey>({
     storageKey: "dp_colabs_col",
+    screenKey: "dp_colaboradores",
     defaultOrder: DEFAULT_COLAB_COL_ORDER,
     defaultWidths: DEFAULT_COLAB_COL_WIDTHS,
     acoesWidth: COLAB_ACOES_WIDTH,

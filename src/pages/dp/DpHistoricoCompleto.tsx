@@ -283,6 +283,7 @@ export default function DpHistoricoCompleto() {
     larguraTotal,
   } = useDpTableColumns<ColKey, SortKey>({
     storageKey: "dp_historico_col",
+    screenKey: "dp_historico_documentos",
     defaultOrder: DEFAULT_COL_ORDER,
     defaultWidths: DEFAULT_COL_WIDTHS,
     acoesWidth: ACOES_WIDTH,
