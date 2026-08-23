@@ -746,18 +746,6 @@ export default function DpHistoricoCompleto() {
             </Select>
           </div>
         </div>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1 max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Buscar por nome, tipo ou status..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-            />
-          </div>
-          <Button variant="ghost" onClick={limpar}>Limpar</Button>
-        </div>
       </DpFilterCard>
 
       <DpContentCard contentClassName="p-0 hidden md:block">
