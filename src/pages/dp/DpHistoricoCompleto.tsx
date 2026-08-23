@@ -222,6 +222,10 @@ export default function DpHistoricoCompleto() {
   const [status, setStatus] = useState("all");
   const [busca, setBusca] = useState("");
   const [preview, setPreview] = useState<UnifiedDoc | null>(null);
+  const [excluir, setExcluir] = useState<UnifiedDoc | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
+  const [substituir, setSubstituir] = useState<DocSubstituirTarget | null>(null);
+  const queryClient = useQueryClient();
 
   const [sortKey, setSortKey] = useState<SortKey>("data");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
