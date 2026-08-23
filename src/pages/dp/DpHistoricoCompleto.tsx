@@ -834,6 +834,7 @@ export default function DpHistoricoCompleto() {
               )}
             </TableBody>
           </Table>
+          </div>
         )}
       </DpContentCard>
 
