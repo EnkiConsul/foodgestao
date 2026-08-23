@@ -285,8 +285,17 @@ export default function DpConfiguracoesJornada() {
               disabled={unidades.length === 0}
             >
               <SelectTrigger id="alvo-regra">
-                <SelectValue placeholder="Nenhuma unidade cadastrada" />
+                <SelectValue
+                  placeholder={
+                    carregandoUnidades
+                      ? "Carregando unidades..."
+                      : unidadesErro
+                        ? "Não foi possível carregar as unidades"
+                        : "Nenhuma unidade cadastrada"
+                  }
+                />
               </SelectTrigger>
+
               <SelectContent>
                 {unidades.map((u) => (
                   <SelectItem key={u.id} value={u.id}>
