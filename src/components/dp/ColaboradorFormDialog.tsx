@@ -1900,11 +1900,15 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
               <div id="acesso-portal" className="scroll-mt-4">
                 <ColaboradorAcessoPanel colaborador={colaboradorAtual} />
               </div>
-              <div id="desligamento" className="scroll-mt-4">
-                <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
-              </div>
+              {/* Saída de sócio é alteração de contrato social, não rescisão. */}
+              {!socioSelecionado && (
+                <div id="desligamento" className="scroll-mt-4">
+                  <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
+                </div>
+              )}
             </div>
           )}
+
             </div>
           </TabsContent>
 
