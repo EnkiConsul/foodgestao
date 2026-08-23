@@ -1,6 +1,6 @@
 # Painel da Operação (substitui a geração de escala)
 
-A tela `/dp/escalas/mes` deixa de "gerar escala" e passa a ser um painel de leitura da operação, montado automaticamente do que já existe: jornada habitual dos fixos, folgas marcadas, convocações aceitas, férias e atestados. Duas abas: **Dia** e **Mês**.
+A tela `/dp/escalas/mes` deixa de "gerar escala" e passa a ser um painel de leitura da operação, montado automaticamente do que já existe: jornada habitual dos fixos, folgas marcadas, convocações, férias e atestados. Duas abas: **Dia** e **Mês**. A tela Operação do Dia é absorvida por este painel.
 
 ## Aba Dia
 
