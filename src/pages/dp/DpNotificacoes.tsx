@@ -13,8 +13,8 @@ import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const REF_TO_PATH: Record<string, string> = {
-  dp_solicitacoes: "/dp/solicitacoes",
-  dp_trocas: "/dp/trocas",
+  dp_solicitacoes: "/dp/folgas?aba=solicitacoes",
+  dp_trocas: "/dp/folgas?aba=trocas",
   dp_registros_disciplinares: "/dp/disciplinar",
   dp_atestados: "/dp/atestados",
   dp_documentos: "/dp/documentos",

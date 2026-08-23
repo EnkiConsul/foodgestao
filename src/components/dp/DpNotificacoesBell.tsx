@@ -9,8 +9,8 @@ import { useDpNotificacoes, useMarkNotifRead } from "@/hooks/useDpNotificacoes";
 import { useDpAtestadosPendentes } from "@/hooks/useDpAtestadosPendentes";
 
 const REF_TO_PATH: Record<string, string> = {
-  dp_solicitacoes: "/dp/solicitacoes",
-  dp_trocas: "/dp/trocas",
+  dp_solicitacoes: "/dp/folgas?aba=solicitacoes",
+  dp_trocas: "/dp/folgas?aba=trocas",
   dp_registros_disciplinares: "/dp/disciplinar",
 };
 
@@ -52,7 +52,7 @@ export function DpNotificacoesBell() {
         </div>
         {atestados.length > 0 && (
           <Link
-            to="/dp/solicitacoes?tipo=atestado"
+            to="/dp/folgas?aba=solicitacoes&tipo=atestado"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 px-3 py-2 bg-amber-50 border-b border-amber-200 hover:bg-amber-100"
           >
