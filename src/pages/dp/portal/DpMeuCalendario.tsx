@@ -473,6 +473,12 @@ export default function DpMeuCalendario() {
         (f) => f.colaborador_id === meRef.data!.id && f.data === iso && f.status !== "cancelada",
       );
       if (!folga) throw new Error("Folga não encontrada.");
+      if (folga.origem === "automatica_clt") {
+        throw new Error(
+          "Esta folga dominical é definida pela CLT e não pode ser removida. Solicite uma troca ou uma exceção.",
+        );
+      }
+
       const { error } = await supabase.from("dp_folgas").delete().eq("id", folga.id);
       if (error) throw error;
     },
