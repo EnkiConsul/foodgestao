@@ -34,7 +34,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
-import { resumoEscolhaFolgas } from "@/lib/dp/dsr-rules";
+import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga } from "@/lib/dp/dsr-rules";
+
 
 import {
   buildOccupantsByDate,
