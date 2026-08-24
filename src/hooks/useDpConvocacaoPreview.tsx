@@ -68,7 +68,7 @@ export function useDpConvocacaoPreview(args: {
         .eq("company_id", selectedCompanyId!)
         .gte("data", inicio!)
         .lte("data", fim!)
-        .in("status", CONVOCACAO_ESTADOS_BLOQUEANTES as unknown as string[]);
+        .in("status", [...CONVOCACAO_ESTADOS_BLOQUEANTES]);
       if (error) throw error;
       return data ?? [];
     },
