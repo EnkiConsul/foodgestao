@@ -199,9 +199,23 @@ export default function ConexoesPluggy() {
                 Se você autorizou pelo app do banco (QR Code), a conexão pode levar alguns minutos
                 para aparecer. Use <strong>Atualizar</strong> abaixo ou tente novamente em instantes.
               </p>
-              <Button size="sm" variant="outline" className="mt-2 h-7" onClick={() => load()}>
-                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Atualizar
-              </Button>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" className="h-7" onClick={() => load()}>
+                  <RefreshCw className="h-3.5 w-3.5 mr-1" /> Atualizar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-destructive hover:text-destructive"
+                  disabled={cancelingPending}
+                  onClick={() => setConfirmCancelPending(true)}
+                >
+                  {cancelingPending
+                    ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                    : <X className="h-3.5 w-3.5 mr-1" />}
+                  Cancelar conexão
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
