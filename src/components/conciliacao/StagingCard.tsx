@@ -376,6 +376,7 @@ function StagingCardBase({
                     </SelectTrigger>
                     <ContactSelectContent
                       contacts={contacts}
+                      selectedId={contact || null}
                       className="max-h-[50vh]"
                       onCreateNew={!disabled && onCreateNewContact ? onCreateNewContact : undefined}
                     />
