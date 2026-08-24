@@ -80,11 +80,11 @@ export function ContactFormDialog({
         });
     } else {
       setName(defaultName ?? ""); setContactType(defaultContactType ?? "cliente"); setEmail(""); setPhone("");
-      setDocument(""); setAddress(""); setNotes("");
-      setVisiblePf(true);
-      setSelectedCompanyIds([]);
+      setDocument(defaultDocument ? maskCpfCnpj(defaultDocument) : ""); setAddress(""); setNotes("");
+      setVisiblePf(defaultVisiblePf ?? true);
+      setSelectedCompanyIds(defaultCompanyIds ?? []);
     }
-  }, [editContact, open, defaultName, defaultContactType]);
+  }, [editContact, open, defaultName, defaultContactType, defaultDocument, defaultVisiblePf, defaultCompanyIds]);
 
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds((prev) =>
