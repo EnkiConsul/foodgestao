@@ -137,20 +137,28 @@ export default function ConexoesPluggy() {
   const cancelarPendentes = async () => {
     if (!selectedCompanyId) return;
     setCancelingPending(true);
+    const anterior = pendingCount;
     const { data, error } = await supabase.rpc("pluggy_cancel_connect_requests", {
       _company_id: selectedCompanyId,
     });
-    setCancelingPending(false);
-    setConfirmCancelPending(false);
     if (error) {
+      setCancelingPending(false);
+      setConfirmCancelPending(false);
       toast.error("Não foi possível cancelar a conexão em andamento");
       return;
     }
+    // Atualização otimista: o aviso de "Conexão em andamento" sai da tela na hora,
+    // e a lista é revalidada em seguida sem piscar o skeleton.
+    setPendingCount(0);
+    setConfirmCancelPending(false);
+    const canceladas = (data as number | null) ?? anterior;
     toast.success(
-      (data ?? 0) > 1 ? `${data} autorizações canceladas` : "Conexão em andamento cancelada",
+      canceladas > 1 ? `${canceladas} autorizações canceladas` : "Conexão em andamento cancelada",
     );
-    load();
+    await load({ silent: true });
+    setCancelingPending(false);
   };
+
 
 
   const disconnect = async () => {
