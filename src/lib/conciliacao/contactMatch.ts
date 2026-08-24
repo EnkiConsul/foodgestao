@@ -13,7 +13,7 @@
 
 /** Prefixos de adquirente/marketplace: "RP3*", "PAG*", "MP ", "IFD*", "PICPAY*". */
 const ACQUIRER_PREFIX_RE =
-  /^\s*(?:[a-z0-9]{2,6}\s*\*|mp\*?|pag\*?|pagseguro|mercadopago|mercado\s*pago|ifd\*?|ifood|picpay|stone|cielo|rede|getnet|sumup|infinitepay|pagarme)\s*[-*: ]+/i;
+  /^\s*(?:[a-z0-9]{2,6}\s*\*|mp\*?|pag\*?|pagseguro|mercadopago|mercado\s*pago|ifd\*?|ifood|picpay|stone|cielo|rede|getnet|sumup|infinitepay|pagarme)\s*[-*: ]*/i;
 
 /** Sufixos e termos societários que não ajudam na comparação. */
 const LEGAL_TOKENS = new Set([
@@ -72,8 +72,10 @@ export function contactMatchScore(
   if (a.includes(b) || b.includes(a)) return 0.9;
 
   let hits = 0;
+  /** Token distintivo em comum (>= 5 letras) — sinal forte de mesmo fornecedor. */
+  let strongShared = false;
   for (const t of tb) {
-    if (ta.includes(t)) { hits += 1; continue; }
+    if (ta.includes(t)) { hits += 1; if (t.length >= 5) strongShared = true; continue; }
     // Prefixo comum longo ("panificadora" x "panifica").
     if (ta.some((o) => o.length >= 4 && t.length >= 4 && (o.startsWith(t) || t.startsWith(o)))) {
       hits += 0.8;
@@ -85,7 +87,10 @@ export function contactMatchScore(
   const jaccard = hits / union;
   // Cobertura do cadastro: "Padaria Della" totalmente contido em "DELLA ELDORADO".
   const coverage = hits / tb.length;
-  return Math.max(jaccard, coverage * 0.85);
+  const base = Math.max(jaccard, coverage * 0.85);
+  // "Padaria Della" x "DELLA ELDORADO": um token forte em comum já sustenta a
+  // sugestão (o desempate em `bestContactMatch` evita escolher errado).
+  return strongShared ? Math.max(base, 0.65) : base;
 }
 
 export interface MatchCandidate {
