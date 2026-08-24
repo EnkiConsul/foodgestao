@@ -296,7 +296,7 @@ export default function ConciliacaoPluggy() {
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [auditOpen, setAuditOpen] = useState(false);
+  
 
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [search, setSearch] = useState("");
@@ -1092,14 +1092,6 @@ export default function ConciliacaoPluggy() {
           Sincronizar
         </Button>
         <Button
-          onClick={() => setAuditOpen(true)}
-          variant="outline"
-          className="w-full sm:w-auto"
-        >
-          <FileJson className="h-4 w-4 mr-2" />
-          Auditoria
-        </Button>
-        <Button
           onClick={() => navigate(`/contas-bancarias/conciliacao/extrato${scopedLocalAccountId ? `?account=${scopedLocalAccountId}` : ""}`)}
           variant="outline"
           className="w-full sm:w-auto"
@@ -1774,7 +1766,7 @@ export default function ConciliacaoPluggy() {
         onDone={() => { setSplitRowId(null); load(); }}
       />
 
-      <PluggyAuditDialog open={auditOpen} onOpenChange={setAuditOpen} />
+      
     </div>
 
   );
