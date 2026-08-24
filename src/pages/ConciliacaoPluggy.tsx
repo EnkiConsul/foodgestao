@@ -1727,7 +1727,25 @@ export default function ConciliacaoPluggy() {
         </div>
       )}
 
+      <ContactDuplicateDialog
+        open={!!duplicateCheck}
+        onOpenChange={(o) => { if (!o) setDuplicateCheck(null); }}
+        statementName={duplicateCheck?.name ?? ""}
+        statementDocument={duplicateCheck?.document ?? null}
+        candidates={duplicateCheck?.candidates ?? []}
+        busyId={duplicateBusy}
+        onUseExisting={(c) => { void useExistingContact(c); }}
+        onEditExisting={(c) => { void editExistingContact(c); }}
+        onCreateAnyway={() => {
+          if (!duplicateCheck) return;
+          const { rowId, name, document, type } = duplicateCheck;
+          setDuplicateCheck(null);
+          setContactForm({ rowId, name, document, type });
+        }}
+      />
+
       <ContactFormDialog
+
         open={!!contactForm}
         onOpenChange={(o) => { if (!o) setContactForm(null); }}
         defaultName={contactForm?.name}
