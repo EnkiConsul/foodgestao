@@ -1198,26 +1198,10 @@ export default function ConciliacaoPluggy() {
         {/* Desktop (lg+): tabela completa */}
         <Card className="hidden lg:block"><CardContent className="p-0 overflow-x-auto">
 
-          <table className="w-full table-fixed text-sm">
-            {/* Grade proporcional: soma 100% da largura visível — sem rolagem lateral */}
-            <colgroup>
-              <col className="w-[3%]" />
-              <col className="w-[7%]" />
-              <col className="w-[22%] xl:w-[20%]" />
-              <col className="w-[8%]" />
-              <col className="w-[12%] xl:w-[11%]" />
-              <col className="w-[11%] xl:w-[10%]" />
-              <col className="w-[17%] xl:w-[13%]" />
-              {/* Forma de pagamento: agrupada na Categoria abaixo de xl */}
-              <col className="w-0 xl:w-[10%]" />
-              <col className="w-[13%] xl:w-[11%]" />
-              {/* Status: agrupado na Descrição abaixo de xl */}
-              <col className="w-0 xl:w-[7%]" />
-              <col className="w-[7%]" />
-            </colgroup>
+          <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
-                <th className="p-2">
+                <th className="w-10 p-2">
                   <Checkbox
                     checked={allPendingSelected ? true : somePendingSelected ? "indeterminate" : false}
                     disabled={pendingFiltered.length === 0}
@@ -1231,13 +1215,12 @@ export default function ConciliacaoPluggy() {
                 <th className="p-2 text-right">Valor</th>
                 <th className="p-2 text-left">Conta destino</th>
                 <th className="p-2 text-left">Tipo</th>
-                <th className="p-2 text-left" title="Categoria e forma de pagamento">Categoria</th>
-                <th className="hidden p-2 text-left xl:table-cell" title="Forma de pagamento">Forma pgto.</th>
-                <th className="p-2 text-left" title="Fornecedor / cliente">Fornec./Cliente</th>
-                <th className="hidden p-2 text-center xl:table-cell">Status</th>
+                <th className="p-2 text-left">Categoria / contraparte</th>
+                <th className="p-2 text-left">Forma de pagamento</th>
+                <th className="p-2 text-left">Fornecedor / cliente</th>
+                <th className="p-2 text-center">Status</th>
                 <th className="p-2 text-right">Ações</th>
               </tr>
-
             </thead>
             <tbody>
               {visibleRows.map((r) => {
@@ -1258,28 +1241,14 @@ export default function ConciliacaoPluggy() {
                         }}
                       />
                     </td>
-                    <td className="p-2 whitespace-nowrap" title={format(parseISO(r.date), "dd/MM/yyyy")}>{format(parseISO(r.date), "dd/MM/yy")}</td>
-                    <td className="p-2">
+                    <td className="p-2 whitespace-nowrap">{format(parseISO(r.date), "dd/MM/yyyy")}</td>
+                    <td className="p-2 max-w-[280px]">
                       <DescriptionEditor
                         compact
                         value={r.description}
                         disabled={disabled}
                         onSave={(v) => saveDescription(r.id, v)}
                       />
-
-                      <div className="mt-1 flex flex-wrap items-center gap-1 xl:hidden">
-                        {r.status === "pending" && <Badge variant="outline" className="text-[10px]">Pendente</Badge>}
-                        {r.status === "confirmed" && <Badge className="bg-success/15 text-success border-success/30 text-[10px]">Confirmado</Badge>}
-                        {r.status === "ignored" && <Badge variant="secondary" className="text-[10px]">Ignorado</Badge>}
-                        {r.status === "duplicate" && (
-                          <Badge className="bg-warning/15 text-warning border-warning/30 text-[10px]">
-                            <AlertTriangle className="mr-1 h-3 w-3" />Duplicado
-                          </Badge>
-                        )}
-                        {r.matched_transaction_id && transferTxIds.has(r.matched_transaction_id) && (
-                          <Badge variant="secondary" className="text-[10px]">Transferência</Badge>
-                        )}
-                      </div>
 
                       {counterpartyLabel(counterpartyByRow[r.id] ?? { name: null, document: null, documentType: null, internal: false }) && (
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={counterpartyLabel(counterpartyByRow[r.id]!) ?? ""}>
@@ -1297,7 +1266,7 @@ export default function ConciliacaoPluggy() {
                         onValueChange={(v) => setRowAccount((p) => ({ ...p, [r.id]: v }))}
                         disabled={disabled}
                       >
-                        <SelectTrigger className="h-8 w-full max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left"><SelectValue placeholder="Selecionar…" /></SelectTrigger>
+                        <SelectTrigger className="h-8 min-w-[180px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left"><SelectValue placeholder="Selecionar…" /></SelectTrigger>
                         <SelectContent>
                           {accounts.map((a) => (
                             <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
@@ -1311,7 +1280,7 @@ export default function ConciliacaoPluggy() {
                         onValueChange={(v) => setRowKind((p) => ({ ...p, [r.id]: v as "auto" | "transfer" }))}
                         disabled={disabled}
                       >
-                        <SelectTrigger className="h-8 w-full max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left" aria-label="Tipo do lançamento">
+                        <SelectTrigger className="h-8 min-w-[160px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left" aria-label="Tipo do lançamento">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1328,7 +1297,7 @@ export default function ConciliacaoPluggy() {
                             onValueChange={(v) => setRowCounterpart((p) => ({ ...p, [r.id]: v }))}
                             disabled={disabled}
                           >
-                            <SelectTrigger className="h-8 w-full max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
+                            <SelectTrigger className="h-8 min-w-[180px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
                               <SelectValue placeholder={isEntrada ? "Conta de origem…" : "Conta de destino…"} />
                             </SelectTrigger>
                             <SelectContent>
@@ -1350,7 +1319,7 @@ export default function ConciliacaoPluggy() {
                             onValueChange={(v) => setRowCategory((p) => ({ ...p, [r.id]: v }))}
                             disabled={disabled}
                           >
-                            <SelectTrigger className="h-8 w-full max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
+                            <SelectTrigger className="h-8 min-w-[160px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
                             <SelectContent className="max-h-[420px]">
                               <SelectGroup>
                                 <SelectLabel className="sticky top-0 z-10 bg-popover border-b text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -1374,31 +1343,9 @@ export default function ConciliacaoPluggy() {
                           )}
                         </>
                       )}
-
-                      {(rowKind[r.id] ?? "auto") !== "transfer" && (
-                        <div className="mt-1 xl:hidden">
-                          <Select
-                            value={rowPayment[r.id] ?? ""}
-                            onValueChange={(v) => setRowPayment((p) => ({ ...p, [r.id]: v }))}
-                            disabled={disabled}
-                          >
-                            <SelectTrigger
-                              aria-label="Forma de pagamento"
-                              className="h-7 w-full max-w-full text-[11px] [&>span]:block [&>span]:truncate [&>span]:text-left"
-                            >
-                              <SelectValue placeholder="Forma de pagamento…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {paymentMethods.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
                     </td>
 
-                    <td className="hidden p-2 xl:table-cell">
+                    <td className="p-2">
                       {(rowKind[r.id] ?? "auto") === "transfer" ? (
                         <span className="text-xs text-muted-foreground">—</span>
                       ) : (
@@ -1408,7 +1355,7 @@ export default function ConciliacaoPluggy() {
                           onValueChange={(v) => setRowPayment((p) => ({ ...p, [r.id]: v }))}
                           disabled={disabled}
                         >
-                          <SelectTrigger className="h-8 w-full max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
+                          <SelectTrigger className="h-8 min-w-[150px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
                             <SelectValue placeholder="Não informada" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1434,7 +1381,7 @@ export default function ConciliacaoPluggy() {
                           onValueChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
                           disabled={disabled}
                         >
-                          <SelectTrigger className="h-8 w-full max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
+                          <SelectTrigger className="h-8 w-[180px] min-w-[160px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
                             <SelectValue placeholder={isEntrada ? "Cliente…" : "Fornecedor…"} />
                           </SelectTrigger>
                           <ContactSelectContent
@@ -1460,28 +1407,28 @@ export default function ConciliacaoPluggy() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="mt-1 h-7 w-full justify-start px-1 text-[10px]"
+                            className="mt-1 h-7 px-1 text-[10px]"
                             disabled={loadingContactEdit === r.id}
                             onClick={() => void openEditContact(r.id)}
                           >
                             {loadingContactEdit === r.id
                               ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                               : <Pencil className="mr-1 h-3 w-3" />}
-                            <span className="truncate">Editar cadastro</span>
+                            Editar cadastro
                           </Button>
                         )}
                         {!disabled && !rowContact[r.id] && (counterpartyByRow[r.id]?.name || counterpartyByRow[r.id]?.document) && (
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="mt-1 h-7 w-full justify-start px-1 text-[10px]"
+                            className="mt-1 h-7 px-1 text-[10px]"
                             disabled={creatingContact === r.id}
                             onClick={() => createContactFromStatement(r)}
                           >
                             {creatingContact === r.id
                               ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                               : <UserPlus className="mr-1 h-3 w-3" />}
-                            <span className="truncate">Cadastrar {counterpartyByRow[r.id]?.name ?? "fornecedor/cliente"}</span>
+                            Cadastrar {counterpartyByRow[r.id]?.name ?? "fornecedor/cliente"}
                           </Button>
                         )}
                         </>
@@ -1490,11 +1437,11 @@ export default function ConciliacaoPluggy() {
 
 
 
-                    <td className="hidden p-2 text-center xl:table-cell">
+                    <td className="p-2 text-center">
                       <div className="flex flex-wrap items-center justify-center gap-1">
-                        {r.status === "pending" && <Badge variant="outline" className="text-[10px]">Pendente</Badge>}
-                        {r.status === "confirmed" && <Badge className="bg-success/15 text-success border-success/30 text-[10px]">Confirmado</Badge>}
-                        {r.status === "ignored" && <Badge variant="secondary" className="text-[10px]">Ignorado</Badge>}
+                        {r.status === "pending" && <Badge variant="outline">Pendente</Badge>}
+                        {r.status === "confirmed" && <Badge className="bg-success/15 text-success border-success/30">Confirmado</Badge>}
+                        {r.status === "ignored" && <Badge variant="secondary">Ignorado</Badge>}
                         {r.status === "duplicate" && (
                           <Badge className="bg-warning/15 text-warning border-warning/30">
                             <AlertTriangle className="h-3 w-3 mr-1" />Duplicado
@@ -1541,7 +1488,7 @@ export default function ConciliacaoPluggy() {
                           >
                             {rowBusy === r.id
                               ? <Loader2 className="h-4 w-4 animate-spin" />
-                              : <Check className="h-4 w-4" />}
+                              : <><Check className="h-4 w-4 mr-1" />Confirmar</>}
                           </Button>
                         </div>
                       ) : (
