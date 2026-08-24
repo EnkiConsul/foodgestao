@@ -64,6 +64,8 @@ Semântica: criação idempotente por ID estável (mesmo conteúdo → retorna e
 
 Ajuste necessário na fundação: `dp_convocacao_eventos` exigia referência a grupo/ocorrência/convocação. Eventos de configuração não têm essa referência, então o `CHECK` e o trigger `dp_conv_evento_deriva` passaram a aceitar `tipo LIKE 'config\_%'` com `company_id` obrigatório e validado. Nenhum outro tipo de evento perdeu a exigência de referência.
 
+Ajuste da M13: o `CHECK` e o trigger passaram a aceitar **apenas** `config_criada` e `config_atualizada` sem referência (fail closed).
+
 ### 3.6 Migrations do bloco
 
 | arquivo | conteúdo |
