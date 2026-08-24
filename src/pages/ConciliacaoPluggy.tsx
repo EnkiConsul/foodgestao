@@ -1132,9 +1132,10 @@ export default function ConciliacaoPluggy() {
                 ? "Lançamentos importados apenas desta conta financeira."
                 : "Revise, categorize e confirme os lançamentos importados dos bancos conectados."}
             </p>
-            {scope && (
-              <SyncInfo connection={connections.find((c) => c.id === scope.connectionId) ?? scope} />
-            )}
+            {(() => {
+              const active = scope ? connections.find((c) => c.id === scope.connectionId) : undefined;
+              return active ? <SyncInfo connection={active} /> : null;
+            })()}
           </div>
         </div>
         <Button
