@@ -164,3 +164,43 @@ describe("nameFromDescription", () => {
     ).toBe("Contraparte não identificada • CPF 288.327.521-15");
   });
 });
+
+describe("compras no débito (só o titular como pagador)", () => {
+  const ownCpf = "023.559.691-40";
+  const compra = {
+    description: "Compra no débito|POSTO MADRI",
+    category_pluggy: "Shopping",
+    amount: -426.96,
+    raw: {
+      type: "DEBIT",
+      paymentData: { paymentMethod: "OTHER", payer: { name: null, documentNumber: { type: "CPF", value: ownCpf } }, receiver: null },
+    },
+  };
+
+  it("não usa o documento do titular como contraparte", () => {
+    const cp = extractCounterparty(compra, { ownDocuments: [ownCpf] });
+    expect(cp.document).toBeNull();
+    expect(cp.name).toBe("Posto Madri");
+  });
+
+  it("mesmo sem lista de documentos próprios, ignora o lado do pagador na saída", () => {
+    const cp = extractCounterparty(compra);
+    expect(cp.document).toBeNull();
+  });
+
+  it("mantém o pagador externo em entradas", () => {
+    const cp = extractCounterparty({
+      description: "Transferência Recebida|KMART LTDA",
+      amount: 300,
+      raw: {
+        type: "CREDIT",
+        paymentData: {
+          paymentMethod: "PIX",
+          payer: { name: "KMART LTDA", documentNumber: { type: "CNPJ", value: "59.980.948/0001-01" } },
+          receiver: { documentNumber: { type: "CPF", value: ownCpf } },
+        },
+      },
+    }, { ownDocuments: [ownCpf] });
+    expect(cp.document).toBe("59.980.948/0001-01");
+  });
+});

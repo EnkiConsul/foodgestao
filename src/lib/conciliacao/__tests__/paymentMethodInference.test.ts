@@ -84,3 +84,27 @@ describe("suggestPaymentMethodId", () => {
     ).toBe("pix");
   });
 });
+
+describe("compra no débito com paymentMethod OTHER", () => {
+  const raw = {
+    type: "DEBIT",
+    paymentData: { paymentMethod: "OTHER", payer: { documentNumber: { type: "CPF", value: "023.559.691-40" } }, receiver: null },
+  };
+
+  it("reconhece pelo texto 'Compra no débito'", () => {
+    expect(inferPaymentMethodKey({ description: "Compra no débito|POSTO MADRI", raw })).toBe("debito");
+  });
+
+  it("infere débito quando não há texto nem recebedor externo", () => {
+    expect(inferPaymentMethodKey({ description: "Supermercado - Carnes", category_pluggy: "Groceries", raw })).toBe("debito");
+  });
+
+  it("não confunde transferência Pix com compra", () => {
+    expect(
+      inferPaymentMethodKey({
+        description: "Transferência enviada|ACME",
+        raw: { type: "DEBIT", paymentData: { paymentMethod: "PIX", payer: {}, receiver: { name: "ACME" } } },
+      }),
+    ).toBe("pix");
+  });
+});

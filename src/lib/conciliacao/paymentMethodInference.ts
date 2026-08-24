@@ -49,8 +49,15 @@ export function inferPaymentMethodKey(row: InferencePaymentRow): PaymentMethodKe
 
   // Cartão tem prioridade sobre o meio informado pelo banco: pagamentos de
   // fatura chegam como OTHER/PIX mas o texto identifica o cartão.
-  if (/CARTAO\s*(DE\s*)?CREDITO|FATURA\s*(DO\s*)?CARTAO/.test(text)) return "credito";
-  if (/CARTAO\s*(DE\s*)?DEBITO|COMPRA\s*(COM\s*)?CARTAO|DEBITO\s*AUTOMATICO/.test(text)) return "debito";
+  if (/CARTAO\s*(DE\s*)?CREDITO|FATURA\s*(DO\s*)?CARTAO|COMPRA\s*(NO|COM)?\s*CREDITO|COMPRA\s*PARCELADA/.test(text))
+    return "credito";
+  if (
+    /CARTAO\s*(DE\s*)?DEBITO|COMPRA\s*(COM|NO|A|EM)?\s*CARTAO|COMPRA\s*(NO|COM|EM)?\s*DEBITO|DEBITO\s*AUTOMATICO|DEBITO\s*EM\s*CONTA/.test(
+      text,
+    )
+  )
+    return "debito";
+
   if (/IFOOD/.test(text)) return "ifood";
   if (/CHEQUE/.test(text)) return "cheque";
 
@@ -80,8 +87,30 @@ export function inferPaymentMethodKey(row: InferencePaymentRow): PaymentMethodKe
   if (/\bTED\b|\bDOC\b|TRANSFERENCIA/.test(text)) return "ted";
   if (/DINHEIRO|\bSAQUE\b|DEPOSITO EM DINHEIRO/.test(text)) return "dinheiro";
 
+  // Nubank e afins devolvem paymentMethod OTHER em compra de cartão: saída sem
+  // pagador/recebedor externo é, na prática, compra no débito da conta.
+  if ((bank === "OTHER" || bank === null) && isCardPurchaseShape(row.raw)) return "debito";
+
   return null;
 }
+
+/**
+ * Formato típico de compra com cartão: débito na conta em que o único lado
+ * informado é o próprio titular (não há transferência para terceiro).
+ */
+function isCardPurchaseShape(raw: unknown): boolean {
+  if (!raw || typeof raw !== "object") return false;
+  const type = (raw as { type?: unknown }).type;
+  if (typeof type !== "string" || type.toUpperCase() !== "DEBIT") return false;
+  const pd = (raw as { paymentData?: unknown }).paymentData;
+  if (!pd || typeof pd !== "object") return false;
+  const receiver = (pd as Record<string, unknown>).receiver;
+  const payer = (pd as Record<string, unknown>).payer;
+  // Recebedor identificado significa transferência (Pix/TED), não compra.
+  if (receiver && typeof receiver === "object") return false;
+  return !!(payer && typeof payer === "object");
+}
+
 
 const KEY_PATTERNS: Record<PaymentMethodKey, RegExp> = {
   pix: /\bPIX\b/,
