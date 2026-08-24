@@ -52,9 +52,10 @@ export default function ContasBancarias() {
   const [methodDialogOpen, setMethodDialogOpen] = useState(false);
   const [pluggyOpen, setPluggyOpen] = useState(() => {
     // Retoma o Pluggy Connect quando o usuário volta do consentimento de Open
-    // Finance (redirect ou autorização concluída no app do banco via QR Code).
-    return hasPluggyResume();
+    // Finance (redirect com ?itemId=… ou autorização concluída no app do banco).
+    return hasPluggyReturn() || hasPluggyResume();
   });
+
 
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [importOpen, setImportOpen] = useState(false);
