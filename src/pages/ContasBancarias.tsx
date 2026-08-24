@@ -92,7 +92,11 @@ export default function ContasBancarias() {
       _include_inactive: true,
     });
     if (error) toast.error("Erro ao carregar contas financeiras");
-    else setAccounts((data ?? []) as any);
+    else {
+      // Contas excluídas com histórico permanecem no banco para auditoria, mas
+      // não devem voltar à listagem como se estivessem apenas desativadas.
+      setAccounts(((data ?? []) as Account[]).filter((account) => !account.soft_deleted_at));
+    }
 
     // Contas vinculadas a uma conexão Open Finance (para exibir a conciliação no card)
     if (contextType === "pj" && selectedCompanyId) {
@@ -248,6 +252,14 @@ export default function ContasBancarias() {
       }
     } else {
       toast.success(data === "hard" ? "Conta excluída" : "Conta arquivada");
+      // Reflete a exclusão imediatamente; o refetch abaixo confirma o estado
+      // persistido sem manter o card visível durante a desconexão bancária.
+      setAccounts((current) => current.filter((account) => account.id !== deleteAccount.id));
+      setOfAccountIds((current) => {
+        const next = new Set(current);
+        next.delete(deleteAccount.id);
+        return next;
+      });
       // Remove somente a conexão Open Finance deste banco (ou apenas esta conta,
       // quando o mesmo banco alimenta outras contas).
       if (linkedOf) {
@@ -359,6 +371,7 @@ export default function ContasBancarias() {
 
   const filtered = useMemo(() => {
     return accounts.filter((a) => {
+      if (a.soft_deleted_at) return false;
       const matchSearch = !search || a.name.toLowerCase().includes(search.toLowerCase());
       const matchType = filterType === "all" || a.account_type === filterType;
       const isAccounting = (a as typeof a & { is_accounting?: boolean }).is_accounting !== false;
