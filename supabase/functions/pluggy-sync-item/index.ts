@@ -298,24 +298,18 @@ Deno.serve(async (req) => {
       created_by: userId,
     };
 
-    const { data: conn, error: connErr } = await admin
-      .from('pluggy_connections')
-      .upsert(connectionPayload, { onConflict: 'pluggy_item_id' })
-      .select('id')
-      .single();
-    if (connErr) throw connErr;
-
-    // 1b) Deduplicação: uma nova autorização do MESMO banco (connector) na mesma
-    // empresa substitui a conexão anterior. Sem isso, cada "Conectar banco"
-    // repetido criava um novo item Pluggy e a lista exibia o mesmo banco 2x.
+    // 1a) Deduplicação ANTES do upsert: uma nova autorização do MESMO banco
+    // (connector) na mesma empresa substitui a conexão anterior. O índice único
+    // parcial (company_id, connector_id) rejeita o insert se a antiga ainda
+    // estiver ativa, então marcamos como substituída primeiro.
     const connectorIdNum = item?.connector?.id ?? null;
     if (connectorIdNum !== null) {
       const { data: siblings } = await admin
         .from('pluggy_connections')
-        .select('id')
+        .select('id, pluggy_item_id')
         .eq('company_id', effectiveCompanyId)
         .eq('connector_id', connectorIdNum)
-        .neq('id', conn.id)
+        .neq('pluggy_item_id', itemId)
         .neq('status', 'deleted');
       const siblingIds = (siblings ?? []).map((s: any) => s.id);
       if (siblingIds.length) {
@@ -324,10 +318,18 @@ Deno.serve(async (req) => {
           .update({ status: 'deleted', last_sync_status: 'superseded' })
           .in('id', siblingIds);
         console.log('pluggy connection superseded', {
-          kept: conn.id, superseded: siblingIds, connector: connectorIdNum,
+          keptItem: itemId, superseded: siblingIds, connector: connectorIdNum,
         });
       }
     }
+
+    const { data: conn, error: connErr } = await admin
+      .from('pluggy_connections')
+      .upsert(connectionPayload, { onConflict: 'pluggy_item_id' })
+      .select('id')
+      .single();
+    if (connErr) throw connErr;
+
 
 
 
