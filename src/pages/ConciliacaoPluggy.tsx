@@ -24,6 +24,7 @@ import { PluggyAuditDialog } from "@/components/conciliacao/PluggyAuditDialog";
 
 
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
+import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { suggestPaymentMethodId, normalizeText } from "@/lib/conciliacao/paymentMethodInference";
 import { fetchAllCompanyContacts, findExistingContact, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
 import {
@@ -815,6 +816,12 @@ export default function ConciliacaoPluggy() {
 
     setContactForm({ rowId: row.id, name, document, type: contactType });
   };
+
+  // Empresa em contexto já vem marcada nos vínculos do novo contato.
+  const contactFormCompanyIds = useMemo(
+    () => (selectedCompanyId ? [selectedCompanyId] : []),
+    [selectedCompanyId],
+  );
 
   /** Após salvar no formulário: recarrega a lista e vincula o novo contato à linha. */
   const handleContactSaved = async (newId?: string) => {
