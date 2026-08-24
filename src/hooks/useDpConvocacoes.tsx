@@ -28,7 +28,9 @@ export function useDpConvocacoes(inicio: string, fim: string, colaboradorId?: st
     queryFn: async (): Promise<ConvocacaoRow[]> => {
       let q = supabase
         .from("dp_convocacoes")
-        .select("*, dp_colaboradores(nome, regime), dp_turnos(nome)")
+        .select(
+          "*, dp_colaboradores!dp_convocacoes_colaborador_id_fkey(nome, regime), dp_turnos(nome)",
+        )
         .eq("company_id", selectedCompanyId!)
         .gte("data", inicio)
         .lte("data", fim)
