@@ -267,8 +267,8 @@ describe("jornada individual e Option A no grupo", () => {
 
   it("Option A vale para todas as ocorrências do grupo, inclusive multi-cargo", () => {
     const colaboradores = [
-      { id: "p1", nome: "Ana", regime: "intermitente", ativo: true, cargo_id: "c1", unidade_id: "u1", forma_pagamento: "hora", valor_hora: 20, valor_diaria: null },
-      { id: "p2", nome: "Bia", regime: "freelancer", ativo: true, cargo_id: "c2", unidade_id: "u1", forma_pagamento: "diaria", valor_hora: null, valor_diaria: 150 },
+      { id: "p1", nome: "Ana", regime: "intermitente", ativo: true, cargo_id: "c1", unidade_id: "u1", forma_pagamento: "horista", valor_hora: 20, valor_diaria: null },
+      { id: "p2", nome: "Bia", regime: "freelancer", ativo: true, cargo_id: "c2", unidade_id: "u1", forma_pagamento: "diarista", valor_hora: null, valor_diaria: 150 },
     ];
     const comum = {
       data: "2026-02-10",
@@ -312,8 +312,8 @@ describe("jornada individual e Option A no grupo", () => {
         },
       ],
       colaboradores: [
-        { id: "p1", nome: "Ana", regime: "intermitente", ativo: true, cargo_id: "c1", unidade_id: "u1", forma_pagamento: "hora", valor_hora: 20, valor_diaria: null },
-        { id: "p2", nome: "Bia", regime: "intermitente", ativo: true, cargo_id: "c1", unidade_id: "u1", forma_pagamento: "hora", valor_hora: 20, valor_diaria: null },
+        { id: "p1", nome: "Ana", regime: "intermitente", ativo: true, cargo_id: "c1", unidade_id: "u1", forma_pagamento: "horista", valor_hora: 20, valor_diaria: null },
+        { id: "p2", nome: "Bia", regime: "intermitente", ativo: true, cargo_id: "c1", unidade_id: "u1", forma_pagamento: "horista", valor_hora: 20, valor_diaria: null },
       ],
       unidadeId: "u1",
       indisponiveisPorData: new Map([["2026-02-10", new Set(["p1"])]]),
