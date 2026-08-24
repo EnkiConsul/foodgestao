@@ -671,10 +671,20 @@ export default function ConciliacaoPluggy() {
    * Contraparte de cada lançamento: nome + CNPJ/CPF do extrato. Em débitos
    * internos (tarifas, IOF, juros, rendimentos) a contraparte é o próprio banco.
    */
+  /** Documentos que pertencem ao próprio usuário/empresa (nunca contraparte). */
+  const ownDocumentSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const d of [companyCnpj, ...ownDocuments]) {
+      const digits = onlyDigits(d);
+      if (digits.length >= 11) s.add(digits);
+    }
+    return s;
+  }, [companyCnpj, ownDocuments]);
+
   const counterpartyByRow = useMemo(() => {
     const m: Record<string, Counterparty> = {};
     for (const r of rows) {
-      const base = extractCounterparty(r, { ownDocuments: [companyCnpj] });
+      const base = extractCounterparty(r, { ownDocuments: [...ownDocumentSet] });
       if (base.internal) {
         const bank = bankByConnection[r.connection_id] ?? null;
         m[r.id] = {
@@ -685,17 +695,22 @@ export default function ConciliacaoPluggy() {
         };
         continue;
       }
+      // O dado gravado na importação também pode trazer o documento do titular.
+      const stagedDoc = onlyDigits(r.counterparty_document);
+      const stagedValid = stagedDoc.length >= 11 && !ownDocumentSet.has(stagedDoc);
       m[r.id] = {
         ...base,
-        name: base.name ?? r.counterparty_name ?? null,
-        document: base.document ?? r.counterparty_document ?? null,
+        name: base.name ?? (stagedValid ? r.counterparty_name : null) ?? null,
+        document: base.document ?? (stagedValid ? r.counterparty_document : null) ?? null,
         documentType:
           base.documentType ??
-          ((r.counterparty_document_type as "CNPJ" | "CPF" | null | undefined) ?? null),
+          ((stagedValid
+            ? (r.counterparty_document_type as "CNPJ" | "CPF" | null | undefined)
+            : null) ?? null),
       };
     }
     return m;
-  }, [rows, companyCnpj, bankByConnection, connections]);
+  }, [rows, ownDocumentSet, bankByConnection, connections]);
 
   /** Contato cadastrado por documento (só dígitos). */
   const contactIdByDocument = useMemo(() => {
@@ -707,15 +722,30 @@ export default function ConciliacaoPluggy() {
     return m;
   }, [contacts]);
 
+  /** Contato cadastrado por nome normalizado (fallback sem documento). */
+  const contactIdByName = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of contacts) {
+      const n = normalizeText(c.name ?? "");
+      if (n.length >= 3 && !m[n]) m[n] = c.id;
+    }
+    return m;
+  }, [contacts]);
+
   const suggestedContact = useMemo(() => {
     const m: Record<string, string> = {};
     for (const r of rows) {
-      const doc = onlyDigits(counterpartyByRow[r.id]?.document);
-      const contactId = doc ? contactIdByDocument[doc] : undefined;
-      if (contactId) m[r.id] = contactId;
+      const cp = counterpartyByRow[r.id];
+      const doc = onlyDigits(cp?.document);
+      const byDoc = doc && !ownDocumentSet.has(doc) ? contactIdByDocument[doc] : undefined;
+      if (byDoc) { m[r.id] = byDoc; continue; }
+      // Sem documento de terceiro: só sugerimos com nome idêntico ao cadastrado.
+      const byName = cp?.name ? contactIdByName[normalizeText(cp.name)] : undefined;
+      if (byName) m[r.id] = byName;
     }
     return m;
-  }, [rows, counterpartyByRow, contactIdByDocument]);
+  }, [rows, counterpartyByRow, contactIdByDocument, contactIdByName, ownDocumentSet]);
+
 
   // Pré-seleciona o fornecedor/cliente identificado pelo documento do extrato,
   // sem sobrescrever escolhas manuais nem rascunhos salvos.
