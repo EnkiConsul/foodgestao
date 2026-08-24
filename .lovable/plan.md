@@ -46,7 +46,7 @@ Ao encontrar sucessora com `substitui_ocorrencia_id = p_ocorrencia_id`:
 
 - Se o id difere de `p_sucessora_id` → `REVISION_CONFLICT` (como hoje).
 - Se coincide, validar antes a coerência da cadeia — predecessora `revisada`, `sucessora.substitui_ocorrencia_id = predecessora.id`, `sucessora.versao = predecessora.versao + 1`, mesma empresa/grupo/unidade. Qualquer estado impossível → `REVISION_INCONSISTENT` (fail closed).
-- Cadeia coerente: comparar a sucessora existente com o payload solicitado (predecessora, grupo, empresa, unidade, versão, cargo, data, janela de necessidade, horário, turno, intervalo, carga, vagas, condições comuns) **e também `p_motivo`**, confrontado com o motivo já persistido no evento `ocorrencia_revisada` correspondente. Compatível → idempotente, 0 novo evento. Qualquer divergência, inclusive só no motivo → `IDEMPOTENCY_CONFLICT`.
+- Cadeia coerente: comparar a sucessora existente com o payload solicitado (predecessora, grupo, empresa, unidade, versão, cargo, data, janela de necessidade, horário, turno, intervalo, carga, vagas, condições comuns) **e também `p_motivo`**. O motivo é confrontado com o único evento `ocorrencia_revisada` correspondente à dupla predecessora + sucessora: zero ou mais de um evento correspondente → `REVISION_INCONSISTENT`; exatamente um → comparação normalizada do motivo, tratando `NULL` explicitamente (`IS NOT DISTINCT FROM`). Compatível → idempotente, 0 novo evento. Qualquer divergência, inclusive só no motivo → `IDEMPOTENCY_CONFLICT`.
 
 **5. Controle otimista na configuração**
 
