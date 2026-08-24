@@ -15,6 +15,7 @@ import { useCnpjLookup } from "@/hooks/useCnpjLookup";
 import { Loader2, Search } from "lucide-react";
 import { maskCpfCnpj, isValidCpf } from "@/lib/cpf";
 import { isValidCnpj } from "@/lib/cnpj";
+import { normalizeDocumento, isSameDocumento } from "@/lib/documento";
 import { cn } from "@/lib/utils";
 import { notifyCnpjSuccess, notifyCnpjError } from "@/lib/cnpj-messages";
 import type { Tables } from "@/integrations/supabase/types";
@@ -89,10 +90,10 @@ export function ContactFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editContact, open, defaultName, defaultContactType, defaultDocument, defaultVisiblePf, (defaultCompanyIds ?? []).join(",")]);
 
-  // Bloqueio de duplicidade: procura outro contato com o mesmo CPF/CNPJ (comparando só dígitos,
-  // já que o documento pode estar salvo mascarado ou sem máscara).
+  // Bloqueio de duplicidade: procura outro contato com o mesmo CPF/CNPJ comparando a
+  // chave normalizada (sem máscara, sem zeros perdidos), para evitar falsos negativos.
   const [duplicate, setDuplicate] = useState<{ id: string; name: string } | null>(null);
-  const docDigitsLive = document.replace(/\D/g, "");
+  const docDigitsLive = normalizeDocumento(document);
   useEffect(() => {
     if (docDigitsLive.length !== 11 && docDigitsLive.length !== 14) {
       setDuplicate(null);
@@ -107,14 +108,13 @@ export function ContactFormDialog({
         .limit(2000);
       if (cancelled) return;
       const hit = (data ?? []).find(
-        (c: any) =>
-          String(c.document ?? "").replace(/\D/g, "") === docDigitsLive &&
-          c.id !== editContact?.id,
+        (c: any) => isSameDocumento(c.document, docDigitsLive) && c.id !== editContact?.id,
       );
       setDuplicate(hit ? { id: (hit as any).id, name: (hit as any).name } : null);
     }, 350);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [docDigitsLive, editContact?.id, open]);
+
 
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds((prev) =>
@@ -136,7 +136,7 @@ export function ContactFormDialog({
       return;
     }
 
-    const docDigits = document.replace(/\D/g, "");
+    const docDigits = normalizeDocumento(document);
     if (docDigits.length > 0) {
       if (docDigits.length !== 11 && docDigits.length !== 14) {
         toast.error("Documento deve ter 11 dígitos (CPF) ou 14 dígitos (CNPJ).");
@@ -157,9 +157,9 @@ export function ContactFormDialog({
         .not("document", "is", null)
         .limit(2000);
       const dup = (dupRows ?? []).find(
-        (c: any) =>
-          String(c.document ?? "").replace(/\D/g, "") === docDigits && c.id !== editContact?.id,
+        (c: any) => isSameDocumento(c.document, docDigits) && c.id !== editContact?.id,
       );
+
       if (dup) {
         setDuplicate({ id: (dup as any).id, name: (dup as any).name });
         toast.error("CPF/CNPJ já cadastrado", {

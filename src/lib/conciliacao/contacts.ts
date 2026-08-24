@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeDocumento } from "@/lib/documento";
 
 export interface CompanyContact {
   id: string;
@@ -53,9 +54,9 @@ export async function fetchAllCompanyContacts(
   return { data: all, error: null };
 }
 
-/** Normaliza documento (só dígitos) para comparação. */
+/** Normaliza documento (chave canônica de CPF/CNPJ) para comparação. */
 export function normalizeDoc(doc: string | null | undefined): string | null {
-  const d = (doc ?? "").replace(/\D+/g, "");
+  const d = normalizeDocumento(doc);
   return d.length >= 11 ? d : null;
 }
 

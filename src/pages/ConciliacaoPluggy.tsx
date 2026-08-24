@@ -36,6 +36,7 @@ import {
   type Counterparty,
 } from "@/lib/conciliacao/counterparty";
 import { toProperName } from "@/lib/text/properName";
+import { normalizeDocumento } from "@/lib/documento";
 
 
 
@@ -692,7 +693,7 @@ export default function ConciliacaoPluggy() {
   const ownDocumentSet = useMemo(() => {
     const s = new Set<string>();
     for (const d of [companyCnpj, ...ownDocuments]) {
-      const digits = onlyDigits(d);
+      const digits = normalizeDocumento(d);
       if (digits.length >= 11) s.add(digits);
     }
     return s;
@@ -713,7 +714,7 @@ export default function ConciliacaoPluggy() {
         continue;
       }
       // O dado gravado na importação também pode trazer o documento do titular.
-      const stagedDoc = onlyDigits(r.counterparty_document);
+      const stagedDoc = normalizeDocumento(r.counterparty_document);
       const stagedValid = stagedDoc.length >= 11 && !ownDocumentSet.has(stagedDoc);
       m[r.id] = {
         ...base,
@@ -729,11 +730,11 @@ export default function ConciliacaoPluggy() {
     return m;
   }, [rows, ownDocumentSet, bankByConnection, connections]);
 
-  /** Contato cadastrado por documento (só dígitos). */
+  /** Contato cadastrado por documento (chave normalizada de CPF/CNPJ). */
   const contactIdByDocument = useMemo(() => {
     const m: Record<string, string> = {};
     for (const c of contacts) {
-      const d = onlyDigits(c.document);
+      const d = normalizeDocumento(c.document);
       if (d.length >= 11 && !m[d]) m[d] = c.id;
     }
     return m;
@@ -753,7 +754,7 @@ export default function ConciliacaoPluggy() {
     const m: Record<string, string> = {};
     for (const r of rows) {
       const cp = counterpartyByRow[r.id];
-      const doc = onlyDigits(cp?.document);
+      const doc = normalizeDocumento(cp?.document);
       const byDoc = doc && !ownDocumentSet.has(doc) ? contactIdByDocument[doc] : undefined;
       if (byDoc) { m[r.id] = byDoc; continue; }
       // Sem documento de terceiro: só sugerimos com nome idêntico ao cadastrado.
