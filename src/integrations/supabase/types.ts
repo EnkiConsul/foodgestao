@@ -4800,70 +4800,136 @@ export type Database = {
           carga_prevista_horas: number
           colaborador_id: string
           company_id: string
+          comparecimento: string | null
+          comparecimento_origem: string | null
+          comparecimento_registrado_em: string | null
+          comparecimento_registrado_por: string | null
+          compatibilidade: string | null
           created_at: string
           criada_por: string | null
           data: string
+          disponibilizada_em: string | null
+          encerrada_em: string | null
+          encerramento_motivo: string | null
+          encerramento_operacional: string | null
           entrada: string
           enviada_em: string
           escala_item_id: string | null
+          fim_previsto: string | null
           id: string
+          inicio_previsto: string | null
           intervalo_minutos: number
           motivo_recusa: string | null
           observacao: string | null
+          ocorrencia_id: string | null
+          origem_oferta: string | null
           prazo_resposta: string | null
+          prazo_resposta_base: string | null
+          regime_snapshot:
+            | Database["public"]["Enums"]["dp_regime_trabalho"]
+            | null
+          remuneracao_snapshot: Json | null
           respondida_em: string | null
           saida: string
           status: Database["public"]["Enums"]["dp_convocacao_status"]
+          substitui_convocacao_id: string | null
+          substituida_por_id: string | null
           termina_no_dia_seguinte: boolean
+          timezone_snapshot: string | null
           turno_id: string | null
           unidade_id: string | null
           updated_at: string
+          visualizada_em: string | null
         }
         Insert: {
           carga_prevista_horas?: number
           colaborador_id: string
           company_id: string
+          comparecimento?: string | null
+          comparecimento_origem?: string | null
+          comparecimento_registrado_em?: string | null
+          comparecimento_registrado_por?: string | null
+          compatibilidade?: string | null
           created_at?: string
           criada_por?: string | null
           data: string
+          disponibilizada_em?: string | null
+          encerrada_em?: string | null
+          encerramento_motivo?: string | null
+          encerramento_operacional?: string | null
           entrada: string
           enviada_em?: string
           escala_item_id?: string | null
+          fim_previsto?: string | null
           id?: string
+          inicio_previsto?: string | null
           intervalo_minutos?: number
           motivo_recusa?: string | null
           observacao?: string | null
+          ocorrencia_id?: string | null
+          origem_oferta?: string | null
           prazo_resposta?: string | null
+          prazo_resposta_base?: string | null
+          regime_snapshot?:
+            | Database["public"]["Enums"]["dp_regime_trabalho"]
+            | null
+          remuneracao_snapshot?: Json | null
           respondida_em?: string | null
           saida: string
           status?: Database["public"]["Enums"]["dp_convocacao_status"]
+          substitui_convocacao_id?: string | null
+          substituida_por_id?: string | null
           termina_no_dia_seguinte?: boolean
+          timezone_snapshot?: string | null
           turno_id?: string | null
           unidade_id?: string | null
           updated_at?: string
+          visualizada_em?: string | null
         }
         Update: {
           carga_prevista_horas?: number
           colaborador_id?: string
           company_id?: string
+          comparecimento?: string | null
+          comparecimento_origem?: string | null
+          comparecimento_registrado_em?: string | null
+          comparecimento_registrado_por?: string | null
+          compatibilidade?: string | null
           created_at?: string
           criada_por?: string | null
           data?: string
+          disponibilizada_em?: string | null
+          encerrada_em?: string | null
+          encerramento_motivo?: string | null
+          encerramento_operacional?: string | null
           entrada?: string
           enviada_em?: string
           escala_item_id?: string | null
+          fim_previsto?: string | null
           id?: string
+          inicio_previsto?: string | null
           intervalo_minutos?: number
           motivo_recusa?: string | null
           observacao?: string | null
+          ocorrencia_id?: string | null
+          origem_oferta?: string | null
           prazo_resposta?: string | null
+          prazo_resposta_base?: string | null
+          regime_snapshot?:
+            | Database["public"]["Enums"]["dp_regime_trabalho"]
+            | null
+          remuneracao_snapshot?: Json | null
           respondida_em?: string | null
           saida?: string
           status?: Database["public"]["Enums"]["dp_convocacao_status"]
+          substitui_convocacao_id?: string | null
+          substituida_por_id?: string | null
           termina_no_dia_seguinte?: boolean
+          timezone_snapshot?: string | null
           turno_id?: string | null
           unidade_id?: string | null
           updated_at?: string
+          visualizada_em?: string | null
         }
         Relationships: [
           {
@@ -4906,6 +4972,41 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_convocacoes_colaborador_company"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_convocacoes_colaborador_company"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_convocacoes_ocorrencia_contexto"
+            columns: ["ocorrencia_id", "company_id", "unidade_id", "data"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_ocorrencias"
+            referencedColumns: ["id", "company_id", "unidade_id", "data"]
+          },
+          {
+            foreignKeyName: "fk_dp_convocacoes_substitui"
+            columns: ["substitui_convocacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_convocacoes_substituida_por"
+            columns: ["substituida_por_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacoes"
             referencedColumns: ["id"]
           },
         ]
