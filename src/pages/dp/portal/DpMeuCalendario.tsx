@@ -501,15 +501,22 @@ export default function DpMeuCalendario() {
     mutationFn: async () => {
       if (!meRef.data || !selectedDay) throw new Error("Sem contexto");
       const motivo = exceptionMotivo.trim() || "Solicitação de exceção (sem motivo informado)";
-      const { error } = await supabase.from("dp_solicitacoes").insert({
-        company_id: meRef.data.company_id,
-        colaborador_id: meRef.data.id,
-        tipo: "folga",
-        data_alvo: selectedDay.iso,
-        motivo,
-        criado_por: user!.id,
+      const { error } = await supabase.rpc("dp_folga_solicitar", {
+        p_data: selectedDay.iso,
+        p_motivo: motivo,
       });
-      if (error) throw error;
+      if (error) {
+        const raw = error.message ?? "";
+        if (raw.includes("COVERAGE_MINIMUM"))
+          throw new Error(
+            "Neste dia a equipe ficaria abaixo da cobertura mínima. Fale com o DP para avaliar uma exceção.",
+          );
+        if (raw.includes("DUPLICATE_REQUEST"))
+          throw new Error("Você já tem uma solicitação pendente para este dia.");
+        if (raw.includes("PAST_DATE_NOT_EDITABLE"))
+          throw new Error("Não é possível solicitar folga em datas passadas.");
+        throw new Error("Não foi possível enviar a solicitação. Tente novamente.");
+      }
     },
     onSuccess: () => {
       toast.success("Solicitação de exceção enviada.");
@@ -520,6 +527,7 @@ export default function DpMeuCalendario() {
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao enviar exceção"),
   });
+
 
   const solicitarTroca = useMutation({
     mutationFn: async () => {
