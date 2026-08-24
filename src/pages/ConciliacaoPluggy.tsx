@@ -254,6 +254,9 @@ export default function ConciliacaoPluggy() {
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "entrada"), [categories]);
   const categoryOptionsDespesa = useMemo(() => buildCategoryOptions(categories, "saida"), [categories]);
+  // Os itens do seletor são pesados: renderizamos uma única vez e reutilizamos em todas as linhas.
+  const categoryItemsReceita = useMemo(() => renderCategoryItems(categoryOptionsReceita), [categoryOptionsReceita]);
+  const categoryItemsDespesa = useMemo(() => renderCategoryItems(categoryOptionsDespesa), [categoryOptionsDespesa]);
   const categoryTypeById = useMemo(() => {
     const m: Record<string, string> = {};
     for (const c of categories) m[c.id] = c.transaction_type;
