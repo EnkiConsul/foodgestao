@@ -519,6 +519,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
       ) as FormaPagamento,
       salario_base: c.salario_base != null ? String(c.salario_base).replace(".", ",") : "",
       valor_hora: c.valor_hora != null ? String(c.valor_hora).replace(".", ",") : "",
+      valor_diaria: (c as any).valor_diaria != null ? String((c as any).valor_diaria).replace(".", ",") : "",
       dependentes_irrf: String(c.dependentes_irrf ?? 0),
       adicional_percentual: String(c.adicional_percentual ?? 0).replace(".", ","),
       insalubridade_percentual: String((c as any).insalubridade_percentual ?? 0).replace(".", ","),
@@ -1320,6 +1321,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         salario_base:
           socioSemRemuneracao || rem.forma_pagamento === "horista" ? null : salarioNum || null,
         valor_hora: rem.forma_pagamento === "horista" ? valorHoraNum || null : null,
+        valor_diaria:
+          rem.forma_pagamento === "diarista" ? numeroBR(rem.valor_diaria) || null : null,
         dependentes_irrf: Math.max(0, Math.trunc(numeroBR(rem.dependentes_irrf))),
         adicional_percentual: adicionalNum,
         insalubridade_percentual: insalubridadeNum,
