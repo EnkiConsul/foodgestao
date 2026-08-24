@@ -69,6 +69,9 @@ export interface RemuneracaoFormState {
   forma_pagamento: FormaPagamento;
   salario_base: string;
   valor_hora: string;
+  /** Valor da diária — fonte autoritativa para convocações de diaristas. */
+  valor_diaria: string;
+
   dependentes_irrf: string;
   adicional_percentual: string;
   /** Adicionais de risco — não cumuláveis (art. 193 §2º CLT). */
@@ -127,6 +130,8 @@ export const remuneracaoBlank: RemuneracaoFormState = {
   forma_pagamento: "mensalista",
   salario_base: "",
   valor_hora: "",
+  valor_diaria: "",
+
   dependentes_irrf: "0",
   adicional_percentual: "0",
   insalubridade_percentual: "0",
@@ -535,6 +540,26 @@ export function RemuneracaoFields({
             </p>
           ) : null}
         </div>
+
+        {/* Valor da diária — fonte oficial do cachê em convocações */}
+        {forma === "diarista" && (
+          <div className="space-y-2 md:col-span-2 rounded-lg border border-border bg-background p-3">
+            <Label>Valor da diária (convocações) *</Label>
+            <Input
+              inputMode="decimal"
+              value={value.valor_diaria}
+              {...marca("valor_diaria")}
+              onChange={(e) => onChange({ valor_diaria: e.target.value })}
+              placeholder="Ex: 150,00"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Usado nas convocações de diaristas e freelancers. Sem esse valor a pessoa não
+              aparece como elegível — o sistema não converte salário mensal em diária.
+            </p>
+          </div>
+        )}
+
+
 
         {/* Base de cálculo — facilita o cadastro de intermitentes e horistas */}
         {usaBase && (
