@@ -62,6 +62,42 @@ function clearResume() {
   try { sessionStorage.removeItem(RESUME_KEY); } catch { /* noop */ }
 }
 
+// Parâmetros que o banco/Pluggy devolvem na URL após o consentimento de Open
+// Finance. Precisam ser consumidos aqui, senão o widget é reaberto do zero e o
+// usuário volta a ver a tela de boas-vindas da Pluggy.
+const RETURN_PARAMS = ["itemId", "item_id"] as const;
+
+function readReturnItemId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const url = new URL(window.location.href);
+    for (const key of RETURN_PARAMS) {
+      const value = url.searchParams.get(key);
+      if (value) return value;
+    }
+  } catch { /* noop */ }
+  return null;
+}
+
+/** Voltamos do consentimento do banco com um item já autorizado? */
+export function hasPluggyReturn(): boolean {
+  return !!readReturnItemId();
+}
+
+function clearReturnParams() {
+  try {
+    const url = new URL(window.location.href);
+    let changed = false;
+    for (const key of RETURN_PARAMS) {
+      if (url.searchParams.has(key)) { url.searchParams.delete(key); changed = true; }
+    }
+    if (!changed) return;
+    const search = url.searchParams.toString();
+    window.history.replaceState({}, "", `${url.pathname}${search ? `?${search}` : ""}${url.hash}`);
+  } catch { /* noop */ }
+}
+
+
 function loadScript(): Promise<void> {
   return new Promise((resolve, reject) => {
     if (window.PluggyConnect) return resolve();
@@ -110,13 +146,14 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
   const [widgetReady, setWidgetReady] = useState(false);
   const [pending, setPending] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "intro" | "launch" | "framed">("idle");
+  const [phase, setPhase] = useState<"idle" | "intro" | "launch" | "framed" | "returning">("idle");
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [showInterSteps, setShowInterSteps] = useState(false);
   const instanceRef = useRef<any>(null);
   const launchedRef = useRef(false);
   const finishedRef = useRef(false);
   const requestIdRef = useRef<string | null>(null);
+  const returnedItemIdRef = useRef<string | null>(null);
 
   // Decide se mostramos a orientação de escolha de conector antes do widget.
   // Retomadas (QR Code em andamento) e reconexões vão direto para o widget.
@@ -135,11 +172,22 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
       return;
     }
 
+    // Retorno do consentimento: o banco devolveu o item autorizado na URL.
+    // Concluímos a conexão aqui em vez de reabrir o widget da Pluggy.
+    const returnedItemId = readReturnItemId();
+    if (returnedItemId) {
+      returnedItemIdRef.current = returnedItemId;
+      clearReturnParams();
+      setPhase("returning");
+      return;
+    }
+
     let dismissed = false;
     try { dismissed = localStorage.getItem(INTRO_KEY) === "1"; } catch { /* noop */ }
     const skip = dismissed || hasPluggyResume() || !!itemIdToUpdate;
     setPhase(skip ? "launch" : "intro");
-  }, [open, itemIdToUpdate]);
+  }, [open, itemIdToUpdate, onOpenChange]);
+
 
 
   const startConnect = useCallback(() => {
@@ -148,6 +196,36 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     }
     setPhase("launch");
   }, [dontShowAgain]);
+
+  /** Conclui a conexão a partir do item devolvido pelo banco na URL. */
+  const finishReturn = useCallback(async (itemId: string) => {
+    if (finishedRef.current) return;
+    setChecking(true);
+    setError(null);
+    try {
+      const { data: sync, error: syncError } = await supabase.functions.invoke("pluggy-sync-item", {
+        body: { item_id: itemId, company_id: companyId, first_connect: true },
+      });
+      if (syncError) throw syncError;
+      finishedRef.current = true;
+      clearResume();
+      toast.success(`Conexão concluída: ${sync?.transactions ?? 0} lançamentos importados`);
+      onConnected?.({ itemId, connectionId: sync?.connection_id });
+      onOpenChange(false);
+    } catch (err: unknown) {
+      const info = await parseEdgeFunctionError(err, "Não foi possível confirmar a autorização com o banco");
+      setError(info.message);
+    } finally {
+      setChecking(false);
+    }
+  }, [companyId, onConnected, onOpenChange]);
+
+  useEffect(() => {
+    if (!open || phase !== "returning") return;
+    const itemId = returnedItemIdRef.current;
+    if (!itemId) { setPhase("launch"); return; }
+    void finishReturn(itemId);
+  }, [open, phase, finishReturn]);
 
 
   const finishFromRequest = useCallback(async (itemId: string) => {
@@ -375,6 +453,45 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
   if (!open) return null;
 
   if (phase === "framed") return null;
+
+  if (phase === "returning") {
+    const itemId = returnedItemIdRef.current;
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Confirmando autorização do banco"
+      >
+        <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg">
+          <h2 className="text-lg font-semibold">Confirmando a autorização com o banco…</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Recebemos o retorno do seu banco e estamos importando as contas e os lançamentos.
+            Isso pode levar alguns instantes.
+          </p>
+          <div className="flex items-center justify-center py-6">
+            {checking && <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />}
+            {!checking && error && <p className="text-center text-sm text-destructive">{error}</p>}
+          </div>
+          {!checking && error && (
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="ghost" onClick={() => { returnedItemIdRef.current = null; setError(null); setPhase("launch"); }}>
+                Conectar novamente
+              </Button>
+              <Button variant="outline" onClick={() => { clearResume(); onOpenChange(false); }}>
+                Fechar
+              </Button>
+              <Button onClick={() => itemId && finishReturn(itemId)} disabled={!itemId}>
+                Verificar novamente
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+
 
 
 
