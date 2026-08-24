@@ -31,32 +31,39 @@ Inverter a ordem: `INSERT ... ON CONFLICT (id) DO NOTHING RETURNING *`.
 `criar_ocorrencia` lê o grupo sem lock, autoriza, e só então trava o grupo (`FOR UPDATE`) e revalida `status = 'rascunho'` sobre a linha travada, mantendo a ordem de lock já aprovada (grupo → ocorrência) que `revisar_ocorrencia` também usa. Assim uma publicação futura da 3B.2 e a inclusão de ocorrência nunca se atravessam: quem chegar depois espera, relê o estado atual e falha com `NOT_DRAFT` se o grupo já foi publicado.
 
 
-**3. Reconciliação completa no retry da revisão**
+**3. Ordem correta da revisão (predecessora → sucessora)**
+
+Confirmei no banco que `uq_dp_conv_ocor_necessidade_vigente` é único sobre `(company_id, unidade_id, data, cargo_id, necessidade_entrada, necessidade_saida, necessidade_termina_no_dia_seguinte)` com `WHERE status NOT IN ('revisada','cancelada')`. Logo, revisão que preserva a identidade da necessidade e altera só vagas/condições falha se a sucessora for inserida antes.
+
+`revisar_ocorrencia` passa a marcar a predecessora como `revisada` **antes** do `INSERT` da sucessora, na mesma transação — se a criação da sucessora falhar, o UPDATE da predecessora é revertido pela própria transação.
+
+**4. Reconciliação completa no retry da revisão**
 
 Ao encontrar sucessora com `substitui_ocorrencia_id = p_ocorrencia_id`:
 
 - Se o id difere de `p_sucessora_id` → `REVISION_CONFLICT` (como hoje).
 - Se coincide, validar antes a coerência da cadeia — predecessora `revisada`, `sucessora.substitui_ocorrencia_id = predecessora.id`, `sucessora.versao = predecessora.versao + 1`, mesma empresa/grupo/unidade. Qualquer estado impossível → `REVISION_INCONSISTENT` (fail closed).
-- Cadeia coerente: comparar a sucessora existente com o payload solicitado (predecessora, grupo, empresa, unidade, versão, cargo, data, janela de necessidade, horário, turno, intervalo, carga, vagas, condições comuns). Compatível → idempotente, 0 evento. Incompatível → `IDEMPOTENCY_CONFLICT`.
+- Cadeia coerente: comparar a sucessora existente com o payload solicitado (predecessora, grupo, empresa, unidade, versão, cargo, data, janela de necessidade, horário, turno, intervalo, carga, vagas, condições comuns) **e também `p_motivo`**, confrontado com o motivo já persistido no evento `ocorrencia_revisada` correspondente. Compatível → idempotente, 0 novo evento. Qualquer divergência, inclusive só no motivo → `IDEMPOTENCY_CONFLICT`.
 
-**4. Controle otimista na configuração**
+**5. Controle otimista na configuração**
 
-`salvar_config` ganha `p_expected_updated_at timestamptz` (a assinatura muda, então a versão antiga é removida e a nova recebe os mesmos grants: `EXECUTE` só para `authenticated`, sem PUBLIC/anon).
+`salvar_config` ganha `p_expected_updated_at timestamptz`. A assinatura antiga é removida explicitamente com `DROP FUNCTION` sem `CASCADE`, e a nova recebe os mesmos grants (`EXECUTE` só para `authenticated`, sem PUBLIC/anon). Ao final, checagem em `pg_proc` de que resta exatamente uma assinatura executável de `dp_convocacao_salvar_config`.
 
-- Sem linha no escopo + `expected NULL` → criar via `INSERT ... ON CONFLICT (company_id, unidade_id) DO NOTHING`; se perdeu a corrida, reler e cair na regra de linha existente. Preserva o `UNIQUE NULLS NOT DISTINCT (company_id, unidade_id)` sem alterá-lo.
+- Sem linha no escopo + `expected NULL` → criar via `INSERT ... ON CONFLICT ON CONSTRAINT uq_dp_conv_config_escopo DO NOTHING`; se perdeu a corrida, reler `FOR UPDATE` e cair na regra de linha existente. A constraint `UNIQUE NULLS NOT DISTINCT (company_id, unidade_id)` é preservada como está.
 - Linha existente com conteúdo igual → sucesso idempotente, 0 evento (independe do expected).
 - Conteúdo diferente + `expected_updated_at` correto → 1 update, 1 evento.
 - Conteúdo diferente + expected divergente ou ausente → `CONCURRENT_MODIFICATION`, nunca sobrescrever.
 
 Resultado nas duas criações simultâneas do mesmo escopo: mesmo conteúdo → 1 linha e exatamente 1 evento `config_criada`, ambas as chamadas com sucesso lógico; conteúdo diferente → uma cria, a outra recebe conflito.
 
-**5. Eventos sem referência — fail closed**
+**6. Eventos sem referência — fail closed**
 
 `tipo LIKE 'config\_%'` passa a `tipo IN ('config_criada','config_atualizada')`, tanto no `CHECK` `dp_conv_evento_referencia_check` quanto no trigger `dp_conv_evento_deriva`. Vocabulário novo de config futuro exigirá migration explícita — que é o comportamento desejado.
 
-**6. Papel real do ator**
+**7. Papel real do ator, fail closed**
 
-`log_evento` passa a resolver `ator_papel` de `company_members.role` para o `auth.uid()` na empresa do evento (`owner` → `owner`, `admin` → `admin`), sem ampliar escopo de leitura (a função já é definer e a autorização já consulta a mesma tabela). Sem linha correspondente, grava `NULL` em vez de afirmar um papel falso.
+`log_evento` resolve `ator_papel` por membership válida na empresa do evento — o mesmo critério da autorização (`company_members.role IN ('owner','admin')`), confirmado na definição de `private.is_company_admin_or_owner`: `owner` → `owner`, `admin` → `admin`. Com `auth.uid() IS NOT NULL` e papel não resolvível → `AUDIT_ACTOR_ROLE_UNRESOLVED` (fail closed). `NULL` fica reservado a execução interna legítima sem usuário autenticado.
+
 
 ## Testes (todos em transações revertidas, com contagem de eventos)
 
