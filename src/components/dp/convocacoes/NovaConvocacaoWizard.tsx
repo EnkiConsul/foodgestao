@@ -393,48 +393,81 @@ export function NovaConvocacaoWizard({
   }, [ocorrenciasOk, convocaveis, unidadeId, preview.indisponiveisPorData, preview.alocadosPorData, preview.jornadaDe]);
 
   // ------------------------------------------------------------- gravação
-  const salvarRascunho = async () => {
+  /**
+   * Persiste grupo + necessidades e cancela (nunca apaga) as que foram retiradas.
+   * Devolve o `updated_at` autoritativo do grupo — exigido pela publicação.
+   */
+  const persistir = async (): Promise<string | null> => {
     if (!grupoOk || !unidadeId || !modalidade) {
       toast.error("Informe unidade, competência, período e modalidade antes de salvar.");
-      return;
+      return null;
     }
     if (!ocorrenciasOk.length) {
       toast.error("Nenhuma data está completa o suficiente para ser gravada.");
-      return;
+      return null;
     }
+
+    const grupoRes: any = await salvarGrupo.mutateAsync({
+      grupo_id: grupoId,
+      unidade_id: unidadeId,
+      competencia,
+      modalidade,
+      titulo: titulo.trim() || null,
+      observacao: observacao.trim() || null,
+      expected_updated_at: grupoExpected,
+    });
+    let grupoAtual: string | null = grupoRes?.updated_at ?? null;
+    setGrupoExpected(grupoAtual);
+
+    for (const [id, expected] of Object.entries(removidas)) {
+      await cancelarOcorrencia.mutateAsync({ ocorrencia_id: id, expected_updated_at: expected });
+      setPersistidas((p) => {
+        const next = { ...p };
+        delete next[id];
+        return next;
+      });
+    }
+    setRemovidas({});
+
+    for (const o of ocorrenciasOk) {
+      const horario = payloadHorario(o);
+      const res: any = await salvarOcorrencia.mutateAsync({
+        ocorrencia_id: o.id,
+        grupo_id: grupoId,
+        cargo_id: o.cargo_id!,
+        data: o.data!,
+        necessidade_entrada: o.necessidade_entrada!,
+        necessidade_saida: o.necessidade_saida!,
+        necessidade_termina_no_dia_seguinte: o.necessidade_termina_no_dia_seguinte,
+        vagas: o.vagas,
+        colaborador_alvo_id: modalidade === "individual" ? o.colaborador_alvo_id : null,
+        expected_updated_at: o.expected_updated_at ?? null,
+        ...horario,
+      });
+      const carimbo: string | null = res?.updated_at ?? null;
+      patch(o.id, { expected_updated_at: carimbo });
+      setPersistidas((p) => ({ ...p, [o.id]: carimbo }));
+      // Gravar necessidade também toca o grupo: relê o carimbo devolvido.
+      if (res?.grupo_updated_at) grupoAtual = res.grupo_updated_at;
+    }
+
+    return grupoAtual;
+  };
+
+  const salvarRascunho = async () => {
     setSalvando(true);
     try {
-      await salvarGrupo.mutateAsync({
-        grupo_id: grupoId,
-        unidade_id: unidadeId,
-        competencia,
-        modalidade,
-        titulo: titulo.trim() || null,
-        observacao: observacao.trim() || null,
-        expected_updated_at: grupoExpected,
-      });
-
-      for (const o of ocorrenciasOk) {
-        const horario = payloadHorario(o);
-        await salvarOcorrencia.mutateAsync({
-          ocorrencia_id: o.id,
-          grupo_id: grupoId,
-          cargo_id: o.cargo_id!,
-          data: o.data!,
-          necessidade_entrada: o.necessidade_entrada!,
-          necessidade_saida: o.necessidade_saida!,
-          necessidade_termina_no_dia_seguinte: o.necessidade_termina_no_dia_seguinte,
-          vagas: o.vagas,
-          colaborador_alvo_id: modalidade === "individual" ? o.colaborador_alvo_id : null,
-          expected_updated_at: o.expected_updated_at ?? null,
-          ...horario,
-        });
-      }
-
+      const ok = await persistir();
+      if (!ok && !grupoOk) return;
+      const retiradas = Object.keys(removidas).length;
       toast.success(
-        ocorrenciasPendentes > 0
-          ? `Rascunho salvo com ${ocorrenciasOk.length} data(s). ${ocorrenciasPendentes} ainda incompleta(s).`
-          : `Rascunho salvo com ${ocorrenciasOk.length} data(s).`,
+        [
+          `Rascunho salvo com ${ocorrenciasOk.length} data(s).`,
+          ocorrenciasPendentes > 0 ? `${ocorrenciasPendentes} ainda incompleta(s).` : null,
+          retiradas > 0 ? `${retiradas} retirada(s) cancelada(s).` : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
       );
       onSalvo?.(grupoId);
       onOpenChange(false);
@@ -444,6 +477,56 @@ export function NovaConvocacaoWizard({
       setSalvando(false);
     }
   };
+
+  /**
+   * Publicação: grava o rascunho e chama a RPC atômica. Elegibilidade,
+   * remuneração e Option A são revalidados no servidor — a prévia é só apoio.
+   */
+  const publicarGrupo = async () => {
+    setPublicando(true);
+    try {
+      const expected = await persistir();
+      if (!expected) {
+        toast.error("Não foi possível confirmar o estado do rascunho. Tente novamente.");
+        return;
+      }
+      const res = await publicar.mutateAsync({
+        grupo_id: grupoId,
+        expected_updated_at: expected,
+        confirmacoes: foraDaAntecedencia.map((o) => ({
+          ocorrencia_id: o.id,
+          justificativa: justificativas[o.id]?.trim() || null,
+        })),
+      });
+      const diag = Array.isArray(res?.diagnostico) ? res.diagnostico : [];
+      const faltando = diag.filter((d: any) => Number(d?.faltam_pessoas ?? 0) > 0).length;
+      toast.success(
+        res?.idempotente
+          ? "Este grupo já estava publicado — nada foi duplicado."
+          : `Convocação publicada: ${res?.ofertas ?? 0} oferta(s) enviada(s).` +
+              (faltando > 0 ? ` ${faltando} necessidade(s) sem preencher todas as vagas.` : ""),
+      );
+      setConfirmarPublicacao(false);
+      onSalvo?.(grupoId);
+      onOpenChange(false);
+    } catch (e: any) {
+      const msg = String(e?.message ?? "");
+      toast.error(
+        msg.includes("PUBLICATION_NO_ELIGIBLE")
+          ? "Nenhuma pessoa elegível para uma das necessidades. Revise cargo, unidade e conflitos."
+          : msg.includes("PUBLICATION_OPTION_A")
+            ? "A mesma pessoa foi convocada duas vezes no mesmo dia. Ajuste as necessidades."
+            : msg.includes("ANTECEDENCE_JUSTIFICATION_REQUIRED")
+              ? "As regras exigem justificativa para publicar abaixo da antecedência mínima."
+              : msg.includes("CONCURRENT_MODIFICATION")
+                ? "O rascunho foi alterado por outra pessoa. Reabra e tente novamente."
+                : msg || "Não foi possível publicar a convocação.",
+      );
+    } finally {
+      setPublicando(false);
+    }
+  };
+
 
   const ocorrenciaDetalhe = ocorrencias.find((o) => o.id === detalheId) ?? null;
 
