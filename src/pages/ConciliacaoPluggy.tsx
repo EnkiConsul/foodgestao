@@ -1128,7 +1128,7 @@ export default function ConciliacaoPluggy() {
         <div className="space-y-2 lg:hidden">
 
 
-          {filtered.map((r) => {
+          {visibleRows.map((r) => {
             const isEntrada = r.amount >= 0;
             return (
               <div key={r.id} data-staging-id={r.id}>
@@ -1223,7 +1223,7 @@ export default function ConciliacaoPluggy() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => {
+              {visibleRows.map((r) => {
                 const isEntrada = r.amount >= 0;
                 const disabled = r.status !== "pending";
                 return (
