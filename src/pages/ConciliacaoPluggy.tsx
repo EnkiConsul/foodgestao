@@ -1109,6 +1109,14 @@ export default function ConciliacaoPluggy() {
                 }
                 creatingContact={creatingContact === r.id}
                 onCreateContact={() => createContactFromStatement(r)}
+                onCreateNewContact={() =>
+                  setContactForm({
+                    rowId: r.id,
+                    name: "",
+                    document: null,
+                    type: isEntrada ? "cliente" : "fornecedor",
+                  })
+                }
                 isReversal={
                   !!rowCategory[r.id] &&
                   categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada")
@@ -1323,7 +1331,21 @@ export default function ConciliacaoPluggy() {
                           <SelectTrigger className="h-8 w-[180px] min-w-[160px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
                             <SelectValue placeholder={isEntrada ? "Cliente…" : "Fornecedor…"} />
                           </SelectTrigger>
-                          <ContactSelectContent contacts={contacts} className="max-h-[420px]" />
+                          <ContactSelectContent
+                            contacts={contacts}
+                            className="max-h-[420px]"
+                            onCreateNew={
+                              disabled
+                                ? undefined
+                                : () =>
+                                    setContactForm({
+                                      rowId: r.id,
+                                      name: "",
+                                      document: null,
+                                      type: isEntrada ? "cliente" : "fornecedor",
+                                    })
+                            }
+                          />
                         </Select>
                         {rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id] && (
                           <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
@@ -1339,7 +1361,7 @@ export default function ConciliacaoPluggy() {
                             {creatingContact === r.id
                               ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                               : <UserPlus className="mr-1 h-3 w-3" />}
-                            Cadastrar {counterpartyByRow[r.id]?.name ?? "contato"}
+                            Cadastrar {counterpartyByRow[r.id]?.name ?? "fornecedor/cliente"}
                           </Button>
                         )}
                         </>
