@@ -4191,6 +4191,7 @@ export type Database = {
           vale_transporte_dia_pagamento: number | null
           vale_transporte_dias_corte: number | null
           vale_transporte_valor_dia: number | null
+          valor_diaria: number | null
           valor_hora: number | null
           valor_hora_manual: boolean
           veiculo_proprio: boolean
@@ -4289,6 +4290,7 @@ export type Database = {
           vale_transporte_dia_pagamento?: number | null
           vale_transporte_dias_corte?: number | null
           vale_transporte_valor_dia?: number | null
+          valor_diaria?: number | null
           valor_hora?: number | null
           valor_hora_manual?: boolean
           veiculo_proprio?: boolean
@@ -4387,6 +4389,7 @@ export type Database = {
           vale_transporte_dia_pagamento?: number | null
           vale_transporte_dias_corte?: number | null
           vale_transporte_valor_dia?: number | null
+          valor_diaria?: number | null
           valor_hora?: number | null
           valor_hora_manual?: boolean
           veiculo_proprio?: boolean
@@ -4915,6 +4918,7 @@ export type Database = {
           antecedencia_dias: number | null
           carga_prevista_horas: number | null
           cargo_id: string
+          colaborador_alvo_id: string | null
           company_id: string
           condicoes_comuns: Json
           confirmado_fora_prazo_em: string | null
@@ -4947,6 +4951,7 @@ export type Database = {
           antecedencia_dias?: number | null
           carga_prevista_horas?: number | null
           cargo_id: string
+          colaborador_alvo_id?: string | null
           company_id: string
           condicoes_comuns?: Json
           confirmado_fora_prazo_em?: string | null
@@ -4979,6 +4984,7 @@ export type Database = {
           antecedencia_dias?: number | null
           carga_prevista_horas?: number | null
           cargo_id?: string
+          colaborador_alvo_id?: string | null
           company_id?: string
           condicoes_comuns?: Json
           confirmado_fora_prazo_em?: string | null
@@ -5008,6 +5014,20 @@ export type Database = {
           versao?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_dp_conv_ocor_alvo_company"
+            columns: ["colaborador_alvo_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_ocor_alvo_company"
+            columns: ["colaborador_alvo_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id", "company_id"]
+          },
           {
             foreignKeyName: "fk_dp_conv_ocor_cargo_company"
             columns: ["cargo_id", "company_id"]
@@ -14306,6 +14326,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      dp_conv_ocor_valida_alvo: {
+        Args: {
+          _colaborador_alvo_id: string
+          _modalidade: string
+          _vagas: number
+        }
+        Returns: undefined
+      }
       dp_convocacao_atualizar_grupo: {
         Args: {
           p_competencia: string
@@ -14321,6 +14349,7 @@ export type Database = {
         Args: {
           p_carga_prevista_horas?: number
           p_cargo_id: string
+          p_colaborador_alvo_id?: string
           p_condicoes_comuns?: Json
           p_data: string
           p_entrada?: string
@@ -14381,6 +14410,7 @@ export type Database = {
         Args: {
           p_carga_prevista_horas?: number
           p_cargo_id: string
+          p_colaborador_alvo_id?: string
           p_condicoes_comuns?: Json
           p_data: string
           p_entrada?: string
