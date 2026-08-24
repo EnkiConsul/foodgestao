@@ -604,6 +604,18 @@ export default function DpMeuCalendario() {
         </Button>
       </div>
 
+      {convocavel && (
+        <MinhaDisponibilidadeCard
+          colaboradorId={meRef.data?.id ?? null}
+          ano={ano}
+          mes={mes}
+          onPrev={() => (mes === 1 ? (setAno(ano - 1), setMes(12)) : setMes(mes - 1))}
+          onNext={() => (mes === 12 ? (setAno(ano + 1), setMes(1)) : setMes(mes + 1))}
+        />
+      )}
+
+
+
       <div className="hidden md:block">
         <FolgaCalendarShared
           year={ano}
