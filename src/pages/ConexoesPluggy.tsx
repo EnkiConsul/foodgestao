@@ -73,9 +73,10 @@ export default function ConexoesPluggy() {
   const [cancelingPending, setCancelingPending] = useState(false);
   const { pending: pendingCredit, reload: reloadPendingCredit } = usePluggyCreditReview();
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!selectedCompanyId) return;
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
+
     const { data: conns } = await supabase.from("pluggy_connections")
       .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_error")
       .eq("company_id", selectedCompanyId).order("created_at", { ascending: false });
