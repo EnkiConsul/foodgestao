@@ -383,7 +383,7 @@ export default function ConciliacaoPluggy() {
       supabase.rpc("get_accessible_payment_methods", {
         _context: "pj", _company_id: selectedCompanyId,
       }),
-      fetchAllCompanyContacts(selectedCompanyId),
+      fetchConciliacaoContacts(selectedCompanyId, currentUserId),
       supabase.from("banks").select("id, name, tax_id").eq("is_active", true),
       supabase.from("companies").select("cnpj").eq("id", selectedCompanyId).maybeSingle(),
     ]);
