@@ -1,67 +1,42 @@
-# Convocações — registro auditável da M13 (encerramento da 3B.1)
+# M13 — validação final: limitação de ambiente e registro auditável honesto
 
-Sem nova migration, sem alteração de schema, sem alteração de código do app, sem 3B.2. O único arquivo alterado é o documento auditável `.lovable/plan/convocacoes-fase-3b-baseline-e-execucao.md`.
+## Resultado da checagem de pré-requisitos (feita agora, somente leitura)
 
-## Ponto que precisa ficar explícito antes
+Os testes concorrentes **não podem ser executados neste ambiente**, e não só por causa do COMMIT em produção:
 
-A M13 foi criada e aplicada com sucesso no Cloud, e a validação embutida na própria migration (assinatura única de `dp_convocacao_salvar_config`) passou — sem isso a migration teria falhado. O que **ainda não foi executado** é a bateria de testes concorrentes em duas sessões descrita no plano da M13: até agora só existe a evidência da aplicação da migration. Portanto não é possível registrar "resultados reais" desses cenários sem antes rodá-los.
+- O único banco alcançável a partir do sandbox é o banco produtivo do projeto. Não há branch Supabase, staging nem cópia local do schema atual.
+- O papel do sandbox é `sandbox_exec` e **não tem `EXECUTE` em nenhuma RPC de Convocações**. Verificado por privilégio efetivo: `has_function_privilege('dp_convocacao_criar_grupo(...)','EXECUTE') = false` e o mesmo para `dp_convocacao_salvar_config(...)`. A ACL das funções é `postgres`, `authenticated`, `service_role` — o papel do sandbox não está lá.
 
-Então esta etapa tem duas partes, nesta ordem:
+Consequência objetiva: **nenhum** teste funcional das RPCs é executável daqui — nem concorrente com COMMIT, nem comum com `BEGIN`/`ROLLBACK`. Isso inclui revisão, divergência de motivo, `REVISION_INCONSISTENT`, papel `owner`/`admin` e `AUDIT_ACTOR_ROLE_UNRESOLVED`, porque todos exigem chamar as funções.
 
-1. Executar a bateria de evidências (leitura + transações revertidas, nada persistido).
-2. Escrever no documento a seção com os resultados observados.
+Conforme sua instrução, **paro antes dos testes** em vez de mexer em dados reais ou inventar evidência. Nada foi escrito no banco: as consultas desta checagem foram apenas `SELECT` em catálogo e contagens.
 
-Se algum cenário divergir do esperado, eu **paro** e reporto em vez de documentar como aprovado — e aí sim voltaria a existir a necessidade de um ajuste, que não seria feito sem sua autorização.
+## O que consegui observar de fato (evidência estática, somente leitura)
 
-## Parte 1 — bateria de evidências a executar
+- M13 aplicada e registrada: `supabase/migrations/20260824040005_07644834-ade9-4fe9-a367-e48764c13e53.sql`, aplicada com sucesso no Cloud (a própria migration contém uma verificação que a faria falhar se a assinatura ficasse duplicada).
+- Assinatura única: `count(*) = 1` para `dp_convocacao_salvar_config` em `pg_proc`; a assinatura antiga foi removida e a nova inclui `p_expected_updated_at timestamptz`.
+- `CHECK dp_conv_evento_referencia_check` agora é `tipo = ANY (ARRAY['config_criada','config_atualizada'])` — fail closed confirmado no catálogo.
+- Grants finais: as 6 RPCs do app com `authenticated=X` e `service_role=X`, sem `PUBLIC` e sem `anon`; os helpers `dp_convocacao_exige_admin` e `dp_convocacao_log_evento` apenas `postgres`/`service_role`.
+- Zero registros artificiais: `dp_convocacao_grupos`, `dp_convocacao_ocorrencias`, `dp_convocacao_eventos`, `dp_convocacao_config`, `dp_convocacoes`, `dp_convocacao_descumprimentos`, `dp_indisponibilidades` — todas com 0 linhas.
+- Sem chamador de `dp_convocacao_salvar_config` no frontend (única referência é o arquivo de tipos gerado), então o parâmetro novo não quebra nada hoje.
 
-Duas sessões `psql` reais, cada cenário em transação revertida (`ROLLBACK`), com contagem de eventos antes/depois:
+## O que farei na documentação
 
-- Aplicação da M13 e presença dela na lista de migrations do Cloud e do repositório.
-- Criação concorrente de grupo: mesmo ID + mesmo payload (1 linha, 1 evento) e mesmo ID + payload diferente (1 criação + `IDEMPOTENCY_CONFLICT`).
-- Criação concorrente de ocorrência: os mesmos dois cenários.
-- Colisão de UUID cross-tenant com a linha da outra empresa travada em outra sessão: `IDEMPOTENCY_CONFLICT` imediato, sem espera de lock.
-- Ocorrência × publicação simulada: A trava o grupo e muda para publicado; B espera, revalida e recebe `NOT_DRAFT` sem criar.
-- Retry da ocorrência após publicação: criar → publicar → repetir a mesma criação → idempotente com 0 eventos novos.
-- Revisão preservando a identidade da necessidade (empresa/unidade/data/cargo/janela) e mudando só vagas/condições → sucessora criada sem violar `uq_dp_conv_ocor_necessidade_vigente`.
-- Retry da revisão: payload e motivo iguais → idempotente, 0 evento; payload material diferente → `IDEMPOTENCY_CONFLICT`; só o motivo diferente → `IDEMPOTENCY_CONFLICT`.
-- Cadeia corrompida artificialmente → `REVISION_INCONSISTENT`.
-- Configuração concorrente: mesma versão em duas sessões → a segunda recebe `CONCURRENT_MODIFICATION`; duas criações simultâneas do mesmo escopo → 1 linha e 1 evento.
-- Auditoria: `ator_papel` gravado como `owner` para owner e `admin` para admin; papel não resolvível → `AUDIT_ACTOR_ROLE_UNRESOLVED`.
-- Grants finais das 6 RPCs e dos 2 helpers internos, lidos de `pg_proc`/`information_schema`.
-- Assinatura única de `dp_convocacao_salvar_config` em `pg_proc`.
-- Contagem zero nas 7 tabelas de Convocações após todos os cenários.
-- Baseline final de `npx vite build`, testes, lint e typecheck, comparado ao baseline registrado (912 ok / 2 falhos de Pedidos, 1414 lint / 6 erros, 46 erros TS e 0 em Convocações).
+Atualizar somente `.lovable/plan/convocacoes-fase-3b-baseline-e-execucao.md`:
 
-## Parte 2 — seção nova no documento
+1. Nova seção `## 4. M13 — execução e evidências finais`, separando com clareza:
+   - **4.1 Migration e registro** — arquivo, aplicação no Cloud, verificação embutida.
+   - **4.2 Correções entregues** — os 7 pontos da M13, com o trecho de código correspondente citado.
+   - **4.3 Evidências verificadas por catálogo** — assinatura única, `CHECK` de eventos, grants finais, contagens zero, ausência de chamador no frontend. Cada item com o comando e o retorno observados.
+   - **4.4 Baseline final** — `npx vite build`, testes, lint e typecheck medidos agora e comparados ao baseline pré-3B (912 ok / 2 falhos de Pedidos, 1414 lint / 6 erros, 46 erros TS e 0 em Convocações).
+   - **4.5 Validação funcional NÃO EXECUTADA — limitação de ambiente** — lista nominal dos cenários pendentes (criação concorrente de grupo e de ocorrência, colisão de UUID cross-tenant com `lock_timeout`, ocorrência × publicação, retry após publicação, revisão com identidade preservada, retry igual/divergente, `REVISION_INCONSISTENT`, concorrência de configuração, papel `owner`/`admin` e fail closed), com o motivo técnico (`sandbox_exec` sem `EXECUTE`; apenas banco produtivo disponível) e o que seria necessário para executá-los: branch Supabase ou staging com o schema atual e uma credencial com papel `authenticated`/`service_role`. Nenhum resultado presumido será escrito como aprovado.
+2. `### 3.9 Rollback` — passa a contemplar a M13 explicitamente: restaurar as versões M11/M12 das 6 RPCs, do helper `dp_convocacao_log_evento`, do trigger `dp_conv_evento_deriva` e do `CHECK dp_conv_evento_referencia_check`, e recriar a assinatura anterior de `dp_convocacao_salvar_config` (sem `p_expected_updated_at`), na ordem inversa, sem tocar em dados.
+3. `## 2. Estado das fases` — **3B.1 🟡 pendente — validação funcional não executada por limitação de ambiente** (implementação e evidências estáticas aprovadas; nenhuma divergência encontrada). 3B.2 ⛔ não iniciada.
 
-Acrescentar ao final de `.lovable/plan/convocacoes-fase-3b-baseline-e-execucao.md`:
+## Fora de escopo
 
-### `## 4. M13 — execução e evidências finais`
+Nenhuma migration nova, nenhuma alteração de schema, de frontend ou de `dp_convocacao_sync_escala`. Nenhum dado gravado em produção. Paro após a documentação e apresento as evidências.
 
-Subseções, cada uma com o resultado observado (comando/erro exato quando houver):
+## Decisão que fica com você
 
-- 4.1 Migration M13 e registro no Cloud (arquivo, timestamp, presença no Cloud e no repositório).
-- 4.2 Correções entregues pela M13 (lista objetiva dos 7 pontos).
-- 4.3 Testes concorrentes em duas sessões — criação de grupo e de ocorrência.
-- 4.4 Colisão de UUID cross-tenant sem espera de lock.
-- 4.5 Criação de ocorrência × publicação simulada e retry após publicação.
-- 4.6 Revisão com identidade preservada, retry igual/divergente e `REVISION_INCONSISTENT`.
-- 4.7 Concorrência de configuração e controle otimista.
-- 4.8 Papel `owner`/`admin` e `AUDIT_ACTOR_ROLE_UNRESOLVED` (fail closed).
-- 4.9 Grants finais e assinatura única de `dp_convocacao_salvar_config`.
-- 4.10 Baseline final de build/test/lint/typecheck × baseline pré-3B.
-- 4.11 Zero registros artificiais (contagem por tabela).
-
-E atualizar as seções existentes:
-
-- `### 3.9 Rollback` — passa a listar a M13 explicitamente: restaurar as versões M11/M12 das 6 RPCs, do helper `dp_convocacao_log_evento`, do trigger `dp_conv_evento_deriva` e do `CHECK dp_conv_evento_referencia_check`, além de recriar a assinatura anterior de `dp_convocacao_salvar_config` (sem `p_expected_updated_at`), na ordem inversa e sem tocar em dados.
-- `## 2. Estado das fases` — 3B.1 encerrada (backend + registro auditável); 3B.2 não iniciada.
-
-## Observação técnica
-
-`dp_convocacao_salvar_config` hoje tem um parâmetro novo no fim (`p_expected_updated_at timestamptz DEFAULT NULL`) e nenhum chamador no frontend — a única referência no código é o arquivo de tipos gerado. Isso fica registrado em 4.9 como nota de compatibilidade para a 3B.2.
-
-## Parada
-
-Depois de escrever a seção e atualizar rollback/estado das fases, eu paro. Nada de 3B.2.
+Para converter a 3B.1 em ✅ é preciso rodar os cenários funcionais em ambiente isolado. Duas saídas possíveis, e nenhuma delas eu tomo sozinho: provisionar um ambiente de validação (branch/staging) para eu rodar a bateria, ou aceitar o encerramento da 3B.1 com a validação funcional formalmente registrada como pendente.
