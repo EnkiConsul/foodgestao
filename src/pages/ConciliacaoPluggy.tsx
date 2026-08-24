@@ -229,9 +229,17 @@ export default function ConciliacaoPluggy() {
   const [ownDocuments, setOwnDocuments] = useState<string[]>([]);
 
   const [creatingContact, setCreatingContact] = useState<string | null>(null);
-  // Cadastro de contato sem nome no extrato: pedimos o nome antes de salvar.
-  const [contactNamePrompt, setContactNamePrompt] = useState<
-    { rowId: string; name: string; document: string | null } | null
+  /**
+   * Cadastro de fornecedor/cliente pelo formulário oficial de Clientes / Fornecedores.
+   * `rowId` guarda a linha que originou o cadastro para vincular o contato ao salvar.
+   */
+  const [contactForm, setContactForm] = useState<
+    {
+      rowId: string | null;
+      name: string;
+      document: string | null;
+      type: "cliente" | "fornecedor" | "ambos";
+    } | null
   >(null);
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "entrada"), [categories]);
