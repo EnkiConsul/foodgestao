@@ -161,7 +161,69 @@ export async function findExistingContact(params: {
   return rows.find((r) => normalizeName(r.name) === key) ?? null;
 }
 
+export interface SimilarContact {
+  id: string;
+  name: string;
+  contact_type: string | null;
+  document: string | null;
+  /** Por que este cadastro entrou na lista de possíveis duplicados. */
+  reason: "documento" | "nome" | "parecido";
+  score: number;
+}
+
+/** Limiar de similaridade para REVISÃO humana (menor que o da sugestão automática). */
+export const SIMILAR_THRESHOLD = 0.45;
+
+/**
+ * Cadastros iguais ou parecidos ao que o extrato trouxe, para confirmação antes
+ * de criar um novo fornecedor/cliente. Ordena por documento > nome > parecido.
+ */
+export async function findSimilarContacts(params: {
+  userId: string;
+  name: string;
+  document: string | null;
+  limit?: number;
+}): Promise<SimilarContact[]> {
+  const { userId, name, document, limit = 5 } = params;
+  const doc = normalizeDoc(document);
+  const nameKey = normalizeName(name);
+  const matchKey = normalizeContactKey(name);
+  if (!doc && !nameKey && !matchKey) return [];
+
+  const { data, error } = await supabase
+    .from("contacts")
+    .select("id, name, contact_type, document")
+    .eq("user_id", userId);
+  if (error || !data) return [];
+
+  const rows = data as unknown as {
+    id: string; name: string; contact_type: string | null; document: string | null;
+  }[];
+
+  const out: SimilarContact[] = [];
+  for (const r of rows) {
+    const base = { id: r.id, name: r.name, contact_type: r.contact_type, document: r.document };
+    if (doc && normalizeDoc(r.document) === doc) {
+      out.push({ ...base, reason: "documento", score: 1 });
+      continue;
+    }
+    if (nameKey && normalizeName(r.name) === nameKey) {
+      out.push({ ...base, reason: "nome", score: 1 });
+      continue;
+    }
+    if (matchKey) {
+      const score = contactMatchScore(name, r.name);
+      if (score >= SIMILAR_THRESHOLD) out.push({ ...base, reason: "parecido", score });
+    }
+  }
+
+  const rank = { documento: 0, nome: 1, parecido: 2 } as const;
+  out.sort((a, b) => rank[a.reason] - rank[b.reason] || b.score - a.score);
+  return out.slice(0, limit);
+}
+
 /** Garante o vínculo do contato com a empresa (idempotente). */
+
 export async function ensureContactCompanyLink(contactId: string, companyId: string) {
   const { data } = await supabase
     .from("contact_companies")
