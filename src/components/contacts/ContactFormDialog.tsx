@@ -89,11 +89,39 @@ export function ContactFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editContact, open, defaultName, defaultContactType, defaultDocument, defaultVisiblePf, (defaultCompanyIds ?? []).join(",")]);
 
+  // Bloqueio de duplicidade: procura outro contato com o mesmo CPF/CNPJ (comparando só dígitos,
+  // já que o documento pode estar salvo mascarado ou sem máscara).
+  const [duplicate, setDuplicate] = useState<{ id: string; name: string } | null>(null);
+  const docDigitsLive = document.replace(/\D/g, "");
+  useEffect(() => {
+    if (docDigitsLive.length !== 11 && docDigitsLive.length !== 14) {
+      setDuplicate(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, name, document")
+        .not("document", "is", null)
+        .limit(2000);
+      if (cancelled) return;
+      const hit = (data ?? []).find(
+        (c: any) =>
+          String(c.document ?? "").replace(/\D/g, "") === docDigitsLive &&
+          c.id !== editContact?.id,
+      );
+      setDuplicate(hit ? { id: (hit as any).id, name: (hit as any).name } : null);
+    }, 350);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [docDigitsLive, editContact?.id, open]);
+
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
     );
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
