@@ -46,15 +46,20 @@ Deno.serve(async (req) => {
       .eq('company_id', conn.company_id).eq('user_id', userId).maybeSingle();
     if (!mem) throw new Error('forbidden');
 
-    // Quando a conexão possui mais de uma conta Open Finance e o chamador aponta
-    // uma conta específica, removemos apenas aquela conta — o banco (item Pluggy)
-    // continua conectado para as demais contas.
+    // Removemos apenas a conta apontada quando o banco ainda alimenta outras
+    // contas EM USO (vinculadas a uma conta financeira ou a um cartão do
+    // sistema). Contas órfãs/pendentes de autorização não seguram a conexão:
+    // se nada em uso sobrar, encerramos o item por completo.
     if (pluggy_account_id) {
-      const [{ count }, { data: pAcc }] = await Promise.all([
-        admin.from('pluggy_accounts').select('id', { head: true, count: 'exact' }).eq('connection_id', conn.id),
+      const [{ data: emUso }, { data: pAcc }] = await Promise.all([
+        admin.from('pluggy_accounts')
+          .select('id')
+          .eq('connection_id', conn.id)
+          .neq('id', pluggy_account_id)
+          .or('linked_account_id.not.is.null,linked_credit_card_id.not.is.null'),
         admin.from('pluggy_accounts').select('id, pluggy_account_id').eq('id', pluggy_account_id).maybeSingle(),
       ]);
-      if ((count ?? 0) > 1 && pAcc) {
+      if ((emUso?.length ?? 0) > 0 && pAcc) {
         await admin.from('pluggy_staging_transactions')
           .delete().eq('connection_id', conn.id)
           .eq('pluggy_account_id', pAcc.pluggy_account_id).eq('status', 'pending');
@@ -64,6 +69,7 @@ Deno.serve(async (req) => {
         });
       }
     }
+
 
 
     try { await deleteItem(conn.pluggy_item_id); } catch (e) {
