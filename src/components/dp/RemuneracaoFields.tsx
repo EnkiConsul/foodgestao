@@ -69,6 +69,9 @@ export interface RemuneracaoFormState {
   forma_pagamento: FormaPagamento;
   salario_base: string;
   valor_hora: string;
+  /** Valor da diária — fonte autoritativa para convocações de diaristas. */
+  valor_diaria: string;
+
   dependentes_irrf: string;
   adicional_percentual: string;
   /** Adicionais de risco — não cumuláveis (art. 193 §2º CLT). */
