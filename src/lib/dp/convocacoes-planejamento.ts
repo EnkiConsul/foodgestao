@@ -404,14 +404,20 @@ export interface RascunhoOcorrencia {
   data: string | null;
   necessidade_entrada: string | null;
   necessidade_saida: string | null;
+  /** Virada de dia da NECESSIDADE (janela que a operação precisa cobrir). */
   necessidade_termina_no_dia_seguinte: boolean;
   horario_modo: HorarioModo;
   entrada: string | null;
   saida: string | null;
   intervalo_minutos: number | null;
+  /** Virada de dia do HORÁRIO OFERTADO (campo próprio no schema). */
+  termina_no_dia_seguinte: boolean;
   vagas: number;
   colaborador_alvo_id: string | null;
+  /** updated_at da linha já gravada — habilita controle otimista na edição. */
+  expected_updated_at?: string | null;
 }
+
 
 const COMPETENCIA_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
