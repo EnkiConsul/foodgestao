@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, FileJson, FileText, Split } from "lucide-react";
+import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileJson, FileText, Split } from "lucide-react";
 import { DividirLancamentoDialog } from "@/components/conciliacao/DividirLancamentoDialog";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -242,6 +242,14 @@ export default function ConciliacaoPluggy() {
       type: "cliente" | "fornecedor" | "ambos";
     } | null
   >(null);
+  /**
+   * Edição do fornecedor/cliente já vinculado a uma linha: guardamos o registro
+   * completo do contato + a linha de origem para manter o vínculo após salvar.
+   */
+  const [contactEdit, setContactEdit] = useState<
+    { rowId: string; contact: any } | null
+  >(null);
+  const [loadingContactEdit, setLoadingContactEdit] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "entrada"), [categories]);
   const categoryOptionsDespesa = useMemo(() => buildCategoryOptions(categories, "saida"), [categories]);
@@ -834,6 +842,37 @@ export default function ConciliacaoPluggy() {
     if (newId && rowId) setRowContact((prev) => ({ ...prev, [rowId]: newId }));
   };
 
+  /** Abre o formulário oficial em modo edição para o contato já vinculado à linha. */
+  const openEditContact = async (rowId: string) => {
+    const contactId = rowContact[rowId];
+    if (!contactId) return;
+    setLoadingContactEdit(rowId);
+    try {
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("id", contactId)
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Não foi possível abrir o cadastro", { description: error?.message });
+        return;
+      }
+      setContactEdit({ rowId, contact: data });
+    } finally {
+      setLoadingContactEdit(null);
+    }
+  };
+
+  /** Após editar: recarrega a lista de contatos e mantém o vínculo da linha. */
+  const handleContactEdited = async () => {
+    const keep = contactEdit;
+    setContactEdit(null);
+    if (!selectedCompanyId) return;
+    const cts = await fetchAllCompanyContacts(selectedCompanyId);
+    setContacts((cts ?? []) as ContactOpt[]);
+    if (keep) setRowContact((prev) => ({ ...prev, [keep.rowId]: keep.contact.id }));
+  };
+
 
 
   if (contextType !== "pj") {
@@ -1117,6 +1156,7 @@ export default function ConciliacaoPluggy() {
                     type: isEntrada ? "cliente" : "fornecedor",
                   })
                 }
+                onEditContact={() => void openEditContact(r.id)}
                 isReversal={
                   !!rowCategory[r.id] &&
                   categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada")
@@ -1350,6 +1390,20 @@ export default function ConciliacaoPluggy() {
                         {rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id] && (
                           <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
                         )}
+                        {!disabled && rowContact[r.id] && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="mt-1 h-7 px-1 text-[10px]"
+                            disabled={loadingContactEdit === r.id}
+                            onClick={() => void openEditContact(r.id)}
+                          >
+                            {loadingContactEdit === r.id
+                              ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              : <Pencil className="mr-1 h-3 w-3" />}
+                            Editar cadastro
+                          </Button>
+                        )}
                         {!disabled && !rowContact[r.id] && (counterpartyByRow[r.id]?.name || counterpartyByRow[r.id]?.document) && (
                           <Button
                             size="sm"
@@ -1482,6 +1536,13 @@ export default function ConciliacaoPluggy() {
         defaultCompanyIds={contactFormCompanyIds}
         defaultVisiblePf={false}
         onSaved={(newId) => { void handleContactSaved(newId); }}
+      />
+
+      <ContactFormDialog
+        open={!!contactEdit}
+        onOpenChange={(o) => { if (!o) setContactEdit(null); }}
+        editContact={contactEdit?.contact ?? null}
+        onSaved={() => { void handleContactEdited(); }}
       />
 
       <DividirLancamentoDialog
