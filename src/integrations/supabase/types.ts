@@ -14367,6 +14367,14 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_convocacao_avaliar_candidato: {
+        Args: { _colaborador_id: string; _ocorrencia_id: string }
+        Returns: Json
+      }
+      dp_convocacao_cancelar_ocorrencia_rascunho: {
+        Args: { p_expected_updated_at?: string; p_ocorrencia_id: string }
+        Returns: Json
+      }
       dp_convocacao_config_resolvida: {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: {
@@ -14432,6 +14440,10 @@ export type Database = {
         Args: { _company_id: string }
         Returns: string
       }
+      dp_convocacao_jornada_na_data: {
+        Args: { _colaborador_id: string; _data: string }
+        Returns: Json
+      }
       dp_convocacao_log_evento: {
         Args: {
           _company_id: string
@@ -14441,6 +14453,22 @@ export type Database = {
           _tipo: string
         }
         Returns: undefined
+      }
+      dp_convocacao_publicar_grupo: {
+        Args: {
+          p_confirmacoes?: Json
+          p_expected_updated_at: string
+          p_grupo_id: string
+        }
+        Returns: Json
+      }
+      dp_convocacao_remuneracao_snapshot: {
+        Args: { _carga_prevista_horas: number; _colaborador_id: string }
+        Returns: Json
+      }
+      dp_convocacao_responder_oferta: {
+        Args: { p_aceito: boolean; p_convocacao_id: string; p_motivo?: string }
+        Returns: Json
       }
       dp_convocacao_revisar_ocorrencia: {
         Args: {
@@ -14483,6 +14511,10 @@ export type Database = {
           p_unidade_id?: string
         }
         Returns: Json
+      }
+      dp_convocacao_timezone: {
+        Args: { _company_id: string; _unidade_id?: string }
+        Returns: string
       }
       dp_desligar_colaborador: {
         Args: {

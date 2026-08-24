@@ -42,13 +42,45 @@ export default function DpMinhasConvocacoes() {
     responder.mutate(
       { id, aceito, motivo },
       {
-        onSuccess: () => {
-          toast.success(aceito ? "Convocação aceita." : "Convocação recusada.");
+        onSuccess: (res: any) => {
+          toast.success(
+            res?.idempotente
+              ? "Sua resposta já estava registrada."
+              : aceito
+                ? "Convocação aceita."
+                : "Convocação recusada.",
+          );
           setRecusa(null);
         },
-        onError: (e: any) => toast.error(e.message ?? "Não foi possível responder."),
+        onError: (e: any) => {
+          const msg = String(e?.message ?? "");
+          toast.error(
+            msg.includes("OFFER_FILLED")
+              ? "As vagas deste dia acabaram de ser preenchidas."
+              : msg.includes("DEADLINE_EXPIRED")
+                ? "O prazo para responder esta convocação venceu."
+                : msg.includes("OCCURRENCE_ALREADY_STARTED")
+                  ? "Este dia já começou e não aceita mais resposta."
+                  : msg.includes("ALREADY_ACCEPTED_TODAY")
+                    ? "Você já aceitou outra convocação para este mesmo dia."
+                    : msg.includes("REFUSAL_REASON_REQUIRED")
+                      ? "Informe o motivo da recusa."
+                      : msg || "Não foi possível responder.",
+          );
+        },
       },
     );
+
+  /** Valor ofertado vem do snapshot gravado na publicação — nunca recalculado aqui. */
+  const valorOfertado = (snap: any): string | null => {
+    if (!snap || typeof snap !== "object") return null;
+    const valor = Number(snap.valor_total ?? snap.valor_diaria ?? snap.valor_hora ?? 0);
+    if (!valor) return null;
+    const rotulo =
+      snap.base === "hora" || snap.valor_hora ? "valor/hora" : "diária";
+    return `${valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (${rotulo})`;
+  };
+
 
   return (
     <div className="p-4 space-y-4 pb-24">
@@ -96,6 +128,11 @@ export default function DpMinhasConvocacoes() {
                       </p>
                       {prazo ? (
                         <p className="text-xs text-muted-foreground mt-1">Responder até {prazo}</p>
+                      ) : null}
+                      {valorOfertado((c as any).remuneracao_snapshot) ? (
+                        <p className="text-xs mt-1 font-medium text-primary">
+                          {valorOfertado((c as any).remuneracao_snapshot)}
+                        </p>
                       ) : null}
                       {c.observacao ? <p className="text-sm mt-2">{c.observacao}</p> : null}
                     </div>

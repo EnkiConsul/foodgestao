@@ -30,9 +30,12 @@ export function useDpConvocacaoGrupos(status?: string[]) {
       return (data ?? []).map((g: any) => ({
         ...g,
         unidade_nome: g.dp_unidades?.nome ?? null,
-        ocorrencias: (g.dp_convocacao_ocorrencias ?? []).sort((a: ConvOcorrencia, b: ConvOcorrencia) =>
-          a.data.localeCompare(b.data) || a.necessidade_entrada.localeCompare(b.necessidade_entrada),
-        ),
+        // Necessidades retiradas do rascunho (canceladas) nunca voltam como ativas.
+        ocorrencias: ((g.dp_convocacao_ocorrencias ?? []) as ConvOcorrencia[])
+          .filter((o) => o.status !== "cancelada")
+          .sort((a: ConvOcorrencia, b: ConvOcorrencia) =>
+            a.data.localeCompare(b.data) || a.necessidade_entrada.localeCompare(b.necessidade_entrada),
+          ),
       }));
     },
   });
@@ -149,8 +152,61 @@ export function useSalvarRascunhoConvocacao() {
     onSuccess: invalidate,
   });
 
-  return { salvarGrupo, salvarOcorrencia };
+  /**
+   * Retirada de necessidade JÁ PERSISTIDA: nunca DELETE físico — a RPC muda
+   * rascunho → cancelada, preservando histórico. Idempotente no retry.
+   */
+  const cancelarOcorrencia = useMutation({
+    mutationFn: async (args: { ocorrencia_id: string; expected_updated_at?: string | null }) => {
+      const { data, error } = await supabase.rpc("dp_convocacao_cancelar_ocorrencia_rascunho", {
+        p_ocorrencia_id: args.ocorrencia_id,
+        p_expected_updated_at: args.expected_updated_at ?? undefined,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: invalidate,
+  });
+
+  return { salvarGrupo, salvarOcorrencia, cancelarOcorrencia };
 }
+
+export interface ConfirmacaoAntecedencia {
+  ocorrencia_id: string;
+  justificativa?: string | null;
+}
+
+export interface PublicarGrupoArgs {
+  grupo_id: string;
+  expected_updated_at: string;
+  confirmacoes?: ConfirmacaoAntecedencia[];
+}
+
+/**
+ * Publicação do grupo: atômica, idempotente e autorizada no backend.
+ * O frontend não envia empresa, elegibilidade, remuneração nem flags calculadas.
+ */
+export function usePublicarConvocacao() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: PublicarGrupoArgs) => {
+      const { data, error } = await supabase.rpc("dp_convocacao_publicar_grupo", {
+        p_grupo_id: args.grupo_id,
+        p_expected_updated_at: args.expected_updated_at,
+        p_confirmacoes: (args.confirmacoes ?? []) as any,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_convocacao_grupos"] });
+      qc.invalidateQueries({ queryKey: ["dp_convocacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_minhas_convocacoes"] });
+    },
+  });
+}
+
 
 /** Configuração de convocações resolvida (empresa ou unidade). */
 export function useDpConvocacaoConfig(unidadeId?: string | null) {

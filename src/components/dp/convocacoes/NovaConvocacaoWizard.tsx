@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowLeft, ArrowRight, CalendarDays, Loader2, Save } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, CalendarDays, Loader2, Save, Send } from "lucide-react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -25,6 +25,7 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import {
   useSalvarRascunhoConvocacao,
   useDpConvocacaoConfig,
+  usePublicarConvocacao,
   type GrupoComOcorrencias,
 } from "@/hooks/useDpConvocacaoGrupos";
 import { useDpConvocacaoPreview } from "@/hooks/useDpConvocacaoPreview";
@@ -101,14 +102,43 @@ export function NovaConvocacaoWizard({
   const [cargoAtivo, setCargoAtivo] = useState<string | null>(null);
   const [ocorrencias, setOcorrencias] = useState<RascunhoOcorrencia[]>([]);
   const [salvando, setSalvando] = useState(false);
+  const [publicando, setPublicando] = useState(false);
+  const [confirmarPublicacao, setConfirmarPublicacao] = useState(false);
+  const [justificativas, setJustificativas] = useState<Record<string, string>>({});
   const [trocaCompetencia, setTrocaCompetencia] = useState<{ ano: number; mes: number } | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
+  /** IDs já gravados no banco quando o rascunho foi aberto (id → updated_at). */
+  const [persistidas, setPersistidas] = useState<Record<string, string | null>>({});
+  /** Persistidas que o gestor retirou nesta edição — serão canceladas via RPC. */
+  const [removidas, setRemovidas] = useState<Record<string, string | null>>({});
 
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
   const colaboradores = useDpColaboradores();
   const config = useDpConvocacaoConfig(unidadeId);
-  const { salvarGrupo, salvarOcorrencia } = useSalvarRascunhoConvocacao();
+  const { salvarGrupo, salvarOcorrencia, cancelarOcorrencia } = useSalvarRascunhoConvocacao();
+  const publicar = usePublicarConvocacao();
+
+  /**
+   * Remoção consciente: o que só existia no cliente sai apenas do estado; o que
+   * já estava gravado entra na fila de cancelamento (nunca DELETE físico).
+   */
+  const removerOcorrencias = (alvo: (o: RascunhoOcorrencia) => boolean) => {
+    setOcorrencias((prev) => {
+      const remover = prev.filter(alvo);
+      if (remover.length) {
+        setRemovidas((r) => {
+          const next = { ...r };
+          for (const o of remover) {
+            if (o.id in persistidas) next[o.id] = persistidas[o.id] ?? null;
+          }
+          return next;
+        });
+      }
+      return prev.filter((o) => !alvo(o));
+    });
+  };
+
 
   const competencia = competenciaDe(ano, mes);
   const antecedenciaMinima = config.data?.antecedencia_minima_dias ?? ANTECEDENCIA_REFERENCIA_DIAS;
@@ -119,6 +149,14 @@ export function NovaConvocacaoWizard({
     if (!open) return;
     setPasso(0);
     setDetalheId(null);
+    setRemovidas({});
+    setJustificativas({});
+    setConfirmarPublicacao(false);
+    setPersistidas(
+      grupo
+        ? Object.fromEntries(grupo.ocorrencias.map((o) => [o.id, o.updated_at ?? null]))
+        : {},
+    );
     if (grupo) {
       const [a, m] = grupo.competencia.split("-").map(Number);
       setGrupoId(grupo.id);
@@ -262,12 +300,14 @@ export function NovaConvocacaoWizard({
   const toggleDia = (iso: string) => {
     if (!cargoAtivo) return;
     if (!dataDentroDoPeriodo(iso, competencia, periodo)) return;
-    setOcorrencias((prev) => {
-      const existe = prev.some((o) => o.data === iso && o.cargo_id === cargoAtivo);
-      if (existe) return prev.filter((o) => !(o.data === iso && o.cargo_id === cargoAtivo));
-      return [...prev, { ...ocorrenciaBase(iso, cargoAtivo), vagas: modalidade === "individual" ? 1 : 1 }];
-    });
+    const existe = ocorrencias.some((o) => o.data === iso && o.cargo_id === cargoAtivo);
+    if (existe) {
+      removerOcorrencias((o) => o.data === iso && o.cargo_id === cargoAtivo);
+      return;
+    }
+    setOcorrencias((prev) => [...prev, { ...ocorrenciaBase(iso, cargoAtivo), vagas: 1 }]);
   };
+
 
   const patch = (id: string, p: Partial<RascunhoOcorrencia>) =>
     setOcorrencias((prev) => prev.map((o) => (o.id === id ? { ...o, ...p } : o)));
@@ -288,7 +328,7 @@ export function NovaConvocacaoWizard({
     if (!trocaCompetencia) return;
     const nova = competenciaDe(trocaCompetencia.ano, trocaCompetencia.mes);
     const lim = limitesDaCompetencia(nova);
-    setOcorrencias((prev) => prev.filter((o) => !!o.data && dataDentroDoPeriodo(o.data, nova, lim)));
+    removerOcorrencias((o) => !o.data || !dataDentroDoPeriodo(o.data, nova, lim));
     setAno(trocaCompetencia.ano);
     setMes(trocaCompetencia.mes);
     setPeriodo(lim);
@@ -353,48 +393,81 @@ export function NovaConvocacaoWizard({
   }, [ocorrenciasOk, convocaveis, unidadeId, preview.indisponiveisPorData, preview.alocadosPorData, preview.jornadaDe]);
 
   // ------------------------------------------------------------- gravação
-  const salvarRascunho = async () => {
+  /**
+   * Persiste grupo + necessidades e cancela (nunca apaga) as que foram retiradas.
+   * Devolve o `updated_at` autoritativo do grupo — exigido pela publicação.
+   */
+  const persistir = async (): Promise<string | null> => {
     if (!grupoOk || !unidadeId || !modalidade) {
       toast.error("Informe unidade, competência, período e modalidade antes de salvar.");
-      return;
+      return null;
     }
     if (!ocorrenciasOk.length) {
       toast.error("Nenhuma data está completa o suficiente para ser gravada.");
-      return;
+      return null;
     }
+
+    const grupoRes: any = await salvarGrupo.mutateAsync({
+      grupo_id: grupoId,
+      unidade_id: unidadeId,
+      competencia,
+      modalidade,
+      titulo: titulo.trim() || null,
+      observacao: observacao.trim() || null,
+      expected_updated_at: grupoExpected,
+    });
+    let grupoAtual: string | null = grupoRes?.updated_at ?? null;
+    setGrupoExpected(grupoAtual);
+
+    for (const [id, expected] of Object.entries(removidas)) {
+      await cancelarOcorrencia.mutateAsync({ ocorrencia_id: id, expected_updated_at: expected });
+      setPersistidas((p) => {
+        const next = { ...p };
+        delete next[id];
+        return next;
+      });
+    }
+    setRemovidas({});
+
+    for (const o of ocorrenciasOk) {
+      const horario = payloadHorario(o);
+      const res: any = await salvarOcorrencia.mutateAsync({
+        ocorrencia_id: o.id,
+        grupo_id: grupoId,
+        cargo_id: o.cargo_id!,
+        data: o.data!,
+        necessidade_entrada: o.necessidade_entrada!,
+        necessidade_saida: o.necessidade_saida!,
+        necessidade_termina_no_dia_seguinte: o.necessidade_termina_no_dia_seguinte,
+        vagas: o.vagas,
+        colaborador_alvo_id: modalidade === "individual" ? o.colaborador_alvo_id : null,
+        expected_updated_at: o.expected_updated_at ?? null,
+        ...horario,
+      });
+      const carimbo: string | null = res?.updated_at ?? null;
+      patch(o.id, { expected_updated_at: carimbo });
+      setPersistidas((p) => ({ ...p, [o.id]: carimbo }));
+      // Gravar necessidade também toca o grupo: relê o carimbo devolvido.
+      if (res?.grupo_updated_at) grupoAtual = res.grupo_updated_at;
+    }
+
+    return grupoAtual;
+  };
+
+  const salvarRascunho = async () => {
     setSalvando(true);
     try {
-      await salvarGrupo.mutateAsync({
-        grupo_id: grupoId,
-        unidade_id: unidadeId,
-        competencia,
-        modalidade,
-        titulo: titulo.trim() || null,
-        observacao: observacao.trim() || null,
-        expected_updated_at: grupoExpected,
-      });
-
-      for (const o of ocorrenciasOk) {
-        const horario = payloadHorario(o);
-        await salvarOcorrencia.mutateAsync({
-          ocorrencia_id: o.id,
-          grupo_id: grupoId,
-          cargo_id: o.cargo_id!,
-          data: o.data!,
-          necessidade_entrada: o.necessidade_entrada!,
-          necessidade_saida: o.necessidade_saida!,
-          necessidade_termina_no_dia_seguinte: o.necessidade_termina_no_dia_seguinte,
-          vagas: o.vagas,
-          colaborador_alvo_id: modalidade === "individual" ? o.colaborador_alvo_id : null,
-          expected_updated_at: o.expected_updated_at ?? null,
-          ...horario,
-        });
-      }
-
+      const ok = await persistir();
+      if (!ok && !grupoOk) return;
+      const retiradas = Object.keys(removidas).length;
       toast.success(
-        ocorrenciasPendentes > 0
-          ? `Rascunho salvo com ${ocorrenciasOk.length} data(s). ${ocorrenciasPendentes} ainda incompleta(s).`
-          : `Rascunho salvo com ${ocorrenciasOk.length} data(s).`,
+        [
+          `Rascunho salvo com ${ocorrenciasOk.length} data(s).`,
+          ocorrenciasPendentes > 0 ? `${ocorrenciasPendentes} ainda incompleta(s).` : null,
+          retiradas > 0 ? `${retiradas} retirada(s) cancelada(s).` : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
       );
       onSalvo?.(grupoId);
       onOpenChange(false);
@@ -404,6 +477,56 @@ export function NovaConvocacaoWizard({
       setSalvando(false);
     }
   };
+
+  /**
+   * Publicação: grava o rascunho e chama a RPC atômica. Elegibilidade,
+   * remuneração e Option A são revalidados no servidor — a prévia é só apoio.
+   */
+  const publicarGrupo = async () => {
+    setPublicando(true);
+    try {
+      const expected = await persistir();
+      if (!expected) {
+        toast.error("Não foi possível confirmar o estado do rascunho. Tente novamente.");
+        return;
+      }
+      const res = await publicar.mutateAsync({
+        grupo_id: grupoId,
+        expected_updated_at: expected,
+        confirmacoes: foraDaAntecedencia.map((o) => ({
+          ocorrencia_id: o.id,
+          justificativa: justificativas[o.id]?.trim() || null,
+        })),
+      });
+      const diag = Array.isArray(res?.diagnostico) ? res.diagnostico : [];
+      const faltando = diag.filter((d: any) => Number(d?.faltam_pessoas ?? 0) > 0).length;
+      toast.success(
+        res?.idempotente
+          ? "Este grupo já estava publicado — nada foi duplicado."
+          : `Convocação publicada: ${res?.ofertas ?? 0} oferta(s) enviada(s).` +
+              (faltando > 0 ? ` ${faltando} necessidade(s) sem preencher todas as vagas.` : ""),
+      );
+      setConfirmarPublicacao(false);
+      onSalvo?.(grupoId);
+      onOpenChange(false);
+    } catch (e: any) {
+      const msg = String(e?.message ?? "");
+      toast.error(
+        msg.includes("PUBLICATION_NO_ELIGIBLE")
+          ? "Nenhuma pessoa elegível para uma das necessidades. Revise cargo, unidade e conflitos."
+          : msg.includes("PUBLICATION_OPTION_A")
+            ? "A mesma pessoa foi convocada duas vezes no mesmo dia. Ajuste as necessidades."
+            : msg.includes("ANTECEDENCE_JUSTIFICATION_REQUIRED")
+              ? "As regras exigem justificativa para publicar abaixo da antecedência mínima."
+              : msg.includes("CONCURRENT_MODIFICATION")
+                ? "O rascunho foi alterado por outra pessoa. Reabra e tente novamente."
+                : msg || "Não foi possível publicar a convocação.",
+      );
+    } finally {
+      setPublicando(false);
+    }
+  };
+
 
   const ocorrenciaDetalhe = ocorrencias.find((o) => o.id === detalheId) ?? null;
 
@@ -417,7 +540,8 @@ export function NovaConvocacaoWizard({
               {grupo ? "Editar rascunho de convocação" : "Nova convocação"}
             </DialogTitle>
             <DialogDescription>
-              Planejamento em rascunho. A publicação (envio às pessoas) entra na próxima etapa do módulo.
+              Salve como rascunho quantas vezes quiser. Ao publicar, o sistema revalida tudo e envia
+              as ofertas às pessoas elegíveis.
             </DialogDescription>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {PASSOS.map((p, i) => (
@@ -612,7 +736,7 @@ export function NovaConvocacaoWizard({
                                   return next;
                                 });
                                 if (!marcar) {
-                                  setOcorrencias((prev) => prev.filter((o) => o.cargo_id !== c.id));
+                                  removerOcorrencias((o) => o.cargo_id === c.id);
                                 }
                               }}
                             />
@@ -1038,10 +1162,21 @@ export function NovaConvocacaoWizard({
                 </Button>
               ) : (
                 <>
-                  <Button type="button" size="sm" variant="outline" disabled title="Disponível na próxima etapa do módulo">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setConfirmarPublicacao(true)}
+                    disabled={salvando || publicando || !ocorrenciasOk.length || !!foraDaCompetencia.length}
+                  >
+                    {publicando ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="mr-1 h-4 w-4" />
+                    )}
                     Publicar
                   </Button>
-                  <Button type="button" size="sm" onClick={salvarRascunho} disabled={salvando}>
+                  <Button type="button" size="sm" onClick={salvarRascunho} disabled={salvando || publicando}>
                     {salvando ? (
                       <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                     ) : (
@@ -1073,6 +1208,76 @@ export function NovaConvocacaoWizard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Publicação: confirmação consciente por necessidade fora da antecedência */}
+      <AlertDialog open={confirmarPublicacao} onOpenChange={(v) => !v && setConfirmarPublicacao(false)}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publicar a convocação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Serão enviadas ofertas para as pessoas elegíveis de {ocorrenciasOk.length}{" "}
+              necessidade(s). A elegibilidade, a remuneração e o limite de uma convocação por pessoa
+              por dia são revalidados no servidor no momento da publicação.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {foraDaAntecedencia.length > 0 && (
+            <div className="max-h-64 space-y-2 overflow-y-auto">
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  {foraDaAntecedencia.length} necessidade(s) estão abaixo da antecedência de{" "}
+                  {antecedenciaMinima} dias. Confirme conscientemente
+                  {exigeJustificativa ? " e justifique cada uma." : "."}
+                </AlertDescription>
+              </Alert>
+              {foraDaAntecedencia.map((o) => (
+                <div key={o.id} className="space-y-1 rounded-lg border border-border p-2">
+                  <div className="text-xs font-semibold">
+                    {nomeCargo(o.cargo_id)} ·{" "}
+                    {o.data
+                      ? new Date(`${o.data}T12:00:00`).toLocaleDateString("pt-BR", {
+                          weekday: "short", day: "2-digit", month: "2-digit",
+                        })
+                      : "—"}
+                  </div>
+                  <Textarea
+                    rows={2}
+                    placeholder={
+                      exigeJustificativa
+                        ? "Justificativa obrigatória (regra da unidade)"
+                        : "Justificativa (opcional)"
+                    }
+                    value={justificativas[o.id] ?? ""}
+                    onChange={(e) =>
+                      setJustificativas((j) => ({ ...j, [o.id]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={publicando}>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void publicarGrupo();
+              }}
+              disabled={
+                publicando ||
+                (exigeJustificativa &&
+                  foraDaAntecedencia.some((o) => !(justificativas[o.id] ?? "").trim()))
+              }
+            >
+              {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+              Publicar agora
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <DiaDetalheSheet
         open={!!ocorrenciaDetalhe}
