@@ -18,12 +18,14 @@ import { ImportStatementDialog } from "@/components/transactions/ImportStatement
 import { AdjustAccountBalanceDialog } from "@/components/accounts/AdjustAccountBalanceDialog";
 import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
 import { PluggyConnectDialog, hasPluggyResume, hasPluggyReturn } from "@/components/accounts/PluggyConnectDialog";
+import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
+import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
 import { useNavigate } from "react-router-dom";
 
 
 
 import { BankLogo } from "@/components/accounts/BankLogo";
-import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, SlidersHorizontal, Link2 } from "lucide-react";
+import { Plus, Search, Landmark, Pencil, Trash2, Wallet, RefreshCw, AlertTriangle, Upload, SlidersHorizontal, Link2, CreditCard as CreditCardIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -55,7 +57,9 @@ export default function ContasBancarias() {
     // Finance (redirect com ?itemId=… ou autorização concluída no app do banco).
     return hasPluggyReturn() || hasPluggyResume();
   });
+  const [creditReviewOpen, setCreditReviewOpen] = useState(false);
 
+  const { pending: pendingCredit, reload: reloadPendingCredit } = usePluggyCreditReview();
 
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -434,6 +438,25 @@ export default function ContasBancarias() {
             </Button>
           </AlertDescription>
         </Alert>
+      )}
+
+      {!loading && pendingCredit.length > 0 && (
+        <Card className="border-primary/40 bg-primary/[0.07]">
+          <CardContent className="p-4 flex flex-wrap items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <CreditCardIcon className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1 text-sm">
+              <p className="font-semibold">
+                {pendingCredit.length} cartão(ões) de crédito detectado(s)
+              </p>
+              <p className="text-muted-foreground text-xs mt-0.5">
+                Encontramos cartões nas contas conectadas. Eles só serão cadastrados após sua autorização.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => setCreditReviewOpen(true)}>Revisar e autorizar</Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Summary cards */}
@@ -835,6 +858,13 @@ export default function ContasBancarias() {
           onConnected={() => navigate("/contas-bancarias/conciliacao")}
         />
       )}
+
+      <PluggyCreditCardReviewDialog
+        open={creditReviewOpen}
+        onOpenChange={setCreditReviewOpen}
+        accounts={pendingCredit}
+        onDone={reloadPendingCredit}
+      />
     </div>
   );
 }
