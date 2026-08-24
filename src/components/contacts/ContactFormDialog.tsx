@@ -227,6 +227,8 @@ export function ContactFormDialog({
     if (!validated) return;
 
     setSaving(true);
+    // O cadastro muda o resultado da checagem: descarta as respostas em cache.
+    invalidateDuplicateCache();
     const payload = { ...validated, visible_pf: visiblePf };
 
     const duplicateMessage = "Já existe um cliente/fornecedor cadastrado com este CPF/CNPJ. Selecione o cadastro existente em vez de criar outro.";
