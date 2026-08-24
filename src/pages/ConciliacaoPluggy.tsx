@@ -844,16 +844,31 @@ export default function ConciliacaoPluggy() {
     [selectedCompanyId],
   );
 
+  /**
+   * Recarrega a lista de fornecedores/clientes da empresa. `fetchAllCompanyContacts`
+   * devolve `{ data, error }` — usar o objeto direto no estado quebrava a tela.
+   */
+  const recarregarContatos = async (companyId: string) => {
+    const { data, error } = await fetchAllCompanyContacts(companyId);
+    if (error) {
+      toast.error("Não foi possível atualizar a lista de fornecedores/clientes", {
+        description: error.message,
+      });
+      return;
+    }
+    setContacts((data ?? []) as ContactOpt[]);
+  };
+
   /** Após salvar no formulário: recarrega a lista e vincula o novo contato à linha. */
   const handleContactSaved = async (newId?: string) => {
     const rowId = contactForm?.rowId ?? null;
     setContactForm(null);
     if (!selectedCompanyId) return;
     if (newId) await ensureContactCompanyLink(newId, selectedCompanyId);
-    const cts = await fetchAllCompanyContacts(selectedCompanyId);
-    setContacts((cts ?? []) as ContactOpt[]);
+    await recarregarContatos(selectedCompanyId);
     if (newId && rowId) setRowContact((prev) => ({ ...prev, [rowId]: newId }));
   };
+
 
   /** Abre o formulário oficial em modo edição para o contato já vinculado à linha. */
   const openEditContact = async (rowId: string) => {
@@ -881,8 +896,8 @@ export default function ConciliacaoPluggy() {
     const keep = contactEdit;
     setContactEdit(null);
     if (!selectedCompanyId) return;
-    const cts = await fetchAllCompanyContacts(selectedCompanyId);
-    setContacts((cts ?? []) as ContactOpt[]);
+    await recarregarContatos(selectedCompanyId);
+
     if (keep) setRowContact((prev) => ({ ...prev, [keep.rowId]: keep.contact.id }));
   };
 
