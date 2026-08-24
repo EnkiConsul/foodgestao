@@ -770,74 +770,63 @@ export default function ConciliacaoPluggy() {
   }, [suggestedContact]);
 
   /**
-   * Cria o contato a partir dos dados do extrato e o vincula ao lançamento.
-   * Nunca usa o documento como nome: sem nome identificado, pedimos ao usuário.
+   * Cadastro do fornecedor/cliente da linha: se já existir contato com o mesmo
+   * documento ou nome, vincula direto; caso contrário abre o formulário oficial
+   * de Clientes / Fornecedores pré-preenchido com o que o extrato identificou.
    */
-  const createContactFromStatement = async (row: StagingRow, overrideName?: string) => {
+  const createContactFromStatement = async (row: StagingRow) => {
     const cp = counterpartyByRow[row.id];
-    if (!cp?.name && !cp?.document) return;
-    // Nomes vindos do extrato chegam em CAIXA ALTA: gravamos já normalizados.
-    const name = toProperName(overrideName ?? cp.name ?? "").trim();
-    if (!name) {
-      setContactNamePrompt({ rowId: row.id, name: "", document: cp.document });
-      return;
-    }
-    setCreatingContact(row.id);
-    try {
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth.user?.id;
-      if (!userId || !selectedCompanyId) { toast.error("Sessão expirada"); return; }
-      const isEntrada = row.amount >= 0;
-      const contactType = cp.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor";
+    // Nomes vindos do extrato chegam em CAIXA ALTA: normalizamos antes de sugerir.
+    const name = toProperName(cp?.name ?? "").trim();
+    const document = cp?.document ?? null;
+    const isEntrada = row.amount >= 0;
+    const contactType: "cliente" | "fornecedor" =
+      cp?.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor";
 
-      // Reaproveita contato já existente (mesmo documento ou mesmo nome) em vez de duplicar.
-      const existing = await findExistingContact({ userId, name, document: cp.document });
-      if (existing) {
-        await ensureContactCompanyLink(existing.id, selectedCompanyId);
-        setContacts((prev) =>
-          prev.some((c) => c.id === existing.id)
-            ? prev
-            : [...prev, {
-                id: existing.id,
-                name: existing.name,
-                type: existing.contact_type ?? null,
-                document: existing.document ?? null,
-              }].sort((a, b) => a.name.localeCompare(b.name)),
-        );
-        setRowContact((prev) => ({ ...prev, [row.id]: existing.id }));
-        setContactNamePrompt(null);
-        toast.success("Contato já cadastrado — vinculado ao lançamento");
-        return;
-      }
+    if (name || document) {
+      setCreatingContact(row.id);
+      try {
+        const { data: auth } = await supabase.auth.getUser();
+        const userId = auth.user?.id;
+        if (!userId || !selectedCompanyId) { toast.error("Sessão expirada"); return; }
 
-      const { data: created, error } = await supabase
-        .from("contacts")
-        .insert({
-          user_id: userId,
-          name,
-          document: cp.document,
-          contact_type: contactType as never,
-          visible_pf: false,
-        } as never)
-        .select("id")
-        .single();
-      if (error || !created) {
-        toast.error("Não foi possível cadastrar o contato", { description: error?.message });
-        return;
+        // Reaproveita contato já existente (mesmo documento ou mesmo nome) em vez de duplicar.
+        const existing = await findExistingContact({ userId, name, document });
+        if (existing) {
+          await ensureContactCompanyLink(existing.id, selectedCompanyId);
+          setContacts((prev) =>
+            prev.some((c) => c.id === existing.id)
+              ? prev
+              : [...prev, {
+                  id: existing.id,
+                  name: existing.name,
+                  type: existing.contact_type ?? null,
+                  document: existing.document ?? null,
+                }].sort((a, b) => a.name.localeCompare(b.name)),
+          );
+          setRowContact((prev) => ({ ...prev, [row.id]: existing.id }));
+          toast.success("Contato já cadastrado — vinculado ao lançamento");
+          return;
+        }
+      } finally {
+        setCreatingContact(null);
       }
-      const newId = (created as unknown as { id: string }).id;
-      await ensureContactCompanyLink(newId, selectedCompanyId);
-      setContacts((prev) => [
-        ...prev,
-        { id: newId, name, type: contactType, document: cp.document },
-      ].sort((a, b) => a.name.localeCompare(b.name)));
-      setRowContact((prev) => ({ ...prev, [row.id]: newId }));
-      setContactNamePrompt(null);
-      toast.success("Contato cadastrado e vinculado");
-    } finally {
-      setCreatingContact(null);
     }
+
+    setContactForm({ rowId: row.id, name, document, type: contactType });
   };
+
+  /** Após salvar no formulário: recarrega a lista e vincula o novo contato à linha. */
+  const handleContactSaved = async (newId?: string) => {
+    const rowId = contactForm?.rowId ?? null;
+    setContactForm(null);
+    if (!selectedCompanyId) return;
+    if (newId) await ensureContactCompanyLink(newId, selectedCompanyId);
+    const cts = await fetchAllCompanyContacts(selectedCompanyId);
+    setContacts((cts ?? []) as ContactOpt[]);
+    if (newId && rowId) setRowContact((prev) => ({ ...prev, [rowId]: newId }));
+  };
+
 
 
   if (contextType !== "pj") {
