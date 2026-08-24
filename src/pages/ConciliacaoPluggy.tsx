@@ -26,7 +26,7 @@ import { PluggyAuditDialog } from "@/components/conciliacao/PluggyAuditDialog";
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { suggestPaymentMethodId, normalizeText } from "@/lib/conciliacao/paymentMethodInference";
-import { fetchConciliacaoContacts, findExistingContact, ensureContactCompanyLink, findSimilarContacts, type SimilarContact } from "@/lib/conciliacao/contacts";
+import { fetchConciliacaoContacts, ensureContactCompanyLink, findSimilarContacts, type SimilarContact } from "@/lib/conciliacao/contacts";
 import { ContactDuplicateDialog } from "@/components/conciliacao/ContactDuplicateDialog";
 
 import { bestContactMatch, normalizeContactKey } from "@/lib/conciliacao/contactMatch";
