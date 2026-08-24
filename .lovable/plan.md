@@ -22,9 +22,12 @@ Em todas as RPCs tocadas pela M13, nenhuma entidade de outra empresa pode ser tr
 Inverter a ordem: `INSERT ... ON CONFLICT (id) DO NOTHING RETURNING *`.
 
 - Retornou linha → criou: 1 evento, `idempotente: false`.
-- Não retornou → perdeu a corrida: reler a linha `FOR UPDATE`, comparar contexto + conteúdo (mesmo conjunto de campos já usado hoje). Igual → retorno idempotente com 0 eventos. Diferente → `IDEMPOTENCY_CONFLICT`.
+- Não retornou → perdeu a corrida: reler a linha **com escopo de tenant** e comparar contexto + conteúdo (mesmo conjunto de campos já usado hoje). Igual → retorno idempotente com 0 eventos. Diferente → `IDEMPOTENCY_CONFLICT`.
+
+A reconsulta nunca é `FOR UPDATE` só por `id`: em `criar_grupo` filtra por `id` + `company_id` autorizado (+ `unidade_id`); em `criar_ocorrencia`, por `id` + `company_id` autorizado + `grupo_id`. Se nada casar nesse escopo, a linha pertence a outro tenant (ou a outro contexto) → `IDEMPOTENCY_CONFLICT` imediato, sem travar a linha da outra empresa e sem revelar contexto cross-company.
 
 `ON CONFLICT` restrito a `(id)`, então conflitos de outras constraints de negócio continuam propagando normalmente. Sem tabela genérica de idempotência.
+
 
 **2. Serialização de criação de ocorrência × publicação**
 
