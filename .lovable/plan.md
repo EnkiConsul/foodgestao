@@ -14,12 +14,14 @@ Diagnóstico já realizado (nada será recriado à toa):
 ## Migrations (somente novas)
 
 ### M22 — Indisponibilidade self-service
-- `dp_indisponibilidade_marcar(p_data date, p_motivo text default null)`: exige `auth.uid()`, resolve colaborador e company no backend, valida regime via `dp_regime_convocavel`, resolve timezone autoritativo da unidade/empresa, bloqueia data passada (`PAST_DATE_NOT_EDITABLE`), `pg_advisory_xact_lock` por colaborador/data, insere ou reativa (idempotente, sem linha duplicada), retorna jsonb com estado final.
-- Oferta `aceita` na data → erro `ACCEPTED_CALL_REQUIRES_REPLACEMENT` (nada é cancelado; substituição é Bloco 5).
-- Oferta `pendente` na data → na mesma transação: grava indisponibilidade, muda oferta para `cancelada` com `encerrada_em` e `encerramento_motivo='INDISPONIBILIDADE_DECLARADA'` e registra evento `oferta_encerrada_indisponibilidade`. Nunca vira `recusada`.
+- `dp_indisponibilidade_marcar(p_data date, p_motivo text default null)`: exige `auth.uid()`, resolve colaborador e company no backend, valida regime via `dp_regime_convocavel`, resolve timezone autoritativo (`dp_convocacao_timezone`), bloqueia data passada (`PAST_DATE_NOT_EDITABLE`), `pg_advisory_xact_lock` por colaborador/data, retorna jsonb com estado final.
+- Histórico: sob o lock, linha ativa existente → retorno idempotente; se só houver linhas canceladas → INSERT de NOVA linha ativa (nunca reativar `cancelada_em`, nunca DELETE). O índice parcial existente garante no máximo uma ativa por colaborador+data.
+- Oferta `aceita` (ou já realizada) na data → erro `ACCEPTED_CALL_REQUIRES_REPLACEMENT`, indisponibilidade NÃO é criada, aceite e escala intactos (substituição é Bloco 5).
+- Ofertas `pendente` na data: TODAS as ofertas do novo fluxo (`status='pendente' AND ocorrencia_id IS NOT NULL`) daquele company+colaborador+data passam a `cancelada` com `encerrada_em=now()` e `encerramento_motivo='INDISPONIBILIDADE_DECLARADA'`, cada uma com evento determinístico `oferta_encerrada_indisponibilidade`. Nunca `recusada`. Nenhum estado já finalizado é alterado.
 - `dp_indisponibilidade_remover(p_data date)`: mesmo esqueleto, cancelamento lógico (`cancelada_em`/`cancelada_por`), idempotente, sem DELETE físico, sem tocar em nenhuma oferta histórica.
-- Eventos `indisponibilidade_criada` / `indisponibilidade_removida` com payload mínimo.
+- Auditoria `indisponibilidade_criada` / `indisponibilidade_removida` com payload mínimo.
 - Grants: apenas `authenticated` e `service_role`; revogado de `PUBLIC`/`anon`. Escrita direta na tabela permanece fechada.
+
 
 ### M23 — Helper temporal + worker + cron
 - `dp_convocacao_estado_encerramento(prazo, inicio, agora)` (IMMUTABLE/interno) com a regra exata da M21: prazo ≤ início → prazo precede; início < prazo → início precede; empate → `sem_resposta`; só um existente → usa o existente.
