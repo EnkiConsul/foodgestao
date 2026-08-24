@@ -14253,6 +14253,16 @@ export type Database = {
         Args: { _ano: number; _regra_id: string }
         Returns: string
       }
+      dp_capacidade_habitual_dia_cargo: {
+        Args: {
+          p_cargo: string
+          p_company: string
+          p_data: string
+          p_ignorar_colaborador?: string
+          p_unidade: string
+        }
+        Returns: Json
+      }
       dp_colaborador_ativo_of: { Args: { _user_id: string }; Returns: string }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
       dp_colaboradores_lixeira: {
@@ -14621,6 +14631,17 @@ export type Database = {
       dp_ferias_recalc_periodo: {
         Args: { _periodo_id: string }
         Returns: undefined
+      }
+      dp_folga_criar_admin: {
+        Args: {
+          p_colaborador_id: string
+          p_confirmar_deficit?: boolean
+          p_data: string
+          p_extra?: boolean
+          p_observacao?: string
+          p_tipo?: string
+        }
+        Returns: Json
       }
       dp_folha_desfazer_despesa: {
         Args: { p_periodo_id: string }
