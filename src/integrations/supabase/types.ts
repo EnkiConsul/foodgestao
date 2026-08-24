@@ -14442,6 +14442,14 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_convocacao_estado_encerramento: {
+        Args: {
+          p_agora: string
+          p_inicio_previsto: string
+          p_prazo_resposta: string
+        }
+        Returns: string
+      }
       dp_convocacao_exige_admin: {
         Args: { _company_id: string }
         Returns: string
@@ -14469,6 +14477,10 @@ export type Database = {
           _tipo: string
         }
         Returns: undefined
+      }
+      dp_convocacao_materializar_encerramentos: {
+        Args: { p_limit?: number }
+        Returns: Json
       }
       dp_convocacao_minhas_ofertas: {
         Args: never
