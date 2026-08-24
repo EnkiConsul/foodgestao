@@ -57,6 +57,24 @@ Deno.serve(async (req) => {
     if (cntErr) throw cntErr;
     const totalCompanies = count ?? 0;
 
+    // Assinatura isenta: nunca cobra perfil extra nem aplica limite do plano.
+    const exemptActive =
+      Boolean(sub.is_exempt) &&
+      (!sub.exempt_until || new Date(sub.exempt_until as string) > new Date());
+    if (exemptActive) {
+      if (sub.extra_companies !== 0) {
+        await admin.from("subscriptions").update({ extra_companies: 0 }).eq("id", sub.id);
+      }
+      return json({
+        ok: true,
+        extra: 0,
+        included,
+        total: totalCompanies,
+        billed: false,
+        exempt: true,
+      });
+    }
+
     // Validate against absolute max when extras not allowed
     if (pricePerExtraCents <= 0) {
       if (maxCompanies >= 0 && totalCompanies > maxCompanies) {
