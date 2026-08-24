@@ -571,6 +571,26 @@ export default function ConciliacaoPluggy() {
       }
     }
 
+    // Contato cadastrado só no perfil Pessoal: vinculamos à empresa antes de
+    // confirmar, senão o lançamento nasceria sem fornecedor/cliente válido.
+    if (selectedCompanyId) {
+      const pendingLinks = new Set(
+        ids
+          .map((id) => rowContact[id])
+          .filter((cid): cid is string => !!cid)
+          .filter((cid) => contacts.find((c) => c.id === cid)?.linkedToCompany === false),
+      );
+      for (const cid of pendingLinks) {
+        await ensureContactCompanyLink(cid, selectedCompanyId);
+      }
+      if (pendingLinks.size > 0) {
+        setContacts((prev) =>
+          prev.map((c) => (pendingLinks.has(c.id) ? { ...c, linkedToCompany: true } : c)),
+        );
+      }
+    }
+
+
     let ok = 0;
     let mirrors = 0;
     for (const [acctId, staging_ids] of Object.entries(byAccount)) {
