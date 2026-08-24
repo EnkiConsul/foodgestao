@@ -1201,7 +1201,7 @@ export default function ConciliacaoPluggy() {
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
-                <th className="w-10 p-2">
+                <th className="sticky left-0 z-10 w-10 border-r bg-muted p-2">
                   <Checkbox
                     checked={allPendingSelected ? true : somePendingSelected ? "indeterminate" : false}
                     disabled={pendingFiltered.length === 0}
@@ -1227,8 +1227,8 @@ export default function ConciliacaoPluggy() {
                 const isEntrada = r.amount >= 0;
                 const disabled = r.status !== "pending";
                 return (
-                  <tr key={r.id} data-staging-id={r.id} className="border-t hover:bg-muted/30">
-                    <td className="p-2">
+                  <tr key={r.id} data-staging-id={r.id} className="group border-t hover:bg-muted/30">
+                    <td className="sticky left-0 z-10 border-r bg-card p-2 transition-colors group-hover:bg-muted">
                       <Checkbox
                         checked={selected.has(r.id)}
                         disabled={disabled}
