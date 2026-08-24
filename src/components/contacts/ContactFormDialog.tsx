@@ -26,9 +26,25 @@ interface Props {
   editContact?: Tables<"contacts"> | null;
   defaultName?: string;
   defaultContactType?: "cliente" | "fornecedor" | "ambos";
+  /** Documento pré-preenchido (usado só na criação, ex.: vindo do extrato bancário). */
+  defaultDocument?: string | null;
+  /** Empresas já marcadas na criação (ex.: empresa em contexto na conciliação). */
+  defaultCompanyIds?: string[];
+  /** Quando há empresa pré-selecionada, o contato nasce oculto no PF. */
+  defaultVisiblePf?: boolean;
 }
 
-export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, defaultName, defaultContactType }: Props) {
+export function ContactFormDialog({
+  open,
+  onOpenChange,
+  onSaved,
+  editContact,
+  defaultName,
+  defaultContactType,
+  defaultDocument,
+  defaultCompanyIds,
+  defaultVisiblePf,
+}: Props) {
   const { user } = useAuth();
   const { companies } = useCompanyContext();
   const [name, setName] = useState("");
