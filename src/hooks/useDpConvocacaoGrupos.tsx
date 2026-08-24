@@ -173,6 +173,8 @@ export function useSalvarRascunhoConvocacao() {
 
 export interface ConfirmacaoAntecedencia {
   ocorrencia_id: string;
+  /** Confirmação consciente do gestor: o backend exige `true` explícito. */
+  confirmado?: boolean;
   justificativa?: string | null;
 }
 
@@ -191,14 +193,20 @@ export function usePublicarConvocacao() {
 
   return useMutation({
     mutationFn: async (args: PublicarGrupoArgs) => {
+      const confirmacoes = (args.confirmacoes ?? []).map((c) => ({
+        ocorrencia_id: c.ocorrencia_id,
+        confirmado: c.confirmado ?? true,
+        justificativa: c.justificativa ?? null,
+      }));
       const { data, error } = await supabase.rpc("dp_convocacao_publicar_grupo", {
         p_grupo_id: args.grupo_id,
         p_expected_updated_at: args.expected_updated_at,
-        p_confirmacoes: (args.confirmacoes ?? []) as any,
+        p_confirmacoes: confirmacoes as any,
       });
       if (error) throw error;
       return data as any;
     },
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_convocacao_grupos"] });
       qc.invalidateQueries({ queryKey: ["dp_convocacoes"] });
