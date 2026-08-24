@@ -24,7 +24,7 @@ import { PluggyAuditDialog } from "@/components/conciliacao/PluggyAuditDialog";
 
 
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
-import { suggestPaymentMethodId } from "@/lib/conciliacao/paymentMethodInference";
+import { suggestPaymentMethodId, normalizeText } from "@/lib/conciliacao/paymentMethodInference";
 import { fetchAllCompanyContacts, findExistingContact, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
 import {
   counterpartyLabel,
