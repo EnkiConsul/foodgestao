@@ -216,7 +216,12 @@ export function ContactFormDialog({
       toast.success("Contato atualizado!"); onOpenChange(false); onSaved();
     } else {
       const { data: newContact, error } = await supabase.from("contacts").insert({ ...payload, user_id: user.id } as any).select("id").single();
-      if (error || !newContact) { toast.error("Erro ao criar", { description: error?.message }); setSaving(false); return; }
+      if (error || !newContact) {
+        toast.error(isDuplicateError(error) ? "CPF/CNPJ já cadastrado" : "Erro ao criar", {
+          description: isDuplicateError(error) ? duplicateMessage : error?.message,
+        });
+        setSaving(false); return;
+      }
 
       if (selectedCompanyIds.length > 0) {
         await supabase.from("contact_companies" as any).insert(
