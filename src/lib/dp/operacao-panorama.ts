@@ -328,8 +328,11 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     });
   }
 
-  const trabalhando = contagens.fixo + contagens.convocado_aceito + contagens.convocado_pendente;
-  return { data, dow, contagens, trabalhando, pessoas };
+  // Confirmados = fixos escalados + convocações aceitas.
+  // Convocação pendente NUNCA entra em "trabalhando": ela é apenas "Aguardando".
+  const trabalhando = contagens.fixo + contagens.convocado_aceito;
+  const aguardando = contagens.convocado_pendente;
+  return { data, dow, contagens, trabalhando, aguardando, pessoas };
 }
 
 // ------------------------------------------------------------------
