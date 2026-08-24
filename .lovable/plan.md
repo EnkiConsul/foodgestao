@@ -73,11 +73,16 @@ Duas sessões `psql` reais para os cenários concorrentes:
 - Grupo, mesmo ID + payload diferente → 1 criação + `IDEMPOTENCY_CONFLICT`.
 - Ocorrência, os mesmos dois cenários.
 - Sessão A trava o grupo e publica; Sessão B tenta criar ocorrência → aguarda; após o COMMIT de A, B revalida e devolve `NOT_DRAFT` sem criar ocorrência.
-- Revisão: mesma sucessora + mesmo payload → idempotente, 0 evento; mesma sucessora + payload diferente → `IDEMPOTENCY_CONFLICT`; cadeia corrompida artificialmente → `REVISION_INCONSISTENT`.
+- Revisão preservando exatamente a identidade da necessidade (empresa/unidade/data/cargo/janela) e alterando só vagas/condições → sucessora criada sem violar `uq_dp_conv_ocor_necessidade_vigente`.
+- Revisão: mesma sucessora + mesmo payload → idempotente, 0 evento; mesma sucessora + payload material diferente → `IDEMPOTENCY_CONFLICT`; mesma sucessora + payload igual e `p_motivo` diferente → `IDEMPOTENCY_CONFLICT`; cadeia corrompida artificialmente → `REVISION_INCONSISTENT`.
+- Tentativa de lock cross-company: usuário de outra empresa em `atualizar_grupo`/`atualizar_ocorrencia`/`revisar_ocorrencia`/`criar_ocorrencia` → `FORBIDDEN` sem ter travado a linha (verificado com a linha travada por outra sessão: a chamada não bloqueia, falha na hora).
 - Config: dois gestores com a mesma versão → o primeiro altera, o segundo recebe `CONCURRENT_MODIFICATION`; duas criações simultâneas do mesmo escopo → exatamente 1 linha e 1 evento.
 - Evento sem referência com tipo fora do par permitido → rejeitado.
-- `ator_papel` gravado como `owner` para owner e `admin` para admin.
+- `ator_papel` gravado como `owner` para owner e `admin` para admin; papel não resolvível → `AUDIT_ACTOR_ROLE_UNRESOLVED`.
+
+Qualquer divergência: PARO e diagnostico antes de seguir.
 
 ## Validação final e evidências
 
-Migrations Cloud × GitHub, grants, RLS, tipos Supabase regenerados, `npx vite build`, testes, lint e typecheck comparados ao baseline registrado (912 ok / 2 falhos de Pedidos, 1414 lint / 6 erros, 46 erros TS e 0 em Convocações), e contagem zero nas 7 tabelas de Convocações. Tudo consolidado no documento de baseline/execução da 3B, com PARADA ao final — sem iniciar 3B.2.
+Migrations Cloud × GitHub, grants, RLS, `pg_proc` com assinatura única de `salvar_config`, tipos Supabase regenerados, `npx vite build`, testes, lint e typecheck comparados ao baseline registrado (912 ok / 2 falhos de Pedidos, 1414 lint / 6 erros, 46 erros TS e 0 em Convocações), e contagem zero nas 7 tabelas de Convocações. Tudo consolidado no documento de baseline/execução da 3B, com PARADA ao final — sem iniciar 3B.2.
+
