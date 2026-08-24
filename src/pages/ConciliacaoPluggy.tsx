@@ -225,6 +225,9 @@ export default function ConciliacaoPluggy() {
   const [contacts, setContacts] = useState<ContactOpt[]>([]);
   const [banks, setBanks] = useState<BankOpt[]>([]);
   const [companyCnpj, setCompanyCnpj] = useState<string | null>(null);
+  /** CPF/CNPJ do titular das contas conectadas — nunca são contraparte. */
+  const [ownDocuments, setOwnDocuments] = useState<string[]>([]);
+
   const [creatingContact, setCreatingContact] = useState<string | null>(null);
   // Cadastro de contato sem nome no extrato: pedimos o nome antes de salvar.
   const [contactNamePrompt, setContactNamePrompt] = useState<
