@@ -197,6 +197,36 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     setPhase("launch");
   }, [dontShowAgain]);
 
+  /** Conclui a conexão a partir do item devolvido pelo banco na URL. */
+  const finishReturn = useCallback(async (itemId: string) => {
+    if (finishedRef.current) return;
+    setChecking(true);
+    setError(null);
+    try {
+      const { data: sync, error: syncError } = await supabase.functions.invoke("pluggy-sync-item", {
+        body: { item_id: itemId, company_id: companyId, first_connect: true },
+      });
+      if (syncError) throw syncError;
+      finishedRef.current = true;
+      clearResume();
+      toast.success(`Conexão concluída: ${sync?.transactions ?? 0} lançamentos importados`);
+      onConnected?.({ itemId, connectionId: sync?.connection_id });
+      onOpenChange(false);
+    } catch (err: unknown) {
+      const info = await parseEdgeFunctionError(err, "Não foi possível confirmar a autorização com o banco");
+      setError(info.message);
+    } finally {
+      setChecking(false);
+    }
+  }, [companyId, onConnected, onOpenChange]);
+
+  useEffect(() => {
+    if (!open || phase !== "returning") return;
+    const itemId = returnedItemIdRef.current;
+    if (!itemId) { setPhase("launch"); return; }
+    void finishReturn(itemId);
+  }, [open, phase, finishReturn]);
+
 
   const finishFromRequest = useCallback(async (itemId: string) => {
     if (finishedRef.current) return;
