@@ -25,6 +25,7 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import {
   useSalvarRascunhoConvocacao,
   useDpConvocacaoConfig,
+  usePublicarConvocacao,
   type GrupoComOcorrencias,
 } from "@/hooks/useDpConvocacaoGrupos";
 import { useDpConvocacaoPreview } from "@/hooks/useDpConvocacaoPreview";
