@@ -154,7 +154,7 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
         if (error || !data) throw new Error(error?.message ?? "Falha ao criar o cartão");
         cardId = (data as { id: string }).id;
       }
-      await markReviewed("approved", cardId);
+      await markReviewed("linked", cardId);
       toast.success(target === NEW_CARD ? "Cartão criado e vinculado ao Open Finance" : "Conta vinculada ao cartão existente");
       advance();
     } catch (e) {
