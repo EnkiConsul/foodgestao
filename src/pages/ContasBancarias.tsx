@@ -18,7 +18,9 @@ import { ImportStatementDialog } from "@/components/transactions/ImportStatement
 import { AdjustAccountBalanceDialog } from "@/components/accounts/AdjustAccountBalanceDialog";
 import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
 import { PluggyConnectDialog, hasPluggyResume, hasPluggyReturn } from "@/components/accounts/PluggyConnectDialog";
+import { PluggyPendingConnectionAlert } from "@/components/accounts/PluggyPendingConnectionAlert";
 import { useNavigate } from "react-router-dom";
+
 
 
 
