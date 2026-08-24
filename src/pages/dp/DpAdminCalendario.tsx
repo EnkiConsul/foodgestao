@@ -1087,6 +1087,42 @@ export default function DpAdminCalendario() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={!!coberturaAlerta} onOpenChange={(o) => !o && setCoberturaAlerta(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Equipe abaixo do mínimo</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>{coberturaAlerta?.mensagem}</p>
+                {coberturaAlerta?.minimo != null && (
+                  <p className="text-muted-foreground">
+                    Mínimo definido para o dia: <strong>{coberturaAlerta.minimo}</strong> · Equipe prevista após esta
+                    folga: <strong>{coberturaAlerta.capacidade ?? 0}</strong>
+                  </p>
+                )}
+                <p className="text-muted-foreground">
+                  Se você continuar, a exceção fica registrada no histórico da empresa com o seu nome.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={confirmarCobertura.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmarCobertura.mutate();
+              }}
+              disabled={confirmarCobertura.isPending}
+            >
+              {confirmarCobertura.isPending ? "Salvando..." : "Continuar mesmo assim"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
+
       <LiberarEscopoDialog
         open={liberarEscopoOpen}
         onOpenChange={setLiberarEscopoOpen}
