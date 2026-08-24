@@ -754,7 +754,7 @@ export default function ConciliacaoPluggy() {
     const m: Record<string, string> = {};
     for (const r of rows) {
       const cp = counterpartyByRow[r.id];
-      const doc = onlyDigits(cp?.document);
+      const doc = normalizeDocumento(cp?.document);
       const byDoc = doc && !ownDocumentSet.has(doc) ? contactIdByDocument[doc] : undefined;
       if (byDoc) { m[r.id] = byDoc; continue; }
       // Sem documento de terceiro: só sugerimos com nome idêntico ao cadastrado.
