@@ -729,11 +729,11 @@ export default function ConciliacaoPluggy() {
     return m;
   }, [rows, ownDocumentSet, bankByConnection, connections]);
 
-  /** Contato cadastrado por documento (só dígitos). */
+  /** Contato cadastrado por documento (chave normalizada de CPF/CNPJ). */
   const contactIdByDocument = useMemo(() => {
     const m: Record<string, string> = {};
     for (const c of contacts) {
-      const d = onlyDigits(c.document);
+      const d = normalizeDocumento(c.document);
       if (d.length >= 11 && !m[d]) m[d] = c.id;
     }
     return m;
