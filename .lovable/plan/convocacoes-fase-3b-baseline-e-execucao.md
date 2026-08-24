@@ -73,6 +73,7 @@ Ajuste da M13: o `CHECK` e o trigger passaram a aceitar **apenas** `config_criad
 | `20260824030659_cd5ecff5-c232-4ec0-89af-e74837a53acc.sql` | M10 — RLS separada por comando + trigger de colunas do caminho legado |
 | `20260824031233_5fab6860-b131-408f-b0e8-79d952785153.sql` | M11 — RPCs de grupo, ocorrência, revisão e configuração + grants |
 | `20260824031514_c3e2c2e1-cf62-4b1c-a2be-337e3b0f5ab5.sql` | M12 — eventos de configuração sem referência |
+| `20260824040005_07644834-ade9-4fe9-a367-e48764c13e53.sql` | M13 — correções de concorrência/idempotência, controle otimista, auditoria do papel e fail closed de eventos |
 
 ### 3.7 Resultados dos testes (transações revertidas, zero resíduo)
 
