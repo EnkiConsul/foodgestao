@@ -152,6 +152,10 @@ export function nameFromDescription(description: string | null | undefined): str
   if (/^(contraparte|terceiros?|n[aã]o\s+identificad)/i.test(s)) return null;
   // Sobrou apenas o complemento da operação ("enviada", "recebido").
   if (/^(enviad|recebid|efetuad|realizad|pag[oa]|pgto|debitad|creditad)\S*$/i.test(s)) return null;
+  // Sobrou só o complemento da própria operação ("débito em conta" -> "em conta").
+  if (/^(em|de|da|do|na|no|ao?)\b/i.test(s)) return null;
+  if (/^(conta|corrente|automatic[oa]|autorizad[oa])\b/i.test(s)) return null;
+
 
 
   return s.slice(0, 120);
