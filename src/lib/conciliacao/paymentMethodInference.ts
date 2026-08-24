@@ -49,8 +49,15 @@ export function inferPaymentMethodKey(row: InferencePaymentRow): PaymentMethodKe
 
   // Cartão tem prioridade sobre o meio informado pelo banco: pagamentos de
   // fatura chegam como OTHER/PIX mas o texto identifica o cartão.
-  if (/CARTAO\s*(DE\s*)?CREDITO|FATURA\s*(DO\s*)?CARTAO/.test(text)) return "credito";
-  if (/CARTAO\s*(DE\s*)?DEBITO|COMPRA\s*(COM\s*)?CARTAO|DEBITO\s*AUTOMATICO/.test(text)) return "debito";
+  if (/CARTAO\s*(DE\s*)?CREDITO|FATURA\s*(DO\s*)?CARTAO|COMPRA\s*(NO|COM)?\s*CREDITO|COMPRA\s*PARCELADA/.test(text))
+    return "credito";
+  if (
+    /CARTAO\s*(DE\s*)?DEBITO|COMPRA\s*(COM|NO|A|EM)?\s*CARTAO|COMPRA\s*(NO|COM|EM)?\s*DEBITO|DEBITO\s*AUTOMATICO|DEBITO\s*EM\s*CONTA/.test(
+      text,
+    )
+  )
+    return "debito";
+
   if (/IFOOD/.test(text)) return "ifood";
   if (/CHEQUE/.test(text)) return "cheque";
 
