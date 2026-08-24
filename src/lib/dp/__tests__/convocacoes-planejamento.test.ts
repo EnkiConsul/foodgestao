@@ -131,6 +131,8 @@ describe("persistência do rascunho", () => {
     necessidade_entrada: "18:00",
     necessidade_saida: "23:00",
     necessidade_termina_no_dia_seguinte: false,
+    termina_no_dia_seguinte: false,
+
     horario_modo: "horario_unico",
     entrada: "18:00",
     saida: "23:00",
