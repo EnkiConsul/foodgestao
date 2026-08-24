@@ -1208,6 +1208,76 @@ export function NovaConvocacaoWizard({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Publicação: confirmação consciente por necessidade fora da antecedência */}
+      <AlertDialog open={confirmarPublicacao} onOpenChange={(v) => !v && setConfirmarPublicacao(false)}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publicar a convocação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Serão enviadas ofertas para as pessoas elegíveis de {ocorrenciasOk.length}{" "}
+              necessidade(s). A elegibilidade, a remuneração e o limite de uma convocação por pessoa
+              por dia são revalidados no servidor no momento da publicação.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {foraDaAntecedencia.length > 0 && (
+            <div className="max-h-64 space-y-2 overflow-y-auto">
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  {foraDaAntecedencia.length} necessidade(s) estão abaixo da antecedência de{" "}
+                  {antecedenciaMinima} dias. Confirme conscientemente
+                  {exigeJustificativa ? " e justifique cada uma." : "."}
+                </AlertDescription>
+              </Alert>
+              {foraDaAntecedencia.map((o) => (
+                <div key={o.id} className="space-y-1 rounded-lg border border-border p-2">
+                  <div className="text-xs font-semibold">
+                    {nomeCargo(o.cargo_id)} ·{" "}
+                    {o.data
+                      ? new Date(`${o.data}T12:00:00`).toLocaleDateString("pt-BR", {
+                          weekday: "short", day: "2-digit", month: "2-digit",
+                        })
+                      : "—"}
+                  </div>
+                  <Textarea
+                    rows={2}
+                    placeholder={
+                      exigeJustificativa
+                        ? "Justificativa obrigatória (regra da unidade)"
+                        : "Justificativa (opcional)"
+                    }
+                    value={justificativas[o.id] ?? ""}
+                    onChange={(e) =>
+                      setJustificativas((j) => ({ ...j, [o.id]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={publicando}>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void publicarGrupo();
+              }}
+              disabled={
+                publicando ||
+                (exigeJustificativa &&
+                  foraDaAntecedencia.some((o) => !(justificativas[o.id] ?? "").trim()))
+              }
+            >
+              {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+              Publicar agora
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       <DiaDetalheSheet
         open={!!ocorrenciaDetalhe}
         onOpenChange={(v) => !v && setDetalheId(null)}
