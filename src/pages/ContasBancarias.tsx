@@ -858,6 +858,14 @@ export default function ContasBancarias() {
           onConnected={() => navigate("/contas-bancarias/conciliacao")}
         />
       )}
+
+      <PluggyCreditCardReviewDialog
+        open={creditReviewOpen}
+        onOpenChange={setCreditReviewOpen}
+        pending={pendingCredit}
+        companyId={selectedCompanyId}
+        onReviewed={reloadPendingCredit}
+      />
     </div>
   );
 }
