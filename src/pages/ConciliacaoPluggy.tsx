@@ -387,7 +387,7 @@ export default function ConciliacaoPluggy() {
       { data: comp },
     ] = await Promise.all([
       supabase.from("pluggy_connections")
-        .select("id, connector_name, connector_image_url, status, last_synced_at")
+        .select("id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status")
         .eq("company_id", selectedCompanyId).order("created_at", { ascending: false }),
       stagingQuery.order("date", { ascending: false }).limit(500),
       supabase.rpc("get_accessible_accounts", {
