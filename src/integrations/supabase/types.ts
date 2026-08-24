@@ -15876,6 +15876,12 @@ export type Database = {
         | "recusada"
         | "cancelada"
         | "expirada"
+        | "sem_resposta"
+        | "encerrada_sem_vaga"
+        | "encerrada_inicio_ocorrencia"
+        | "desistida"
+        | "substituida"
+        | "encerrada_operacionalmente"
       dp_disciplinar_tipo:
         | "advertencia_verbal"
         | "advertencia_escrita"
@@ -16409,6 +16415,12 @@ export const Constants = {
         "recusada",
         "cancelada",
         "expirada",
+        "sem_resposta",
+        "encerrada_sem_vaga",
+        "encerrada_inicio_ocorrencia",
+        "desistida",
+        "substituida",
+        "encerrada_operacionalmente",
       ],
       dp_disciplinar_tipo: [
         "advertencia_verbal",
