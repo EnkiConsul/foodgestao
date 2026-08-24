@@ -714,7 +714,7 @@ export default function ConciliacaoPluggy() {
         continue;
       }
       // O dado gravado na importação também pode trazer o documento do titular.
-      const stagedDoc = onlyDigits(r.counterparty_document);
+      const stagedDoc = normalizeDocumento(r.counterparty_document);
       const stagedValid = stagedDoc.length >= 11 && !ownDocumentSet.has(stagedDoc);
       m[r.id] = {
         ...base,
