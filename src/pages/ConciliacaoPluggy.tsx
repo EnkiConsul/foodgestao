@@ -257,6 +257,21 @@ export default function ConciliacaoPluggy() {
     } | null
   >(null);
   /**
+   * Confirmação de possíveis duplicados antes de criar o fornecedor/cliente:
+   * guarda o que o extrato trouxe + os cadastros iguais/parecidos encontrados.
+   */
+  const [duplicateCheck, setDuplicateCheck] = useState<
+    {
+      rowId: string | null;
+      name: string;
+      document: string | null;
+      type: "cliente" | "fornecedor" | "ambos";
+      candidates: SimilarContact[];
+    } | null
+  >(null);
+  const [duplicateBusy, setDuplicateBusy] = useState<string | null>(null);
+
+  /**
    * Edição do fornecedor/cliente já vinculado a uma linha: guardamos o registro
    * completo do contato + a linha de origem para manter o vínculo após salvar.
    */
