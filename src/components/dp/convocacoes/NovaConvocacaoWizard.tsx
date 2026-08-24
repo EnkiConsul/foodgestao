@@ -540,7 +540,8 @@ export function NovaConvocacaoWizard({
               {grupo ? "Editar rascunho de convocação" : "Nova convocação"}
             </DialogTitle>
             <DialogDescription>
-              Planejamento em rascunho. A publicação (envio às pessoas) entra na próxima etapa do módulo.
+              Salve como rascunho quantas vezes quiser. Ao publicar, o sistema revalida tudo e envia
+              as ofertas às pessoas elegíveis.
             </DialogDescription>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {PASSOS.map((p, i) => (
