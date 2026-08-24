@@ -1201,17 +1201,19 @@ export default function ConciliacaoPluggy() {
           <table className="w-full table-fixed text-sm">
             {/* Grade proporcional: soma 100% da largura visível — sem rolagem lateral */}
             <colgroup>
-              <col style={{ width: "3%" }} />
-              <col style={{ width: "7%" }} />
-              <col style={{ width: "20%" }} />
-              <col style={{ width: "8%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "13%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "7%" }} />
-              <col style={{ width: "7%" }} />
+              <col className="w-[3%]" />
+              <col className="w-[7%]" />
+              <col className="w-[22%] xl:w-[20%]" />
+              <col className="w-[8%]" />
+              <col className="w-[12%] xl:w-[11%]" />
+              <col className="w-[11%] xl:w-[10%]" />
+              <col className="w-[17%] xl:w-[13%]" />
+              {/* Forma de pagamento: agrupada na Categoria abaixo de xl */}
+              <col className="w-0 xl:w-[10%]" />
+              <col className="w-[13%] xl:w-[11%]" />
+              {/* Status: agrupado na Descrição abaixo de xl */}
+              <col className="w-0 xl:w-[7%]" />
+              <col className="w-[7%]" />
             </colgroup>
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
@@ -1230,9 +1232,9 @@ export default function ConciliacaoPluggy() {
                 <th className="p-2 text-left">Conta destino</th>
                 <th className="p-2 text-left">Tipo</th>
                 <th className="p-2 text-left" title="Categoria / contraparte">Categoria</th>
-                <th className="p-2 text-left" title="Forma de pagamento">Forma pgto.</th>
+                <th className="hidden p-2 text-left xl:table-cell" title="Forma de pagamento">Forma pgto.</th>
                 <th className="p-2 text-left" title="Fornecedor / cliente">Fornec./Cliente</th>
-                <th className="p-2 text-center">Status</th>
+                <th className="hidden p-2 text-center xl:table-cell">Status</th>
                 <th className="p-2 text-right">Ações</th>
               </tr>
 
@@ -1360,7 +1362,7 @@ export default function ConciliacaoPluggy() {
                       )}
                     </td>
 
-                    <td className="p-2">
+                    <td className="hidden p-2 xl:table-cell">
                       {(rowKind[r.id] ?? "auto") === "transfer" ? (
                         <span className="text-xs text-muted-foreground">—</span>
                       ) : (
@@ -1452,7 +1454,7 @@ export default function ConciliacaoPluggy() {
 
 
 
-                    <td className="p-2 text-center">
+                    <td className="hidden p-2 text-center xl:table-cell">
                       <div className="flex flex-wrap items-center justify-center gap-1">
                         {r.status === "pending" && <Badge variant="outline" className="text-[10px]">Pendente</Badge>}
                         {r.status === "confirmed" && <Badge className="bg-success/15 text-success border-success/30 text-[10px]">Confirmado</Badge>}
