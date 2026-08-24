@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  encerramentoPorRelogios,
   horasAceitas,
   podeConvocar,
   podeResponder,
@@ -8,6 +9,52 @@ import {
   statusEfetivo,
   validarConvocacao,
 } from "@/lib/dp/convocacoes";
+
+const d = (hhmm: string) => `2026-08-01T${hhmm}:00Z`;
+
+describe("precedência temporal (prazo x início)", () => {
+  it("A) prazo 10h, início 12h, agora 13h → sem_resposta", () => {
+    expect(
+      encerramentoPorRelogios({ prazo_resposta: d("10:00"), inicio_previsto: d("12:00") }, new Date(d("13:00"))),
+    ).toBe("sem_resposta");
+  });
+
+  it("B) início 10h, prazo 12h, agora 13h → encerrada_inicio_ocorrencia", () => {
+    expect(
+      encerramentoPorRelogios({ prazo_resposta: d("12:00"), inicio_previsto: d("10:00") }, new Date(d("13:00"))),
+    ).toBe("encerrada_inicio_ocorrencia");
+  });
+
+  it("C) empate entre prazo e início → sem_resposta", () => {
+    expect(
+      encerramentoPorRelogios({ prazo_resposta: d("10:00"), inicio_previsto: d("10:00") }, new Date(d("11:00"))),
+    ).toBe("sem_resposta");
+  });
+
+  it("D) início passou e prazo futuro → encerrada_inicio_ocorrencia", () => {
+    expect(
+      encerramentoPorRelogios({ prazo_resposta: d("18:00"), inicio_previsto: d("10:00") }, new Date(d("11:00"))),
+    ).toBe("encerrada_inicio_ocorrencia");
+  });
+
+  it("E) prazo passou e início futuro → sem_resposta", () => {
+    expect(
+      encerramentoPorRelogios({ prazo_resposta: d("10:00"), inicio_previsto: d("18:00") }, new Date(d("11:00"))),
+    ).toBe("sem_resposta");
+  });
+
+  it("nada vencido ou sem thresholds → null", () => {
+    expect(
+      encerramentoPorRelogios({ prazo_resposta: d("18:00"), inicio_previsto: d("20:00") }, new Date(d("11:00"))),
+    ).toBeNull();
+    expect(encerramentoPorRelogios({ prazo_resposta: null, inicio_previsto: null }, new Date(d("11:00")))).toBeNull();
+    expect(encerramentoPorRelogios({ inicio_previsto: d("10:00") }, new Date(d("11:00")))).toBe(
+      "encerrada_inicio_ocorrencia",
+    );
+    expect(encerramentoPorRelogios({ prazo_resposta: d("10:00") }, new Date(d("11:00")))).toBe("sem_resposta");
+  });
+});
+
 
 const agora = new Date("2026-07-27T12:00:00Z");
 
