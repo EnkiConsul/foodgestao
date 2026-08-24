@@ -21,8 +21,8 @@ Regra de validação das próximas fases: uma falha só é considerada **nova** 
 - 3A.0 diagnóstico e desenho — concluída
 - 3A.1 fundação aditiva (M1–M9) — concluída
 - 3A.1.1 hardening (timezone, FKs compostas, 50% intermitente, grants) — concluída e aprovada
-- **3B.1 coexistência segura + planejamento/configuração — em execução**
-- 3B.2 publicação · 3B.3 resposta/vagas · 3B.4 indisponibilidade/encerramentos · 3B.5 substituição/descumprimento — não iniciadas
+- **3B.1 coexistência segura + planejamento/configuração — 🟡 implementação concluída e evidências estáticas aprovadas; validação funcional/concorrente pendente por indisponibilidade de ambiente isolado e credencial executável adequada**
+- 3B.2 publicação · 3B.3 resposta/vagas · 3B.4 indisponibilidade/encerramentos · 3B.5 substituição/descumprimento — ⛔ bloqueadas
 - Fase 4 frontend/cutover — não iniciada
 
 ## 3. Registro de execução — bloco 3B.1
