@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Save, ShieldCheck } from "lucide-react";
+import { Info, Loader2, Save, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -186,7 +186,11 @@ export function ConvocacoesRegrasPanel() {
           {switchRow("sub_intermitente_por_freelancer", "Freelancer cobre intermitente", "Use com cautela: vínculos diferentes.")}
           {switchRow("sub_freelancer_por_freelancer", "Freelancer cobre freelancer", "Substituição entre freelancers.")}
           {switchRow("sub_freelancer_por_intermitente", "Intermitente cobre freelancer", "Use com cautela: vínculos diferentes.")}
-          {switchRow("sub_fixo_em_folga_dominical", "Fixo em folga dominical", "Convocar efetivo na folga de domingo — risco de DSR.")}
+          {switchRow(
+            "sub_fixo_em_folga_dominical",
+            "Convocar quem está em folga dominical",
+            "Chamar pessoa cuja folga cai no domingo. Não substitui o DSR: a folga precisa ser compensada em outro dia da mesma semana.",
+          )}
         </div>
 
         <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3 text-[11px] text-muted-foreground">
@@ -196,6 +200,17 @@ export function ConvocacoesRegrasPanel() {
             vínculo e permissões em toda gravação.
           </span>
         </div>
+
+        <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-[11px] text-amber-800 dark:text-amber-300">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>
+            <strong>Consentimento — informativo.</strong> Na convocação de intermitente, o aceite é
+            uma faculdade da pessoa: recusar não é falta e não gera punição. O sistema registra a
+            resposta e a data, mas não coleta consentimento eletrônico com valor probatório próprio;
+            o documento formal continua a cargo do contrato e da assessoria jurídica.
+          </span>
+        </div>
+
       </div>
     </DpContentCard>
   );

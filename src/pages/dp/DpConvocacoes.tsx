@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { BellRing, CalendarClock, History, Plus, Settings2, Users } from "lucide-react";
+import {
+  BellRing, CalendarClock, CheckCircle2, Clock, History, Pencil, Plus, Settings2, Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,10 +25,24 @@ const rotuloData = (iso: string) =>
     month: "2-digit",
   });
 
-function GrupoCard({ grupo }: { grupo: GrupoComOcorrencias }) {
+interface ContagemGrupo {
+  pendentes: number;
+  aceitas: number;
+}
+
+function GrupoCard({
+  grupo,
+  contagem,
+  onEditar,
+}: {
+  grupo: GrupoComOcorrencias;
+  contagem?: ContagemGrupo;
+  onEditar?: (g: GrupoComOcorrencias) => void;
+}) {
   const total = grupo.ocorrencias.length;
   const vagas = grupo.ocorrencias.reduce((s, o) => s + (o.vagas ?? 0), 0);
   const foraPrazo = grupo.ocorrencias.filter((o) => o.fora_antecedencia).length;
+  const cargos = new Set(grupo.ocorrencias.map((o) => o.cargo_id).filter(Boolean)).size;
 
   return (
     <div className="rounded-xl border border-border p-3">
@@ -37,13 +53,24 @@ function GrupoCard({ grupo }: { grupo: GrupoComOcorrencias }) {
           </div>
           <div className="text-[11px] text-muted-foreground">
             {grupo.unidade_nome ?? "Unidade"} · {grupo.competencia} ·{" "}
-            {grupo.modalidade === "individual" ? "Individual" : "Aberta"}
+            {grupo.modalidade === "individual" ? "Individual" : "Aberta"} ·{" "}
+            {cargos} cargo(s)
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge variant={grupo.status === "rascunho" ? "outline" : "default"} className="text-[10px]">
             {grupo.status === "rascunho" ? "Rascunho" : grupo.status}
           </Badge>
+          {contagem?.aceitas ? (
+            <Badge variant="outline" className="text-[10px]">
+              {contagem.aceitas} confirmada(s)
+            </Badge>
+          ) : null}
+          {contagem?.pendentes ? (
+            <Badge variant="outline" className="text-[10px]">
+              {contagem.pendentes} aguardando
+            </Badge>
+          ) : null}
           {foraPrazo > 0 && (
             <Badge variant="destructive" className="text-[10px]">
               {foraPrazo} fora da antecedência
@@ -72,8 +99,15 @@ function GrupoCard({ grupo }: { grupo: GrupoComOcorrencias }) {
         )}
       </div>
 
-      <div className="mt-2 text-[11px] text-muted-foreground">
-        {total} data(s) · {vagas} vaga(s) previstas
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[11px] text-muted-foreground">
+          {total} data(s) · {vagas} vaga(s) previstas
+        </span>
+        {grupo.status === "rascunho" && onEditar && (
+          <Button size="sm" variant="outline" onClick={() => onEditar(grupo)}>
+            <Pencil className="mr-1 h-3.5 w-3.5" /> Continuar edição
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -81,6 +115,7 @@ function GrupoCard({ grupo }: { grupo: GrupoComOcorrencias }) {
 
 export default function DpConvocacoes() {
   const [wizard, setWizard] = useState(false);
+  const [emEdicao, setEmEdicao] = useState<GrupoComOcorrencias | null>(null);
   const grupos = useDpConvocacaoGrupos();
   const legado = useDpConvocacoes(emDias(-180), emDias(180));
 
@@ -90,8 +125,70 @@ export default function DpConvocacoes() {
     [legado.rows],
   );
 
-  const rascunhos = (grupos.data ?? []).filter((g) => g.status === "rascunho");
-  const publicados = (grupos.data ?? []).filter((g) => g.status !== "rascunho");
+  /** Contagem real por grupo: pendente e aceita nunca se somam. */
+  const contagemPorGrupo = useMemo(() => {
+    const ocorrenciaParaGrupo = new Map<string, string>();
+    for (const g of grupos.data ?? []) {
+      for (const o of g.ocorrencias) ocorrenciaParaGrupo.set(o.id, g.id);
+    }
+    const m = new Map<string, ContagemGrupo>();
+    for (const r of (legado.rows ?? []) as any[]) {
+      const grupoId = r.ocorrencia_id ? ocorrenciaParaGrupo.get(r.ocorrencia_id) : null;
+      if (!grupoId) continue;
+      const atual = m.get(grupoId) ?? { pendentes: 0, aceitas: 0 };
+      if (r.status === "aceita") atual.aceitas += 1;
+      else if (r.status === "pendente") atual.pendentes += 1;
+      m.set(grupoId, atual);
+    }
+    return m;
+  }, [grupos.data, legado.rows]);
+
+  const buckets = useMemo(() => {
+    const hj = hoje();
+    const lista = grupos.data ?? [];
+    const datas = (g: GrupoComOcorrencias) => g.ocorrencias.map((o) => o.data);
+    return {
+      proximas: lista.filter((g) => datas(g).some((d) => d >= hj)),
+      aguardando: lista.filter((g) => (contagemPorGrupo.get(g.id)?.pendentes ?? 0) > 0),
+      confirmadas: lista.filter((g) => (contagemPorGrupo.get(g.id)?.aceitas ?? 0) > 0),
+      realizadas: lista.filter(
+        (g) => datas(g).length > 0 && datas(g).every((d) => d < hj),
+      ),
+    };
+  }, [grupos.data, contagemPorGrupo]);
+
+  const abrirEdicao = (g: GrupoComOcorrencias) => {
+    setEmEdicao(g);
+    setWizard(true);
+  };
+
+  const listaOuVazio = (
+    lista: GrupoComOcorrencias[],
+    icone: any,
+    titulo: string,
+    texto: string,
+  ) =>
+    grupos.isLoading ? (
+      <p className="text-sm text-muted-foreground">Carregando…</p>
+    ) : lista.length === 0 ? (
+      <DpEmptyState icon={icone} dashed>
+        <div className="space-y-1">
+          <p className="font-medium text-foreground">{titulo}</p>
+          <p>{texto}</p>
+        </div>
+      </DpEmptyState>
+    ) : (
+      <div className="space-y-2">
+        {lista.map((g) => (
+          <GrupoCard
+            key={g.id}
+            grupo={g}
+            contagem={contagemPorGrupo.get(g.id)}
+            onEditar={abrirEdicao}
+          />
+        ))}
+      </div>
+    );
 
   return (
     <DpPage>
@@ -108,19 +205,31 @@ export default function DpConvocacoes() {
         title="Convocações"
         description="Planejamento de convocações de intermitentes e freelancers."
         actions={
-          <Button size="sm" onClick={() => setWizard(true)}>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEmEdicao(null);
+              setWizard(true);
+            }}
+          >
             <Plus className="mr-1 h-4 w-4" /> Nova convocação
           </Button>
         }
       />
 
-      <Tabs defaultValue="planejamento">
+      <Tabs defaultValue="proximas">
         <TabsList className="flex w-full flex-wrap justify-start">
-          <TabsTrigger value="planejamento" className="gap-1.5">
-            <CalendarClock className="h-4 w-4" /> Planejamento
+          <TabsTrigger value="proximas" className="gap-1.5">
+            <CalendarClock className="h-4 w-4" /> Próximas
           </TabsTrigger>
-          <TabsTrigger value="publicadas" className="gap-1.5">
-            <Users className="h-4 w-4" /> Publicadas
+          <TabsTrigger value="aguardando" className="gap-1.5">
+            <Clock className="h-4 w-4" /> Aguardando
+          </TabsTrigger>
+          <TabsTrigger value="confirmadas" className="gap-1.5">
+            <CheckCircle2 className="h-4 w-4" /> Confirmadas
+          </TabsTrigger>
+          <TabsTrigger value="realizadas" className="gap-1.5">
+            <Users className="h-4 w-4" /> Realizadas
           </TabsTrigger>
           <TabsTrigger value="historico" className="gap-1.5">
             <History className="h-4 w-4" /> Histórico
@@ -130,45 +239,46 @@ export default function DpConvocacoes() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="planejamento" className="mt-3 space-y-3">
+        <TabsContent value="proximas" className="mt-3 space-y-3">
           <DpContentCard>
-            {grupos.isLoading ? (
-              <p className="text-sm text-muted-foreground">Carregando…</p>
-            ) : rascunhos.length === 0 ? (
-              <DpEmptyState icon={CalendarClock} dashed>
-                <div className="space-y-2">
-                  <p className="font-medium text-foreground">Nenhum rascunho</p>
-                  <p>Crie uma convocação para planejar datas, vagas e público antes de publicar.</p>
-                  <Button size="sm" onClick={() => setWizard(true)}>
-                    <Plus className="mr-1 h-4 w-4" /> Nova convocação
-                  </Button>
-                </div>
-              </DpEmptyState>
-            ) : (
-              <div className="space-y-2">
-                {rascunhos.map((g) => (
-                  <GrupoCard key={g.id} grupo={g} />
-                ))}
-              </div>
+            {listaOuVazio(
+              buckets.proximas,
+              CalendarClock,
+              "Nada nas próximas datas",
+              "Crie uma convocação para planejar datas, vagas e público. Rascunhos ficam aqui até a publicação.",
             )}
           </DpContentCard>
         </TabsContent>
 
-        <TabsContent value="publicadas" className="mt-3">
+        <TabsContent value="aguardando" className="mt-3">
           <DpContentCard>
-            {publicados.length === 0 ? (
-              <DpEmptyState icon={Users} dashed>
-                <div className="space-y-1">
-                  <p className="font-medium text-foreground">Nada publicado ainda</p>
-                  <p>A publicação de convocações às pessoas entra na próxima etapa do módulo.</p>
-                </div>
-              </DpEmptyState>
-            ) : (
-              <div className="space-y-2">
-                {publicados.map((g) => (
-                  <GrupoCard key={g.id} grupo={g} />
-                ))}
-              </div>
+            {listaOuVazio(
+              buckets.aguardando,
+              Clock,
+              "Ninguém aguardando resposta",
+              "Aparecem aqui as convocações já enviadas cujo aceite ainda não chegou. Pendentes nunca contam como confirmados.",
+            )}
+          </DpContentCard>
+        </TabsContent>
+
+        <TabsContent value="confirmadas" className="mt-3">
+          <DpContentCard>
+            {listaOuVazio(
+              buckets.confirmadas,
+              CheckCircle2,
+              "Nenhuma confirmação ainda",
+              "Cada aceite registrado pela pessoa aparece nesta aba.",
+            )}
+          </DpContentCard>
+        </TabsContent>
+
+        <TabsContent value="realizadas" className="mt-3">
+          <DpContentCard>
+            {listaOuVazio(
+              buckets.realizadas,
+              Users,
+              "Nada realizado no período",
+              "Convocações cujas datas já passaram ficam nesta aba.",
             )}
           </DpContentCard>
         </TabsContent>
@@ -217,7 +327,15 @@ export default function DpConvocacoes() {
         </TabsContent>
       </Tabs>
 
-      <NovaConvocacaoWizard open={wizard} onOpenChange={setWizard} />
+      <NovaConvocacaoWizard
+        open={wizard}
+        onOpenChange={(v) => {
+          setWizard(v);
+          if (!v) setEmEdicao(null);
+        }}
+        grupo={emEdicao}
+      />
     </DpPage>
   );
 }
+

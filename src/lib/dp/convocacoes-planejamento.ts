@@ -404,14 +404,20 @@ export interface RascunhoOcorrencia {
   data: string | null;
   necessidade_entrada: string | null;
   necessidade_saida: string | null;
+  /** Virada de dia da NECESSIDADE (janela que a operação precisa cobrir). */
   necessidade_termina_no_dia_seguinte: boolean;
   horario_modo: HorarioModo;
   entrada: string | null;
   saida: string | null;
   intervalo_minutos: number | null;
+  /** Virada de dia do HORÁRIO OFERTADO (campo próprio no schema). */
+  termina_no_dia_seguinte: boolean;
   vagas: number;
   colaborador_alvo_id: string | null;
+  /** updated_at da linha já gravada — habilita controle otimista na edição. */
+  expected_updated_at?: string | null;
 }
+
 
 const COMPETENCIA_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -443,7 +449,7 @@ export function ocorrenciaPersistivel(
       entrada: o.entrada,
       saida: o.saida,
       intervalo_minutos: o.intervalo_minutos,
-      termina_no_dia_seguinte: o.necessidade_termina_no_dia_seguinte,
+      termina_no_dia_seguinte: o.termina_no_dia_seguinte,
     }) <= 0) return false;
   }
 
@@ -456,7 +462,10 @@ export function ocorrenciaPersistivel(
   return true;
 }
 
-/** Payload da ocorrência conforme o modo de horário (sem campos fictícios). */
+/**
+ * Payload da ocorrência conforme o modo de horário (sem campos fictícios).
+ * A virada de dia do horário ofertado é PRÓPRIA — nunca herda a da necessidade.
+ */
 export function payloadHorario(o: RascunhoOcorrencia) {
   if (o.horario_modo === "jornada_individual") {
     return {
@@ -473,12 +482,237 @@ export function payloadHorario(o: RascunhoOcorrencia) {
     entrada: o.entrada,
     saida: o.saida,
     intervalo_minutos: o.intervalo_minutos ?? 0,
-    termina_no_dia_seguinte: o.necessidade_termina_no_dia_seguinte,
+    termina_no_dia_seguinte: o.termina_no_dia_seguinte,
     carga_prevista_horas: cargaPrevistaHoras({
       entrada: o.entrada!,
       saida: o.saida!,
       intervalo_minutos: o.intervalo_minutos,
-      termina_no_dia_seguinte: o.necessidade_termina_no_dia_seguinte,
+      termina_no_dia_seguinte: o.termina_no_dia_seguinte,
     }),
   };
 }
+
+// ---------------------------------------------------------------- competência e período
+
+/** Competência ("YYYY-MM") de uma data ISO. */
+export function competenciaDaData(dataISO: string): string {
+  return dataISO.slice(0, 7);
+}
+
+export interface PeriodoConvocacao {
+  inicio: string;
+  fim: string;
+}
+
+/** Primeiro e último dia da competência. */
+export function limitesDaCompetencia(competencia: string): PeriodoConvocacao {
+  const [y, m] = competencia.split("-").map(Number);
+  const ultimo = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return {
+    inicio: `${competencia}-01`,
+    fim: `${competencia}-${String(ultimo).padStart(2, "0")}`,
+  };
+}
+
+/** O período informado precisa caber inteiramente dentro da competência. */
+export function periodoValido(competencia: string, periodo: PeriodoConvocacao): boolean {
+  if (!COMPETENCIA_RE.test(competencia)) return false;
+  const lim = limitesDaCompetencia(competencia);
+  if (periodo.inicio > periodo.fim) return false;
+  return periodo.inicio >= lim.inicio && periodo.fim <= lim.fim;
+}
+
+/** A data pertence à competência e está dentro do período selecionado. */
+export function dataDentroDoPeriodo(
+  dataISO: string,
+  competencia: string,
+  periodo: PeriodoConvocacao,
+): boolean {
+  if (competenciaDaData(dataISO) !== competencia) return false;
+  return dataISO >= periodo.inicio && dataISO <= periodo.fim;
+}
+
+/** Ocorrências que caíram fora da competência/período (ex.: troca de competência). */
+export function ocorrenciasIncompativeis<T extends { data: string | null }>(
+  ocorrencias: T[],
+  competencia: string,
+  periodo: PeriodoConvocacao,
+): T[] {
+  return ocorrencias.filter((o) => !o.data || !dataDentroDoPeriodo(o.data, competencia, periodo));
+}
+
+// ---------------------------------------------------------------- cobertura por cargo
+
+export interface RegraCoberturaMinima {
+  unidade_id: string | null;
+  cargo_id: string | null;
+  dia_semana: number | null;
+  minimo: number;
+  ativo: boolean;
+  vigencia_inicio: string | null;
+  vigencia_fim: string | null;
+}
+
+/**
+ * Mínimo exigido para um cargo em uma data — única fonte é dp_cobertura_minima.
+ * Regras sem cargo/unidade/dia valem como curinga; a mais exigente prevalece.
+ * Retorna null quando não há mínimo cadastrado (nunca inventa número).
+ */
+export function minimoDoCargoNaData(args: {
+  regras: RegraCoberturaMinima[];
+  data: string;
+  unidadeId: string | null;
+  cargoId: string;
+}): number | null {
+  const dow = new Date(`${args.data}T12:00:00`).getDay();
+  let minimo: number | null = null;
+
+  for (const r of args.regras) {
+    if (!r.ativo) continue;
+    if (r.vigencia_inicio && args.data < r.vigencia_inicio) continue;
+    if (r.vigencia_fim && args.data > r.vigencia_fim) continue;
+    if (r.dia_semana != null && r.dia_semana !== dow) continue;
+    if (r.cargo_id && r.cargo_id !== args.cargoId) continue;
+    if (r.unidade_id && args.unidadeId && r.unidade_id !== args.unidadeId) continue;
+    if (!(r.minimo > 0)) continue;
+    minimo = Math.max(minimo ?? 0, r.minimo);
+  }
+
+  return minimo;
+}
+
+// ---------------------------------------------------------------- jornada individual
+
+export interface JornadaDia {
+  entrada: string;
+  saida: string;
+  intervalo_minutos?: number | null;
+  termina_no_dia_seguinte?: boolean | null;
+}
+
+export interface ConfigDiaColaborador {
+  colaborador_id: string;
+  dow: number;
+  trabalha: boolean | null;
+  entrada: string | null;
+  saida: string | null;
+  intervalo_minutos: number | null;
+}
+
+/**
+ * Jornada cadastrada da pessoa na data (config de dias do colaborador).
+ * Sem cadastro para o dia → null, e o motivo fica explícito no preview.
+ */
+export function jornadaIndividualNaData(args: {
+  configDias: ConfigDiaColaborador[];
+  colaboradorId: string;
+  data: string;
+}): JornadaDia | null {
+  const dow = new Date(`${args.data}T12:00:00`).getDay();
+  const dia = args.configDias.find(
+    (d) => d.colaborador_id === args.colaboradorId && d.dow === dow,
+  );
+  if (!dia || dia.trabalha === false || !dia.entrada || !dia.saida) return null;
+  const entrada = dia.entrada.slice(0, 5);
+  const saida = dia.saida.slice(0, 5);
+  return {
+    entrada,
+    saida,
+    intervalo_minutos: dia.intervalo_minutos ?? 0,
+    termina_no_dia_seguinte: saida <= entrada,
+  };
+}
+
+// ---------------------------------------------------------------- preview do grupo
+
+export interface PreviewOcorrenciaEntrada {
+  id: string;
+  data: string;
+  cargo_id: string;
+  necessidade_entrada: string;
+  necessidade_saida: string;
+  necessidade_termina_no_dia_seguinte?: boolean | null;
+  horario_modo: HorarioModo;
+  vagas: number;
+}
+
+export interface PreviewGrupoResultado {
+  ocorrencia_id: string;
+  data: string;
+  cargo_id: string;
+  vagas: number;
+  candidatos: CandidatoPreview[];
+  /** Elegíveis que a Option A reservou para esta ocorrência. */
+  reservados: string[];
+  /** Elegíveis excluídos porque já foram reservados em outra ocorrência do dia. */
+  reservados_em_outra: { colaborador_id: string; nome: string }[];
+}
+
+/**
+ * Preview do grupo inteiro: avalia TODAS as ocorrências com dados reais e
+ * aplica a Option A determinística por data. Continua sendo prévia — o Bloco 2
+ * revalida no backend com lock.
+ */
+export function avaliarGrupo(args: {
+  ocorrencias: PreviewOcorrenciaEntrada[];
+  colaboradores: Omit<ColaboradorParaPreview, "jornada">[];
+  unidadeId: string;
+  /** Indisponibilidades declaradas, por data. */
+  indisponiveisPorData?: Map<string, Set<string>>;
+  /** Já alocados (escala, convocação em estado bloqueante), por data. */
+  alocadosPorData?: Map<string, Set<string>>;
+  /** Jornada cadastrada da pessoa na data (usada no modo jornada_individual). */
+  jornadaDe?: (colaboradorId: string, data: string) => JornadaDia | null;
+}): PreviewGrupoResultado[] {
+  const porOcorrencia = new Map<string, CandidatoPreview[]>();
+  const ordenadas = ordenarOcorrencias(
+    args.ocorrencias.map((o) => ({ ...o, cargo_id: o.cargo_id })),
+  );
+
+  for (const o of ordenadas) {
+    const candidatos = avaliarCandidatos({
+      colaboradores: args.colaboradores.map((c) => ({
+        ...c,
+        jornada: args.jornadaDe ? args.jornadaDe(c.id, o.data) : null,
+      })),
+      cargoId: o.cargo_id,
+      unidadeId: args.unidadeId,
+      necessidade: {
+        entrada: o.necessidade_entrada,
+        saida: o.necessidade_saida,
+        termina_no_dia_seguinte: o.necessidade_termina_no_dia_seguinte ?? false,
+      },
+      horarioModo: o.horario_modo,
+      indisponiveis: args.indisponiveisPorData?.get(o.data),
+      jaAlocados: args.alocadosPorData?.get(o.data),
+    });
+    porOcorrencia.set(o.id, candidatos);
+  }
+
+  const candidatosElegiveis = new Map<string, string[]>();
+  for (const [id, lista] of porOcorrencia) {
+    candidatosElegiveis.set(
+      id,
+      lista.filter((c) => c.elegivel).map((c) => c.colaborador_id),
+    );
+  }
+
+  const { reservas, conflitos } = reservarPorOptionA(ordenadas, candidatosElegiveis);
+  const nomeDe = new Map(args.colaboradores.map((c) => [c.id, c.nome]));
+
+  return ordenadas.map((o) => ({
+    ocorrencia_id: o.id,
+    data: o.data,
+    cargo_id: o.cargo_id,
+    vagas: o.vagas,
+    candidatos: porOcorrencia.get(o.id) ?? [],
+    reservados: reservas.get(o.id) ?? [],
+    reservados_em_outra: conflitos
+      .filter((c) => c.ocorrencia_id === o.id)
+      .map((c) => ({
+        colaborador_id: c.colaborador_id,
+        nome: nomeDe.get(c.colaborador_id) ?? "—",
+      })),
+  }));
+}
+
