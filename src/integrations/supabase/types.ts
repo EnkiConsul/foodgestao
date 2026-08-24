@@ -1856,6 +1856,7 @@ export type Database = {
           profile_type: string
           segmento_id: string | null
           status_tenant: string
+          timezone: string | null
           trade_name: string | null
           trial_iniciado_em: string | null
           trial_termina_em: string | null
@@ -1882,6 +1883,7 @@ export type Database = {
           profile_type?: string
           segmento_id?: string | null
           status_tenant?: string
+          timezone?: string | null
           trade_name?: string | null
           trial_iniciado_em?: string | null
           trial_termina_em?: string | null
@@ -1908,6 +1910,7 @@ export type Database = {
           profile_type?: string
           segmento_id?: string | null
           status_tenant?: string
+          timezone?: string | null
           trade_name?: string | null
           trial_iniciado_em?: string | null
           trial_termina_em?: string | null
@@ -7920,6 +7923,7 @@ export type Database = {
           possui_relogio_ponto: boolean
           telefone: string | null
           tem_adiantamento: boolean
+          timezone: string | null
           uf: string | null
           updated_at: string
         }
@@ -7936,6 +7940,7 @@ export type Database = {
           possui_relogio_ponto?: boolean
           telefone?: string | null
           tem_adiantamento?: boolean
+          timezone?: string | null
           uf?: string | null
           updated_at?: string
         }
@@ -7952,6 +7957,7 @@ export type Database = {
           possui_relogio_ponto?: boolean
           telefone?: string | null
           tem_adiantamento?: boolean
+          timezone?: string | null
           uf?: string | null
           updated_at?: string
         }
@@ -13789,6 +13795,10 @@ export type Database = {
           sindicato_id: string
           sindicato_nome: string
         }[]
+      }
+      dp_timezone_resolvido: {
+        Args: { _company_id: string; _unidade_id?: string }
+        Returns: string
       }
       dp_turno_colaboradores: {
         Args: { p_turno_id: string }
