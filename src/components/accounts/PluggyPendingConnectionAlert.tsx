@@ -95,7 +95,7 @@ export function PluggyPendingConnectionAlert({ companyId }: PluggyPendingConnect
               variant="ghost"
               className="h-7 text-destructive hover:text-destructive"
               disabled={canceling}
-              onClick={handleCancel}
+              onClick={() => setConfirmOpen(true)}
             >
               {canceling ? (
                 <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
@@ -107,6 +107,27 @@ export function PluggyPendingConnectionAlert({ companyId }: PluggyPendingConnect
           </div>
         </div>
       </CardContent>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar a conexão em andamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A autorização iniciada será descartada e o aviso desaparece. Se o banco confirmar
+              depois, será necessário iniciar a conexão novamente em <strong>Conectar banco</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleCancel}
+            >
+              Cancelar conexão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
