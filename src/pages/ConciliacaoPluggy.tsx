@@ -901,11 +901,13 @@ export default function ConciliacaoPluggy() {
   );
 
   /**
-   * Recarrega a lista de fornecedores/clientes da empresa. `fetchAllCompanyContacts`
-   * devolve `{ data, error }` — usar o objeto direto no estado quebrava a tela.
+   * Recarrega a lista de fornecedores/clientes (empresa + perfil Pessoal).
+   * `fetchConciliacaoContacts` devolve `{ data, error }` — usar o objeto direto
+   * no estado quebrava a tela.
    */
   const recarregarContatos = async (companyId: string) => {
-    const { data, error } = await fetchAllCompanyContacts(companyId);
+    const { data: auth } = await supabase.auth.getUser();
+    const { data, error } = await fetchConciliacaoContacts(companyId, auth.user?.id ?? null);
     if (error) {
       toast.error("Não foi possível atualizar a lista de fornecedores/clientes", {
         description: error.message,
