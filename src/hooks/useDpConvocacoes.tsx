@@ -87,27 +87,55 @@ export function useDpConvocacoes(inicio: string, fim: string, colaboradorId?: st
   return { rows: query.data ?? [], isLoading: query.isLoading, error: query.error, criar, cancelar, remover };
 }
 
-/** Convocações do colaborador logado (Portal). */
+/** Oferta enriquecida devolvida pela RPC do Portal (dados do snapshot). */
+export interface MinhaOferta {
+  id: string;
+  data: string;
+  status: string;
+  entrada: string;
+  saida: string;
+  intervalo_minutos: number;
+  termina_no_dia_seguinte: boolean;
+  carga_prevista_horas: number;
+  prazo_resposta: string | null;
+  inicio_previsto: string | null;
+  fim_previsto: string | null;
+  visualizada_em: string | null;
+  respondida_em: string | null;
+  motivo_recusa: string | null;
+  observacao: string | null;
+  compatibilidade: string | null;
+  regime_snapshot: string | null;
+  remuneracao_snapshot: any;
+  timezone_snapshot: string | null;
+  modalidade: string | null;
+  vagas: number | null;
+  vagas_restantes: number | null;
+  necessidade_entrada: string | null;
+  necessidade_saida: string | null;
+  necessidade_termina_no_dia_seguinte: boolean | null;
+  cargo_nome: string | null;
+  unidade_nome: string | null;
+}
+
+/** Convocações do colaborador logado (Portal), lidas pela RPC autoritativa. */
 export function useMinhasConvocacoes(colaboradorId: string | null) {
   const qc = useQueryClient();
 
   const query = useQuery({
     queryKey: ["dp_minhas_convocacoes", colaboradorId],
     enabled: !!colaboradorId,
-    queryFn: async (): Promise<ConvocacaoRow[]> => {
-      const { data, error } = await supabase
-        .from("dp_convocacoes")
-        .select("*, dp_turnos(nome)")
-        .eq("colaborador_id", colaboradorId!)
-        .order("data", { ascending: false });
+    queryFn: async (): Promise<MinhaOferta[]> => {
+      const { data, error } = await (supabase.rpc as any)("dp_convocacao_minhas_ofertas");
       if (error) throw error;
-      return (data ?? []) as ConvocacaoRow[];
+      return (data ?? []) as MinhaOferta[];
     },
   });
 
   /**
    * Resposta pela RPC atômica: vagas de oferta aberta, prazo, dia já iniciado e
-   * limite de uma convocação aceita por dia são decididos no servidor.
+   * limite de uma convocação confirmada por dia são decididos no servidor.
+   * A RPC devolve `ok: false` quando a oferta é encerrada (prazo, início, vaga).
    */
   const responder = useMutation({
     mutationFn: async ({ id, aceito, motivo }: { id: string; aceito: boolean; motivo?: string }) => {
@@ -125,10 +153,30 @@ export function useMinhasConvocacoes(colaboradorId: string | null) {
     },
   });
 
+  /** Registra a visualização da oferta (idempotente no servidor). */
+  const registrarVisualizacao = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await (supabase.rpc as any)(
+        "dp_convocacao_registrar_visualizacao",
+        { p_convocacao_id: id },
+      );
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_minhas_convocacoes"] }),
+  });
+
   const pendentes = useMemo(
     () => (query.data ?? []).filter((c) => c.status === "pendente"),
     [query.data],
   );
 
-  return { rows: query.data ?? [], pendentes, isLoading: query.isLoading, responder };
+  return {
+    rows: query.data ?? [],
+    pendentes,
+    isLoading: query.isLoading,
+    responder,
+    registrarVisualizacao,
+  };
 }
+

@@ -14369,7 +14369,12 @@ export type Database = {
         Returns: Json
       }
       dp_convocacao_avaliar_candidato: {
-        Args: { _colaborador_id: string; _ocorrencia_id: string }
+        Args: {
+          _colaborador_id: string
+          _ignorar_convocacao_id?: string
+          _ocorrencia_id: string
+          _pendente_bloqueia?: boolean
+        }
         Returns: Json
       }
       dp_convocacao_cancelar_ocorrencia_rascunho: {
@@ -14455,12 +14460,58 @@ export type Database = {
         }
         Returns: undefined
       }
+      dp_convocacao_log_evento_trabalhador: {
+        Args: {
+          _company_id: string
+          _grupo_id: string
+          _ocorrencia_id: string
+          _payload?: Json
+          _tipo: string
+        }
+        Returns: undefined
+      }
+      dp_convocacao_minhas_ofertas: {
+        Args: never
+        Returns: {
+          carga_prevista_horas: number
+          cargo_nome: string
+          compatibilidade: string
+          data: string
+          entrada: string
+          fim_previsto: string
+          id: string
+          inicio_previsto: string
+          intervalo_minutos: number
+          modalidade: string
+          motivo_recusa: string
+          necessidade_entrada: string
+          necessidade_saida: string
+          necessidade_termina_no_dia_seguinte: boolean
+          observacao: string
+          prazo_resposta: string
+          regime_snapshot: string
+          remuneracao_snapshot: Json
+          respondida_em: string
+          saida: string
+          status: string
+          termina_no_dia_seguinte: boolean
+          timezone_snapshot: string
+          unidade_nome: string
+          vagas: number
+          vagas_restantes: number
+          visualizada_em: string
+        }[]
+      }
       dp_convocacao_publicar_grupo: {
         Args: {
           p_confirmacoes?: Json
           p_expected_updated_at: string
           p_grupo_id: string
         }
+        Returns: Json
+      }
+      dp_convocacao_registrar_visualizacao: {
+        Args: { p_convocacao_id: string }
         Returns: Json
       }
       dp_convocacao_remuneracao_snapshot: {
