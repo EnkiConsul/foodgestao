@@ -440,6 +440,25 @@ export default function ContasBancarias() {
         </Alert>
       )}
 
+      {!loading && pendingCredit.length > 0 && (
+        <Card className="border-primary/40 bg-primary/[0.07]">
+          <CardContent className="p-4 flex flex-wrap items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <CreditCardIcon className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1 text-sm">
+              <p className="font-semibold">
+                {pendingCredit.length} cartão(ões) de crédito detectado(s)
+              </p>
+              <p className="text-muted-foreground text-xs mt-0.5">
+                Encontramos cartões nas contas conectadas. Eles só serão cadastrados após sua autorização.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => setCreditReviewOpen(true)}>Revisar e autorizar</Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3">
         <Card className="bg-primary text-primary-foreground shadow-md border-0">
