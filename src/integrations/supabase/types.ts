@@ -14259,6 +14259,7 @@ export type Database = {
           p_company: string
           p_data: string
           p_ignorar_colaborador?: string
+          p_turno_id?: string
           p_unidade: string
         }
         Returns: Json
@@ -14632,6 +14633,10 @@ export type Database = {
         Args: { _periodo_id: string }
         Returns: undefined
       }
+      dp_folga_cancelar_admin: {
+        Args: { p_folga_id: string; p_motivo?: string }
+        Returns: Json
+      }
       dp_folga_criar_admin: {
         Args: {
           p_colaborador_id: string
@@ -14639,8 +14644,13 @@ export type Database = {
           p_data: string
           p_extra?: boolean
           p_observacao?: string
+          p_substituir_ids?: string[]
           p_tipo?: string
         }
+        Returns: Json
+      }
+      dp_folga_solicitar: {
+        Args: { p_data: string; p_motivo?: string }
         Returns: Json
       }
       dp_folha_desfazer_despesa: {
@@ -14694,6 +14704,10 @@ export type Database = {
         Returns: Json
       }
       dp_indisponibilidade_remover: { Args: { p_data: string }; Returns: Json }
+      dp_jornada_dia_prevista: {
+        Args: { p_colaborador: string; p_data: string }
+        Returns: Json
+      }
       dp_pascoa: { Args: { _ano: number }; Returns: string }
       dp_pode_gerenciar_lixeira: {
         Args: { _company_id: string }
