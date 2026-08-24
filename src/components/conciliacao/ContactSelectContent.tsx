@@ -69,6 +69,23 @@ export function ContactSelectContent({
         </p>
       </div>
 
+      {onCreateNew && (
+        <div className="border-b p-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-full justify-start gap-2 text-xs font-medium text-primary"
+            onClick={(e) => { e.preventDefault(); onCreateNew(); }}
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            Cadastrar novo fornecedor/cliente
+          </Button>
+        </div>
+      )}
+
+
+
       {shown.map((c) => (
         <SelectItem key={c.id} value={c.id}>
           <span className="flex min-w-0 items-center gap-2">
