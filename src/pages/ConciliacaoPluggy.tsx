@@ -134,6 +134,11 @@ interface AccountOpt { id: string; name: string; }
 interface ContactOpt { id: string; name: string; type: string | null; document: string | null; linkedToCompany?: boolean; }
 /** Origem da sugestão de fornecedor/cliente exibida na tela. */
 type SuggestionSource = "historico" | "documento" | "nome";
+const SUGGESTION_LABELS: Record<SuggestionSource, string> = {
+  historico: "histórico de conciliação",
+  documento: "CNPJ/CPF do extrato",
+  nome: "nome do extrato",
+};
 interface CategoryOpt {
   id: string;
   name: string;
@@ -831,6 +836,20 @@ export default function ConciliacaoPluggy() {
     return m;
   }, [suggestion]);
 
+  /** Contatos que ainda não pertencem à empresa (cadastrados no Pessoal). */
+  const unlinkedContactIds = useMemo(
+    () => new Set(contacts.filter((c) => c.linkedToCompany === false).map((c) => c.id)),
+    [contacts],
+  );
+
+  /** Explica por que a linha ficou sem sugestão de fornecedor/cliente. */
+  const noSuggestionReason = (rowId: string): string | null => {
+    const cp = counterpartyByRow[rowId];
+    if (!cp?.name && !cp?.document) return "extrato sem nome e sem CNPJ/CPF da contraparte";
+    if (!cp?.document) return "extrato sem CNPJ/CPF e nome não cadastrado";
+    return "CNPJ/CPF do extrato não cadastrado";
+  };
+
 
   // Pré-seleciona o fornecedor/cliente identificado pelo documento do extrato,
   // sem sobrescrever escolhas manuais nem rascunhos salvos.
@@ -1233,6 +1252,9 @@ export default function ConciliacaoPluggy() {
                 contacts={contacts}
                 contact={rowContact[r.id] ?? ""}
                 contactSuggested={!!rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id]}
+                suggestionLabel={SUGGESTION_LABELS[suggestion[r.id]?.source ?? "nome"]}
+                contactNotLinked={!!rowContact[r.id] && unlinkedContactIds.has(rowContact[r.id])}
+                noSuggestionReason={rowContact[r.id] ? null : noSuggestionReason(r.id)}
                 onContactChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
                 counterpartyLabel={counterpartyLabel(counterpartyByRow[r.id] ?? { name: null, document: null, documentType: null, internal: false })}
                 counterpartyInternal={!!counterpartyByRow[r.id]?.internal}
@@ -1482,7 +1504,17 @@ export default function ConciliacaoPluggy() {
                           />
                         </Select>
                         {rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id] && (
-                          <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
+                          <p className="mt-1 text-[10px] text-muted-foreground">
+                            sugerido por {SUGGESTION_LABELS[suggestion[r.id]?.source ?? "nome"]}
+                          </p>
+                        )}
+                        {rowContact[r.id] && unlinkedContactIds.has(rowContact[r.id]) && (
+                          <p className="mt-1 text-[10px] text-amber-600">
+                            cadastrado no Pessoal — será vinculado à empresa
+                          </p>
+                        )}
+                        {!disabled && !rowContact[r.id] && (
+                          <p className="mt-1 text-[10px] text-muted-foreground">{noSuggestionReason(r.id)}</p>
                         )}
                         {!disabled && rowContact[r.id] && (
                           <Button
