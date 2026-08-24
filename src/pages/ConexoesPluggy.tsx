@@ -116,7 +116,6 @@ export default function ConexoesPluggy() {
   const { contextType, selectedCompanyId } = useCompanyContext();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [meta, setMeta] = useState<AccountsMap>({});
-  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   // Retorno do consentimento de Open Finance (?itemId=…) precisa abrir o
@@ -126,9 +125,8 @@ export default function ConexoesPluggy() {
   const [reconnectItemId, setReconnectItemId] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<Connection | null>(null);
   const [creditReviewOpen, setCreditReviewOpen] = useState(false);
-  const [confirmCancelPending, setConfirmCancelPending] = useState(false);
-  const [cancelingPending, setCancelingPending] = useState(false);
   const { pending: pendingCredit, reload: reloadPendingCredit } = usePluggyCreditReview();
+
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!selectedCompanyId) return;
