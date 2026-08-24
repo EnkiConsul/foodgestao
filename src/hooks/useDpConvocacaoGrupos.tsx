@@ -45,6 +45,8 @@ export interface SalvarGrupoArgs {
   modalidade: "individual" | "aberta";
   titulo?: string | null;
   observacao?: string | null;
+  /** Presente quando o grupo já existe no banco (edição do rascunho). */
+  expected_updated_at?: string | null;
 }
 
 export interface SalvarOcorrenciaArgs {
@@ -80,6 +82,20 @@ export function useSalvarRascunhoConvocacao() {
 
   const salvarGrupo = useMutation({
     mutationFn: async (args: SalvarGrupoArgs) => {
+      // Editando um rascunho existente: atualiza, nunca cria outro grupo.
+      if (args.expected_updated_at) {
+        const { data, error } = await supabase.rpc("dp_convocacao_atualizar_grupo", {
+          p_grupo_id: args.grupo_id,
+          p_expected_updated_at: args.expected_updated_at,
+          p_competencia: args.competencia,
+          p_modalidade: args.modalidade,
+          p_titulo: args.titulo ?? undefined,
+          p_observacao: args.observacao ?? undefined,
+        });
+        if (error) throw error;
+        return data;
+      }
+
       const { data, error } = await supabase.rpc("dp_convocacao_criar_grupo", {
         p_grupo_id: args.grupo_id,
         p_unidade_id: args.unidade_id,
@@ -93,6 +109,7 @@ export function useSalvarRascunhoConvocacao() {
     },
     onSuccess: invalidate,
   });
+
 
   const salvarOcorrencia = useMutation({
     mutationFn: async (args: SalvarOcorrenciaArgs) => {
