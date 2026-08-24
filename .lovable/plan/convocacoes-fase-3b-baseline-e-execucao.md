@@ -101,7 +101,9 @@ Medição executada após a M13 (UTC 2026-08-24 ~04:11):
 
 ### 3.9 Rollback
 
-Reversão do bloco, em ordem: `DROP FUNCTION` das 6 RPCs e dos 2 helpers (`dp_convocacao_log_evento`, `dp_convocacao_exige_admin`); restaurar o `CHECK` `dp_conv_evento_referencia_check` e a versão anterior de `dp_conv_evento_deriva` (M12); `DROP TRIGGER trg_00_dp_convocacao_legacy_self_columns` e a função `dp_convocacao_legacy_self_columns`; substituir as 4 policies de admin pela `dp_convocacoes_admin_all` (ALL) e restaurar `dp_convocacoes_respond_self` sem `ocorrencia_id IS NULL`. Nenhuma coluna, tabela ou dado é criado ou removido pelo bloco, portanto o rollback não implica perda de dados.
+Reversão do bloco, em ordem: `DROP FUNCTION` das 6 RPCs e dos 2 helpers (`dp_convocacao_log_evento`, `dp_convocacao_exige_admin`); restaurar o `CHECK` `dp_conv_evento_referencia_check` e a versão anterior de `dp_conv_evento_deriva` (M12); `DROP TRIGGER trg_00_dp_convocacao_legacy_self_columns` e a função `dp_convocacao_legacy_self_columns`; substituir as 4 policies de admin pela `dp_convocacoes_admin_all` (ALL) e restaurar `dp_convocacoes_respond_self` sem `ocorrencia_id IS NULL`.
+
+Rollback específico da M13: recriar as 6 RPCs, `dp_convocacao_log_evento` e `dp_conv_evento_deriva` conforme as versões M11/M12 (ou seja, sem `INSERT ... ON CONFLICT`, sem reconsulta tenant-scoped, sem controle otimista em `salvar_config`, sem resolução de papel do ator e com `CHECK`/`trigger` aceitando `tipo LIKE 'config\_%'`); recriar a assinatura anterior de `dp_convocacao_salvar_config` sem `p_expected_updated_at`. Nenhuma coluna, tabela ou dado é criado ou removido pelo bloco, portanto o rollback não implica perda de dados.
 
 ### 3.10 Dados artificiais
 
