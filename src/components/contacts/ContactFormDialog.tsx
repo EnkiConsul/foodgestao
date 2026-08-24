@@ -35,6 +35,27 @@ interface Props {
   defaultVisiblePf?: boolean;
 }
 
+/**
+ * Busca direcionada de duplicidade por documento: consulta apenas as variações
+ * possíveis de gravação (com e sem máscara) em vez de baixar a lista inteira.
+ */
+async function findDuplicateByDocument(
+  docKey: string,
+  ignoreId?: string | null,
+): Promise<{ id: string; name: string } | null> {
+  const variants = Array.from(new Set([docKey, maskCpfCnpj(docKey)])).filter(Boolean);
+  const { data } = await supabase
+    .from("contacts")
+    .select("id, name, document")
+    .in("document", variants)
+    .limit(20);
+  const hit = (data ?? []).find(
+    (c: any) => isSameDocumento(c.document, docKey) && c.id !== ignoreId,
+  );
+  return hit ? { id: (hit as any).id, name: (hit as any).name } : null;
+}
+
+
 export function ContactFormDialog({
   open,
   onOpenChange,
