@@ -129,6 +129,27 @@ export default function ConexoesPluggy() {
     reloadPendingCredit();
   };
 
+  // Autorizações que ficaram presas (usuário desistiu no app do banco) podem ser
+  // canceladas para limpar o aviso de "Conexão em andamento".
+  const cancelarPendentes = async () => {
+    if (!selectedCompanyId) return;
+    setCancelingPending(true);
+    const { data, error } = await supabase.rpc("pluggy_cancel_connect_requests", {
+      _company_id: selectedCompanyId,
+    });
+    setCancelingPending(false);
+    setConfirmCancelPending(false);
+    if (error) {
+      toast.error("Não foi possível cancelar a conexão em andamento");
+      return;
+    }
+    toast.success(
+      (data ?? 0) > 1 ? `${data} autorizações canceladas` : "Conexão em andamento cancelada",
+    );
+    load();
+  };
+
+
   const disconnect = async () => {
     if (!confirmDelete) return;
     const { error } = await supabase.functions.invoke("pluggy-disconnect-item", {
