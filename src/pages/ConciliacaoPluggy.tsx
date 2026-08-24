@@ -24,6 +24,7 @@ import { PluggyAuditDialog } from "@/components/conciliacao/PluggyAuditDialog";
 
 
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
+import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { suggestPaymentMethodId, normalizeText } from "@/lib/conciliacao/paymentMethodInference";
 import { fetchAllCompanyContacts, findExistingContact, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
 import {
@@ -229,9 +230,17 @@ export default function ConciliacaoPluggy() {
   const [ownDocuments, setOwnDocuments] = useState<string[]>([]);
 
   const [creatingContact, setCreatingContact] = useState<string | null>(null);
-  // Cadastro de contato sem nome no extrato: pedimos o nome antes de salvar.
-  const [contactNamePrompt, setContactNamePrompt] = useState<
-    { rowId: string; name: string; document: string | null } | null
+  /**
+   * Cadastro de fornecedor/cliente pelo formulário oficial de Clientes / Fornecedores.
+   * `rowId` guarda a linha que originou o cadastro para vincular o contato ao salvar.
+   */
+  const [contactForm, setContactForm] = useState<
+    {
+      rowId: string | null;
+      name: string;
+      document: string | null;
+      type: "cliente" | "fornecedor" | "ambos";
+    } | null
   >(null);
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "entrada"), [categories]);
@@ -762,74 +771,69 @@ export default function ConciliacaoPluggy() {
   }, [suggestedContact]);
 
   /**
-   * Cria o contato a partir dos dados do extrato e o vincula ao lançamento.
-   * Nunca usa o documento como nome: sem nome identificado, pedimos ao usuário.
+   * Cadastro do fornecedor/cliente da linha: se já existir contato com o mesmo
+   * documento ou nome, vincula direto; caso contrário abre o formulário oficial
+   * de Clientes / Fornecedores pré-preenchido com o que o extrato identificou.
    */
-  const createContactFromStatement = async (row: StagingRow, overrideName?: string) => {
+  const createContactFromStatement = async (row: StagingRow) => {
     const cp = counterpartyByRow[row.id];
-    if (!cp?.name && !cp?.document) return;
-    // Nomes vindos do extrato chegam em CAIXA ALTA: gravamos já normalizados.
-    const name = toProperName(overrideName ?? cp.name ?? "").trim();
-    if (!name) {
-      setContactNamePrompt({ rowId: row.id, name: "", document: cp.document });
-      return;
-    }
-    setCreatingContact(row.id);
-    try {
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth.user?.id;
-      if (!userId || !selectedCompanyId) { toast.error("Sessão expirada"); return; }
-      const isEntrada = row.amount >= 0;
-      const contactType = cp.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor";
+    // Nomes vindos do extrato chegam em CAIXA ALTA: normalizamos antes de sugerir.
+    const name = toProperName(cp?.name ?? "").trim();
+    const document = cp?.document ?? null;
+    const isEntrada = row.amount >= 0;
+    const contactType: "cliente" | "fornecedor" =
+      cp?.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor";
 
-      // Reaproveita contato já existente (mesmo documento ou mesmo nome) em vez de duplicar.
-      const existing = await findExistingContact({ userId, name, document: cp.document });
-      if (existing) {
-        await ensureContactCompanyLink(existing.id, selectedCompanyId);
-        setContacts((prev) =>
-          prev.some((c) => c.id === existing.id)
-            ? prev
-            : [...prev, {
-                id: existing.id,
-                name: existing.name,
-                type: existing.contact_type ?? null,
-                document: existing.document ?? null,
-              }].sort((a, b) => a.name.localeCompare(b.name)),
-        );
-        setRowContact((prev) => ({ ...prev, [row.id]: existing.id }));
-        setContactNamePrompt(null);
-        toast.success("Contato já cadastrado — vinculado ao lançamento");
-        return;
-      }
+    if (name || document) {
+      setCreatingContact(row.id);
+      try {
+        const { data: auth } = await supabase.auth.getUser();
+        const userId = auth.user?.id;
+        if (!userId || !selectedCompanyId) { toast.error("Sessão expirada"); return; }
 
-      const { data: created, error } = await supabase
-        .from("contacts")
-        .insert({
-          user_id: userId,
-          name,
-          document: cp.document,
-          contact_type: contactType as never,
-          visible_pf: false,
-        } as never)
-        .select("id")
-        .single();
-      if (error || !created) {
-        toast.error("Não foi possível cadastrar o contato", { description: error?.message });
-        return;
+        // Reaproveita contato já existente (mesmo documento ou mesmo nome) em vez de duplicar.
+        const existing = await findExistingContact({ userId, name, document });
+        if (existing) {
+          await ensureContactCompanyLink(existing.id, selectedCompanyId);
+          setContacts((prev) =>
+            prev.some((c) => c.id === existing.id)
+              ? prev
+              : [...prev, {
+                  id: existing.id,
+                  name: existing.name,
+                  type: existing.contact_type ?? null,
+                  document: existing.document ?? null,
+                }].sort((a, b) => a.name.localeCompare(b.name)),
+          );
+          setRowContact((prev) => ({ ...prev, [row.id]: existing.id }));
+          toast.success("Contato já cadastrado — vinculado ao lançamento");
+          return;
+        }
+      } finally {
+        setCreatingContact(null);
       }
-      const newId = (created as unknown as { id: string }).id;
-      await ensureContactCompanyLink(newId, selectedCompanyId);
-      setContacts((prev) => [
-        ...prev,
-        { id: newId, name, type: contactType, document: cp.document },
-      ].sort((a, b) => a.name.localeCompare(b.name)));
-      setRowContact((prev) => ({ ...prev, [row.id]: newId }));
-      setContactNamePrompt(null);
-      toast.success("Contato cadastrado e vinculado");
-    } finally {
-      setCreatingContact(null);
     }
+
+    setContactForm({ rowId: row.id, name, document, type: contactType });
   };
+
+  // Empresa em contexto já vem marcada nos vínculos do novo contato.
+  const contactFormCompanyIds = useMemo(
+    () => (selectedCompanyId ? [selectedCompanyId] : []),
+    [selectedCompanyId],
+  );
+
+  /** Após salvar no formulário: recarrega a lista e vincula o novo contato à linha. */
+  const handleContactSaved = async (newId?: string) => {
+    const rowId = contactForm?.rowId ?? null;
+    setContactForm(null);
+    if (!selectedCompanyId) return;
+    if (newId) await ensureContactCompanyLink(newId, selectedCompanyId);
+    const cts = await fetchAllCompanyContacts(selectedCompanyId);
+    setContacts((cts ?? []) as ContactOpt[]);
+    if (newId && rowId) setRowContact((prev) => ({ ...prev, [rowId]: newId }));
+  };
+
 
 
   if (contextType !== "pj") {
@@ -1105,6 +1109,14 @@ export default function ConciliacaoPluggy() {
                 }
                 creatingContact={creatingContact === r.id}
                 onCreateContact={() => createContactFromStatement(r)}
+                onCreateNewContact={() =>
+                  setContactForm({
+                    rowId: r.id,
+                    name: "",
+                    document: null,
+                    type: isEntrada ? "cliente" : "fornecedor",
+                  })
+                }
                 isReversal={
                   !!rowCategory[r.id] &&
                   categoryTypeById[rowCategory[r.id]] === (isEntrada ? "saida" : "entrada")
@@ -1319,7 +1331,21 @@ export default function ConciliacaoPluggy() {
                           <SelectTrigger className="h-8 w-[180px] min-w-[160px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
                             <SelectValue placeholder={isEntrada ? "Cliente…" : "Fornecedor…"} />
                           </SelectTrigger>
-                          <ContactSelectContent contacts={contacts} className="max-h-[420px]" />
+                          <ContactSelectContent
+                            contacts={contacts}
+                            className="max-h-[420px]"
+                            onCreateNew={
+                              disabled
+                                ? undefined
+                                : () =>
+                                    setContactForm({
+                                      rowId: r.id,
+                                      name: "",
+                                      document: null,
+                                      type: isEntrada ? "cliente" : "fornecedor",
+                                    })
+                            }
+                          />
                         </Select>
                         {rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id] && (
                           <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
@@ -1335,7 +1361,7 @@ export default function ConciliacaoPluggy() {
                             {creatingContact === r.id
                               ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                               : <UserPlus className="mr-1 h-3 w-3" />}
-                            Cadastrar {counterpartyByRow[r.id]?.name ?? "contato"}
+                            Cadastrar {counterpartyByRow[r.id]?.name ?? "fornecedor/cliente"}
                           </Button>
                         )}
                         </>
@@ -1447,51 +1473,16 @@ export default function ConciliacaoPluggy() {
         </div>
       )}
 
-      <Dialog open={!!contactNamePrompt} onOpenChange={(o) => !o && setContactNamePrompt(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Cadastrar contato</DialogTitle>
-            <DialogDescription>
-              O extrato não trouxe o nome da contraparte
-              {contactNamePrompt?.document ? ` (${contactNamePrompt.document})` : ""}. Informe o nome
-              para cadastrar o fornecedor/cliente.
-            </DialogDescription>
-          </DialogHeader>
-          <Input
-            autoFocus
-            placeholder="Nome do fornecedor/cliente"
-            value={contactNamePrompt?.name ?? ""}
-            onChange={(e) =>
-              setContactNamePrompt((prev) => (prev ? { ...prev, name: e.target.value } : prev))
-            }
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              const p = contactNamePrompt;
-              const row = p ? rows.find((r) => r.id === p.rowId) : null;
-              if (row && (p?.name ?? "").trim().length >= 2) createContactFromStatement(row, p!.name);
-            }}
-          />
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setContactNamePrompt(null)}>Cancelar</Button>
-            <Button
-              disabled={
-                (contactNamePrompt?.name ?? "").trim().length < 2 ||
-                creatingContact === contactNamePrompt?.rowId
-              }
-              onClick={() => {
-                const p = contactNamePrompt;
-                const row = p ? rows.find((r) => r.id === p.rowId) : null;
-                if (row && p) createContactFromStatement(row, p.name);
-              }}
-            >
-              {creatingContact === contactNamePrompt?.rowId && (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-              )}
-              Cadastrar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ContactFormDialog
+        open={!!contactForm}
+        onOpenChange={(o) => { if (!o) setContactForm(null); }}
+        defaultName={contactForm?.name}
+        defaultDocument={contactForm?.document ?? null}
+        defaultContactType={contactForm?.type}
+        defaultCompanyIds={contactFormCompanyIds}
+        defaultVisiblePf={false}
+        onSaved={(newId) => { void handleContactSaved(newId); }}
+      />
 
       <DividirLancamentoDialog
         open={!!splitRowId}

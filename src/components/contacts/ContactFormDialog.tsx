@@ -26,9 +26,25 @@ interface Props {
   editContact?: Tables<"contacts"> | null;
   defaultName?: string;
   defaultContactType?: "cliente" | "fornecedor" | "ambos";
+  /** Documento pré-preenchido (usado só na criação, ex.: vindo do extrato bancário). */
+  defaultDocument?: string | null;
+  /** Empresas já marcadas na criação (ex.: empresa em contexto na conciliação). */
+  defaultCompanyIds?: string[];
+  /** Quando há empresa pré-selecionada, o contato nasce oculto no PF. */
+  defaultVisiblePf?: boolean;
 }
 
-export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, defaultName, defaultContactType }: Props) {
+export function ContactFormDialog({
+  open,
+  onOpenChange,
+  onSaved,
+  editContact,
+  defaultName,
+  defaultContactType,
+  defaultDocument,
+  defaultCompanyIds,
+  defaultVisiblePf,
+}: Props) {
   const { user } = useAuth();
   const { companies } = useCompanyContext();
   const [name, setName] = useState("");
@@ -64,11 +80,14 @@ export function ContactFormDialog({ open, onOpenChange, onSaved, editContact, de
         });
     } else {
       setName(defaultName ?? ""); setContactType(defaultContactType ?? "cliente"); setEmail(""); setPhone("");
-      setDocument(""); setAddress(""); setNotes("");
-      setVisiblePf(true);
-      setSelectedCompanyIds([]);
+      setDocument(defaultDocument ? maskCpfCnpj(defaultDocument) : ""); setAddress(""); setNotes("");
+      setVisiblePf(defaultVisiblePf ?? true);
+      setSelectedCompanyIds(defaultCompanyIds ?? []);
     }
-  }, [editContact, open, defaultName, defaultContactType]);
+    // `defaultCompanyIds` entra pela chave estável abaixo para não reabrir o efeito
+    // a cada render do componente pai (o que apagaria o que o usuário digitou).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editContact, open, defaultName, defaultContactType, defaultDocument, defaultVisiblePf, (defaultCompanyIds ?? []).join(",")]);
 
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds((prev) =>

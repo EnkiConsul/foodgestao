@@ -70,6 +70,8 @@ interface StagingCardProps {
   canCreateContact?: boolean;
   creatingContact?: boolean;
   onCreateContact?: () => void;
+  /** Abre o formulário completo de fornecedor/cliente sem sugestão do extrato. */
+  onCreateNewContact?: () => void;
   /** true quando a categoria escolhida é do tipo oposto ao valor (estorno). */
   isReversal: boolean;
   selected: boolean;
@@ -110,6 +112,7 @@ export function StagingCard({
   canCreateContact,
   creatingContact,
   onCreateContact,
+  onCreateNewContact,
   isReversal,
   selected,
   onSelectedChange,
@@ -358,7 +361,11 @@ export function StagingCard({
                     <SelectTrigger className="h-10 w-full text-sm [&>span]:block [&>span]:truncate [&>span]:text-left">
                       <SelectValue placeholder="Não informado" />
                     </SelectTrigger>
-                    <ContactSelectContent contacts={contacts} className="max-h-[50vh]" />
+                    <ContactSelectContent
+                      contacts={contacts}
+                      className="max-h-[50vh]"
+                      onCreateNew={!disabled && onCreateNewContact ? onCreateNewContact : undefined}
+                    />
                   </Select>
                   {contact && contactSuggested && (
                     <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
@@ -374,7 +381,7 @@ export function StagingCard({
                       {creatingContact
                         ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                         : <UserPlus className="mr-1 h-3 w-3" />}
-                      Cadastrar contato do extrato
+                      Cadastrar fornecedor/cliente
                     </Button>
                   )}
                 </div>

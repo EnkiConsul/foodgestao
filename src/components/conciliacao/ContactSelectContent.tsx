@@ -1,3 +1,4 @@
+import { UserPlus } from "lucide-react";
 import { toProperName } from "@/lib/text/properName";
 import { useMemo, useState } from "react";
 import { SelectContent, SelectItem } from "@/components/ui/select";
@@ -29,9 +30,12 @@ const CHUNK = 50;
 export function ContactSelectContent({
   contacts,
   className,
+  onCreateNew,
 }: {
   contacts: ContactSelectOption[];
   className?: string;
+  /** Quando informado, mostra o atalho "Cadastrar novo fornecedor/cliente". */
+  onCreateNew?: () => void;
 }) {
   const [search, setSearch] = useState("");
   const [visible, setVisible] = useState(CHUNK);
@@ -65,6 +69,23 @@ export function ContactSelectContent({
           {filtered.length} de {contacts.length}
         </p>
       </div>
+
+      {onCreateNew && (
+        <div className="border-b p-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-full justify-start gap-2 text-xs font-medium text-primary"
+            onClick={(e) => { e.preventDefault(); onCreateNew(); }}
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            Cadastrar novo fornecedor/cliente
+          </Button>
+        </div>
+      )}
+
+
 
       {shown.map((c) => (
         <SelectItem key={c.id} value={c.id}>
