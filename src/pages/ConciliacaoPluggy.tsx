@@ -316,6 +316,12 @@ export default function ConciliacaoPluggy() {
     if (!selectedCompanyId) { setLoading(false); return; }
     setLoading(true);
 
+    // Contatos do próprio usuário (perfil Pessoal) também entram na sugestão.
+    const { data: authData } = await supabase.auth.getUser();
+    const currentUserId = authData.user?.id ?? null;
+
+
+
     // Resolve o escopo por conta antes de montar a query de staging
     let resolvedScope: ScopeInfo | null = null;
     if (scopedLocalAccountId) {
