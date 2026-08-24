@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpPage, DpPageHeader, DpContentCard, DpEmptyState } from "@/components/dp/DpPage";
-import { NovaConvocacaoWizard } from "@/components/dp/convocacoes/NovaConvocacaoWizard";
+import { NovaConvocacaoPlanner } from "@/components/dp/convocacoes/NovaConvocacaoPlanner";
 import { ConvocacoesRegrasPanel } from "@/components/dp/convocacoes/ConvocacoesRegrasPanel";
 import { useDpConvocacaoGrupos, type GrupoComOcorrencias } from "@/hooks/useDpConvocacaoGrupos";
 import { useDpConvocacoes } from "@/hooks/useDpConvocacoes";
@@ -327,7 +327,7 @@ export default function DpConvocacoes() {
         </TabsContent>
       </Tabs>
 
-      <NovaConvocacaoWizard
+      <NovaConvocacaoPlanner
         open={wizard}
         onOpenChange={(v) => {
           setWizard(v);
