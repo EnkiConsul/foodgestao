@@ -13580,6 +13580,10 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      dp_adicionar_dias_uteis: {
+        Args: { _base: string; _dias: number; _timezone: string }
+        Returns: string
+      }
       dp_beneficios_gerar_lancamentos: {
         Args: { _periodo_id: string }
         Returns: number
@@ -13688,6 +13692,7 @@ export type Database = {
         Args: { _company_id: string }
         Returns: number
       }
+      dp_e_dia_util: { Args: { _data: string }; Returns: boolean }
       dp_editar_desligamento: {
         Args: {
           p_colaborador_id: string
