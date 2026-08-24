@@ -1501,6 +1501,13 @@ export default function ConciliacaoPluggy() {
             </tbody>
           </table>
         </CardContent></Card>
+        {filtered.length > visibleRows.length && (
+          <div className="flex justify-center py-4">
+            <Button variant="outline" onClick={() => setVisibleLimit((n) => n + PAGE_SIZE)}>
+              Mostrar mais ({filtered.length - visibleRows.length} restantes)
+            </Button>
+          </div>
+        )}
         </>
       )}
 
