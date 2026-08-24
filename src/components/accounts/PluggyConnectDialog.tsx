@@ -454,6 +454,45 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
 
   if (phase === "framed") return null;
 
+  if (phase === "returning") {
+    const itemId = returnedItemIdRef.current;
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Confirmando autorização do banco"
+      >
+        <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg">
+          <h2 className="text-lg font-semibold">Confirmando a autorização com o banco…</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Recebemos o retorno do seu banco e estamos importando as contas e os lançamentos.
+            Isso pode levar alguns instantes.
+          </p>
+          <div className="flex items-center justify-center py-6">
+            {checking && <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />}
+            {!checking && error && <p className="text-center text-sm text-destructive">{error}</p>}
+          </div>
+          {!checking && error && (
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="ghost" onClick={() => { returnedItemIdRef.current = null; setError(null); setPhase("launch"); }}>
+                Conectar novamente
+              </Button>
+              <Button variant="outline" onClick={() => { clearResume(); onOpenChange(false); }}>
+                Fechar
+              </Button>
+              <Button onClick={() => itemId && finishReturn(itemId)} disabled={!itemId}>
+                Verificar novamente
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+
+
 
 
 
