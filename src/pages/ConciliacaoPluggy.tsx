@@ -130,6 +130,9 @@ interface Connection {
   connector_image_url: string | null;
   status: string;
   last_synced_at: string | null;
+  last_sync_attempt_at: string | null;
+  next_sync_at: string | null;
+  last_sync_status: string | null;
 }
 
 interface AccountOpt { id: string; name: string; }
