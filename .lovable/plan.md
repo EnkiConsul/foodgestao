@@ -1,80 +1,77 @@
-# Convocações — Fase 3B.1 · Validação funcional da M13 em ambiente isolado
+# Convocações — BLOCO 1: Tela completa + Rascunho + Regras
 
-**Estado final: `3B1_VALIDATION_ENVIRONMENT_UNAVAILABLE`**
+Diagnóstico rápido feito (só o necessário para o Bloco 1). Escopo integral mantido, sem MVP reduzido. Bloco 2 não será iniciado.
 
-Fase 0 (diagnóstico de ambiente) foi executada e **reprovou**. Nenhuma migration, RPC, fixture ou alteração de código/banco foi feita. Produção não foi usada como fallback.
+## Estado real verificado
 
-## A. Ambiente utilizado — indisponível
+- `src/pages/dp/DpConvocacoes.tsx` (284 linhas) é a tela **legada**: um único colaborador intermitente, uma data, sem abas, sem cargos, sem grupo/ocorrência. Escreve direto na tabela via `useDpConvocacoes` (132 linhas).
+- Backend do novo fluxo **já existe e está aplicado**: `dp_convocacao_grupos`, `dp_convocacao_ocorrencias`, `dp_convocacao_config`, `dp_convocacao_eventos`, `dp_convocacao_descumprimentos`, mais as RPCs `dp_convocacao_criar_grupo`, `atualizar_grupo`, `criar_ocorrencia`, `atualizar_ocorrencia`, `revisar_ocorrencia`, `salvar_config` e as helpers `dp_convocacao_config_resolvida`, `dp_regime_convocavel`, `dp_e_dia_util`, `dp_adicionar_dias_uteis`.
+- `dp_convocacao_config` já tem todas as 12 regras da aba Regras (antecedência, prazo em dias úteis, aprovação, 4 matrizes de substituição, fixo em folga dominical, reabrir vaga, autonomia, oferta aberta, justificativa em exceção). Consentimento do substituto é sempre obrigatório e não terá toggle.
+- `dp_cobertura_minima` já existe como fonte única de mínimo (consumida em leitura no calendário).
+- `FolgaCalendarShared.tsx` (402 linhas) existe e será a base visual do calendário.
 
-| Requisito | Resultado verificado |
-| --- | --- |
-| Supabase Branch/Preview Branch isolada | **Indisponível** — não há ferramenta de branch/preview exposta a este agente (namespace Supabase só expõe migration, read_query, run_sql, functions, storage, auth config do projeto único de produção). |
-| Supabase CLI | **Ausente** (`which supabase` → não encontrado; não é dependência do `package.json`). |
-| Docker / Podman | **Ausentes** (`docker`, `podman` não existem no sandbox; `docker info` falha). Sem Docker não há stack Supabase local. |
-| PostgreSQL local | **Binários presentes** (`initdb`/`postgres`/`psql` 17.9) — mas ver limitações abaixo. |
-| Auth (GoTrue) para emitir JWT `authenticated` real | **Indisponível** — GoTrue faz parte da stack containerizada; sem Docker não há emissão de JWT. |
-| Duas sessões PostgreSQL simultâneas | Possível apenas num cluster local (que não pode ser provisionado com fidelidade — ver B). |
-| Executar RPC como `authenticated` no banco de produção | **Impossível** — o papel do sandbox não tem `EXECUTE` nas RPCs (limitação já registrada na 3B.1) e o uso funcional em produção é proibido por esta própria tarefa. |
+### P0 reais encontrados (resolvidos por 1 migration aditiva no Bloco 1)
 
-Conclusão da Fase 0: nenhuma das opções A (branch) ou B (stack local via CLI/Docker) está disponível.
+1. `dp_convocacao_ocorrencias` **não tem `colaborador_alvo_id`** — sem isso a modalidade Individual não pode ser salva em rascunho.
+2. `dp_colaboradores` tem `valor_hora` mas **não tem `valor_diaria`** — necessário para diagnosticar elegibilidade de Freelancer diarista já na etapa Revisar.
 
-## B. Schema reproduzido — não reproduzido
+Nenhum outro P0. Implemento o Bloco 1 na sequência.
 
-O fallback "só Postgres local, sem stack Supabase" foi avaliado e **não satisfaz** os requisitos desta tarefa:
+## O que o gestor verá funcionando ao fim do Bloco 1
 
-- 469 migrations no repositório, das quais **254 arquivos** referenciam `auth.users` / `auth.uid()` / `storage.*` / `vault.*` / `supabase_functions` / `pg_net` / `pgsodium` / `pg_cron` — objetos criados pela plataforma Supabase, não pelas migrations.
-- Extensões exigidas pelas migrations: `pg_cron`, `pg_net`, `pgmq`, `supabase_vault`, `pg_trgm`, `unaccent`. As três primeiras e o vault **não existem** num Postgres 17 puro do sandbox.
-- Papéis `anon`, `authenticated`, `service_role` e o esquema `auth` teriam de ser fabricados por script de teste — isso já é "reproduzir o schema por meios que não as migrations oficiais", proibido pela seção 4.
-- Mesmo com fabricação, `auth.uid()` seria emulado por `SET LOCAL request.jwt.claims` + `SET ROLE authenticated`, o que **viola a seção 6** (identidade real vinda de JWT emitido pelo Auth) e enfraqueceria justamente as provas de identidade/papel (7.12).
+Tela `/dp/convocacoes` reconstruída com abas **Próximas · Aguardando · Confirmadas · Realizadas · Histórico · Regras** (as abas de acompanhamento já leem dados reais; ficam vazias até a publicação existir, com estado vazio explicativo — nenhuma tela morta).
 
-Por isso não foi executado nenhum `initdb`, nem aplicação parcial de migrations: validar a M13 sobre um schema estruturalmente diferente é explicitamente proibido pela seção 4.
+Wizard **Nova Convocação** na ordem aprovada, salvando rascunho de verdade a cada passo:
 
-## C. Fixtures criadas
+```text
+Unidade → Mês/período → Cargos (multi) → Calendário mensal por cargo →
+Datas → Vagas → Individual/Aberta → Público → Jornada → Revisar → [Publicar: Bloco 2]
+```
 
-Nenhuma. Zero dados sintéticos criados em qualquer ambiente.
+- **Unidade**: unidades da empresa atual; backend rederiva company/membership/role — nada autoritativo sai do frontend.
+- **Mês/período**: competência + intervalo opcional dentro dela. Grupo = ação mensal; cada data continua independente por ocorrência.
+- **Cargos**: multi-select; cada cargo ganha seu próprio calendário mensal.
+- **Calendário mensal por cargo** (base `FolgaCalendarShared`): seleção visual de datas; por data mostra `Garçom 3/6 · faltam 3` quando há cobertura mínima, ou `Garçom · 3 confirmados` quando não há; pendentes sempre em linha separada `+2 aguardando`. Pendente nunca soma como confirmado. Clique na data abre drawer com cargo, trabalhadores, regime, horário, origem, situação, vaga e confirmação.
+- **Vagas** por data+cargo+necessidade. Ocupação é sempre calculada por aceites válidos — nenhum contador persistido.
+- **Individual/Aberta**: Individual exige 1 alvo e trava vagas em 1; Aberta mantém alvo nulo e deixa o backend resolver elegíveis na publicação.
+- **Público**: lista de elegíveis por leitura (mesma empresa, unidade, ativo, cargo, `dp_regime_convocavel`, jornada válida, compatibilidade integral, sem conflito na data). `compoe_equipe_habitual` não entra como critério. Compatibilidade só `integral | incompativel`.
+- **Jornada**: "Usar jornada cadastrada" (`jornada_individual`) ou "Definir horário desta convocação" (`horario_unico`: entrada, saída, intervalo, vira dia), com carga prevista calculada.
+- **Revisar**: resumo por cargo/data/vagas/modalidade/jornada, aviso de antecedência inferior a 3 dias corridos com confirmação (e justificativa quando a configuração exigir), e diagnóstico de remuneração ausente (Intermitente/Freelancer horista sem `valor_hora`; Freelancer diarista sem `valor_diaria`; Freelancer mensalista marcado como não elegível). Nada é convertido automaticamente a partir de salário mensal.
+- Botão Publicar aparece desabilitado com a legenda "disponível no próximo bloco".
 
-## D–G. Testes M13, concorrência, multiempresa, eventos
+**Aba Regras**: formulário em linguagem simples, empresa + override opcional por unidade, salvando via `dp_convocacao_salvar_config` com controle otimista (`p_expected_updated_at`) e mensagem amigável em conflito. Consentimento do substituto exibido como obrigatório e não editável.
 
-**Não executados** (7.1 a 7.12). Motivo único e objetivo: ausência de ambiente isolado com Auth capaz de emitir JWT `authenticated` real. Nenhum resultado é presumido.
+Rascunho é persistido nas tabelas reais: grupo em `rascunho`, ocorrências em `rascunho`, via as RPCs idempotentes existentes (ids gerados no cliente, `ON CONFLICT` no servidor) — retry não duplica nada.
 
-## H. Grants e assinatura
+## Detalhes técnicos
 
-Reverificados apenas por **leitura** do catálogo de produção (permitido pela seção 12), confirmando o registro estático da 3B.1:
+### Migration (M14 — aditiva, sem tocar migrations antigas)
 
-- `dp_convocacao_salvar_config` — **1 única** assinatura, incluindo `p_expected_updated_at timestamptz`; nenhum overload antigo.
-- 6 RPCs de aplicação (`criar_grupo`, `atualizar_grupo`, `criar_ocorrencia`, `atualizar_ocorrencia`, `revisar_ocorrencia`, `salvar_config`): `DEFINER`, ACL = `postgres`, `authenticated`, `service_role`; sem `anon`, sem `PUBLIC`.
-- Helpers internos `dp_convocacao_exige_admin` e `dp_convocacao_log_evento`: `DEFINER`, ACL = `postgres`, `service_role` apenas — sem `authenticated`, sem `anon`, sem `PUBLIC`.
+- `dp_convocacao_ocorrencias.colaborador_alvo_id uuid NULL` + FK composta `(colaborador_alvo_id, company_id) → dp_colaboradores(id, company_id)` (índice único de suporte criado se ainda não existir).
+- CHECK/trigger de coerência com a modalidade do grupo: grupo `individual` ⇒ alvo obrigatório e `vagas = 1`; grupo `aberta` ⇒ alvo `NULL`. Alvo imutável depois de publicada.
+- Índice em `(company_id, colaborador_alvo_id, data)`.
+- `dp_colaboradores.valor_diaria numeric NULL` (aditivo, sem default, sem backfill).
+- `dp_convocacao_criar_ocorrencia` e `dp_convocacao_atualizar_ocorrencia` ganham o parâmetro `p_colaborador_alvo_id` ao final da assinatura, mantendo `SECURITY DEFINER`, `search_path` seguro, autorização antes de locks e grants restritos (`authenticated` + `service_role`, sem `anon`/`PUBLIC`). Substituição da função por `CREATE OR REPLACE`/drop da assinatura antiga na mesma migration para não deixar overload duplicado.
+- Rollback: drop das colunas/índices/FK e restauração das assinaturas anteriores — documentado no corpo da migration.
+- `src/integrations/supabase/types.ts` regenerado após aprovação.
 
-## I. Baseline
+### Frontend
 
-Não reexecutado nesta tarefa: nada no repositório foi alterado, portanto não há risco de regressão a medir. O baseline vigente permanece o da 3B.1 (vite build exit 0; 912 passed / 2 falhos de Pedidos / 46 skipped; lint 1414 problemas com 6 erros; typecheck strict 46 erros, 0 em Convocações).
+- `src/pages/dp/DpConvocacoes.tsx` reescrita como shell de abas.
+- Novos componentes em `src/components/dp/convocacoes/`: `NovaConvocacaoWizard.tsx`, `WizardUnidadePeriodo.tsx`, `WizardCargos.tsx`, `CargoCalendarioMes.tsx`, `OcorrenciaDrawer.tsx`, `WizardPublicoJornada.tsx`, `WizardRevisar.tsx`, `ConvocacoesRegrasPanel.tsx`, `ConvocacoesListaPanel.tsx`.
+- Novos hooks: `useDpConvocacaoGrupos.tsx` (CRUD de rascunho pelas RPCs), `useDpConvocacaoConfig.tsx`, `useDpConvocacaoElegiveis.tsx`, `useDpConvocacaoCobertura.tsx`.
+- Nova lógica pura em `src/lib/dp/convocacoes-planejamento.ts`: compatibilidade integral, Option A (uma oportunidade por pessoa/dia, ordem determinística `data → necessidade_entrada → necessidade_saida → cargo_id → id`), antecedência em dias corridos, prazo de resposta em dias úteis (seg–sex, sem feriados) separado do encerramento operacional, e diagnóstico de remuneração.
+- `src/lib/dp/convocacoes.ts` e `useDpConvocacoes.tsx` preservados para o fluxo legado (`ocorrencia_id IS NULL`) — coexistência intacta até o cutover do Bloco 6.
+- Mapa de erros → mensagem em português (`FORBIDDEN`, `NOT_FOUND`, `INVALID_STATE`, `CONCURRENT_MODIFICATION`, `PUBLICATION_*`, `OPTION_A_CONFLICT`, …). Nenhum termo técnico (RPC, RLS, trigger, worker, lease, service_role) na interface e nenhum erro SQL cru.
+- Responsivo em desktop/tablet/mobile, com loading, sucesso, erro e confirmação em ações destrutivas.
 
-## J. Limpeza
+### Testes
 
-Nada a limpar: zero fixtures, zero resíduos, zero escrita em produção.
+Unitários novos para `convocacoes-planejamento.ts` (compatibilidade, Option A, antecedência, dia útil, dois prazos, diagnóstico de remuneração) e testes de integridade da modalidade Individual/Aberta. Baseline comparado ao conhecido: build exit 0; 912 passed / 2 falhas pré-existentes de Pedidos / 46 skipped; lint 1414 problemas e 6 erros; typecheck strict 46 erros e 0 em Convocações.
 
-## K. Estado final
+## Pendências que permanecem
 
-`3B1_VALIDATION_ENVIRONMENT_UNAVAILABLE`
+- **RELEASE BLOCKER mantido**: validação funcional de concorrência da M13 não executada (sem ambiente isolado com Auth real). A 3B.1 continua não declarada validada; isso não bloqueia o desenvolvimento.
+- Blocos 2 a 6 (publicação, ofertas, Portal, aceite/recusa, indisponibilidade, encerramentos, substituição, descumprimento, comparecimento, histórico, cutover) fora deste bloco.
 
-Consequentemente: **3B.1 permanece 🟡** e **3B.2 permanece ⛔**. O documento auditável não foi alterado — a seção 5 só deve ser escrita com resultados reais observados.
-
-## L. Arquivos alterados
-
-Nenhum arquivo do projeto. Apenas este relatório de plano.
-
-## M. Próximo passo recomendado — escolha necessária
-
-Uma das opções abaixo, à sua decisão:
-
-1. **Recomendado — Supabase Branch fora deste agente**: criar uma branch/projeto Supabase descartável e me fornecer, como secrets, a URL, a `anon key`, a `service_role key` e a URL de conexão do banco dessa branch. Com isso eu aplico as migrations oficiais, crio usuários reais no Auth da branch, emito JWT `authenticated` de verdade (`/auth/v1/token`), abro duas sessões PostgreSQL simultâneas e executo integralmente 7.1–7.12, com limpeza e registro de evidências reais.
-2. **Aproximação declaradamente parcial (build mode)**: cluster Postgres 17 local com `auth`/papéis fabricados e `request.jwt.claims` emulado. Provaria serialização, locks, idempotência e optimistic concurrency, mas **não** provaria identidade via JWT real; a 3B.1 continuaria 🟡 e a evidência ficaria marcada como parcial.
-3. **Manter como está**: 3B.1 🟡 e 3B.2 ⛔ até haver ambiente isolado.
-
-Se quiser a opção 1 ou 2, eu preparo os scripts de teste (duas sessões, `lock_timeout`, contagem de eventos antes/depois, limpeza) e executo em build mode.
-
-## Contexto registrado para a futura 3B.2 (não implementado)
-
-- Público individual aprovado: `colaborador_alvo_id` em `dp_convocacao_ocorrencias`, FK composta com `company_id`, individual ⇒ exatamente 1 alvo e `vagas = 1`, aberta ⇒ `NULL`, alvo imutável após publicação.
-- Remuneração V1: `dp_cargo_salarios.salario_base` **não** é valor-hora. Intermitente e Freelancer horista exigem `valor_hora > 0`; Freelancer diarista exigirá fonte autoritativa `valor_diaria`; Freelancer mensalista não elegível. Nenhuma conversão inventada.
-- Convocação aberta: 0 elegíveis ⇒ `PUBLICATION_NO_ELIGIBLE`; elegíveis < vagas ⇒ publica com diagnóstico; Option A resolvida pela ordem determinística `(data, necessidade_entrada, necessidade_saida, cargo_id, id)`.
+Ao terminar o Bloco 1 eu paro e apresento tela, fluxo, arquivos, migration, RPCs, testes, evidências de segurança, rollback e pendências.
