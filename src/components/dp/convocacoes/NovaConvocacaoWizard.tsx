@@ -149,6 +149,14 @@ export function NovaConvocacaoWizard({
     if (!open) return;
     setPasso(0);
     setDetalheId(null);
+    setRemovidas({});
+    setJustificativas({});
+    setConfirmarPublicacao(false);
+    setPersistidas(
+      grupo
+        ? Object.fromEntries(grupo.ocorrencias.map((o) => [o.id, o.updated_at ?? null]))
+        : {},
+    );
     if (grupo) {
       const [a, m] = grupo.competencia.split("-").map(Number);
       setGrupoId(grupo.id);
