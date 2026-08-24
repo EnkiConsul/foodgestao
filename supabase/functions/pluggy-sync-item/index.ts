@@ -352,18 +352,40 @@ Deno.serve(async (req) => {
         .single();
 
       // Cartões de crédito NÃO são materializados automaticamente: apenas ficam
-      // pendentes de autorização do usuário na tela de revisão.
+      // pendentes de autorização do usuário na tela de revisão. Se o mesmo cartão
+      // já havia sido autorizado numa conexão anterior do mesmo banco, herda o
+      // vínculo em vez de pedir autorização de novo.
       if (
         upserted &&
         (acc.type ?? '').toUpperCase() === 'CREDIT' &&
         !upserted.linked_credit_card_id &&
         (upserted.credit_review_status ?? 'none') === 'none'
       ) {
+        let inheritedCardId: string | null = null;
+        if (acc.number) {
+          const { data: priorCard } = await admin
+            .from('pluggy_accounts')
+            .select('linked_credit_card_id')
+            .eq('company_id', effectiveCompanyId)
+            .eq('number_masked', acc.number)
+            .not('linked_credit_card_id', 'is', null)
+            .neq('id', upserted.id)
+            .limit(1)
+            .maybeSingle();
+          inheritedCardId = priorCard?.linked_credit_card_id ?? null;
+        }
         await admin
           .from('pluggy_accounts')
-          .update({ credit_review_status: 'pending' })
+          .update(inheritedCardId
+            ? {
+              linked_credit_card_id: inheritedCardId,
+              credit_review_status: 'linked',
+              credit_review_at: new Date().toISOString(),
+            }
+            : { credit_review_status: 'pending' })
           .eq('id', upserted.id);
       }
+
 
       if (upserted && !upserted.linked_account_id && (acc.type ?? '').toUpperCase() === 'BANK') {
         const ownerUserId = userId ?? (await admin
