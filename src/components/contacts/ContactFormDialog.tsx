@@ -84,7 +84,10 @@ export function ContactFormDialog({
       setVisiblePf(defaultVisiblePf ?? true);
       setSelectedCompanyIds(defaultCompanyIds ?? []);
     }
-  }, [editContact, open, defaultName, defaultContactType, defaultDocument, defaultVisiblePf, defaultCompanyIds]);
+    // `defaultCompanyIds` entra pela chave estável abaixo para não reabrir o efeito
+    // a cada render do componente pai (o que apagaria o que o usuário digitou).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editContact, open, defaultName, defaultContactType, defaultDocument, defaultVisiblePf, (defaultCompanyIds ?? []).join(",")]);
 
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds((prev) =>
