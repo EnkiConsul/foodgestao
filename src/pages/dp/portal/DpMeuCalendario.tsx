@@ -117,6 +117,11 @@ export default function DpMeuCalendario() {
     },
   });
 
+  /** Intermitente/Freelancer usam a agenda de disponibilidade. */
+  const convocavel = regimeConvocavel(meRef.data?.regime ?? null);
+
+
+
   const range = useMemo(() => {
     const s = startOfMonth(new Date(ano, mes - 1, 1));
     const e = endOfMonth(s);
