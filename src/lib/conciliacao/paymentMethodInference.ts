@@ -87,8 +87,30 @@ export function inferPaymentMethodKey(row: InferencePaymentRow): PaymentMethodKe
   if (/\bTED\b|\bDOC\b|TRANSFERENCIA/.test(text)) return "ted";
   if (/DINHEIRO|\bSAQUE\b|DEPOSITO EM DINHEIRO/.test(text)) return "dinheiro";
 
+  // Nubank e afins devolvem paymentMethod OTHER em compra de cartão: saída sem
+  // pagador/recebedor externo é, na prática, compra no débito da conta.
+  if ((bank === "OTHER" || bank === null) && isCardPurchaseShape(row.raw)) return "debito";
+
   return null;
 }
+
+/**
+ * Formato típico de compra com cartão: débito na conta em que o único lado
+ * informado é o próprio titular (não há transferência para terceiro).
+ */
+function isCardPurchaseShape(raw: unknown): boolean {
+  if (!raw || typeof raw !== "object") return false;
+  const type = (raw as { type?: unknown }).type;
+  if (typeof type !== "string" || type.toUpperCase() !== "DEBIT") return false;
+  const pd = (raw as { paymentData?: unknown }).paymentData;
+  if (!pd || typeof pd !== "object") return false;
+  const receiver = (pd as Record<string, unknown>).receiver;
+  const payer = (pd as Record<string, unknown>).payer;
+  // Recebedor identificado significa transferência (Pix/TED), não compra.
+  if (receiver && typeof receiver === "object") return false;
+  return !!(payer && typeof payer === "object");
+}
+
 
 const KEY_PATTERNS: Record<PaymentMethodKey, RegExp> = {
   pix: /\bPIX\b/,
