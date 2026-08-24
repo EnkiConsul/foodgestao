@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeDocumento } from "@/lib/documento";
 
 export interface CompanyContact {
   id: string;
