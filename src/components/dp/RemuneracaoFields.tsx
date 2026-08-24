@@ -130,6 +130,8 @@ export const remuneracaoBlank: RemuneracaoFormState = {
   forma_pagamento: "mensalista",
   salario_base: "",
   valor_hora: "",
+  valor_diaria: "",
+
   dependentes_irrf: "0",
   adicional_percentual: "0",
   insalubridade_percentual: "0",
