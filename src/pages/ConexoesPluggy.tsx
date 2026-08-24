@@ -144,7 +144,16 @@ export default function ConexoesPluggy() {
     if (error) {
       setCancelingPending(false);
       setConfirmCancelPending(false);
-      toast.error("Não foi possível cancelar a conexão em andamento");
+      const motivo = (error.message ?? "").toLowerCase();
+      let texto = "Não foi possível cancelar a conexão em andamento.";
+      if (motivo.includes("not_authenticated")) {
+        texto += " Sua sessão expirou. Faça login novamente.";
+      } else if (motivo.includes("forbidden")) {
+        texto += " Você não tem permissão para cancelar esta autorização.";
+      } else if (error.message) {
+        texto += ` Motivo: ${error.message}`;
+      }
+      toast.error(texto);
       return;
     }
     // Atualização otimista: o aviso de "Conexão em andamento" sai da tela na hora,
