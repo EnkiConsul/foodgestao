@@ -18,9 +18,7 @@ import { ImportStatementDialog } from "@/components/transactions/ImportStatement
 import { AdjustAccountBalanceDialog } from "@/components/accounts/AdjustAccountBalanceDialog";
 import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
 import { PluggyConnectDialog, hasPluggyResume, hasPluggyReturn } from "@/components/accounts/PluggyConnectDialog";
-import { PluggyPendingConnectionAlert } from "@/components/accounts/PluggyPendingConnectionAlert";
 import { useNavigate } from "react-router-dom";
-
 
 
 
@@ -422,12 +420,7 @@ export default function ContasBancarias() {
         </div>
       </div>
 
-      {contextType === "pj" && selectedCompanyId && (
-        <PluggyPendingConnectionAlert companyId={selectedCompanyId} />
-      )}
-
       {staleBalance && (
-
         <Alert variant="destructive" className="border-warning/50 bg-warning/10 text-foreground [&>svg]:text-warning">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Saldos podem estar desatualizados</AlertTitle>
