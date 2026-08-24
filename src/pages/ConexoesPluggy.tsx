@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PluggyConnectDialog } from "@/components/accounts/PluggyConnectDialog";
 import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
-import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2, CreditCard as CreditCardIcon } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2, CreditCard as CreditCardIcon, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -69,6 +69,8 @@ export default function ConexoesPluggy() {
   const [reconnectItemId, setReconnectItemId] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<Connection | null>(null);
   const [creditReviewOpen, setCreditReviewOpen] = useState(false);
+  const [confirmCancelPending, setConfirmCancelPending] = useState(false);
+  const [cancelingPending, setCancelingPending] = useState(false);
   const { pending: pendingCredit, reload: reloadPendingCredit } = usePluggyCreditReview();
 
   const load = useCallback(async () => {
@@ -129,6 +131,27 @@ export default function ConexoesPluggy() {
     reloadPendingCredit();
   };
 
+  // Autorizações que ficaram presas (usuário desistiu no app do banco) podem ser
+  // canceladas para limpar o aviso de "Conexão em andamento".
+  const cancelarPendentes = async () => {
+    if (!selectedCompanyId) return;
+    setCancelingPending(true);
+    const { data, error } = await supabase.rpc("pluggy_cancel_connect_requests", {
+      _company_id: selectedCompanyId,
+    });
+    setCancelingPending(false);
+    setConfirmCancelPending(false);
+    if (error) {
+      toast.error("Não foi possível cancelar a conexão em andamento");
+      return;
+    }
+    toast.success(
+      (data ?? 0) > 1 ? `${data} autorizações canceladas` : "Conexão em andamento cancelada",
+    );
+    load();
+  };
+
+
   const disconnect = async () => {
     if (!confirmDelete) return;
     const { error } = await supabase.functions.invoke("pluggy-disconnect-item", {
@@ -176,9 +199,23 @@ export default function ConexoesPluggy() {
                 Se você autorizou pelo app do banco (QR Code), a conexão pode levar alguns minutos
                 para aparecer. Use <strong>Atualizar</strong> abaixo ou tente novamente em instantes.
               </p>
-              <Button size="sm" variant="outline" className="mt-2 h-7" onClick={() => load()}>
-                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Atualizar
-              </Button>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" className="h-7" onClick={() => load()}>
+                  <RefreshCw className="h-3.5 w-3.5 mr-1" /> Atualizar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-destructive hover:text-destructive"
+                  disabled={cancelingPending}
+                  onClick={() => setConfirmCancelPending(true)}
+                >
+                  {cancelingPending
+                    ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                    : <X className="h-3.5 w-3.5 mr-1" />}
+                  Cancelar conexão
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -302,7 +339,29 @@ export default function ConexoesPluggy() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={confirmCancelPending} onOpenChange={setConfirmCancelPending}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar a conexão em andamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A autorização iniciada será descartada e o aviso desaparece. Se o banco confirmar
+              depois, será necessário iniciar a conexão novamente em <strong>Conectar banco</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={cancelarPendentes}
+            >
+              Cancelar conexão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
 

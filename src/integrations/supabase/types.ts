@@ -15762,6 +15762,10 @@ export type Database = {
           transaction_type: Database["public"]["Enums"]["transaction_type"]
         }[]
       }
+      pluggy_cancel_connect_requests: {
+        Args: { _company_id: string; _request_id?: string }
+        Returns: number
+      }
       pluggy_confirm_staging:
         | {
             Args: {
