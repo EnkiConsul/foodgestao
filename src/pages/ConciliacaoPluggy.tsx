@@ -131,7 +131,9 @@ interface Connection {
 }
 
 interface AccountOpt { id: string; name: string; }
-interface ContactOpt { id: string; name: string; type: string | null; document: string | null; }
+interface ContactOpt { id: string; name: string; type: string | null; document: string | null; linkedToCompany?: boolean; }
+/** Origem da sugestão de fornecedor/cliente exibida na tela. */
+type SuggestionSource = "historico" | "documento" | "nome";
 interface CategoryOpt {
   id: string;
   name: string;
