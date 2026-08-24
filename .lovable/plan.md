@@ -29,9 +29,17 @@ A reconsulta nunca é `FOR UPDATE` só por `id`: em `criar_grupo` filtra por `id
 `ON CONFLICT` restrito a `(id)`, então conflitos de outras constraints de negócio continuam propagando normalmente. Sem tabela genérica de idempotência.
 
 
-**2. Serialização de criação de ocorrência × publicação**
+**2. Serialização de criação de ocorrência × publicação, com retry reconciliado antes do estado**
 
-`criar_ocorrencia` lê o grupo sem lock, autoriza, e só então trava o grupo (`FOR UPDATE`) e revalida `status = 'rascunho'` sobre a linha travada, mantendo a ordem de lock já aprovada (grupo → ocorrência) que `revisar_ocorrencia` também usa. Assim uma publicação futura da 3B.2 e a inclusão de ocorrência nunca se atravessam: quem chegar depois espera, relê o estado atual e falha com `NOT_DRAFT` se o grupo já foi publicado.
+Ordem em `criar_ocorrencia`:
+
+1. Ler o contexto do grupo sem lock e autorizar (`auth.uid()` + admin/owner).
+2. Reconciliar o retry **antes** de exigir rascunho: buscar `p_ocorrencia_id` no escopo autorizado (`id` + `company_id` + `grupo_id`). Existente com mesmo conteúdo/contexto → retorno idempotente, 0 evento, mesmo que o grupo já esteja publicado. Existente com conteúdo diferente → `IDEMPOTENCY_CONFLICT`. Fora do escopo autorizado → `IDEMPOTENCY_CONFLICT` imediato, sem lock cross-tenant.
+3. Inexistente → travar o grupo (`FOR UPDATE`), revalidar contexto e `status = 'rascunho'` (senão `NOT_DRAFT`) e tentar `INSERT ... ON CONFLICT (id) DO NOTHING`.
+4. Perdeu a corrida no `INSERT` → reconciliar de novo por consulta tenant-scoped antes de qualquer lock da ocorrência.
+
+Mantém a ordem de lock aprovada (grupo → ocorrência) que `revisar_ocorrencia` também usa: uma publicação futura da 3B.2 e a inclusão de nova ocorrência nunca se atravessam — quem chegar depois espera, relê o estado atual e falha com `NOT_DRAFT`.
+
 
 
 **3. Ordem correta da revisão (predecessora → sucessora)**
@@ -76,6 +84,7 @@ Duas sessões `psql` reais para os cenários concorrentes:
 - Grupo, mesmo ID + payload diferente → 1 criação + `IDEMPOTENCY_CONFLICT`.
 - Ocorrência, os mesmos dois cenários.
 - Sessão A trava o grupo e publica; Sessão B tenta criar ocorrência → aguarda; após o COMMIT de A, B revalida e devolve `NOT_DRAFT` sem criar ocorrência.
+- Retry após publicação: criar ocorrência → publicar o grupo → repetir exatamente a mesma criação → sucesso idempotente com 0 eventos adicionais. Com o grupo publicado e ocorrência inexistente → `NOT_DRAFT`.
 - Revisão preservando exatamente a identidade da necessidade (empresa/unidade/data/cargo/janela) e alterando só vagas/condições → sucessora criada sem violar `uq_dp_conv_ocor_necessidade_vigente`.
 - Revisão: mesma sucessora + mesmo payload → idempotente, 0 evento; mesma sucessora + payload material diferente → `IDEMPOTENCY_CONFLICT`; mesma sucessora + payload igual e `p_motivo` diferente → `IDEMPOTENCY_CONFLICT`; cadeia corrompida artificialmente → `REVISION_INCONSISTENT`.
 - Tentativa de lock cross-company: usuário de outra empresa em `atualizar_grupo`/`atualizar_ocorrencia`/`revisar_ocorrencia`/`criar_ocorrencia` → `FORBIDDEN` sem ter travado a linha (verificado com a linha travada por outra sessão: a chamada não bloqueia, falha na hora).
