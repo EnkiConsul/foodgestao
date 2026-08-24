@@ -75,11 +75,12 @@ export default function ConexoesPluggy() {
     if (!selectedCompanyId) return;
     setLoading(true);
     const { data: conns } = await supabase.from("pluggy_connections")
-      .select("id, pluggy_item_id, connector_name, connector_image_url, status, last_synced_at, last_error")
+      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_error")
       .eq("company_id", selectedCompanyId).order("created_at", { ascending: false });
 
-    const list = (conns ?? []) as Connection[];
+    const list = dedupeByConnector((conns ?? []) as Connection[]);
     setConnections(list);
+
 
     const { count: pending } = await supabase
       .from("pluggy_connect_requests")
