@@ -1161,10 +1161,21 @@ export function NovaConvocacaoWizard({
                 </Button>
               ) : (
                 <>
-                  <Button type="button" size="sm" variant="outline" disabled title="Disponível na próxima etapa do módulo">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setConfirmarPublicacao(true)}
+                    disabled={salvando || publicando || !ocorrenciasOk.length || !!foraDaCompetencia.length}
+                  >
+                    {publicando ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="mr-1 h-4 w-4" />
+                    )}
                     Publicar
                   </Button>
-                  <Button type="button" size="sm" onClick={salvarRascunho} disabled={salvando}>
+                  <Button type="button" size="sm" onClick={salvarRascunho} disabled={salvando || publicando}>
                     {salvando ? (
                       <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                     ) : (
