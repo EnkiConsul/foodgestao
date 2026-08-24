@@ -286,6 +286,32 @@ Deno.serve(async (req) => {
       .single();
     if (connErr) throw connErr;
 
+    // 1b) Deduplicação: uma nova autorização do MESMO banco (connector) na mesma
+    // empresa substitui a conexão anterior. Sem isso, cada "Conectar banco"
+    // repetido criava um novo item Pluggy e a lista exibia o mesmo banco 2x.
+    const connectorIdNum = item?.connector?.id ?? null;
+    if (connectorIdNum !== null) {
+      const { data: siblings } = await admin
+        .from('pluggy_connections')
+        .select('id')
+        .eq('company_id', effectiveCompanyId)
+        .eq('connector_id', connectorIdNum)
+        .neq('id', conn.id)
+        .neq('status', 'deleted');
+      const siblingIds = (siblings ?? []).map((s: any) => s.id);
+      if (siblingIds.length) {
+        await admin
+          .from('pluggy_connections')
+          .update({ status: 'deleted', last_sync_status: 'superseded' })
+          .in('id', siblingIds);
+        console.log('pluggy connection superseded', {
+          kept: conn.id, superseded: siblingIds, connector: connectorIdNum,
+        });
+      }
+    }
+
+
+
     // 2) Accounts — mirror to pluggy_accounts and auto-materialize local `accounts` for BANK type
     const accounts = await listAccounts(itemId);
     const connectorName: string = (item?.connector?.name ?? '').toLowerCase();
