@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PluggyConnectDialog, hasPluggyReturn } from "@/components/accounts/PluggyConnectDialog";
+import { PluggyPendingConnectionAlert } from "@/components/accounts/PluggyPendingConnectionAlert";
 import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
-import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2, CreditCard as CreditCardIcon, X } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2, CreditCard as CreditCardIcon } from "lucide-react";
+
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
