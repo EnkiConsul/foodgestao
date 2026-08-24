@@ -402,3 +402,62 @@ Nada em M1–M9 altera `dp_convocacao_sync_escala`, `dp_convocacao_guard`, `uq_d
 3A/3B = banco/backend; **Fase 4 = frontend**. A tela para configurar timezone é entregável da **Fase 4**, não da 3B. O escopo da 3B não muda.
 
 **Nenhuma migration aplicada. PARADO — aguardando autorização da 3A.1.**
+
+---
+
+# Adendo técnico 2 — Fase 3A.0 (correções 1–11)
+
+## Checklist das correções
+
+1. **Chaves candidatas completas.** Acrescentadas: `dp_convocacao_ocorrencias UNIQUE (id, company_id)`, `dp_convocacao_ocorrencias UNIQUE (id, company_id, unidade_id, data)`, `dp_convocacoes UNIQUE (id, company_id)`, `dp_convocacao_grupos UNIQUE (id, company_id)`, e `UNIQUE (id, company_id)` em `dp_unidades`, `dp_cargos`, `dp_turnos`, `dp_colaboradores`. PKs `id` preservadas; as compostas existem só para viabilizar as composite FKs. Mapa FK → chave candidata destino:
+
+| FK (origem) | Destino | Chave candidata |
+|---|---|---|
+| grupos `(unidade_id, company_id)` | `dp_unidades` | `UNIQUE (id, company_id)` |
+| ocorrencias `(grupo_id, company_id)` | grupos | `UNIQUE (id, company_id)` |
+| ocorrencias `(unidade_id, company_id)` | `dp_unidades` | `UNIQUE (id, company_id)` |
+| ocorrencias `(cargo_id, company_id)` | `dp_cargos` | `UNIQUE (id, company_id)` |
+| ocorrencias `(turno_referencia_id, company_id)` | `dp_turnos` | `UNIQUE (id, company_id)` |
+| ocorrencias `(substitui_ocorrencia_id, company_id)` | ocorrencias | `UNIQUE (id, company_id)` |
+| convocacoes `(ocorrencia_id, company_id, unidade_id, data)` | ocorrencias | `UNIQUE (id, company_id, unidade_id, data)` |
+| convocacoes `(colaborador_id, company_id)` | `dp_colaboradores` | `UNIQUE (id, company_id)` |
+| descumprimentos `(convocacao_id, company_id)` | convocacoes | `UNIQUE (id, company_id)` |
+| eventos `(grupo_id, company_id)` / `(ocorrencia_id, company_id)` / `(convocacao_id, company_id)` | respectivas | `UNIQUE (id, company_id)` |
+| indisponibilidades `(colaborador_id, company_id)` | `dp_colaboradores` | `UNIQUE (id, company_id)` |
+
+Cada composite FK tem exatamente uma PK/UNIQUE compatível no destino.
+
+2. **`ocorrencia_id` nullable sem furo de MATCH SIMPLE.** `dp_convocacoes` recebe `CHECK (ocorrencia_id IS NULL OR (unidade_id IS NOT NULL AND data IS NOT NULL))`, mantendo a FK `(ocorrencia_id, company_id, unidade_id, data)`. Legado (`ocorrencia_id IS NULL`) segue funcionando; fluxo novo exige contexto completo e coerente.
+
+3. **Um único sucessor por ocorrência.** `CREATE UNIQUE INDEX ... ON dp_convocacao_ocorrencias (substitui_ocorrencia_id) WHERE substitui_ocorrencia_id IS NOT NULL`. A RPC futura de revisão faz, na mesma transação: `SELECT ... FOR UPDATE` da anterior → valida estado → marca `revisada` → cria sucessora.
+
+4. **Identidade da janela inclui a virada.** `necessidade_termina_no_dia_seguinte` entra no índice de unicidade da necessidade (18:00→02:00 com virada ≠ sem virada).
+
+5. **Versão vigente por status.** Unicidade da necessidade vigente usa `WHERE status NOT IN ('revisada','cancelada')` — nunca `substitui_ocorrencia_id IS NULL` (uma v2 legítima tem esse campo preenchido). Garante uma única versão operacionalmente vigente por necessidade.
+
+6. **Sem trigger de contagem na 3A.** Removido o trigger que calculava `preenchida`. Na 3A só coluna/status, CHECKs e índices. Na 3B, `dp_convocacao_aceitar` faz lock da ocorrência → revalida → conta apenas ofertas que ocupam vaga (`aceita` e equivalentes ocupantes; `pendente` **não** ocupa) → aceita → marca `preenchida` se atingir as vagas, tudo na mesma transação.
+
+7. **Descumprimento bilateral.** Nova coluna `parte_responsavel text CHECK (parte_responsavel IN ('colaborador','empregador'))`. Tipos: `desistencia_apos_aceite` e `ausencia_no_dia` → `colaborador`; `cancelamento_empregador_apos_aceite` → `empregador` (CHECK amarrando tipo × parte). Finalidade exclusiva: histórico, análise, auditoria e referência — **sem** multa, desconto, folha, contas a pagar/receber ou lançamento financeiro automático.
+
+8. **Referência de 50% consistente.** Unidade única e documentada: `percentual_referencia numeric` em **pontos percentuais** (50 = 50%). `CHECK (percentual_referencia IS NULL OR (regime_snapshot = 'intermitente' AND analise = 'sem_justo_motivo' AND percentual_referencia = 50))`; freelancer sempre `NULL`. `valor_referencia` mantém `CHECK (valor_referencia IS NULL OR analise = 'sem_justo_motivo')`. Sem efeito financeiro automático.
+
+9. **Sem novos enums para grupo/ocorrência.** Status de grupo e ocorrência ficam `text + CHECK` nas próprias tabelas (M3/M4), eliminando a dependência invertida com M8. Único enum alterado segue sendo `dp_convocacao_status`, isolado em M9.
+
+## M1–M9 atualizadas
+
+| # | Conteúdo |
+|---|---|
+| M1 | `companies.timezone`, `dp_unidades.timezone` (nullable, sem default/backfill), validação de timezone, `dp_timezone_resolvido()` |
+| M2 | `dp_e_dia_util(date)`, `dp_adicionar_dias_uteis(timestamptz,int,text)` — `SECURITY INVOKER`, contrato do adendo 1 |
+| M2b | Chaves candidatas aditivas: `UNIQUE (id, company_id)` em `dp_unidades`, `dp_cargos`, `dp_turnos`, `dp_colaboradores` |
+| M3 | `dp_convocacao_grupos` (status `text + CHECK`), `UNIQUE (id, company_id)`, composite FK company × unidade, RLS/grants RPC-only |
+| M4 | `dp_convocacao_ocorrencias` (status `text + CHECK`: `rascunho`, `publicada`, `preenchida`, `encerrada_operacionalmente`, `apurada`, `revisada`, `cancelada`); `UNIQUE (id, company_id)` e `UNIQUE (id, company_id, unidade_id, data)`; composite FKs company × grupo/unidade/cargo/turno/ocorrência-anterior; índice único da necessidade vigente incluindo `necessidade_termina_no_dia_seguinte` e `WHERE status NOT IN ('revisada','cancelada')`; índice único de sucessor (`substitui_ocorrencia_id`); trigger `ocorrencia_integridade` (unidade = unidade do grupo, unidade do turno) — **sem trigger de contagem de preenchimento**; RLS/grants |
+| M5 | Colunas aditivas em `dp_convocacoes` (incl. `origem_oferta` = `convocacao`/`substituicao`), `UNIQUE (id, company_id)`, `CHECK (ocorrencia_id IS NULL OR (unidade_id IS NOT NULL AND data IS NOT NULL))`, composite FK `(ocorrencia_id, company_id, unidade_id, data)` e `(colaborador_id, company_id)` |
+| M6 | `dp_indisponibilidades` (trigger deriva company do colaborador), `dp_convocacao_descumprimentos` (trigger deriva company/ocorrência/colaborador da convocação; `parte_responsavel`; tipos incl. `cancelamento_empregador_apos_aceite`; CHECKs de tipo × parte e financeiros do item 8), `dp_convocacao_eventos` (trigger deriva company da entidade principal + coerência entre referências); índices, RLS/grants |
+| M7 | `dp_convocacao_config` (sem `reabre_vaga_em_recusa`, `reabre_vaga_em_sem_resposta`, `autonomia_prazo_desistencia_horas`; mantém `reabre_vaga_em_desistencia`; preset não persistido), `dp_config_dp.considerar_indisponibilidade_cobertura`, `compoe_equipe_habitual` |
+| M8 | `dp_regime_convocavel`, `dp_convocacao_config_resolvida`, triggers de `updated_at` — **nenhum enum novo** |
+| M9 | Enum `dp_convocacao_status` (isolada, irreversível): `sem_resposta`, `encerrada_sem_vaga`, `encerrada_inicio_ocorrencia`, `desistida`, `substituida`, `encerrada_operacionalmente`; `compareceu`/`ausente` fora do enum |
+
+Nada altera `dp_convocacao_sync_escala`, `dp_convocacao_guard`, `uq_dp_convocacoes_ativa` ou `idx_dp_cct_vigente`.
+
+**Nenhuma migration aplicada. PARADO — aguardando autorização da 3A.1.**
