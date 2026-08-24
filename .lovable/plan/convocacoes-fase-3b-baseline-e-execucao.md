@@ -93,6 +93,12 @@ RPCs (M11/M12): criação gera 1 evento; retry idêntico devolve o recurso com 0
 
 Nenhuma regressão nova atribuível ao bloco.
 
+Medição executada após a M13 (UTC 2026-08-24 ~04:11):
+- `npx vite build`: exit 0, built in 28.28s.
+- `npm test`: 98 arquivos (92 passed, 2 failed, 4 skipped), 960 testes (912 passed, 2 failed, 46 skipped). Falhas: `src/test/unit/orders-domain.test.ts` e `src/test/unit/orders-entitlement.test.ts` — ambas pré-existentes no módulo Pedidos.
+- `npm run lint`: 1414 problemas (6 erros, 1408 warnings).
+- `npm run typecheck:strict`: 46 erros, nenhum em arquivos de Convocações.
+
 ### 3.9 Rollback
 
 Reversão do bloco, em ordem: `DROP FUNCTION` das 6 RPCs e dos 2 helpers (`dp_convocacao_log_evento`, `dp_convocacao_exige_admin`); restaurar o `CHECK` `dp_conv_evento_referencia_check` e a versão anterior de `dp_conv_evento_deriva` (M12); `DROP TRIGGER trg_00_dp_convocacao_legacy_self_columns` e a função `dp_convocacao_legacy_self_columns`; substituir as 4 policies de admin pela `dp_convocacoes_admin_all` (ALL) e restaurar `dp_convocacoes_respond_self` sem `ocorrencia_id IS NULL`. Nenhuma coluna, tabela ou dado é criado ou removido pelo bloco, portanto o rollback não implica perda de dados.
