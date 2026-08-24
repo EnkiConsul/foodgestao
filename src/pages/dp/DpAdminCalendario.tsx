@@ -565,17 +565,17 @@ export default function DpAdminCalendario() {
     iso: string,
     opts: { extra: boolean; deleteIds?: string[]; confirmarDeficit?: boolean },
   ) => {
-    if (opts.deleteIds && opts.deleteIds.length > 0) {
-      const { error: delError } = await supabase.from("dp_folgas").delete().in("id", opts.deleteIds);
-      if (delError) throw delError;
-    }
+    // A substituição é atômica no backend: as folgas antigas só são canceladas
+    // (nunca apagadas) quando a nova folga é efetivamente criada.
     const { data, error } = await supabase.rpc("dp_folga_criar_admin", {
       p_colaborador_id: assignUser,
       p_data: iso,
       p_extra: opts.extra,
       p_confirmar_deficit: opts.confirmarDeficit ?? false,
+      p_substituir_ids: opts.deleteIds && opts.deleteIds.length > 0 ? opts.deleteIds : null,
     });
     if (error) throw error;
+
     const res = (data ?? {}) as {
       ok?: boolean;
       requer_confirmacao?: boolean;
