@@ -5254,17 +5254,17 @@ export type Database = {
           },
           {
             foreignKeyName: "fk_dp_convocacoes_substitui"
-            columns: ["substitui_convocacao_id"]
+            columns: ["substitui_convocacao_id", "company_id"]
             isOneToOne: false
             referencedRelation: "dp_convocacoes"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "company_id"]
           },
           {
             foreignKeyName: "fk_dp_convocacoes_substituida_por"
-            columns: ["substituida_por_id"]
+            columns: ["substituida_por_id", "company_id"]
             isOneToOne: false
             referencedRelation: "dp_convocacoes"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "company_id"]
           },
         ]
       }
