@@ -456,15 +456,19 @@ export default function DpAdminCalendario() {
 
   const removerFolga = useMutation({
     mutationFn: async (folgaId: string) => {
-      const { error } = await supabase.from("dp_folgas").delete().eq("id", folgaId);
+      const { error } = await supabase.rpc("dp_folga_cancelar_admin", {
+        p_folga_id: folgaId,
+        p_motivo: null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Folga removida");
+      toast.success("Folga cancelada");
       qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao remover"),
+    onError: (e: any) => toast.error(e.message ?? "Erro ao cancelar"),
   });
+
 
   const salvarLimite = useMutation({
     mutationFn: async () => {
@@ -561,17 +565,17 @@ export default function DpAdminCalendario() {
     iso: string,
     opts: { extra: boolean; deleteIds?: string[]; confirmarDeficit?: boolean },
   ) => {
-    if (opts.deleteIds && opts.deleteIds.length > 0) {
-      const { error: delError } = await supabase.from("dp_folgas").delete().in("id", opts.deleteIds);
-      if (delError) throw delError;
-    }
+    // A substituição é atômica no backend: as folgas antigas só são canceladas
+    // (nunca apagadas) quando a nova folga é efetivamente criada.
     const { data, error } = await supabase.rpc("dp_folga_criar_admin", {
       p_colaborador_id: assignUser,
       p_data: iso,
       p_extra: opts.extra,
       p_confirmar_deficit: opts.confirmarDeficit ?? false,
+      p_substituir_ids: opts.deleteIds && opts.deleteIds.length > 0 ? opts.deleteIds : null,
     });
     if (error) throw error;
+
     const res = (data ?? {}) as {
       ok?: boolean;
       requer_confirmacao?: boolean;
@@ -629,9 +633,10 @@ export default function DpAdminCalendario() {
       if (!coberturaAlerta) return false;
       return insertFolga(coberturaAlerta.iso, {
         extra: coberturaAlerta.extra,
-        deleteIds: undefined,
+        deleteIds: coberturaAlerta.deleteIds,
         confirmarDeficit: true,
       });
+
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
