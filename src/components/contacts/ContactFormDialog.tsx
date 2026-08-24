@@ -35,6 +35,27 @@ interface Props {
   defaultVisiblePf?: boolean;
 }
 
+/**
+ * Busca direcionada de duplicidade por documento: consulta apenas as variações
+ * possíveis de gravação (com e sem máscara) em vez de baixar a lista inteira.
+ */
+async function findDuplicateByDocument(
+  docKey: string,
+  ignoreId?: string | null,
+): Promise<{ id: string; name: string } | null> {
+  const variants = Array.from(new Set([docKey, maskCpfCnpj(docKey)])).filter(Boolean);
+  const { data } = await supabase
+    .from("contacts")
+    .select("id, name, document")
+    .in("document", variants)
+    .limit(20);
+  const hit = (data ?? []).find(
+    (c: any) => isSameDocumento(c.document, docKey) && c.id !== ignoreId,
+  );
+  return hit ? { id: (hit as any).id, name: (hit as any).name } : null;
+}
+
+
 export function ContactFormDialog({
   open,
   onOpenChange,
@@ -101,16 +122,9 @@ export function ContactFormDialog({
     }
     let cancelled = false;
     const timer = setTimeout(async () => {
-      const { data } = await supabase
-        .from("contacts")
-        .select("id, name, document")
-        .not("document", "is", null)
-        .limit(2000);
+      const hit = await findDuplicateByDocument(docDigitsLive, editContact?.id);
       if (cancelled) return;
-      const hit = (data ?? []).find(
-        (c: any) => isSameDocumento(c.document, docDigitsLive) && c.id !== editContact?.id,
-      );
-      setDuplicate(hit ? { id: (hit as any).id, name: (hit as any).name } : null);
+      setDuplicate(hit);
     }, 350);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [docDigitsLive, editContact?.id, open]);
@@ -151,19 +165,11 @@ export function ContactFormDialog({
         return;
       }
       // Impede duplicidade por documento (confirma no banco, não só no aviso em tela).
-      const { data: dupRows } = await supabase
-        .from("contacts")
-        .select("id, name, document")
-        .not("document", "is", null)
-        .limit(2000);
-      const dup = (dupRows ?? []).find(
-        (c: any) => isSameDocumento(c.document, docDigits) && c.id !== editContact?.id,
-      );
-
+      const dup = await findDuplicateByDocument(docDigits, editContact?.id);
       if (dup) {
-        setDuplicate({ id: (dup as any).id, name: (dup as any).name });
+        setDuplicate(dup);
         toast.error("CPF/CNPJ já cadastrado", {
-          description: `Já existe o contato "${(dup as any).name}" com este documento. Selecione-o na lista em vez de criar outro.`,
+          description: `Já existe o contato "${dup.name}" com este documento. Selecione-o na lista em vez de criar outro.`,
         });
         return;
       }

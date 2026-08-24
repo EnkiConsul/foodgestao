@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { AlertTriangle, Check, ChevronDown, Loader2, Pencil, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -89,7 +89,7 @@ interface StagingCardProps {
 }
 
 /** Versão mobile de uma linha da fila de conciliação (mesma lógica da tabela). */
-export function StagingCard({
+function StagingCardBase({
   row,
   accounts,
   accountValue,
@@ -428,3 +428,5 @@ export function StagingCard({
     </Card>
   );
 }
+
+export const StagingCard = memo(StagingCardBase);

@@ -254,6 +254,9 @@ export default function ConciliacaoPluggy() {
   const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const categoryOptionsReceita = useMemo(() => buildCategoryOptions(categories, "entrada"), [categories]);
   const categoryOptionsDespesa = useMemo(() => buildCategoryOptions(categories, "saida"), [categories]);
+  // Os itens do seletor são pesados: renderizamos uma única vez e reutilizamos em todas as linhas.
+  const categoryItemsReceita = useMemo(() => renderCategoryItems(categoryOptionsReceita), [categoryOptionsReceita]);
+  const categoryItemsDespesa = useMemo(() => renderCategoryItems(categoryOptionsDespesa), [categoryOptionsDespesa]);
   const categoryTypeById = useMemo(() => {
     const m: Record<string, string> = {};
     for (const c of categories) m[c.id] = c.transaction_type;
@@ -502,6 +505,15 @@ export default function ConciliacaoPluggy() {
       return true;
     });
   }, [rows, connectionId, statusFilter, search, focusedStagingId]);
+
+  /** Lista longa: renderizamos em blocos para não pagar o custo de centenas de linhas por render. */
+  const PAGE_SIZE = 50;
+  const [visibleLimit, setVisibleLimit] = useState(PAGE_SIZE);
+  useEffect(() => {
+    setVisibleLimit(PAGE_SIZE);
+  }, [connectionId, statusFilter, search, focusedStagingId]);
+  const visibleRows = useMemo(() => filtered.slice(0, visibleLimit), [filtered, visibleLimit]);
+
 
   useEffect(() => {
     if (!focusedStagingId || loading) return;
@@ -1116,7 +1128,7 @@ export default function ConciliacaoPluggy() {
         <div className="space-y-2 lg:hidden">
 
 
-          {filtered.map((r) => {
+          {visibleRows.map((r) => {
             const isEntrada = r.amount >= 0;
             return (
               <div key={r.id} data-staging-id={r.id}>
@@ -1131,8 +1143,8 @@ export default function ConciliacaoPluggy() {
                 onCounterpartChange={(v) => setRowCounterpart((p) => ({ ...p, [r.id]: v }))}
                 category={rowCategory[r.id] ?? ""}
                 onCategoryChange={(v) => setRowCategory((p) => ({ ...p, [r.id]: v }))}
-                suggestedCategoryItems={renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
-                oppositeCategoryItems={renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
+                suggestedCategoryItems={isEntrada ? categoryItemsReceita : categoryItemsDespesa}
+                oppositeCategoryItems={isEntrada ? categoryItemsDespesa : categoryItemsReceita}
                 paymentMethods={paymentMethods}
                 paymentMethod={rowPayment[r.id] ?? ""}
                 paymentMethodSuggested={!!rowPayment[r.id] && rowPayment[r.id] === suggestedPayment[r.id]}
@@ -1211,7 +1223,7 @@ export default function ConciliacaoPluggy() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => {
+              {visibleRows.map((r) => {
                 const isEntrada = r.amount >= 0;
                 const disabled = r.status !== "pending";
                 return (
@@ -1313,13 +1325,13 @@ export default function ConciliacaoPluggy() {
                                 <SelectLabel className="sticky top-0 z-10 bg-popover border-b text-[10px] uppercase tracking-wide text-muted-foreground">
                                   Sugeridas ({isEntrada ? "entradas" : "saídas"})
                                 </SelectLabel>
-                                {renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
+                                {isEntrada ? categoryItemsReceita : categoryItemsDespesa}
                               </SelectGroup>
                               <SelectGroup>
                                 <SelectLabel className="sticky top-0 z-10 bg-popover border-y text-[10px] uppercase tracking-wide text-warning">
                                   Outras categorias — {isEntrada ? "saídas" : "entradas"} (estorno)
                                 </SelectLabel>
-                                {renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
+                                {isEntrada ? categoryItemsDespesa : categoryItemsReceita}
                               </SelectGroup>
                             </SelectContent>
                           </Select>
@@ -1489,6 +1501,13 @@ export default function ConciliacaoPluggy() {
             </tbody>
           </table>
         </CardContent></Card>
+        {filtered.length > visibleRows.length && (
+          <div className="flex justify-center py-4">
+            <Button variant="outline" onClick={() => setVisibleLimit((n) => n + PAGE_SIZE)}>
+              Mostrar mais ({filtered.length - visibleRows.length} restantes)
+            </Button>
+          </div>
+        )}
         </>
       )}
 
@@ -1551,7 +1570,7 @@ export default function ConciliacaoPluggy() {
         onOpenChange={(o) => { if (!o) setSplitRowId(null); }}
         row={splitRow ? { id: splitRow.id, date: splitRow.date, description: splitRow.description, amount: splitRow.amount } : null}
         accountId={splitAccountId}
-        categoryOptions={renderCategoryItems((splitRow?.amount ?? 0) >= 0 ? categoryOptionsReceita : categoryOptionsDespesa)}
+        categoryOptions={(splitRow?.amount ?? 0) >= 0 ? categoryItemsReceita : categoryItemsDespesa}
         paymentMethods={paymentMethods}
         contacts={contacts}
         onDone={() => { setSplitRowId(null); load(); }}
