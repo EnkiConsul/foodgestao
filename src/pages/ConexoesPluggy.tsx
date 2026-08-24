@@ -303,10 +303,8 @@ export default function ConexoesPluggy() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {m.count} conta(s) · Última sincronização:{" "}
-                      {c.last_synced_at
-                        ? formatDistanceToNow(new Date(c.last_synced_at), { locale: ptBR, addSuffix: true })
-                        : "nunca"}
+                      {m.count} conta(s) ·{" "}
+                      <SyncInfo connection={c} />
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
