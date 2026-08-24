@@ -22,6 +22,10 @@ interface Connection {
   connector_image_url: string | null;
   status: string;
   last_synced_at: string | null;
+  last_sync_attempt_at: string | null;
+  next_sync_at: string | null;
+  last_sync_status: string | null;
+  last_sync_error: string | null;
   last_error: any;
 }
 
@@ -81,7 +85,7 @@ export default function ConexoesPluggy() {
     if (!opts?.silent) setLoading(true);
 
     const { data: conns } = await supabase.from("pluggy_connections")
-      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_error")
+      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status, last_sync_error, last_error")
       .eq("company_id", selectedCompanyId).order("created_at", { ascending: false });
 
     // Conexões encerradas (ou sem nenhuma conta restante) foram excluídas pelo
