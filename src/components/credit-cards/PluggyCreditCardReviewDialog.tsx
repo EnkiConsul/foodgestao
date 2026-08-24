@@ -93,7 +93,7 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
     }
   };
 
-  const markReviewed = async (status: "approved" | "ignored", creditCardId: string | null) => {
+  const markReviewed = async (status: "linked" | "ignored", creditCardId: string | null) => {
     if (!account) return;
     const { error } = await supabase
       .from("pluggy_accounts")
