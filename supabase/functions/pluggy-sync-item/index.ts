@@ -229,6 +229,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Autorização final: sempre valida a empresa efetiva (inclusive quando ela
+    // veio da conexão existente e o corpo não trouxe company_id).
+    if (userId && !(await assertUserCanAccessCompany(effectiveCompanyId))) {
+      return forbidden();
+    }
+
+
     // 1) Fetch item metadata (e, quando aplicável, dispara uma nova coleta no banco)
     let item;
     try {
