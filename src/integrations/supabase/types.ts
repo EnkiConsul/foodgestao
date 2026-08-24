@@ -14454,6 +14454,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      dp_convocacao_publicar_grupo: {
+        Args: {
+          p_confirmacoes?: Json
+          p_expected_updated_at: string
+          p_grupo_id: string
+        }
+        Returns: Json
+      }
       dp_convocacao_remuneracao_snapshot: {
         Args: { _carga_prevista_horas: number; _colaborador_id: string }
         Returns: Json
