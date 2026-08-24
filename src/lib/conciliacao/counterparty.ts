@@ -157,6 +157,19 @@ export function nameFromDescription(description: string | null | undefined): str
   return s.slice(0, 120);
 }
 
+/**
+ * Vários bancos (Nubank, C6) colocam a contraparte após um pipe:
+ * "Compra no débito|POSTO MADRI", "Transferência enviada|UBER DO BRASIL".
+ */
+export function nameFromPipe(description: string | null | undefined): string | null {
+  const s = String(description ?? "");
+  if (!s.includes("|")) return null;
+  const part = s.split("|").pop()?.replace(/\s+/g, " ").trim() ?? "";
+  if (part.length < 3) return null;
+  if (!/[a-zA-ZÀ-ÿ]{3}/.test(part)) return null;
+  return part.slice(0, 120);
+}
+
 /** Extrai nome + documento da contraparte de um lançamento importado. */
 export function extractCounterparty(
   row: CounterpartyRow,
@@ -167,23 +180,24 @@ export function extractCounterparty(
   );
 
   const isEntrada = Number(row.amount ?? 0) >= 0;
+  // Somente o lado oposto ao titular pode ser contraparte. O lado secundário é
+  // o próprio dono da conta — usá-lo fazia toda a fila sugerir o titular.
   const primary = fromSide(readSide(row.raw, isEntrada ? "payer" : "receiver"));
-  const secondary = fromSide(readSide(row.raw, isEntrada ? "receiver" : "payer"));
   const merchant = readMerchant(row.raw);
 
-  const candidates = [primary, merchant, secondary].filter(
-    (c) => c.name || onlyDigits(c.document).length >= 11,
-  );
-
-  const external = candidates.find((c) => {
+  const external = [primary, merchant].find((c) => {
     const d = onlyDigits(c.document);
-    return !(d && own.has(d));
+    if (d && own.has(d)) return false;
+    return !!(c.name || d.length >= 11);
   });
 
-  if (external && (external.name || onlyDigits(external.document).length >= 11)) {
+  if (external) {
     return {
-      // Último recurso: nome dentro da descrição do extrato.
-      name: toProperName(external.name ?? nameFromDescription(row.description)) || null,
+      // Último recurso para o nome: o próprio texto do extrato.
+      name:
+        toProperName(
+          external.name ?? nameFromPipe(row.description) ?? nameFromDescription(row.description),
+        ) || null,
       document: formatDocument(external.document),
       documentType: documentTypeOf(external.document),
       internal: false,
@@ -195,8 +209,21 @@ export function extractCounterparty(
     return { ...EMPTY_COUNTERPARTY, internal: true };
   }
 
+  // Compras no débito só trazem o titular como pagador; o estabelecimento
+  // aparece apenas no texto. Devolvemos o nome sem documento.
+  const descName = nameFromPipe(row.description) ?? nameFromDescription(row.description);
+  if (descName) {
+    return {
+      name: toProperName(descName) || null,
+      document: null,
+      documentType: null,
+      internal: false,
+    };
+  }
+
   return EMPTY_COUNTERPARTY;
 }
+
 
 /** Rótulo curto para exibir na fila de conciliação. */
 export function counterpartyLabel(cp: Counterparty): string | null {
