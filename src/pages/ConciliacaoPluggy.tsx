@@ -880,38 +880,87 @@ export default function ConciliacaoPluggy() {
     const contactType: "cliente" | "fornecedor" =
       cp?.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor";
 
+    await openContactCreation({ rowId: row.id, name, document, type: contactType });
+  };
+
+  /**
+   * Abre o cadastro de fornecedor/cliente: antes, procura cadastros iguais ou
+   * parecidos e pede confirmação ao usuário em vez de decidir sozinho.
+   */
+  const openContactCreation = async (params: {
+    rowId: string | null;
+    name: string;
+    document: string | null;
+    type: "cliente" | "fornecedor" | "ambos";
+  }) => {
+    const { rowId, name, document, type } = params;
+
     if (name || document) {
-      setCreatingContact(row.id);
+      if (rowId) setCreatingContact(rowId);
       try {
         const { data: auth } = await supabase.auth.getUser();
         const userId = auth.user?.id;
-        if (!userId || !selectedCompanyId) { toast.error("Sessão expirada"); return; }
+        if (!userId) { toast.error("Sessão expirada"); return; }
 
-        // Reaproveita contato já existente (mesmo documento ou mesmo nome) em vez de duplicar.
-        const existing = await findExistingContact({ userId, name, document });
-        if (existing) {
-          await ensureContactCompanyLink(existing.id, selectedCompanyId);
-          setContacts((prev) =>
-            prev.some((c) => c.id === existing.id)
-              ? prev
-              : [...prev, {
-                  id: existing.id,
-                  name: existing.name,
-                  type: existing.contact_type ?? null,
-                  document: existing.document ?? null,
-                }].sort((a, b) => a.name.localeCompare(b.name)),
-          );
-          setRowContact((prev) => ({ ...prev, [row.id]: existing.id }));
-          toast.success("Contato já cadastrado — vinculado ao lançamento");
+        const candidates = await findSimilarContacts({ userId, name, document });
+        if (candidates.length > 0) {
+          setDuplicateCheck({ rowId, name, document, type, candidates });
           return;
         }
       } finally {
-        setCreatingContact(null);
+        if (rowId) setCreatingContact(null);
       }
     }
 
-    setContactForm({ rowId: row.id, name, document, type: contactType });
+    setContactForm({ rowId, name, document, type });
   };
+
+  /** Vincula o cadastro existente escolhido na confirmação de duplicados. */
+  const useExistingContact = async (contact: SimilarContact) => {
+    const rowId = duplicateCheck?.rowId ?? null;
+    setDuplicateBusy(contact.id);
+    try {
+      if (selectedCompanyId) await ensureContactCompanyLink(contact.id, selectedCompanyId);
+      setContacts((prev) =>
+        prev.some((c) => c.id === contact.id)
+          ? prev.map((c) => (c.id === contact.id ? { ...c, linkedToCompany: true } : c))
+          : [...prev, {
+              id: contact.id,
+              name: contact.name,
+              type: contact.contact_type,
+              document: contact.document,
+              linkedToCompany: true,
+            }].sort((a, b) => a.name.localeCompare(b.name)),
+      );
+      if (rowId) setRowContact((prev) => ({ ...prev, [rowId]: contact.id }));
+      setDuplicateCheck(null);
+      toast.success("Contato já cadastrado — vinculado ao lançamento");
+    } finally {
+      setDuplicateBusy(null);
+    }
+  };
+
+  /** Abre o cadastro existente escolhido na confirmação de duplicados. */
+  const editExistingContact = async (contact: SimilarContact) => {
+    const rowId = duplicateCheck?.rowId ?? null;
+    setDuplicateBusy(contact.id);
+    try {
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("id", contact.id)
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Não foi possível abrir o cadastro", { description: error?.message });
+        return;
+      }
+      setDuplicateCheck(null);
+      setContactEdit({ rowId: rowId ?? "", contact: data });
+    } finally {
+      setDuplicateBusy(null);
+    }
+  };
+
 
   // Memória de conciliação: aprende dos lançamentos já conciliados da empresa.
   useEffect(() => {
