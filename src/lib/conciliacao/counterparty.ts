@@ -233,7 +233,7 @@ export function extractCounterparty(
       // Último recurso para o nome: o próprio texto do extrato.
       name:
         toProperName(
-          external.name ?? nameFromPipe(row.description) ?? nameFromDescription(row.description),
+          external.name ?? nameFromRow(row),
         ) || null,
       document: formatDocument(external.document),
       documentType: documentTypeOf(external.document),
@@ -248,7 +248,7 @@ export function extractCounterparty(
 
   // Compras no débito só trazem o titular como pagador; o estabelecimento
   // aparece apenas no texto. Devolvemos o nome sem documento.
-  const descName = nameFromPipe(row.description) ?? nameFromDescription(row.description);
+  const descName = nameFromRow(row);
   if (descName) {
     return {
       name: toProperName(descName) || null,
