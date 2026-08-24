@@ -88,5 +88,8 @@ Qualquer divergência: PARO e diagnostico antes de seguir.
 
 ## Validação final e evidências
 
-Migrations Cloud × GitHub, grants, RLS, `pg_proc` com assinatura única de `salvar_config`, tipos Supabase regenerados, `npx vite build`, testes, lint e typecheck comparados ao baseline registrado (912 ok / 2 falhos de Pedidos, 1414 lint / 6 erros, 46 erros TS e 0 em Convocações), e contagem zero nas 7 tabelas de Convocações. Tudo consolidado no documento de baseline/execução da 3B, com PARADA ao final — sem iniciar 3B.2.
+A própria M13 reafirma, depois de cada `CREATE OR REPLACE`, os `REVOKE` de PUBLIC/anon (e de `authenticated` nos helpers internos) e os `GRANT EXECUTE` para `authenticated` nas 6 RPCs do app, de modo que o estado final de privilégios fique explícito na migration.
+
+Evidências ao final: migrations Cloud × GitHub, grants, RLS, `pg_proc` com assinatura única de `salvar_config`, tipos Supabase regenerados, `npx vite build`, testes, lint e typecheck comparados ao baseline registrado (912 ok / 2 falhos de Pedidos, 1414 lint / 6 erros, 46 erros TS e 0 em Convocações), e contagem zero nas 7 tabelas de Convocações. Tudo consolidado no documento de baseline/execução da 3B, com PARADA ao final — sem iniciar 3B.2.
+
 
