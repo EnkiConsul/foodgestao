@@ -146,13 +146,14 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
   const [widgetReady, setWidgetReady] = useState(false);
   const [pending, setPending] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "intro" | "launch" | "framed">("idle");
+  const [phase, setPhase] = useState<"idle" | "intro" | "launch" | "framed" | "returning">("idle");
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [showInterSteps, setShowInterSteps] = useState(false);
   const instanceRef = useRef<any>(null);
   const launchedRef = useRef(false);
   const finishedRef = useRef(false);
   const requestIdRef = useRef<string | null>(null);
+  const returnedItemIdRef = useRef<string | null>(null);
 
   // Decide se mostramos a orientação de escolha de conector antes do widget.
   // Retomadas (QR Code em andamento) e reconexões vão direto para o widget.
@@ -171,11 +172,22 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
       return;
     }
 
+    // Retorno do consentimento: o banco devolveu o item autorizado na URL.
+    // Concluímos a conexão aqui em vez de reabrir o widget da Pluggy.
+    const returnedItemId = readReturnItemId();
+    if (returnedItemId) {
+      returnedItemIdRef.current = returnedItemId;
+      clearReturnParams();
+      setPhase("returning");
+      return;
+    }
+
     let dismissed = false;
     try { dismissed = localStorage.getItem(INTRO_KEY) === "1"; } catch { /* noop */ }
     const skip = dismissed || hasPluggyResume() || !!itemIdToUpdate;
     setPhase(skip ? "launch" : "intro");
-  }, [open, itemIdToUpdate]);
+  }, [open, itemIdToUpdate, onOpenChange]);
+
 
 
   const startConnect = useCallback(() => {
