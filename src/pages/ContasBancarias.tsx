@@ -18,6 +18,8 @@ import { ImportStatementDialog } from "@/components/transactions/ImportStatement
 import { AdjustAccountBalanceDialog } from "@/components/accounts/AdjustAccountBalanceDialog";
 import { AccountCreationMethodDialog } from "@/components/accounts/AccountCreationMethodDialog";
 import { PluggyConnectDialog, hasPluggyResume, hasPluggyReturn } from "@/components/accounts/PluggyConnectDialog";
+import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
+import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
 import { useNavigate } from "react-router-dom";
 
 
