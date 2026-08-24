@@ -1,3 +1,4 @@
+import { UserPlus } from "lucide-react";
 import { toProperName } from "@/lib/text/properName";
 import { useMemo, useState } from "react";
 import { SelectContent, SelectItem } from "@/components/ui/select";
