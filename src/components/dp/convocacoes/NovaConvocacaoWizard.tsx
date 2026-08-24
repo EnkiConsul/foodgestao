@@ -300,12 +300,14 @@ export function NovaConvocacaoWizard({
   const toggleDia = (iso: string) => {
     if (!cargoAtivo) return;
     if (!dataDentroDoPeriodo(iso, competencia, periodo)) return;
-    setOcorrencias((prev) => {
-      const existe = prev.some((o) => o.data === iso && o.cargo_id === cargoAtivo);
-      if (existe) return prev.filter((o) => !(o.data === iso && o.cargo_id === cargoAtivo));
-      return [...prev, { ...ocorrenciaBase(iso, cargoAtivo), vagas: modalidade === "individual" ? 1 : 1 }];
-    });
+    const existe = ocorrencias.some((o) => o.data === iso && o.cargo_id === cargoAtivo);
+    if (existe) {
+      removerOcorrencias((o) => o.data === iso && o.cargo_id === cargoAtivo);
+      return;
+    }
+    setOcorrencias((prev) => [...prev, { ...ocorrenciaBase(iso, cargoAtivo), vagas: 1 }]);
   };
+
 
   const patch = (id: string, p: Partial<RascunhoOcorrencia>) =>
     setOcorrencias((prev) => prev.map((o) => (o.id === id ? { ...o, ...p } : o)));
