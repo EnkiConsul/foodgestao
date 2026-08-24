@@ -14433,6 +14433,10 @@ export type Database = {
         Args: { p_colaborador_id: string; p_motivo?: string }
         Returns: undefined
       }
+      dp_regime_convocavel: {
+        Args: { _regime: Database["public"]["Enums"]["dp_regime_trabalho"] }
+        Returns: boolean
+      }
       dp_regra_bloqueia_data: {
         Args: { _company_id: string; _data: string; _unidade_id: string }
         Returns: boolean
