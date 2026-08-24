@@ -14198,6 +14198,7 @@ export type Database = {
         }
         Returns: Json
       }
+      contact_document_key: { Args: { _document: string }; Returns: string }
       contract_orders_module: {
         Args: {
           p_company_id: string
