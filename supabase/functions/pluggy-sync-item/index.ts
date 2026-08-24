@@ -104,22 +104,34 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If user-authenticated, verify company membership (super admins bypass)
-    if (userId && companyId) {
+    // Membership guard: verifica se o usuário autenticado pertence à empresa
+    // (super admins têm bypass). Aplicado a QUALQUER empresa efetiva, mesmo
+    // quando o company_id não veio no corpo da requisição.
+    const assertUserCanAccessCompany = async (targetCompanyId: string): Promise<boolean> => {
+      if (!userId) return true; // caminho service-role/webhook
       const { data: isSuper } = await admin
         .from('user_roles').select('role')
         .eq('user_id', userId).eq('role', 'super_admin').maybeSingle();
-      if (!isSuper) {
-        const { data: mem } = await admin
-          .from('company_members').select('id')
-          .eq('company_id', companyId).eq('user_id', userId).maybeSingle();
-        if (!mem) {
-          return new Response(JSON.stringify({ error: 'forbidden' }), {
-            status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-      }
+      if (isSuper) return true;
+      const { data: mem } = await admin
+        .from('company_members').select('id')
+        .eq('company_id', targetCompanyId).eq('user_id', userId).maybeSingle();
+      if (mem) return true;
+      const { data: ownedCompany } = await admin
+        .from('companies').select('id')
+        .eq('id', targetCompanyId).eq('user_id', userId).maybeSingle();
+      return !!ownedCompany;
+    };
+
+    const forbidden = () => new Response(JSON.stringify({ error: 'forbidden' }), {
+      status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+    // If user-authenticated, verify company membership (super admins bypass)
+    if (userId && companyId) {
+      if (!(await assertUserCanAccessCompany(companyId))) return forbidden();
     }
+
 
 
     // Look up existing connection (if any)
@@ -216,6 +228,13 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Autorização final: sempre valida a empresa efetiva (inclusive quando ela
+    // veio da conexão existente e o corpo não trouxe company_id).
+    if (userId && !(await assertUserCanAccessCompany(effectiveCompanyId))) {
+      return forbidden();
+    }
+
 
     // 1) Fetch item metadata (e, quando aplicável, dispara uma nova coleta no banco)
     let item;
