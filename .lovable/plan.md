@@ -22,9 +22,12 @@ Em todas as RPCs tocadas pela M13, nenhuma entidade de outra empresa pode ser tr
 Inverter a ordem: `INSERT ... ON CONFLICT (id) DO NOTHING RETURNING *`.
 
 - Retornou linha → criou: 1 evento, `idempotente: false`.
-- Não retornou → perdeu a corrida: reler a linha `FOR UPDATE`, comparar contexto + conteúdo (mesmo conjunto de campos já usado hoje). Igual → retorno idempotente com 0 eventos. Diferente → `IDEMPOTENCY_CONFLICT`.
+- Não retornou → perdeu a corrida: reler a linha **com escopo de tenant** e comparar contexto + conteúdo (mesmo conjunto de campos já usado hoje). Igual → retorno idempotente com 0 eventos. Diferente → `IDEMPOTENCY_CONFLICT`.
+
+A reconsulta nunca é `FOR UPDATE` só por `id`: em `criar_grupo` filtra por `id` + `company_id` autorizado (+ `unidade_id`); em `criar_ocorrencia`, por `id` + `company_id` autorizado + `grupo_id`. Se nada casar nesse escopo, a linha pertence a outro tenant (ou a outro contexto) → `IDEMPOTENCY_CONFLICT` imediato, sem travar a linha da outra empresa e sem revelar contexto cross-company.
 
 `ON CONFLICT` restrito a `(id)`, então conflitos de outras constraints de negócio continuam propagando normalmente. Sem tabela genérica de idempotência.
+
 
 **2. Serialização de criação de ocorrência × publicação**
 
@@ -43,7 +46,7 @@ Ao encontrar sucessora com `substitui_ocorrencia_id = p_ocorrencia_id`:
 
 - Se o id difere de `p_sucessora_id` → `REVISION_CONFLICT` (como hoje).
 - Se coincide, validar antes a coerência da cadeia — predecessora `revisada`, `sucessora.substitui_ocorrencia_id = predecessora.id`, `sucessora.versao = predecessora.versao + 1`, mesma empresa/grupo/unidade. Qualquer estado impossível → `REVISION_INCONSISTENT` (fail closed).
-- Cadeia coerente: comparar a sucessora existente com o payload solicitado (predecessora, grupo, empresa, unidade, versão, cargo, data, janela de necessidade, horário, turno, intervalo, carga, vagas, condições comuns) **e também `p_motivo`**, confrontado com o motivo já persistido no evento `ocorrencia_revisada` correspondente. Compatível → idempotente, 0 novo evento. Qualquer divergência, inclusive só no motivo → `IDEMPOTENCY_CONFLICT`.
+- Cadeia coerente: comparar a sucessora existente com o payload solicitado (predecessora, grupo, empresa, unidade, versão, cargo, data, janela de necessidade, horário, turno, intervalo, carga, vagas, condições comuns) **e também `p_motivo`**. O motivo é confrontado com o único evento `ocorrencia_revisada` correspondente à dupla predecessora + sucessora: zero ou mais de um evento correspondente → `REVISION_INCONSISTENT`; exatamente um → comparação normalizada do motivo, tratando `NULL` explicitamente (`IS NOT DISTINCT FROM`). Compatível → idempotente, 0 novo evento. Qualquer divergência, inclusive só no motivo → `IDEMPOTENCY_CONFLICT`.
 
 **5. Controle otimista na configuração**
 
@@ -76,6 +79,7 @@ Duas sessões `psql` reais para os cenários concorrentes:
 - Revisão preservando exatamente a identidade da necessidade (empresa/unidade/data/cargo/janela) e alterando só vagas/condições → sucessora criada sem violar `uq_dp_conv_ocor_necessidade_vigente`.
 - Revisão: mesma sucessora + mesmo payload → idempotente, 0 evento; mesma sucessora + payload material diferente → `IDEMPOTENCY_CONFLICT`; mesma sucessora + payload igual e `p_motivo` diferente → `IDEMPOTENCY_CONFLICT`; cadeia corrompida artificialmente → `REVISION_INCONSISTENT`.
 - Tentativa de lock cross-company: usuário de outra empresa em `atualizar_grupo`/`atualizar_ocorrencia`/`revisar_ocorrencia`/`criar_ocorrencia` → `FORBIDDEN` sem ter travado a linha (verificado com a linha travada por outra sessão: a chamada não bloqueia, falha na hora).
+- Colisão de UUID cross-tenant: com a linha da outra empresa **propositalmente travada em outra sessão**, `criar_grupo` e `criar_ocorrencia` retornam `IDEMPOTENCY_CONFLICT` imediatamente, sem aguardar o lock e sem expor contexto da outra empresa.
 - Config: dois gestores com a mesma versão → o primeiro altera, o segundo recebe `CONCURRENT_MODIFICATION`; duas criações simultâneas do mesmo escopo → exatamente 1 linha e 1 evento.
 - Evento sem referência com tipo fora do par permitido → rejeitado.
 - `ator_papel` gravado como `owner` para owner e `admin` para admin; papel não resolvível → `AUDIT_ACTOR_ROLE_UNRESOLVED`.
@@ -84,5 +88,8 @@ Qualquer divergência: PARO e diagnostico antes de seguir.
 
 ## Validação final e evidências
 
-Migrations Cloud × GitHub, grants, RLS, `pg_proc` com assinatura única de `salvar_config`, tipos Supabase regenerados, `npx vite build`, testes, lint e typecheck comparados ao baseline registrado (912 ok / 2 falhos de Pedidos, 1414 lint / 6 erros, 46 erros TS e 0 em Convocações), e contagem zero nas 7 tabelas de Convocações. Tudo consolidado no documento de baseline/execução da 3B, com PARADA ao final — sem iniciar 3B.2.
+A própria M13 reafirma, depois de cada `CREATE OR REPLACE`, os `REVOKE` de PUBLIC/anon (e de `authenticated` nos helpers internos) e os `GRANT EXECUTE` para `authenticated` nas 6 RPCs do app, de modo que o estado final de privilégios fique explícito na migration.
+
+Evidências ao final: migrations Cloud × GitHub, grants, RLS, `pg_proc` com assinatura única de `salvar_config`, tipos Supabase regenerados, `npx vite build`, testes, lint e typecheck comparados ao baseline registrado (912 ok / 2 falhos de Pedidos, 1414 lint / 6 erros, 46 erros TS e 0 em Convocações), e contagem zero nas 7 tabelas de Convocações. Tudo consolidado no documento de baseline/execução da 3B, com PARADA ao final — sem iniciar 3B.2.
+
 
