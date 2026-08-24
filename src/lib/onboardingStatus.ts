@@ -8,6 +8,28 @@ export interface OnboardingStatusResolution {
   companyId: string | null;
 }
 
+export type OnboardingCnpjStatus =
+  | { status: "available"; companyId: null }
+  | { status: "registered"; companyId: null }
+  | { status: "accessible"; companyId: string };
+
+export async function checkOnboardingCnpj(cnpj: string): Promise<OnboardingCnpjStatus> {
+  const cnpjDigits = digits(cnpj);
+  if (cnpjDigits.length !== 14) throw new Error("cnpj_invalido");
+
+  const { data, error } = await supabase.functions.invoke("check-onboarding-cnpj", {
+    body: { cnpj: cnpjDigits },
+  });
+
+  if (error) throw error;
+  if (data?.status === "accessible" && typeof data.company_id === "string") {
+    return { status: "accessible", companyId: data.company_id };
+  }
+  if (data?.status === "registered") return { status: "registered", companyId: null };
+  if (data?.status === "available") return { status: "available", companyId: null };
+  throw new Error("resposta_cnpj_invalida");
+}
+
 async function findActiveCompanyForUser(userId: string): Promise<string | null> {
   const [ownedRes, memberRes] = await Promise.all([
     supabase
