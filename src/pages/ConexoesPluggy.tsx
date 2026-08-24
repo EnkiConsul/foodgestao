@@ -11,8 +11,9 @@ import { PluggyConnectDialog, hasPluggyReturn } from "@/components/accounts/Plug
 import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
 import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2, CreditCard as CreditCardIcon, X } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Connection {
   id: string;
@@ -22,6 +23,10 @@ interface Connection {
   connector_image_url: string | null;
   status: string;
   last_synced_at: string | null;
+  last_sync_attempt_at: string | null;
+  next_sync_at: string | null;
+  last_sync_status: string | null;
+  last_sync_error: string | null;
   last_error: any;
 }
 
@@ -57,6 +62,53 @@ const statusLabels: Record<string, { label: string; className: string }> = {
   deleted: { label: "Encerrada — reconectar", className: "bg-muted text-muted-foreground border-muted-foreground/20" },
 };
 
+function fmtDateTime(v: string | null | undefined) {
+  if (!v) return null;
+  try { return format(new Date(v), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }); }
+  catch { return v; }
+}
+
+function SyncInfo({ connection: c }: { connection: Connection }) {
+  const lastAt = c.last_synced_at ?? c.last_sync_attempt_at;
+  const lastLabel = lastAt
+    ? formatDistanceToNow(new Date(lastAt), { locale: ptBR, addSuffix: true })
+    : "nunca";
+  const nextLabel = c.next_sync_at
+    ? formatDistanceToNow(new Date(c.next_sync_at), { locale: ptBR, addSuffix: true })
+    : null;
+  const failed = c.last_sync_status && c.last_sync_status !== "success";
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={failed ? "text-warning" : ""}>
+              Última sincronização: {lastLabel}
+              {failed && c.last_sync_error ? ` (${c.last_sync_error})` : ""}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-xs text-xs">
+            <p>Última sincronização: {fmtDateTime(lastAt) ?? "—"}</p>
+            {c.next_sync_at && <p>Próxima programada: {fmtDateTime(c.next_sync_at) ?? "—"}</p>}
+            {c.last_sync_status && <p>Status: {c.last_sync_status}</p>}
+          </TooltipContent>
+        </Tooltip>
+        {nextLabel && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>· Próxima: {nextLabel}</span>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              {fmtDateTime(c.next_sync_at) ?? "—"}
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </span>
+    </TooltipProvider>
+  );
+}
+
 export default function ConexoesPluggy() {
   const navigate = useNavigate();
   const { contextType, selectedCompanyId } = useCompanyContext();
@@ -81,7 +133,7 @@ export default function ConexoesPluggy() {
     if (!opts?.silent) setLoading(true);
 
     const { data: conns } = await supabase.from("pluggy_connections")
-      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_error")
+      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status, last_sync_error, last_error")
       .eq("company_id", selectedCompanyId).order("created_at", { ascending: false });
 
     // Conexões encerradas (ou sem nenhuma conta restante) foram excluídas pelo
@@ -298,10 +350,8 @@ export default function ConexoesPluggy() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {m.count} conta(s) · Última sincronização:{" "}
-                      {c.last_synced_at
-                        ? formatDistanceToNow(new Date(c.last_synced_at), { locale: ptBR, addSuffix: true })
-                        : "nunca"}
+                      {m.count} conta(s) ·{" "}
+                      <SyncInfo connection={c} />
                     </p>
                   </div>
                   <div className="flex items-center gap-1">

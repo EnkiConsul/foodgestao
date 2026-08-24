@@ -14703,6 +14703,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      enqueue_open_finance_scheduled_syncs: { Args: never; Returns: number }
       enqueue_uncategorized_for_ai: {
         Args: { p_company_id?: string; p_context?: string; p_limit?: number }
         Returns: {

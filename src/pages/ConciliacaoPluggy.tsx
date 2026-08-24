@@ -13,7 +13,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner";
 import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileText, Split } from "lucide-react";
 import { DividirLancamentoDialog } from "@/components/conciliacao/DividirLancamentoDialog";
-import { format, parseISO } from "date-fns";
+import { format, formatDistanceToNow, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
@@ -130,6 +132,9 @@ interface Connection {
   connector_image_url: string | null;
   status: string;
   last_synced_at: string | null;
+  last_sync_attempt_at: string | null;
+  next_sync_at: string | null;
+  last_sync_status: string | null;
 }
 
 interface AccountOpt { id: string; name: string; }
@@ -141,6 +146,53 @@ const SUGGESTION_LABELS: Record<SuggestionSource, string> = {
   documento: "CNPJ/CPF do extrato",
   nome: "nome do extrato",
 };
+
+function fmtDateTime(v: string | null | undefined) {
+  if (!v) return null;
+  try { return format(new Date(v), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }); }
+  catch { return v; }
+}
+
+function SyncInfo({ connection: c }: { connection: Connection }) {
+  const lastAt = c.last_synced_at ?? c.last_sync_attempt_at;
+  const lastLabel = lastAt
+    ? formatDistanceToNow(new Date(lastAt), { locale: ptBR, addSuffix: true })
+    : "nunca";
+  const nextLabel = c.next_sync_at
+    ? formatDistanceToNow(new Date(c.next_sync_at), { locale: ptBR, addSuffix: true })
+    : null;
+  const failed = c.last_sync_status && c.last_sync_status !== "success";
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={failed ? "text-warning" : ""}>
+              Última sincronização: {lastLabel}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-xs text-xs">
+            <p>Última sincronização: {fmtDateTime(lastAt) ?? "—"}</p>
+            {c.next_sync_at && <p>Próxima programada: {fmtDateTime(c.next_sync_at) ?? "—"}</p>}
+            {c.last_sync_status && <p>Status: {c.last_sync_status}</p>}
+          </TooltipContent>
+        </Tooltip>
+        {nextLabel && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>· Próxima: {nextLabel}</span>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              {fmtDateTime(c.next_sync_at) ?? "—"}
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </span>
+    </TooltipProvider>
+  );
+}
+
 interface CategoryOpt {
   id: string;
   name: string;
@@ -384,7 +436,7 @@ export default function ConciliacaoPluggy() {
       { data: comp },
     ] = await Promise.all([
       supabase.from("pluggy_connections")
-        .select("id, connector_name, connector_image_url, status, last_synced_at")
+        .select("id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status")
         .eq("company_id", selectedCompanyId).order("created_at", { ascending: false }),
       stagingQuery.order("date", { ascending: false }).limit(500),
       supabase.rpc("get_accessible_accounts", {
@@ -1080,6 +1132,11 @@ export default function ConciliacaoPluggy() {
                 ? "Lançamentos importados apenas desta conta financeira."
                 : "Revise, categorize e confirme os lançamentos importados dos bancos conectados."}
             </p>
+            {(() => {
+              const activeId = scope ? scope.connectionId : (connectionId !== "all" ? connectionId : undefined);
+              const active = activeId ? connections.find((c) => c.id === activeId) : undefined;
+              return active ? <SyncInfo connection={active} /> : null;
+            })()}
           </div>
         </div>
         <Button
