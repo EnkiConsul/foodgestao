@@ -4590,6 +4590,69 @@ export type Database = {
           },
         ]
       }
+      dp_convocacao_grupos: {
+        Row: {
+          company_id: string
+          competencia: string
+          created_at: string
+          criado_por: string | null
+          id: string
+          modalidade: string
+          observacao: string | null
+          publicado_em: string | null
+          publicado_por: string | null
+          status: string
+          titulo: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          competencia: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          modalidade: string
+          observacao?: string | null
+          publicado_em?: string | null
+          publicado_por?: string | null
+          status?: string
+          titulo?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          competencia?: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          modalidade?: string
+          observacao?: string | null
+          publicado_em?: string | null
+          publicado_por?: string | null
+          status?: string
+          titulo?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dp_convocacao_grupos_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_convocacao_grupos_unidade_company"
+            columns: ["unidade_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id", "company_id"]
+          },
+        ]
+      }
       dp_convocacoes: {
         Row: {
           carga_prevista_horas: number
