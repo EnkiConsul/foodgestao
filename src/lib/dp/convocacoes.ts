@@ -50,9 +50,12 @@ export const STATUS_META: Record<ConvocacaoStatus, { label: string; className: s
   },
   cancelada: { label: "Cancelada", className: NEUTRO },
   expirada: { label: "Prazo expirado", className: NEUTRO },
-  sem_resposta: { label: "Sem resposta no prazo", className: NEUTRO },
+  sem_resposta: { label: "Prazo encerrado", className: NEUTRO },
   encerrada_sem_vaga: { label: "Vagas preenchidas", className: NEUTRO },
-  encerrada_inicio_ocorrencia: { label: "Encerrada (dia iniciado)", className: NEUTRO },
+  encerrada_inicio_ocorrencia: {
+    label: "O período para responder terminou porque o trabalho já iniciou",
+    className: NEUTRO,
+  },
   desistida: { label: "Desistência", className: "bg-destructive/15 text-destructive border-destructive/40" },
   substituida: { label: "Substituída", className: NEUTRO },
   encerrada_operacionalmente: {

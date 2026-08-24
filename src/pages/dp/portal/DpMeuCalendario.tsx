@@ -55,6 +55,8 @@ import { cn } from "@/lib/utils";
 import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
 import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
 import { isSocio } from "@/lib/dp/contrato-policy";
+import { MinhaDisponibilidadeCard } from "@/components/dp/MinhaDisponibilidadeCard";
+import { regimeConvocavel } from "@/lib/dp/convocacoes-planejamento";
 
 const STATUS_LABEL: Record<DateStatusKind, string> = {
   available: "Disponível",
@@ -108,12 +110,17 @@ export default function DpMeuCalendario() {
       if (!data) return null;
       const { data: c } = await supabase
         .from("dp_colaboradores")
-        .select("id, company_id, nome, sexo, domingos_folga_mes, folga_fixa_semana, ativo, unidade_id, vinculo_label")
+        .select("id, company_id, nome, sexo, regime, domingos_folga_mes, folga_fixa_semana, ativo, unidade_id, vinculo_label")
         .eq("id", data)
         .single();
       return c;
     },
   });
+
+  /** Intermitente/Freelancer usam a agenda de disponibilidade. */
+  const convocavel = regimeConvocavel(meRef.data?.regime ?? null);
+
+
 
   const range = useMemo(() => {
     const s = startOfMonth(new Date(ano, mes - 1, 1));
@@ -603,6 +610,18 @@ export default function DpMeuCalendario() {
           <ArrowLeftRight className="size-4 mr-2" /> Minhas trocas
         </Button>
       </div>
+
+      {convocavel && (
+        <MinhaDisponibilidadeCard
+          colaboradorId={meRef.data?.id ?? null}
+          ano={ano}
+          mes={mes}
+          onPrev={() => (mes === 1 ? (setAno(ano - 1), setMes(12)) : setMes(mes - 1))}
+          onNext={() => (mes === 12 ? (setAno(ano + 1), setMes(1)) : setMes(mes + 1))}
+        />
+      )}
+
+
 
       <div className="hidden md:block">
         <FolgaCalendarShared

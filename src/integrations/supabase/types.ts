@@ -14253,6 +14253,16 @@ export type Database = {
         Args: { _ano: number; _regra_id: string }
         Returns: string
       }
+      dp_capacidade_habitual_dia_cargo: {
+        Args: {
+          p_cargo: string
+          p_company: string
+          p_data: string
+          p_ignorar_colaborador?: string
+          p_unidade: string
+        }
+        Returns: Json
+      }
       dp_colaborador_ativo_of: { Args: { _user_id: string }; Returns: string }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
       dp_colaboradores_lixeira: {
@@ -14442,6 +14452,14 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_convocacao_estado_encerramento: {
+        Args: {
+          p_agora: string
+          p_inicio_previsto: string
+          p_prazo_resposta: string
+        }
+        Returns: string
+      }
       dp_convocacao_exige_admin: {
         Args: { _company_id: string }
         Returns: string
@@ -14469,6 +14487,10 @@ export type Database = {
           _tipo: string
         }
         Returns: undefined
+      }
+      dp_convocacao_materializar_encerramentos: {
+        Args: { p_limit?: number }
+        Returns: Json
       }
       dp_convocacao_minhas_ofertas: {
         Args: never
@@ -14610,6 +14632,17 @@ export type Database = {
         Args: { _periodo_id: string }
         Returns: undefined
       }
+      dp_folga_criar_admin: {
+        Args: {
+          p_colaborador_id: string
+          p_confirmar_deficit?: boolean
+          p_data: string
+          p_extra?: boolean
+          p_observacao?: string
+          p_tipo?: string
+        }
+        Returns: Json
+      }
       dp_folha_desfazer_despesa: {
         Args: { p_periodo_id: string }
         Returns: boolean
@@ -14656,6 +14689,11 @@ export type Database = {
         Args: { _ano: number; _company_id: string; _mes: number }
         Returns: number
       }
+      dp_indisponibilidade_marcar: {
+        Args: { p_data: string; p_motivo?: string }
+        Returns: Json
+      }
+      dp_indisponibilidade_remover: { Args: { p_data: string }; Returns: Json }
       dp_pascoa: { Args: { _ano: number }; Returns: string }
       dp_pode_gerenciar_lixeira: {
         Args: { _company_id: string }

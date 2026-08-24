@@ -119,8 +119,10 @@ export interface ResultadoDia {
   data: string;
   dow: number;
   contagens: Contagens;
-  /** Fixos escalados + convocados aceitos + convocados aguardando resposta. */
+  /** Confirmados: fixos escalados + convocações aceitas. Pendentes não entram. */
   trabalhando: number;
+  /** Convocações aguardando resposta (nunca somadas em `trabalhando`). */
+  aguardando: number;
   pessoas: PessoaPanorama[];
 }
 
@@ -328,8 +330,11 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     });
   }
 
-  const trabalhando = contagens.fixo + contagens.convocado_aceito + contagens.convocado_pendente;
-  return { data, dow, contagens, trabalhando, pessoas };
+  // Confirmados = fixos escalados + convocações aceitas.
+  // Convocação pendente NUNCA entra em "trabalhando": ela é apenas "Aguardando".
+  const trabalhando = contagens.fixo + contagens.convocado_aceito;
+  const aguardando = contagens.convocado_pendente;
+  return { data, dow, contagens, trabalhando, aguardando, pessoas };
 }
 
 // ------------------------------------------------------------------

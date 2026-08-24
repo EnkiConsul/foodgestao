@@ -684,9 +684,14 @@ export default function DpOperacaoPanorama() {
                           />
                         )}
                       </div>
-                      <p className="text-[11px] font-medium">{d.trabalhando} pessoa(s)</p>
+                      <p className="text-[11px] font-medium">{d.trabalhando} confirmado(s)</p>
+                      {d.aguardando > 0 && (
+                        <p className="text-[10px] leading-tight text-amber-600">
+                          {d.aguardando} aguardando
+                        </p>
+                      )}
                       <p className="text-[10px] leading-tight text-muted-foreground">
-                        {d.contagens.fixo}F · {d.contagens.convocado_aceito + d.contagens.convocado_pendente}I ·{" "}
+                        {d.contagens.fixo}F · {d.contagens.convocado_aceito}I ·{" "}
                         {d.contagens.folga_padrao + d.contagens.folga_extra}FG
                       </p>
                       {d.avaliacao.padrao != null && (
