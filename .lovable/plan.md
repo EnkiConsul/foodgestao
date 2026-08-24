@@ -84,6 +84,7 @@ Duas sessões `psql` reais para os cenários concorrentes:
 - Grupo, mesmo ID + payload diferente → 1 criação + `IDEMPOTENCY_CONFLICT`.
 - Ocorrência, os mesmos dois cenários.
 - Sessão A trava o grupo e publica; Sessão B tenta criar ocorrência → aguarda; após o COMMIT de A, B revalida e devolve `NOT_DRAFT` sem criar ocorrência.
+- Retry após publicação: criar ocorrência → publicar o grupo → repetir exatamente a mesma criação → sucesso idempotente com 0 eventos adicionais. Com o grupo publicado e ocorrência inexistente → `NOT_DRAFT`.
 - Revisão preservando exatamente a identidade da necessidade (empresa/unidade/data/cargo/janela) e alterando só vagas/condições → sucessora criada sem violar `uq_dp_conv_ocor_necessidade_vigente`.
 - Revisão: mesma sucessora + mesmo payload → idempotente, 0 evento; mesma sucessora + payload material diferente → `IDEMPOTENCY_CONFLICT`; mesma sucessora + payload igual e `p_motivo` diferente → `IDEMPOTENCY_CONFLICT`; cadeia corrompida artificialmente → `REVISION_INCONSISTENT`.
 - Tentativa de lock cross-company: usuário de outra empresa em `atualizar_grupo`/`atualizar_ocorrencia`/`revisar_ocorrencia`/`criar_ocorrencia` → `FORBIDDEN` sem ter travado a linha (verificado com a linha travada por outra sessão: a chamada não bloqueia, falha na hora).
