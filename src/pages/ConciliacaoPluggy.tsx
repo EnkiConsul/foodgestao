@@ -26,7 +26,7 @@ import { PluggyAuditDialog } from "@/components/conciliacao/PluggyAuditDialog";
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { suggestPaymentMethodId, normalizeText } from "@/lib/conciliacao/paymentMethodInference";
-import { fetchAllCompanyContacts, fetchConciliacaoContacts, findExistingContact, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
+import { fetchConciliacaoContacts, findExistingContact, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
 import { bestContactMatch, normalizeContactKey } from "@/lib/conciliacao/contactMatch";
 import { loadConciliacaoMemory, EMPTY_MEMORY, type ConciliacaoMemory } from "@/lib/conciliacao/history";
 import {
@@ -893,6 +893,14 @@ export default function ConciliacaoPluggy() {
 
     setContactForm({ rowId: row.id, name, document, type: contactType });
   };
+
+  // Memória de conciliação: aprende dos lançamentos já conciliados da empresa.
+  useEffect(() => {
+    if (!selectedCompanyId) { setMemory(EMPTY_MEMORY); return; }
+    let alive = true;
+    loadConciliacaoMemory(selectedCompanyId).then((m) => { if (alive) setMemory(m); });
+    return () => { alive = false; };
+  }, [selectedCompanyId]);
 
   // Empresa em contexto já vem marcada nos vínculos do novo contato.
   const contactFormCompanyIds = useMemo(
