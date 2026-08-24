@@ -1,107 +1,187 @@
-# Convocações — Fase 1: Diagnóstico (nenhuma alteração feita)
+# Convocações — Fase 1 REVISADA (diagnóstico e desenho; nada implementado)
 
-Auditoria concluída sem alterar código, banco ou migrations. Abaixo o que existe hoje, o que serve, o que precisa mudar e a proposta técnica para a Fase 2.
+## 1. Resumo executivo revisado
 
-## 1. Resumo executivo
+O diagnóstico anterior está corrigido em dois pontos: (a) a indisponibilidade **pode sim** interferir na liberação de folgas, desde que passe pelo mesmo motor de cobertura já existente, e (b) as decisões de armazenamento (indisponibilidade e estrutura de Convocações) voltam com recomendação objetiva, mas seguem dependendo da sua aprovação.
 
-O sistema tem hoje uma Convocação **simples**: uma linha = um colaborador + uma data + um horário, exclusiva de intermitentes, respondida no Portal por UPDATE direto na tabela. Não existe hierarquia de ocorrências, não existe vaga, não existe convocação aberta, não existe indisponibilidade e não existe fluxo de desistência/multa.
+Descoberta nova e importante: hoje **a liberação de folga não consulta cobertura nenhuma**. O único freio de capacidade é `dp_dia_config.limite_folgas` — "quantas pessoas podem folgar neste dia" — e ele nem sabe quantas pessoas precisam ficar. `dp_cobertura_minima` (unidade, cargo, dia da semana, turno, mínimo, vigência) existe e já é usada em Escala e Operação (`src/lib/dp/escala-mes.ts`, `src/lib/dp/operacao-dia.ts`, `src/components/dp/CoberturaMinimaCard.tsx`), mas **não é consultada em nenhum ponto da validação de folgas** (`dp_folgas_validar_unificado` não referencia essa tabela). Ou seja: o seu pedido do item 8 é viável e é exatamente a ponte que falta — sem criar um segundo conceito de cobertura.
 
-Em contrapartida, três peças pesadas do plano **já existem e devem ser reutilizadas**: o motor de cobertura por dia/cargo (`operacao-panorama.ts` + tela Operação), o motor de Trocas com aprovação/direta no backend (`dp_trocas` + `dp_processar_troca_direta` + `dp_config_resolvida`) e a necessidade mínima por cargo/dia/turno (`dp_cobertura_minima`, que já resolve o item 100 do plano).
+Também não existe hoje nenhum campo do tipo "este colaborador compõe a equipe operacional": em `dp_colaboradores` os únicos campos próximos são `folga_fixa_semana`, `vinculo_label`, `domingos_folga_mes`. Esse campo precisará ser criado (proposta na seção 7).
 
-Duas decisões precisam da sua aprovação antes da Fase 2: **onde gravar a indisponibilidade** e **se a Convocação atual evolui in-place ou passa a ter tabela-pai de ocorrências**.
-
-## 2. Arquitetura atual (evidências)
+## 2. Como funciona atualmente
 
 Convocações
-- `src/pages/dp/DpConvocacoes.tsx` (284 linhas): lista por intervalo de datas + diálogo de criação com colaborador único, data única, entrada/saída/intervalo, prazo digitado manualmente, cancelar e **excluir**.
-- `src/hooks/useDpConvocacoes.tsx`: `criar` (insert direto), `cancelar` (update status), `remover` (**DELETE físico**), `useMinhasConvocacoes.responder` (update status direto do cliente).
-- `src/lib/dp/convocacoes.ts`: status `pendente | aceita | recusada | cancelada | expirada`, `podeConvocar` (só `horasPorConvocacao` = intermitente), `validarConvocacao`, `snapshotDaConvocacao`, `statusEfetivo` (expiração calculada **só no frontend**).
-- Tabela `dp_convocacoes`: `colaborador_id, unidade_id, turno_id, escala_item_id, data, entrada, saida, intervalo_minutos, termina_no_dia_seguinte, carga_prevista_horas, status, prazo_resposta, enviada_em, respondida_em, motivo_recusa, observacao, criada_por`. **0 registros hoje** (migração de dados não é risco).
-- Trigger `dp_convocacao_guard`: **levanta exceção se o regime não for `intermitente`**; valida prazo no aceite.
-- Trigger `dp_convocacao_sync_escala`: aceite cria/atualiza `dp_escala_itens` com `origem='convocacao'`; recusa/cancelamento/expiração apaga o item.
-- RLS: `dp_convocacoes_admin_all` (admin/owner da empresa), `dp_convocacoes_read_self`, `dp_convocacoes_respond_self` (UPDATE só de `pendente` → `aceita/recusada`).
+- `dp_convocacoes`: 1 linha = 1 colaborador + 1 data + 1 horário (`entrada, saida, intervalo_minutos, termina_no_dia_seguinte, carga_prevista_horas, status, prazo_resposta, respondida_em, escala_item_id`). **0 registros hoje.**
+- `dp_convocacao_guard` (trigger): levanta exceção se o regime **não for `intermitente`** e valida prazo no aceite.
+- `dp_convocacao_sync_escala` (trigger): aceite cria/atualiza `dp_escala_itens` com `origem='convocacao'`; recusa/cancelamento apaga o item. É essa a integração com Escala e, por consequência, com apuração/folha.
+- Portal responde por UPDATE direto (RLS `dp_convocacoes_respond_self`), sem vaga, sem trava de concorrência. `remover` faz DELETE físico (`useDpConvocacoes.tsx`).
+- Enum `dp_regime_trabalho` já inclui `freelancer` (hoje: 4 intermitentes, 0 freelancers).
 
-Cobertura / Operação
-- `src/lib/dp/operacao-panorama.ts` (545 linhas): categorias `fixo, convocado_aceito, convocado_pendente, folga_padrao, folga_extra, ferias, atestado`, agrupamento por cargo, por período de funcionamento da unidade e aprendizado do padrão histórico por dia da semana.
-- `src/pages/dp/DpOperacaoPanorama.tsx` (791 linhas): abas dia/mês, unidade pré-selecionada, cards reordenáveis.
-- `dp_cobertura_minima`: `unidade_id, cargo_id, dia_semana, turno_id, minimo, vigencia_inicio/fim, ativo`.
+Folgas
+- `dp_folgas_validar_unificado` valida, em ordem: bloqueio manual da data (`dp_datas_bloqueadas`), regras dinâmicas (`dp_regra_bloqueia_data`), bloqueio individual (`dp_bloqueios`), **limite diário** (`dp_dia_config.limite_folgas`, contando folgas não-extra da unidade) e, só para `origem='solicitacao'`, as travas de autoatendimento (teto de fim de semana `folgas_fds_por_mes`, folga fixa, reserva de aniversariante), com sócio isento.
+- Configurações da empresa/unidade: `dp_config_dp` (via `dp_config_resolvida(company, unidade)`), incluindo `folgas_fds_por_mes`, políticas de domingo/sábado/feriado, `troca_folga_modo`, `troca_folga_escopo`. Espelho no frontend: `src/lib/dp/dsr-rules.ts`; tela: `DpConfiguracoesJornada` dentro do hub Folgas.
+- RLS `dp_folgas_self_insert` só admite `origem='solicitacao' AND tipo='normal' AND extra=false`.
 
-Jornada
-- `dp_colaborador_config_trabalho` (unidade, turno padrão, carga semanal, vigência) + `dp_colaborador_config_dias` (`dow, trabalha, turno_id, entrada, saida, intervalo_minutos`) — resolvidos por `src/lib/dp/config-trabalho.ts` (`turnoDoDia`). É daqui que sai a "jornada habitual".
+Cobertura
+- `dp_cobertura_minima` + `src/lib/dp/cobertura-utils.ts` (`resolverCoberturaMinima`, `avaliarCobertura`, regra sem turno vale para todos, a mais exigente prevalece, respeita vigência).
+- `src/lib/dp/operacao-panorama.ts` conta por dia/cargo com categorias `fixo, convocado_aceito, convocado_pendente, folga_padrao, folga_extra, ferias, atestado`.
 
-Folgas / Calendário do Portal
-- `dp_folgas`: `tipo (normal, extra, ferias, abono, licenca)`, `origem (fixa_semana, sorteio, troca, solicitacao, admin_manual, ferias, automatica_clt)`, `status`, `extra`.
-- RLS `dp_folgas_self_insert` só aceita `origem='solicitacao' AND tipo='normal' AND extra=false`; `dp_folgas_validar_unificado` aplica teto/regras; `dp_datas_bloqueadas` bloqueia datas de folga.
-- `src/pages/dp/portal/DpMeuCalendario.tsx` (935 linhas): calendário único do colaborador, hoje só folga/férias. **Nenhuma referência a indisponibilidade ou convocação.**
+## 3. Correções em relação ao diagnóstico anterior
 
-Trocas
-- `dp_trocas`: `solicitante_id, destino_id, data_original, data_proposta, status (pendente_colega, pendente_gestor, aprovada, recusada, cancelada)`, respostas de colega e gestor. **Sem vínculo com convocação.**
-- `dp_processar_troca` / `dp_processar_troca_direta` (SECURITY DEFINER, `FOR UPDATE`, valida autor e `troca_folga_modo`) e `dp_config_resolvida(company, unidade)`.
-- Regras em `dp_config_dp`: `troca_folga_modo`, `troca_folga_escopo` — resolvidas em `src/lib/dp/dsr-rules.ts` (`troca permitida / exige aprovação`).
+1. Indisponibilidade **passa a poder** reduzir capacidade e, com isso, bloquear/alertar folga — não como regra fixa, mas via regra da empresa (seção 6) + marcação individual (seção 7).
+2. `dp_cobertura_minima` deixa de ser tratada apenas como "atende o item 100" e passa a ser a **fonte única** de necessidade também para folgas.
+3. Fica registrado que hoje a folga não avalia cobertura alguma — logo, ligar cobertura à folga é funcionalidade nova (com risco de regressão controlado por flag padrão).
+4. "Confirmados x Aguardando" é reafirmado como separação de domínio (seção 14), não só de rótulo.
 
-Regime
-- Enum `dp_regime_trabalho` já contém `freelancer` (4 intermitentes, 0 freelancers cadastrados). `contrato-policy.ts` centraliza comportamento por regime, mas `horasPorConvocacao` é `true` apenas no intermitente.
+## 4. Indisponibilidade — alternativas avaliadas
 
-## 3. Classificação requisito por requisito
+Alternativa A — entidade própria (`dp_indisponibilidades`: colaborador, data, unidade opcional, motivo, criado_por, timestamps; UNIQUE colaborador+data)
+- Vantagens: zero risco de contaminar DSR, teto de folgas, folga dominical, conformidade, folha e relatórios (nenhum deles conhece a tabela); permite data passada proibida e regras próprias; RLS simples (self insert/delete futuro + leitura do admin); pode nascer com política de "não é folga" explícita.
+- Riscos: nova tabela, novo hook, novo ponto a lembrar nas queries de elegibilidade e de cobertura.
+- Impacto: `DpMeuCalendario` passa a ler duas fontes (folgas + indisponibilidades) para pintar o mês.
 
-JÁ EXISTE E DEVE SER REUTILIZADO
-- Cobertura confirmada por dia/cargo, com "aguardando" separado de "confirmado" (`operacao-panorama.ts`, categorias `convocado_aceito` vs `convocado_pendente`).
-- Detalhe do dia com pessoas, horário e origem (mesmo motor + tela Operação).
-- Jornada habitual automática (`config-trabalho.ts`, `dp_colaborador_config_dias`).
-- Snapshot de horário na convocação (colunas de horário/carga já existem + `snapshotDaConvocacao`).
-- Vínculo do aceite com a escala (`dp_convocacao_sync_escala`) — não criar segunda fonte de verdade.
-- Motor de troca com modo direto/aprovação no backend e regras por empresa/unidade (`dp_trocas`, RPCs, `dp_config_resolvida`, `dsr-rules.ts`).
-- Calendário único do Portal, mobile, com bloqueios (`DpMeuCalendario.tsx`, `dp_datas_bloqueadas`).
-- Necessidade por cargo/dia/turno (`dp_cobertura_minima`) → atende o item 100 sem tabela nova.
-- Multiempresa: `private.is_company_admin_or_owner`, `dp_colaborador_ativo_of`, `is_company_member` já são o padrão.
+Alternativa B — reutilizar `dp_folgas` com `tipo`/`origem` novos (ex.: `tipo='indisponibilidade'`)
+- Vantagens: calendário do Portal e Operação já leem essa tabela; menos código novo.
+- Riscos (altos e concretos): `dp_folgas_validar_unificado` roda em **todas** as inserções e aplicaria bloqueio de data, limite diário e travas de autoatendimento a uma marcação que não é folga; a RLS `dp_folgas_self_insert` teria de ser afrouxada (hoje trava `tipo='normal'`), enfraquecendo uma policy de segurança já revisada; contagens de `dp_folgas` espalhadas (limite diário, conformidade DSR, folga dominical, VA/VT, relatórios) passariam a precisar de filtro negativo em cada consulta — qualquer esquecimento vira erro silencioso em cálculo trabalhista.
+- Impacto: risco de regressão em folha/benefícios/DSR, justamente o que você pediu para não contaminar.
 
-EXISTE, MAS PRECISA SER ADAPTADO
-- `dp_convocacoes`: precisa virar **ocorrência** de uma convocação-pai (mês) e ganhar vagas/ofertas.
-- `dp_convocacao_guard`: precisa aceitar `freelancer` (via `contrato-policy`, não por comparação literal de regime).
-- Aceite no Portal: hoje é UPDATE direto do cliente → precisa RPC atômica com trava de vaga, prazo e reelegibilidade.
-- Prazo de resposta: hoje digitado à mão → derivar 1 dia útil no backend; expiração hoje é só visual → materializar "recusada por ausência de resposta".
-- Exclusão de convocação publicada (`remover`) → substituir por cancelamento/arquivamento.
-- `dp_trocas`: generalizar para substituição de ocorrência de convocação (referência à ocorrência + escopo intermitente/freelancer/fixo dominical).
-- `DpConvocacoes.tsx`: passa a ter abas (Próximas/Aguardando/Confirmadas/Realizadas/Histórico/Regras) e o fluxo unidade → mês → cargos → calendário → dias → vagas → modalidade → jornada → revisar.
-- `DpMeuCalendario.tsx`: mesmo calendário passa a permitir "Não estarei disponível" para intermitente/freelancer.
-- `contrato-policy.ts`: novos predicados (`participaConvocacao`, `sujeitoMulta50`) para separar operação de regra jurídica.
+## 5. Recomendação para armazenamento da indisponibilidade
 
-NÃO EXISTE
-- Convocação-pai mensal com ocorrências independentes.
-- Vagas por cargo/data e preenchimento por ordem de aceite (com atomicidade).
-- Convocação aberta, público elegível e ofertas por destinatário.
-- Indisponibilidade do trabalhador.
-- Timeline/eventos auditáveis da convocação.
-- Aba Regras de Convocações (antecedência, matriz de trocas, presets, aprovação).
-- Registro de exceção de antecedência (< 3 dias) por ocorrência.
-- Desistência após aceite, análise de justo motivo, falta e referência de 50%.
-- Snapshot financeiro da ocorrência.
+**Alternativa A — tabela própria `dp_indisponibilidades`.** Motivo: o efeito desejado (reduzir capacidade nas folgas) é obtido por leitura no motor de cobertura, sem precisar que a indisponibilidade seja uma folga. Assim ganhamos a interferência que você pediu **sem** herdar as validações CLT de `dp_folgas`.
 
-EXISTE CONFLITO
-- P0: `dp_convocacao_guard` **bloqueia freelancer** — qualquer convocação de freelancer falha hoje no banco.
-- P0: `dp_convocacoes_respond_self` permite o trabalhador mudar status direto, sem checar vaga/concorrência → overbooking em convocação aberta.
-- P1: `dp_folgas_self_insert` + `dp_folgas_validar_unificado` só admitem folga `normal/solicitacao` — gravar indisponibilidade em `dp_folgas` contaminaria DSR, teto de folgas, conformidade e relatórios CLT.
-- P1: `remover` (DELETE) contraria "não excluir convocações enviadas".
-- P2: `statusEfetivo` divergente do banco (expirada só no cliente).
+Como será consultada: hook `useDpIndisponibilidades(competência, unidade)` no admin e leitura própria no Portal; no backend, entra em (i) elegibilidade de convocação, (ii) função de capacidade das folgas, (iii) painel Operação como categoria informativa.
 
-PRECISA DE DECISÃO
-1. **Indisponibilidade**: tabela própria `dp_indisponibilidades` (recomendado, isola DSR) ou novo `tipo/origem` em `dp_folgas`.
-2. **Modelo da Convocação**: criar `dp_convocacoes_grupos` + tratar `dp_convocacoes` como ocorrência (recomendado, tabela está vazia) ou renomear/reconstruir.
-3. **Ofertas**: tabela `dp_convocacao_ofertas` para convocação aberta (recomendado) ou reaproveitar ocorrência sem titular.
-4. **Regras**: colunas novas em `dp_config_dp` (herda `dp_config_resolvida` e override por unidade) ou tabela dedicada.
-5. **Multa/falta**: tabela de ocorrência de análise própria ou reuso de `dp_registros_disciplinares`.
+## 6. Regra global de Folgas
 
-## 4. Riscos
+Nova configuração em Regras de Folgas (nível empresa, com override por unidade porque `dp_config_dp` já tem `unidade_id` e `dp_config_resolvida`):
 
-- P0: concorrência de aceite em vaga única; guard bloqueando freelancer; isolamento multiempresa nas novas RPCs (derivar `company_id` no backend).
-- P1: regressão em Folgas/DSR ao introduzir indisponibilidade; regressão em Trocas ao generalizar; consistência do `dp_convocacao_sync_escala` quando houver substituição.
-- P2: expiração materializada exigir job/lazy-update; volume do calendário mensal com muitos cargos.
+- "Considerar indisponibilidade de intermitentes e freelancers na cobertura da equipe ao analisar novas folgas" — **ativada por padrão**.
+- Quando desativada: indisponibilidade não entra em nenhum cálculo de folga (comportamento atual preservado).
+- Quando ativada: a capacidade do dia passa a descontar quem informou indisponibilidade **entre os que compõem a cobertura operacional**, e a decisão final continua sendo das regras de folga já existentes.
 
-## 5. Proposta técnica da Fase 2 (para aprovar depois)
+## 7. Configuração individual Intermitente/Freelancer
 
-- Modelo: `dp_convocacoes_grupos` (empresa, unidade, competência, modalidade individual/aberta, status) → `dp_convocacoes` como ocorrência (data, cargo, vagas, vagas_preenchidas, titular, snapshot de jornada e remuneração, marcação de antecedência) → `dp_convocacao_ofertas` (destinatário, status aguardando/aceita/recusada/sem_resposta/encerrada) → `dp_convocacao_eventos` (timeline) + `dp_indisponibilidades`.
-- Backend: RPCs `dp_convocacao_publicar`, `dp_convocacao_aceitar` (atômica, `FOR UPDATE` na ocorrência, idempotente), `dp_convocacao_recusar`, `dp_convocacao_reabrir`, `dp_convocacao_substituir` (generalizando as RPCs de troca), `dp_indisponibilidade_marcar/remover`, `dp_convocacao_classificar_falta`.
-- Frontend: wizard de Nova Convocação reaproveitando `operacao-panorama.ts` para a grade mensal por cargo; abas na tela Convocações; evolução de `DpMinhasConvocacoes` e `DpMeuCalendario`; aba Regras no padrão de Folgas.
-- Máquina de estados explícita em `src/lib/dp/convocacoes.ts` (grupo, ocorrência, oferta), sem strings livres na UI.
+No cadastro do colaborador (aba Horário/Jornada, junto do vínculo com unidade), campo com linguagem simples:
 
-Fase 1 encerrada. Nada foi alterado. Aguardo sua aprovação (e as 5 decisões acima) para apresentar a Fase 2 — arquitetura alvo detalhada, ainda sem código.
+- "Considerar este colaborador na cobertura operacional" — marcado por padrão para intermitente e freelancer; ausente/irrelevante para CLT (fixo sempre compõe) e sócio segue a regra de sócio já existente.
+- Texto de apoio: "Desmarque se esta pessoa é chamada apenas em eventos e picos: nesse caso a ausência dela não reduz a equipe considerada para liberar folgas."
+
+Como esse campo não existe (auditado: `dp_colaboradores` só tem `folga_fixa_semana`, `vinculo_label`, `domingos_folga_mes`, e `dp_colaborador_config_trabalho` trata unidade/turno/carga/folga), ele precisará ser criado. Recomendação: **uma coluna booleana em `dp_colaboradores`** (default `true`), e não em `config_trabalho`, porque é característica do vínculo e não de vigência de jornada — e porque `operacao-panorama.ts` já recebe o colaborador com `regime/unidade/cargo` e passaria a receber esse flag sem query extra.
+
+## 8. Hierarquia das regras
+
+```text
+Regra da empresa (unidade > empresa)
+"Considerar indisponibilidades na cobertura de folgas"
+  ├── DESATIVADA → indisponibilidade não afeta folgas (estado atual)
+  └── ATIVADA
+        └── considera apenas quem tem "compõe cobertura operacional" = sim
+              └── indisponibilidade reduz a capacidade do dia/cargo/turno
+                    └── regras atuais de folga (mínimo de cobertura, limite
+                        diário, bloqueios, autoatendimento) decidem
+                        bloquear ou apenas alertar
+```
+
+Independente de tudo isso: indisponível = **não elegível** para convocação naquela data (seção 11).
+
+## 9. Integração com cobertura mínima
+
+Uma única função de capacidade, no banco (SECURITY DEFINER) e espelhada em `cobertura-utils.ts`, para data + unidade + cargo + turno:
+
+```text
+mínimo exigido   = dp_cobertura_minima (resolvida por vigência/dia/turno/cargo)
+disponíveis      = fixos previstos (jornada/escala)
+                 + intermitentes/freelancers que compõem cobertura
+                 - folgas e férias já concedidas
+                 - indisponibilidades (quando a regra da empresa estiver ativa)
+folga solicitada → disponíveis - 1 < mínimo ?
+```
+
+Sem segundo conceito de cobertura: a necessidade continua vindo só de `dp_cobertura_minima`, e a contagem de pessoas reaproveita a lógica de `operacao-panorama.ts`.
+
+## 10. Fluxo de concessão de Folgas
+
+1. Validações atuais primeiro, na ordem já existente (bloqueio de data, regra dinâmica, bloqueio individual, limite diário, autoatendimento). Nada disso muda.
+2. Nova etapa de cobertura, só quando houver regra de mínimo aplicável ao cargo/turno do solicitante:
+   - **Bloquear** quando a folga derrubaria os disponíveis abaixo do mínimo e a origem é autoatendimento (`origem='solicitacao'`).
+   - **Apenas alertar** quando o lançamento é do admin (`admin_manual`), quando não há regra de mínimo para aquele cargo/dia/turno, ou quando o déficit vem de indisponibilidade e a empresa marcou a regra como alerta.
+   - Sem regra de mínimo cadastrada → comportamento idêntico ao de hoje (nada bloqueia).
+3. Sócio, férias, licença e folga extra seguem as isenções atuais.
+
+## 11. Impacto na elegibilidade para Convocações
+
+- Indisponibilidade sempre remove a pessoa da lista de elegíveis daquela data, **inclusive** quando "compõe cobertura" = não.
+- Convocação pendente na data: marcar indisponibilidade encerra a oferta e devolve a vaga.
+- Convocação aceita: não permite marcar; oferece "Manter" ou "Solicitar substituição".
+- Data passada: não permite marcar. Data bloqueada para folga: **permite** marcar indisponibilidade (não consome vaga de folga).
+- Remover indisponibilidade futura devolve elegibilidade para novas convocações, sem reabrir ofertas encerradas.
+
+## 12. Arquitetura de Convocações recomendada
+
+**Recomendação objetiva: estrutura-pai + ocorrências, com `dp_convocacoes` reaproveitada como a tabela de OCORRÊNCIA.**
+
+```text
+dp_convocacoes_grupos   (empresa, unidade, competência, modalidade individual|aberta, status, criada/publicada)
+        ↓ 1:N
+dp_convocacoes          (ocorrência: data, cargo, vagas, vagas_preenchidas, titular,
+                         snapshot de jornada e de remuneração, marcação de antecedência)
+        ↓ 1:N
+dp_convocacao_ofertas   (destinatário, status aguardando|aceita|recusada|sem_resposta|encerrada,
+                         disponibilizada_em, visualizada_em, respondida_em)
+        ↓
+dp_convocacao_eventos   (timeline auditável, append-only)
+```
+
+Por que não uma tabela nova para ocorrência: `dp_convocacoes` já é ocorrência na prática (data + horário + snapshot + `escala_item_id`) e já tem os dois triggers e as três policies certas; recriá-la exigiria reescrever `dp_convocacao_sync_escala`, `operacao-panorama.ts`, o Portal e os tipos, sem ganho. Por que não in-place puro: sem tabela-pai e sem ofertas não há como representar convocação aberta, vários candidatos e aceites concorrentes com trava de vaga.
+
+Fator decisivo de segurança: `dp_convocacoes` está **vazia** (0 registros) — a evolução não migra dado nenhum.
+
+## 13. Compatibilidade com `dp_convocacoes`
+
+- `dp_convocacao_guard`: precisa passar a aceitar `freelancer` — hoje **bloqueia** (P0). A checagem deve derivar da política de contrato, não de comparação literal de regime.
+- `dp_convocacao_sync_escala`: mantido como está; a ocorrência continua sendo a linha que gera `dp_escala_itens`, então Escala, Operação, apuração e folha continuam lendo a mesma fonte.
+- `dp_convocacoes_respond_self` (UPDATE direto do Portal): deve ser substituída por RPC atômica de aceite; manter a policy junto com vagas gera overbooking (P0).
+- `remover` (DELETE físico): substituir por cancelamento/arquivamento após publicação.
+- Portal: `DpMinhasConvocacoes` continua listando ocorrências; ganha agrupamento por grupo/mês.
+- Folha/benefícios: nada muda, porque o vínculo continua sendo via item de escala.
+
+## 14. Confirmados x Aguardando
+
+`operacao-panorama.ts` já separa `convocado_aceito` de `convocado_pendente` e `trabalhando` já soma os dois. Para não quebrar a tela Operação: manter `trabalhando` como está e **derivar** dois números novos a partir das contagens existentes — `confirmados = fixo + convocado_aceito (+ substituição efetivada, que já chega como item de escala)` e `aguardando = convocado_pendente`. No calendário de Nova Convocação, o número grande é sempre `confirmados`; `aguardando` aparece como linha secundária. Isso é cálculo adicional sobre o retorno atual, sem alterar a semântica consumida hoje pela Operação.
+
+## 15. Tabelas/campos reutilizáveis
+
+- `dp_cobertura_minima` + `cobertura-utils.ts` → necessidade por cargo/dia/turno (folgas e convocações).
+- `operacao-panorama.ts` + `DpOperacaoPanorama` → cobertura por dia/cargo e detalhe de pessoas.
+- `dp_colaborador_config_trabalho` / `dp_colaborador_config_dias` / `config-trabalho.ts` → jornada habitual automática.
+- `dp_convocacoes` (como ocorrência), `dp_convocacao_sync_escala`, `dp_escala_itens`.
+- `dp_trocas` + `dp_processar_troca` / `dp_processar_troca_direta` + `dp_config_resolvida` + `dsr-rules.ts` → substituições com modo direto/aprovação.
+- `dp_config_dp` (+ `unidade_id`) → todas as novas regras, herdando override por unidade.
+- `dp_datas_bloqueadas`, `dp_dia_config`, `dp_bloqueios` → regras de data já existentes.
+- `DpMeuCalendario` → calendário único do Portal.
+
+## 16. Tabelas/campos que precisariam ser criados
+
+- `dp_indisponibilidades` (seção 5).
+- `dp_convocacoes_grupos`, `dp_convocacao_ofertas`, `dp_convocacao_eventos` (seção 12).
+- Em `dp_convocacoes`: grupo, cargo, vagas, vagas preenchidas, titular, marcação e dados da exceção de antecedência, snapshot financeiro.
+- Em `dp_colaboradores`: "compõe cobertura operacional" (default sim).
+- Em `dp_config_dp`: considerar indisponibilidade na cobertura (default sim), bloquear ou alertar no déficit, antecedência padrão (3 dias), prazo de resposta (1 dia útil), matriz de trocas intermitente/freelancer/fixo dominical, modo de aprovação.
+- Estrutura de desistência/falta com análise de justo motivo e referência de 50% (só intermitente).
+
+## 17. Riscos
+
+- **P0**: `dp_convocacao_guard` bloqueia freelancer; aceite sem atomicidade permite overbooking; RPCs novas precisam derivar `company_id` no backend (nunca do frontend).
+- **P1**: ligar cobertura à folga é comportamento novo e pode bloquear folga que hoje passa — mitigar com regra padrão de mínimo só quando cadastrada, alerta em lançamento admin e testes de regressão em Folgas; generalizar `dp_trocas` sem quebrar troca de folga; consistência de `escala_item_id` em substituição.
+- **P2**: expiração por silêncio precisa ser materializada (hoje só visual em `statusEfetivo`); custo do calendário mensal com muitos cargos; duas fontes no calendário do Portal (folgas + indisponibilidades).
+
+## 18. Decisões que dependem da sua aprovação
+
+1. Indisponibilidade em tabela própria (recomendado) — confirma?
+2. Convocações: grupo-pai + `dp_convocacoes` como ocorrência + tabela de ofertas (recomendado) — confirma?
+3. "Compõe cobertura operacional" como campo do colaborador (recomendado) — confirma?
+4. Déficit de cobertura em folga: **bloquear** no autoatendimento e **alertar** no lançamento do admin — confirma?
+5. Regras novas dentro de `dp_config_dp` com override por unidade (recomendado) — confirma?
+6. Desistência/falta/multa: estrutura própria de análise ou reuso de `dp_registros_disciplinares`?
+
+PARADO. Nada foi alterado em código, banco, migrations, Portal, Folgas, Convocações ou Operação. Aguardo sua aprovação da Fase 1 e as decisões acima para desenhar a Fase 2.
