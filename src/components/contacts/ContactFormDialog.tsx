@@ -165,19 +165,11 @@ export function ContactFormDialog({
         return;
       }
       // Impede duplicidade por documento (confirma no banco, não só no aviso em tela).
-      const { data: dupRows } = await supabase
-        .from("contacts")
-        .select("id, name, document")
-        .not("document", "is", null)
-        .limit(2000);
-      const dup = (dupRows ?? []).find(
-        (c: any) => isSameDocumento(c.document, docDigits) && c.id !== editContact?.id,
-      );
-
+      const dup = await findDuplicateByDocument(docDigits, editContact?.id);
       if (dup) {
-        setDuplicate({ id: (dup as any).id, name: (dup as any).name });
+        setDuplicate(dup);
         toast.error("CPF/CNPJ já cadastrado", {
-          description: `Já existe o contato "${(dup as any).name}" com este documento. Selecione-o na lista em vez de criar outro.`,
+          description: `Já existe o contato "${dup.name}" com este documento. Selecione-o na lista em vez de criar outro.`,
         });
         return;
       }
