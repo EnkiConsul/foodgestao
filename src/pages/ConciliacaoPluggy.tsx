@@ -36,6 +36,7 @@ import {
   type Counterparty,
 } from "@/lib/conciliacao/counterparty";
 import { toProperName } from "@/lib/text/properName";
+import { normalizeDocumento } from "@/lib/documento";
 
 
 
