@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeDocumento } from "@/lib/documento";
+import { contactMatchScore, normalizeContactKey } from "@/lib/conciliacao/contactMatch";
+
 
 export interface CompanyContact {
   id: string;
