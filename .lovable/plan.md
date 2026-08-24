@@ -1,77 +1,95 @@
 # Convocações — BLOCO 1: Tela completa + Rascunho + Regras
 
-Diagnóstico rápido feito (só o necessário para o Bloco 1). Escopo integral mantido, sem MVP reduzido. Bloco 2 não será iniciado.
+Escopo integral, sem MVP reduzido. Bloco 2 não será iniciado. As 12 correções obrigatórias estão incorporadas abaixo.
 
 ## Estado real verificado
 
-- `src/pages/dp/DpConvocacoes.tsx` (284 linhas) é a tela **legada**: um único colaborador intermitente, uma data, sem abas, sem cargos, sem grupo/ocorrência. Escreve direto na tabela via `useDpConvocacoes` (132 linhas).
-- Backend do novo fluxo **já existe e está aplicado**: `dp_convocacao_grupos`, `dp_convocacao_ocorrencias`, `dp_convocacao_config`, `dp_convocacao_eventos`, `dp_convocacao_descumprimentos`, mais as RPCs `dp_convocacao_criar_grupo`, `atualizar_grupo`, `criar_ocorrencia`, `atualizar_ocorrencia`, `revisar_ocorrencia`, `salvar_config` e as helpers `dp_convocacao_config_resolvida`, `dp_regime_convocavel`, `dp_e_dia_util`, `dp_adicionar_dias_uteis`.
-- `dp_convocacao_config` já tem todas as 12 regras da aba Regras (antecedência, prazo em dias úteis, aprovação, 4 matrizes de substituição, fixo em folga dominical, reabrir vaga, autonomia, oferta aberta, justificativa em exceção). Consentimento do substituto é sempre obrigatório e não terá toggle.
-- `dp_cobertura_minima` já existe como fonte única de mínimo (consumida em leitura no calendário).
-- `FolgaCalendarShared.tsx` (402 linhas) existe e será a base visual do calendário.
+- `src/pages/dp/DpConvocacoes.tsx` (284 linhas) é a tela **legada**: um colaborador intermitente, uma data, sem abas/cargos/grupo — escreve direto na tabela via `useDpConvocacoes` (132 linhas).
+- Backend do novo fluxo já aplicado: `dp_convocacao_grupos`, `dp_convocacao_ocorrencias`, `dp_convocacao_config`, `dp_convocacao_eventos`, `dp_convocacao_descumprimentos` + RPCs `criar_grupo`, `atualizar_grupo`, `criar_ocorrencia`, `atualizar_ocorrencia`, `revisar_ocorrencia`, `salvar_config` e helpers `dp_convocacao_config_resolvida`, `dp_regime_convocavel`, `dp_e_dia_util`, `dp_adicionar_dias_uteis`.
+- `dp_convocacao_config` já contém as 12 regras da aba Regras. `dp_cobertura_minima` é a fonte única de mínimo. `FolgaCalendarShared.tsx` existe (402 linhas).
+- Nenhum código do app chama hoje as RPCs novas — trocar a assinatura de `criar/atualizar_ocorrencia` não quebra chamador existente.
 
-### P0 reais encontrados (resolvidos por 1 migration aditiva no Bloco 1)
+### P0 confirmados
 
-1. `dp_convocacao_ocorrencias` **não tem `colaborador_alvo_id`** — sem isso a modalidade Individual não pode ser salva em rascunho.
-2. `dp_colaboradores` tem `valor_hora` mas **não tem `valor_diaria`** — necessário para diagnosticar elegibilidade de Freelancer diarista já na etapa Revisar.
+1. `dp_convocacao_ocorrencias` não tem `colaborador_alvo_id` → Individual não é persistível.
+2. `dp_colaboradores` tem `valor_hora`, `forma_pagamento`, `salario_base`, mas **não** `valor_diaria`.
 
-Nenhum outro P0. Implemento o Bloco 1 na sequência.
+## Migration M14 (aditiva, não altera M1–M13) — SQL já redigido
 
-## O que o gestor verá funcionando ao fim do Bloco 1
+- `dp_convocacao_ocorrencias.colaborador_alvo_id uuid NULL`, FK composta `(colaborador_alvo_id, company_id) → dp_colaboradores(id, company_id)` (o índice único `uq_dp_colaboradores_id_company` já existe), índice parcial `(company_id, colaborador_alvo_id, data)`.
+- Integridade Individual/Aberta por **trigger nos dois lados** (não CHECK cross-table): helper `dp_conv_ocor_valida_alvo(modalidade, alvo, vagas)` usado por
+  - `trg_dp_conv_ocor_alvo_guard` (BEFORE INSERT/UPDATE de `grupo_id, company_id, colaborador_alvo_id, vagas, status`), e
+  - `trg_dp_conv_grupo_modalidade_guard` (BEFORE UPDATE OF `modalidade` em `dp_convocacao_grupos`, revalidando todas as ocorrências do grupo).
+  Impossível terminar com individual sem alvo, individual com vagas ≠ 1 ou aberta com alvo — inclusive ao trocar a modalidade do grupo.
+- Imutabilidade: alvo não pode mudar quando a ocorrência não está mais em `rascunho`.
+- `dp_colaboradores.valor_diaria numeric NULL` + CHECK `> 0 quando preenchido`. Sem backfill, sem conversão de `salario_base`, sem uso de `dp_cargo_salarios.salario_base`.
+- `dp_convocacao_criar_ocorrencia` e `dp_convocacao_atualizar_ocorrencia` recriadas com `p_colaborador_alvo_id` no fim; as assinaturas antigas de 16 argumentos são dropadas explicitamente (sem overload residual), mantendo `SECURITY DEFINER`, `search_path` fixo, autorização antes de locks, reconciliação idempotente e grants apenas `authenticated` + `service_role` (`REVOKE FROM PUBLIC`). Helpers novos sem grant a `anon`/`PUBLIC`.
+- Bloco de rollback documentado no corpo da migration. `src/integrations/supabase/types.ts` regenerado após aplicar.
 
-Tela `/dp/convocacoes` reconstruída com abas **Próximas · Aguardando · Confirmadas · Realizadas · Histórico · Regras** (as abas de acompanhamento já leem dados reais; ficam vazias até a publicação existir, com estado vazio explicativo — nenhuma tela morta).
+## Persistência do wizard (correção 1)
 
-Wizard **Nova Convocação** na ordem aprovada, salvando rascunho de verdade a cada passo:
+Nada é gravado antes de ser estruturalmente válido. Sem modalidade fictícia, sem horário fictício, sem afrouxar schema.
+
+```text
+Unidade · Mês/período · Cargos · Datas   → estado local do wizard (nada no banco)
++ Modalidade definida (individual|aberta) → cria GRUPO rascunho (criar_grupo, id do cliente)
++ Ocorrência com cargo, data, necessidade_entrada/saida, vagas,
+  horario_modo coerente (horario_unico ⇒ entrada/saida/intervalo/vira-dia/carga;
+  jornada_individual ⇒ todos nulos) e alvo quando individual
+                                          → cria OCORRÊNCIA rascunho (criar_ocorrencia)
+depois disso                              → autosave idempotente (atualizar_*, com expected_updated_at)
+```
+
+Voltar etapas só dispara update quando o novo estado continua válido; enquanto inválido, a alteração fica em memória e o rascunho persistido permanece intacto. Sair e reentrar recarrega o rascunho real do banco.
+
+## Tela definitiva
+
+Abas **Próximas · Aguardando · Confirmadas · Realizadas · Histórico · Regras**. Sem termos técnicos (RPC, RLS, trigger, worker, lease, service_role) e sem erro SQL cru: mapa `FORBIDDEN`, `NOT_FOUND`, `INVALID_STATE`, `NOT_DRAFT`, `CONCURRENT_MODIFICATION`, `IDEMPOTENCY_CONFLICT`, `OPTION_A_CONFLICT` → mensagem simples em português.
+
+**Legado preservado (correção 5)**: as listagens leem o novo fluxo (`ocorrencia_id IS NOT NULL`, via grupo/ocorrência) **e** os registros legados (`ocorrencia_id IS NULL`), com selo discreto de origem. `useDpConvocacoes` e `src/lib/dp/convocacoes.ts` continuam existindo; o Portal legado (`DpMinhasConvocacoes`) não é tocado neste bloco.
+
+Wizard **Nova Convocação**, ordem aprovada intacta:
 
 ```text
 Unidade → Mês/período → Cargos (multi) → Calendário mensal por cargo →
-Datas → Vagas → Individual/Aberta → Público → Jornada → Revisar → [Publicar: Bloco 2]
+Datas → Vagas → Individual/Aberta → Público → Jornada → Revisar → [Publicar desabilitado]
 ```
 
-- **Unidade**: unidades da empresa atual; backend rederiva company/membership/role — nada autoritativo sai do frontend.
-- **Mês/período**: competência + intervalo opcional dentro dela. Grupo = ação mensal; cada data continua independente por ocorrência.
-- **Cargos**: multi-select; cada cargo ganha seu próprio calendário mensal.
-- **Calendário mensal por cargo** (base `FolgaCalendarShared`): seleção visual de datas; por data mostra `Garçom 3/6 · faltam 3` quando há cobertura mínima, ou `Garçom · 3 confirmados` quando não há; pendentes sempre em linha separada `+2 aguardando`. Pendente nunca soma como confirmado. Clique na data abre drawer com cargo, trabalhadores, regime, horário, origem, situação, vaga e confirmação.
-- **Vagas** por data+cargo+necessidade. Ocupação é sempre calculada por aceites válidos — nenhum contador persistido.
-- **Individual/Aberta**: Individual exige 1 alvo e trava vagas em 1; Aberta mantém alvo nulo e deixa o backend resolver elegíveis na publicação.
-- **Público**: lista de elegíveis por leitura (mesma empresa, unidade, ativo, cargo, `dp_regime_convocavel`, jornada válida, compatibilidade integral, sem conflito na data). `compoe_equipe_habitual` não entra como critério. Compatibilidade só `integral | incompativel`.
-- **Jornada**: "Usar jornada cadastrada" (`jornada_individual`) ou "Definir horário desta convocação" (`horario_unico`: entrada, saída, intervalo, vira dia), com carga prevista calculada.
-- **Revisar**: resumo por cargo/data/vagas/modalidade/jornada, aviso de antecedência inferior a 3 dias corridos com confirmação (e justificativa quando a configuração exigir), e diagnóstico de remuneração ausente (Intermitente/Freelancer horista sem `valor_hora`; Freelancer diarista sem `valor_diaria`; Freelancer mensalista marcado como não elegível). Nada é convertido automaticamente a partir de salário mensal.
-- Botão Publicar aparece desabilitado com a legenda "disponível no próximo bloco".
+- **Unidade**: unidades da empresa atual; nada autoritativo sai do frontend — o backend rederiva empresa, vínculo e papel.
+- **Mês/período**: competência `AAAA-MM` + intervalo opcional dentro dela. Grupo = ação mensal; cada data segue independente por ocorrência.
+- **Calendário por cargo (correção 6)**: partes genéricas de `FolgaCalendarShared` extraídas para um calendário mensal reutilizável **sem** regras de Folga; a tela de Folgas mantém comportamento idêntico. Por data: `Garçom 3/6 · faltam 3` quando há cobertura mínima, ou `Garçom · 3 confirmados` quando não há; pendentes sempre em linha própria `+2 aguardando` — pendente nunca conta como confirmado. Clique abre drawer com cargo, trabalhadores, regime, horário, origem, situação, vaga e confirmação.
+- **Vagas** por data+cargo+necessidade; ocupação sempre calculada por aceites válidos, sem contador persistido.
+- **Individual/Aberta**: Individual pede o trabalhador e trava vagas em 1; Aberta mantém alvo nulo.
+- **Público (correção 4)**: preview de elegíveis (mesma empresa/unidade/cargo, ativo, regime convocável, jornada válida, compatibilidade `integral|incompativel`, sem conflito na data; `compoe_equipe_habitual` fora do critério) e Option A com ordem determinística `data → necessidade_entrada → necessidade_saida → cargo_id → id`. Rotulado na UI como pré-análise; **não é autoridade de segurança** — o Bloco 2 revalida tudo no backend.
+- **Jornada**: "Usar jornada cadastrada" (`jornada_individual`) ou "Definir horário desta convocação" (`horario_unico`), com carga prevista calculada.
+- **Revisar**: resumo por cargo/data/vagas/modalidade/jornada; aviso de antecedência inferior a 3 dias corridos com confirmação (e justificativa quando a configuração exigir); diagnóstico de remuneração (Intermitente/Freelancer horista sem `valor_hora`; Freelancer diarista sem `valor_diaria`; Freelancer mensalista não elegível). **Publicar visível e desabilitado** com o texto "Publicação disponível na próxima etapa." (correção 9) — nada de publicação parcial.
 
-**Aba Regras**: formulário em linguagem simples, empresa + override opcional por unidade, salvando via `dp_convocacao_salvar_config` com controle otimista (`p_expected_updated_at`) e mensagem amigável em conflito. Consentimento do substituto exibido como obrigatório e não editável.
+## valor_diaria com caminho real de configuração (correção 3)
 
-Rascunho é persistido nas tabelas reais: grupo em `rascunho`, ocorrências em `rascunho`, via as RPCs idempotentes existentes (ids gerados no cliente, `ON CONFLICT` no servidor) — retry não duplica nada.
+No cadastro/edição de colaborador, no mesmo painel onde hoje ficam `forma_pagamento` e `valor_hora` (`RemuneracaoFields.tsx`), o campo **"Valor da diária"** aparece quando regime = Freelancer e forma de pagamento = diarista, validado `> 0` quando preenchido. Sem backfill e sem conversão de salário.
 
-## Detalhes técnicos
+## Aba Regras (correção 8)
 
-### Migration (M14 — aditiva, sem tocar migrations antigas)
+`dp_convocacao_config` com padrão da empresa e override opcional por unidade, leitura por `dp_convocacao_config_resolvida`, gravação por `dp_convocacao_salvar_config` com `p_expected_updated_at`; em conflito, mensagem simples pedindo recarregar. Consentimento do substituto exibido como obrigatório, informativo, sem toggle.
 
-- `dp_convocacao_ocorrencias.colaborador_alvo_id uuid NULL` + FK composta `(colaborador_alvo_id, company_id) → dp_colaboradores(id, company_id)` (índice único de suporte criado se ainda não existir).
-- CHECK/trigger de coerência com a modalidade do grupo: grupo `individual` ⇒ alvo obrigatório e `vagas = 1`; grupo `aberta` ⇒ alvo `NULL`. Alvo imutável depois de publicada.
-- Índice em `(company_id, colaborador_alvo_id, data)`.
-- `dp_colaboradores.valor_diaria numeric NULL` (aditivo, sem default, sem backfill).
-- `dp_convocacao_criar_ocorrencia` e `dp_convocacao_atualizar_ocorrencia` ganham o parâmetro `p_colaborador_alvo_id` ao final da assinatura, mantendo `SECURITY DEFINER`, `search_path` seguro, autorização antes de locks e grants restritos (`authenticated` + `service_role`, sem `anon`/`PUBLIC`). Substituição da função por `CREATE OR REPLACE`/drop da assinatura antiga na mesma migration para não deixar overload duplicado.
-- Rollback: drop das colunas/índices/FK e restauração das assinaturas anteriores — documentado no corpo da migration.
-- `src/integrations/supabase/types.ts` regenerado após aprovação.
+## Arquivos
 
-### Frontend
+- Reescrito: `src/pages/dp/DpConvocacoes.tsx`.
+- Novos em `src/components/dp/convocacoes/`: `NovaConvocacaoWizard.tsx`, `WizardUnidadePeriodo.tsx`, `WizardCargos.tsx`, `CargoCalendarioMes.tsx`, `OcorrenciaDrawer.tsx`, `WizardPublicoJornada.tsx`, `WizardRevisar.tsx`, `ConvocacoesRegrasPanel.tsx`, `ConvocacoesListaPanel.tsx`.
+- Novos hooks: `useDpConvocacaoGrupos.tsx`, `useDpConvocacaoConfig.tsx`, `useDpConvocacaoElegiveis.tsx`, `useDpConvocacaoCobertura.tsx`.
+- Nova lógica pura: `src/lib/dp/convocacoes-planejamento.ts` (+ testes) e mapa de erros.
+- Ajustado: `RemuneracaoFields.tsx` (valor da diária), extração genérica do calendário a partir de `FolgaCalendarShared`.
+- Preservados: `src/lib/dp/convocacoes.ts`, `useDpConvocacoes.tsx`, `DpMinhasConvocacoes.tsx`.
 
-- `src/pages/dp/DpConvocacoes.tsx` reescrita como shell de abas.
-- Novos componentes em `src/components/dp/convocacoes/`: `NovaConvocacaoWizard.tsx`, `WizardUnidadePeriodo.tsx`, `WizardCargos.tsx`, `CargoCalendarioMes.tsx`, `OcorrenciaDrawer.tsx`, `WizardPublicoJornada.tsx`, `WizardRevisar.tsx`, `ConvocacoesRegrasPanel.tsx`, `ConvocacoesListaPanel.tsx`.
-- Novos hooks: `useDpConvocacaoGrupos.tsx` (CRUD de rascunho pelas RPCs), `useDpConvocacaoConfig.tsx`, `useDpConvocacaoElegiveis.tsx`, `useDpConvocacaoCobertura.tsx`.
-- Nova lógica pura em `src/lib/dp/convocacoes-planejamento.ts`: compatibilidade integral, Option A (uma oportunidade por pessoa/dia, ordem determinística `data → necessidade_entrada → necessidade_saida → cargo_id → id`), antecedência em dias corridos, prazo de resposta em dias úteis (seg–sex, sem feriados) separado do encerramento operacional, e diagnóstico de remuneração.
-- `src/lib/dp/convocacoes.ts` e `useDpConvocacoes.tsx` preservados para o fluxo legado (`ocorrencia_id IS NULL`) — coexistência intacta até o cutover do Bloco 6.
-- Mapa de erros → mensagem em português (`FORBIDDEN`, `NOT_FOUND`, `INVALID_STATE`, `CONCURRENT_MODIFICATION`, `PUBLICATION_*`, `OPTION_A_CONFLICT`, …). Nenhum termo técnico (RPC, RLS, trigger, worker, lease, service_role) na interface e nenhum erro SQL cru.
-- Responsivo em desktop/tablet/mobile, com loading, sucesso, erro e confirmação em ações destrutivas.
+Responsivo em desktop/tablet/mobile, com loading, sucesso, erro compreensível, retry seguro e confirmação em ações destrutivas.
 
-### Testes
+## Testes e relatório (correção 11)
 
-Unitários novos para `convocacoes-planejamento.ts` (compatibilidade, Option A, antecedência, dia útil, dois prazos, diagnóstico de remuneração) e testes de integridade da modalidade Individual/Aberta. Baseline comparado ao conhecido: build exit 0; 912 passed / 2 falhas pré-existentes de Pedidos / 46 skipped; lint 1414 problemas e 6 erros; typecheck strict 46 erros e 0 em Convocações.
+Executarei e apresentarei **resultado realmente medido** (build, vitest, lint, typecheck), separado em três blocos: medido agora · baseline anterior conhecido · release blocker da M13. Nenhum número esperado será relatado como se tivesse sido executado.
 
-## Pendências que permanecem
+## Pendências mantidas
 
-- **RELEASE BLOCKER mantido**: validação funcional de concorrência da M13 não executada (sem ambiente isolado com Auth real). A 3B.1 continua não declarada validada; isso não bloqueia o desenvolvimento.
-- Blocos 2 a 6 (publicação, ofertas, Portal, aceite/recusa, indisponibilidade, encerramentos, substituição, descumprimento, comparecimento, histórico, cutover) fora deste bloco.
+- **RELEASE BLOCKER**: validação funcional de concorrência da M13 não executada (sem ambiente isolado com Auth real). A 3B.1 não é declarada validada; isso não bloqueia o desenvolvimento.
+- Blocos 2 a 6 fora deste bloco.
 
-Ao terminar o Bloco 1 eu paro e apresento tela, fluxo, arquivos, migration, RPCs, testes, evidências de segurança, rollback e pendências.
+Ao terminar o Bloco 1 eu paro e apresento tela construída, fluxo testado, migration, RPCs alteradas, arquivos, testes, build/lint/typecheck, segurança, rollback e pendências.
