@@ -187,9 +187,18 @@ export function ContactFormDialog({
     setSaving(true);
     const payload = { ...validated, visible_pf: visiblePf };
 
+    const duplicateMessage = "Já existe um cliente/fornecedor cadastrado com este CPF/CNPJ. Selecione o cadastro existente em vez de criar outro.";
+    const isDuplicateError = (err: { code?: string; message?: string } | null) =>
+      err?.code === "23505" || /contacts_user_document_key_uniq|duplicate key/i.test(err?.message ?? "");
+
     if (editContact) {
       const { error } = await supabase.from("contacts").update(payload as any).eq("id", editContact.id);
-      if (error) { toast.error("Erro ao atualizar", { description: error.message }); setSaving(false); return; }
+      if (error) {
+        toast.error(isDuplicateError(error) ? "CPF/CNPJ já cadastrado" : "Erro ao atualizar", {
+          description: isDuplicateError(error) ? duplicateMessage : error.message,
+        });
+        setSaving(false); return;
+      }
 
       // Sync contact_companies
       await (supabase.from("contact_companies" as any) as any).delete().eq("contact_id", editContact.id);
