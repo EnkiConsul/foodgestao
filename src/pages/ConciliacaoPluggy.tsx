@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileJson, FileText, Split } from "lucide-react";
+import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileText, Split } from "lucide-react";
 import { DividirLancamentoDialog } from "@/components/conciliacao/DividirLancamentoDialog";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,7 @@ import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import { buildCategoryTree, type Category } from "@/lib/categories/tree";
 import { StagingCard } from "@/components/conciliacao/StagingCard";
 import { DescriptionEditor } from "@/components/conciliacao/DescriptionEditor";
-import { PluggyAuditDialog } from "@/components/conciliacao/PluggyAuditDialog";
+
 
 
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
@@ -296,7 +296,7 @@ export default function ConciliacaoPluggy() {
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [auditOpen, setAuditOpen] = useState(false);
+  
 
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [search, setSearch] = useState("");
@@ -1092,14 +1092,6 @@ export default function ConciliacaoPluggy() {
           Sincronizar
         </Button>
         <Button
-          onClick={() => setAuditOpen(true)}
-          variant="outline"
-          className="w-full sm:w-auto"
-        >
-          <FileJson className="h-4 w-4 mr-2" />
-          Auditoria
-        </Button>
-        <Button
           onClick={() => navigate(`/contas-bancarias/conciliacao/extrato${scopedLocalAccountId ? `?account=${scopedLocalAccountId}` : ""}`)}
           variant="outline"
           className="w-full sm:w-auto"
@@ -1774,7 +1766,7 @@ export default function ConciliacaoPluggy() {
         onDone={() => { setSplitRowId(null); load(); }}
       />
 
-      <PluggyAuditDialog open={auditOpen} onOpenChange={setAuditOpen} />
+      
     </div>
 
   );
