@@ -30,9 +30,12 @@ export function useDpConvocacaoGrupos(status?: string[]) {
       return (data ?? []).map((g: any) => ({
         ...g,
         unidade_nome: g.dp_unidades?.nome ?? null,
-        ocorrencias: (g.dp_convocacao_ocorrencias ?? []).sort((a: ConvOcorrencia, b: ConvOcorrencia) =>
-          a.data.localeCompare(b.data) || a.necessidade_entrada.localeCompare(b.necessidade_entrada),
-        ),
+        // Necessidades retiradas do rascunho (canceladas) nunca voltam como ativas.
+        ocorrencias: ((g.dp_convocacao_ocorrencias ?? []) as ConvOcorrencia[])
+          .filter((o) => o.status !== "cancelada")
+          .sort((a: ConvOcorrencia, b: ConvOcorrencia) =>
+            a.data.localeCompare(b.data) || a.necessidade_entrada.localeCompare(b.necessidade_entrada),
+          ),
       }));
     },
   });
