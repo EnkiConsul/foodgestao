@@ -101,16 +101,9 @@ export function ContactFormDialog({
     }
     let cancelled = false;
     const timer = setTimeout(async () => {
-      const { data } = await supabase
-        .from("contacts")
-        .select("id, name, document")
-        .not("document", "is", null)
-        .limit(2000);
+      const hit = await findDuplicateByDocument(docDigitsLive, editContact?.id);
       if (cancelled) return;
-      const hit = (data ?? []).find(
-        (c: any) => isSameDocumento(c.document, docDigitsLive) && c.id !== editContact?.id,
-      );
-      setDuplicate(hit ? { id: (hit as any).id, name: (hit as any).name } : null);
+      setDuplicate(hit);
     }, 350);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [docDigitsLive, editContact?.id, open]);
