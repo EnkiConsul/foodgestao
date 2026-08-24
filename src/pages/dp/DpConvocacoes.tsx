@@ -135,16 +135,15 @@ export default function DpConvocacoes() {
             {grupos.isLoading ? (
               <p className="text-sm text-muted-foreground">Carregando…</p>
             ) : rascunhos.length === 0 ? (
-              <DpEmptyState
-                icon={CalendarClock}
-                title="Nenhum rascunho"
-                description="Crie uma convocação para planejar datas, vagas e público antes de publicar."
-                action={
+              <DpEmptyState icon={CalendarClock} dashed>
+                <div className="space-y-2">
+                  <p className="font-medium text-foreground">Nenhum rascunho</p>
+                  <p>Crie uma convocação para planejar datas, vagas e público antes de publicar.</p>
                   <Button size="sm" onClick={() => setWizard(true)}>
                     <Plus className="mr-1 h-4 w-4" /> Nova convocação
                   </Button>
-                }
-              />
+                </div>
+              </DpEmptyState>
             ) : (
               <div className="space-y-2">
                 {rascunhos.map((g) => (
@@ -158,11 +157,12 @@ export default function DpConvocacoes() {
         <TabsContent value="publicadas" className="mt-3">
           <DpContentCard>
             {publicados.length === 0 ? (
-              <DpEmptyState
-                icon={Users}
-                title="Nada publicado ainda"
-                description="A publicação de convocações às pessoas entra na próxima etapa do módulo."
-              />
+              <DpEmptyState icon={Users} dashed>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Nada publicado ainda</p>
+                  <p>A publicação de convocações às pessoas entra na próxima etapa do módulo.</p>
+                </div>
+              </DpEmptyState>
             ) : (
               <div className="space-y-2">
                 {publicados.map((g) => (
