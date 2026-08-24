@@ -29,9 +29,12 @@ const CHUNK = 50;
 export function ContactSelectContent({
   contacts,
   className,
+  onCreateNew,
 }: {
   contacts: ContactSelectOption[];
   className?: string;
+  /** Quando informado, mostra o atalho "Cadastrar novo fornecedor/cliente". */
+  onCreateNew?: () => void;
 }) {
   const [search, setSearch] = useState("");
   const [visible, setVisible] = useState(CHUNK);
