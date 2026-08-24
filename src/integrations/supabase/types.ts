@@ -14441,6 +14441,7 @@ export type Database = {
           p_autonomia_colaborador_desistir?: boolean
           p_company_id: string
           p_exige_justificativa_excecao?: boolean
+          p_expected_updated_at?: string
           p_permite_oferta_aberta?: boolean
           p_prazo_resposta_dias_uteis?: number
           p_reabre_vaga_em_desistencia?: boolean
