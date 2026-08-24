@@ -64,7 +64,7 @@ export function useDpConvocacaoPreview(args: {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_convocacoes")
-        .select("colaborador_id, data, status")
+        .select("colaborador_id, data, status, dp_colaboradores(cargo_id)")
         .eq("company_id", selectedCompanyId!)
         .gte("data", inicio!)
         .lte("data", fim!)
