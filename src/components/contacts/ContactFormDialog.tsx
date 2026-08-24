@@ -35,6 +35,27 @@ interface Props {
   defaultVisiblePf?: boolean;
 }
 
+type DuplicateHit = { id: string; name: string } | null;
+
+/**
+ * Cache da consulta de duplicidade por chave canônica (documento normalizado +
+ * contato ignorado na edição). Evita reconsultar o banco enquanto o usuário
+ * digita/edita e desduplica chamadas simultâneas para a mesma chave.
+ */
+const DUP_CACHE_TTL_MS = 60_000;
+const dupCache = new Map<string, { at: number; value: DuplicateHit }>();
+const dupInflight = new Map<string, Promise<DuplicateHit>>();
+
+function dupCacheKey(docKey: string, ignoreId?: string | null) {
+  return `${docKey}|${ignoreId ?? ""}`;
+}
+
+/** Invalida o cache (usar após criar/editar contato, que muda o resultado). */
+function invalidateDuplicateCache() {
+  dupCache.clear();
+  dupInflight.clear();
+}
+
 /**
  * Busca direcionada de duplicidade por documento: consulta apenas as variações
  * possíveis de gravação (com e sem máscara) em vez de baixar a lista inteira.
@@ -42,18 +63,39 @@ interface Props {
 async function findDuplicateByDocument(
   docKey: string,
   ignoreId?: string | null,
-): Promise<{ id: string; name: string } | null> {
-  const variants = Array.from(new Set([docKey, maskCpfCnpj(docKey)])).filter(Boolean);
-  const { data } = await supabase
-    .from("contacts")
-    .select("id, name, document")
-    .in("document", variants)
-    .limit(20);
-  const hit = (data ?? []).find(
-    (c: any) => isSameDocumento(c.document, docKey) && c.id !== ignoreId,
-  );
-  return hit ? { id: (hit as any).id, name: (hit as any).name } : null;
+  opts?: { force?: boolean },
+): Promise<DuplicateHit> {
+  const key = dupCacheKey(docKey, ignoreId);
+  if (!opts?.force) {
+    const cached = dupCache.get(key);
+    if (cached && Date.now() - cached.at < DUP_CACHE_TTL_MS) return cached.value;
+    const pending = dupInflight.get(key);
+    if (pending) return pending;
+  }
+
+  const request = (async () => {
+    const variants = Array.from(new Set([docKey, maskCpfCnpj(docKey)])).filter(Boolean);
+    const { data } = await supabase
+      .from("contacts")
+      .select("id, name, document")
+      .in("document", variants)
+      .limit(20);
+    const hit = (data ?? []).find(
+      (c: any) => isSameDocumento(c.document, docKey) && c.id !== ignoreId,
+    );
+    const value: DuplicateHit = hit ? { id: (hit as any).id, name: (hit as any).name } : null;
+    dupCache.set(key, { at: Date.now(), value });
+    return value;
+  })();
+
+  dupInflight.set(key, request);
+  try {
+    return await request;
+  } finally {
+    dupInflight.delete(key);
+  }
 }
+
 
 
 export function ContactFormDialog({
