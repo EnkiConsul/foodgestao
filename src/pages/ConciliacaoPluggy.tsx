@@ -1198,10 +1198,24 @@ export default function ConciliacaoPluggy() {
         {/* Desktop (lg+): tabela completa */}
         <Card className="hidden lg:block"><CardContent className="p-0 overflow-x-auto">
 
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm">
+            {/* Grade proporcional: soma 100% da largura visível — sem rolagem lateral */}
+            <colgroup>
+              <col style={{ width: "3%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
+            </colgroup>
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
-                <th className="w-10 p-2">
+                <th className="p-2">
                   <Checkbox
                     checked={allPendingSelected ? true : somePendingSelected ? "indeterminate" : false}
                     disabled={pendingFiltered.length === 0}
@@ -1215,12 +1229,13 @@ export default function ConciliacaoPluggy() {
                 <th className="p-2 text-right">Valor</th>
                 <th className="p-2 text-left">Conta destino</th>
                 <th className="p-2 text-left">Tipo</th>
-                <th className="p-2 text-left">Categoria / contraparte</th>
-                <th className="p-2 text-left">Forma de pagamento</th>
-                <th className="p-2 text-left">Fornecedor / cliente</th>
+                <th className="p-2 text-left" title="Categoria / contraparte">Categoria</th>
+                <th className="p-2 text-left" title="Forma de pagamento">Forma pgto.</th>
+                <th className="p-2 text-left" title="Fornecedor / cliente">Fornec./Cliente</th>
                 <th className="p-2 text-center">Status</th>
                 <th className="p-2 text-right">Ações</th>
               </tr>
+
             </thead>
             <tbody>
               {visibleRows.map((r) => {
