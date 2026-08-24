@@ -100,6 +100,8 @@ export default function Onboarding() {
   const [cnpjChecking, setCnpjChecking] = useState(false);
   const [cnpjInactive, setCnpjInactive] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
+  const [exiting, setExiting] = useState(false);
+
   const [result, setResult] = useState<{ company_id: string; trial_termina_em: string } | null>(null);
 
   // Prefill nome/email do usuário logado
