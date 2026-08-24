@@ -57,7 +57,9 @@ export default function ContasBancarias() {
     // Finance (redirect com ?itemId=… ou autorização concluída no app do banco).
     return hasPluggyReturn() || hasPluggyResume();
   });
+  const [creditReviewOpen, setCreditReviewOpen] = useState(false);
 
+  const { pending: pendingCredit, reload: reloadPendingCredit } = usePluggyCreditReview();
 
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [importOpen, setImportOpen] = useState(false);
