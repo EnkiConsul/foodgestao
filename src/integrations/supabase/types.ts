@@ -14173,6 +14173,7 @@ export type Database = {
         }
         Returns: number
       }
+      check_onboarding_cnpj: { Args: { p_cnpj: string }; Returns: Json }
       claim_open_finance_sync:
         | {
             Args: {
