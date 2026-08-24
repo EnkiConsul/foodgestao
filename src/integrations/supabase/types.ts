@@ -3839,6 +3839,7 @@ export type Database = {
           carga_semanal_horas: number | null
           colaborador_id: string
           company_id: string
+          compoe_equipe_habitual: boolean
           created_at: string
           folga_fixa_dow: number | null
           folga_variavel: boolean
@@ -3854,6 +3855,7 @@ export type Database = {
           carga_semanal_horas?: number | null
           colaborador_id: string
           company_id: string
+          compoe_equipe_habitual?: boolean
           created_at?: string
           folga_fixa_dow?: number | null
           folga_variavel?: boolean
@@ -3869,6 +3871,7 @@ export type Database = {
           carga_semanal_horas?: number | null
           colaborador_id?: string
           company_id?: string
+          compoe_equipe_habitual?: boolean
           created_at?: string
           folga_fixa_dow?: number | null
           folga_variavel?: boolean
@@ -4427,6 +4430,7 @@ export type Database = {
           adicional_tempo_servico_modo: string
           assiduidade_ativa: boolean
           company_id: string
+          considerar_indisponibilidade_cobertura: boolean
           created_at: string
           dias_descanso_negociados: number[]
           domingos_por_mes: number
@@ -4475,6 +4479,7 @@ export type Database = {
           adicional_tempo_servico_modo?: string
           assiduidade_ativa?: boolean
           company_id: string
+          considerar_indisponibilidade_cobertura?: boolean
           created_at?: string
           dias_descanso_negociados?: number[]
           domingos_por_mes?: number
@@ -4523,6 +4528,7 @@ export type Database = {
           adicional_tempo_servico_modo?: string
           assiduidade_ativa?: boolean
           company_id?: string
+          considerar_indisponibilidade_cobertura?: boolean
           created_at?: string
           dias_descanso_negociados?: number[]
           domingos_por_mes?: number
@@ -4587,6 +4593,81 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_convocacao_config: {
+        Row: {
+          antecedencia_minima_dias: number
+          aprovacao_modo: string
+          autonomia_colaborador_desistir: boolean
+          company_id: string
+          created_at: string
+          exige_justificativa_excecao: boolean
+          id: string
+          permite_oferta_aberta: boolean
+          prazo_resposta_dias_uteis: number
+          reabre_vaga_em_desistencia: boolean
+          sub_fixo_em_folga_dominical: boolean
+          sub_freelancer_por_freelancer: boolean
+          sub_freelancer_por_intermitente: boolean
+          sub_intermitente_por_freelancer: boolean
+          sub_intermitente_por_intermitente: boolean
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          antecedencia_minima_dias?: number
+          aprovacao_modo?: string
+          autonomia_colaborador_desistir?: boolean
+          company_id: string
+          created_at?: string
+          exige_justificativa_excecao?: boolean
+          id?: string
+          permite_oferta_aberta?: boolean
+          prazo_resposta_dias_uteis?: number
+          reabre_vaga_em_desistencia?: boolean
+          sub_fixo_em_folga_dominical?: boolean
+          sub_freelancer_por_freelancer?: boolean
+          sub_freelancer_por_intermitente?: boolean
+          sub_intermitente_por_freelancer?: boolean
+          sub_intermitente_por_intermitente?: boolean
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          antecedencia_minima_dias?: number
+          aprovacao_modo?: string
+          autonomia_colaborador_desistir?: boolean
+          company_id?: string
+          created_at?: string
+          exige_justificativa_excecao?: boolean
+          id?: string
+          permite_oferta_aberta?: boolean
+          prazo_resposta_dias_uteis?: number
+          reabre_vaga_em_desistencia?: boolean
+          sub_fixo_em_folga_dominical?: boolean
+          sub_freelancer_por_freelancer?: boolean
+          sub_freelancer_por_intermitente?: boolean
+          sub_intermitente_por_freelancer?: boolean
+          sub_intermitente_por_intermitente?: boolean
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_convocacao_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_config_unidade_company"
+            columns: ["unidade_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id", "company_id"]
           },
         ]
       }
@@ -14174,6 +14255,7 @@ export type Database = {
           adicional_tempo_servico_modo: string
           assiduidade_ativa: boolean
           company_id: string
+          considerar_indisponibilidade_cobertura: boolean
           created_at: string
           dias_descanso_negociados: number[]
           domingos_por_mes: number
@@ -14220,6 +14302,34 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "dp_config_dp"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      dp_convocacao_config_resolvida: {
+        Args: { _company_id: string; _unidade_id?: string }
+        Returns: {
+          antecedencia_minima_dias: number
+          aprovacao_modo: string
+          autonomia_colaborador_desistir: boolean
+          company_id: string
+          created_at: string
+          exige_justificativa_excecao: boolean
+          id: string
+          permite_oferta_aberta: boolean
+          prazo_resposta_dias_uteis: number
+          reabre_vaga_em_desistencia: boolean
+          sub_fixo_em_folga_dominical: boolean
+          sub_freelancer_por_freelancer: boolean
+          sub_freelancer_por_intermitente: boolean
+          sub_intermitente_por_freelancer: boolean
+          sub_intermitente_por_intermitente: boolean
+          unidade_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dp_convocacao_config"
           isOneToOne: true
           isSetofReturn: false
         }
