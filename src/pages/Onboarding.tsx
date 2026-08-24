@@ -24,7 +24,7 @@ import { isValidPhone } from "@/lib/phone";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useOnboardingSubmit, mensagemErroOnboarding } from "@/hooks/useOnboardingSubmit";
 import { marcarOnboardingConcluido } from "@/lib/onboardingFinalize";
-import { resolveOnboardingByExistingCnpj } from "@/lib/onboardingStatus";
+import { checkOnboardingCnpj, resolveOnboardingByExistingCnpj } from "@/lib/onboardingStatus";
 
 export interface EmpresaFormData {
   nomeCompleto: string;
@@ -97,6 +97,7 @@ export default function Onboarding() {
   const [modulos, setModulos] = useState<string[]>([]);
   const [errors, setErrors] = useState<Partial<Record<keyof EmpresaFormData, string>>>({});
   const [cnpjPending, setCnpjPending] = useState(false);
+  const [cnpjChecking, setCnpjChecking] = useState(false);
   const [cnpjInactive, setCnpjInactive] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [result, setResult] = useState<{ company_id: string; trial_termina_em: string } | null>(null);
@@ -120,11 +121,18 @@ export default function Onboarding() {
     });
   };
 
+  const updateEmpresaWithCnpjReset = (patch: Partial<EmpresaFormData>) => {
+    updateEmpresa(patch);
+    if (Object.prototype.hasOwnProperty.call(patch, "cnpj")) {
+      setErrors((current) => ({ ...current, cnpj: undefined }));
+    }
+  };
+
   const toggleModulo = (slug: string) => {
     setModulos((m) => (m.includes(slug) ? m.filter((s) => s !== slug) : [...m, slug]));
   };
 
-  const handleAvancar = () => {
+  const handleAvancar = async () => {
     if (cnpjPending) {
       toast.error("Aguarde a consulta do CNPJ finalizar.");
       return;
@@ -135,7 +143,36 @@ export default function Onboarding() {
       toast.error("Preencha os campos obrigatórios.");
       return;
     }
-    setStep(2);
+
+    if (!user) {
+      toast.error("Sua sessão expirou. Faça login novamente.");
+      return;
+    }
+
+    setCnpjChecking(true);
+    try {
+      const status = await checkOnboardingCnpj(empresa.cnpj);
+      if (status.status === "accessible") {
+        await marcarOnboardingConcluido(user.id);
+        setContext("pj", status.companyId);
+        toast.success("Empresa já vinculada. Acessando painel.");
+        navigate("/hub", { replace: true });
+        return;
+      }
+      if (status.status === "registered") {
+        setErrors((current) => ({
+          ...current,
+          cnpj: "Este CNPJ já está cadastrado. Entre com a conta responsável ou solicite um convite.",
+        }));
+        toast.error("Este CNPJ já está cadastrado na plataforma.");
+        return;
+      }
+      setStep(2);
+    } catch {
+      toast.error("Não foi possível verificar o CNPJ. Tente novamente em instantes.");
+    } finally {
+      setCnpjChecking(false);
+    }
   };
 
   const handleConcluir = async () => {
@@ -207,7 +244,7 @@ export default function Onboarding() {
           <>
             <StepEmpresa
               data={empresa}
-              update={updateEmpresa}
+              update={updateEmpresaWithCnpjReset}
               errors={errors}
               setCnpjPending={setCnpjPending}
               cnpjInactive={cnpjInactive}
@@ -217,9 +254,18 @@ export default function Onboarding() {
               <Button variant="ghost" onClick={requestExit} className="w-full sm:w-auto min-h-10">
                 Sair
               </Button>
-              <Button onClick={handleAvancar} disabled={cnpjPending} size="lg" className="w-full sm:w-auto min-h-11">
-                Avançar
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button onClick={handleAvancar} disabled={cnpjPending || cnpjChecking} size="lg" className="w-full sm:w-auto min-h-11">
+                {cnpjChecking ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verificando…
+                  </>
+                ) : (
+                  <>
+                    Avançar
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </>

@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { resolveOnboardingByExistingCnpj, resolveOnboardingStatus } from "./onboardingStatus";
+import { checkOnboardingCnpj, resolveOnboardingByExistingCnpj, resolveOnboardingStatus } from "./onboardingStatus";
 import { marcarOnboardingConcluido } from "./onboardingFinalize";
 
 const responses: Record<string, any> = {};
 const calls: Array<{ table: string; method: string; args: any[] }> = [];
+let functionResponse: { data: any; error: any } = { data: null, error: null };
 
 class QueryMock {
   constructor(private table: string) {}
@@ -32,6 +33,9 @@ class QueryMock {
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: (table: string) => new QueryMock(table),
+    functions: {
+      invoke: vi.fn(async () => functionResponse),
+    },
   },
 }));
 
@@ -45,7 +49,19 @@ describe("onboardingStatus", () => {
     responses.profiles = { data: { onboarding_completed: false }, error: null };
     responses.companies = { data: [], error: null };
     responses.company_members = { data: [], error: null };
+    functionResponse = { data: null, error: null };
     vi.mocked(marcarOnboardingConcluido).mockClear();
+  });
+
+  it("distingue CNPJ disponível, cadastrado e acessível sem expor dados da empresa", async () => {
+    functionResponse = { data: { status: "available" }, error: null };
+    await expect(checkOnboardingCnpj("58.241.366/0001-32")).resolves.toEqual({ status: "available", companyId: null });
+
+    functionResponse = { data: { status: "registered" }, error: null };
+    await expect(checkOnboardingCnpj("58.241.366/0001-32")).resolves.toEqual({ status: "registered", companyId: null });
+
+    functionResponse = { data: { status: "accessible", company_id: "company-1" }, error: null };
+    await expect(checkOnboardingCnpj("58.241.366/0001-32")).resolves.toEqual({ status: "accessible", companyId: "company-1" });
   });
 
   it("considera concluído e corrige o profile quando já existe empresa ativa do usuário", async () => {

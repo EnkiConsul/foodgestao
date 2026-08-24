@@ -71,7 +71,7 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           Empresa
         </legend>
 
-        <Field label="CNPJ *" error={data.cnpj.trim() ? undefined : errors.cnpj}>
+        <Field label="CNPJ *" error={errors.cnpj}>
           <CnpjInput
             value={data.cnpj}
             onChange={(v) => update({ cnpj: v })}
