@@ -422,7 +422,12 @@ export default function ContasBancarias() {
         </div>
       </div>
 
+      {contextType === "pj" && selectedCompanyId && (
+        <PluggyPendingConnectionAlert companyId={selectedCompanyId} />
+      )}
+
       {staleBalance && (
+
         <Alert variant="destructive" className="border-warning/50 bg-warning/10 text-foreground [&>svg]:text-warning">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Saldos podem estar desatualizados</AlertTitle>
