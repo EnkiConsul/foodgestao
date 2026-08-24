@@ -328,7 +328,7 @@ export function NovaConvocacaoWizard({
     if (!trocaCompetencia) return;
     const nova = competenciaDe(trocaCompetencia.ano, trocaCompetencia.mes);
     const lim = limitesDaCompetencia(nova);
-    setOcorrencias((prev) => prev.filter((o) => !!o.data && dataDentroDoPeriodo(o.data, nova, lim)));
+    removerOcorrencias((o) => !o.data || !dataDentroDoPeriodo(o.data, nova, lim));
     setAno(trocaCompetencia.ano);
     setMes(trocaCompetencia.mes);
     setPeriodo(lim);
