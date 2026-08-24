@@ -129,6 +129,11 @@ export default function DpMinhasConvocacoes() {
                       {prazo ? (
                         <p className="text-xs text-muted-foreground mt-1">Responder até {prazo}</p>
                       ) : null}
+                      {valorOfertado((c as any).remuneracao_snapshot) ? (
+                        <p className="text-xs mt-1 font-medium text-primary">
+                          {valorOfertado((c as any).remuneracao_snapshot)}
+                        </p>
+                      ) : null}
                       {c.observacao ? <p className="text-sm mt-2">{c.observacao}</p> : null}
                     </div>
                     <Badge variant="outline" className={cn("rounded-full shrink-0", meta.className)}>
