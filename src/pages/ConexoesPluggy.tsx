@@ -178,45 +178,8 @@ export default function ConexoesPluggy() {
     reloadPendingCredit();
   };
 
-  // Autorizações que ficaram presas (usuário desistiu no app do banco) podem ser
-  // canceladas para limpar o aviso de "Conexão em andamento".
-  const cancelarPendentes = async () => {
-    if (!selectedCompanyId) return;
-    setCancelingPending(true);
-    const anterior = pendingCount;
-    const { data, error } = await supabase.rpc("pluggy_cancel_connect_requests", {
-      _company_id: selectedCompanyId,
-    });
-    if (error) {
-      setCancelingPending(false);
-      setConfirmCancelPending(false);
-      const motivo = (error.message ?? "").toLowerCase();
-      let texto = "Não foi possível cancelar a conexão em andamento.";
-      if (motivo.includes("not_authenticated")) {
-        texto += " Sua sessão expirou. Faça login novamente.";
-      } else if (motivo.includes("forbidden")) {
-        texto += " Você não tem permissão para cancelar esta autorização.";
-      } else if (error.message) {
-        texto += ` Motivo: ${error.message}`;
-      }
-      toast.error(texto);
-      return;
-    }
-    // Atualização otimista: o aviso de "Conexão em andamento" sai da tela na hora,
-    // e a lista é revalidada em seguida sem piscar o skeleton.
-    setPendingCount(0);
-    setConfirmCancelPending(false);
-    const canceladas = (data as number | null) ?? anterior;
-    toast.success(
-      canceladas > 1 ? `${canceladas} autorizações canceladas` : "Conexão em andamento cancelada",
-    );
-    await load({ silent: true });
-    setCancelingPending(false);
-  };
-
-
-
   const disconnect = async () => {
+
     if (!confirmDelete) return;
     const { error } = await supabase.functions.invoke("pluggy-disconnect-item", {
       body: { connection_id: confirmDelete.id },
