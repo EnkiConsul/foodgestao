@@ -277,17 +277,17 @@ export async function listTransactionsV2(params: {
   pageSize?: number;
   pageCursor?: string;
 }) {
+  // A rota v2 aceita apenas accountId + paginação por cursor. Enviar `from`,
+  // `to` ou `pageSize` faz a API responder 400 ("property should not exist").
   const qs = new URLSearchParams();
   qs.set("accountId", params.accountId);
-  if (params.from) qs.set("from", params.from);
-  if (params.to) qs.set("to", params.to);
-  qs.set("pageSize", String(params.pageSize ?? 500));
   if (params.pageCursor) qs.set("pageCursor", params.pageCursor);
   return await request<{
     results: PluggyTransaction[];
     nextCursor: string | null;
   }>("GET", `/v2/transactions?${qs.toString()}`);
 }
+
 
 export async function deleteItem(itemId: string) {
   return await request<{ id: string }>("DELETE", `/items/${itemId}`);

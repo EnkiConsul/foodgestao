@@ -417,25 +417,39 @@ Deno.serve(async (req) => {
           let existingAccountId: string | null = null;
           const accNumber = acc.number ?? null;
 
-          // 1a) Prior pluggy_accounts row already linked (e.g., previous connection for the same bank/number)
+          // 1a) Prior pluggy_accounts row already linked (e.g., previous connection for the same bank/number).
+          // Só reaproveita se a conta financeira ainda existir (não excluída) e estiver ativa —
+          // reviver uma conta excluída deixa saldo e lançamentos invisíveis nas telas.
           const { data: priorLinked } = await admin
             .from('pluggy_accounts')
             .select('linked_account_id')
             .eq('company_id', effectiveCompanyId)
             .eq('number_masked', accNumber)
             .not('linked_account_id', 'is', null)
-            .limit(1)
-            .maybeSingle();
-          if (priorLinked?.linked_account_id) existingAccountId = priorLinked.linked_account_id;
+            .limit(5);
+          for (const p of (priorLinked ?? []) as Array<{ linked_account_id: string }>) {
+            const { data: localAcc } = await admin
+              .from('accounts')
+              .select('id')
+              .eq('id', p.linked_account_id)
+              .is('soft_deleted_at', null)
+              .eq('is_active', true)
+              .maybeSingle();
+            if (localAcc?.id) { existingAccountId = localAcc.id; break; }
+          }
 
           // 1b) Local accounts table match by company + bank_slug + account_number
           if (!existingAccountId && (bankSlug || accNumber)) {
-            let q = admin.from('accounts').select('id').eq('company_id', effectiveCompanyId).eq('is_active', true);
+            let q = admin.from('accounts').select('id')
+              .eq('company_id', effectiveCompanyId)
+              .eq('is_active', true)
+              .is('soft_deleted_at', null);
             if (bankSlug) q = q.eq('bank_slug', bankSlug);
             if (accNumber) q = q.eq('account_number', accNumber);
             const { data: match } = await q.limit(1).maybeSingle();
             if (match?.id) existingAccountId = match.id;
           }
+
 
           let targetAccountId = existingAccountId;
           const ofBalance = typeof acc.balance === 'number' ? acc.balance : null;
