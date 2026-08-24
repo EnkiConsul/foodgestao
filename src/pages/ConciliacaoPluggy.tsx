@@ -26,7 +26,9 @@ import { PluggyAuditDialog } from "@/components/conciliacao/PluggyAuditDialog";
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { suggestPaymentMethodId, normalizeText } from "@/lib/conciliacao/paymentMethodInference";
-import { fetchAllCompanyContacts, findExistingContact, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
+import { fetchAllCompanyContacts, fetchConciliacaoContacts, findExistingContact, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
+import { bestContactMatch, normalizeContactKey } from "@/lib/conciliacao/contactMatch";
+import { loadConciliacaoMemory, EMPTY_MEMORY, type ConciliacaoMemory } from "@/lib/conciliacao/history";
 import {
   counterpartyLabel,
   extractCounterparty,
