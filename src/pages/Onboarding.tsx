@@ -309,20 +309,37 @@ export default function Onboarding() {
         )}
       </OnboardingShell>
 
-      <AlertDialog open={exitOpen} onOpenChange={setExitOpen}>
+      <AlertDialog open={exitOpen} onOpenChange={(open) => { if (!exiting) setExitOpen(open); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Deseja sair do cadastro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Os dados preenchidos serão perdidos e você precisará reiniciar o wizard.
+              Sair encerra sua sessão e os dados preenchidos serão perdidos. Você precisará entrar novamente
+              e reiniciar o cadastro.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Continuar cadastro</AlertDialogCancel>
-            <AlertDialogAction onClick={() => navigate("/")}>Sair mesmo assim</AlertDialogAction>
+            <AlertDialogCancel disabled={exiting}>Continuar cadastro</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={exiting}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleExit();
+              }}
+            >
+              {exiting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saindo…
+                </>
+              ) : (
+                <>Sair mesmo assim</>
+              )}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </>
   );
 }
