@@ -109,3 +109,74 @@ Rollback específico da M13: recriar as 6 RPCs, `dp_convocacao_log_evento` e `dp
 
 0 registros em `dp_convocacao_grupos`, `dp_convocacao_ocorrencias`, `dp_convocacoes`, `dp_convocacao_eventos`, `dp_convocacao_config`, `dp_indisponibilidades` e `dp_convocacao_descumprimentos` após todos os testes.
 
+## 4. M13 — execução e evidências
+
+### 4.1 Migration e registro
+
+- Arquivo: `supabase/migrations/20260824040005_07644834-ade9-4fe9-a367-e48764c13e53.sql`.
+- Aplicação: migration executada com sucesso no Cloud (a própria migration contém um bloco `DO` que falha se `dp_convocacao_salvar_config` não ficar com exatamente uma assinatura; a aplicação não falhou).
+- Presença no repositório confirmada (`ls supabase/migrations | tail -4`).
+
+### 4.2 Correções entregues pela M13
+
+1. **Autorização antes de qualquer lock** — em `atualizar_grupo`, `atualizar_ocorrencia`, `revisar_ocorrencia` e `criar_ocorrencia` a empresa é lida sem lock, `dp_convocacao_exige_admin` é chamado e só então ocorre `FOR UPDATE`.
+2. **Criação concorrência-safe de grupo** — `INSERT ... ON CONFLICT (id) DO NOTHING`, retorno idempotente se o conteúdo casar, `IDEMPOTENCY_CONFLICT` se não casar, reconsulta restrita a `company_id`/`unidade_id` autorizados.
+3. **Criação concorrência-safe de ocorrência** — mesmo padrão, com reconsulta tenant-scoped (`id` + `company_id` + `grupo_id`) e reconciliação do retry antes de exigir `status = 'rascunho'`.
+4. **Ordem correta da revisão** — predecessora marcada como `revisada` antes do `INSERT` da sucessora, evitando violação do índice `uq_dp_conv_ocor_necessidade_vigente` quando a identidade da necessidade é preservada.
+5. **Reconciliação completa da revisão** — cadeia coerente, conteúdo material e `p_motivo` comparados ao único evento `ocorrencia_revisada` correspondente; estado impossível → `REVISION_INCONSISTENT`; divergência → `IDEMPOTENCY_CONFLICT`.
+6. **Controle otimista em `dp_convocacao_salvar_config`** — novo parâmetro `p_expected_updated_at`; criação via `ON CONFLICT` da constraint de escopo; `CONCURRENT_MODIFICATION` se o conteúdo divergir sem `expected_updated_at` correto.
+7. **Fail closed de eventos sem referência** — `CHECK` e trigger `dp_conv_evento_deriva` aceitam apenas `config_criada` e `config_atualizada` quando não há grupo/ocorrência/convocação.
+8. **Auditoria do papel real** — `dp_convocacao_log_evento` resolve `ator_papel` via `company_members.role` (`owner` ou `admin`); se não resolver e o usuário estiver autenticado, falha fechada com `AUDIT_ACTOR_ROLE_UNRESOLVED`.
+
+### 4.3 Evidências verificadas por catálogo
+
+| Verificação | Comando/observação | Resultado |
+| --- | --- | --- |
+| Assinatura única de `dp_convocacao_salvar_config` | `select count(*) from pg_proc where proname='dp_convocacao_salvar_config'` | `1` |
+| Assinatura inclui `p_expected_updated_at` | `select pg_get_function_identity_arguments(...)` | `..., p_expected_updated_at timestamp with time zone` |
+| `CHECK` de eventos fechado | `select pg_get_constraintdef(...) where conname='dp_conv_evento_referencia_check'` | `tipo = ANY (ARRAY['config_criada','config_atualizada'])` |
+| Grants das 6 RPCs | ACL em `pg_proc` | `authenticated=X`, `service_role=X`; sem `PUBLIC`/`anon` |
+| Grants dos helpers internos | ACL de `dp_convocacao_exige_admin` e `dp_convocacao_log_evento` | apenas `postgres`/`service_role` |
+| Zero registros nas tabelas de Convocações | `select count(*)` em cada tabela | `0` em todas as 7 tabelas |
+| Chamador de `salvar_config` no frontend | `rg "salvar_config" src` | Apenas `src/integrations/supabase/types.ts` (tipos gerados) |
+
+### 4.4 Baseline final medido
+
+Medição executada em UTC 2026-08-24 ~04:11:
+
+- `npx vite build`: exit 0, built in 28.28s.
+- `npm test`: 98 arquivos (92 passed, 2 failed, 4 skipped); 960 testes (912 passed, 2 failed, 46 skipped). Falhas: `src/test/unit/orders-domain.test.ts` e `src/test/unit/orders-entitlement.test.ts` — pré-existentes no módulo Pedidos.
+- `npm run lint`: 1414 problemas (6 erros, 1408 warnings) — pré-existentes.
+- `npm run typecheck:strict`: 46 erros — pré-existentes, nenhum em arquivos de Convocações.
+
+Nenhuma regressão nova atribuível à M13.
+
+### 4.5 Validação funcional e concorrente — NÃO EXECUTADA
+
+Os seguintes cenários ainda não foram executados:
+
+- Criação concorrente de grupo (mesmo ID + mesmo payload; mesmo ID + payload diferente).
+- Criação concorrente de ocorrência (mesmo ID + mesmo payload; mesmo ID + payload diferente).
+- Colisão de UUID cross-tenant com a linha da outra empresa travada em outra sessão (deve retornar `IDEMPOTENCY_CONFLICT` sem esperar o lock).
+- Criação de ocorrência × publicação simulada (sessão A publica; sessão B deve receber `NOT_DRAFT` sem criar).
+- Retry da ocorrência após publicação (criar → publicar → repetir a mesma criação → idempotente).
+- Revisão mantendo a mesma identidade da necessidade (mudando só vagas/condições).
+- Retry da revisão com payload e motivo iguais; retry com payload material diferente; retry com só o motivo diferente.
+- Cadeia artificialmente corrompida → `REVISION_INCONSISTENT`.
+- Concorrência de configuração (mesma versão em duas sessões; duas criações simultâneas do mesmo escopo).
+- Papel `owner`/`admin` gravado corretamente; papel não resolvível → `AUDIT_ACTOR_ROLE_UNRESOLVED`.
+
+**Motivo técnico:** o papel do sandbox (`sandbox_exec`) não tem `EXECUTE` nas RPCs de Convocações (`has_function_privilege(..., 'EXECUTE') = false` para `dp_convocacao_criar_grupo` e `dp_convocacao_salvar_config`). Além disso, não há ambiente isolado (Supabase Branch, staging ou local) disponível; o único banco acessível é o produtivo. Por decisão do usuário, nenhum teste funcional será executado em produção, e nenhum dado artificial será gravado apenas para gerar evidência.
+
+**Pré-requisitos para executar a bateria:**
+
+1. Ambiente isolado compatível com o schema atual (preferência: Supabase Branch; fallback: stack Supabase local via CLI aplicando as migrations do repositório).
+2. Fixtures sintéticas: duas empresas, usuários `owner` e `admin` (e usuários de empresas distintas quando o cenário exigir). Nenhum dado real da produção.
+3. Sessões PostgreSQL independentes e chamadas RPC com JWT `authenticated` reais. `service_role` apenas para preparar fixtures, consultar resultados e limpar.
+4. Para o teste de lock cross-tenant, usar `lock_timeout`/medição de duração como evidência objetiva.
+
+### 4.6 Conclusão do estado
+
+A M13 está aplicada e as evidências estáticas (catálogo, grants, assinatura única, `CHECK` fechado, baseline sem regressão, zero dados artificiais) estão aprovadas. A validação funcional e concorrente é **obrigatória** antes de declarar a 3B.1 encerrada, mas não pôde ser executada neste ambiente. A fase permanece em 🟡 e a 3B.2 permanece ⛔ bloqueada até que a bateria seja executada em ambiente isolado e os resultados sejam registrados neste documento.
+
+
