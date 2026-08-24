@@ -263,38 +263,8 @@ export default function ConexoesPluggy() {
         </Button>
       </div>
 
-      {!loading && pendingCount > 0 && (
-        <Card className="border-warning/40 bg-warning/5">
-          <CardContent className="p-4 flex items-start gap-3">
-            <Loader2 className="h-4 w-4 mt-0.5 animate-spin text-warning" />
-            <div className="text-sm">
-              <p className="font-semibold">Conexão em andamento</p>
-              <p className="text-muted-foreground text-xs mt-0.5">
-                Há {pendingCount} autorização(ões) iniciada(s) aguardando a confirmação do banco.
-                Se você autorizou pelo app do banco (QR Code), a conexão pode levar alguns minutos
-                para aparecer. Use <strong>Atualizar</strong> abaixo ou tente novamente em instantes.
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" className="h-7" onClick={() => load()}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1" /> Atualizar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 text-destructive hover:text-destructive"
-                  disabled={cancelingPending}
-                  onClick={() => setConfirmCancelPending(true)}
-                >
-                  {cancelingPending
-                    ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                    : <X className="h-3.5 w-3.5 mr-1" />}
-                  Cancelar conexão
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <PluggyPendingConnectionAlert companyId={selectedCompanyId} />
+
 
       {!loading && pendingCredit.length > 0 && (
         <Card className="border-primary/40 bg-primary/5">
