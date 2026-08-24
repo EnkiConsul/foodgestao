@@ -136,7 +136,7 @@ export function ContactFormDialog({
       return;
     }
 
-    const docDigits = document.replace(/\D/g, "");
+    const docDigits = normalizeDocumento(document);
     if (docDigits.length > 0) {
       if (docDigits.length !== 11 && docDigits.length !== 14) {
         toast.error("Documento deve ter 11 dígitos (CPF) ou 14 dígitos (CNPJ).");
@@ -157,9 +157,9 @@ export function ContactFormDialog({
         .not("document", "is", null)
         .limit(2000);
       const dup = (dupRows ?? []).find(
-        (c: any) =>
-          String(c.document ?? "").replace(/\D/g, "") === docDigits && c.id !== editContact?.id,
+        (c: any) => isSameDocumento(c.document, docDigits) && c.id !== editContact?.id,
       );
+
       if (dup) {
         setDuplicate({ id: (dup as any).id, name: (dup as any).name });
         toast.error("CPF/CNPJ já cadastrado", {
