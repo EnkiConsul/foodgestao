@@ -4776,6 +4776,86 @@ export type Database = {
           },
         ]
       }
+      dp_convocacao_destinatarios: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          entrada: string | null
+          grupo_id: string
+          id: string
+          intervalo_minutos: number | null
+          ocorrencia_id: string | null
+          removido_em: string | null
+          removido_por: string | null
+          saida: string | null
+          termina_no_dia_seguinte: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          entrada?: string | null
+          grupo_id: string
+          id?: string
+          intervalo_minutos?: number | null
+          ocorrencia_id?: string | null
+          removido_em?: string | null
+          removido_por?: string | null
+          saida?: string | null
+          termina_no_dia_seguinte?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          entrada?: string | null
+          grupo_id?: string
+          id?: string
+          intervalo_minutos?: number | null
+          ocorrencia_id?: string | null
+          removido_em?: string | null
+          removido_por?: string | null
+          saida?: string | null
+          termina_no_dia_seguinte?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dp_conv_dest_colaborador"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_dest_colaborador"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_dest_grupo"
+            columns: ["grupo_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_grupos"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_dest_ocorrencia"
+            columns: ["ocorrencia_id", "grupo_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_ocorrencias"
+            referencedColumns: ["id", "grupo_id", "company_id"]
+          },
+        ]
+      }
       dp_convocacao_eventos: {
         Row: {
           ator_papel: string | null
@@ -4856,11 +4936,16 @@ export type Database = {
           competencia: string
           created_at: string
           criado_por: string | null
+          horario_geral_entrada: string | null
+          horario_geral_intervalo_minutos: number | null
+          horario_geral_saida: string | null
+          horario_geral_termina_no_dia_seguinte: boolean | null
           id: string
           modalidade: string
           observacao: string | null
           publicado_em: string | null
           publicado_por: string | null
+          publico_modo: string
           status: string
           titulo: string | null
           unidade_id: string
@@ -4871,11 +4956,16 @@ export type Database = {
           competencia: string
           created_at?: string
           criado_por?: string | null
+          horario_geral_entrada?: string | null
+          horario_geral_intervalo_minutos?: number | null
+          horario_geral_saida?: string | null
+          horario_geral_termina_no_dia_seguinte?: boolean | null
           id?: string
           modalidade: string
           observacao?: string | null
           publicado_em?: string | null
           publicado_por?: string | null
+          publico_modo?: string
           status?: string
           titulo?: string | null
           unidade_id: string
@@ -4886,11 +4976,16 @@ export type Database = {
           competencia?: string
           created_at?: string
           criado_por?: string | null
+          horario_geral_entrada?: string | null
+          horario_geral_intervalo_minutos?: number | null
+          horario_geral_saida?: string | null
+          horario_geral_termina_no_dia_seguinte?: boolean | null
           id?: string
           modalidade?: string
           observacao?: string | null
           publicado_em?: string | null
           publicado_por?: string | null
+          publico_modo?: string
           status?: string
           titulo?: string | null
           unidade_id?: string
@@ -14453,6 +14548,26 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_convocacao_definir_destinatarios: {
+        Args: {
+          p_colaboradores: string[]
+          p_expected_updated_at: string
+          p_grupo_id: string
+        }
+        Returns: Json
+      }
+      dp_convocacao_definir_override_destinatario: {
+        Args: {
+          p_colaborador_id: string
+          p_entrada: string
+          p_expected_updated_at: string
+          p_intervalo_minutos: number
+          p_ocorrencia_id: string
+          p_saida: string
+          p_termina_no_dia_seguinte: boolean
+        }
+        Returns: Json
+      }
       dp_convocacao_estado_encerramento: {
         Args: {
           p_agora: string
@@ -14464,6 +14579,10 @@ export type Database = {
       dp_convocacao_exige_admin: {
         Args: { _company_id: string }
         Returns: string
+      }
+      dp_convocacao_horario_efetivo: {
+        Args: { _aval: Json; _colaborador_id: string; _ocorrencia_id: string }
+        Returns: Json
       }
       dp_convocacao_jornada_na_data: {
         Args: { _colaborador_id: string; _data: string }
@@ -14524,6 +14643,15 @@ export type Database = {
           vagas_restantes: number
           visualizada_em: string
         }[]
+      }
+      dp_convocacao_necessidade_sugerida: {
+        Args: {
+          _cargo_id: string
+          _company_id: string
+          _data: string
+          _unidade_id: string
+        }
+        Returns: Json
       }
       dp_convocacao_publicar_grupo: {
         Args: {
