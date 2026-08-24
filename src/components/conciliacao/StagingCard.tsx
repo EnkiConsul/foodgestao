@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { AlertTriangle, Check, ChevronDown, Loader2, UserPlus, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Loader2, Pencil, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,6 +116,7 @@ export function StagingCard({
   creatingContact,
   onCreateContact,
   onCreateNewContact,
+  onEditContact,
   isReversal,
   selected,
   onSelectedChange,
@@ -372,6 +373,17 @@ export function StagingCard({
                   </Select>
                   {contact && contactSuggested && (
                     <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
+                  )}
+                  {!disabled && contact && onEditContact && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="mt-1 h-8 w-full text-xs"
+                      onClick={onEditContact}
+                    >
+                      <Pencil className="mr-1 h-3 w-3" />
+                      Editar cadastro
+                    </Button>
                   )}
                   {!disabled && canCreateContact && onCreateContact && (
                     <Button
