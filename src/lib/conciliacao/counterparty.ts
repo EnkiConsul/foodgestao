@@ -174,6 +174,39 @@ export function nameFromPipe(description: string | null | undefined): string | n
   return part.slice(0, 120);
 }
 
+/**
+ * Textos onde a contraparte pode aparecer, em ordem de confiança.
+ * O `description` da fila pode ter sido renomeado pelo usuário ("Combustível"),
+ * então o texto original do banco (`raw.descriptionRaw`) vem primeiro — é ele
+ * que carrega o estabelecimento após o pipe ("Compra no débito|DELLA ELDORADO").
+ */
+export function descriptionSources(row: CounterpartyRow): string[] {
+  const raw = (row.raw ?? null) as
+    | { descriptionRaw?: unknown; description?: unknown }
+    | null;
+  const list = [
+    typeof raw?.descriptionRaw === "string" ? raw.descriptionRaw : null,
+    typeof raw?.description === "string" ? raw.description : null,
+    row.description ?? null,
+  ];
+  return list.filter((s): s is string => !!s && s.trim().length > 0);
+}
+
+/** Nome da contraparte a partir dos textos do lançamento (bruto primeiro). */
+export function nameFromRow(row: CounterpartyRow): string | null {
+  const sources = descriptionSources(row);
+  for (const s of sources) {
+    const piped = nameFromPipe(s);
+    if (piped) return piped;
+  }
+  for (const s of sources) {
+    const fromDesc = nameFromDescription(s);
+    if (fromDesc) return fromDesc;
+  }
+  return null;
+}
+
+
 /** Extrai nome + documento da contraparte de um lançamento importado. */
 export function extractCounterparty(
   row: CounterpartyRow,
