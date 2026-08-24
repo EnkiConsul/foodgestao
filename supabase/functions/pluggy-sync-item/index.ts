@@ -286,6 +286,32 @@ Deno.serve(async (req) => {
       .single();
     if (connErr) throw connErr;
 
+    // 1b) Deduplicação: uma nova autorização do MESMO banco (connector) na mesma
+    // empresa substitui a conexão anterior. Sem isso, cada "Conectar banco"
+    // repetido criava um novo item Pluggy e a lista exibia o mesmo banco 2x.
+    const connectorIdNum = item?.connector?.id ?? null;
+    if (connectorIdNum !== null) {
+      const { data: siblings } = await admin
+        .from('pluggy_connections')
+        .select('id')
+        .eq('company_id', effectiveCompanyId)
+        .eq('connector_id', connectorIdNum)
+        .neq('id', conn.id)
+        .neq('status', 'deleted');
+      const siblingIds = (siblings ?? []).map((s: any) => s.id);
+      if (siblingIds.length) {
+        await admin
+          .from('pluggy_connections')
+          .update({ status: 'deleted', last_sync_status: 'superseded' })
+          .in('id', siblingIds);
+        console.log('pluggy connection superseded', {
+          kept: conn.id, superseded: siblingIds, connector: connectorIdNum,
+        });
+      }
+    }
+
+
+
     // 2) Accounts — mirror to pluggy_accounts and auto-materialize local `accounts` for BANK type
     const accounts = await listAccounts(itemId);
     const connectorName: string = (item?.connector?.name ?? '').toLowerCase();
@@ -326,18 +352,40 @@ Deno.serve(async (req) => {
         .single();
 
       // Cartões de crédito NÃO são materializados automaticamente: apenas ficam
-      // pendentes de autorização do usuário na tela de revisão.
+      // pendentes de autorização do usuário na tela de revisão. Se o mesmo cartão
+      // já havia sido autorizado numa conexão anterior do mesmo banco, herda o
+      // vínculo em vez de pedir autorização de novo.
       if (
         upserted &&
         (acc.type ?? '').toUpperCase() === 'CREDIT' &&
         !upserted.linked_credit_card_id &&
         (upserted.credit_review_status ?? 'none') === 'none'
       ) {
+        let inheritedCardId: string | null = null;
+        if (acc.number) {
+          const { data: priorCard } = await admin
+            .from('pluggy_accounts')
+            .select('linked_credit_card_id')
+            .eq('company_id', effectiveCompanyId)
+            .eq('number_masked', acc.number)
+            .not('linked_credit_card_id', 'is', null)
+            .neq('id', upserted.id)
+            .limit(1)
+            .maybeSingle();
+          inheritedCardId = priorCard?.linked_credit_card_id ?? null;
+        }
         await admin
           .from('pluggy_accounts')
-          .update({ credit_review_status: 'pending' })
+          .update(inheritedCardId
+            ? {
+              linked_credit_card_id: inheritedCardId,
+              credit_review_status: 'linked',
+              credit_review_at: new Date().toISOString(),
+            }
+            : { credit_review_status: 'pending' })
           .eq('id', upserted.id);
       }
+
 
       if (upserted && !upserted.linked_account_id && (acc.type ?? '').toUpperCase() === 'BANK') {
         const ownerUserId = userId ?? (await admin

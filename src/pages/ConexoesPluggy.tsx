@@ -17,12 +17,32 @@ import { ptBR } from "date-fns/locale";
 interface Connection {
   id: string;
   pluggy_item_id: string;
+  connector_id: number | null;
   connector_name: string | null;
   connector_image_url: string | null;
   status: string;
   last_synced_at: string | null;
   last_error: any;
 }
+
+/**
+ * Uma nova autorização do mesmo banco cria um novo item na Pluggy. Para não
+ * exibir o mesmo banco duas vezes, mantemos apenas a conexão mais recente por
+ * banco (preferindo as que não estão encerradas).
+ */
+function dedupeByConnector(list: Connection[]): Connection[] {
+  const kept = new Map<string, Connection>();
+  for (const c of list) {
+    const key = c.connector_id != null ? `id:${c.connector_id}` : `name:${c.connector_name ?? c.id}`;
+    const prev = kept.get(key);
+    if (!prev) { kept.set(key, c); continue; }
+    const prevDeleted = prev.status === "deleted";
+    const curDeleted = c.status === "deleted";
+    if (prevDeleted && !curDeleted) kept.set(key, c);
+  }
+  return Array.from(kept.values());
+}
+
 
 interface AccountsMap { [connId: string]: { count: number; pending: number; paused: number } }
 
@@ -55,11 +75,12 @@ export default function ConexoesPluggy() {
     if (!selectedCompanyId) return;
     setLoading(true);
     const { data: conns } = await supabase.from("pluggy_connections")
-      .select("id, pluggy_item_id, connector_name, connector_image_url, status, last_synced_at, last_error")
+      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_error")
       .eq("company_id", selectedCompanyId).order("created_at", { ascending: false });
 
-    const list = (conns ?? []) as Connection[];
+    const list = dedupeByConnector((conns ?? []) as Connection[]);
     setConnections(list);
+
 
     const { count: pending } = await supabase
       .from("pluggy_connect_requests")
