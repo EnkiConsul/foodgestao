@@ -206,8 +206,8 @@ export function ContactFormDialog({
         toast.error("CNPJ inválido — dígitos verificadores incorretos.");
         return;
       }
-      // Impede duplicidade por documento (confirma no banco, não só no aviso em tela).
-      const dup = await findDuplicateByDocument(docDigits, editContact?.id);
+      // Impede duplicidade por documento (confirma no banco, ignorando o cache).
+      const dup = await findDuplicateByDocument(docDigits, editContact?.id, { force: true });
       if (dup) {
         setDuplicate(dup);
         toast.error("CPF/CNPJ já cadastrado", {
