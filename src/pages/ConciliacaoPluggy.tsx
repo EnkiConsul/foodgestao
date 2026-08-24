@@ -896,8 +896,8 @@ export default function ConciliacaoPluggy() {
     const keep = contactEdit;
     setContactEdit(null);
     if (!selectedCompanyId) return;
-    const cts = await fetchAllCompanyContacts(selectedCompanyId);
-    setContacts((cts ?? []) as ContactOpt[]);
+    await recarregarContatos(selectedCompanyId);
+
     if (keep) setRowContact((prev) => ({ ...prev, [keep.rowId]: keep.contact.id }));
   };
 
