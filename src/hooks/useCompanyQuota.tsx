@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
+import { isExempt } from "@/lib/billing";
 
 export interface CompanyQuota {
   total: number;
@@ -17,6 +18,8 @@ export interface CompanyQuota {
   requiresPaidExtra: boolean;
   /** absolute limit reached and no extra pricing available */
   blocked: boolean;
+  /** assinatura isenta de mensalidade: sem cobrança nem limite */
+  exempt: boolean;
 }
 
 export function useCompanyQuota() {
@@ -39,6 +42,22 @@ export function useCompanyQuota() {
       const pricePerExtraCents = Number(features.price_per_extra_company_cents ?? 0);
       const total = count ?? 0;
       const extraBilled = Number((subscription as any)?.extra_companies ?? 0);
+      const exempt = isExempt(subscription as any);
+
+      // Assinatura isenta: sem cobrança de perfil extra e sem limite de perfis.
+      if (exempt) {
+        return {
+          total,
+          included,
+          max: -1,
+          pricePerExtraCents: 0,
+          extraBilled: 0,
+          canAddFree: true,
+          requiresPaidExtra: false,
+          blocked: false,
+          exempt: true,
+        };
+      }
 
       const reachedMax = max >= 0 && total >= max;
       const reachedIncluded = total >= included;
@@ -52,6 +71,7 @@ export function useCompanyQuota() {
         canAddFree: !reachedIncluded,
         requiresPaidExtra: reachedIncluded && pricePerExtraCents > 0 && (max < 0 || total < max || pricePerExtraCents > 0),
         blocked: reachedMax && pricePerExtraCents <= 0,
+        exempt: false,
       };
     },
   });
