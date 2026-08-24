@@ -1489,6 +1489,7 @@ export default function ConciliacaoPluggy() {
                           </SelectTrigger>
                           <ContactSelectContent
                             contacts={contacts}
+                            selectedId={rowContact[r.id] ?? null}
                             className="max-h-[420px]"
                             onCreateNew={
                               disabled

@@ -31,11 +31,18 @@ export function ContactSelectContent({
   contacts,
   className,
   onCreateNew,
+  selectedId,
 }: {
   contacts: ContactSelectOption[];
   className?: string;
   /** Quando informado, mostra o atalho "Cadastrar novo fornecedor/cliente". */
   onCreateNew?: () => void;
+  /**
+   * Contato selecionado da linha. O Radix Select monta o rótulo do gatilho a
+   * partir do `SelectItem` correspondente: sem isso, um contato fora dos
+   * primeiros itens (ou filtrado pela busca) aparece em branco no campo.
+   */
+  selectedId?: string | null;
 }) {
   const [search, setSearch] = useState("");
   const [visible, setVisible] = useState(CHUNK);
@@ -51,8 +58,17 @@ export function ContactSelectContent({
     });
   }, [contacts, search]);
 
-  const shown = filtered.slice(0, visible);
-  const remaining = filtered.length - shown.length;
+  const shown = useMemo(() => {
+    const list = filtered.slice(0, visible);
+    if (selectedId && !list.some((c) => c.id === selectedId)) {
+      const selected = contacts.find((c) => c.id === selectedId);
+      if (selected) return [selected, ...list];
+    }
+    return list;
+  }, [filtered, visible, selectedId, contacts]);
+
+  const remaining = filtered.length - filtered.slice(0, visible).length;
+
 
   return (
     <SelectContent className={className}>
