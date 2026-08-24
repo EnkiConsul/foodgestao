@@ -295,9 +295,11 @@ export default function ConexoesPluggy() {
       )}
 
       {!loading && pendingCredit.length > 0 && (
-        <Card className="border-primary/40 bg-primary/5">
+        <Card className="border-primary/40 bg-primary/[0.07]">
           <CardContent className="p-4 flex flex-wrap items-center gap-3">
-            <CreditCardIcon className="h-4 w-4 text-primary shrink-0" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <CreditCardIcon className="h-4 w-4 text-primary" />
+            </div>
             <div className="min-w-0 flex-1 text-sm">
               <p className="font-semibold">
                 {pendingCredit.length} cartão(ões) de crédito detectado(s)
