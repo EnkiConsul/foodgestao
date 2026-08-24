@@ -14656,6 +14656,11 @@ export type Database = {
         Args: { _ano: number; _company_id: string; _mes: number }
         Returns: number
       }
+      dp_indisponibilidade_marcar: {
+        Args: { p_data: string; p_motivo?: string }
+        Returns: Json
+      }
+      dp_indisponibilidade_remover: { Args: { p_data: string }; Returns: Json }
       dp_pascoa: { Args: { _ano: number }; Returns: string }
       dp_pode_gerenciar_lixeira: {
         Args: { _company_id: string }
