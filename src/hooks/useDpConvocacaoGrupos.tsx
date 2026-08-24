@@ -215,6 +215,134 @@ export function usePublicarConvocacao() {
   });
 }
 
+// ------------------------------------------------------------------ destinatários
+
+export type ConvDestinatario =
+  Database["public"]["Tables"]["dp_convocacao_destinatarios"]["Row"];
+
+/** Destinatários ativos do grupo (globais) e overrides de horário por dia. */
+export function useDpConvocacaoDestinatarios(grupoId?: string | null) {
+  const { selectedCompanyId } = useCompanyContext();
+
+  return useQuery({
+    queryKey: ["dp_convocacao_destinatarios", selectedCompanyId, grupoId ?? null],
+    enabled: !!selectedCompanyId && !!grupoId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_convocacao_destinatarios")
+        .select("*")
+        .eq("company_id", selectedCompanyId!)
+        .eq("grupo_id", grupoId!)
+        .is("removido_em", null);
+      if (error) throw error;
+      const rows = (data ?? []) as ConvDestinatario[];
+      return {
+        globais: rows.filter((r) => !r.ocorrencia_id).map((r) => r.colaborador_id),
+        overrides: rows.filter((r) => !!r.ocorrencia_id),
+      };
+    },
+  });
+}
+
+/**
+ * Público restrito: o backend passa a enviar ofertas SOMENTE para estas
+ * pessoas (fail closed — lista vazia bloqueia a publicação).
+ */
+export function useDefinirDestinatarios() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: {
+      grupo_id: string;
+      colaboradores: string[];
+      expected_updated_at: string;
+    }) => {
+      const { data, error } = await supabase.rpc("dp_convocacao_definir_destinatarios", {
+        p_grupo_id: args.grupo_id,
+        p_colaboradores: args.colaboradores,
+        p_expected_updated_at: args.expected_updated_at,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_convocacao_destinatarios"] });
+      qc.invalidateQueries({ queryKey: ["dp_convocacao_grupos"] });
+    },
+  });
+}
+
+/**
+ * Override de horário de UMA pessoa em UM dia (precedência máxima).
+ * Horário nulo remove o override (soft delete, nunca DELETE físico).
+ */
+export function useDefinirOverrideDestinatario() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: {
+      ocorrencia_id: string;
+      colaborador_id: string;
+      entrada?: string | null;
+      saida?: string | null;
+      intervalo_minutos?: number | null;
+      termina_no_dia_seguinte?: boolean | null;
+      expected_updated_at: string;
+    }) => {
+      const { data, error } = await supabase.rpc(
+        "dp_convocacao_definir_override_destinatario",
+        {
+          p_ocorrencia_id: args.ocorrencia_id,
+          p_colaborador_id: args.colaborador_id,
+          p_entrada: args.entrada ?? undefined,
+          p_saida: args.saida ?? undefined,
+          p_intervalo_minutos: args.intervalo_minutos ?? undefined,
+          p_termina_no_dia_seguinte: args.termina_no_dia_seguinte ?? undefined,
+          p_expected_updated_at: args.expected_updated_at,
+        },
+      );
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_convocacao_destinatarios"] });
+      qc.invalidateQueries({ queryKey: ["dp_convocacao_grupos"] });
+    },
+  });
+}
+
+/**
+ * Janela realmente praticada pelos fixos do mesmo cargo/unidade no dia.
+ * Nunca inventa horário: sem base cadastrada devolve `sugerido: null`.
+ */
+export async function buscarNecessidadeSugerida(args: {
+  company_id: string;
+  unidade_id: string | null;
+  cargo_id: string;
+  data: string;
+}) {
+  const { data, error } = await supabase.rpc("dp_convocacao_necessidade_sugerida", {
+    _company_id: args.company_id,
+    _unidade_id: args.unidade_id ?? undefined,
+    _cargo_id: args.cargo_id,
+    _data: args.data,
+  });
+  if (error) throw error;
+  return (data ?? null) as {
+    sugerido: {
+      entrada: string;
+      saida: string;
+      intervalo_minutos: number;
+      termina_no_dia_seguinte: boolean;
+      quantidade: number;
+    } | null;
+    ambiguo: boolean;
+    alternativas: any[];
+  } | null;
+}
+
+
+
 
 /** Configuração de convocações resolvida (empresa ou unidade). */
 export function useDpConvocacaoConfig(unidadeId?: string | null) {
