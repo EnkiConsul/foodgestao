@@ -14466,6 +14466,10 @@ export type Database = {
         Args: { _carga_prevista_horas: number; _colaborador_id: string }
         Returns: Json
       }
+      dp_convocacao_responder_oferta: {
+        Args: { p_aceito: boolean; p_convocacao_id: string; p_motivo?: string }
+        Returns: Json
+      }
       dp_convocacao_revisar_ocorrencia: {
         Args: {
           p_carga_prevista_horas?: number
