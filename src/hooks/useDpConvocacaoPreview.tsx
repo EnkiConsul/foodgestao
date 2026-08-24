@@ -162,9 +162,28 @@ export function useDpConvocacaoPreview(args: {
     [configDias.data],
   );
 
+  /**
+   * Contagem real por data + cargo. Pendente é contado à parte e NUNCA
+   * somado a confirmado.
+   */
+  const contagemPorDataCargo = useMemo(() => {
+    const m = new Map<string, { confirmados: number; aguardando: number }>();
+    for (const r of (convocacoes.data ?? []) as any[]) {
+      const cargoId = r.dp_colaboradores?.cargo_id ?? null;
+      if (!cargoId) continue;
+      const chave = `${r.data}|${cargoId}`;
+      const atual = m.get(chave) ?? { confirmados: 0, aguardando: 0 };
+      if (r.status === "aceita") atual.confirmados += 1;
+      else atual.aguardando += 1;
+      m.set(chave, atual);
+    }
+    return m;
+  }, [convocacoes.data]);
+
   return {
     indisponiveisPorData,
     alocadosPorData,
+    contagemPorDataCargo,
     jornadaDe,
     regrasCobertura: cobertura.data ?? [],
     isLoading:
@@ -175,3 +194,4 @@ export function useDpConvocacaoPreview(args: {
       cobertura.isLoading,
   };
 }
+
