@@ -105,17 +105,19 @@ export function useMinhasConvocacoes(colaboradorId: string | null) {
     },
   });
 
+  /**
+   * Resposta pela RPC atômica: vagas de oferta aberta, prazo, dia já iniciado e
+   * limite de uma convocação aceita por dia são decididos no servidor.
+   */
   const responder = useMutation({
     mutationFn: async ({ id, aceito, motivo }: { id: string; aceito: boolean; motivo?: string }) => {
-      const { error } = await supabase
-        .from("dp_convocacoes")
-        .update({
-          status: aceito ? "aceita" : "recusada",
-          respondida_em: new Date().toISOString(),
-          motivo_recusa: aceito ? null : (motivo ?? null),
-        })
-        .eq("id", id);
+      const { data, error } = await supabase.rpc("dp_convocacao_responder_oferta", {
+        p_convocacao_id: id,
+        p_aceito: aceito,
+        p_motivo: motivo ?? undefined,
+      });
       if (error) throw error;
+      return data as any;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_minhas_convocacoes"] });
