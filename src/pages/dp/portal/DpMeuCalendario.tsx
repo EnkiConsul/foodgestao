@@ -55,6 +55,8 @@ import { cn } from "@/lib/utils";
 import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
 import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
 import { isSocio } from "@/lib/dp/contrato-policy";
+import { MinhaDisponibilidadeCard } from "@/components/dp/MinhaDisponibilidadeCard";
+import { regimeConvocavel } from "@/lib/dp/convocacoes-planejamento";
 
 const STATUS_LABEL: Record<DateStatusKind, string> = {
   available: "Disponível",
