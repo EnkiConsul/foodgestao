@@ -862,9 +862,8 @@ export default function ContasBancarias() {
       <PluggyCreditCardReviewDialog
         open={creditReviewOpen}
         onOpenChange={setCreditReviewOpen}
-        pending={pendingCredit}
-        companyId={selectedCompanyId}
-        onReviewed={reloadPendingCredit}
+        accounts={pendingCredit}
+        onDone={reloadPendingCredit}
       />
     </div>
   );
