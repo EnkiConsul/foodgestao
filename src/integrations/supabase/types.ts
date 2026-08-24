@@ -4653,6 +4653,148 @@ export type Database = {
           },
         ]
       }
+      dp_convocacao_ocorrencias: {
+        Row: {
+          antecedencia_dias: number | null
+          carga_prevista_horas: number | null
+          cargo_id: string
+          company_id: string
+          condicoes_comuns: Json
+          confirmado_fora_prazo_em: string | null
+          confirmado_fora_prazo_por: string | null
+          created_at: string
+          criado_por: string | null
+          data: string
+          entrada: string | null
+          fora_antecedencia: boolean
+          grupo_id: string
+          horario_modo: string
+          id: string
+          intervalo_minutos: number | null
+          justificativa_fora_prazo: string | null
+          necessidade_entrada: string
+          necessidade_saida: string
+          necessidade_termina_no_dia_seguinte: boolean
+          publicada_em: string | null
+          saida: string | null
+          status: string
+          substitui_ocorrencia_id: string | null
+          termina_no_dia_seguinte: boolean | null
+          turno_referencia_id: string | null
+          unidade_id: string
+          updated_at: string
+          vagas: number
+          versao: number
+        }
+        Insert: {
+          antecedencia_dias?: number | null
+          carga_prevista_horas?: number | null
+          cargo_id: string
+          company_id: string
+          condicoes_comuns?: Json
+          confirmado_fora_prazo_em?: string | null
+          confirmado_fora_prazo_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          entrada?: string | null
+          fora_antecedencia?: boolean
+          grupo_id: string
+          horario_modo: string
+          id?: string
+          intervalo_minutos?: number | null
+          justificativa_fora_prazo?: string | null
+          necessidade_entrada: string
+          necessidade_saida: string
+          necessidade_termina_no_dia_seguinte?: boolean
+          publicada_em?: string | null
+          saida?: string | null
+          status?: string
+          substitui_ocorrencia_id?: string | null
+          termina_no_dia_seguinte?: boolean | null
+          turno_referencia_id?: string | null
+          unidade_id: string
+          updated_at?: string
+          vagas?: number
+          versao?: number
+        }
+        Update: {
+          antecedencia_dias?: number | null
+          carga_prevista_horas?: number | null
+          cargo_id?: string
+          company_id?: string
+          condicoes_comuns?: Json
+          confirmado_fora_prazo_em?: string | null
+          confirmado_fora_prazo_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          entrada?: string | null
+          fora_antecedencia?: boolean
+          grupo_id?: string
+          horario_modo?: string
+          id?: string
+          intervalo_minutos?: number | null
+          justificativa_fora_prazo?: string | null
+          necessidade_entrada?: string
+          necessidade_saida?: string
+          necessidade_termina_no_dia_seguinte?: boolean
+          publicada_em?: string | null
+          saida?: string | null
+          status?: string
+          substitui_ocorrencia_id?: string | null
+          termina_no_dia_seguinte?: boolean | null
+          turno_referencia_id?: string | null
+          unidade_id?: string
+          updated_at?: string
+          vagas?: number
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dp_conv_ocor_cargo_company"
+            columns: ["cargo_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_ocor_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_ocor_grupo_company"
+            columns: ["grupo_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_grupos"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_ocor_substitui_company"
+            columns: ["substitui_ocorrencia_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_ocorrencias"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_ocor_turno_company"
+            columns: ["turno_referencia_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_turnos"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_ocor_unidade_company"
+            columns: ["unidade_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id", "company_id"]
+          },
+        ]
+      }
       dp_convocacoes: {
         Row: {
           carga_prevista_horas: number
