@@ -13,7 +13,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner";
 import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileText, Split } from "lucide-react";
 import { DividirLancamentoDialog } from "@/components/conciliacao/DividirLancamentoDialog";
-import { format, parseISO } from "date-fns";
+import { format, formatDistanceToNow, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
