@@ -652,7 +652,7 @@ export function NovaConvocacaoWizard({
                                   return next;
                                 });
                                 if (!marcar) {
-                                  setOcorrencias((prev) => prev.filter((o) => o.cargo_id !== c.id));
+                                  removerOcorrencias((o) => o.cargo_id === c.id);
                                 }
                               }}
                             />
