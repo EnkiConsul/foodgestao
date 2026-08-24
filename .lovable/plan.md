@@ -33,13 +33,14 @@ Fases: 3A.0 ✅ · 3A.1 ✅ · 3A.1.1 ✅ · **3B por blocos (3B.1 autorizado)**
 
 ## 2. Bloco autorizado — 3B.1: coexistência segura + planejamento/configuração
 
-### 2.1 Auditoria antes de alterar
-Policies atuais de `dp_convocacoes`: `dp_convocacoes_admin_all` (ALL, admin/owner), `dp_convocacoes_read_self` (SELECT do próprio), `dp_convocacoes_respond_self` (UPDATE do próprio, `pendente` → `aceita`/`recusada`). Notado que `respond_self` restringe o status, mas **não restringe colunas** — o colaborador pode, no mesmo UPDATE, tocar termos materiais. Isso será reportado com evidência e tratado com proteção mínima (trigger de coluna imutável no caminho legado, permitindo só os campos da resposta), preservando o Portal atual.
-`dp_convocacao_guard` **não será alterado preventivamente** — só se a auditoria mostrar necessidade concreta para a coexistência.
+### 2.1 Primeira ação auditável
+Criar `.lovable/plan/convocacoes-fase-3b-baseline-e-execucao.md` com o baseline do item 0 e o registro de execução do bloco (documento de evidência, sem efeito na aplicação), incluído nas evidências finais.
 
-### 2.2 Migration de coexistência (RLS separada por comando)
-Substituir a policy `FOR ALL` por policies específicas:
+### 2.2 Auditoria antes de alterar
+Policies atuais de `dp_convocacoes`: `dp_convocacoes_admin_all` (ALL, admin/owner), `dp_convocacoes_read_self` (SELECT do próprio), `dp_convocacoes_respond_self` (UPDATE do próprio, `pendente` → `aceita`/`recusada`). Confirmado: `respond_self` restringe linha e status, **não restringe colunas** — o colaborador pode alterar termos materiais no mesmo UPDATE.
+`dp_convocacao_guard` não será alterado preventivamente; só se a auditoria mostrar necessidade concreta para a coexistência.
 
+### 2.3 Migration de coexistência (RLS separada por comando)
 ```text
 admin_select        FOR SELECT  USING (admin_da_empresa)                              -- legado + novo
 admin_insert_legacy FOR INSERT  WITH CHECK (admin_da_empresa AND ocorrencia_id IS NULL)
@@ -50,26 +51,49 @@ respond_self        FOR UPDATE  USING (proprio AND ocorrencia_id IS NULL AND sta
                                 WITH CHECK (proprio AND ocorrencia_id IS NULL AND status IN ('aceita','recusada'))
 read_self           FOR SELECT  USING (proprio)                                       -- inclui ofertas novas
 ```
-O `WITH CHECK` impede transformar linha legada em linha nova por UPDATE direto.
+`WITH CHECK` impede transformar linha legada em linha nova por UPDATE direto.
 
-### 2.3 RPCs de planejamento e configuração
-- Criar/editar **grupo** em rascunho — empresa derivada da unidade; `p_grupo_id` UUID estável do chamador.
-- Criar/editar **ocorrência** em rascunho (necessidade, horário ofertado, vagas, condições comuns) — `p_ocorrencia_id` UUID estável; validações estruturais completas.
-- **Revisão/versionamento** de ocorrência publicada — `p_sucessora_id` UUID estável; `FOR UPDATE` na predecessora, valida status, valida ausência de outra sucessora, marca `revisada`, cria sucessora e registra evento na mesma transação. Lock em ordem determinística **grupo → ocorrência**.
-- **Configuração** por empresa/unidade — UPSERT idempotente sobre `UNIQUE (company_id, unidade_id)`, sob autorização; leitura sempre por `dp_convocacao_config_resolvida`.
-- **Imutabilidade**: rascunho é editável; após publicação, termos materiais só mudam por revisão/versionamento.
-- **Idempotência**: ID inexistente cria; mesmo ID com mesma entidade/contexto retorna o recurso existente sem novo evento; mesmo ID com payload/contexto incompatível retorna `IDEMPOTENCY_CONFLICT`. Os IDs nunca determinam `company_id`. Sem tabela genérica de idempotência.
+### 2.4 Proteção de colunas no `respond_self` legado
+Trigger `trg_00_dp_convocacao_legacy_self_columns` (nome com prefixo numérico porque o PostgreSQL executa triggers do mesmo evento em ordem alfabética — precisa rodar antes de `dp_convocacao_guard`, da sincronização de escala e do `updated_at`), avaliando o `NEW` original enviado pelo usuário:
 
-### 2.4 Testes do bloco (transação revertida, sem resíduo)
+- Atua **somente** quando `OLD.ocorrencia_id IS NULL` e o ator é o próprio colaborador e não é admin/owner.
+- Permite apenas os campos de resposta do legado — confirmados no schema: `status`, `respondida_em`, `motivo_recusa`.
+- Não restringe admin/owner além do comportamento atual e não interfere nas RPCs do fluxo novo.
+- Testes obrigatórios: tentativa do colaborador de alterar junto da resposta `data`, `entrada`, `saida`, `carga_prevista_horas`, `prazo_resposta`, `colaborador_id`, `unidade_id`, `observacao` e `ocorrencia_id` — todas devem falhar.
+
+### 2.5 RPCs de planejamento e configuração (criar ≠ editar)
+Operações distintas: `criar_grupo`, `atualizar_grupo`, `criar_ocorrencia`, `atualizar_ocorrencia`, `revisar_ocorrencia`, `salvar_config` (nomes SQL na convenção `dp_convocacao_*` do projeto).
+
+**Criação idempotente** (`p_grupo_id`, `p_ocorrencia_id`, `p_sucessora_id`): ID inexistente → cria + 1 evento; mesmo ID e mesmo conteúdo/contexto → retorna o existente sem evento; mesmo ID com conteúdo/contexto incompatível → `IDEMPOTENCY_CONFLICT`.
+
+**Edição de rascunho** (payload diferente é edição legítima, nunca conflito de idempotência): `FOR UPDATE` na linha → valida `status = 'rascunho'` → se o conteúdo atual já é igual ao solicitado, sucesso no-op sem UPDATE e sem evento → senão, se `updated_at <> p_expected_updated_at`, `CONCURRENT_MODIFICATION` → senão, UPDATE + exatamente 1 evento. Sem tabela genérica de idempotência.
+
+**Identidade estrutural imutável**: grupo — `id`, `company_id`, `unidade_id` (empresa derivada da unidade na criação; mudar de unidade exige novo grupo); editáveis em rascunho: `competencia`, `titulo`, `modalidade`, `observacao`. Ocorrência — `id`, `grupo_id`, `company_id`, `unidade_id`, `substitui_ocorrencia_id` imutáveis; editáveis em rascunho: cargo, data, janela da necessidade, turno de referência, `horario_modo`, horário ofertado, intervalo, carga, vagas e condições comuns, sempre revalidando constraints e contexto. Ocorrência publicada não usa `atualizar_ocorrencia`.
+
+**Revisão/versionamento**: lock em ordem **grupo → ocorrência predecessora**; valida pertencimento ao grupo, status que permite revisão, ausência de sucessora, `p_sucessora_id` sem conflito e validade da nova versão; na mesma transação marca predecessora `revisada`, cria a sucessora e registra 1 evento. Retry após sucesso localiza a sucessora e devolve o mesmo resultado sem novo evento; predecessora revisada com sucessora não reconciliável → fail closed, sem segunda cadeia.
+
+**Configuração**: UPSERT idempotente sobre `UNIQUE (company_id, unidade_id)`; unit-level deriva empresa da unidade; company-level valida admin/owner da empresa informada; leitura sempre por `dp_convocacao_config_resolvida`.
+
+**Segurança**: `SECURITY DEFINER`, `search_path` seguro, `auth.uid()` obrigatório, referências qualificadas, `REVOKE EXECUTE FROM PUBLIC, anon`, `GRANT EXECUTE TO authenticated` só onde o app precisa; nunca aceitar `company_id`, ator, status ou timestamps autoritativos do frontend.
+
+### 2.6 Vocabulário de eventos do bloco
+Nomes padronizados e estáveis entre RPCs: `grupo_criado`, `grupo_atualizado`, `ocorrencia_criada`, `ocorrencia_atualizada`, `ocorrencia_revisada`, `config_criada`, `config_atualizada`. Sem enum novo. Alteração efetiva → 1 evento; retry/no-op → 0 eventos. Payload sanitizado.
+
+### 2.7 Testes do bloco (transação revertida, sem resíduo)
 - Legado intacto: criar, cancelar, excluir e responder direto continuam funcionando.
 - Admin lê linha nova → permitido; colaborador lê a própria linha nova → permitido.
-- Admin INSERT direto com `ocorrencia_id` preenchido → bloqueado; UPDATE de legado tentando definir `ocorrencia_id` → bloqueado; UPDATE/DELETE direto de linha nova → bloqueado.
-- Colaborador responde linha legada → permitido; responde oferta nova → bloqueado; tentativa de alterar campos materiais na resposta legada → bloqueada.
-- Retry de criação de grupo/ocorrência/revisão/configuração sem duplicar e sem evento extra; `IDEMPOTENCY_CONFLICT` no contexto incompatível.
-- Multiempresa negativo pelas novas RPCs; grants/`EXECUTE` conferidos (PUBLIC e anon sem privilégio).
+- Admin INSERT direto com `ocorrencia_id` preenchido → bloqueado; UPDATE de legado definindo `ocorrencia_id` → bloqueado; UPDATE/DELETE direto de linha nova → bloqueado.
+- Colaborador responde linha legada → permitido; responde oferta nova → bloqueado; os 9 campos materiais listados em 2.4 → todos bloqueados.
+- Criação: retry idêntico sem duplicar e sem evento novo; contexto incompatível → `IDEMPOTENCY_CONFLICT`.
+- Concorrência de edição: A e B leem o mesmo `updated_at`; A atualiza com sucesso; B com o valor antigo → `CONCURRENT_MODIFICATION`.
+- Retry de update: primeiro UPDATE altera e gera 1 evento; retry com o mesmo estado desejado → no-op, 0 eventos novos.
+- Identidade: tentar alterar `company_id`, `unidade_id` do grupo, `grupo_id`/`unidade_id` da ocorrência pelas RPCs de edição → impossível por contrato ou rejeitado.
+- Revisão: duas sucessoras para a mesma predecessora → exatamente uma; retry da mesma sucessora → mesmo resultado.
+- Contagem de eventos antes/depois de todos os retries.
+- Multiempresa negativo pelas novas RPCs; grants conferidos (PUBLIC e anon sem `EXECUTE`).
 
-### 2.5 Entrega e parada
-Relatório com migrations, SQL efetivo, policies antes/depois, RPCs, grants, testes de idempotência/multiempresa/legado, arquivos alterados, tipos regenerados, comparação com o baseline, rollback e confirmação de zero resíduos. Qualquer falha → PARO e diagnostico. Ao concluir, PARO e aguardo aprovação.
+### 2.8 Entrega e parada
+Relatório com migrations, SQL efetivo, funções/RPCs, policies antes/depois, grants, testes de coexistência/multiempresa/idempotência/concorrência/versionamento, eventos, arquivos alterados, tipos Supabase regenerados, baseline antes/depois, rollback e confirmação de zero dados artificiais. Qualquer falha → PARO e diagnostico. Ao concluir o 3B.1, PARO e aguardo aprovação.
 
 ## 3. Blocos seguintes (não executar)
 3B.2 publicação · 3B.3 resposta/vagas/Option A/trigger de escala · 3B.4 indisponibilidade/encerramentos/comparecimento · 3B.5 desistência/substituição/cancelamento/descumprimento.
