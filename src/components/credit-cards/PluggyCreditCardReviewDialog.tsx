@@ -40,6 +40,8 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
   const [saving, setSaving] = useState(false);
 
   const [target, setTarget] = useState<string>(NEW_CARD);
+  const [cardName, setCardName] = useState("");
+
   const [brand, setBrand] = useState("Outro");
   const [issuer, setIssuer] = useState("");
   const [holderName, setHolderName] = useState("");
