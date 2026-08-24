@@ -72,6 +72,9 @@ interface StagingCardProps {
   onCreateContact?: () => void;
   /** Abre o formulário completo de fornecedor/cliente sem sugestão do extrato. */
   onCreateNewContact?: () => void;
+  /** Abre o formulário do contato já selecionado para edição, mantendo o vínculo. */
+  onEditContact?: () => void;
+
   /** true quando a categoria escolhida é do tipo oposto ao valor (estorno). */
   isReversal: boolean;
   selected: boolean;
