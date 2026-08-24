@@ -13,6 +13,10 @@ O que confirmei lendo a M11 aplicada:
 
 ## Correções da M13
 
+**0. Autorização antes de qualquer lock**
+
+Em todas as RPCs tocadas pela M13, nenhuma entidade de outra empresa pode ser travada antes da autorização. Padrão obrigatório: leitura sem lock apenas do contexto necessário (empresa/unidade/grupo) → `auth.uid()` + admin/owner via `dp_convocacao_exige_admin` → só então `FOR UPDATE` → revalidar estado e contexto sobre a linha travada. Aplicado em `atualizar_grupo`, `atualizar_ocorrencia`, `revisar_ocorrencia` e `criar_ocorrencia` (hoje `atualizar_grupo` e `atualizar_ocorrencia` travam antes de autorizar).
+
 **1. Criação concorrência-safe (grupo e ocorrência)**
 
 Inverter a ordem: `INSERT ... ON CONFLICT (id) DO NOTHING RETURNING *`.
@@ -24,7 +28,8 @@ Inverter a ordem: `INSERT ... ON CONFLICT (id) DO NOTHING RETURNING *`.
 
 **2. Serialização de criação de ocorrência × publicação**
 
-`criar_ocorrencia` passa a travar o grupo (`SELECT ... FROM dp_convocacao_grupos WHERE id = p_grupo_id FOR UPDATE`) **antes** de autorizar e de validar `status = 'rascunho'`, mantendo a ordem de lock já aprovada (grupo → ocorrência) que `revisar_ocorrencia` também usa. Assim uma publicação futura da 3B.2 e a inclusão de ocorrência nunca se atravessam: quem chegar depois espera, relê o estado atual e falha com `NOT_DRAFT` se o grupo já foi publicado.
+`criar_ocorrencia` lê o grupo sem lock, autoriza, e só então trava o grupo (`FOR UPDATE`) e revalida `status = 'rascunho'` sobre a linha travada, mantendo a ordem de lock já aprovada (grupo → ocorrência) que `revisar_ocorrencia` também usa. Assim uma publicação futura da 3B.2 e a inclusão de ocorrência nunca se atravessam: quem chegar depois espera, relê o estado atual e falha com `NOT_DRAFT` se o grupo já foi publicado.
+
 
 **3. Reconciliação completa no retry da revisão**
 
