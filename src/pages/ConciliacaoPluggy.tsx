@@ -1422,28 +1422,28 @@ export default function ConciliacaoPluggy() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="mt-1 h-7 px-1 text-[10px]"
+                            className="mt-1 h-7 w-full justify-start px-1 text-[10px]"
                             disabled={loadingContactEdit === r.id}
                             onClick={() => void openEditContact(r.id)}
                           >
                             {loadingContactEdit === r.id
                               ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                               : <Pencil className="mr-1 h-3 w-3" />}
-                            Editar cadastro
+                            <span className="truncate">Editar cadastro</span>
                           </Button>
                         )}
                         {!disabled && !rowContact[r.id] && (counterpartyByRow[r.id]?.name || counterpartyByRow[r.id]?.document) && (
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="mt-1 h-7 px-1 text-[10px]"
+                            className="mt-1 h-7 w-full justify-start px-1 text-[10px]"
                             disabled={creatingContact === r.id}
                             onClick={() => createContactFromStatement(r)}
                           >
                             {creatingContact === r.id
                               ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                               : <UserPlus className="mr-1 h-3 w-3" />}
-                            Cadastrar {counterpartyByRow[r.id]?.name ?? "fornecedor/cliente"}
+                            <span className="truncate">Cadastrar {counterpartyByRow[r.id]?.name ?? "fornecedor/cliente"}</span>
                           </Button>
                         )}
                         </>
@@ -1454,9 +1454,9 @@ export default function ConciliacaoPluggy() {
 
                     <td className="p-2 text-center">
                       <div className="flex flex-wrap items-center justify-center gap-1">
-                        {r.status === "pending" && <Badge variant="outline">Pendente</Badge>}
-                        {r.status === "confirmed" && <Badge className="bg-success/15 text-success border-success/30">Confirmado</Badge>}
-                        {r.status === "ignored" && <Badge variant="secondary">Ignorado</Badge>}
+                        {r.status === "pending" && <Badge variant="outline" className="text-[10px]">Pendente</Badge>}
+                        {r.status === "confirmed" && <Badge className="bg-success/15 text-success border-success/30 text-[10px]">Confirmado</Badge>}
+                        {r.status === "ignored" && <Badge variant="secondary" className="text-[10px]">Ignorado</Badge>}
                         {r.status === "duplicate" && (
                           <Badge className="bg-warning/15 text-warning border-warning/30">
                             <AlertTriangle className="h-3 w-3 mr-1" />Duplicado
