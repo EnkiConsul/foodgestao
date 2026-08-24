@@ -62,6 +62,42 @@ function clearResume() {
   try { sessionStorage.removeItem(RESUME_KEY); } catch { /* noop */ }
 }
 
+// Parâmetros que o banco/Pluggy devolvem na URL após o consentimento de Open
+// Finance. Precisam ser consumidos aqui, senão o widget é reaberto do zero e o
+// usuário volta a ver a tela de boas-vindas da Pluggy.
+const RETURN_PARAMS = ["itemId", "item_id"] as const;
+
+function readReturnItemId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const url = new URL(window.location.href);
+    for (const key of RETURN_PARAMS) {
+      const value = url.searchParams.get(key);
+      if (value) return value;
+    }
+  } catch { /* noop */ }
+  return null;
+}
+
+/** Voltamos do consentimento do banco com um item já autorizado? */
+export function hasPluggyReturn(): boolean {
+  return !!readReturnItemId();
+}
+
+function clearReturnParams() {
+  try {
+    const url = new URL(window.location.href);
+    let changed = false;
+    for (const key of RETURN_PARAMS) {
+      if (url.searchParams.has(key)) { url.searchParams.delete(key); changed = true; }
+    }
+    if (!changed) return;
+    const search = url.searchParams.toString();
+    window.history.replaceState({}, "", `${url.pathname}${search ? `?${search}` : ""}${url.hash}`);
+  } catch { /* noop */ }
+}
+
+
 function loadScript(): Promise<void> {
   return new Promise((resolve, reject) => {
     if (window.PluggyConnect) return resolve();
