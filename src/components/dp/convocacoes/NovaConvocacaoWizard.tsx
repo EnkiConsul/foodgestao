@@ -101,14 +101,43 @@ export function NovaConvocacaoWizard({
   const [cargoAtivo, setCargoAtivo] = useState<string | null>(null);
   const [ocorrencias, setOcorrencias] = useState<RascunhoOcorrencia[]>([]);
   const [salvando, setSalvando] = useState(false);
+  const [publicando, setPublicando] = useState(false);
+  const [confirmarPublicacao, setConfirmarPublicacao] = useState(false);
+  const [justificativas, setJustificativas] = useState<Record<string, string>>({});
   const [trocaCompetencia, setTrocaCompetencia] = useState<{ ano: number; mes: number } | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
+  /** IDs já gravados no banco quando o rascunho foi aberto (id → updated_at). */
+  const [persistidas, setPersistidas] = useState<Record<string, string | null>>({});
+  /** Persistidas que o gestor retirou nesta edição — serão canceladas via RPC. */
+  const [removidas, setRemovidas] = useState<Record<string, string | null>>({});
 
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
   const colaboradores = useDpColaboradores();
   const config = useDpConvocacaoConfig(unidadeId);
-  const { salvarGrupo, salvarOcorrencia } = useSalvarRascunhoConvocacao();
+  const { salvarGrupo, salvarOcorrencia, cancelarOcorrencia } = useSalvarRascunhoConvocacao();
+  const publicar = usePublicarConvocacao();
+
+  /**
+   * Remoção consciente: o que só existia no cliente sai apenas do estado; o que
+   * já estava gravado entra na fila de cancelamento (nunca DELETE físico).
+   */
+  const removerOcorrencias = (alvo: (o: RascunhoOcorrencia) => boolean) => {
+    setOcorrencias((prev) => {
+      const remover = prev.filter(alvo);
+      if (remover.length) {
+        setRemovidas((r) => {
+          const next = { ...r };
+          for (const o of remover) {
+            if (o.id in persistidas) next[o.id] = persistidas[o.id] ?? null;
+          }
+          return next;
+        });
+      }
+      return prev.filter((o) => !alvo(o));
+    });
+  };
+
 
   const competencia = competenciaDe(ano, mes);
   const antecedenciaMinima = config.data?.antecedencia_minima_dias ?? ANTECEDENCIA_REFERENCIA_DIAS;
