@@ -14,12 +14,14 @@ Diagnóstico já realizado (nada será recriado à toa):
 ## Migrations (somente novas)
 
 ### M22 — Indisponibilidade self-service
-- `dp_indisponibilidade_marcar(p_data date, p_motivo text default null)`: exige `auth.uid()`, resolve colaborador e company no backend, valida regime via `dp_regime_convocavel`, resolve timezone autoritativo da unidade/empresa, bloqueia data passada (`PAST_DATE_NOT_EDITABLE`), `pg_advisory_xact_lock` por colaborador/data, insere ou reativa (idempotente, sem linha duplicada), retorna jsonb com estado final.
-- Oferta `aceita` na data → erro `ACCEPTED_CALL_REQUIRES_REPLACEMENT` (nada é cancelado; substituição é Bloco 5).
-- Oferta `pendente` na data → na mesma transação: grava indisponibilidade, muda oferta para `cancelada` com `encerrada_em` e `encerramento_motivo='INDISPONIBILIDADE_DECLARADA'` e registra evento `oferta_encerrada_indisponibilidade`. Nunca vira `recusada`.
+- `dp_indisponibilidade_marcar(p_data date, p_motivo text default null)`: exige `auth.uid()`, resolve colaborador e company no backend, valida regime via `dp_regime_convocavel`, resolve timezone autoritativo (`dp_convocacao_timezone`), bloqueia data passada (`PAST_DATE_NOT_EDITABLE`), `pg_advisory_xact_lock` por colaborador/data, retorna jsonb com estado final.
+- Histórico: sob o lock, linha ativa existente → retorno idempotente; se só houver linhas canceladas → INSERT de NOVA linha ativa (nunca reativar `cancelada_em`, nunca DELETE). O índice parcial existente garante no máximo uma ativa por colaborador+data.
+- Oferta `aceita` (ou já realizada) na data → erro `ACCEPTED_CALL_REQUIRES_REPLACEMENT`, indisponibilidade NÃO é criada, aceite e escala intactos (substituição é Bloco 5).
+- Ofertas `pendente` na data: TODAS as ofertas do novo fluxo (`status='pendente' AND ocorrencia_id IS NOT NULL`) daquele company+colaborador+data passam a `cancelada` com `encerrada_em=now()` e `encerramento_motivo='INDISPONIBILIDADE_DECLARADA'`, cada uma com evento determinístico `oferta_encerrada_indisponibilidade`. Nunca `recusada`. Nenhum estado já finalizado é alterado.
 - `dp_indisponibilidade_remover(p_data date)`: mesmo esqueleto, cancelamento lógico (`cancelada_em`/`cancelada_por`), idempotente, sem DELETE físico, sem tocar em nenhuma oferta histórica.
-- Eventos `indisponibilidade_criada` / `indisponibilidade_removida` com payload mínimo.
+- Auditoria `indisponibilidade_criada` / `indisponibilidade_removida` com payload mínimo.
 - Grants: apenas `authenticated` e `service_role`; revogado de `PUBLIC`/`anon`. Escrita direta na tabela permanece fechada.
+
 
 ### M23 — Helper temporal + worker + cron
 - `dp_convocacao_estado_encerramento(prazo, inicio, agora)` (IMMUTABLE/interno) com a regra exata da M21: prazo ≤ início → prazo precede; início < prazo → início precede; empate → `sem_resposta`; só um existente → usa o existente.
@@ -28,9 +30,9 @@ Diagnóstico já realizado (nada será recriado à toa):
 - Job pg_cron `dp_convocacoes_encerramentos` a cada 5 minutos, criado de forma idempotente (unschedule por nome antes de schedule), chamando apenas a função interna.
 
 ### M24 — Capacidade habitual e cobertura nas Folgas
-- `dp_capacidade_habitual_dia_cargo(...)`: helper interno multiempresa, fail closed, retornando `minimo`, `capacidade_habitual`, `indisponiveis_habituais`, `folgas`, `capacidade_apos_acao`, `deficit`. Capacidade habitual = fixos normalmente escalados + intermitentes/freelancers com `compoe_equipe_habitual = true`, menos folgas, férias e afastamentos; indisponibilidades só descontam quando `considerar_indisponibilidade_cobertura = true`. Convocação pendente nunca conta como confirmado. Sem registro aplicável em `dp_cobertura_minima`, o comportamento atual das folgas é preservado.
-- Folga self-service (portal): revalidação na mesma transação de criação; abaixo do mínimo → bloqueio com mensagem operacional ("Não é possível liberar esta folga porque a equipe ficaria abaixo da cobertura mínima definida para este dia.").
-- Folga administrativa: alerta com necessidade de confirmação explícita; ao confirmar, o backend revalida, permite o override e registra auditoria (ator, empresa, unidade, cargo, data, mínimo, capacidade prevista, déficit, confirmação).
+- `dp_capacidade_habitual_dia_cargo(...)`: helper interno multiempresa, fail closed, retornando `minimo`, `capacidade_habitual`, `indisponiveis_habituais`, `folgas`, `capacidade_apos_acao`, `deficit`. Capacidade habitual = fixos normalmente escalados + intermitentes/freelancers com `compoe_equipe_habitual = true`, menos folgas, férias e afastamentos; indisponibilidades só descontam quando `considerar_indisponibilidade_cobertura = true`. Convocações aceitas NÃO são somadas à capacidade habitual (Confirmados é outro conceito, usado só em Convocações/Operação) e oferta pendente nunca entra em Confirmados. Sem registro aplicável em `dp_cobertura_minima`, o comportamento atual das folgas é preservado.
+- Folga self-service (portal): revalidação backend na mesma transação de criação; abaixo do mínimo → bloqueio, sem override possível pelo trabalhador ("Não é possível liberar esta folga porque a equipe ficaria abaixo da cobertura mínima definida para este dia.").
+- Folga administrativa via RPC autoritativa (nenhum booleano de override confiado em INSERT/UPDATE comum): primeira chamada calcula a cobertura no backend e, havendo déficit sem confirmação válida, devolve o diagnóstico sem criar a folga; a segunda chamada autentica, deriva a empresa, exige owner/admin, revalida a cobertura na mesma transação, permite o override e registra auditoria (ator, empresa, unidade, cargo, data, mínimo, capacidade prevista, déficit, confirmação). Nada vindo do frontend (company_id, papel, mínimo, capacidade, déficit) é confiado.
 - Indisponibilidade nunca é bloqueada por déficit; folgas já aprovadas nunca são canceladas ou alteradas.
 
 ## Frontend
