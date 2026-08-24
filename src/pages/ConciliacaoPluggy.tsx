@@ -693,7 +693,7 @@ export default function ConciliacaoPluggy() {
   const ownDocumentSet = useMemo(() => {
     const s = new Set<string>();
     for (const d of [companyCnpj, ...ownDocuments]) {
-      const digits = onlyDigits(d);
+      const digits = normalizeDocumento(d);
       if (digits.length >= 11) s.add(digits);
     }
     return s;
