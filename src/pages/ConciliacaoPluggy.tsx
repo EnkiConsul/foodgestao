@@ -1134,8 +1134,8 @@ export default function ConciliacaoPluggy() {
                 onCounterpartChange={(v) => setRowCounterpart((p) => ({ ...p, [r.id]: v }))}
                 category={rowCategory[r.id] ?? ""}
                 onCategoryChange={(v) => setRowCategory((p) => ({ ...p, [r.id]: v }))}
-                suggestedCategoryItems={renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
-                oppositeCategoryItems={renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
+                suggestedCategoryItems={isEntrada ? categoryItemsReceita : categoryItemsDespesa}
+                oppositeCategoryItems={isEntrada ? categoryItemsDespesa : categoryItemsReceita}
                 paymentMethods={paymentMethods}
                 paymentMethod={rowPayment[r.id] ?? ""}
                 paymentMethodSuggested={!!rowPayment[r.id] && rowPayment[r.id] === suggestedPayment[r.id]}
@@ -1316,13 +1316,13 @@ export default function ConciliacaoPluggy() {
                                 <SelectLabel className="sticky top-0 z-10 bg-popover border-b text-[10px] uppercase tracking-wide text-muted-foreground">
                                   Sugeridas ({isEntrada ? "entradas" : "saídas"})
                                 </SelectLabel>
-                                {renderCategoryItems(isEntrada ? categoryOptionsReceita : categoryOptionsDespesa)}
+                                {isEntrada ? categoryItemsReceita : categoryItemsDespesa}
                               </SelectGroup>
                               <SelectGroup>
                                 <SelectLabel className="sticky top-0 z-10 bg-popover border-y text-[10px] uppercase tracking-wide text-warning">
                                   Outras categorias — {isEntrada ? "saídas" : "entradas"} (estorno)
                                 </SelectLabel>
-                                {renderCategoryItems(isEntrada ? categoryOptionsDespesa : categoryOptionsReceita)}
+                                {isEntrada ? categoryItemsDespesa : categoryItemsReceita}
                               </SelectGroup>
                             </SelectContent>
                           </Select>
@@ -1554,7 +1554,7 @@ export default function ConciliacaoPluggy() {
         onOpenChange={(o) => { if (!o) setSplitRowId(null); }}
         row={splitRow ? { id: splitRow.id, date: splitRow.date, description: splitRow.description, amount: splitRow.amount } : null}
         accountId={splitAccountId}
-        categoryOptions={renderCategoryItems((splitRow?.amount ?? 0) >= 0 ? categoryOptionsReceita : categoryOptionsDespesa)}
+        categoryOptions={(splitRow?.amount ?? 0) >= 0 ? categoryItemsReceita : categoryItemsDespesa}
         paymentMethods={paymentMethods}
         contacts={contacts}
         onDone={() => { setSplitRowId(null); load(); }}
