@@ -506,6 +506,15 @@ export default function ConciliacaoPluggy() {
     });
   }, [rows, connectionId, statusFilter, search, focusedStagingId]);
 
+  /** Lista longa: renderizamos em blocos para não pagar o custo de centenas de linhas por render. */
+  const PAGE_SIZE = 50;
+  const [visibleLimit, setVisibleLimit] = useState(PAGE_SIZE);
+  useEffect(() => {
+    setVisibleLimit(PAGE_SIZE);
+  }, [connectionId, statusFilter, search, focusedStagingId]);
+  const visibleRows = useMemo(() => filtered.slice(0, visibleLimit), [filtered, visibleLimit]);
+
+
   useEffect(() => {
     if (!focusedStagingId || loading) return;
     document.querySelector(`[data-staging-id="${focusedStagingId}"]`)?.scrollIntoView({
