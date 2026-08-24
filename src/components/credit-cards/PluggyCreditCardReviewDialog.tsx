@@ -76,6 +76,7 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
   useEffect(() => {
     if (!suggestion) return;
     setTarget(NEW_CARD);
+    setCardName(suggestion.name ?? "");
     setBrand(suggestion.brand);
     setIssuer(suggestion.issuer ?? "");
     setHolderName(suggestion.holderName ?? "");
@@ -104,6 +105,7 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
         credit_review_at: new Date().toISOString(),
         credit_review_by: user?.id ?? null,
         linked_credit_card_id: creditCardId,
+        ...(cardName.trim() ? { name: cardName.trim() } : {}),
       })
       .eq("id", account.id);
     if (error) throw new Error(error.message);
@@ -143,7 +145,7 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
             context: "pj",
             company_id: selectedCompanyId,
             brand,
-            issuer: issuer || null,
+            issuer: issuer || cardName.trim() || null,
             holder_name: holderName || null,
             last4: last4 || null,
             credit_limit: parseCurrencyToNumber(creditLimit) || 0,
