@@ -100,6 +100,8 @@ export default function Onboarding() {
   const [cnpjChecking, setCnpjChecking] = useState(false);
   const [cnpjInactive, setCnpjInactive] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
+  const [exiting, setExiting] = useState(false);
+
   const [result, setResult] = useState<{ company_id: string; trial_termina_em: string } | null>(null);
 
   // Prefill nome/email do usuário logado
@@ -237,6 +239,20 @@ export default function Onboarding() {
     setExitOpen(true);
   };
 
+  const handleExit = async () => {
+    setExiting(true);
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("[onboarding] falha ao encerrar sessão", error);
+    } finally {
+      setExiting(false);
+      setExitOpen(false);
+      navigate("/", { replace: true });
+    }
+  };
+
+
   return (
     <>
       <OnboardingShell currentStep={step}>
@@ -309,20 +325,37 @@ export default function Onboarding() {
         )}
       </OnboardingShell>
 
-      <AlertDialog open={exitOpen} onOpenChange={setExitOpen}>
+      <AlertDialog open={exitOpen} onOpenChange={(open) => { if (!exiting) setExitOpen(open); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Deseja sair do cadastro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Os dados preenchidos serão perdidos e você precisará reiniciar o wizard.
+              Sair encerra sua sessão e os dados preenchidos serão perdidos. Você precisará entrar novamente
+              e reiniciar o cadastro.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Continuar cadastro</AlertDialogCancel>
-            <AlertDialogAction onClick={() => navigate("/")}>Sair mesmo assim</AlertDialogAction>
+            <AlertDialogCancel disabled={exiting}>Continuar cadastro</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={exiting}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleExit();
+              }}
+            >
+              {exiting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saindo…
+                </>
+              ) : (
+                <>Sair mesmo assim</>
+              )}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </>
   );
 }
