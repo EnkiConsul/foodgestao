@@ -300,3 +300,105 @@ Enquanto as novas estruturas estiverem **sem dados**, `DROP` é rollback aceitá
 ## 17. Aguardando
 
 Validação deste schema final. **Nenhuma migration aplicada. PARADO.**
+
+---
+
+# Adendo final da Fase 3A.0 (correções 1–23)
+
+## A. Integridade multiempresa — garantida no banco
+
+Auditoria: `dp_unidades`, `dp_cargos`, `dp_turnos` têm apenas `PRIMARY KEY (id)`; `dp_colaboradores` tem `PK (id)` + `UNIQUE (company_id, cpf)`. Logo composite FK ainda não é possível sem chaves candidatas compostas.
+
+Abordagem escolhida (mista, sem redundância):
+
+1. **Chaves candidatas aditivas** (só `ADD CONSTRAINT ... UNIQUE`, nenhum dado alterado):
+   - `dp_unidades UNIQUE (id, company_id)`
+   - `dp_cargos UNIQUE (id, company_id)`
+   - `dp_turnos UNIQUE (id, company_id)`
+   - `dp_colaboradores UNIQUE (id, company_id)`
+   - nas novas tabelas: `dp_convocacao_grupos UNIQUE (id, company_id)` e `dp_convocacao_ocorrencias UNIQUE (id, company_id, unidade_id, data)`
+2. **Composite FKs** nas tabelas novas sempre que a consistência for expressável por colunas presentes (preferido a trigger).
+3. **Trigger de integridade** apenas onde composite FK não cobre (comparações entre linhas, `company_id` derivado, escopo de turno).
+4. Toda RPC futura **revalida autorização** e **deriva** `company_id` do servidor; nenhum `company_id` vindo do cliente é autoritativo.
+
+### Consistência por tabela
+
+| Tabela | Garantia | Mecanismo |
+|---|---|---|
+| `dp_convocacao_grupos` | `unidade_id` pertence a `company_id` | composite FK `(unidade_id, company_id) → dp_unidades (id, company_id)` |
+| `dp_convocacao_ocorrencias` | grupo da mesma empresa **e** mesma unidade | composite FK `(grupo_id, company_id) → grupos (id, company_id)` + trigger `unidade_id = grupo.unidade_id` (regra estrita; nenhuma exceção permitida na V1) |
+| `dp_convocacao_ocorrencias` | unidade e cargo pertencem à empresa | composite FKs para `dp_unidades (id, company_id)` e `dp_cargos (id, company_id)` |
+| `dp_convocacao_ocorrencias` | `turno_referencia_id` utilizável na empresa/unidade | composite FK `(turno_referencia_id, company_id) → dp_turnos (id, company_id)` + trigger: se o turno tiver `unidade_id`, deve igualar `ocorrencia.unidade_id` |
+| `dp_convocacoes` (com `ocorrencia_id`) | `company_id`, `unidade_id` e `data` iguais aos da ocorrência | composite FK `(ocorrencia_id, company_id, unidade_id, data) → ocorrencias (id, company_id, unidade_id, data)` — dispensa trigger |
+| `dp_convocacoes` | colaborador pertence à empresa | composite FK `(colaborador_id, company_id) → dp_colaboradores (id, company_id)` (coluna nova; legado intocado) |
+| `dp_indisponibilidades` | `company_id` = vínculo real do colaborador | `company_id` **derivado** por trigger `BEFORE INSERT/UPDATE` a partir de `dp_colaboradores.company_id`; valor divergente enviado é sobrescrito, não aceito |
+| `dp_convocacao_descumprimentos` | convocação + ocorrência + colaborador + empresa no mesmo contexto | `company_id`, `ocorrencia_id` e `colaborador_id` **derivados da convocação** por trigger; composite FK `(convocacao_id, company_id)` |
+| `dp_convocacao_eventos` | todas as referências no mesmo contexto | `company_id` **derivado da entidade principal** do evento (convocação > ocorrência > grupo, nessa ordem) por trigger; composite FKs `(grupo_id, company_id)`, `(ocorrencia_id, company_id)`, `(convocacao_id, company_id)`; trigger valida coerência grupo↔ocorrência↔convocação quando mais de uma referência é informada |
+
+Um único trigger por tabela (`*_integridade`), sem duplicar o que a composite FK já garante.
+
+## B. Estados definitivos
+
+**Ocorrência** (`dp_convocacao_ocorrencia_status`): `rascunho`, `publicada`, `preenchida`, `encerrada_operacionalmente`, `apurada`, `revisada`, `cancelada`.
+- `encerrada_operacionalmente` = passou a janela; **não** significa apuração.
+- `apurada` = comparecimentos/ausências conferidos e descumprimentos analisados.
+- `revisada` = versão superada por nova versão (`substitui_ocorrencia_id` na v2). Trigger: ao criar v2, a v1 vai obrigatoriamente para `revisada`; ocorrência `revisada` não conta como válida em cobertura nem aceita novas ofertas — nunca há duas versões válidas simultâneas.
+- `preenchida` é derivada mas persistida na ocorrência (é ela que fecha a oferta), calculada por trigger a partir de vagas × ofertas ativas.
+
+**Grupo** (`dp_convocacao_grupo_status`): `rascunho`, `publicado`, `encerrado`, `cancelado`.
+- **Decisão intencional e documentada:** `parcialmente_preenchido` / `preenchido` **não são estados persistidos do grupo** — são métricas derivadas das ocorrências, calculadas em leitura. Evita estado redundante.
+
+## C. `dp_convocacao_descumprimentos` — CHECKs
+
+```
+CHECK (percentual_referencia IS NULL OR regime_snapshot = 'intermitente')
+CHECK (valor_referencia IS NULL OR analise = 'sem_justo_motivo')
+CHECK (percentual_referencia IS NULL OR percentual_referencia >= 0)
+CHECK (valor_referencia IS NULL OR valor_referencia >= 0)
+CHECK (base_remuneracao IS NULL OR base_remuneracao >= 0)
+```
+Tipos: `desistencia_apos_aceite`, `ausencia_no_dia`. Referência de 50% apenas para **intermitente + sem justo motivo**; freelancer nunca recebe referência CLT. O registro é **apenas referência/análise**: nenhum desconto, folha, conta a receber ou lançamento financeiro é gerado.
+
+## D. Configuração corrigida (`dp_convocacao_config`)
+
+- **Removidos:** `reabre_vaga_em_recusa`, `reabre_vaga_em_sem_resposta` (em oferta aberta a vaga nunca foi ocupada — não há o que reabrir), `autonomia_prazo_desistencia_horas` (sem decisão de produto; registrar desistência nunca é bloqueado por antecedência).
+- **Mantido:** `reabre_vaga_em_desistencia` (aceita → desistida sem substituto = vaga efetivamente descoberta).
+- `sub_fixo_em_folga_dominical` significa apenas "a empresa permite este fluxo". O **consentimento do fixo é invariante**: não existe e não existirá configuração para desligá-lo.
+- **Preset não é persistido nesta fase.** As regras booleanas/enums são a única fonte da verdade; nomes `controlado/moderado/autonomo/personalizado` ficam como rótulo de UX na Fase 4.
+
+## E. Origem da oferta
+
+`dp_convocacoes.origem_oferta`: **`convocacao` | `substituicao`** apenas. `troca` foi descartada — trocas entre fixos são domínio de `dp_trocas` e não geram oferta de convocação; transferência de vaga é `substituicao`.
+
+## F. Contrato dos helpers de dia útil (V1, `SECURITY INVOKER`)
+
+`dp_e_dia_util(_data date) → boolean`, `IMMUTABLE`: seg–sex = true; sáb/dom = false; feriados ignorados; `NULL` → `NULL`.
+
+`dp_adicionar_dias_uteis(_base timestamptz, _dias int, _timezone text) → timestamptz`, `STABLE`:
+- `_timezone` NULL/vazio → exceção `TIMEZONE_NAO_CONFIGURADO`; timezone inexistente → `TIMEZONE_INVALIDO` (validado contra `pg_timezone_names`).
+- `_dias < 0` → exceção `DIAS_UTEIS_NEGATIVO` (V1 não retrocede).
+- `_dias = 0` → retorna `_base` **inalterado**, mesmo em fim de semana (não normaliza).
+- `_dias > 0` → avança dia a dia no calendário **local** do timezone, contando somente dias úteis, **preservando o horário local** (à prova de DST); retorna `timestamptz`.
+
+## G. Migrations M1–M9 — onde cada integridade nasce
+
+| # | Conteúdo (integridade destacada) |
+|---|---|
+| M1 | `companies.timezone`, `dp_unidades.timezone` (nullable, sem default/backfill), validação de timezone, `dp_timezone_resolvido()` (unidade → empresa → `TIMEZONE_NAO_CONFIGURADO`) |
+| M2 | `dp_e_dia_util`, `dp_adicionar_dias_uteis` conforme contrato F |
+| **M2b** | **Chaves candidatas aditivas:** `UNIQUE (id, company_id)` em `dp_unidades`, `dp_cargos`, `dp_turnos`, `dp_colaboradores` (pré-requisito das composite FKs) |
+| M3 | `dp_convocacao_grupos` + `UNIQUE (id, company_id)` + **composite FK company × unidade** + RLS/grants RPC-only |
+| M4 | `dp_convocacao_ocorrencias` + `UNIQUE (id, company_id, unidade_id, data)` + **composite FKs company × grupo, × unidade, × cargo, × turno** + trigger `ocorrencia_integridade` (unidade = unidade do grupo; unidade do turno; versionamento → v1 `revisada`) + CHECKs de janela/vagas |
+| M5 | Colunas aditivas em `dp_convocacoes` + **composite FK ocorrência × (company, unidade, data)** e **company × colaborador** |
+| M6 | `dp_indisponibilidades` (trigger deriva company do colaborador), `dp_convocacao_descumprimentos` (trigger deriva company/ocorrência/colaborador da convocação + CHECKs da seção C), `dp_convocacao_eventos` (trigger deriva company da entidade principal + coerência entre referências) |
+| M7 | `dp_convocacao_config` (sem os campos removidos em D), `dp_config_dp.considerar_indisponibilidade_cobertura`, `compoe_equipe_habitual` |
+| M8 | `dp_regime_convocavel`, `dp_convocacao_config_resolvida`, enums de status de grupo/ocorrência da seção B, triggers de `updated_at` |
+| **M9** | Enum de oferta (isolada, irreversível): `sem_resposta`, `encerrada_sem_vaga`, `encerrada_inicio_ocorrencia`, `desistida`, `substituida`, `encerrada_operacionalmente`. `compareceu`/`ausente` seguem fora do enum |
+
+Nada em M1–M9 altera `dp_convocacao_sync_escala`, `dp_convocacao_guard`, `uq_dp_convocacoes_ativa` ou `idx_dp_cct_vigente`.
+
+## H. Correção do risco P1 (escopo)
+
+3A/3B = banco/backend; **Fase 4 = frontend**. A tela para configurar timezone é entregável da **Fase 4**, não da 3B. O escopo da 3B não muda.
+
+**Nenhuma migration aplicada. PARADO — aguardando autorização da 3A.1.**
