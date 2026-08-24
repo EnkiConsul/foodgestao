@@ -1256,8 +1256,8 @@ export default function ConciliacaoPluggy() {
                         }}
                       />
                     </td>
-                    <td className="p-2 whitespace-nowrap">{format(parseISO(r.date), "dd/MM/yyyy")}</td>
-                    <td className="p-2 max-w-[280px]">
+                    <td className="p-2 whitespace-nowrap" title={format(parseISO(r.date), "dd/MM/yyyy")}>{format(parseISO(r.date), "dd/MM/yy")}</td>
+                    <td className="p-2">
                       <DescriptionEditor
                         compact
                         value={r.description}
@@ -1281,7 +1281,7 @@ export default function ConciliacaoPluggy() {
                         onValueChange={(v) => setRowAccount((p) => ({ ...p, [r.id]: v }))}
                         disabled={disabled}
                       >
-                        <SelectTrigger className="h-8 min-w-[180px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left"><SelectValue placeholder="Selecionar…" /></SelectTrigger>
+                        <SelectTrigger className="h-8 w-full max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left"><SelectValue placeholder="Selecionar…" /></SelectTrigger>
                         <SelectContent>
                           {accounts.map((a) => (
                             <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
@@ -1295,7 +1295,7 @@ export default function ConciliacaoPluggy() {
                         onValueChange={(v) => setRowKind((p) => ({ ...p, [r.id]: v as "auto" | "transfer" }))}
                         disabled={disabled}
                       >
-                        <SelectTrigger className="h-8 min-w-[160px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left" aria-label="Tipo do lançamento">
+                        <SelectTrigger className="h-8 w-full max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left" aria-label="Tipo do lançamento">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1312,7 +1312,7 @@ export default function ConciliacaoPluggy() {
                             onValueChange={(v) => setRowCounterpart((p) => ({ ...p, [r.id]: v }))}
                             disabled={disabled}
                           >
-                            <SelectTrigger className="h-8 min-w-[180px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
+                            <SelectTrigger className="h-8 w-full max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
                               <SelectValue placeholder={isEntrada ? "Conta de origem…" : "Conta de destino…"} />
                             </SelectTrigger>
                             <SelectContent>
@@ -1334,7 +1334,7 @@ export default function ConciliacaoPluggy() {
                             onValueChange={(v) => setRowCategory((p) => ({ ...p, [r.id]: v }))}
                             disabled={disabled}
                           >
-                            <SelectTrigger className="h-8 min-w-[160px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
+                            <SelectTrigger className="h-8 w-full max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left"><SelectValue placeholder="Sem categoria" /></SelectTrigger>
                             <SelectContent className="max-h-[420px]">
                               <SelectGroup>
                                 <SelectLabel className="sticky top-0 z-10 bg-popover border-b text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -1370,7 +1370,7 @@ export default function ConciliacaoPluggy() {
                           onValueChange={(v) => setRowPayment((p) => ({ ...p, [r.id]: v }))}
                           disabled={disabled}
                         >
-                          <SelectTrigger className="h-8 min-w-[150px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
+                          <SelectTrigger className="h-8 w-full max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
                             <SelectValue placeholder="Não informada" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1396,7 +1396,7 @@ export default function ConciliacaoPluggy() {
                           onValueChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
                           disabled={disabled}
                         >
-                          <SelectTrigger className="h-8 w-[180px] min-w-[160px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
+                          <SelectTrigger className="h-8 w-full max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left">
                             <SelectValue placeholder={isEntrada ? "Cliente…" : "Fornecedor…"} />
                           </SelectTrigger>
                           <ContactSelectContent
@@ -1503,7 +1503,7 @@ export default function ConciliacaoPluggy() {
                           >
                             {rowBusy === r.id
                               ? <Loader2 className="h-4 w-4 animate-spin" />
-                              : <><Check className="h-4 w-4 mr-1" />Confirmar</>}
+                              : <Check className="h-4 w-4" />}
                           </Button>
                         </div>
                       ) : (
