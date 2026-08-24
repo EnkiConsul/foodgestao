@@ -7,7 +7,18 @@
 import { turnoSnapshot, type TurnoSnapshot } from "@/lib/dp/turno-utils";
 import { contratoPolicy, type RegimeTrabalho } from "@/lib/dp/contrato-policy";
 
-export type ConvocacaoStatus = "pendente" | "aceita" | "recusada" | "cancelada" | "expirada";
+export type ConvocacaoStatus =
+  | "pendente"
+  | "aceita"
+  | "recusada"
+  | "cancelada"
+  | "expirada"
+  | "sem_resposta"
+  | "encerrada_sem_vaga"
+  | "encerrada_inicio_ocorrencia"
+  | "desistida"
+  | "substituida"
+  | "encerrada_operacionalmente";
 
 export interface Convocacao {
   id: string;
@@ -22,6 +33,8 @@ export interface Convocacao {
   prazo_resposta: string | null;
 }
 
+const NEUTRO = "bg-muted text-muted-foreground border-border";
+
 export const STATUS_META: Record<ConvocacaoStatus, { label: string; className: string }> = {
   pendente: {
     label: "Aguardando resposta",
@@ -35,9 +48,19 @@ export const STATUS_META: Record<ConvocacaoStatus, { label: string; className: s
     label: "Recusada",
     className: "bg-destructive/15 text-destructive border-destructive/40",
   },
-  cancelada: { label: "Cancelada", className: "bg-muted text-muted-foreground border-border" },
-  expirada: { label: "Prazo expirado", className: "bg-muted text-muted-foreground border-border" },
+  cancelada: { label: "Cancelada", className: NEUTRO },
+  expirada: { label: "Prazo expirado", className: NEUTRO },
+  sem_resposta: { label: "Sem resposta no prazo", className: NEUTRO },
+  encerrada_sem_vaga: { label: "Vagas preenchidas", className: NEUTRO },
+  encerrada_inicio_ocorrencia: { label: "Encerrada (dia iniciado)", className: NEUTRO },
+  desistida: { label: "Desistência", className: "bg-destructive/15 text-destructive border-destructive/40" },
+  substituida: { label: "Substituída", className: NEUTRO },
+  encerrada_operacionalmente: {
+    label: "Concluída",
+    className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40",
+  },
 };
+
 
 /** Só contratos intermitentes podem ser convocados. */
 export function podeConvocar(regime: RegimeTrabalho | null | undefined): boolean {
