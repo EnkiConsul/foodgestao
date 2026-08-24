@@ -296,6 +296,13 @@ export function ContactFormDialog({
                         {docDigits.length === 11 ? "CPF" : "CNPJ"} inválido — verifique os dígitos.
                       </p>
                     )}
+                    {!invalid && duplicate && (
+                      <p className="text-xs text-destructive">
+                        Já existe o contato "{duplicate.name}" com este CPF/CNPJ — selecione-o na lista
+                        em vez de cadastrar novamente.
+                      </p>
+                    )}
+
                     {cnpjLookupPending && (
                       <p className="text-xs text-muted-foreground">Consultando Receita Federal…</p>
                     )}
