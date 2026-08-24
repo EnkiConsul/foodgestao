@@ -1231,7 +1231,7 @@ export default function ConciliacaoPluggy() {
                 <th className="p-2 text-right">Valor</th>
                 <th className="p-2 text-left">Conta destino</th>
                 <th className="p-2 text-left">Tipo</th>
-                <th className="p-2 text-left" title="Categoria / contraparte">Categoria</th>
+                <th className="p-2 text-left" title="Categoria e forma de pagamento">Categoria</th>
                 <th className="hidden p-2 text-left xl:table-cell" title="Forma de pagamento">Forma pgto.</th>
                 <th className="p-2 text-left" title="Fornecedor / cliente">Fornec./Cliente</th>
                 <th className="hidden p-2 text-center xl:table-cell">Status</th>
@@ -1266,6 +1266,20 @@ export default function ConciliacaoPluggy() {
                         disabled={disabled}
                         onSave={(v) => saveDescription(r.id, v)}
                       />
+
+                      <div className="mt-1 flex flex-wrap items-center gap-1 xl:hidden">
+                        {r.status === "pending" && <Badge variant="outline" className="text-[10px]">Pendente</Badge>}
+                        {r.status === "confirmed" && <Badge className="bg-success/15 text-success border-success/30 text-[10px]">Confirmado</Badge>}
+                        {r.status === "ignored" && <Badge variant="secondary" className="text-[10px]">Ignorado</Badge>}
+                        {r.status === "duplicate" && (
+                          <Badge className="bg-warning/15 text-warning border-warning/30 text-[10px]">
+                            <AlertTriangle className="mr-1 h-3 w-3" />Duplicado
+                          </Badge>
+                        )}
+                        {r.matched_transaction_id && transferTxIds.has(r.matched_transaction_id) && (
+                          <Badge variant="secondary" className="text-[10px]">Transferência</Badge>
+                        )}
+                      </div>
 
                       {counterpartyLabel(counterpartyByRow[r.id] ?? { name: null, document: null, documentType: null, internal: false }) && (
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={counterpartyLabel(counterpartyByRow[r.id]!) ?? ""}>
@@ -1359,6 +1373,28 @@ export default function ConciliacaoPluggy() {
                             </p>
                           )}
                         </>
+                      )}
+
+                      {(rowKind[r.id] ?? "auto") !== "transfer" && (
+                        <div className="mt-1 xl:hidden">
+                          <Select
+                            value={rowPayment[r.id] ?? ""}
+                            onValueChange={(v) => setRowPayment((p) => ({ ...p, [r.id]: v }))}
+                            disabled={disabled}
+                          >
+                            <SelectTrigger
+                              aria-label="Forma de pagamento"
+                              className="h-7 w-full max-w-full text-[11px] [&>span]:block [&>span]:truncate [&>span]:text-left"
+                            >
+                              <SelectValue placeholder="Forma de pagamento…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {paymentMethods.map((p) => (
+                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       )}
                     </td>
 
