@@ -180,17 +180,23 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
         </DialogHeader>
 
         <div className="space-y-3">
-          <div className="rounded-md border bg-muted/40 p-3 text-sm">
+          <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <p className="font-medium">{suggestion.name}</p>
+              <Label className="text-xs text-muted-foreground">Nome do cartão</Label>
               {accounts.length > 1 && (
                 <Badge variant="outline" className="text-[10px]">{index + 1} de {accounts.length}</Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <Input
+              value={cardName}
+              onChange={(e) => setCardName(e.target.value)}
+              placeholder="Ex.: Cartão Nubank Empresa"
+            />
+            <p className="text-xs text-muted-foreground">
               Conta do banco: {account.number_masked ?? "—"}
             </p>
           </div>
+
 
           <div>
             <Label>Destino</Label>
