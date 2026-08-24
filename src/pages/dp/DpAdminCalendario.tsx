@@ -633,9 +633,10 @@ export default function DpAdminCalendario() {
       if (!coberturaAlerta) return false;
       return insertFolga(coberturaAlerta.iso, {
         extra: coberturaAlerta.extra,
-        deleteIds: undefined,
+        deleteIds: coberturaAlerta.deleteIds,
         confirmarDeficit: true,
       });
+
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
