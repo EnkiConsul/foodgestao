@@ -14367,6 +14367,10 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_convocacao_cancelar_ocorrencia_rascunho: {
+        Args: { p_expected_updated_at?: string; p_ocorrencia_id: string }
+        Returns: Json
+      }
       dp_convocacao_config_resolvida: {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: {
