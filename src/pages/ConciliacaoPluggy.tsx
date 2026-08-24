@@ -341,8 +341,9 @@ export default function ConciliacaoPluggy() {
         .order("sort_order")
         .order("name"),
       supabase.from("pluggy_accounts")
-        .select("pluggy_account_id, linked_account_id")
+        .select("pluggy_account_id, linked_account_id, raw")
         .eq("company_id", selectedCompanyId),
+
       supabase.rpc("get_accessible_payment_methods", {
         _context: "pj", _company_id: selectedCompanyId,
       }),
