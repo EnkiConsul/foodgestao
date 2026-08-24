@@ -65,7 +65,10 @@ export default function ConexoesPluggy() {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [syncingId, setSyncingId] = useState<string | null>(null);
-  const [connectOpen, setConnectOpen] = useState(false);
+  // Retorno do consentimento de Open Finance (?itemId=…) precisa abrir o
+  // diálogo para concluir a conexão em vez de exigir um novo clique.
+  const [connectOpen, setConnectOpen] = useState(() => hasPluggyReturn());
+
   const [reconnectItemId, setReconnectItemId] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<Connection | null>(null);
   const [creditReviewOpen, setCreditReviewOpen] = useState(false);
