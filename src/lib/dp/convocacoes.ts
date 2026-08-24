@@ -91,6 +91,33 @@ export function podeResponder(
   return statusEfetivo(c, agora) === "pendente";
 }
 
+/**
+ * Espelho da regra de precedência temporal aplicada no backend (M21):
+ * vence o threshold que ocorre PRIMEIRO nos timestamps persistidos.
+ * Empate → prazo (sem_resposta). Só um existente → usa o existente.
+ */
+export function encerramentoPorRelogios(
+  args: { prazo_resposta?: string | null; inicio_previsto?: string | null },
+  agora: Date = new Date(),
+): "sem_resposta" | "encerrada_inicio_ocorrencia" | null {
+  const prazo = args.prazo_resposta ? new Date(args.prazo_resposta).getTime() : null;
+  const inicio = args.inicio_previsto ? new Date(args.inicio_previsto).getTime() : null;
+  const t = agora.getTime();
+  if (prazo === null && inicio === null) return null;
+
+  const prazoPrecede = prazo === null ? false : inicio === null ? true : prazo <= inicio;
+
+  if (prazoPrecede) {
+    if (t >= (prazo as number)) return "sem_resposta";
+    if (inicio !== null && t >= inicio) return "encerrada_inicio_ocorrencia";
+    return null;
+  }
+  if (t >= (inicio as number)) return "encerrada_inicio_ocorrencia";
+  if (prazo !== null && t >= prazo) return "sem_resposta";
+  return null;
+}
+
+
 export interface NovaConvocacaoInput {
   data: string;
   entrada: string;
