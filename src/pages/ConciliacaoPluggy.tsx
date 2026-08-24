@@ -377,12 +377,27 @@ export default function ConciliacaoPluggy() {
     setCategories((cats ?? []) as CategoryOpt[]);
 
 
-    // Mapa: conta Pluggy -> conta bancária local vinculada
+    // Mapa: conta Pluggy -> conta bancária local vinculada. Também coletamos os
+    // documentos do titular das contas conectadas: sem eles, o próprio CPF do
+    // usuário era tratado como contraparte de toda compra no débito.
     const linkedMap: Record<string, string> = {};
-    for (const pa of (pluggyAccts ?? []) as { pluggy_account_id: string; linked_account_id: string | null }[]) {
+    const ownDocs: string[] = [];
+    for (const pa of (pluggyAccts ?? []) as {
+      pluggy_account_id: string;
+      linked_account_id: string | null;
+      raw?: unknown;
+    }[]) {
       if (pa.linked_account_id) linkedMap[pa.pluggy_account_id] = pa.linked_account_id;
+      const raw = (pa.raw ?? null) as
+        | { taxNumber?: string | null; owner?: { taxNumber?: string | null } | null }
+        | null;
+      for (const doc of [raw?.taxNumber, raw?.owner?.taxNumber]) {
+        if (doc) ownDocs.push(String(doc));
+      }
     }
     setLinkedByPluggyAccount(linkedMap);
+    setOwnDocuments(ownDocs);
+
 
     // preload suggested selections
     const acctMap: Record<string, string> = {};
