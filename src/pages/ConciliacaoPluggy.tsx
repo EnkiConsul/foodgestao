@@ -229,6 +229,8 @@ export default function ConciliacaoPluggy() {
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<AccountOpt[]>([]);
   const [contacts, setContacts] = useState<ContactOpt[]>([]);
+  /** Memória de conciliação: contraparte -> fornecedor/cliente já usado antes. */
+  const [memory, setMemory] = useState<ConciliacaoMemory>(EMPTY_MEMORY);
   const [banks, setBanks] = useState<BankOpt[]>([]);
   const [companyCnpj, setCompanyCnpj] = useState<string | null>(null);
   /** CPF/CNPJ do titular das contas conectadas — nunca são contraparte. */
