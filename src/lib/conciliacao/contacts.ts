@@ -6,10 +6,67 @@ export interface CompanyContact {
   name: string;
   type: string | null;
   document: string | null;
+  /** false = cadastrado no perfil Pessoal, ainda sem vínculo com a empresa. */
+  linkedToCompany?: boolean;
 }
 
 /** Tamanho de página: o PostgREST limita respostas (padrão 1000 linhas). */
 export const CONTACTS_PAGE_SIZE = 500;
+
+/**
+ * Todos os contatos do usuário, paginados. Usado para também considerar
+ * fornecedores cadastrados só no perfil Pessoal na conciliação.
+ */
+export async function fetchAllUserContacts(
+  userId: string,
+  pageSize = CONTACTS_PAGE_SIZE,
+): Promise<{ data: CompanyContact[]; error: { message: string } | null }> {
+  const all: CompanyContact[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("contacts")
+      .select("id, name, contact_type, document")
+      .eq("user_id", userId)
+      .order("name")
+      .order("id")
+      .range(from, from + pageSize - 1);
+    if (error) return { data: all, error };
+    const page = (data ?? []) as unknown as {
+      id: string; name: string; contact_type: string | null; document: string | null;
+    }[];
+    for (const c of page) {
+      all.push({ id: c.id, name: c.name, type: c.contact_type ?? null, document: c.document ?? null });
+    }
+    if (page.length < pageSize) break;
+    from += pageSize;
+  }
+  return { data: all, error: null };
+}
+
+/**
+ * Lista da conciliação: contatos da empresa (`linkedToCompany: true`) mais os
+ * contatos do usuário sem vínculo (`linkedToCompany: false`), que passam a
+ * gerar sugestão e são vinculados à empresa ao confirmar a linha.
+ */
+export async function fetchConciliacaoContacts(
+  companyId: string,
+  userId: string | null,
+): Promise<{ data: CompanyContact[]; error: { message: string } | null }> {
+  const company = await fetchAllCompanyContacts(companyId);
+  if (company.error || !userId) {
+    return { data: company.data.map((c) => ({ ...c, linkedToCompany: true })), error: company.error };
+  }
+  const mine = await fetchAllUserContacts(userId);
+  const linked = new Set(company.data.map((c) => c.id));
+  const merged: CompanyContact[] = [
+    ...company.data.map((c) => ({ ...c, linkedToCompany: true })),
+    ...mine.data.filter((c) => !linked.has(c.id)).map((c) => ({ ...c, linkedToCompany: false })),
+  ];
+  merged.sort((a, b) => a.name.localeCompare(b.name));
+  return { data: merged, error: mine.error };
+}
+
 
 /**
  * Busca TODOS os contatos vinculados à empresa, paginando por `range` até o fim.

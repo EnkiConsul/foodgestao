@@ -63,6 +63,12 @@ interface StagingCardProps {
   contacts: ContactOpt[];
   contact: string;
   contactSuggested?: boolean;
+  /** Origem da sugestão: "documento" | "histórico" | "nome". */
+  suggestionLabel?: string | null;
+  /** true quando o contato está cadastrado só no perfil Pessoal. */
+  contactNotLinked?: boolean;
+  /** Motivo de não haver sugestão (extrato sem CNPJ/nome não cadastrado). */
+  noSuggestionReason?: string | null;
   onContactChange: (value: string) => void;
   /** "Nome • CNPJ 00.000.000/0001-00" extraído do extrato (null quando ausente). */
   counterpartyLabel?: string | null;
@@ -109,6 +115,9 @@ function StagingCardBase({
   contacts,
   contact,
   contactSuggested,
+  suggestionLabel,
+  contactNotLinked,
+  noSuggestionReason,
   onContactChange,
   counterpartyLabel,
   counterpartyInternal,
@@ -372,7 +381,15 @@ function StagingCardBase({
                     />
                   </Select>
                   {contact && contactSuggested && (
-                    <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      sugerido por {suggestionLabel ?? "extrato"}
+                    </p>
+                  )}
+                  {contact && contactNotLinked && (
+                    <p className="mt-1 text-[10px] text-amber-600">cadastrado no Pessoal — será vinculado à empresa</p>
+                  )}
+                  {!contact && noSuggestionReason && (
+                    <p className="mt-1 text-[10px] text-muted-foreground">{noSuggestionReason}</p>
                   )}
                   {!disabled && contact && onEditContact && (
                     <Button

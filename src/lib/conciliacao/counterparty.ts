@@ -174,6 +174,39 @@ export function nameFromPipe(description: string | null | undefined): string | n
   return part.slice(0, 120);
 }
 
+/**
+ * Textos onde a contraparte pode aparecer, em ordem de confiança.
+ * O `description` da fila pode ter sido renomeado pelo usuário ("Combustível"),
+ * então o texto original do banco (`raw.descriptionRaw`) vem primeiro — é ele
+ * que carrega o estabelecimento após o pipe ("Compra no débito|DELLA ELDORADO").
+ */
+export function descriptionSources(row: CounterpartyRow): string[] {
+  const raw = (row.raw ?? null) as
+    | { descriptionRaw?: unknown; description?: unknown }
+    | null;
+  const list = [
+    typeof raw?.descriptionRaw === "string" ? raw.descriptionRaw : null,
+    typeof raw?.description === "string" ? raw.description : null,
+    row.description ?? null,
+  ];
+  return list.filter((s): s is string => !!s && s.trim().length > 0);
+}
+
+/** Nome da contraparte a partir dos textos do lançamento (bruto primeiro). */
+export function nameFromRow(row: CounterpartyRow): string | null {
+  const sources = descriptionSources(row);
+  for (const s of sources) {
+    const piped = nameFromPipe(s);
+    if (piped) return piped;
+  }
+  for (const s of sources) {
+    const fromDesc = nameFromDescription(s);
+    if (fromDesc) return fromDesc;
+  }
+  return null;
+}
+
+
 /** Extrai nome + documento da contraparte de um lançamento importado. */
 export function extractCounterparty(
   row: CounterpartyRow,
@@ -200,7 +233,7 @@ export function extractCounterparty(
       // Último recurso para o nome: o próprio texto do extrato.
       name:
         toProperName(
-          external.name ?? nameFromPipe(row.description) ?? nameFromDescription(row.description),
+          external.name ?? nameFromRow(row),
         ) || null,
       document: formatDocument(external.document),
       documentType: documentTypeOf(external.document),
@@ -215,7 +248,7 @@ export function extractCounterparty(
 
   // Compras no débito só trazem o titular como pagador; o estabelecimento
   // aparece apenas no texto. Devolvemos o nome sem documento.
-  const descName = nameFromPipe(row.description) ?? nameFromDescription(row.description);
+  const descName = nameFromRow(row);
   if (descName) {
     return {
       name: toProperName(descName) || null,

@@ -26,7 +26,9 @@ import { PluggyAuditDialog } from "@/components/conciliacao/PluggyAuditDialog";
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { suggestPaymentMethodId, normalizeText } from "@/lib/conciliacao/paymentMethodInference";
-import { fetchAllCompanyContacts, findExistingContact, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
+import { fetchConciliacaoContacts, findExistingContact, ensureContactCompanyLink } from "@/lib/conciliacao/contacts";
+import { bestContactMatch, normalizeContactKey } from "@/lib/conciliacao/contactMatch";
+import { loadConciliacaoMemory, EMPTY_MEMORY, type ConciliacaoMemory } from "@/lib/conciliacao/history";
 import {
   counterpartyLabel,
   extractCounterparty,
@@ -129,7 +131,14 @@ interface Connection {
 }
 
 interface AccountOpt { id: string; name: string; }
-interface ContactOpt { id: string; name: string; type: string | null; document: string | null; }
+interface ContactOpt { id: string; name: string; type: string | null; document: string | null; linkedToCompany?: boolean; }
+/** Origem da sugestão de fornecedor/cliente exibida na tela. */
+type SuggestionSource = "historico" | "documento" | "nome";
+const SUGGESTION_LABELS: Record<SuggestionSource, string> = {
+  historico: "histórico de conciliação",
+  documento: "CNPJ/CPF do extrato",
+  nome: "nome do extrato",
+};
 interface CategoryOpt {
   id: string;
   name: string;
@@ -225,6 +234,8 @@ export default function ConciliacaoPluggy() {
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<AccountOpt[]>([]);
   const [contacts, setContacts] = useState<ContactOpt[]>([]);
+  /** Memória de conciliação: contraparte -> fornecedor/cliente já usado antes. */
+  const [memory, setMemory] = useState<ConciliacaoMemory>(EMPTY_MEMORY);
   const [banks, setBanks] = useState<BankOpt[]>([]);
   const [companyCnpj, setCompanyCnpj] = useState<string | null>(null);
   /** CPF/CNPJ do titular das contas conectadas — nunca são contraparte. */
@@ -310,6 +321,12 @@ export default function ConciliacaoPluggy() {
     if (!selectedCompanyId) { setLoading(false); return; }
     setLoading(true);
 
+    // Contatos do próprio usuário (perfil Pessoal) também entram na sugestão.
+    const { data: authData } = await supabase.auth.getUser();
+    const currentUserId = authData.user?.id ?? null;
+
+
+
     // Resolve o escopo por conta antes de montar a query de staging
     let resolvedScope: ScopeInfo | null = null;
     if (scopedLocalAccountId) {
@@ -371,7 +388,7 @@ export default function ConciliacaoPluggy() {
       supabase.rpc("get_accessible_payment_methods", {
         _context: "pj", _company_id: selectedCompanyId,
       }),
-      fetchAllCompanyContacts(selectedCompanyId),
+      fetchConciliacaoContacts(selectedCompanyId, currentUserId),
       supabase.from("banks").select("id, name, tax_id").eq("is_active", true),
       supabase.from("companies").select("cnpj").eq("id", selectedCompanyId).maybeSingle(),
     ]);
@@ -558,6 +575,26 @@ export default function ConciliacaoPluggy() {
         return;
       }
     }
+
+    // Contato cadastrado só no perfil Pessoal: vinculamos à empresa antes de
+    // confirmar, senão o lançamento nasceria sem fornecedor/cliente válido.
+    if (selectedCompanyId) {
+      const pendingLinks = new Set(
+        ids
+          .map((id) => rowContact[id])
+          .filter((cid): cid is string => !!cid)
+          .filter((cid) => contacts.find((c) => c.id === cid)?.linkedToCompany === false),
+      );
+      for (const cid of pendingLinks) {
+        await ensureContactCompanyLink(cid, selectedCompanyId);
+      }
+      if (pendingLinks.size > 0) {
+        setContacts((prev) =>
+          prev.map((c) => (pendingLinks.has(c.id) ? { ...c, linkedToCompany: true } : c)),
+        );
+      }
+    }
+
 
     let ok = 0;
     let mirrors = 0;
@@ -762,19 +799,56 @@ export default function ConciliacaoPluggy() {
     return m;
   }, [contacts]);
 
-  const suggestedContact = useMemo(() => {
-    const m: Record<string, string> = {};
+  /** Sugestão em cascata: histórico → documento → nome tolerante. */
+  const suggestion = useMemo(() => {
+    const m: Record<string, { contactId: string; source: SuggestionSource }> = {};
+    const candidates = contacts.map((c) => ({ id: c.id, name: c.name }));
     for (const r of rows) {
       const cp = counterpartyByRow[r.id];
       const doc = normalizeDocumento(cp?.document);
+      const nameKey = normalizeContactKey(cp?.name);
+
+      // 1) Memória de conciliação (o que o usuário já escolheu antes).
+      const fromHistory =
+        (doc && !ownDocumentSet.has(doc) ? memory.byDocument[doc] : undefined) ??
+        (nameKey ? memory.byName[nameKey] : undefined);
+      if (fromHistory && contacts.some((c) => c.id === fromHistory)) {
+        m[r.id] = { contactId: fromHistory, source: "historico" };
+        continue;
+      }
+
+      // 2) Documento do extrato.
       const byDoc = doc && !ownDocumentSet.has(doc) ? contactIdByDocument[doc] : undefined;
-      if (byDoc) { m[r.id] = byDoc; continue; }
-      // Sem documento de terceiro: só sugerimos com nome idêntico ao cadastrado.
-      const byName = cp?.name ? contactIdByName[normalizeText(cp.name)] : undefined;
-      if (byName) m[r.id] = byName;
+      if (byDoc) { m[r.id] = { contactId: byDoc, source: "documento" }; continue; }
+
+      // 3) Nome (igualdade exata primeiro, depois casamento tolerante).
+      const exact = cp?.name ? contactIdByName[normalizeText(cp.name)] : undefined;
+      if (exact) { m[r.id] = { contactId: exact, source: "nome" }; continue; }
+      const fuzzy = bestContactMatch(cp?.name, candidates);
+      if (fuzzy) m[r.id] = { contactId: fuzzy.id, source: "nome" };
     }
     return m;
-  }, [rows, counterpartyByRow, contactIdByDocument, contactIdByName, ownDocumentSet]);
+  }, [rows, counterpartyByRow, contactIdByDocument, contactIdByName, ownDocumentSet, contacts, memory]);
+
+  const suggestedContact = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const [id, s] of Object.entries(suggestion)) m[id] = s.contactId;
+    return m;
+  }, [suggestion]);
+
+  /** Contatos que ainda não pertencem à empresa (cadastrados no Pessoal). */
+  const unlinkedContactIds = useMemo(
+    () => new Set(contacts.filter((c) => c.linkedToCompany === false).map((c) => c.id)),
+    [contacts],
+  );
+
+  /** Explica por que a linha ficou sem sugestão de fornecedor/cliente. */
+  const noSuggestionReason = (rowId: string): string | null => {
+    const cp = counterpartyByRow[rowId];
+    if (!cp?.name && !cp?.document) return "extrato sem nome e sem CNPJ/CPF da contraparte";
+    if (!cp?.document) return "extrato sem CNPJ/CPF e nome não cadastrado";
+    return "CNPJ/CPF do extrato não cadastrado";
+  };
 
 
   // Pré-seleciona o fornecedor/cliente identificado pelo documento do extrato,
@@ -790,6 +864,7 @@ export default function ConciliacaoPluggy() {
       return changed ? next : prev;
     });
   }, [suggestedContact]);
+
 
   /**
    * Cadastro do fornecedor/cliente da linha: se já existir contato com o mesmo
@@ -838,6 +913,14 @@ export default function ConciliacaoPluggy() {
     setContactForm({ rowId: row.id, name, document, type: contactType });
   };
 
+  // Memória de conciliação: aprende dos lançamentos já conciliados da empresa.
+  useEffect(() => {
+    if (!selectedCompanyId) { setMemory(EMPTY_MEMORY); return; }
+    let alive = true;
+    loadConciliacaoMemory(selectedCompanyId).then((m) => { if (alive) setMemory(m); });
+    return () => { alive = false; };
+  }, [selectedCompanyId]);
+
   // Empresa em contexto já vem marcada nos vínculos do novo contato.
   const contactFormCompanyIds = useMemo(
     () => (selectedCompanyId ? [selectedCompanyId] : []),
@@ -845,11 +928,13 @@ export default function ConciliacaoPluggy() {
   );
 
   /**
-   * Recarrega a lista de fornecedores/clientes da empresa. `fetchAllCompanyContacts`
-   * devolve `{ data, error }` — usar o objeto direto no estado quebrava a tela.
+   * Recarrega a lista de fornecedores/clientes (empresa + perfil Pessoal).
+   * `fetchConciliacaoContacts` devolve `{ data, error }` — usar o objeto direto
+   * no estado quebrava a tela.
    */
   const recarregarContatos = async (companyId: string) => {
-    const { data, error } = await fetchAllCompanyContacts(companyId);
+    const { data: auth } = await supabase.auth.getUser();
+    const { data, error } = await fetchConciliacaoContacts(companyId, auth.user?.id ?? null);
     if (error) {
       toast.error("Não foi possível atualizar a lista de fornecedores/clientes", {
         description: error.message,
@@ -1167,6 +1252,9 @@ export default function ConciliacaoPluggy() {
                 contacts={contacts}
                 contact={rowContact[r.id] ?? ""}
                 contactSuggested={!!rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id]}
+                suggestionLabel={SUGGESTION_LABELS[suggestion[r.id]?.source ?? "nome"]}
+                contactNotLinked={!!rowContact[r.id] && unlinkedContactIds.has(rowContact[r.id])}
+                noSuggestionReason={rowContact[r.id] ? null : noSuggestionReason(r.id)}
                 onContactChange={(v) => setRowContact((p) => ({ ...p, [r.id]: v }))}
                 counterpartyLabel={counterpartyLabel(counterpartyByRow[r.id] ?? { name: null, document: null, documentType: null, internal: false })}
                 counterpartyInternal={!!counterpartyByRow[r.id]?.internal}
@@ -1416,7 +1504,17 @@ export default function ConciliacaoPluggy() {
                           />
                         </Select>
                         {rowContact[r.id] && rowContact[r.id] === suggestedContact[r.id] && (
-                          <p className="mt-1 text-[10px] text-muted-foreground">identificado pelo extrato</p>
+                          <p className="mt-1 text-[10px] text-muted-foreground">
+                            sugerido por {SUGGESTION_LABELS[suggestion[r.id]?.source ?? "nome"]}
+                          </p>
+                        )}
+                        {rowContact[r.id] && unlinkedContactIds.has(rowContact[r.id]) && (
+                          <p className="mt-1 text-[10px] text-amber-600">
+                            cadastrado no Pessoal — será vinculado à empresa
+                          </p>
+                        )}
+                        {!disabled && !rowContact[r.id] && (
+                          <p className="mt-1 text-[10px] text-muted-foreground">{noSuggestionReason(r.id)}</p>
                         )}
                         {!disabled && rowContact[r.id] && (
                           <Button
