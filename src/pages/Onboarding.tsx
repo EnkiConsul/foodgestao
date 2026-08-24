@@ -239,6 +239,20 @@ export default function Onboarding() {
     setExitOpen(true);
   };
 
+  const handleExit = async () => {
+    setExiting(true);
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("[onboarding] falha ao encerrar sessão", error);
+    } finally {
+      setExiting(false);
+      setExitOpen(false);
+      navigate("/", { replace: true });
+    }
+  };
+
+
   return (
     <>
       <OnboardingShell currentStep={step}>
