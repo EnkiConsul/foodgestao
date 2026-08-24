@@ -29,9 +29,17 @@ A reconsulta nunca é `FOR UPDATE` só por `id`: em `criar_grupo` filtra por `id
 `ON CONFLICT` restrito a `(id)`, então conflitos de outras constraints de negócio continuam propagando normalmente. Sem tabela genérica de idempotência.
 
 
-**2. Serialização de criação de ocorrência × publicação**
+**2. Serialização de criação de ocorrência × publicação, com retry reconciliado antes do estado**
 
-`criar_ocorrencia` lê o grupo sem lock, autoriza, e só então trava o grupo (`FOR UPDATE`) e revalida `status = 'rascunho'` sobre a linha travada, mantendo a ordem de lock já aprovada (grupo → ocorrência) que `revisar_ocorrencia` também usa. Assim uma publicação futura da 3B.2 e a inclusão de ocorrência nunca se atravessam: quem chegar depois espera, relê o estado atual e falha com `NOT_DRAFT` se o grupo já foi publicado.
+Ordem em `criar_ocorrencia`:
+
+1. Ler o contexto do grupo sem lock e autorizar (`auth.uid()` + admin/owner).
+2. Reconciliar o retry **antes** de exigir rascunho: buscar `p_ocorrencia_id` no escopo autorizado (`id` + `company_id` + `grupo_id`). Existente com mesmo conteúdo/contexto → retorno idempotente, 0 evento, mesmo que o grupo já esteja publicado. Existente com conteúdo diferente → `IDEMPOTENCY_CONFLICT`. Fora do escopo autorizado → `IDEMPOTENCY_CONFLICT` imediato, sem lock cross-tenant.
+3. Inexistente → travar o grupo (`FOR UPDATE`), revalidar contexto e `status = 'rascunho'` (senão `NOT_DRAFT`) e tentar `INSERT ... ON CONFLICT (id) DO NOTHING`.
+4. Perdeu a corrida no `INSERT` → reconciliar de novo por consulta tenant-scoped antes de qualquer lock da ocorrência.
+
+Mantém a ordem de lock aprovada (grupo → ocorrência) que `revisar_ocorrencia` também usa: uma publicação futura da 3B.2 e a inclusão de nova ocorrência nunca se atravessam — quem chegar depois espera, relê o estado atual e falha com `NOT_DRAFT`.
+
 
 
 **3. Ordem correta da revisão (predecessora → sucessora)**
