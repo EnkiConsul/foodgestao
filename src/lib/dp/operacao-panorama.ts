@@ -119,8 +119,10 @@ export interface ResultadoDia {
   data: string;
   dow: number;
   contagens: Contagens;
-  /** Fixos escalados + convocados aceitos + convocados aguardando resposta. */
+  /** Confirmados: fixos escalados + convocações aceitas. Pendentes não entram. */
   trabalhando: number;
+  /** Convocações aguardando resposta (nunca somadas em `trabalhando`). */
+  aguardando: number;
   pessoas: PessoaPanorama[];
 }
 
