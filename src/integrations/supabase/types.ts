@@ -14306,6 +14306,38 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      dp_convocacao_atualizar_grupo: {
+        Args: {
+          p_competencia: string
+          p_expected_updated_at: string
+          p_grupo_id: string
+          p_modalidade: string
+          p_observacao?: string
+          p_titulo?: string
+        }
+        Returns: Json
+      }
+      dp_convocacao_atualizar_ocorrencia: {
+        Args: {
+          p_carga_prevista_horas?: number
+          p_cargo_id: string
+          p_condicoes_comuns?: Json
+          p_data: string
+          p_entrada?: string
+          p_expected_updated_at: string
+          p_horario_modo?: string
+          p_intervalo_minutos?: number
+          p_necessidade_entrada: string
+          p_necessidade_saida: string
+          p_necessidade_termina_no_dia_seguinte?: boolean
+          p_ocorrencia_id: string
+          p_saida?: string
+          p_termina_no_dia_seguinte?: boolean
+          p_turno_referencia_id?: string
+          p_vagas?: number
+        }
+        Returns: Json
+      }
       dp_convocacao_config_resolvida: {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: {
@@ -14333,6 +14365,93 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      dp_convocacao_criar_grupo: {
+        Args: {
+          p_competencia: string
+          p_grupo_id: string
+          p_modalidade: string
+          p_observacao?: string
+          p_titulo?: string
+          p_unidade_id: string
+        }
+        Returns: Json
+      }
+      dp_convocacao_criar_ocorrencia: {
+        Args: {
+          p_carga_prevista_horas?: number
+          p_cargo_id: string
+          p_condicoes_comuns?: Json
+          p_data: string
+          p_entrada?: string
+          p_grupo_id: string
+          p_horario_modo?: string
+          p_intervalo_minutos?: number
+          p_necessidade_entrada: string
+          p_necessidade_saida: string
+          p_necessidade_termina_no_dia_seguinte?: boolean
+          p_ocorrencia_id: string
+          p_saida?: string
+          p_termina_no_dia_seguinte?: boolean
+          p_turno_referencia_id?: string
+          p_vagas?: number
+        }
+        Returns: Json
+      }
+      dp_convocacao_exige_admin: {
+        Args: { _company_id: string }
+        Returns: string
+      }
+      dp_convocacao_log_evento: {
+        Args: {
+          _company_id: string
+          _grupo_id: string
+          _ocorrencia_id: string
+          _payload?: Json
+          _tipo: string
+        }
+        Returns: undefined
+      }
+      dp_convocacao_revisar_ocorrencia: {
+        Args: {
+          p_carga_prevista_horas?: number
+          p_cargo_id: string
+          p_condicoes_comuns?: Json
+          p_data: string
+          p_entrada?: string
+          p_horario_modo?: string
+          p_intervalo_minutos?: number
+          p_motivo?: string
+          p_necessidade_entrada: string
+          p_necessidade_saida: string
+          p_necessidade_termina_no_dia_seguinte?: boolean
+          p_ocorrencia_id: string
+          p_saida?: string
+          p_sucessora_id: string
+          p_termina_no_dia_seguinte?: boolean
+          p_turno_referencia_id?: string
+          p_vagas?: number
+        }
+        Returns: Json
+      }
+      dp_convocacao_salvar_config: {
+        Args: {
+          p_antecedencia_minima_dias?: number
+          p_aprovacao_modo?: string
+          p_autonomia_colaborador_desistir?: boolean
+          p_company_id: string
+          p_exige_justificativa_excecao?: boolean
+          p_permite_oferta_aberta?: boolean
+          p_prazo_resposta_dias_uteis?: number
+          p_reabre_vaga_em_desistencia?: boolean
+          p_sub_fixo_em_folga_dominical?: boolean
+          p_sub_freelancer_por_freelancer?: boolean
+          p_sub_freelancer_por_intermitente?: boolean
+          p_sub_intermitente_por_freelancer?: boolean
+          p_sub_intermitente_por_intermitente?: boolean
+          p_unidade_id?: string
+        }
+        Returns: Json
       }
       dp_desligar_colaborador: {
         Args: {
