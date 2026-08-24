@@ -339,7 +339,29 @@ export default function ConexoesPluggy() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={confirmCancelPending} onOpenChange={setConfirmCancelPending}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar a conexão em andamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A autorização iniciada será descartada e o aviso desaparece. Se o banco confirmar
+              depois, será necessário iniciar a conexão novamente em <strong>Conectar banco</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={cancelarPendentes}
+            >
+              Cancelar conexão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
 
