@@ -1856,6 +1856,7 @@ export type Database = {
           profile_type: string
           segmento_id: string | null
           status_tenant: string
+          timezone: string | null
           trade_name: string | null
           trial_iniciado_em: string | null
           trial_termina_em: string | null
@@ -1882,6 +1883,7 @@ export type Database = {
           profile_type?: string
           segmento_id?: string | null
           status_tenant?: string
+          timezone?: string | null
           trade_name?: string | null
           trial_iniciado_em?: string | null
           trial_termina_em?: string | null
@@ -1908,6 +1910,7 @@ export type Database = {
           profile_type?: string
           segmento_id?: string | null
           status_tenant?: string
+          timezone?: string | null
           trade_name?: string | null
           trial_iniciado_em?: string | null
           trial_termina_em?: string | null
@@ -3836,6 +3839,7 @@ export type Database = {
           carga_semanal_horas: number | null
           colaborador_id: string
           company_id: string
+          compoe_equipe_habitual: boolean
           created_at: string
           folga_fixa_dow: number | null
           folga_variavel: boolean
@@ -3851,6 +3855,7 @@ export type Database = {
           carga_semanal_horas?: number | null
           colaborador_id: string
           company_id: string
+          compoe_equipe_habitual?: boolean
           created_at?: string
           folga_fixa_dow?: number | null
           folga_variavel?: boolean
@@ -3866,6 +3871,7 @@ export type Database = {
           carga_semanal_horas?: number | null
           colaborador_id?: string
           company_id?: string
+          compoe_equipe_habitual?: boolean
           created_at?: string
           folga_fixa_dow?: number | null
           folga_variavel?: boolean
@@ -4424,6 +4430,7 @@ export type Database = {
           adicional_tempo_servico_modo: string
           assiduidade_ativa: boolean
           company_id: string
+          considerar_indisponibilidade_cobertura: boolean
           created_at: string
           dias_descanso_negociados: number[]
           domingos_por_mes: number
@@ -4472,6 +4479,7 @@ export type Database = {
           adicional_tempo_servico_modo?: string
           assiduidade_ativa?: boolean
           company_id: string
+          considerar_indisponibilidade_cobertura?: boolean
           created_at?: string
           dias_descanso_negociados?: number[]
           domingos_por_mes?: number
@@ -4520,6 +4528,7 @@ export type Database = {
           adicional_tempo_servico_modo?: string
           assiduidade_ativa?: boolean
           company_id?: string
+          considerar_indisponibilidade_cobertura?: boolean
           created_at?: string
           dias_descanso_negociados?: number[]
           domingos_por_mes?: number
@@ -4587,75 +4596,597 @@ export type Database = {
           },
         ]
       }
+      dp_convocacao_config: {
+        Row: {
+          antecedencia_minima_dias: number
+          aprovacao_modo: string
+          autonomia_colaborador_desistir: boolean
+          company_id: string
+          created_at: string
+          exige_justificativa_excecao: boolean
+          id: string
+          permite_oferta_aberta: boolean
+          prazo_resposta_dias_uteis: number
+          reabre_vaga_em_desistencia: boolean
+          sub_fixo_em_folga_dominical: boolean
+          sub_freelancer_por_freelancer: boolean
+          sub_freelancer_por_intermitente: boolean
+          sub_intermitente_por_freelancer: boolean
+          sub_intermitente_por_intermitente: boolean
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          antecedencia_minima_dias?: number
+          aprovacao_modo?: string
+          autonomia_colaborador_desistir?: boolean
+          company_id: string
+          created_at?: string
+          exige_justificativa_excecao?: boolean
+          id?: string
+          permite_oferta_aberta?: boolean
+          prazo_resposta_dias_uteis?: number
+          reabre_vaga_em_desistencia?: boolean
+          sub_fixo_em_folga_dominical?: boolean
+          sub_freelancer_por_freelancer?: boolean
+          sub_freelancer_por_intermitente?: boolean
+          sub_intermitente_por_freelancer?: boolean
+          sub_intermitente_por_intermitente?: boolean
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          antecedencia_minima_dias?: number
+          aprovacao_modo?: string
+          autonomia_colaborador_desistir?: boolean
+          company_id?: string
+          created_at?: string
+          exige_justificativa_excecao?: boolean
+          id?: string
+          permite_oferta_aberta?: boolean
+          prazo_resposta_dias_uteis?: number
+          reabre_vaga_em_desistencia?: boolean
+          sub_fixo_em_folga_dominical?: boolean
+          sub_freelancer_por_freelancer?: boolean
+          sub_freelancer_por_intermitente?: boolean
+          sub_intermitente_por_freelancer?: boolean
+          sub_intermitente_por_intermitente?: boolean
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_convocacao_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_config_unidade_company"
+            columns: ["unidade_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id", "company_id"]
+          },
+        ]
+      }
+      dp_convocacao_descumprimentos: {
+        Row: {
+          analisado_em: string | null
+          analisado_por: string | null
+          analise: string
+          base_remuneracao: number | null
+          colaborador_id: string
+          company_id: string
+          convocacao_id: string
+          created_at: string
+          id: string
+          motivo_informado: string | null
+          observacao_analise: string | null
+          ocorrencia_id: string | null
+          parte_responsavel: string
+          percentual_referencia: number | null
+          prazo_limite: string | null
+          regime_snapshot: Database["public"]["Enums"]["dp_regime_trabalho"]
+          tipo: string
+          updated_at: string
+          valor_referencia: number | null
+        }
+        Insert: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          analise?: string
+          base_remuneracao?: number | null
+          colaborador_id: string
+          company_id: string
+          convocacao_id: string
+          created_at?: string
+          id?: string
+          motivo_informado?: string | null
+          observacao_analise?: string | null
+          ocorrencia_id?: string | null
+          parte_responsavel: string
+          percentual_referencia?: number | null
+          prazo_limite?: string | null
+          regime_snapshot: Database["public"]["Enums"]["dp_regime_trabalho"]
+          tipo: string
+          updated_at?: string
+          valor_referencia?: number | null
+        }
+        Update: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          analise?: string
+          base_remuneracao?: number | null
+          colaborador_id?: string
+          company_id?: string
+          convocacao_id?: string
+          created_at?: string
+          id?: string
+          motivo_informado?: string | null
+          observacao_analise?: string | null
+          ocorrencia_id?: string | null
+          parte_responsavel?: string
+          percentual_referencia?: number | null
+          prazo_limite?: string | null
+          regime_snapshot?: Database["public"]["Enums"]["dp_regime_trabalho"]
+          tipo?: string
+          updated_at?: string
+          valor_referencia?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_convocacao_descumprimentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacao_descumprimentos_ocorrencia_id_fkey"
+            columns: ["ocorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_ocorrencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_descump_colaborador_company"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_descump_colaborador_company"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_descump_convocacao_company"
+            columns: ["convocacao_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacoes"
+            referencedColumns: ["id", "company_id"]
+          },
+        ]
+      }
+      dp_convocacao_eventos: {
+        Row: {
+          ator_papel: string | null
+          ator_user_id: string | null
+          company_id: string
+          convocacao_id: string | null
+          created_at: string
+          de_status: string | null
+          grupo_id: string | null
+          id: string
+          ocorrencia_id: string | null
+          para_status: string | null
+          payload: Json
+          tipo: string
+        }
+        Insert: {
+          ator_papel?: string | null
+          ator_user_id?: string | null
+          company_id: string
+          convocacao_id?: string | null
+          created_at?: string
+          de_status?: string | null
+          grupo_id?: string | null
+          id?: string
+          ocorrencia_id?: string | null
+          para_status?: string | null
+          payload?: Json
+          tipo: string
+        }
+        Update: {
+          ator_papel?: string | null
+          ator_user_id?: string | null
+          company_id?: string
+          convocacao_id?: string | null
+          created_at?: string
+          de_status?: string | null
+          grupo_id?: string | null
+          id?: string
+          ocorrencia_id?: string | null
+          para_status?: string | null
+          payload?: Json
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_convocacao_eventos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_evento_convocacao_company"
+            columns: ["convocacao_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacoes"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_evento_grupo_company"
+            columns: ["grupo_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_grupos"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_evento_ocorrencia_company"
+            columns: ["ocorrencia_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_ocorrencias"
+            referencedColumns: ["id", "company_id"]
+          },
+        ]
+      }
+      dp_convocacao_grupos: {
+        Row: {
+          company_id: string
+          competencia: string
+          created_at: string
+          criado_por: string | null
+          id: string
+          modalidade: string
+          observacao: string | null
+          publicado_em: string | null
+          publicado_por: string | null
+          status: string
+          titulo: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          competencia: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          modalidade: string
+          observacao?: string | null
+          publicado_em?: string | null
+          publicado_por?: string | null
+          status?: string
+          titulo?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          competencia?: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          modalidade?: string
+          observacao?: string | null
+          publicado_em?: string | null
+          publicado_por?: string | null
+          status?: string
+          titulo?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dp_convocacao_grupos_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_convocacao_grupos_unidade_company"
+            columns: ["unidade_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id", "company_id"]
+          },
+        ]
+      }
+      dp_convocacao_ocorrencias: {
+        Row: {
+          antecedencia_dias: number | null
+          carga_prevista_horas: number | null
+          cargo_id: string
+          company_id: string
+          condicoes_comuns: Json
+          confirmado_fora_prazo_em: string | null
+          confirmado_fora_prazo_por: string | null
+          created_at: string
+          criado_por: string | null
+          data: string
+          entrada: string | null
+          fora_antecedencia: boolean
+          grupo_id: string
+          horario_modo: string
+          id: string
+          intervalo_minutos: number | null
+          justificativa_fora_prazo: string | null
+          necessidade_entrada: string
+          necessidade_saida: string
+          necessidade_termina_no_dia_seguinte: boolean
+          publicada_em: string | null
+          saida: string | null
+          status: string
+          substitui_ocorrencia_id: string | null
+          termina_no_dia_seguinte: boolean | null
+          turno_referencia_id: string | null
+          unidade_id: string
+          updated_at: string
+          vagas: number
+          versao: number
+        }
+        Insert: {
+          antecedencia_dias?: number | null
+          carga_prevista_horas?: number | null
+          cargo_id: string
+          company_id: string
+          condicoes_comuns?: Json
+          confirmado_fora_prazo_em?: string | null
+          confirmado_fora_prazo_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          entrada?: string | null
+          fora_antecedencia?: boolean
+          grupo_id: string
+          horario_modo: string
+          id?: string
+          intervalo_minutos?: number | null
+          justificativa_fora_prazo?: string | null
+          necessidade_entrada: string
+          necessidade_saida: string
+          necessidade_termina_no_dia_seguinte?: boolean
+          publicada_em?: string | null
+          saida?: string | null
+          status?: string
+          substitui_ocorrencia_id?: string | null
+          termina_no_dia_seguinte?: boolean | null
+          turno_referencia_id?: string | null
+          unidade_id: string
+          updated_at?: string
+          vagas?: number
+          versao?: number
+        }
+        Update: {
+          antecedencia_dias?: number | null
+          carga_prevista_horas?: number | null
+          cargo_id?: string
+          company_id?: string
+          condicoes_comuns?: Json
+          confirmado_fora_prazo_em?: string | null
+          confirmado_fora_prazo_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          entrada?: string | null
+          fora_antecedencia?: boolean
+          grupo_id?: string
+          horario_modo?: string
+          id?: string
+          intervalo_minutos?: number | null
+          justificativa_fora_prazo?: string | null
+          necessidade_entrada?: string
+          necessidade_saida?: string
+          necessidade_termina_no_dia_seguinte?: boolean
+          publicada_em?: string | null
+          saida?: string | null
+          status?: string
+          substitui_ocorrencia_id?: string | null
+          termina_no_dia_seguinte?: boolean | null
+          turno_referencia_id?: string | null
+          unidade_id?: string
+          updated_at?: string
+          vagas?: number
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dp_conv_ocor_cargo_company"
+            columns: ["cargo_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_ocor_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_ocor_grupo_company"
+            columns: ["grupo_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_grupos"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_ocor_substitui_company"
+            columns: ["substitui_ocorrencia_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_ocorrencias"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_ocor_turno_company"
+            columns: ["turno_referencia_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_turnos"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_ocor_unidade_company"
+            columns: ["unidade_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id", "company_id"]
+          },
+        ]
+      }
       dp_convocacoes: {
         Row: {
           carga_prevista_horas: number
           colaborador_id: string
           company_id: string
+          comparecimento: string | null
+          comparecimento_origem: string | null
+          comparecimento_registrado_em: string | null
+          comparecimento_registrado_por: string | null
+          compatibilidade: string | null
           created_at: string
           criada_por: string | null
           data: string
+          disponibilizada_em: string | null
+          encerrada_em: string | null
+          encerramento_motivo: string | null
+          encerramento_operacional: string | null
           entrada: string
           enviada_em: string
           escala_item_id: string | null
+          fim_previsto: string | null
           id: string
+          inicio_previsto: string | null
           intervalo_minutos: number
           motivo_recusa: string | null
           observacao: string | null
+          ocorrencia_id: string | null
+          origem_oferta: string | null
           prazo_resposta: string | null
+          prazo_resposta_base: string | null
+          regime_snapshot:
+            | Database["public"]["Enums"]["dp_regime_trabalho"]
+            | null
+          remuneracao_snapshot: Json | null
           respondida_em: string | null
           saida: string
           status: Database["public"]["Enums"]["dp_convocacao_status"]
+          substitui_convocacao_id: string | null
+          substituida_por_id: string | null
           termina_no_dia_seguinte: boolean
+          timezone_snapshot: string | null
           turno_id: string | null
           unidade_id: string | null
           updated_at: string
+          visualizada_em: string | null
         }
         Insert: {
           carga_prevista_horas?: number
           colaborador_id: string
           company_id: string
+          comparecimento?: string | null
+          comparecimento_origem?: string | null
+          comparecimento_registrado_em?: string | null
+          comparecimento_registrado_por?: string | null
+          compatibilidade?: string | null
           created_at?: string
           criada_por?: string | null
           data: string
+          disponibilizada_em?: string | null
+          encerrada_em?: string | null
+          encerramento_motivo?: string | null
+          encerramento_operacional?: string | null
           entrada: string
           enviada_em?: string
           escala_item_id?: string | null
+          fim_previsto?: string | null
           id?: string
+          inicio_previsto?: string | null
           intervalo_minutos?: number
           motivo_recusa?: string | null
           observacao?: string | null
+          ocorrencia_id?: string | null
+          origem_oferta?: string | null
           prazo_resposta?: string | null
+          prazo_resposta_base?: string | null
+          regime_snapshot?:
+            | Database["public"]["Enums"]["dp_regime_trabalho"]
+            | null
+          remuneracao_snapshot?: Json | null
           respondida_em?: string | null
           saida: string
           status?: Database["public"]["Enums"]["dp_convocacao_status"]
+          substitui_convocacao_id?: string | null
+          substituida_por_id?: string | null
           termina_no_dia_seguinte?: boolean
+          timezone_snapshot?: string | null
           turno_id?: string | null
           unidade_id?: string | null
           updated_at?: string
+          visualizada_em?: string | null
         }
         Update: {
           carga_prevista_horas?: number
           colaborador_id?: string
           company_id?: string
+          comparecimento?: string | null
+          comparecimento_origem?: string | null
+          comparecimento_registrado_em?: string | null
+          comparecimento_registrado_por?: string | null
+          compatibilidade?: string | null
           created_at?: string
           criada_por?: string | null
           data?: string
+          disponibilizada_em?: string | null
+          encerrada_em?: string | null
+          encerramento_motivo?: string | null
+          encerramento_operacional?: string | null
           entrada?: string
           enviada_em?: string
           escala_item_id?: string | null
+          fim_previsto?: string | null
           id?: string
+          inicio_previsto?: string | null
           intervalo_minutos?: number
           motivo_recusa?: string | null
           observacao?: string | null
+          ocorrencia_id?: string | null
+          origem_oferta?: string | null
           prazo_resposta?: string | null
+          prazo_resposta_base?: string | null
+          regime_snapshot?:
+            | Database["public"]["Enums"]["dp_regime_trabalho"]
+            | null
+          remuneracao_snapshot?: Json | null
           respondida_em?: string | null
           saida?: string
           status?: Database["public"]["Enums"]["dp_convocacao_status"]
+          substitui_convocacao_id?: string | null
+          substituida_por_id?: string | null
           termina_no_dia_seguinte?: boolean
+          timezone_snapshot?: string | null
           turno_id?: string | null
           unidade_id?: string | null
           updated_at?: string
+          visualizada_em?: string | null
         }
         Relationships: [
           {
@@ -4698,6 +5229,41 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_convocacoes_colaborador_company"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_convocacoes_colaborador_company"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_convocacoes_ocorrencia_contexto"
+            columns: ["ocorrencia_id", "company_id", "unidade_id", "data"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_ocorrencias"
+            referencedColumns: ["id", "company_id", "unidade_id", "data"]
+          },
+          {
+            foreignKeyName: "fk_dp_convocacoes_substitui"
+            columns: ["substitui_convocacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_convocacoes_substituida_por"
+            columns: ["substituida_por_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacoes"
             referencedColumns: ["id"]
           },
         ]
@@ -6198,6 +6764,70 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_indisponibilidades: {
+        Row: {
+          cancelada_em: string | null
+          cancelada_por: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data: string
+          id: string
+          motivo: string | null
+          origem: string
+          updated_at: string
+        }
+        Insert: {
+          cancelada_em?: string | null
+          cancelada_por?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          id?: string
+          motivo?: string | null
+          origem?: string
+          updated_at?: string
+        }
+        Update: {
+          cancelada_em?: string | null
+          cancelada_por?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          id?: string
+          motivo?: string | null
+          origem?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_indisponibilidades_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_indisp_colaborador_company"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_indisp_colaborador_company"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id", "company_id"]
           },
         ]
       }
@@ -7920,6 +8550,7 @@ export type Database = {
           possui_relogio_ponto: boolean
           telefone: string | null
           tem_adiantamento: boolean
+          timezone: string | null
           uf: string | null
           updated_at: string
         }
@@ -7936,6 +8567,7 @@ export type Database = {
           possui_relogio_ponto?: boolean
           telefone?: string | null
           tem_adiantamento?: boolean
+          timezone?: string | null
           uf?: string | null
           updated_at?: string
         }
@@ -7952,6 +8584,7 @@ export type Database = {
           possui_relogio_ponto?: boolean
           telefone?: string | null
           tem_adiantamento?: boolean
+          timezone?: string | null
           uf?: string | null
           updated_at?: string
         }
@@ -13574,6 +14207,10 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      dp_adicionar_dias_uteis: {
+        Args: { _base: string; _dias: number; _timezone: string }
+        Returns: string
+      }
       dp_beneficios_gerar_lancamentos: {
         Args: { _periodo_id: string }
         Returns: number
@@ -13618,6 +14255,7 @@ export type Database = {
           adicional_tempo_servico_modo: string
           assiduidade_ativa: boolean
           company_id: string
+          considerar_indisponibilidade_cobertura: boolean
           created_at: string
           dias_descanso_negociados: number[]
           domingos_por_mes: number
@@ -13668,6 +14306,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      dp_convocacao_config_resolvida: {
+        Args: { _company_id: string; _unidade_id?: string }
+        Returns: {
+          antecedencia_minima_dias: number
+          aprovacao_modo: string
+          autonomia_colaborador_desistir: boolean
+          company_id: string
+          created_at: string
+          exige_justificativa_excecao: boolean
+          id: string
+          permite_oferta_aberta: boolean
+          prazo_resposta_dias_uteis: number
+          reabre_vaga_em_desistencia: boolean
+          sub_fixo_em_folga_dominical: boolean
+          sub_freelancer_por_freelancer: boolean
+          sub_freelancer_por_intermitente: boolean
+          sub_intermitente_por_freelancer: boolean
+          sub_intermitente_por_intermitente: boolean
+          unidade_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dp_convocacao_config"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       dp_desligar_colaborador: {
         Args: {
           p_colaborador_id: string
@@ -13682,6 +14348,7 @@ export type Database = {
         Args: { _company_id: string }
         Returns: number
       }
+      dp_e_dia_util: { Args: { _data: string }; Returns: boolean }
       dp_editar_desligamento: {
         Args: {
           p_colaborador_id: string
@@ -13766,6 +14433,10 @@ export type Database = {
         Args: { p_colaborador_id: string; p_motivo?: string }
         Returns: undefined
       }
+      dp_regime_convocavel: {
+        Args: { _regime: Database["public"]["Enums"]["dp_regime_trabalho"] }
+        Returns: boolean
+      }
       dp_regra_bloqueia_data: {
         Args: { _company_id: string; _data: string; _unidade_id: string }
         Returns: boolean
@@ -13789,6 +14460,10 @@ export type Database = {
           sindicato_id: string
           sindicato_nome: string
         }[]
+      }
+      dp_timezone_resolvido: {
+        Args: { _company_id: string; _unidade_id?: string }
+        Returns: string
       }
       dp_turno_colaboradores: {
         Args: { p_turno_id: string }
@@ -15201,6 +15876,12 @@ export type Database = {
         | "recusada"
         | "cancelada"
         | "expirada"
+        | "sem_resposta"
+        | "encerrada_sem_vaga"
+        | "encerrada_inicio_ocorrencia"
+        | "desistida"
+        | "substituida"
+        | "encerrada_operacionalmente"
       dp_disciplinar_tipo:
         | "advertencia_verbal"
         | "advertencia_escrita"
@@ -15734,6 +16415,12 @@ export const Constants = {
         "recusada",
         "cancelada",
         "expirada",
+        "sem_resposta",
+        "encerrada_sem_vaga",
+        "encerrada_inicio_ocorrencia",
+        "desistida",
+        "substituida",
+        "encerrada_operacionalmente",
       ],
       dp_disciplinar_tipo: [
         "advertencia_verbal",
