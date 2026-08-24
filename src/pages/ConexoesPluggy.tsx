@@ -78,8 +78,19 @@ export default function ConexoesPluggy() {
       .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_error")
       .eq("company_id", selectedCompanyId).order("created_at", { ascending: false });
 
-    const list = dedupeByConnector((conns ?? []) as Connection[]);
+    // Conexões encerradas (ou sem nenhuma conta restante) foram excluídas pelo
+    // usuário e não devem voltar à lista — a reconexão é feita pelo botão de
+    // conectar banco.
+    const ativas = ((conns ?? []) as Connection[]).filter((c) => c.status !== "deleted");
+    const contagens = await Promise.all(
+      ativas.map((c) =>
+        supabase.from("pluggy_accounts").select("id", { head: true, count: "exact" }).eq("connection_id", c.id),
+      ),
+    );
+    const comContas = ativas.filter((_, i) => (contagens[i].count ?? 0) > 0);
+    const list = dedupeByConnector(comContas);
     setConnections(list);
+
 
 
     const { count: pending } = await supabase
