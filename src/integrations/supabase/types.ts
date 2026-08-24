@@ -4590,6 +4590,182 @@ export type Database = {
           },
         ]
       }
+      dp_convocacao_descumprimentos: {
+        Row: {
+          analisado_em: string | null
+          analisado_por: string | null
+          analise: string
+          base_remuneracao: number | null
+          colaborador_id: string
+          company_id: string
+          convocacao_id: string
+          created_at: string
+          id: string
+          motivo_informado: string | null
+          observacao_analise: string | null
+          ocorrencia_id: string | null
+          parte_responsavel: string
+          percentual_referencia: number | null
+          prazo_limite: string | null
+          regime_snapshot: Database["public"]["Enums"]["dp_regime_trabalho"]
+          tipo: string
+          updated_at: string
+          valor_referencia: number | null
+        }
+        Insert: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          analise?: string
+          base_remuneracao?: number | null
+          colaborador_id: string
+          company_id: string
+          convocacao_id: string
+          created_at?: string
+          id?: string
+          motivo_informado?: string | null
+          observacao_analise?: string | null
+          ocorrencia_id?: string | null
+          parte_responsavel: string
+          percentual_referencia?: number | null
+          prazo_limite?: string | null
+          regime_snapshot: Database["public"]["Enums"]["dp_regime_trabalho"]
+          tipo: string
+          updated_at?: string
+          valor_referencia?: number | null
+        }
+        Update: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          analise?: string
+          base_remuneracao?: number | null
+          colaborador_id?: string
+          company_id?: string
+          convocacao_id?: string
+          created_at?: string
+          id?: string
+          motivo_informado?: string | null
+          observacao_analise?: string | null
+          ocorrencia_id?: string | null
+          parte_responsavel?: string
+          percentual_referencia?: number | null
+          prazo_limite?: string | null
+          regime_snapshot?: Database["public"]["Enums"]["dp_regime_trabalho"]
+          tipo?: string
+          updated_at?: string
+          valor_referencia?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_convocacao_descumprimentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_convocacao_descumprimentos_ocorrencia_id_fkey"
+            columns: ["ocorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_ocorrencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_descump_colaborador_company"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_descump_colaborador_company"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_descump_convocacao_company"
+            columns: ["convocacao_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacoes"
+            referencedColumns: ["id", "company_id"]
+          },
+        ]
+      }
+      dp_convocacao_eventos: {
+        Row: {
+          ator_papel: string | null
+          ator_user_id: string | null
+          company_id: string
+          convocacao_id: string | null
+          created_at: string
+          de_status: string | null
+          grupo_id: string | null
+          id: string
+          ocorrencia_id: string | null
+          para_status: string | null
+          payload: Json
+          tipo: string
+        }
+        Insert: {
+          ator_papel?: string | null
+          ator_user_id?: string | null
+          company_id: string
+          convocacao_id?: string | null
+          created_at?: string
+          de_status?: string | null
+          grupo_id?: string | null
+          id?: string
+          ocorrencia_id?: string | null
+          para_status?: string | null
+          payload?: Json
+          tipo: string
+        }
+        Update: {
+          ator_papel?: string | null
+          ator_user_id?: string | null
+          company_id?: string
+          convocacao_id?: string | null
+          created_at?: string
+          de_status?: string | null
+          grupo_id?: string | null
+          id?: string
+          ocorrencia_id?: string | null
+          para_status?: string | null
+          payload?: Json
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_convocacao_eventos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_evento_convocacao_company"
+            columns: ["convocacao_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacoes"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_evento_grupo_company"
+            columns: ["grupo_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_grupos"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_evento_ocorrencia_company"
+            columns: ["ocorrencia_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacao_ocorrencias"
+            referencedColumns: ["id", "company_id"]
+          },
+        ]
+      }
       dp_convocacao_grupos: {
         Row: {
           company_id: string
@@ -6507,6 +6683,70 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_indisponibilidades: {
+        Row: {
+          cancelada_em: string | null
+          cancelada_por: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data: string
+          id: string
+          motivo: string | null
+          origem: string
+          updated_at: string
+        }
+        Insert: {
+          cancelada_em?: string | null
+          cancelada_por?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          id?: string
+          motivo?: string | null
+          origem?: string
+          updated_at?: string
+        }
+        Update: {
+          cancelada_em?: string | null
+          cancelada_por?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          id?: string
+          motivo?: string | null
+          origem?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_indisponibilidades_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_indisp_colaborador_company"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "fk_dp_indisp_colaborador_company"
+            columns: ["colaborador_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id", "company_id"]
           },
         ]
       }
