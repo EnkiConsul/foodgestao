@@ -762,19 +762,42 @@ export default function ConciliacaoPluggy() {
     return m;
   }, [contacts]);
 
-  const suggestedContact = useMemo(() => {
-    const m: Record<string, string> = {};
+  /** Sugestão em cascata: histórico → documento → nome tolerante. */
+  const suggestion = useMemo(() => {
+    const m: Record<string, { contactId: string; source: SuggestionSource }> = {};
+    const candidates = contacts.map((c) => ({ id: c.id, name: c.name }));
     for (const r of rows) {
       const cp = counterpartyByRow[r.id];
       const doc = normalizeDocumento(cp?.document);
+      const nameKey = normalizeContactKey(cp?.name);
+
+      // 1) Memória de conciliação (o que o usuário já escolheu antes).
+      const fromHistory =
+        (doc && !ownDocumentSet.has(doc) ? memory.byDocument[doc] : undefined) ??
+        (nameKey ? memory.byName[nameKey] : undefined);
+      if (fromHistory && contacts.some((c) => c.id === fromHistory)) {
+        m[r.id] = { contactId: fromHistory, source: "historico" };
+        continue;
+      }
+
+      // 2) Documento do extrato.
       const byDoc = doc && !ownDocumentSet.has(doc) ? contactIdByDocument[doc] : undefined;
-      if (byDoc) { m[r.id] = byDoc; continue; }
-      // Sem documento de terceiro: só sugerimos com nome idêntico ao cadastrado.
-      const byName = cp?.name ? contactIdByName[normalizeText(cp.name)] : undefined;
-      if (byName) m[r.id] = byName;
+      if (byDoc) { m[r.id] = { contactId: byDoc, source: "documento" }; continue; }
+
+      // 3) Nome (igualdade exata primeiro, depois casamento tolerante).
+      const exact = cp?.name ? contactIdByName[normalizeText(cp.name)] : undefined;
+      if (exact) { m[r.id] = { contactId: exact, source: "nome" }; continue; }
+      const fuzzy = bestContactMatch(cp?.name, candidates);
+      if (fuzzy) m[r.id] = { contactId: fuzzy.id, source: "nome" };
     }
     return m;
-  }, [rows, counterpartyByRow, contactIdByDocument, contactIdByName, ownDocumentSet]);
+  }, [rows, counterpartyByRow, contactIdByDocument, contactIdByName, ownDocumentSet, contacts, memory]);
+
+  const suggestedContact = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const [id, s] of Object.entries(suggestion)) m[id] = s.contactId;
+    return m;
+  }, [suggestion]);
 
 
   // Pré-seleciona o fornecedor/cliente identificado pelo documento do extrato,
@@ -790,6 +813,7 @@ export default function ConciliacaoPluggy() {
       return changed ? next : prev;
     });
   }, [suggestedContact]);
+
 
   /**
    * Cadastro do fornecedor/cliente da linha: se já existir contato com o mesmo
