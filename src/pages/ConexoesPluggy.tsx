@@ -149,17 +149,8 @@ export default function ConexoesPluggy() {
     const list = dedupeByConnector(comContas);
     setConnections(list);
 
-
-
-    const { count: pending } = await supabase
-      .from("pluggy_connect_requests")
-      .select("id", { head: true, count: "exact" })
-      .eq("company_id", selectedCompanyId)
-      .eq("status", "open")
-      .gt("expires_at", new Date().toISOString());
-    setPendingCount(pending ?? 0);
-
     const m: AccountsMap = {};
+
     for (const c of list) {
       const [{ count: accCount }, { count: pending }, { count: paused }] = await Promise.all([
         supabase.from("pluggy_accounts").select("id", { head: true, count: "exact" }).eq("connection_id", c.id),
