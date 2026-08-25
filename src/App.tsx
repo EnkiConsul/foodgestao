@@ -35,6 +35,7 @@ installGlobalErrorHandlers();
 
 // Eager: rotas do primeiro paint (auth/hub/dashboard)
 import Auth from "./pages/Auth";
+import OAuthConsent from "./pages/OAuthConsent";
 const PrimeiroAcesso = lazyWithRetry(() => import("./pages/PrimeiroAcesso"));
 const EsqueciSenha = lazyWithRetry(() => import("./pages/EsqueciSenha"));
 import Hub from "./pages/Hub";
@@ -331,6 +332,7 @@ const AppRoutes = () => (
 
       <Route path="/" element={<RootGate />} />
       <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
+      <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
       <Route path="/login" element={<Navigate to="/auth" replace />} />
       <Route path="/dp/login" element={<Navigate to="/auth" replace />} />
       <Route path="/primeiro-acesso" element={<PrimeiroAcesso />} />
