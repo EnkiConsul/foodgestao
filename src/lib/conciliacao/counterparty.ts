@@ -86,6 +86,12 @@ interface RawSide {
   documentNumber?: { type?: string | null; value?: string | null } | null;
 }
 
+interface CounterpartyCandidate {
+  name: string | null;
+  document: string | null;
+  source: "primary" | "merchant";
+}
+
 function readSide(raw: unknown, key: "payer" | "receiver"): RawSide | null {
   if (!raw || typeof raw !== "object") return null;
   const pd = (raw as { paymentData?: unknown }).paymentData;
@@ -108,6 +114,45 @@ function fromSide(side: RawSide | null): { name: string | null; document: string
   return {
     name: (side.name ?? "").trim() || null,
     document: side.documentNumber?.value ?? null,
+  };
+}
+
+function isMerchantPurchase(row: CounterpartyRow): boolean {
+  if (!readMerchant(row.raw).name && !readMerchant(row.raw).document) return false;
+  const text = normalize(descriptionSources(row).join(" "));
+  return /\b(COMPRA|CARTAO|CARTÃO|DEBITO|DÉBITO|CREDITO|CRÉDITO)\b/.test(text);
+}
+
+function pickExternalCandidate(
+  row: CounterpartyRow,
+  ownDocuments: Set<string>,
+): CounterpartyCandidate | null {
+  const isEntrada = Number(row.amount ?? 0) >= 0;
+  const primary = { ...fromSide(readSide(row.raw, isEntrada ? "payer" : "receiver")), source: "primary" as const };
+  const merchant = { ...readMerchant(row.raw), source: "merchant" as const };
+
+  // Compras/cartão/débito: o `merchant` costuma ser o estabelecimento real;
+  // PIX/TED/boleto: o lado oposto ao titular é mais confiável.
+  const ordered = isMerchantPurchase(row) ? [merchant, primary] : [primary, merchant];
+  const usable = ordered.filter((c) => {
+    const d = onlyDigits(c.document);
+    if (d && ownDocuments.has(d)) return false;
+    return !!(c.name || d.length >= 11);
+  });
+  if (usable.length === 0) return null;
+
+  // Evita separar errado: quando houver opção com nome + documento, ela vence;
+  // só combinamos documento de outro candidato quando o escolhido não possui um.
+  const complete = usable.find((c) => !!c.name && onlyDigits(c.document).length >= 11);
+  const named = complete ?? usable.find((c) => !!c.name) ?? usable[0];
+  const documented = onlyDigits(named.document).length >= 11
+    ? named
+    : usable.find((c) => onlyDigits(c.document).length >= 11) ?? null;
+
+  return {
+    name: named.name,
+    document: documented?.document ?? named.document,
+    source: named.source,
   };
 }
 
@@ -216,17 +261,7 @@ export function extractCounterparty(
     (options.ownDocuments ?? []).map((d) => onlyDigits(d)).filter((d) => d.length >= 11),
   );
 
-  const isEntrada = Number(row.amount ?? 0) >= 0;
-  // Somente o lado oposto ao titular pode ser contraparte. O lado secundário é
-  // o próprio dono da conta — usá-lo fazia toda a fila sugerir o titular.
-  const primary = fromSide(readSide(row.raw, isEntrada ? "payer" : "receiver"));
-  const merchant = readMerchant(row.raw);
-
-  const external = [primary, merchant].find((c) => {
-    const d = onlyDigits(c.document);
-    if (d && own.has(d)) return false;
-    return !!(c.name || d.length >= 11);
-  });
+  const external = pickExternalCandidate(row, own);
 
   if (external) {
     return {

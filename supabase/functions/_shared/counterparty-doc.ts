@@ -21,23 +21,40 @@ function format(v: unknown): string | null {
   return null;
 }
 
+function normalizeName(v: unknown): string {
+  return String(v ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isMerchantPurchase(t: { description?: string | null; descriptionRaw?: string | null; paymentData?: any; merchant?: any }): boolean {
+  const merchantName = t.merchant?.businessName ?? t.merchant?.name;
+  const merchantDoc = t.merchant?.cnpj;
+  if (!merchantName && !merchantDoc) return false;
+  const text = normalizeName([t.description, t.descriptionRaw, t.paymentData?.paymentMethod].filter(Boolean).join(' '));
+  return /\b(COMPRA|CARTAO|CARTÃO|DEBITO|DÉBITO|CREDITO|CRÉDITO)\b/.test(text);
+}
+
 /**
  * Devolve o documento da contraparte (pagador em entradas, recebedor em saídas),
  * descartando os documentos da própria empresa informados em `ownDocuments`.
  */
 export function extractCounterpartyDocument(
-  t: { amount?: number | null; paymentData?: any; merchant?: any },
+  t: { amount?: number | null; description?: string | null; descriptionRaw?: string | null; paymentData?: any; merchant?: any },
   ownDocuments: (string | null | undefined)[] = [],
 ): CounterpartyDoc {
   const own = new Set(ownDocuments.map(digits).filter((d) => d.length >= 11));
   const isEntrada = Number(t.amount ?? 0) >= 0;
   const pd = t.paymentData ?? null;
 
-  const candidates: unknown[] = [
-    isEntrada ? pd?.payer?.documentNumber?.value : pd?.receiver?.documentNumber?.value,
-    t.merchant?.cnpj,
-    isEntrada ? pd?.receiver?.documentNumber?.value : pd?.payer?.documentNumber?.value,
-  ];
+  const primary = isEntrada ? pd?.payer?.documentNumber?.value : pd?.receiver?.documentNumber?.value;
+  const merchant = t.merchant?.cnpj;
+  const candidates: unknown[] = isMerchantPurchase(t)
+    ? [merchant, primary]
+    : [primary, merchant];
 
   for (const c of candidates) {
     const d = digits(c);
