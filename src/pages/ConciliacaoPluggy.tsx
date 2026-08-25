@@ -1577,18 +1577,36 @@ export default function ConciliacaoPluggy() {
                       {maskBRL(r.amount)}
                     </td>
                     <td className="p-2">
-                      <Select
-                        value={rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? ""}
-                        onValueChange={(v) => setRowAccount((p) => ({ ...p, [r.id]: v }))}
-                        disabled={disabled}
-                      >
-                        <SelectTrigger className="h-8 min-w-[180px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left"><SelectValue placeholder="Selecionar…" /></SelectTrigger>
-                        <SelectContent>
-                          {accounts.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {isCardRow(r) ? (
+                        rowCardId(r) ? (
+                          <Badge variant="secondary" className="whitespace-nowrap text-[11px]">
+                            {creditCardLabel(cardById[rowCardId(r)!]) ?? "Cartão de crédito"}
+                          </Badge>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 whitespace-nowrap text-xs"
+                            onClick={() => navigate("/cartoes-credito")}
+                          >
+                            Autorizar cartão
+                          </Button>
+                        )
+                      ) : (
+                        <Select
+                          value={rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? ""}
+                          onValueChange={(v) => setRowAccount((p) => ({ ...p, [r.id]: v }))}
+                          disabled={disabled}
+                        >
+                          <SelectTrigger className="h-8 min-w-[180px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left"><SelectValue placeholder="Selecionar…" /></SelectTrigger>
+                          <SelectContent>
+                            {accounts.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </td>
                     <td className="p-2">
                       <Select
