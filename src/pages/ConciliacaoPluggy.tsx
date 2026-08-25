@@ -685,6 +685,64 @@ export default function ConciliacaoPluggy() {
     [cardRouting],
   );
 
+  /**
+   * Reprocessa os lançamentos já importados: linhas de contas de cartão deixam
+   * de apontar para conta bancária (destino passa a ser o cartão vinculado) e
+   * linhas de banco recebem de volta a conta vinculada quando estiverem sem
+   * destino. Também limpa a sugestão gravada no staging para o cartão.
+   */
+  const reprocessDestinations = async () => {
+    if (!selectedCompanyId) return;
+    setReprocessing(true);
+    try {
+      const pendingRows = rows.filter((r) => r.status === "pending");
+      const cardRows = pendingRows.filter((r) => isCardRow(r));
+      const cardWithoutAuth = cardRows.filter((r) => !rowCardId(r));
+      const bankFixed: string[] = [];
+
+      // Limpa a sugestão bancária gravada nas linhas de cartão
+      const cardIdsToClear = cardRows.filter((r) => r.suggested_account_id).map((r) => r.id);
+      if (cardIdsToClear.length > 0) {
+        const { error } = await supabase
+          .from("pluggy_staging_transactions")
+          .update({ suggested_account_id: null })
+          .in("id", cardIdsToClear);
+        if (error) {
+          toast.error("Falha ao reprocessar: " + error.message);
+          return;
+        }
+      }
+
+      setRowAccount((prev) => {
+        const next = { ...prev };
+        for (const r of cardRows) delete next[r.id];
+        for (const r of pendingRows) {
+          if (isCardRow(r)) continue;
+          if (!next[r.id]) {
+            const fallback = r.suggested_account_id ?? linkedByPluggyAccount[r.pluggy_account_id];
+            if (fallback) { next[r.id] = fallback; bankFixed.push(r.id); }
+          }
+        }
+        return next;
+      });
+
+      const cardOk = cardRows.length - cardWithoutAuth.length;
+      toast.success("Destinos recalculados", {
+        description: [
+          `${cardOk} lançamento(s) de cartão apontando para o cartão vinculado`,
+          cardWithoutAuth.length > 0
+            ? `${cardWithoutAuth.length} aguardando autorização do cartão`
+            : null,
+          bankFixed.length > 0 ? `${bankFixed.length} conta(s) bancária(s) preenchida(s)` : null,
+        ].filter(Boolean).join(" • "),
+      });
+      await load();
+    } finally {
+      setReprocessing(false);
+    }
+  };
+
+
   const confirmIds = async (ids: string[]) => {
     if (ids.length === 0) return;
 
