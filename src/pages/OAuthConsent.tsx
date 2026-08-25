@@ -73,6 +73,23 @@ export default function OAuthConsent() {
   }
 
   const clientName = details?.client?.name ?? "o aplicativo";
+  const scopeLabels: Record<string, string> = {
+    openid: "Identificar sua conta",
+    email: "Compartilhar seu endereço de e-mail",
+    profile: "Compartilhar seu perfil básico",
+  };
+  const scopes: string[] = String(details?.scope ?? "")
+    .split(/[\s,]+/)
+    .filter(Boolean);
+  const redirectHost = (() => {
+    const uri = details?.client?.redirect_uri ?? details?.redirect_uri;
+    if (!uri) return null;
+    try {
+      return new URL(uri).host;
+    } catch {
+      return null;
+    }
+  })();
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-4">
