@@ -292,7 +292,11 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           return;
         }
 
-        toast.info("A autorização ainda não apareceu no Open Finance. Aguarde alguns instantes e verifique novamente.");
+        toast.info(
+          (sync?.message as string | undefined)
+            ?? "A autorização ainda não apareceu no Open Finance. Aguarde alguns instantes e verifique novamente.",
+        );
+
       }
     } finally {
       setChecking(false);
