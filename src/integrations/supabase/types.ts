@@ -16024,6 +16024,19 @@ export type Database = {
               transaction_id: string
             }[]
           }
+      pluggy_confirm_staging_card: {
+        Args: {
+          p_category_id?: string
+          p_contact_id?: string
+          p_credit_card_id: string
+          p_payment_method_id?: string
+          p_staging_ids: string[]
+        }
+        Returns: {
+          staging_id: string
+          transaction_id: string
+        }[]
+      }
       pluggy_confirm_staging_split: {
         Args: { p_account_id: string; p_splits: Json; p_staging_id: string }
         Returns: {

@@ -43,6 +43,13 @@ import {
 } from "@/lib/conciliacao/counterparty";
 import { toProperName } from "@/lib/text/properName";
 import { normalizeDocumento } from "@/lib/documento";
+import {
+  routeStagingRows,
+  isCardPluggyAccount,
+  creditCardLabel,
+  type CreditCardOption,
+  type CardRoutingMaps,
+} from "@/lib/conciliacao/cardRouting";
 
 
 
@@ -385,6 +392,9 @@ export default function ConciliacaoPluggy() {
   const [scope, setScope] = useState<ScopeInfo | null>(null);
   const [scopeUnresolved, setScopeUnresolved] = useState(false);
   const [linkedByPluggyAccount, setLinkedByPluggyAccount] = useState<Record<string, string>>({});
+  const [cardByPluggyAccount, setCardByPluggyAccount] = useState<Record<string, string>>({});
+  const [cardPluggyAccounts, setCardPluggyAccounts] = useState<Set<string>>(new Set());
+  const [creditCards, setCreditCards] = useState<CreditCardOption[]>([]);
 
   const load = useCallback(async () => {
     if (!selectedCompanyId) { setLoading(false); return; }
@@ -434,6 +444,7 @@ export default function ConciliacaoPluggy() {
       { data: cts, error: ctsError },
       { data: bks },
       { data: comp },
+      { data: cards },
     ] = await Promise.all([
       supabase.from("pluggy_connections")
         .select("id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status")
@@ -451,7 +462,7 @@ export default function ConciliacaoPluggy() {
         .order("sort_order")
         .order("name"),
       supabase.from("pluggy_accounts")
-        .select("pluggy_account_id, linked_account_id, raw")
+        .select("pluggy_account_id, linked_account_id, linked_credit_card_id, type, raw")
         .eq("company_id", selectedCompanyId),
 
       supabase.rpc("get_accessible_payment_methods", {
@@ -460,6 +471,10 @@ export default function ConciliacaoPluggy() {
       fetchConciliacaoContacts(selectedCompanyId, currentUserId),
       supabase.from("banks").select("id, name, tax_id").eq("is_active", true),
       supabase.from("companies").select("cnpj").eq("id", selectedCompanyId).maybeSingle(),
+      supabase.from("credit_cards")
+        .select("id, brand, last4, issuer")
+        .eq("company_id", selectedCompanyId)
+        .eq("is_active", true),
     ]);
 
     // Erros de carregamento não podem passar em silêncio: sem isso, listas
@@ -491,22 +506,38 @@ export default function ConciliacaoPluggy() {
     // documentos do titular das contas conectadas: sem eles, o próprio CPF do
     // usuário era tratado como contraparte de toda compra no débito.
     const linkedMap: Record<string, string> = {};
+    const cardMap: Record<string, string> = {};
+    const cardAccounts = new Set<string>();
     const ownDocs: string[] = [];
     for (const pa of (pluggyAccts ?? []) as {
       pluggy_account_id: string;
       linked_account_id: string | null;
+      linked_credit_card_id?: string | null;
+      type?: string | null;
       raw?: unknown;
     }[]) {
       if (pa.linked_account_id) linkedMap[pa.pluggy_account_id] = pa.linked_account_id;
+      if (pa.linked_credit_card_id) cardMap[pa.pluggy_account_id] = pa.linked_credit_card_id;
       const raw = (pa.raw ?? null) as
-        | { taxNumber?: string | null; owner?: { taxNumber?: string | null } | null }
+        | { type?: string | null; taxNumber?: string | null; owner?: { taxNumber?: string | null } | null }
         | null;
+      const accType = (pa.type ?? raw?.type ?? "").toUpperCase();
+      if (accType === "CREDIT") cardAccounts.add(pa.pluggy_account_id);
       for (const doc of [raw?.taxNumber, raw?.owner?.taxNumber]) {
         if (doc) ownDocs.push(String(doc));
       }
     }
     setLinkedByPluggyAccount(linkedMap);
+    setCardByPluggyAccount(cardMap);
+    setCardPluggyAccounts(cardAccounts);
+    setCreditCards(((cards ?? []) as any[]).map((c) => ({
+      id: c.id, brand: c.brand ?? null, last4: c.last4 ?? null, issuer: c.issuer ?? null,
+    })));
     setOwnDocuments(ownDocs);
+    const cardRoutingMaps: CardRoutingMaps = {
+      cardPluggyAccounts: cardAccounts,
+      cardByPluggyAccount: cardMap,
+    };
 
 
     // preload suggested selections
@@ -515,9 +546,12 @@ export default function ConciliacaoPluggy() {
     const payMap: Record<string, string> = {};
     const pmOpts = ((pms ?? []) as { id: string; name: string }[]).map((p) => ({ id: p.id, name: p.name }));
     for (const r of (staging ?? []) as StagingRow[]) {
-      const fallback = linkedMap[r.pluggy_account_id];
-      const target = r.suggested_account_id ?? fallback;
-      if (target) acctMap[r.id] = target;
+      // Linhas de cartão não recebem conta bancária como destino.
+      if (!isCardPluggyAccount(r.pluggy_account_id, cardRoutingMaps)) {
+        const fallback = linkedMap[r.pluggy_account_id];
+        const target = r.suggested_account_id ?? fallback;
+        if (target) acctMap[r.id] = target;
+      }
       if (r.suggested_category_id) catMap[r.id] = r.suggested_category_id;
       const suggestedPm = suggestPaymentMethodId(r, pmOpts);
       if (suggestedPm) payMap[r.id] = suggestedPm;
@@ -625,12 +659,49 @@ export default function ConciliacaoPluggy() {
   };
 
 
+  /** Mapas de roteamento cartão x banco usados na tela e na confirmação. */
+  const cardRouting = useMemo<CardRoutingMaps>(
+    () => ({ cardPluggyAccounts, cardByPluggyAccount }),
+    [cardPluggyAccounts, cardByPluggyAccount],
+  );
+  const cardById = useMemo(
+    () => Object.fromEntries(creditCards.map((c) => [c.id, c])) as Record<string, CreditCardOption>,
+    [creditCards],
+  );
+  const pluggyAccountByRow = useCallback(
+    (id: string) => rows.find((r) => r.id === id)?.pluggy_account_id ?? null,
+    [rows],
+  );
+  /** Cartão de destino da linha (null quando não é linha de cartão). */
+  const rowCardId = useCallback(
+    (r: StagingRow) =>
+      isCardPluggyAccount(r.pluggy_account_id, cardRouting)
+        ? (cardByPluggyAccount[r.pluggy_account_id] ?? null)
+        : null,
+    [cardRouting, cardByPluggyAccount],
+  );
+  const isCardRow = useCallback(
+    (r: StagingRow) => isCardPluggyAccount(r.pluggy_account_id, cardRouting),
+    [cardRouting],
+  );
+
   const confirmIds = async (ids: string[]) => {
     if (ids.length === 0) return;
 
-    // Group by target account
+    // Linhas de cartão vão para o cartão vinculado (e para a fatura), não para conta bancária.
+    const routed = routeStagingRows(ids, pluggyAccountByRow, cardRouting);
+    if (routed.blockedIds.length > 0) {
+      toast.error("Cartão do Open Finance ainda não autorizado", {
+        description:
+          "Autorize o cartão em Cartões de Crédito para que estes lançamentos entrem na fatura.",
+        action: { label: "Autorizar cartão", onClick: () => navigate("/cartoes-credito") },
+      });
+      return;
+    }
+
+    // Group by target account (apenas linhas de conta bancária)
     const byAccount: Record<string, string[]> = {};
-    for (const id of ids) {
+    for (const id of routed.bankIds) {
       const acctId = rowAccount[id] ?? linkedByPluggyAccount[rows.find((r) => r.id === id)?.pluggy_account_id ?? ""];
       if (!acctId) { toast.error("Selecione a conta de destino para todos os itens"); return; }
       byAccount[acctId] = byAccount[acctId] ?? [];
@@ -715,6 +786,33 @@ export default function ConciliacaoPluggy() {
         ok += Array.isArray(data) ? data.length : 0;
       }
 
+    }
+
+    // Cartão de crédito: grava com credit_card_id, o que joga o valor na fatura
+    // do mês correto pelo dia de fechamento do cartão.
+    for (const [cardId, staging_ids] of Object.entries(routed.byCard)) {
+      const byGroup: Record<string, string[]> = {};
+      for (const sid of staging_ids) {
+        const key = [
+          rowCategory[sid] ?? "__none__",
+          rowPayment[sid] ?? "__none__",
+          rowContact[sid] ?? "__none__",
+        ].join("|");
+        byGroup[key] = byGroup[key] ?? [];
+        byGroup[key].push(sid);
+      }
+      for (const [key, sids] of Object.entries(byGroup)) {
+        const [cat, pm, ct] = key.split("|");
+        const { data, error } = await supabase.rpc("pluggy_confirm_staging_card", {
+          p_staging_ids: sids,
+          p_credit_card_id: cardId,
+          p_category_id: cat === "__none__" ? null : cat,
+          p_payment_method_id: pm === "__none__" ? null : pm,
+          p_contact_id: ct === "__none__" ? null : ct,
+        });
+        if (error) { toast.error("Falha ao confirmar no cartão: " + error.message); continue; }
+        ok += Array.isArray(data) ? data.length : 0;
+      }
     }
     toast.success(ok === 1 ? "Lançamento confirmado" : `${ok} lançamentos confirmados`);
     if (mirrors > 0) {
@@ -1352,6 +1450,9 @@ export default function ConciliacaoPluggy() {
                 accounts={accounts}
                 accountValue={rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? ""}
                 onAccountChange={(v) => setRowAccount((p) => ({ ...p, [r.id]: v }))}
+                isCardRow={isCardRow(r)}
+                cardLabel={rowCardId(r) ? creditCardLabel(cardById[rowCardId(r)!]) : null}
+                onAuthorizeCard={() => navigate("/cartoes-credito")}
                 kind={rowKind[r.id] ?? "auto"}
                 onKindChange={(v) => setRowKind((p) => ({ ...p, [r.id]: v }))}
                 counterpart={rowCounterpart[r.id] ?? ""}
@@ -1479,18 +1580,36 @@ export default function ConciliacaoPluggy() {
                       {maskBRL(r.amount)}
                     </td>
                     <td className="p-2">
-                      <Select
-                        value={rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? ""}
-                        onValueChange={(v) => setRowAccount((p) => ({ ...p, [r.id]: v }))}
-                        disabled={disabled}
-                      >
-                        <SelectTrigger className="h-8 min-w-[180px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left"><SelectValue placeholder="Selecionar…" /></SelectTrigger>
-                        <SelectContent>
-                          {accounts.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {isCardRow(r) ? (
+                        rowCardId(r) ? (
+                          <Badge variant="secondary" className="whitespace-nowrap text-[11px]">
+                            {creditCardLabel(cardById[rowCardId(r)!]) ?? "Cartão de crédito"}
+                          </Badge>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 whitespace-nowrap text-xs"
+                            onClick={() => navigate("/cartoes-credito")}
+                          >
+                            Autorizar cartão
+                          </Button>
+                        )
+                      ) : (
+                        <Select
+                          value={rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? ""}
+                          onValueChange={(v) => setRowAccount((p) => ({ ...p, [r.id]: v }))}
+                          disabled={disabled}
+                        >
+                          <SelectTrigger className="h-8 min-w-[180px] max-w-full text-xs [&>span]:block [&>span]:truncate [&>span]:text-left"><SelectValue placeholder="Selecionar…" /></SelectTrigger>
+                          <SelectContent>
+                            {accounts.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </td>
                     <td className="p-2">
                       <Select
