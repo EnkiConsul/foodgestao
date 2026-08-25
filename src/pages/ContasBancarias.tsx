@@ -576,7 +576,30 @@ export default function ContasBancarias() {
                       {!a.is_active && (
                         <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">Inativa</Badge>
                       )}
+                      {duplicateNames.has((a.name || "").trim().toLowerCase()) && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] h-4 px-1.5 shrink-0 border-warning text-warning"
+                          title="Existe outra conta com o mesmo nome — são contas diferentes (números distintos), geralmente trazidas pelo Open Finance."
+                        >
+                          Mesmo nome
+                        </Badge>
+                      )}
                     </div>
+
+                    {(() => {
+                      const acc = a as typeof a & { agency?: string | null; account_number?: string | null };
+                      const ag = acc.agency?.trim();
+                      const num = acc.account_number?.trim();
+                      if (!ag && !num) return null;
+                      return (
+                        <p className="text-xs font-medium text-foreground/80 mt-0.5 truncate">
+                          {ag ? `Ag. ${ag}` : null}
+                          {ag && num ? " · " : null}
+                          {num ? `Conta ${num}` : null}
+                        </p>
+                      );
+                    })()}
 
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">
                       {a.context === "pj" && a.company_id
