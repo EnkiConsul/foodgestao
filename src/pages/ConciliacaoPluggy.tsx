@@ -1313,6 +1313,15 @@ export default function ConciliacaoPluggy() {
           <FileText className="h-4 w-4 mr-2" />
           Extrato de Conciliação
         </Button>
+        <Button
+          onClick={() => void reprocessDestinations()}
+          disabled={reprocessing || rows.length === 0}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          {reprocessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+          Recalcular destinos
+        </Button>
 
       </div>
 
