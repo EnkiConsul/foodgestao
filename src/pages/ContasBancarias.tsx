@@ -377,7 +377,11 @@ export default function ContasBancarias() {
   const filtered = useMemo(() => {
     return accounts.filter((a) => {
       if (a.soft_deleted_at) return false;
-      const matchSearch = !search || a.name.toLowerCase().includes(search.toLowerCase());
+      const term = search.toLowerCase();
+      const matchSearch =
+        !search ||
+        a.name.toLowerCase().includes(term) ||
+        ((a as typeof a & { account_number?: string | null }).account_number || "").toLowerCase().includes(term);
       const matchType = filterType === "all" || a.account_type === filterType;
       const isAccounting = (a as typeof a & { is_accounting?: boolean }).is_accounting !== false;
       const matchNature =
