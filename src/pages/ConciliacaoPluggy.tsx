@@ -385,6 +385,9 @@ export default function ConciliacaoPluggy() {
   const [scope, setScope] = useState<ScopeInfo | null>(null);
   const [scopeUnresolved, setScopeUnresolved] = useState(false);
   const [linkedByPluggyAccount, setLinkedByPluggyAccount] = useState<Record<string, string>>({});
+  const [cardByPluggyAccount, setCardByPluggyAccount] = useState<Record<string, string>>({});
+  const [cardPluggyAccounts, setCardPluggyAccounts] = useState<Set<string>>(new Set());
+  const [creditCards, setCreditCards] = useState<CreditCardOption[]>([]);
 
   const load = useCallback(async () => {
     if (!selectedCompanyId) { setLoading(false); return; }
