@@ -506,22 +506,38 @@ export default function ConciliacaoPluggy() {
     // documentos do titular das contas conectadas: sem eles, o próprio CPF do
     // usuário era tratado como contraparte de toda compra no débito.
     const linkedMap: Record<string, string> = {};
+    const cardMap: Record<string, string> = {};
+    const cardAccounts = new Set<string>();
     const ownDocs: string[] = [];
     for (const pa of (pluggyAccts ?? []) as {
       pluggy_account_id: string;
       linked_account_id: string | null;
+      linked_credit_card_id?: string | null;
+      type?: string | null;
       raw?: unknown;
     }[]) {
       if (pa.linked_account_id) linkedMap[pa.pluggy_account_id] = pa.linked_account_id;
+      if (pa.linked_credit_card_id) cardMap[pa.pluggy_account_id] = pa.linked_credit_card_id;
       const raw = (pa.raw ?? null) as
-        | { taxNumber?: string | null; owner?: { taxNumber?: string | null } | null }
+        | { type?: string | null; taxNumber?: string | null; owner?: { taxNumber?: string | null } | null }
         | null;
+      const accType = (pa.type ?? raw?.type ?? "").toUpperCase();
+      if (accType === "CREDIT") cardAccounts.add(pa.pluggy_account_id);
       for (const doc of [raw?.taxNumber, raw?.owner?.taxNumber]) {
         if (doc) ownDocs.push(String(doc));
       }
     }
     setLinkedByPluggyAccount(linkedMap);
+    setCardByPluggyAccount(cardMap);
+    setCardPluggyAccounts(cardAccounts);
+    setCreditCards(((cards ?? []) as any[]).map((c) => ({
+      id: c.id, brand: c.brand ?? null, last4: c.last4 ?? null, issuer: c.issuer ?? null,
+    })));
     setOwnDocuments(ownDocs);
+    const cardRoutingMaps: CardRoutingMaps = {
+      cardPluggyAccounts: cardAccounts,
+      cardByPluggyAccount: cardMap,
+    };
 
 
     // preload suggested selections
@@ -530,9 +546,12 @@ export default function ConciliacaoPluggy() {
     const payMap: Record<string, string> = {};
     const pmOpts = ((pms ?? []) as { id: string; name: string }[]).map((p) => ({ id: p.id, name: p.name }));
     for (const r of (staging ?? []) as StagingRow[]) {
-      const fallback = linkedMap[r.pluggy_account_id];
-      const target = r.suggested_account_id ?? fallback;
-      if (target) acctMap[r.id] = target;
+      // Linhas de cartão não recebem conta bancária como destino.
+      if (!isCardPluggyAccount(r.pluggy_account_id, cardRoutingMaps)) {
+        const fallback = linkedMap[r.pluggy_account_id];
+        const target = r.suggested_account_id ?? fallback;
+        if (target) acctMap[r.id] = target;
+      }
       if (r.suggested_category_id) catMap[r.id] = r.suggested_category_id;
       const suggestedPm = suggestPaymentMethodId(r, pmOpts);
       if (suggestedPm) payMap[r.id] = suggestedPm;
