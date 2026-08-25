@@ -4,6 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, ShieldCheck } from "lucide-react";
+import {
+  applyConsentMetaHardening,
+  clearConsentNonce,
+  createConsentNonce,
+  isFramed,
+  verifyConsentNonce,
+} from "@/lib/security/consentSecurity";
 
 type OAuthNamespace = {
   getAuthorizationDetails: (id: string) => Promise<{ data: any; error: { message: string } | null }>;
