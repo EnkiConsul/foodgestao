@@ -787,6 +787,33 @@ export default function ConciliacaoPluggy() {
       }
 
     }
+
+    // Cartão de crédito: grava com credit_card_id, o que joga o valor na fatura
+    // do mês correto pelo dia de fechamento do cartão.
+    for (const [cardId, staging_ids] of Object.entries(routed.byCard)) {
+      const byGroup: Record<string, string[]> = {};
+      for (const sid of staging_ids) {
+        const key = [
+          rowCategory[sid] ?? "__none__",
+          rowPayment[sid] ?? "__none__",
+          rowContact[sid] ?? "__none__",
+        ].join("|");
+        byGroup[key] = byGroup[key] ?? [];
+        byGroup[key].push(sid);
+      }
+      for (const [key, sids] of Object.entries(byGroup)) {
+        const [cat, pm, ct] = key.split("|");
+        const { data, error } = await supabase.rpc("pluggy_confirm_staging_card", {
+          p_staging_ids: sids,
+          p_credit_card_id: cardId,
+          p_category_id: cat === "__none__" ? null : cat,
+          p_payment_method_id: pm === "__none__" ? null : pm,
+          p_contact_id: ct === "__none__" ? null : ct,
+        });
+        if (error) { toast.error("Falha ao confirmar no cartão: " + error.message); continue; }
+        ok += Array.isArray(data) ? data.length : 0;
+      }
+    }
     toast.success(ok === 1 ? "Lançamento confirmado" : `${ok} lançamentos confirmados`);
     if (mirrors > 0) {
       toast.info(
