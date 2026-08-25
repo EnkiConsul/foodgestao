@@ -1450,6 +1450,9 @@ export default function ConciliacaoPluggy() {
                 accounts={accounts}
                 accountValue={rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? ""}
                 onAccountChange={(v) => setRowAccount((p) => ({ ...p, [r.id]: v }))}
+                isCardRow={isCardRow(r)}
+                cardLabel={rowCardId(r) ? creditCardLabel(cardById[rowCardId(r)!]) : null}
+                onAuthorizeCard={() => navigate("/cartoes-credito")}
                 kind={rowKind[r.id] ?? "auto"}
                 onKindChange={(v) => setRowKind((p) => ({ ...p, [r.id]: v }))}
                 counterpart={rowCounterpart[r.id] ?? ""}
