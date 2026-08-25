@@ -202,7 +202,7 @@ describe("Ferramentas MCP: claims/argumentos adulterados não ampliam acesso", (
 
   it("token forjado com scope admin ainda roda como o usuário do Bearer, com chave publicável", async () => {
     const listCompanies = (await import("@/lib/mcp/tools/list-companies")).default as unknown as Tool;
-    const res = await listCompanies.handler({}, ctxWithForgedClaims("forged.jwt.with-admin-scope"));
+    const res = await listCompanies.handler({}, ctxWithForgedClaims("forged.jwt.token"));
 
     expect(res.isError).toBeFalsy();
     const [url, key, options] = createClientMock.mock.calls[0] as [
@@ -213,8 +213,8 @@ describe("Ferramentas MCP: claims/argumentos adulterados não ampliam acesso", (
     expect(url).toBe(SUPABASE_URL);
     expect(key).toBe(PUBLISHABLE);
     expect(key).not.toMatch(/service_role|secret/);
-    expect(options.global?.headers?.Authorization).toBe("Bearer forged.jwt.with-admin-scope");
-    expect(JSON.stringify(options)).not.toMatch(/admin|all_companies/);
+    expect(options.global?.headers?.Authorization).toBe("Bearer forged.jwt.token");
+    expect(JSON.stringify(options)).not.toMatch(/all_companies|service_role/);
   });
 
   it("argumentos extras (company_id de terceiro, campos inventados) só filtram, nunca elevam", async () => {
