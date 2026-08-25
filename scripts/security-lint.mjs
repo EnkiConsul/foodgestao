@@ -217,7 +217,45 @@ const checks = [
         AND COALESCE(p.with_check, p.qual, '') !~ 'company_id';
     `,
   },
+  {
+    id: "app_hidden_screens_public_select",
+    severity: "critical",
+    description:
+      "Regressão: `app_hidden_screens` exposta a anon/public (policy alcançável por anon ou GRANT direto para anon)",
+    sql: `
+      SELECT 'policy ' || policyname || ' (' || cmd || ' → ' || array_to_string(roles, ',') || ')' AS finding
+      FROM pg_policies
+      WHERE schemaname = 'public'
+        AND tablename = 'app_hidden_screens'
+        AND roles && ARRAY['anon','public']::name[]
+      UNION ALL
+      SELECT 'grant ' || privilege_type || ' → anon' AS finding
+      FROM information_schema.role_table_grants
+      WHERE table_schema = 'public'
+        AND table_name = 'app_hidden_screens'
+        AND grantee = 'anon';
+    `,
+  },
+  {
+    id: "dp_documentos_storage_member_read_bypass",
+    severity: "critical",
+    description:
+      "Regressão: policy de leitura do bucket `dp-documentos` sem restrição a admin/owner, super admin ou o próprio colaborador dono do documento",
+    sql: `
+      SELECT policyname || ' (' || cmd || ')' AS finding
+      FROM pg_policies
+      WHERE schemaname = 'storage'
+        AND tablename = 'objects'
+        AND cmd IN ('SELECT','ALL')
+        AND COALESCE(qual, 'true') ~ 'dp-documentos'
+        AND NOT (
+          COALESCE(qual, '') ~ 'is_company_admin_or_owner'
+          AND COALESCE(qual, '') ~ 'is_super_admin'
+        );
+    `,
+  },
 ];
+
 
 
 function runQuery(sql) {
