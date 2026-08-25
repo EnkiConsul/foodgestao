@@ -47,6 +47,11 @@ interface StagingCardProps {
   accounts: AccountOpt[];
   accountValue: string;
   onAccountChange: (value: string) => void;
+  /** true quando a linha vem de conta de cartão do Open Finance. */
+  isCardRow?: boolean;
+  /** Rótulo do cartão autorizado (null quando ainda pendente de autorização). */
+  cardLabel?: string | null;
+  onAuthorizeCard?: () => void;
   kind: "auto" | "transfer";
   onKindChange: (value: "auto" | "transfer") => void;
   counterpart: string;
