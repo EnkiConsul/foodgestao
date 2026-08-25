@@ -59,6 +59,11 @@ export interface EnrichOptions {
   ownNames?: (string | null | undefined)[];
 }
 
+interface ExternalCounterparty {
+  name: string | null;
+  document: string | null;
+}
+
 function digitsOf(v: unknown): string {
   return String(v ?? '').replace(/\D/g, '');
 }
@@ -73,16 +78,15 @@ function normalizeName(v: string): string {
     .trim();
 }
 
-/**
- * Nome da contraparte EXTERNA: pagador em entradas, recebedor em saídas,
- * descartando o próprio titular (documento ou nome da empresa) antes de
- * considerar o `merchant` — em créditos o Pluggy às vezes traz a própria
- * empresa como merchant.
- */
-export function externalCounterpartyName(
-  t: EnrichInput,
-  options: EnrichOptions = {},
-): string | null {
+function isMerchantPurchase(t: EnrichInput): boolean {
+  const merchantName = t.merchant?.businessName ?? t.merchant?.name;
+  const merchantDoc = t.merchant?.cnpj;
+  if (!merchantName && !merchantDoc) return false;
+  const text = normalizeName([t.description, t.descriptionRaw, t.paymentData?.paymentMethod].filter(Boolean).join(' '));
+  return /\b(COMPRA|CARTAO|CARTÃO|DEBITO|DÉBITO|CREDITO|CRÉDITO)\b/.test(text);
+}
+
+function pickExternalCounterparty(t: EnrichInput, options: EnrichOptions = {}): ExternalCounterparty | null {
   const ownDocs = new Set(
     (options.ownDocuments ?? []).map(digitsOf).filter((d) => d.length >= 11),
   );
@@ -95,23 +99,44 @@ export function externalCounterpartyName(
   const isEntrada = Number(t.amount ?? 0) >= 0;
   const pd = t.paymentData ?? null;
   const primary = isEntrada ? pd?.payer : pd?.receiver;
-  const secondary = isEntrada ? pd?.receiver : pd?.payer;
-
-  const candidates: { name?: unknown; document?: unknown }[] = [
-    { name: primary?.name, document: primary?.documentNumber?.value },
-    { name: t.merchant?.businessName ?? t.merchant?.name, document: t.merchant?.cnpj },
-    { name: secondary?.name, document: secondary?.documentNumber?.value },
+  const candidates: ExternalCounterparty[] = [
+    { name: primary?.name ?? null, document: primary?.documentNumber?.value ?? null },
+    { name: t.merchant?.businessName ?? t.merchant?.name ?? null, document: t.merchant?.cnpj ?? null },
   ];
+  const ordered = isMerchantPurchase(t) ? [candidates[1], candidates[0]] : candidates;
 
-  for (const c of candidates) {
+  const usable = ordered.filter((c) => {
     const name = String(c.name ?? '').trim();
-    if (!name) continue;
     const doc = digitsOf(c.document);
-    if (doc && ownDocs.has(doc)) continue;
-    if (ownNames.has(normalizeName(name))) continue;
-    return name;
-  }
-  return null;
+    if (doc && ownDocs.has(doc)) return false;
+    if (name && ownNames.has(normalizeName(name))) return false;
+    return !!(name || doc.length >= 11);
+  });
+  if (usable.length === 0) return null;
+
+  const complete = usable.find((c) => String(c.name ?? '').trim() && digitsOf(c.document).length >= 11);
+  const named = complete ?? usable.find((c) => String(c.name ?? '').trim()) ?? usable[0];
+  const documented = digitsOf(named.document).length >= 11
+    ? named
+    : usable.find((c) => digitsOf(c.document).length >= 11) ?? null;
+
+  return {
+    name: String(named.name ?? '').trim() || null,
+    document: documented?.document ?? named.document ?? null,
+  };
+}
+
+/**
+ * Nome da contraparte EXTERNA: pagador em entradas, recebedor em saídas,
+ * descartando o próprio titular (documento ou nome da empresa) antes de
+ * considerar o `merchant` — em créditos o Pluggy às vezes traz a própria
+ * empresa como merchant.
+ */
+export function externalCounterpartyName(
+  t: EnrichInput,
+  options: EnrichOptions = {},
+): string | null {
+  return pickExternalCounterparty(t, options)?.name ?? null;
 }
 
 /** Nome da contraparte (quando disponível), independente do rótulo do banco. */

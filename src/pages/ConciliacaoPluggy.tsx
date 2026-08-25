@@ -26,12 +26,13 @@ import { DescriptionEditor } from "@/components/conciliacao/DescriptionEditor";
 
 
 import { ContactSelectContent } from "@/components/conciliacao/ContactSelectContent";
+import { BulkContactImportDialog, type BulkContactCandidate } from "@/components/conciliacao/BulkContactImportDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { suggestPaymentMethodId, normalizeText } from "@/lib/conciliacao/paymentMethodInference";
 import { fetchConciliacaoContacts, ensureContactCompanyLink, findSimilarContacts, type SimilarContact } from "@/lib/conciliacao/contacts";
 import { ContactDuplicateDialog } from "@/components/conciliacao/ContactDuplicateDialog";
 
-import { bestContactMatch, normalizeContactKey } from "@/lib/conciliacao/contactMatch";
+import { bestContactMatch, contactMatchScore, normalizeContactKey } from "@/lib/conciliacao/contactMatch";
 import { loadConciliacaoMemory, EMPTY_MEMORY, type ConciliacaoMemory } from "@/lib/conciliacao/history";
 import {
   counterpartyLabel,
@@ -329,6 +330,8 @@ export default function ConciliacaoPluggy() {
     } | null
   >(null);
   const [duplicateBusy, setDuplicateBusy] = useState<string | null>(null);
+  const [bulkContactsOpen, setBulkContactsOpen] = useState(false);
+  const [bulkContactBusy, setBulkContactBusy] = useState(false);
 
   /**
    * Edição do fornecedor/cliente já vinculado a uma linha: guardamos o registro
@@ -396,6 +399,7 @@ export default function ConciliacaoPluggy() {
   const [cardPluggyAccounts, setCardPluggyAccounts] = useState<Set<string>>(new Set());
   const [creditCards, setCreditCards] = useState<CreditCardOption[]>([]);
   const [reprocessing, setReprocessing] = useState(false);
+  const [counterpartyReprocessing, setCounterpartyReprocessing] = useState(false);
 
   const load = useCallback(async () => {
     if (!selectedCompanyId) { setLoading(false); return; }
@@ -743,6 +747,82 @@ export default function ConciliacaoPluggy() {
     }
   };
 
+  /** Recalcula nome + CPF/CNPJ da contraparte das linhas pendentes já importadas. */
+  const reprocessCounterparties = async () => {
+    if (!selectedCompanyId) return;
+    const ownDocs = Array.from(ownDocumentSet);
+    const pendingRows: StagingRow[] = [];
+    for (let from = 0; ; from += 500) {
+      let query = supabase
+        .from("pluggy_staging_transactions")
+        .select("*")
+        .eq("company_id", selectedCompanyId)
+        .eq("status", "pending")
+        .order("date", { ascending: false })
+        .range(from, from + 499);
+      if (scope) query = query.eq("pluggy_account_id", scope.pluggyAccountId);
+      const { data, error } = await query;
+      if (error) {
+        toast.error("Falha ao carregar pendentes para reprocessar", { description: error.message });
+        return;
+      }
+      const page = (data ?? []) as StagingRow[];
+      pendingRows.push(...page);
+      if (page.length < 500) break;
+    }
+    const updates = pendingRows
+      .map((r) => {
+        const cp = extractCounterparty(r, { ownDocuments: ownDocs });
+        if (cp.internal) return null;
+        const nextName = cp.name ?? null;
+        const nextDocument = cp.document ?? null;
+        const nextDocumentType = cp.documentType ?? null;
+        if (
+          (r.counterparty_name ?? null) === nextName &&
+          (r.counterparty_document ?? null) === nextDocument &&
+          (r.counterparty_document_type ?? null) === nextDocumentType
+        ) return null;
+        return { id: r.id, counterparty_name: nextName, counterparty_document: nextDocument, counterparty_document_type: nextDocumentType };
+      })
+      .filter((u): u is { id: string; counterparty_name: string | null; counterparty_document: string | null; counterparty_document_type: "CNPJ" | "CPF" | null } => !!u);
+
+    if (updates.length === 0) {
+      toast.info("Fornecedores/clientes já estão atualizados");
+      return;
+    }
+
+    setCounterpartyReprocessing(true);
+    try {
+      for (let i = 0; i < updates.length; i += 25) {
+        const chunk = updates.slice(i, i + 25);
+        const results = await Promise.all(chunk.map((u) =>
+          supabase
+            .from("pluggy_staging_transactions")
+            .update({
+              counterparty_name: u.counterparty_name,
+              counterparty_document: u.counterparty_document,
+              counterparty_document_type: u.counterparty_document_type,
+            })
+            .eq("id", u.id),
+        ));
+        const failed = results.find((result) => result.error);
+        if (failed?.error) {
+          toast.error("Falha ao reprocessar fornecedores/clientes", { description: failed.error.message });
+          return;
+        }
+      }
+      setRows((prev) => prev.map((r) => {
+        const u = updates.find((item) => item.id === r.id);
+        return u ? { ...r, ...u } : r;
+      }));
+      toast.success("Fornecedores/clientes reprocessados", {
+        description: `${updates.length} lançamento(s) pendente(s) atualizados com nome e CPF/CNPJ separados.`,
+      });
+    } finally {
+      setCounterpartyReprocessing(false);
+    }
+  };
+
 
   const confirmIds = async (ids: string[]) => {
     if (ids.length === 0) return;
@@ -1076,6 +1156,55 @@ export default function ConciliacaoPluggy() {
     return "CNPJ/CPF do extrato não cadastrado";
   };
 
+  const bulkContactCandidates = useMemo<BulkContactCandidate[]>(() => {
+    const existingDocs = new Set(
+      contacts
+        .map((c) => normalizeDocumento(c.document))
+        .filter((d) => d.length >= 11),
+    );
+    const existingNames = new Set(
+      contacts
+        .map((c) => normalizeContactKey(c.name))
+        .filter((n) => n.length >= 3),
+    );
+    const byKey = new Map<string, BulkContactCandidate>();
+
+    for (const r of pendingFiltered) {
+      if (rowContact[r.id] || (rowKind[r.id] ?? "auto") === "transfer") continue;
+      const cp = counterpartyByRow[r.id];
+      if (!cp || cp.internal || !cp.name) continue;
+      const doc = normalizeDocumento(cp.document);
+      const nameKey = normalizeContactKey(cp.name);
+      if (doc && existingDocs.has(doc)) continue;
+      if (!doc && existingNames.has(nameKey)) continue;
+      if (!doc && nameKey.length < 3) continue;
+
+      const key = doc ? `doc:${doc}` : `name:${nameKey}:${r.amount >= 0 ? "cliente" : "fornecedor"}`;
+      const current = byKey.get(key);
+      if (current) {
+        current.rowIds.push(r.id);
+        continue;
+      }
+
+      let similarName: string | null = null;
+      for (const c of contacts) {
+        const score = contactMatchScore(cp.name, c.name);
+        if (score >= 0.45) { similarName = c.name; break; }
+      }
+
+      byKey.set(key, {
+        key,
+        name: cp.name,
+        document: cp.document ?? null,
+        type: r.amount >= 0 ? "cliente" : "fornecedor",
+        rowIds: [r.id],
+        similarName,
+      });
+    }
+
+    return Array.from(byKey.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [pendingFiltered, rowContact, rowKind, counterpartyByRow, contacts]);
+
 
   // Pré-seleciona o fornecedor/cliente identificado pelo documento do extrato,
   // sem sobrescrever escolhas manuais nem rascunhos salvos.
@@ -1163,6 +1292,103 @@ export default function ConciliacaoPluggy() {
       toast.success("Contato já cadastrado — vinculado ao lançamento");
     } finally {
       setDuplicateBusy(null);
+    }
+  };
+
+  const createBulkContacts = async (keys: string[]) => {
+    if (!selectedCompanyId || keys.length === 0) return;
+    const selectedCandidates = bulkContactCandidates.filter((c) => keys.includes(c.key));
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth.user?.id;
+    if (!userId) { toast.error("Sessão expirada"); return; }
+
+    setBulkContactBusy(true);
+    let created = 0;
+    let linked = 0;
+    let skipped = 0;
+    const localContacts: ContactOpt[] = [];
+    const rowLinks: Record<string, string> = {};
+
+    try {
+      for (const candidate of selectedCandidates) {
+        const similar = await findSimilarContacts({
+          userId,
+          name: candidate.name,
+          document: candidate.document,
+          limit: 1,
+        });
+        const existing = similar.find((c) => c.reason === "documento" || c.reason === "nome") ?? null;
+        if (existing) {
+          await ensureContactCompanyLink(existing.id, selectedCompanyId);
+          for (const rowId of candidate.rowIds) rowLinks[rowId] = existing.id;
+          localContacts.push({
+            id: existing.id,
+            name: existing.name,
+            type: existing.contact_type,
+            document: existing.document,
+            linkedToCompany: true,
+          });
+          linked += 1;
+          continue;
+        }
+
+        const { data: newContact, error } = await supabase
+          .from("contacts")
+          .insert({
+            user_id: userId,
+            name: toProperName(candidate.name),
+            contact_type: candidate.type,
+            document: candidate.document,
+            visible_pf: false,
+          } as never)
+          .select("id, name, contact_type, document")
+          .single();
+
+        if (error || !newContact) {
+          skipped += 1;
+          continue;
+        }
+
+        const contactRow = newContact as unknown as { id: string; name: string; contact_type: string | null; document: string | null };
+        await ensureContactCompanyLink(contactRow.id, selectedCompanyId);
+        await supabase.rpc("insert_audit_log", {
+          _action: "contact_created_from_conciliacao_bulk",
+          _entity_type: "contact",
+          _entity_id: contactRow.id,
+          _details: { target_name: contactRow.name, rows: candidate.rowIds.length },
+        });
+        for (const rowId of candidate.rowIds) rowLinks[rowId] = contactRow.id;
+        localContacts.push({
+          id: contactRow.id,
+          name: contactRow.name,
+          type: contactRow.contact_type,
+          document: contactRow.document,
+          linkedToCompany: true,
+        });
+        created += 1;
+      }
+
+      if (localContacts.length > 0) {
+        setContacts((prev) => {
+          const byId = new Map(prev.map((c) => [c.id, c]));
+          for (const c of localContacts) byId.set(c.id, { ...byId.get(c.id), ...c });
+          return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
+        });
+      }
+      if (Object.keys(rowLinks).length > 0) {
+        setRowContact((prev) => ({ ...prev, ...rowLinks }));
+      }
+      setBulkContactsOpen(false);
+      await recarregarContatos(selectedCompanyId);
+      toast.success("Cadastro em massa concluído", {
+        description: [
+          created ? `${created} criado(s)` : null,
+          linked ? `${linked} já existente(s) vinculado(s)` : null,
+          skipped ? `${skipped} não criado(s)` : null,
+        ].filter(Boolean).join(" • "),
+      });
+    } finally {
+      setBulkContactBusy(false);
     }
   };
 
@@ -1322,6 +1548,25 @@ export default function ConciliacaoPluggy() {
           {reprocessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
           Recalcular destinos
         </Button>
+        <Button
+          onClick={() => void reprocessCounterparties()}
+          disabled={counterpartyReprocessing || rows.length === 0}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          {counterpartyReprocessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+          Atualizar fornecedores
+        </Button>
+        {bulkContactCandidates.length > 0 && (
+          <Button
+            onClick={() => setBulkContactsOpen(true)}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Cadastrar fornecedores/clientes ({bulkContactCandidates.length})
+          </Button>
+        )}
 
       </div>
 
@@ -1978,6 +2223,14 @@ export default function ConciliacaoPluggy() {
           setDuplicateCheck(null);
           setContactForm({ rowId, name, document, type });
         }}
+      />
+
+      <BulkContactImportDialog
+        open={bulkContactsOpen}
+        onOpenChange={setBulkContactsOpen}
+        candidates={bulkContactCandidates}
+        busy={bulkContactBusy}
+        onCreate={(keys) => { void createBulkContacts(keys); }}
       />
 
       <ContactFormDialog
