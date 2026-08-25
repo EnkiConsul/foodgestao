@@ -377,7 +377,11 @@ export default function ContasBancarias() {
   const filtered = useMemo(() => {
     return accounts.filter((a) => {
       if (a.soft_deleted_at) return false;
-      const matchSearch = !search || a.name.toLowerCase().includes(search.toLowerCase());
+      const term = search.toLowerCase();
+      const matchSearch =
+        !search ||
+        a.name.toLowerCase().includes(term) ||
+        ((a as typeof a & { account_number?: string | null }).account_number || "").toLowerCase().includes(term);
       const matchType = filterType === "all" || a.account_type === filterType;
       const isAccounting = (a as typeof a & { is_accounting?: boolean }).is_accounting !== false;
       const matchNature =
@@ -386,6 +390,17 @@ export default function ContasBancarias() {
       return matchSearch && matchType && matchNature;
     });
   }, [accounts, search, filterType, filterNature]);
+
+  const duplicateNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    accounts
+      .filter((a) => !a.soft_deleted_at)
+      .forEach((a) => {
+        const key = (a.name || "").trim().toLowerCase();
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      });
+    return new Set(Array.from(counts.entries()).filter(([, n]) => n > 1).map(([k]) => k));
+  }, [accounts]);
 
   const totals = useMemo(() => {
     const active = accounts.filter((a) => a.is_active);
@@ -561,7 +576,30 @@ export default function ContasBancarias() {
                       {!a.is_active && (
                         <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">Inativa</Badge>
                       )}
+                      {duplicateNames.has((a.name || "").trim().toLowerCase()) && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] h-4 px-1.5 shrink-0 border-warning text-warning"
+                          title="Existe outra conta com o mesmo nome — são contas diferentes (números distintos), geralmente trazidas pelo Open Finance."
+                        >
+                          Mesmo nome
+                        </Badge>
+                      )}
                     </div>
+
+                    {(() => {
+                      const acc = a as typeof a & { agency?: string | null; account_number?: string | null };
+                      const ag = acc.agency?.trim();
+                      const num = acc.account_number?.trim();
+                      if (!ag && !num) return null;
+                      return (
+                        <p className="text-xs font-medium text-foreground/80 mt-0.5 truncate">
+                          {ag ? `Ag. ${ag}` : null}
+                          {ag && num ? " · " : null}
+                          {num ? `Conta ${num}` : null}
+                        </p>
+                      );
+                    })()}
 
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">
                       {a.context === "pj" && a.company_id
