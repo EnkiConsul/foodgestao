@@ -524,12 +524,25 @@ Deno.serve(async (req) => {
 
           let targetAccountId = existingAccountId;
           const ofBalance = typeof acc.balance === 'number' ? acc.balance : null;
+
+          // Agência e tipo vindos do Open Finance:
+          // bankData.transferNumber vem no formato "<banco>/<agência>/<conta>".
+          const transferNumber = (acc as { bankData?: { transferNumber?: string | null } }).bankData?.transferNumber ?? null;
+          const parts = typeof transferNumber === 'string' ? transferNumber.split('/') : [];
+          const ofAgency = parts.length >= 3 ? (parts[1]?.trim() || null) : null;
+          const subtypeUpper = (acc.subtype ?? '').toUpperCase();
+          const ofAccountType = subtypeUpper.includes('SAVING')
+            ? 'poupanca'
+            : subtypeUpper.includes('INVEST')
+              ? 'investimento'
+              : 'corrente';
+
           if (!targetAccountId) {
             const { data: newAcc } = await admin.from('accounts').insert({
               user_id: ownerUserId,
               company_id: effectiveCompanyId,
               name: acc.name ?? acc.marketingName ?? item?.connector?.name ?? 'Conta bancária',
-              account_type: 'corrente',
+              account_type: ofAccountType,
               context: 'pj',
               initial_balance: ofBalance ?? 0,
               current_balance: ofBalance ?? 0,
@@ -538,15 +551,26 @@ Deno.serve(async (req) => {
               is_active: true,
               bank_slug: bankSlug,
               account_number: accNumber,
+              agency: ofAgency,
             }).select('id').single();
             targetAccountId = newAcc?.id ?? null;
-          } else if (ofBalance !== null) {
-            // Atualiza o saldo da conta local a partir do saldo reportado pelo Open Finance.
-            // Usa RPC que habilita a flag do motor financeiro para contornar o guard.
-            await admin.rpc('sync_of_account_balance', {
-              _account_id: targetAccountId,
-              _new_balance: ofBalance,
-            });
+          } else {
+            if (ofBalance !== null) {
+              // Atualiza o saldo da conta local a partir do saldo reportado pelo Open Finance.
+              // Usa RPC que habilita a flag do motor financeiro para contornar o guard.
+              await admin.rpc('sync_of_account_balance', {
+                _account_id: targetAccountId,
+                _new_balance: ofBalance,
+              });
+            }
+            // Completa agência apenas quando ainda está vazia (não sobrescreve edição manual).
+            if (ofAgency) {
+              const { data: localAcc } = await admin
+                .from('accounts').select('agency').eq('id', targetAccountId).maybeSingle();
+              if (localAcc && !localAcc.agency) {
+                await admin.from('accounts').update({ agency: ofAgency }).eq('id', targetAccountId);
+              }
+            }
           }
 
           if (targetAccountId) {
