@@ -119,14 +119,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const result = await createConnectToken(itemId, {
-      oauthRedirectUri,
-      clientUserId: claims.claims.sub,
-    });
-
     // Registra a intenção de conexão para permitir concluir a conexão pelo
     // webhook quando o navegador não retornar (ex.: Open Finance por QR Code).
     let connectRequestId: string | null = null;
+    let clientUserId = claims.claims.sub as string;
     if (!companyId) {
       // Apenas o probe do painel admin chega aqui.
     } else {
@@ -176,9 +172,41 @@ Deno.serve(async (req) => {
           })
           .select('id')
           .maybeSingle();
-        if (reqErr) console.error('connect_request insert failed', reqErr.message);
+        if (reqErr || !reqRow?.id) {
+          console.error('connect_request insert failed', reqErr?.message ?? 'missing id');
+          return new Response(JSON.stringify({
+            error: 'connect_request_failed',
+            message: 'Não foi possível registrar a solicitação de conexão. Tente novamente.',
+          }), {
+            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
         connectRequestId = reqRow?.id ?? null;
+        // Usa o ID da solicitação como correlação nativa na Pluggy. Assim, se o
+        // usuário concluir no app do banco e o widget não voltar ao navegador, o
+        // backend consegue identificar exatamente qual autorização terminou.
+        clientUserId = `ofreq:${connectRequestId}`;
       }
+    }
+
+    let result: { accessToken: string };
+    try {
+      result = await createConnectToken(itemId, {
+        oauthRedirectUri,
+        clientUserId,
+      });
+    } catch (e) {
+      if (connectRequestId) {
+        const admin = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+        );
+        await admin
+          .from('pluggy_connect_requests')
+          .update({ status: 'error', last_error: String(e).slice(0, 500) })
+          .eq('id', connectRequestId);
+      }
+      throw e;
     }
 
 

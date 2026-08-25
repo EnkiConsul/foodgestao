@@ -55,6 +55,13 @@ export async function getItem(itemId: string) {
   return res.json();
 }
 
+export async function listItems(page = 1, pageSize = 100) {
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  const res = await pluggyFetch(`/items?${params.toString()}`);
+  if (!res.ok) throw new Error(`list_items_failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
 export async function listAccounts(itemId: string) {
   const res = await pluggyFetch(`/accounts?itemId=${itemId}`);
   if (!res.ok) throw new Error(`list_accounts_failed: ${res.status}`);
