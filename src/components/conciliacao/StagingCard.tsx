@@ -257,20 +257,39 @@ function StagingCardBase({
             )}
 
             <div>
-              <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Conta destino</label>
-              <Select value={accountValue} onValueChange={onAccountChange} disabled={disabled}>
-                <SelectTrigger className="h-10 w-full max-w-full text-sm [&>span]:block [&>span]:truncate [&>span]:text-left">
-                  <SelectValue placeholder="Selecionar…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                {isCardRow ? "Cartão de destino" : "Conta destino"}
+              </label>
+              {isCardRow ? (
+                cardLabel ? (
+                  <p className="mt-1 text-sm font-medium">{cardLabel}</p>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-1 h-9 w-full text-xs"
+                    onClick={onAuthorizeCard}
+                  >
+                    Autorizar cartão
+                  </Button>
+                )
+              ) : (
+                <Select value={accountValue} onValueChange={onAccountChange} disabled={disabled}>
+                  <SelectTrigger className="h-10 w-full max-w-full text-sm [&>span]:block [&>span]:truncate [&>span]:text-left">
+                    <SelectValue placeholder="Selecionar…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
+
 
             <div>
               <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo</label>
