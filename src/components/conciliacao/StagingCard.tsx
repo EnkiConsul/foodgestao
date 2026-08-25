@@ -154,8 +154,9 @@ function StagingCardBase({
   const contactName = contacts.find((c) => c.id === contact)?.name ?? null;
   const paymentName = paymentMethods.find((p) => p.id === paymentMethod)?.name ?? null;
 
-  const ready =
-    kind === "transfer" ? !!accountValue && !!counterpart : !!accountValue && !!category;
+  const ready = isCardRow
+    ? !!cardLabel && !!category
+    : kind === "transfer" ? !!accountValue && !!counterpart : !!accountValue && !!category;
 
   const summary: string[] = [];
   if (kind === "transfer") {
