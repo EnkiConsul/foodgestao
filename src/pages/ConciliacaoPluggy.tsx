@@ -395,6 +395,7 @@ export default function ConciliacaoPluggy() {
   const [cardByPluggyAccount, setCardByPluggyAccount] = useState<Record<string, string>>({});
   const [cardPluggyAccounts, setCardPluggyAccounts] = useState<Set<string>>(new Set());
   const [creditCards, setCreditCards] = useState<CreditCardOption[]>([]);
+  const [reprocessing, setReprocessing] = useState(false);
 
   const load = useCallback(async () => {
     if (!selectedCompanyId) { setLoading(false); return; }
