@@ -461,7 +461,7 @@ export default function ConciliacaoPluggy() {
         .order("sort_order")
         .order("name"),
       supabase.from("pluggy_accounts")
-        .select("pluggy_account_id, linked_account_id, raw")
+        .select("pluggy_account_id, linked_account_id, linked_credit_card_id, type, raw")
         .eq("company_id", selectedCompanyId),
 
       supabase.rpc("get_accessible_payment_methods", {
@@ -470,6 +470,10 @@ export default function ConciliacaoPluggy() {
       fetchConciliacaoContacts(selectedCompanyId, currentUserId),
       supabase.from("banks").select("id, name, tax_id").eq("is_active", true),
       supabase.from("companies").select("cnpj").eq("id", selectedCompanyId).maybeSingle(),
+      supabase.from("credit_cards")
+        .select("id, brand, last4, issuer")
+        .eq("company_id", selectedCompanyId)
+        .eq("is_active", true),
     ]);
 
     // Erros de carregamento não podem passar em silêncio: sem isso, listas
