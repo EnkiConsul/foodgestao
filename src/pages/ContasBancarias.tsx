@@ -387,6 +387,17 @@ export default function ContasBancarias() {
     });
   }, [accounts, search, filterType, filterNature]);
 
+  const duplicateNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    accounts
+      .filter((a) => !a.soft_deleted_at)
+      .forEach((a) => {
+        const key = (a.name || "").trim().toLowerCase();
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      });
+    return new Set(Array.from(counts.entries()).filter(([, n]) => n > 1).map(([k]) => k));
+  }, [accounts]);
+
   const totals = useMemo(() => {
     const active = accounts.filter((a) => a.is_active);
     const saldoTotal = active.reduce((s, a) => s + Number(a.current_balance), 0);
