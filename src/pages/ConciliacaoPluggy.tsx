@@ -43,6 +43,13 @@ import {
 } from "@/lib/conciliacao/counterparty";
 import { toProperName } from "@/lib/text/properName";
 import { normalizeDocumento } from "@/lib/documento";
+import {
+  routeStagingRows,
+  isCardPluggyAccount,
+  creditCardLabel,
+  type CreditCardOption,
+  type CardRoutingMaps,
+} from "@/lib/conciliacao/cardRouting";
 
 
 
