@@ -17,7 +17,7 @@ import type { PluggyCreditReviewRow } from "@/hooks/usePluggyCreditReview";
 import type { Database } from "@/integrations/supabase/types";
 
 type CreditCardRow = Database["public"]["Tables"]["credit_cards"]["Row"];
-type PaymentAccountOption = Pick<Database["public"]["Tables"]["accounts"]["Row"], "id" | "name" | "account_type" | "account_number" | "bank_slug">;
+type PaymentAccountOption = Pick<Database["public"]["Tables"]["accounts"]["Row"], "id" | "name" | "account_type" | "agency" | "account_number" | "bank_slug">;
 
 const BRANDS = ["Visa", "Mastercard", "Elo", "American Express", "Hipercard", "Diners", "Outro"];
 const NEW_CARD = "__new__";
@@ -74,6 +74,7 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
           id: a.id,
           name: a.name,
           account_type: a.account_type,
+          agency: a.agency,
           account_number: a.account_number,
           bank_slug: a.bank_slug,
         })));

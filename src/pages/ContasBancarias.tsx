@@ -381,6 +381,7 @@ export default function ContasBancarias() {
       const matchSearch =
         !search ||
         a.name.toLowerCase().includes(term) ||
+        ((a as typeof a & { agency?: string | null }).agency || "").toLowerCase().includes(term) ||
         ((a as typeof a & { account_number?: string | null }).account_number || "").toLowerCase().includes(term);
       const matchType = filterType === "all" || a.account_type === filterType;
       const isAccounting = (a as typeof a & { is_accounting?: boolean }).is_accounting !== false;

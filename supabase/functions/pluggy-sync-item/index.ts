@@ -5,6 +5,32 @@ import { buildDescription, counterpartyName } from '../_shared/tx-description.ts
 import { extractCounterpartyDocument } from '../_shared/counterparty-doc.ts';
 import { materializePluggyItemV2 } from '../_shared/pluggy-v2-materialize.ts';
 
+function normalizeLabel(value: string | null | undefined): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function extractAgencyFromTransferNumber(transferNumber: string | null | undefined): string | null {
+  const parts = typeof transferNumber === 'string' ? transferNumber.split('/') : [];
+  return parts.length >= 3 ? (parts[1]?.trim() || null) : null;
+}
+
+function getOpenFinanceAccountName(acc: any, fallbackName: string | null | undefined): string {
+  return acc?.name?.trim?.() || acc?.marketingName?.trim?.() || fallbackName?.trim?.() || 'Conta bancária';
+}
+
+function inferOpenFinanceAccountType(sourceName: string, bankSlug: string | null, subtype: string | null | undefined) {
+  const subtypeUpper = String(subtype ?? '').toUpperCase();
+  const normalizedName = normalizeLabel(sourceName);
+  if (subtypeUpper.includes('SAVING')) return 'poupanca';
+  if (subtypeUpper.includes('INVEST')) return 'investimento';
+  if (bankSlug === 'btg' && normalizedName.includes('invest')) return 'investimento';
+  return 'corrente';
+}
+
 
 
 Deno.serve(async (req) => {
@@ -428,6 +454,15 @@ Deno.serve(async (req) => {
 
     for (const acc of accounts) {
       if (pausedIds.has(acc.id)) continue;
+      const accNumber = acc.number ?? null;
+      const sourceName = getOpenFinanceAccountName(acc, item?.connector?.name ?? null);
+      // Agência e tipo vindos do Open Finance:
+      // bankData.transferNumber vem no formato "<banco>/<agência>/<conta>".
+      const transferNumber = (acc as { bankData?: { transferNumber?: string | null } }).bankData?.transferNumber ?? null;
+      const ofAgency = extractAgencyFromTransferNumber(transferNumber);
+      const ofAccountType = inferOpenFinanceAccountType(sourceName, bankSlug, acc.subtype ?? null);
+      const ofBalance = typeof acc.balance === 'number' ? acc.balance : null;
+
       const { data: upserted } = await admin.from('pluggy_accounts').upsert({
         connection_id: conn.id,
         company_id: effectiveCompanyId,
@@ -479,6 +514,39 @@ Deno.serve(async (req) => {
       }
 
 
+      if (upserted?.linked_account_id && (acc.type ?? '').toUpperCase() === 'BANK') {
+        const { data: localAcc } = await admin
+          .from('accounts')
+          .select('id, bank_slug, agency, account_number')
+          .eq('id', upserted.linked_account_id)
+          .is('soft_deleted_at', null)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        const sameAccountNumber = !accNumber || !localAcc?.account_number || localAcc.account_number === accNumber;
+        const sameAgency = !ofAgency || !localAcc?.agency || localAcc.agency === ofAgency;
+        const sameBank = !bankSlug || !localAcc?.bank_slug || localAcc.bank_slug === bankSlug;
+
+        if (localAcc?.id && sameAccountNumber && sameAgency && sameBank) {
+          if (ofBalance !== null) {
+            await admin.rpc('sync_of_account_balance', {
+              _account_id: localAcc.id,
+              _new_balance: ofBalance,
+            });
+          }
+
+          const metadataPatch: Record<string, string> = {};
+          if (ofAgency && !localAcc.agency) metadataPatch.agency = ofAgency;
+          if (bankSlug === 'btg') {
+            metadataPatch.name = sourceName;
+            metadataPatch.account_type = ofAccountType;
+          }
+          if (Object.keys(metadataPatch).length > 0) {
+            await admin.from('accounts').update(metadataPatch).eq('id', localAcc.id);
+          }
+        }
+      }
+
       if (upserted && !upserted.linked_account_id && (acc.type ?? '').toUpperCase() === 'BANK') {
         const ownerUserId = userId ?? (await admin
           .from('pluggy_connections').select('created_by').eq('id', conn.id).maybeSingle()).data?.created_by;
@@ -486,62 +554,54 @@ Deno.serve(async (req) => {
           // Dedup: 1) check if another pluggy_account in the same company already links to a local account
           //        matching this connector (bank_slug + account_number). Reuse that link.
           let existingAccountId: string | null = null;
-          const accNumber = acc.number ?? null;
 
           // 1a) Prior pluggy_accounts row already linked (e.g., previous connection for the same bank/number).
           // Só reaproveita se a conta financeira ainda existir (não excluída) e estiver ativa —
           // reviver uma conta excluída deixa saldo e lançamentos invisíveis nas telas.
           const { data: priorLinked } = await admin
             .from('pluggy_accounts')
-            .select('linked_account_id')
+            .select('linked_account_id, raw')
             .eq('company_id', effectiveCompanyId)
             .eq('number_masked', accNumber)
             .not('linked_account_id', 'is', null)
             .limit(5);
-          for (const p of (priorLinked ?? []) as Array<{ linked_account_id: string }>) {
+          for (const p of (priorLinked ?? []) as Array<{ linked_account_id: string; raw?: { bankData?: { transferNumber?: string | null } } | null }>) {
+            const priorAgency = extractAgencyFromTransferNumber(p.raw?.bankData?.transferNumber ?? null);
+            if (ofAgency && priorAgency && priorAgency !== ofAgency) continue;
             const { data: localAcc } = await admin
               .from('accounts')
-              .select('id')
+              .select('id, bank_slug, agency, account_number')
               .eq('id', p.linked_account_id)
               .is('soft_deleted_at', null)
               .eq('is_active', true)
               .maybeSingle();
+            if (bankSlug && localAcc?.bank_slug && localAcc.bank_slug !== bankSlug) continue;
+            if (ofAgency && localAcc?.agency && localAcc.agency !== ofAgency) continue;
+            if (accNumber && localAcc?.account_number && localAcc.account_number !== accNumber) continue;
             if (localAcc?.id) { existingAccountId = localAcc.id; break; }
           }
 
           // 1b) Local accounts table match by company + bank_slug + account_number
           if (!existingAccountId && (bankSlug || accNumber)) {
-            let q = admin.from('accounts').select('id')
+            let q = admin.from('accounts').select('id, agency')
               .eq('company_id', effectiveCompanyId)
               .eq('is_active', true)
               .is('soft_deleted_at', null);
             if (bankSlug) q = q.eq('bank_slug', bankSlug);
             if (accNumber) q = q.eq('account_number', accNumber);
-            const { data: match } = await q.limit(1).maybeSingle();
+            const { data: matches } = await q.limit(5);
+            const match = (matches ?? []).find((candidate: any) => !ofAgency || !candidate.agency || candidate.agency === ofAgency);
             if (match?.id) existingAccountId = match.id;
           }
 
 
           let targetAccountId = existingAccountId;
-          const ofBalance = typeof acc.balance === 'number' ? acc.balance : null;
-
-          // Agência e tipo vindos do Open Finance:
-          // bankData.transferNumber vem no formato "<banco>/<agência>/<conta>".
-          const transferNumber = (acc as { bankData?: { transferNumber?: string | null } }).bankData?.transferNumber ?? null;
-          const parts = typeof transferNumber === 'string' ? transferNumber.split('/') : [];
-          const ofAgency = parts.length >= 3 ? (parts[1]?.trim() || null) : null;
-          const subtypeUpper = (acc.subtype ?? '').toUpperCase();
-          const ofAccountType = subtypeUpper.includes('SAVING')
-            ? 'poupanca'
-            : subtypeUpper.includes('INVEST')
-              ? 'investimento'
-              : 'corrente';
 
           if (!targetAccountId) {
             const { data: newAcc } = await admin.from('accounts').insert({
               user_id: ownerUserId,
               company_id: effectiveCompanyId,
-              name: acc.name ?? acc.marketingName ?? item?.connector?.name ?? 'Conta bancária',
+              name: sourceName,
               account_type: ofAccountType,
               context: 'pj',
               initial_balance: ofBalance ?? 0,
@@ -567,8 +627,14 @@ Deno.serve(async (req) => {
             if (ofAgency) {
               const { data: localAcc } = await admin
                 .from('accounts').select('agency').eq('id', targetAccountId).maybeSingle();
-              if (localAcc && !localAcc.agency) {
-                await admin.from('accounts').update({ agency: ofAgency }).eq('id', targetAccountId);
+              const metadataPatch: Record<string, string> = {};
+              if (localAcc && !localAcc.agency) metadataPatch.agency = ofAgency;
+              if (bankSlug === 'btg') {
+                metadataPatch.name = sourceName;
+                metadataPatch.account_type = ofAccountType;
+              }
+              if (Object.keys(metadataPatch).length > 0) {
+                await admin.from('accounts').update(metadataPatch).eq('id', targetAccountId);
               }
             }
           }
