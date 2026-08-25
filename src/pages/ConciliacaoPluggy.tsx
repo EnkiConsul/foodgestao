@@ -659,12 +659,49 @@ export default function ConciliacaoPluggy() {
   };
 
 
+  /** Mapas de roteamento cartão x banco usados na tela e na confirmação. */
+  const cardRouting = useMemo<CardRoutingMaps>(
+    () => ({ cardPluggyAccounts, cardByPluggyAccount }),
+    [cardPluggyAccounts, cardByPluggyAccount],
+  );
+  const cardById = useMemo(
+    () => Object.fromEntries(creditCards.map((c) => [c.id, c])) as Record<string, CreditCardOption>,
+    [creditCards],
+  );
+  const pluggyAccountByRow = useCallback(
+    (id: string) => rows.find((r) => r.id === id)?.pluggy_account_id ?? null,
+    [rows],
+  );
+  /** Cartão de destino da linha (null quando não é linha de cartão). */
+  const rowCardId = useCallback(
+    (r: StagingRow) =>
+      isCardPluggyAccount(r.pluggy_account_id, cardRouting)
+        ? (cardByPluggyAccount[r.pluggy_account_id] ?? null)
+        : null,
+    [cardRouting, cardByPluggyAccount],
+  );
+  const isCardRow = useCallback(
+    (r: StagingRow) => isCardPluggyAccount(r.pluggy_account_id, cardRouting),
+    [cardRouting],
+  );
+
   const confirmIds = async (ids: string[]) => {
     if (ids.length === 0) return;
 
-    // Group by target account
+    // Linhas de cartão vão para o cartão vinculado (e para a fatura), não para conta bancária.
+    const routed = routeStagingRows(ids, pluggyAccountByRow, cardRouting);
+    if (routed.blockedIds.length > 0) {
+      toast.error("Cartão do Open Finance ainda não autorizado", {
+        description:
+          "Autorize o cartão em Cartões de Crédito para que estes lançamentos entrem na fatura.",
+        action: { label: "Autorizar cartão", onClick: () => navigate("/cartoes-credito") },
+      });
+      return;
+    }
+
+    // Group by target account (apenas linhas de conta bancária)
     const byAccount: Record<string, string[]> = {};
-    for (const id of ids) {
+    for (const id of routed.bankIds) {
       const acctId = rowAccount[id] ?? linkedByPluggyAccount[rows.find((r) => r.id === id)?.pluggy_account_id ?? ""];
       if (!acctId) { toast.error("Selecione a conta de destino para todos os itens"); return; }
       byAccount[acctId] = byAccount[acctId] ?? [];
