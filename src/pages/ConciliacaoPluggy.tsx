@@ -444,6 +444,7 @@ export default function ConciliacaoPluggy() {
       { data: cts, error: ctsError },
       { data: bks },
       { data: comp },
+      { data: cards },
     ] = await Promise.all([
       supabase.from("pluggy_connections")
         .select("id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status")
