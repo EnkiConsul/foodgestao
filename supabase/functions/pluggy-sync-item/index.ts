@@ -61,11 +61,15 @@ Deno.serve(async (req) => {
       itemId = requestRow.resolved_item_id ?? undefined;
 
       if (!itemId) {
+        // A janela começa um pouco antes da solicitação: quando o usuário
+        // reinicia o Connect, o evento do banco pode ter chegado antes da
+        // linha mais recente de pluggy_connect_requests.
+        const since = new Date(new Date(requestRow.created_at).getTime() - 12 * 60 * 60 * 1000).toISOString();
         const { data: events } = await admin
           .from('pluggy_webhook_events')
           .select('pluggy_item_id')
           .not('pluggy_item_id', 'is', null)
-          .gte('created_at', requestRow.created_at)
+          .gte('created_at', since)
           .order('created_at', { ascending: false })
           .limit(50);
 
@@ -85,6 +89,18 @@ Deno.serve(async (req) => {
           }
         }
       }
+
+      // Nada encontrado ainda: não é erro de servidor, apenas a autorização
+      // do banco não chegou ao Open Finance. Respondemos 200 + pending para o
+      // app mostrar um aviso amigável em vez de "Erro no servidor".
+      if (!itemId) {
+        return new Response(JSON.stringify({
+          pending: true,
+          message: 'A autorização ainda não foi confirmada pelo banco. Aguarde alguns instantes e verifique novamente.',
+        }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     if (!itemId) {
@@ -92,6 +108,8 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+
 
     // A Pluggy responde 400 quando o itemId não é um UUID válido.
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
