@@ -113,14 +113,36 @@ export default function OAuthConsent() {
               <Loader2 className="h-4 w-4 animate-spin" /> Carregando solicitação…
             </div>
           ) : !error ? (
-            <div className="flex gap-2">
-              <Button className="flex-1" disabled={busy} onClick={() => decide(true)}>
-                {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Autorizar
-              </Button>
-              <Button className="flex-1" variant="outline" disabled={busy} onClick={() => decide(false)}>
-                Recusar
-              </Button>
+            <div className="space-y-4">
+              {accountEmail ? (
+                <p className="text-sm text-muted-foreground" data-testid="consent-account">
+                  Conta conectada: <span className="font-medium text-foreground">{accountEmail}</span>
+                </p>
+              ) : null}
+              {redirectHost ? (
+                <p className="text-sm text-muted-foreground" data-testid="consent-redirect">
+                  Redireciona para {redirectHost}
+                </p>
+              ) : null}
+              {scopes.length ? (
+                <ul className="space-y-1 text-sm" data-testid="consent-scopes">
+                  {scopes.map((s) => (
+                    <li key={s}>• {scopeLabels[s] ?? `Permissão adicional solicitada: ${s}`}</li>
+                  ))}
+                </ul>
+              ) : null}
+              <p className="text-xs text-muted-foreground">
+                Isso não ignora as permissões e políticas de acesso do 360°FOOD.
+              </p>
+              <div className="flex gap-2">
+                <Button className="flex-1" disabled={busy} onClick={() => decide(true)}>
+                  {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Autorizar
+                </Button>
+                <Button className="flex-1" variant="outline" disabled={busy} onClick={() => decide(false)}>
+                  Recusar
+                </Button>
+              </div>
             </div>
           ) : null}
         </CardContent>
