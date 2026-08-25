@@ -1,6 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { getItem, listAccounts, listTransactions, refreshItem, waitForItem } from '../_shared/pluggy.ts';
+import { getItem, listAccounts, listItems, listTransactions, refreshItem, waitForItem } from '../_shared/pluggy.ts';
 import { buildDescription, counterpartyName } from '../_shared/tx-description.ts';
 import { extractCounterpartyDocument } from '../_shared/counterparty-doc.ts';
 import { materializePluggyItemV2 } from '../_shared/pluggy-v2-materialize.ts';
@@ -60,6 +60,28 @@ Deno.serve(async (req) => {
       companyId = requestRow.company_id;
       itemId = requestRow.resolved_item_id ?? undefined;
 
+      const matchesCurrentRequest = (candidateItem: any) => {
+        const candidateClientUserId = candidateItem?.clientUserId as string | undefined;
+        return candidateClientUserId === userId || candidateClientUserId === `ofreq:${requestedConnectRequestId}`;
+      };
+
+      if (!itemId) {
+        // Se a conexão já foi sincronizada pelo onSuccess/webhook, mas a linha da
+        // solicitação continuou aberta, reaproveita a conexão local recente.
+        const connectionSince = new Date(new Date(requestRow.created_at).getTime() - 10 * 60 * 1000).toISOString();
+        const { data: recentConnection } = await admin
+          .from('pluggy_connections')
+          .select('pluggy_item_id')
+          .eq('company_id', requestRow.company_id)
+          .eq('created_by', userId)
+          .gte('created_at', connectionSince)
+          .neq('status', 'deleted')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        itemId = recentConnection?.pluggy_item_id ?? undefined;
+      }
+
       if (!itemId) {
         // A janela começa um pouco antes da solicitação: quando o usuário
         // reinicia o Connect, o evento do banco pode ter chegado antes da
@@ -80,12 +102,43 @@ Deno.serve(async (req) => {
         for (const candidate of candidates) {
           try {
             const candidateItem = await getItem(candidate);
-            if (candidateItem?.clientUserId === userId) {
+            if (matchesCurrentRequest(candidateItem)) {
               itemId = candidate;
               break;
             }
           } catch {
             // Um evento antigo/inválido não deve impedir a busca dos demais.
+          }
+        }
+      }
+
+      if (!itemId) {
+        // Última tentativa: consulta direta na Pluggy. É o caminho que cobre
+        // bancos que concluem 100% mas não redirecionam o navegador nem disparam
+        // webhook de item no nosso backend.
+        const recentFromMs = new Date(requestRow.created_at).getTime() - 10 * 60 * 1000;
+        for (let page = 1; page <= 3 && !itemId; page += 1) {
+          try {
+            const listed = await listItems(page, 100);
+            const items = Array.isArray(listed?.results) ? listed.results : [];
+            for (const candidateItem of items) {
+              const candidateClientUserId = candidateItem?.clientUserId as string | undefined;
+              if (candidateClientUserId === `ofreq:${requestedConnectRequestId}`) {
+                itemId = candidateItem?.id;
+                break;
+              }
+              if (candidateClientUserId !== userId) continue;
+              const timestamp = candidateItem?.createdAt ?? candidateItem?.updatedAt ?? candidateItem?.created_at ?? candidateItem?.updated_at;
+              const itemTime = timestamp ? new Date(timestamp).getTime() : 0;
+              if (Number.isFinite(itemTime) && itemTime >= recentFromMs) {
+                itemId = candidateItem?.id;
+                break;
+              }
+            }
+            if (!items.length || !listed?.totalPages || page >= Number(listed.totalPages)) break;
+          } catch (e) {
+            console.error('pluggy list items fallback failed', e);
+            break;
           }
         }
       }
