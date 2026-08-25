@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput, parseCurrencyToNumber, formatCurrency } from "@/components/ui/currency-input";
+import { getAccountPaymentLabel } from "@/lib/accounts/accountLabels";
 
 const numToInput = (n: number) => formatCurrency(String(Math.round(n * 100)));
 import { toast } from "sonner";
@@ -175,7 +176,7 @@ export function CreditCardFormDialog({ open, onOpenChange, onSaved, card }: Prop
             <Select value={paymentAccountId} onValueChange={setPaymentAccountId}>
               <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
               <SelectContent>
-                {bankAccounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                {bankAccounts.map((a) => <SelectItem key={a.id} value={a.id}>{getAccountPaymentLabel(a)}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
