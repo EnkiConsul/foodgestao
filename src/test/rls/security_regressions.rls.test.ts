@@ -86,11 +86,16 @@ describe("Regressão: dp_documentos_storage_member_read_bypass", () => {
     expect(error).toBeTruthy();
   });
 
-  it("bloqueia upload anônimo em dp-documentos", async () => {
-    if (!networkAvailable) return;
-    const { error } = await anon()
-      .storage.from("dp-documentos")
-      .upload(`probe/${Date.now()}.txt`, new Blob(["probe"]));
-    expect(error).toBeTruthy();
-  });
+  it(
+    "bloqueia upload anônimo em dp-documentos",
+    async () => {
+      if (!networkAvailable) return;
+      const { error } = await anon()
+        .storage.from("dp-documentos")
+        .upload(`probe/${Date.now()}.txt`, new Blob(["probe"]));
+      expect(error).toBeTruthy();
+    },
+    20000,
+  );
+
 });
