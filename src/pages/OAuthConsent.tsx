@@ -34,6 +34,7 @@ export default function OAuthConsent() {
         window.location.href = `/auth?redirect=${encodeURIComponent(next)}`;
         return;
       }
+      setAccountEmail(sess.session.user?.email ?? null);
       const { data, error } = await oauth().getAuthorizationDetails(authorizationId);
       if (!active) return;
       if (error) {
