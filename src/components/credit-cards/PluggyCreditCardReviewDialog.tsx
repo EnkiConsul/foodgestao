@@ -12,10 +12,12 @@ import { CurrencyInput, parseCurrencyToNumber, formatCurrency } from "@/componen
 import { toast } from "sonner";
 import { CreditCard } from "lucide-react";
 import { buildCreditCardSuggestion } from "@/lib/pluggy/creditCardSuggestion";
+import { getAccountPaymentLabel } from "@/lib/accounts/accountLabels";
 import type { PluggyCreditReviewRow } from "@/hooks/usePluggyCreditReview";
 import type { Database } from "@/integrations/supabase/types";
 
 type CreditCardRow = Database["public"]["Tables"]["credit_cards"]["Row"];
+type PaymentAccountOption = Pick<Database["public"]["Tables"]["accounts"]["Row"], "id" | "name" | "account_type" | "account_number" | "bank_slug">;
 
 const BRANDS = ["Visa", "Mastercard", "Elo", "American Express", "Hipercard", "Diners", "Outro"];
 const NEW_CARD = "__new__";
@@ -36,7 +38,7 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
 
   const [index, setIndex] = useState(0);
   const [existingCards, setExistingCards] = useState<CreditCardRow[]>([]);
-  const [paymentAccounts, setPaymentAccounts] = useState<{ id: string; name: string }[]>([]);
+  const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccountOption[]>([]);
   const [saving, setSaving] = useState(false);
 
   const [target, setTarget] = useState<string>(NEW_CARD);
@@ -66,9 +68,15 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
         }),
       ]);
       setExistingCards((cards ?? []) as CreditCardRow[]);
-      setPaymentAccounts(((accs ?? []) as { id: string; name: string; account_type?: string }[])
+      setPaymentAccounts(((accs ?? []) as PaymentAccountOption[])
         .filter((a) => a.account_type !== "cartao_credito")
-        .map((a) => ({ id: a.id, name: a.name })));
+        .map((a) => ({
+          id: a.id,
+          name: a.name,
+          account_type: a.account_type,
+          account_number: a.account_number,
+          bank_slug: a.bank_slug,
+        })));
     })();
   }, [open, selectedCompanyId]);
 
@@ -266,7 +274,9 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
                 <Select value={paymentAccountId} onValueChange={setPaymentAccountId}>
                   <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
                   <SelectContent>
-                    {paymentAccounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                    {paymentAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{getAccountPaymentLabel(a)}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
