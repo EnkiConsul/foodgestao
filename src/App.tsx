@@ -332,7 +332,7 @@ const AppRoutes = () => (
 
       <Route path="/" element={<RootGate />} />
       <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
-      <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />>
+      <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
       <Route path="/login" element={<Navigate to="/auth" replace />} />
       <Route path="/dp/login" element={<Navigate to="/auth" replace />} />
       <Route path="/primeiro-acesso" element={<PrimeiroAcesso />} />
