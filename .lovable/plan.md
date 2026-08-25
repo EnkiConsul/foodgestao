@@ -1,41 +1,107 @@
-# Identificação de fornecedores/clientes na conciliação do Open Finance
+# Correção da identificação de fornecedores/clientes no Open Finance
 
-## O que os dados mostram
+## Diagnóstico confirmado
 
-O extrato traz a contraparte com boa qualidade: dos 1.141 lançamentos pendentes, 1.000 têm nome de contraparte e 912 têm CPF/CNPJ.
+A importação grava a contraparte em dois campos separados da fila de conciliação:
 
-O problema não é a leitura do extrato — é a falta de cadastro para casar:
+- `counterparty_name`: nome do fornecedor/cliente identificado no extrato.
+- `counterparty_document`: CPF/CNPJ identificado no extrato.
 
-- Empresa A: 85 CNPJ/CPF distintos no extrato, apenas 12 existem no cadastro de fornecedores/clientes.
-- Empresa B: 79 documentos distintos no extrato, apenas 1 existe no cadastro (a empresa tem só 1 contato cadastrado).
+Nos dados pendentes atuais há 1.141 lançamentos. A leitura confirmou inconsistências reais no que ficou gravado:
 
-O motor de sugestão só sabe apontar para contatos que já existem. Sem cadastro correspondente, ele corretamente não sugere nada — e para o usuário isso aparece como "não está identificando".
+- 141 lançamentos estão sem nome de contraparte.
+- 229 lançamentos estão sem CPF/CNPJ gravado.
+- Existem lançamentos onde o JSON bruto contém CNPJ/CPF em `paymentData.receiver`, `paymentData.payer` ou `merchant.cnpj`, mas `counterparty_document` ficou vazio.
+- Em alguns casos o nome está correto, mas o CNPJ não foi persistido; isso impede o cadastro automático correto e o casamento por documento.
+- Em outros casos o provedor não entrega CNPJ/CPF da contraparte; nesses casos o sistema só pode sugerir por nome ou pedir confirmação manual.
 
-Além disso, ~141 linhas ficam sem nome de contraparte (ex.: "Compra no débito|POSTO SAN REMO", "CONCEBRA", "JERIVA COMERCIO DE ALIABADIANIA"), onde o estabelecimento está só no texto.
+## Objetivo
 
-## O que fazer
+Corrigir a separação entre Nome e CPF/CNPJ da contraparte para que a conciliação consiga:
 
-### 1. Cadastro em massa a partir do extrato (principal)
-Novo botão "Cadastrar contrapartes identificadas" na barra da conciliação:
-- Agrupa as linhas pendentes por CPF/CNPJ (e por nome, quando não há documento).
-- Mostra uma tela de revisão com nome, documento, tipo sugerido (fornecedor para saídas, cliente para entradas) e nº de lançamentos.
-- O usuário desmarca o que não quiser e confirma; o sistema cria os contatos, vincula à empresa e aplica a sugestão nas linhas correspondentes.
-- Reaproveita a checagem de duplicidade já existente (documento > nome > parecido) para nunca criar contato repetido.
+1. Identificar corretamente fornecedor/cliente por documento quando o extrato traz CPF/CNPJ.
+2. Preencher o cadastro com nome e documento nos campos certos.
+3. Evitar usar CPF/CNPJ do titular da conta como se fosse fornecedor/cliente.
+4. Explicar claramente quando o CNPJ não veio no extrato.
 
-### 2. Deixar claro o motivo quando não há sugestão
-Na linha sem contato sugerido, exibir o motivo: "sem cadastro correspondente", "contraparte não identificada no extrato" ou "débito interno do banco". Hoje o campo fica simplesmente vazio.
+## Plano de implementação
 
-### 3. Melhorar o preenchimento da contraparte faltante
-- Persistir no banco o nome/documento derivado do texto para as linhas que hoje ficam nulas (backfill das linhas pendentes usando a mesma lógica já usada na tela).
-- Ajustar a extração para nomes de estabelecimento de compra no débito sem preposição (casos "CONCEBRA", "JERIVA COMERCIO...").
+### 1. Unificar a extração de contraparte
 
-### 4. Memória de conciliação
-Ao confirmar uma linha com contato escolhido manualmente, gravar o vínculo documento/nome → contato para que ocorrências futuras já venham sugeridas automaticamente (a tela já lê uma memória; garantir que ela seja gravada em todos os caminhos de confirmação, inclusive cartão e lote).
+Criar uma regra única para a importação e para a tela de conciliação:
+
+- Saída/pagamento: fornecedor = `paymentData.receiver`.
+- Entrada/recebimento: cliente = `paymentData.payer`.
+- Compra no cartão/débito: usar `merchant.businessName/name` e `merchant.cnpj` quando disponíveis.
+- Descartar sempre documentos e nomes do próprio titular/empresa.
+- Usar descrição/pipe apenas como fallback de nome, nunca como CNPJ inventado.
+
+### 2. Corrigir a importação do Open Finance
+
+Atualizar a função de sincronização para gravar sempre juntos:
+
+- nome extraído;
+- documento extraído;
+- tipo do documento (`CPF` ou `CNPJ`);
+- origem da extração quando possível: pagador, recebedor, estabelecimento ou descrição.
+
+Também corrigir o reenriquecimento de linhas pendentes antigas: hoje algumas linhas só são atualizadas se a descrição mudou; elas devem ser atualizadas quando nome/documento/tipo também mudarem.
+
+### 3. Reprocessar lançamentos pendentes já importados
+
+Adicionar um reprocessamento para os lançamentos pendentes de Open Finance:
+
+- reler o JSON bruto salvo em cada lançamento;
+- recalcular nome e CPF/CNPJ com a regra nova;
+- preencher `counterparty_name`, `counterparty_document` e `counterparty_document_type` quando o dado existir;
+- não alterar lançamentos já conciliados;
+- não criar CNPJ quando o provedor não enviou esse dado.
+
+### 4. Melhorar o cadastro direto pela conciliação
+
+Ao clicar para cadastrar fornecedor/cliente a partir da conciliação:
+
+- preencher nome e CPF/CNPJ em campos separados;
+- sugerir tipo automaticamente: fornecedor para saída, cliente para entrada;
+- se houver documento, checar duplicidade por CPF/CNPJ antes de criar;
+- se não houver documento, checar duplicidade por nome igual ou parecido;
+- mostrar confirmação quando houver cadastro parecido para evitar duplicidade.
+
+### 5. Cadastro em massa com revisão
+
+Adicionar uma ação “Cadastrar contrapartes identificadas”:
+
+- agrupar lançamentos pendentes por CPF/CNPJ quando houver documento;
+- agrupar por nome quando não houver documento;
+- exibir tela de revisão com nome, CPF/CNPJ, tipo sugerido e quantidade de lançamentos;
+- permitir desmarcar itens antes de confirmar;
+- criar apenas contatos que não existirem;
+- vincular automaticamente os lançamentos ao contato criado/reaproveitado.
+
+### 6. Transparência na linha da conciliação
+
+Quando uma linha não tiver fornecedor/cliente sugerido, exibir o motivo:
+
+- “CPF/CNPJ do extrato ainda não cadastrado”.
+- “Extrato trouxe nome, mas não trouxe CPF/CNPJ”.
+- “Contraparte não informada pelo banco”.
+- “Lançamento interno do banco”.
 
 ## Detalhes técnicos
 
-- `src/lib/conciliacao/contactMatch.ts` e `counterparty.ts` permanecem como motor; sem mudança de limiares (o empate técnico segue evitando sugestão errada).
-- Novo componente `src/components/conciliacao/BulkContactImportDialog.tsx` + helper `src/lib/conciliacao/bulkContactImport.ts` (agrupamento, dedupe por documento/nome, tipo por sinal do valor).
-- Criação via `contacts` + `ensureContactCompanyLink` em lote, com `findSimilarContacts` para reaproveitar cadastros existentes.
-- Backfill de `counterparty_name` / `counterparty_document` em `pluggy_staging_transactions` (linhas `pending`) por migração usando os campos de `raw` e o padrão de pipe da descrição.
-- Testes unitários para o agrupamento/dedupe e para os novos padrões de extração de nome.
+- Ajustar `supabase/functions/_shared/tx-description.ts` e `supabase/functions/_shared/counterparty-doc.ts` para usar a mesma ordem de prioridade.
+- Atualizar `supabase/functions/pluggy-sync-item/index.ts` para regravar nome/documento/tipo quando qualquer um deles mudar.
+- Ajustar `src/lib/conciliacao/counterparty.ts` para espelhar a regra do backend.
+- Atualizar `src/pages/ConciliacaoPluggy.tsx` para usar a contraparte recalculada como fonte principal na UI e no cadastro.
+- Criar helper de agrupamento/deduplicação para o cadastro em massa.
+- Incluir testes unitários para:
+  - saída usa recebedor;
+  - entrada usa pagador;
+  - compra usa merchant;
+  - documento do titular é descartado;
+  - nome por descrição não gera CNPJ falso;
+  - duplicidade por documento e por nome parecido.
+
+## Resultado esperado
+
+Depois da correção, os lançamentos pendentes que possuem CPF/CNPJ no extrato passarão a mostrar e cadastrar corretamente o fornecedor/cliente. Quando o banco não enviar CPF/CNPJ, a tela deixará isso explícito e permitirá cadastrar por nome com confirmação de duplicidade.
