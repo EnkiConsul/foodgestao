@@ -27,10 +27,16 @@ export default function OAuthConsent() {
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [nonce, setNonce] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     (async () => {
+      applyConsentMetaHardening();
+      if (isFramed()) {
+        setError("Esta solicitação não pode ser exibida dentro de outro site.");
+        return;
+      }
       if (!authorizationId) {
         setError("Solicitação inválida: authorization_id ausente.");
         return;
@@ -53,6 +59,7 @@ export default function OAuthConsent() {
         window.location.href = immediate;
         return;
       }
+      setNonce(createConsentNonce(authorizationId));
       setDetails(data);
     })();
     return () => {
@@ -61,10 +68,15 @@ export default function OAuthConsent() {
   }, [authorizationId]);
 
   async function decide(approve: boolean) {
+    if (!verifyConsentNonce(authorizationId, nonce)) {
+      setError("Não foi possível validar a origem desta solicitação. Recarregue a página.");
+      return;
+    }
     setBusy(true);
     const { data, error } = approve
       ? await oauth().approveAuthorization(authorizationId)
       : await oauth().denyAuthorization(authorizationId);
+    clearConsentNonce(authorizationId);
     if (error) {
       setBusy(false);
       setError(error.message);
