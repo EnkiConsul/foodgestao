@@ -108,7 +108,9 @@ function loadFromStorage(): { contextType: ContextType; selectedCompanyId: strin
       }
     }
   } catch {}
-  return { contextType: "pf", selectedCompanyId: null };
+  // PJ-first: contas novas começam no contexto empresarial; o espaço pessoal
+  // não é mais criado automaticamente.
+  return { contextType: "pj", selectedCompanyId: null };
 }
 
 function persist(contextType: ContextType, selectedCompanyId: string | null) {
