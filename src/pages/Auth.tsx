@@ -169,8 +169,21 @@ export default function Auth() {
 
   const getRedirectTarget = () => {
     const r = searchParams.get("redirect");
-    if (r && r.startsWith("/") && !r.startsWith("//")) return r;
-    return "/";
+    if (r && r.startsWith("/") && !r.startsWith("//") && r !== "/") return r;
+    // Sem destino explícito: manda para o Hub. Navegar para "/" seria um no-op
+    // quando o login acontece na própria raiz, deixando o usuário parado na tela.
+    return "/hub";
+  };
+
+  const goTo = (target: string) => {
+    navigate(target, { replace: true });
+    // Fallback: se por algum motivo a navegação do router não ocorrer
+    // (rota atual igual, gate em suspense), força a navegação do browser.
+    window.setTimeout(() => {
+      if (window.location.pathname === "/" && target !== "/") {
+        window.location.replace(target);
+      }
+    }, 600);
   };
 
   const checkMfaAndRedirect = async () => {
@@ -179,9 +192,10 @@ export default function Auth() {
     if (needsAal2) {
       setMfaRequired(true);
     } else {
-      navigate(target, { replace: true });
+      goTo(target);
     }
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
