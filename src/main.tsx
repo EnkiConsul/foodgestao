@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { installStaleBundleRecovery } from "./lib/staleBundle";
-import { isStorefrontPath, purgeLegacyServiceWorker } from "./lib/storefrontSwGuard";
+
 
 import "@fontsource/urbanist/600.css";
 import "@fontsource/urbanist/700.css";
