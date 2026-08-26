@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ArrowRight } from "lucide-react";
-import { useModulosCatalogo } from "@/hooks/useModulosCatalogo";
+import { MODULES } from "@/lib/modules";
 
 interface Props {
   nomeFantasia: string;
@@ -11,8 +11,7 @@ interface Props {
 }
 
 export function StepSucesso({ nomeFantasia, razaoSocial, modulosSlugs, trialTerminaEm, onContinuar }: Props) {
-  const { data: modulos } = useModulosCatalogo();
-  const modulosAtivos = modulos?.filter((m) => modulosSlugs.includes(m.slug)) ?? [];
+  const modulosAtivos = MODULES.filter((m) => modulosSlugs.includes(m.slug));
   const fim = new Date(trialTerminaEm).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
@@ -43,11 +42,11 @@ export function StepSucesso({ nomeFantasia, razaoSocial, modulosSlugs, trialTerm
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Módulos ativados</p>
           <ul className="mt-1 space-y-1">
             {modulosAtivos.map((m) => {
-              const { Icon } = m;
+              const Icon = m.icon;
               return (
                 <li key={m.slug} className="flex items-center gap-2 text-sm text-foreground">
                   <Icon className="h-4 w-4 text-primary" />
-                  {m.nome}
+                  {m.name}
                 </li>
               );
             })}

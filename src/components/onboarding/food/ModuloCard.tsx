@@ -1,16 +1,22 @@
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
-import type { ModuloCatalogo } from "@/hooks/useModulosCatalogo";
+import type { LucideIcon } from "lucide-react";
 
-interface Props {
-  modulo: ModuloCatalogo;
-  selected: boolean;
-  onToggle: () => void;
-  extraBadge?: string;
+interface Modulo {
+  slug: string;
+  name: string;
+  description: string;
+  icon: LucideIcon;
 }
 
-export function ModuloCard({ modulo, selected, onToggle, extraBadge }: Props) {
-  const { Icon } = modulo;
+interface Props {
+  modulo: Modulo;
+  selected: boolean;
+  onToggle: () => void;
+}
+
+export function ModuloCard({ modulo, selected, onToggle }: Props) {
+  const Icon = modulo.icon;
   return (
     <button
       type="button"
@@ -45,14 +51,9 @@ export function ModuloCard({ modulo, selected, onToggle, extraBadge }: Props) {
       </div>
       <div className="space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="font-semibold text-sm">{modulo.nome}</h3>
-          {extraBadge && (
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
-              {extraBadge}
-            </span>
-          )}
+          <h3 className="font-semibold text-sm">{modulo.name}</h3>
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">{modulo.descricao_curta}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">{modulo.description}</p>
       </div>
     </button>
   );
