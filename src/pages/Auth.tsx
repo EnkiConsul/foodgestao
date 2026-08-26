@@ -96,6 +96,7 @@ export default function Auth() {
   const [turnstileError, setTurnstileError] = useState<string | null>(null);
   const [turnstileNonce, setTurnstileNonce] = useState(0);
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState("");
+  const [duplicateEmail, setDuplicateEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resending, setResending] = useState(false);
   const turnstileSiteKey = useTurnstileSiteKey();
@@ -268,7 +269,7 @@ export default function Auth() {
         }
       } else {
         try {
-          const { error, needsEmailConfirmation } = await signUp(email, password, fullName);
+          const { error, needsEmailConfirmation, alreadyRegistered } = await signUp(email, password, fullName);
           if (error) {
             const translated = translateAuthError(error.message);
             const { reason, category } = classifySignupError(error.message);
@@ -278,6 +279,19 @@ export default function Auth() {
               reason,
               error_category: category,
               error_message: error.message?.slice(0, 200) ?? "unknown",
+            });
+          } else if (alreadyRegistered) {
+            setDuplicateEmail(email.trim());
+            setPassword("");
+            setConfirmPassword("");
+            toast.error("E-mail já cadastrado", {
+              description: "Entre com sua senha ou use \"Esqueci minha senha\".",
+            });
+            trackEvent(FunnelStep.SignupError, {
+              method: "email",
+              reason: "email_already_registered",
+              error_category: "validation",
+              error_message: "signup_without_identities",
             });
           } else {
             // Log LGPD acceptance (best-effort, non-blocking)
@@ -338,6 +352,19 @@ export default function Auth() {
     setConfirmPassword("");
     setTurnstileError(null);
     setTurnstileToken("");
+    setDuplicateEmail("");
+  };
+
+  const goToLoginWithDuplicate = () => {
+    const target = duplicateEmail;
+    switchMode("login");
+    setIdentifier(target);
+  };
+
+  const goToForgotWithDuplicate = () => {
+    const target = duplicateEmail;
+    switchMode("forgot");
+    setEmail(target);
   };
 
   return (
@@ -417,6 +444,32 @@ export default function Auth() {
         ) : (
           <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {isSignup && duplicateEmail && (
+              <div
+                role="alert"
+                className="space-y-3 rounded-md border border-destructive/40 bg-destructive/10 p-3"
+              >
+                <p className="text-sm text-foreground">
+                  Este e-mail já está cadastrado:{" "}
+                  <span className="font-medium break-all">{duplicateEmail}</span>. Entre com sua senha
+                  ou use “Esqueci minha senha”.
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button type="button" size="sm" className="sm:flex-1" onClick={goToLoginWithDuplicate}>
+                    Entrar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="sm:flex-1"
+                    onClick={goToForgotWithDuplicate}
+                  >
+                    Recuperar senha
+                  </Button>
+                </div>
+              </div>
+            )}
             {isSignup && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome completo</Label>
@@ -465,7 +518,7 @@ export default function Auth() {
                     type="email"
                     placeholder="seu@email.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setDuplicateEmail(""); }}
                     className="pl-10"
                     maxLength={255}
                   />
