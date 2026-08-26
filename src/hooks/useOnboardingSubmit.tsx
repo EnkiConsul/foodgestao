@@ -62,6 +62,7 @@ export function useOnboardingSubmit() {
         else if (raw.includes("nenhum_modulo_selecionado")) code = "nenhum_modulo_selecionado";
         else if (raw.includes("cnpj_invalido")) code = "cnpj_invalido";
         else if (raw.includes("usuario_nao_autenticado")) code = "usuario_nao_autenticado";
+        else if (raw.toLowerCase().includes("sem permiss")) code = "sem_permissao";
         else if (raw.includes("23505") || raw.includes("duplicate key")) code = "cadastro_duplicado";
         if (code === "erro_desconhecido") {
           console.error("[onboarding] falha inesperada na RPC fn_cadastrar_empresa_onboarding", {
@@ -94,6 +95,8 @@ export function mensagemErroOnboarding(code?: string): string {
       return "Sua sessão expirou. Faça login novamente.";
     case "cadastro_duplicado":
       return "Já existe um cadastro em andamento para esses dados. Recarregue a página e tente novamente.";
+    case "sem_permissao":
+      return "Sua conta não tinha permissão para concluir esta etapa. Recarregue a página e tente novamente.";
     default:
       return "Não foi possível concluir o cadastro. Tente novamente em instantes.";
   }
