@@ -96,6 +96,7 @@ export default function Auth() {
   const [turnstileError, setTurnstileError] = useState<string | null>(null);
   const [turnstileNonce, setTurnstileNonce] = useState(0);
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState("");
+  const [duplicateEmail, setDuplicateEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resending, setResending] = useState(false);
   const turnstileSiteKey = useTurnstileSiteKey();
