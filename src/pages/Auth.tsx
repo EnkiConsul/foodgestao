@@ -14,6 +14,7 @@ import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
 import { useTurnstileSiteKey } from "@/hooks/useTurnstileSiteKey";
 import { unifiedSignIn } from "@/lib/authUnified";
+import { sanitizeRedirect } from "@/lib/safeRedirect";
 
 import { z } from "zod";
 import { toast } from "sonner";
@@ -167,22 +168,19 @@ export default function Auth() {
     if (!isSignup) signupViewTracked.current = false;
   }, [isSignup]);
 
-  const getRedirectTarget = () => {
-    const r = searchParams.get("redirect");
-    if (r && r.startsWith("/") && !r.startsWith("//") && r !== "/") return r;
-    // Sem destino explícito: manda para o Hub. Navegar para "/" seria um no-op
-    // quando o login acontece na própria raiz, deixando o usuário parado na tela.
-    return "/hub";
-  };
+  // Só caminhos internos são aceitos; qualquer URL externa cai em /hub.
+  const getRedirectTarget = () => sanitizeRedirect(searchParams.get("redirect"));
 
-  const goTo = (target: string) => {
-    if (window.location.pathname === target) return;
+  const goTo = (rawTarget: string) => {
+    const target = sanitizeRedirect(rawTarget);
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (current === target) return;
     navigate(target, { replace: true });
     // Fallback: se por algum motivo a navegação do router não ocorrer
     // (gate em suspense, corrida com a hidratação da sessão), força a
     // navegação do browser. Vale tanto para login em "/" quanto em "/auth".
     window.setTimeout(() => {
-      if (window.location.pathname !== target) {
+      if (window.location.pathname !== target.split(/[?#]/)[0]) {
         window.location.replace(target);
       }
     }, 800);
