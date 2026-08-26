@@ -417,7 +417,7 @@ export default function Auth() {
         {mfaRequired ? (
           <CardContent>
             <MfaChallenge
-              onSuccess={() => navigate(getRedirectTarget(), { replace: true })}
+              onSuccess={() => goTo(getRedirectTarget())}
               onCancel={() => setMfaRequired(false)}
             />
           </CardContent>
