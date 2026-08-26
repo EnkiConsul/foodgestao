@@ -61,15 +61,6 @@ const Empresas = lazyWithRetry(() => import("./pages/Empresas"));
 const FormasPagamento = lazyWithRetry(() => import("./pages/FormasPagamento"));
 const CentrosCusto = lazyWithRetry(() => import("./pages/CentrosCusto"));
 const CartoesCredito = lazyWithRetry(() => import("./pages/CartoesCredito"));
-const PedidosModulo = lazyWithRetry(() => import("./pages/pedidos/PedidosModulo"));
-const PedidosOnboarding = lazyWithRetry(() => import("./pages/pedidos/PedidosOnboarding"));
-const PedidosCardapio = lazyWithRetry(() => import("./pages/pedidos/PedidosCardapio"));
-const PedidosAssinatura = lazyWithRetry(() => import("./pages/pedidos/PedidosAssinatura"));
-const PedidosCentral = lazyWithRetry(() => import("./pages/pedidos/PedidosCentral"));
-const CozinhaCentral = lazyWithRetry(() => import("./pages/pedidos/CozinhaCentral"));
-const ExpedicaoCentral = lazyWithRetry(() => import("./pages/pedidos/ExpedicaoCentral"));
-const PedidosIntegracoes = lazyWithRetry(() => import("./pages/pedidos/PedidosIntegracoes"));
-const PedidosRelatorios = lazyWithRetry(() => import("./pages/pedidos/PedidosRelatorios"));
 
 const CategorizacaoIA = lazyWithRetry(() => import("./pages/CategorizacaoIA"));
 const Mais = lazyWithRetry(() => import("./pages/Mais"));
@@ -154,7 +145,6 @@ const Checkout = lazyWithRetry(() => import("./pages/Checkout"));
 const CheckoutPagamento = lazyWithRetry(() => import("./pages/CheckoutPagamento"));
 const Faturas = lazyWithRetry(() => import("./pages/Faturas"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
-const LojaOnline = lazyWithRetry(() => import("./pages/storefront/LojaOnline"));
 
 const Unsubscribe = lazyWithRetry(() => import("./pages/Unsubscribe"));
 const Privacidade = lazyWithRetry(() => import("./pages/legal/Privacidade"));
@@ -399,15 +389,6 @@ const AppRoutes = () => (
         <Route path="/centros-custo" element={<CentrosCusto />} />
         <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
         <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />
-        <Route path="/pedidos" element={<PedidosModulo />} />
-        <Route path="/pedidos/onboarding" element={<PedidosOnboarding />} />
-        <Route path="/pedidos/assinatura" element={<PedidosAssinatura />} />
-        <Route path="/pedidos/cardapio" element={<PedidosCardapio />} />
-        <Route path="/pedidos/central" element={<PedidosCentral />} />
-        <Route path="/pedidos/cozinha" element={<CozinhaCentral />} />
-        <Route path="/pedidos/expedicao" element={<ExpedicaoCentral />} />
-        <Route path="/pedidos/integracoes" element={<PedidosIntegracoes />} />
-        <Route path="/pedidos/relatorios" element={<PedidosRelatorios />} />
 
         <Route path="/mais" element={<Mais />} />
       </Route>
@@ -531,7 +512,6 @@ const AppRoutes = () => (
         <Route path="/admin/mais" element={<Mais />} />
 
       </Route>
-      <Route path="/c/:slug" element={<LojaOnline />} />
       <Route path="/convite/:token" element={<AcceptInvite />} />
 
       <Route path="/reset-password" element={<ResetPassword />} />

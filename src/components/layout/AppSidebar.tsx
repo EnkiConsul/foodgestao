@@ -25,7 +25,6 @@ import { FinanceiroMenu } from "./sidebar-menus/FinanceiroMenu";
 import { PortalMenu } from "./sidebar-menus/PortalMenu";
 import { AccountMenu } from "./sidebar-menus/AccountMenu";
 import { ComingSoonMenu } from "./sidebar-menus/ComingSoonMenu";
-import { PedidosMenu } from "./sidebar-menus/PedidosMenu";
 import { SidebarToggleButton } from "./SidebarToggleButton";
 
 
@@ -42,7 +41,6 @@ export function AppSidebar() {
       case "portal_colaborador": return <PortalMenu />;
       case "crm": return <ComingSoonMenu label="CRM 360°" />;
       case "rh": return <ComingSoonMenu label="RH 360°" />;
-      case "pedidos": return <PedidosMenu />;
       case "conta": return null;
       case "hub":
       case "admin":
