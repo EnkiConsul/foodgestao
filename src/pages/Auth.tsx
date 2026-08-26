@@ -176,14 +176,16 @@ export default function Auth() {
   };
 
   const goTo = (target: string) => {
+    if (window.location.pathname === target) return;
     navigate(target, { replace: true });
     // Fallback: se por algum motivo a navegação do router não ocorrer
-    // (rota atual igual, gate em suspense), força a navegação do browser.
+    // (gate em suspense, corrida com a hidratação da sessão), força a
+    // navegação do browser. Vale tanto para login em "/" quanto em "/auth".
     window.setTimeout(() => {
-      if (window.location.pathname === "/" && target !== "/") {
+      if (window.location.pathname !== target) {
         window.location.replace(target);
       }
-    }, 600);
+    }, 800);
   };
 
   const checkMfaAndRedirect = async () => {
