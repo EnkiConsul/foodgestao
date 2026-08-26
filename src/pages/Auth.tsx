@@ -518,7 +518,7 @@ export default function Auth() {
                     type="email"
                     placeholder="seu@email.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setDuplicateEmail(""); }}
                     className="pl-10"
                     maxLength={255}
                   />
