@@ -123,6 +123,9 @@ function persist(contextType: ContextType, selectedCompanyId: string | null) {
 export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const legacyPf = useLegacyPfData();
+  const legacyPfRef = useRef<boolean>(false);
+  legacyPfRef.current = legacyPf.data === true;
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
 

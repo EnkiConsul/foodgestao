@@ -1,12 +1,15 @@
 import { User, Building2, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useLegacyPfData } from "@/hooks/useLegacyPfData";
 
 export function ContextSelector() {
   const { contextType, selectedCompanyId, companies, setContext, syncing } = useCompanyContext();
+  const legacyPf = useLegacyPfData();
 
-  // PF só aparece se o usuário estiver ativamente em PF (legado) — novos cadastros são PJ.
-  const isLegacyPf = contextType === "pf";
+  // "Pessoal" só aparece para quem está em PF agora ou tem dados PF legados —
+  // contas novas são PJ-first e nunca veem o espaço pessoal vazio.
+  const isLegacyPf = contextType === "pf" || legacyPf.data === true;
   const currentValue = contextType === "pf" ? "pf|null" : `pj|${selectedCompanyId}`;
 
   const handleChange = (val: string) => {
