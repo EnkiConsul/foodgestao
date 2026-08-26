@@ -62,6 +62,7 @@ export function useOnboardingSubmit() {
         else if (raw.includes("nenhum_modulo_selecionado")) code = "nenhum_modulo_selecionado";
         else if (raw.includes("cnpj_invalido")) code = "cnpj_invalido";
         else if (raw.includes("usuario_nao_autenticado")) code = "usuario_nao_autenticado";
+        else if (raw.toLowerCase().includes("sem permiss")) code = "sem_permissao";
         else if (raw.includes("23505") || raw.includes("duplicate key")) code = "cadastro_duplicado";
         if (code === "erro_desconhecido") {
           console.error("[onboarding] falha inesperada na RPC fn_cadastrar_empresa_onboarding", {
