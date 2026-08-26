@@ -14,6 +14,7 @@ import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
 import { useTurnstileSiteKey } from "@/hooks/useTurnstileSiteKey";
 import { unifiedSignIn } from "@/lib/authUnified";
+import { sanitizeRedirect } from "@/lib/safeRedirect";
 
 import { z } from "zod";
 import { toast } from "sonner";
