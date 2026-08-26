@@ -444,6 +444,32 @@ export default function Auth() {
         ) : (
           <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {isSignup && duplicateEmail && (
+              <div
+                role="alert"
+                className="space-y-3 rounded-md border border-destructive/40 bg-destructive/10 p-3"
+              >
+                <p className="text-sm text-foreground">
+                  Este e-mail já está cadastrado:{" "}
+                  <span className="font-medium break-all">{duplicateEmail}</span>. Entre com sua senha
+                  ou use “Esqueci minha senha”.
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button type="button" size="sm" className="sm:flex-1" onClick={goToLoginWithDuplicate}>
+                    Entrar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="sm:flex-1"
+                    onClick={goToForgotWithDuplicate}
+                  >
+                    Recuperar senha
+                  </Button>
+                </div>
+              </div>
+            )}
             {isSignup && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome completo</Label>
