@@ -88,24 +88,6 @@ export const MODULES: ModuleDefinition[] = [
     parent: "dp",
     requires: ["dp", "ponto"],
   },
-  {
-    slug: "crm",
-    name: "CRM 360°",
-    shortName: "CRM",
-    description: "Gestão de clientes, oportunidades e funil de vendas.",
-    icon: Handshake,
-    entryRoute: "/crm",
-    available: false,
-  },
-  {
-    slug: "rh",
-    name: "RH 360°",
-    shortName: "RH",
-    description: "Recrutamento, avaliações e desenvolvimento de pessoas.",
-    icon: UserCheck,
-    entryRoute: "/rh",
-    available: false,
-  },
 ];
 
 export const MODULE_BY_SLUG: Record<AppModule, ModuleDefinition> = Object.fromEntries(

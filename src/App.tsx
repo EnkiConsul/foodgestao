@@ -10,7 +10,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { usePageviewTracking } from "@/hooks/usePageviewTracking";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
-import { ModulePlaceholder } from "@/components/modules/ModulePlaceholder";
 import { DpLayout } from "@/components/dp/DpLayout";
 import { ModuloEmDesenvolvimentoGate } from "@/components/dp/ModuloEmDesenvolvimentoGate";
 
@@ -387,8 +386,6 @@ const AppRoutes = () => (
         <Route path="/empresas" element={<Empresas />} />
         <Route path="/formas-pagamento" element={<FormasPagamento />} />
         <Route path="/centros-custo" element={<CentrosCusto />} />
-        <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
-        <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />
 
         <Route path="/mais" element={<Mais />} />
       </Route>

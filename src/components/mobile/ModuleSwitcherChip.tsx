@@ -11,8 +11,6 @@ import { MODULES, isModuleUsable } from "@/lib/modules";
 const MODULE_TO_ACTIVE: Record<string, ActiveModule> = {
   financeiro: "financeiro",
   dp: "dp",
-  crm: "crm",
-  rh: "rh",
 };
 
 export function ModuleSwitcherChip() {

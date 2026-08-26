@@ -24,7 +24,6 @@ import { FinanceiroMenu } from "./sidebar-menus/FinanceiroMenu";
 // Quando o módulo DP está ativo o AppSidebar não renderiza menu de módulo.
 import { PortalMenu } from "./sidebar-menus/PortalMenu";
 import { AccountMenu } from "./sidebar-menus/AccountMenu";
-import { ComingSoonMenu } from "./sidebar-menus/ComingSoonMenu";
 import { SidebarToggleButton } from "./SidebarToggleButton";
 
 
@@ -39,8 +38,6 @@ export function AppSidebar() {
       case "financeiro": return <FinanceiroMenu />;
       case "dp": return null;
       case "portal_colaborador": return <PortalMenu />;
-      case "crm": return <ComingSoonMenu label="CRM 360°" />;
-      case "rh": return <ComingSoonMenu label="RH 360°" />;
       case "conta": return null;
       case "hub":
       case "admin":

@@ -102,7 +102,7 @@ export default function Hub() {
     <div className="mx-auto max-w-6xl">
       <Helmet>
         <title>Hub de Módulos — 360°FOOD</title>
-        <meta name="description" content="Acesse os módulos contratados: Financeiro, Pessoas, CRM e RH." />
+        <meta name="description" content="Acesse os módulos contratados: Financeiro e Pessoas." />
       </Helmet>
 
       <div className="mb-6 md:mb-8">
