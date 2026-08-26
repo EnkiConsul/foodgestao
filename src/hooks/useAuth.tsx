@@ -3,6 +3,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { isAlreadyRegisteredSignup } from "@/lib/authSignupSignals";
 
 interface AuthContextType {
   session: Session | null;
@@ -59,9 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { full_name: fullName },
       },
     });
+    const alreadyRegistered = !error && isAlreadyRegisteredSignup(data);
     return {
       error: error as Error | null,
-      needsEmailConfirmation: !error && !data?.session,
+      alreadyRegistered,
+      needsEmailConfirmation: !error && !alreadyRegistered && !data?.session,
     };
   };
 
