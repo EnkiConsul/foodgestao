@@ -1,29 +1,25 @@
-# Onboarding: usar a lista de módulos do código
+# Onboarding: usar a lista de módulos do código (apenas módulos prontos e principais)
 
 ## Por que ainda aparece "DP 360°"
 
-A tela de seleção de módulos do onboarding não usa a lista de módulos do código (onde o nome já é "Pessoas 360°"). Ela lê a tabela do banco `modulos_catalogo`, que ainda tem os nomes e módulos antigos:
-
-- `dp` → "DP 360°"
-- `crm`, `rh`, `bi` → módulos que não existem no produto
-- `ponto`, `folha` → desativados no produto, mas ativos no catálogo
+A tela de seleção de módulos do onboarding lê a tabela do banco `modulos_catalogo`, que ainda tem os nomes e módulos antigos. O código principal já tem a fonte correta em `src/lib/modules.ts` — lá o módulo DP se chama "Pessoas 360°" e os módulos que não existem (CRM, RH, BI, Ponto, Folha) estão marcados como não disponíveis.
 
 ## O que fazer
 
-1. Trocar a fonte de dados de `StepModulos.tsx`: em vez do catálogo do banco, usar `MODULES` de `src/lib/modules.ts` — a mesma fonte usada pelo Hub e pela troca de módulos.
-2. Exibir apenas módulos prontos: `available === true`. Isso resulta em:
+1. Trocar a fonte de dados de `StepModulos.tsx`: em vez do catálogo do banco, usar `MODULES` de `src/lib/modules.ts`.
+2. Exibir apenas módulos **principais** prontos:
+   - `available === true`
+   - sem `parent` (não são submódulos)
+   Resultado na tela:
    - Financeiro 360°
    - Pessoas 360°
-   - Escala 360° (submódulo de Pessoas, marcado como "Extra" e dependente de Pessoas)
-   Ponto, Folha, CRM, RH e BI desaparecem da tela.
-3. Manter o comportamento do card (ícone, nome, descrição, seleção) usando os campos de `MODULES` (`icon`, `name`, `description`).
-4. Regra de dependência: se Escala for selecionada, Pessoas é marcada automaticamente (Escala requer `dp`); ao desmarcar Pessoas, Escala também é desmarcada.
-5. Garantir que a conclusão do onboarding continue recebendo os mesmos slugs (`financeiro`, `dp`, `escala`) que o backend já entende ao ativar módulos/trial.
+   Ponto, Folha, CRM, RH, BI, Escala e Financeiro Pessoal não aparecem.
+3. Ajustar a tipagem do `ModuloCard.tsx` para receber os campos do `MODULES` (`name`, `description`, `icon`, `slug`) e manter o visual atual (ícone, rótulo, descrição, checkbox circular).
+4. Nenhuma mudança de banco. A tabela `modulos_catalogo` segue existindo para o backoffice, mas o onboarding deixa de depender dela.
+5. Verificar `/onboarding` no passo de módulos após a mudança para confirmar os dois cards corretos: Financeiro 360° e Pessoas 360°.
 
 ## Detalhes técnicos
 
-- `src/components/onboarding/food/StepModulos.tsx`: remover `useModulosCatalogo` e derivar a lista de `MODULES.filter(m => m.available)`; ordenar com pais antes dos submódulos.
-- `src/components/onboarding/food/ModuloCard.tsx`: ajustar a tipagem das props para aceitar `{ slug, name, description, icon }` em vez do tipo do catálogo do banco (mantendo o visual atual e o selo "Extra").
-- `src/pages/Onboarding.tsx`: aplicar a regra de dependência no `onToggle` (Escala implica Pessoas) e conferir a validação de "ao menos 1 módulo".
-- Nenhuma mudança de banco é necessária; `modulos_catalogo` segue existindo para o backoffice.
-- Depois da mudança, verificar a tela `/onboarding` no passo de módulos para confirmar os três cards corretos.
+- `src/components/onboarding/food/StepModulos.tsx`: remover `useModulosCatalogo`; criar a lista estática a partir de `MODULES.filter(m => m.available && !m.parent)` e ordenar pela posição atual do array.
+- `src/components/onboarding/food/ModuloCard.tsx`: trocar a prop `modulo: ModuloCatalogo` por uma interface local com `slug`, `name`, `description`, `icon`.
+- A lógica de validação "ao menos 1 módulo" e a submissão para ativar o trial continuam usando os slugs selecionados; como os slugs são os mesmos (`financeiro`, `dp`), nada muda no backend.
