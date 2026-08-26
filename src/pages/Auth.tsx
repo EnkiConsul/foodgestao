@@ -352,6 +352,19 @@ export default function Auth() {
     setConfirmPassword("");
     setTurnstileError(null);
     setTurnstileToken("");
+    setDuplicateEmail("");
+  };
+
+  const goToLoginWithDuplicate = () => {
+    const target = duplicateEmail;
+    switchMode("login");
+    setIdentifier(target);
+  };
+
+  const goToForgotWithDuplicate = () => {
+    const target = duplicateEmail;
+    switchMode("forgot");
+    setEmail(target);
   };
 
   return (
