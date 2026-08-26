@@ -268,7 +268,7 @@ export default function Auth() {
         }
       } else {
         try {
-          const { error, needsEmailConfirmation } = await signUp(email, password, fullName);
+          const { error, needsEmailConfirmation, alreadyRegistered } = await signUp(email, password, fullName);
           if (error) {
             const translated = translateAuthError(error.message);
             const { reason, category } = classifySignupError(error.message);
@@ -278,6 +278,19 @@ export default function Auth() {
               reason,
               error_category: category,
               error_message: error.message?.slice(0, 200) ?? "unknown",
+            });
+          } else if (alreadyRegistered) {
+            setDuplicateEmail(email.trim());
+            setPassword("");
+            setConfirmPassword("");
+            toast.error("E-mail já cadastrado", {
+              description: "Entre com sua senha ou use \"Esqueci minha senha\".",
+            });
+            trackEvent(FunnelStep.SignupError, {
+              method: "email",
+              reason: "email_already_registered",
+              error_category: "validation",
+              error_message: "signup_without_identities",
             });
           } else {
             // Log LGPD acceptance (best-effort, non-blocking)
