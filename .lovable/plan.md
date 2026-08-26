@@ -1,33 +1,29 @@
-# Corrigir nomes dos módulos no Onboarding
+# Onboarding: usar a lista de módulos do código
 
 ## Por que ainda aparece "DP 360°"
 
-A tela de seleção de módulos do onboarding não usa a lista de módulos do código (onde o nome já é "Pessoas 360°"). Ela lê a tabela do banco `modulos_catalogo`, e nessa tabela os registros seguem com os nomes antigos. Conferi os dados atuais:
+A tela de seleção de módulos do onboarding não usa a lista de módulos do código (onde o nome já é "Pessoas 360°"). Ela lê a tabela do banco `modulos_catalogo`, que ainda tem os nomes e módulos antigos:
 
-- `dp` → "DP 360°" (deveria ser "Pessoas 360°")
-- `crm` → "CRM 360°" (módulo removido do produto, mas ainda ativo aqui)
-- `rh` → "RH 360°" (módulo removido do produto, mas ainda ativo aqui)
-- `bi` → "BI 360°" (não existe implementação)
-- `ponto` e `folha` → ainda ativos no catálogo, embora estejam desativados no produto
-- `financeiro_pessoal` → "Financeiro Pessoal" (sub-módulo do Financeiro)
-
-Ou seja: além do nome do DP, o onboarding está oferecendo módulos que não existem mais.
+- `dp` → "DP 360°"
+- `crm`, `rh`, `bi` → módulos que não existem no produto
+- `ponto`, `folha` → desativados no produto, mas ativos no catálogo
 
 ## O que fazer
 
-1. Atualizar no catálogo o registro `dp`:
-   - nome: "Pessoas 360°"
-   - descrição: focada no que o módulo realmente entrega (colaboradores, admissão, férias, folgas, documentos e escala) — sem citar folha de pagamento, que não é gerada pelo sistema.
-2. Desativar no catálogo (`ativo = false`) os módulos que não existem/não são vendidos hoje: `crm`, `rh`, `bi`, `ponto`, `folha`. Assim eles deixam de aparecer no onboarding e no hub, sem apagar histórico.
-3. Manter visíveis no onboarding apenas: Financeiro 360°, Pessoas 360°, Escala 360° (se desejado como opcional) e Financeiro Pessoal.
-4. Verificar a tela depois da mudança para confirmar que os cards refletem os nomes corretos.
-
-## Decisão necessária
-
-Escala 360° hoje está com `show_on_hub = false` e não aparece no onboarding. Posso deixá-la como está (contratada depois, dentro de Pessoas) ou incluí-la como card opcional no onboarding. Se não houver preferência, mantenho como está.
+1. Trocar a fonte de dados de `StepModulos.tsx`: em vez do catálogo do banco, usar `MODULES` de `src/lib/modules.ts` — a mesma fonte usada pelo Hub e pela troca de módulos.
+2. Exibir apenas módulos prontos: `available === true`. Isso resulta em:
+   - Financeiro 360°
+   - Pessoas 360°
+   - Escala 360° (submódulo de Pessoas, marcado como "Extra" e dependente de Pessoas)
+   Ponto, Folha, CRM, RH e BI desaparecem da tela.
+3. Manter o comportamento do card (ícone, nome, descrição, seleção) usando os campos de `MODULES` (`icon`, `name`, `description`).
+4. Regra de dependência: se Escala for selecionada, Pessoas é marcada automaticamente (Escala requer `dp`); ao desmarcar Pessoas, Escala também é desmarcada.
+5. Garantir que a conclusão do onboarding continue recebendo os mesmos slugs (`financeiro`, `dp`, `escala`) que o backend já entende ao ativar módulos/trial.
 
 ## Detalhes técnicos
 
-- Migração SQL de UPDATE em `public.modulos_catalogo` (sem mudança de schema): ajuste de `nome`/`descricao_curta` do slug `dp` e `ativo = false` para `crm`, `rh`, `bi`, `ponto`, `folha`.
-- Nenhuma alteração em `StepModulos.tsx` ou `useModulosCatalogo.tsx` é necessária — eles apenas renderizam o catálogo.
-- O cache do React Query desse catálogo é de 1 hora (`staleTime`), portanto pode ser necessário recarregar a página para ver a mudança.
+- `src/components/onboarding/food/StepModulos.tsx`: remover `useModulosCatalogo` e derivar a lista de `MODULES.filter(m => m.available)`; ordenar com pais antes dos submódulos.
+- `src/components/onboarding/food/ModuloCard.tsx`: ajustar a tipagem das props para aceitar `{ slug, name, description, icon }` em vez do tipo do catálogo do banco (mantendo o visual atual e o selo "Extra").
+- `src/pages/Onboarding.tsx`: aplicar a regra de dependência no `onToggle` (Escala implica Pessoas) e conferir a validação de "ao menos 1 módulo".
+- Nenhuma mudança de banco é necessária; `modulos_catalogo` segue existindo para o backoffice.
+- Depois da mudança, verificar a tela `/onboarding` no passo de módulos para confirmar os três cards corretos.
