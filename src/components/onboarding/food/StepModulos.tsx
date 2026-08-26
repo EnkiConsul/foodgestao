@@ -1,6 +1,6 @@
 import { Gift, Loader2 } from "lucide-react";
 import { ModuloCard } from "./ModuloCard";
-import { useModulosCatalogo } from "@/hooks/useModulosCatalogo";
+import { MODULES } from "@/lib/modules";
 
 interface Props {
   selectedSlugs: string[];
@@ -8,7 +8,9 @@ interface Props {
 }
 
 export function StepModulos({ selectedSlugs, onToggle }: Props) {
-  const { data: modulos, isLoading } = useModulosCatalogo();
+  // Usa a lista de módulos do código, não o catálogo do banco.
+  // Exibe somente módulos principais (sem parent) e que estejam prontos.
+  const modulos = MODULES.filter((m) => m.available && !m.parent);
 
   return (
     <div className="space-y-6">
@@ -31,23 +33,16 @@ export function StepModulos({ selectedSlugs, onToggle }: Props) {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {modulos?.map((m) => (
-            <ModuloCard
-              key={m.slug}
-              modulo={m}
-              selected={selectedSlugs.includes(m.slug)}
-              onToggle={() => onToggle(m.slug)}
-              extraBadge={m.slug === "financeiro_pessoal" ? "Extra" : undefined}
-            />
-          ))}
-        </div>
-      )}
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {modulos.map((m) => (
+          <ModuloCard
+            key={m.slug}
+            modulo={m}
+            selected={selectedSlugs.includes(m.slug)}
+            onToggle={() => onToggle(m.slug)}
+          />
+        ))}
+      </div>
 
       <p className="text-xs text-muted-foreground text-center">
         {selectedSlugs.length === 0
