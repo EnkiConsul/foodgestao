@@ -6,7 +6,6 @@ import {
   CompanyRole,
   ModuleKey,
 } from "@/lib/permissions";
-import { ORDERS_PERMISSION_KEYS } from "@/lib/orders/permissions";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
@@ -24,7 +23,6 @@ const LEVELS: { value: PermissionLevel; label: string }[] = [
 
 const SECTIONS: { title: string; modules: readonly ModuleKey[]; fallback: PermissionLevel }[] = [
   { title: "Financeiro", modules: FINANCE_MODULES, fallback: "edit" },
-  { title: "Pedidos", modules: ORDERS_PERMISSION_KEYS, fallback: "none" },
 ];
 
 export function PermissionsEditor({ role, value, onChange }: Props) {

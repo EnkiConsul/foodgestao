@@ -3,7 +3,6 @@ import {
   Users,
   Handshake,
   UserCheck,
-  ShoppingCart,
   Clock,
   CalendarDays,
   Receipt,
@@ -106,16 +105,6 @@ export const MODULES: ModuleDefinition[] = [
     icon: UserCheck,
     entryRoute: "/rh",
     available: false,
-  },
-  {
-    slug: "pedidos",
-    name: "Pedidos 360°",
-    shortName: "Pedidos",
-    description: "Gestão de pedidos, entregas e integração com balcão/delivery.",
-    icon: ShoppingCart,
-    entryRoute: "/pedidos",
-    available: true,
-    sellable: true,
   },
 ];
 

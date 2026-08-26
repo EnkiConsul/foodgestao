@@ -13,7 +13,6 @@ const MODULE_TO_ACTIVE: Record<string, ActiveModule> = {
   dp: "dp",
   crm: "crm",
   rh: "rh",
-  pedidos: "pedidos",
 };
 
 export function ModuleSwitcherChip() {

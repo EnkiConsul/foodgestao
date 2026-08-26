@@ -49,10 +49,6 @@ project_id = "grtxmbffgmgnkawlvqhm"
     verify_jwt = false
   [functions.pluggy-v2-alerts]
     verify_jwt = false
-  [functions.orders-inbox-worker]
-    verify_jwt = false
-  [functions.orders-outbox-worker]
-    verify_jwt = false
 
   [functions.mkt-lead]
     verify_jwt = false

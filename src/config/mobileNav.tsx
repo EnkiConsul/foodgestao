@@ -240,7 +240,6 @@ const GLOBAL_SHORTCUT_DEFAULTS: Record<
   conta:      { A: "/empresas", B: "/gestao-usuarios" },
   crm:        { A: "/hub", B: "/hub" },
   rh:         { A: "/hub", B: "/hub" },
-  pedidos:    { A: "/hub", B: "/hub" },
 };
 
 function pickShortcut(list: NavLeaf[], to: string | undefined, fallbackIdx = 0): NavLeaf {
@@ -428,15 +427,6 @@ export const MODULE_NAV: Record<ActiveModule, ModuleNav> = {
     hubTo: "/hub",
     moreTo: "/mais",
     home: { icon: Home, label: "Início", to: "/rh", end: true },
-    defaultShortcutA: noopShortcut,
-    defaultShortcutB: noopShortcut,
-    shortcutOptions: [noopShortcut],
-    moreGroups: [contaGroup],
-  },
-  pedidos: {
-    hubTo: "/hub",
-    moreTo: "/mais",
-    home: { icon: Home, label: "Início", to: "/pedidos", end: true },
     defaultShortcutA: noopShortcut,
     defaultShortcutB: noopShortcut,
     shortcutOptions: [noopShortcut],

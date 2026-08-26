@@ -72,7 +72,6 @@ export default function AdminModulos() {
       qc.invalidateQueries({ queryKey: ["admin_all_company_modules"] });
       qc.invalidateQueries({ queryKey: ["company_modules"] });
       qc.invalidateQueries({ queryKey: ["module-entitlement"] });
-      qc.invalidateQueries({ queryKey: ["orders-entitlement"] });
     },
     onError: (e) => toast.error("Falha ao salvar", { description: e instanceof Error ? e.message : String(e) }),
   });
