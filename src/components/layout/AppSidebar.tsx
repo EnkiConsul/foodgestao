@@ -39,8 +39,6 @@ export function AppSidebar() {
       case "financeiro": return <FinanceiroMenu />;
       case "dp": return null;
       case "portal_colaborador": return <PortalMenu />;
-      case "crm": return <ComingSoonMenu label="CRM 360°" />;
-      case "rh": return <ComingSoonMenu label="RH 360°" />;
       case "conta": return null;
       case "hub":
       case "admin":

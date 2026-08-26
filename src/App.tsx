@@ -387,8 +387,6 @@ const AppRoutes = () => (
         <Route path="/empresas" element={<Empresas />} />
         <Route path="/formas-pagamento" element={<FormasPagamento />} />
         <Route path="/centros-custo" element={<CentrosCusto />} />
-        <Route path="/crm" element={<ModuleGuard module="crm"><ModulePlaceholder module="crm" /></ModuleGuard>} />
-        <Route path="/rh" element={<ModuleGuard module="rh"><ModulePlaceholder module="rh" /></ModuleGuard>} />
 
         <Route path="/mais" element={<Mais />} />
       </Route>
