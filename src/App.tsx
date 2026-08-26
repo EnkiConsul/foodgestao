@@ -513,14 +513,15 @@ const AppRoutes = () => (
       <Route path="/dpo" element={<Navigate to="/encarregado-dados" replace />} />
       <Route path="/unsubscribe" element={<Unsubscribe />} />
       <Route path="/planos" element={<PlanosGate />} />
-      <Route path="/financeiro" element={<FinanceiroPage />} />
-      <Route path="/departamento-pessoal" element={<DpSitePage />} />
-      <Route path="/contato" element={<ContatoPage />} />
-      <Route path="/quem-somos" element={<QuemSomosPage />} />
-      <Route path="/cases" element={<CasesPage />} />
-      <Route path="/cases/:slug" element={<CaseDetailPage />} />
-      <Route path="/blog" element={<BlogPage />} />
-      <Route path="/blog/:slug" element={<BlogPostPage />} />
+      <Route path="/financeiro" element={<Navigate to="/" replace />} />
+      <Route path="/departamento-pessoal" element={<Navigate to="/" replace />} />
+      <Route path="/contato" element={<Navigate to="/" replace />} />
+      <Route path="/quem-somos" element={<Navigate to="/" replace />} />
+      <Route path="/cases" element={<Navigate to="/" replace />} />
+      <Route path="/cases/:slug" element={<Navigate to="/" replace />} />
+      <Route path="/blog" element={<Navigate to="/" replace />} />
+      <Route path="/blog/:slug" element={<Navigate to="/" replace />} />
+
       <Route path="/checkout/:planSlug" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
       <Route path="/checkout/pagamento/:invoiceId" element={<ProtectedRoute><CheckoutPagamento /></ProtectedRoute>} />
       <Route path="/faturas" element={<ProtectedRoute><Faturas /></ProtectedRoute>} />
