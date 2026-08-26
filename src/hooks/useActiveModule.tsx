@@ -7,7 +7,6 @@ export type ActiveModule =
   | "portal_colaborador"
   | "crm"
   | "rh"
-  | "pedidos"
   | "admin"
   | "conta";
 
@@ -20,7 +19,6 @@ export function useActiveModule(): ActiveModule {
   if (pathname.startsWith("/dp")) return "dp";
   if (pathname.startsWith("/crm")) return "crm";
   if (pathname.startsWith("/rh")) return "rh";
-  if (pathname.startsWith("/pedidos")) return "pedidos";
   if (pathname.startsWith("/hub")) return "hub";
   if (CONTA_PREFIXES.some((p) => pathname.startsWith(p))) return "conta";
   return "financeiro";
@@ -33,7 +31,6 @@ export const MODULE_LABEL: Record<ActiveModule, string> = {
   portal_colaborador: "Portal do Colaborador",
   crm: "CRM 360°",
   rh: "RH 360°",
-  pedidos: "Pedidos 360°",
   admin: "Backoffice",
   conta: "Conta",
 };
