@@ -10,7 +10,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { usePageviewTracking } from "@/hooks/usePageviewTracking";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
-import { ModulePlaceholder } from "@/components/modules/ModulePlaceholder";
 import { DpLayout } from "@/components/dp/DpLayout";
 import { ModuloEmDesenvolvimentoGate } from "@/components/dp/ModuloEmDesenvolvimentoGate";
 
