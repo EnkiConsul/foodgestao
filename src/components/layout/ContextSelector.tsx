@@ -36,21 +36,25 @@ export function ContextSelector() {
 
       <SelectContent>
         {isLegacyPf && (
-          <SelectItem value="pf|null">
+          <SelectItem value="pf|null" textValue="Pessoal">
             <span className="flex items-center gap-2">
-              <User className="h-3.5 w-3.5" /> Pessoal
+              <User aria-hidden className="h-3.5 w-3.5" />
+              <SelectItemText>Pessoal</SelectItemText>
             </span>
           </SelectItem>
         )}
         {companies.map((c) => (
-          <SelectItem key={c.id} value={`pj|${c.id}`}>
+          <SelectItem key={c.id} value={`pj|${c.id}`} textValue={c.trade_name || c.name}>
             <span className="flex items-center gap-2">
-              <Building2 className="h-3.5 w-3.5" />
-              <span className="truncate max-w-[140px]">{c.trade_name || c.name}</span>
+              <Building2 aria-hidden className="h-3.5 w-3.5" />
+              <SelectItemText>
+                <span className="truncate max-w-[140px]">{c.trade_name || c.name}</span>
+              </SelectItemText>
             </span>
           </SelectItem>
         ))}
       </SelectContent>
+
     </Select>
   );
 }
