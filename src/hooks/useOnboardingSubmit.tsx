@@ -95,6 +95,8 @@ export function mensagemErroOnboarding(code?: string): string {
       return "Sua sessão expirou. Faça login novamente.";
     case "cadastro_duplicado":
       return "Já existe um cadastro em andamento para esses dados. Recarregue a página e tente novamente.";
+    case "sem_permissao":
+      return "Sua conta não tinha permissão para concluir esta etapa. Recarregue a página e tente novamente.";
     default:
       return "Não foi possível concluir o cadastro. Tente novamente em instantes.";
   }
