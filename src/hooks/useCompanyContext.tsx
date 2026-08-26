@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { useLegacyPfData } from "@/hooks/useLegacyPfData";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeRealtime } from "@/lib/realtimeHub";
 import { toast } from "sonner";
@@ -173,15 +174,18 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     setCompanies(list);
 
     // Validação do selectedCompanyId salvo: se o usuário perdeu acesso à
-    // empresa, limpa e seleciona a primeira acessível. Se estiver em PJ
-    // sem empresa disponível, força fallback para PF.
+    // empresa, limpa e seleciona a primeira acessível. Sem empresa
+    // disponível, só cai para PF quando há dados PF legados; caso
+    // contrário permanece em PJ (o app segue para o fluxo de onboarding).
     setSelectedCompanyId((prev) => {
       if (contextTypeRef.current !== "pj") return prev;
       if (prev && list.some((c) => c.id === prev)) return prev;
       const fallback = list[0]?.id ?? null;
       if (!fallback) {
-        setContextType("pf");
-        persist("pf", null);
+        if (legacyPfRef.current) {
+          setContextType("pf");
+          persist("pf", null);
+        }
         return null;
       }
       persist("pj", fallback);
