@@ -218,7 +218,6 @@ const contaShortcuts: NavLeaf[] = [
   { icon: FileText, label: "Faturas", to: "/faturas" },
 ];
 
-const noopShortcut: NavLeaf = { icon: LayoutGrid, label: "Hub", to: "/hub" };
 
 /**
  * ─────────────────────────────────────────────────────────────────────────

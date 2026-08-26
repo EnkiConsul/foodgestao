@@ -24,7 +24,6 @@ import { FinanceiroMenu } from "./sidebar-menus/FinanceiroMenu";
 // Quando o módulo DP está ativo o AppSidebar não renderiza menu de módulo.
 import { PortalMenu } from "./sidebar-menus/PortalMenu";
 import { AccountMenu } from "./sidebar-menus/AccountMenu";
-import { ComingSoonMenu } from "./sidebar-menus/ComingSoonMenu";
 import { SidebarToggleButton } from "./SidebarToggleButton";
 
 
