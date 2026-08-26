@@ -12,7 +12,7 @@ interface AuthContextType {
     email: string,
     password: string,
     fullName: string,
-  ) => Promise<{ error: Error | null; needsEmailConfirmation?: boolean }>;
+  ) => Promise<{ error: Error | null; needsEmailConfirmation?: boolean; alreadyRegistered?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
