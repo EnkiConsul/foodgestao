@@ -55,13 +55,16 @@ Em `src/hooks/useAuth.tsx` o `signUp` só devolve `{ error, needsEmailConfirmati
 ## Não incluído neste plano
 
 - Não criaremos `UNIQUE` constraint global em `companies.email` nem em `contacts.email`, pois o mesmo e-mail corporativo pode ter usos legítimos em contextos distintos (por exemplo, conta PF e PJ do mesmo usuário). A verificação será feita por regra de negócio, não por constraint de banco.
-- Não alteraremos o fluxo de signup do Supabase Auth; apenas melhoraremos as mensagens e validações do onboarding.
+- Não desligaremos a proteção contra enumeração de e-mail do backend: a detecção será feita pelo sinal de identidades vazias, mantendo a segurança atual.
 
 ## Checklist técnico
 
+- [ ] Ampliar `signUp` em `useAuth.tsx` com o sinal `alreadyRegistered` (identidades vazias).
+- [ ] Tratar `alreadyRegistered` em `Auth.tsx` com aviso e atalhos para entrar/recuperar senha.
 - [ ] Criar Edge Function `check-onboarding-email` com autenticação e CORS.
 - [ ] Adicionar função de consulta no frontend (`src/lib/onboardingStatus.ts`).
 - [ ] Atualizar `Onboarding.tsx` para validar e-mail da empresa antes de avançar.
 - [ ] Alterar `public.fn_cadastrar_empresa_onboarding` para verificar e-mail duplicado.
 - [ ] Atualizar `useOnboardingSubmit.tsx` para reconhecer o código `email_ja_cadastrado`.
-- [ ] Testar fluxo de cadastro com e-mail duplicado e com e-mail novo.
+- [ ] Testar cadastro com e-mail já existente, e-mail novo e onboarding com e-mail de empresa duplicado.
+
