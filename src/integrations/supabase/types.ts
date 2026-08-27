@@ -11831,68 +11831,37 @@ export type Database = {
           valor: number
         }[]
       }
-      chart_accounts_report:
-        | {
-            Args: {
-              _company_id?: string
-              _context: Database["public"]["Enums"]["context_type"]
-              _cost_center_ids?: string[]
-              _from?: string
-              _include_zero?: boolean
-              _regime?: string
-              _to?: string
-            }
-            Returns: {
-              code: string
-              creditos: number
-              debitos: number
-              dre_sign: number
-              has_movement: boolean
-              id: string
-              in_balance: boolean
-              in_dre: boolean
-              is_active: boolean
-              is_analytic: boolean
-              level: number
-              name: string
-              nature: string
-              parent_id: string
-              root_code: string
-              saldo_consolidado: number
-              saldo_proprio: number
-            }[]
-          }
-        | {
-            Args: {
-              _company_id?: string
-              _context: Database["public"]["Enums"]["context_type"]
-              _cost_center_ids?: string[]
-              _from?: string
-              _include_zero?: boolean
-              _regime?: string
-              _status?: string
-              _to?: string
-            }
-            Returns: {
-              code: string
-              creditos: number
-              debitos: number
-              dre_sign: number
-              has_movement: boolean
-              id: string
-              in_balance: boolean
-              in_dre: boolean
-              is_active: boolean
-              is_analytic: boolean
-              level: number
-              name: string
-              nature: string
-              parent_id: string
-              root_code: string
-              saldo_consolidado: number
-              saldo_proprio: number
-            }[]
-          }
+      chart_accounts_report: {
+        Args: {
+          _company_id?: string
+          _context: Database["public"]["Enums"]["context_type"]
+          _cost_center_ids?: string[]
+          _from?: string
+          _include_zero?: boolean
+          _regime?: string
+          _status?: string
+          _to?: string
+        }
+        Returns: {
+          code: string
+          creditos: number
+          debitos: number
+          dre_sign: number
+          has_movement: boolean
+          id: string
+          in_balance: boolean
+          in_dre: boolean
+          is_active: boolean
+          is_analytic: boolean
+          level: number
+          name: string
+          nature: string
+          parent_id: string
+          root_code: string
+          saldo_consolidado: number
+          saldo_proprio: number
+        }[]
+      }
       chart_accounts_resequence: {
         Args: { _context: Database["public"]["Enums"]["context_type"] }
         Returns: number

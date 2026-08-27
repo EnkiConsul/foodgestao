@@ -1,0 +1,144 @@
+{
+  "generated_at": "2026-08-27T20:00:32.765Z",
+  "config": {
+    "vus": 150,
+    "duration_s": 30,
+    "thresholds": {
+      "p95_ms": 1500,
+      "error_rate": 0.01
+    }
+  },
+  "totals": {
+    "requests": 8892,
+    "elapsed_s": 30.49,
+    "rps": 291.65,
+    "errors": 0,
+    "error_rate": 0,
+    "p50_ms": 408.9,
+    "p95_ms": 1109.5,
+    "p99_ms": 1441.7
+  },
+  "scenarios": [
+    {
+      "scenario": "categorias_arvore",
+      "requests": 1066,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 34.96,
+      "p50_ms": 1040.3,
+      "p90_ms": 1356.8,
+      "p95_ms": 1484.6,
+      "p99_ms": 1836.5,
+      "max_ms": 2153.4,
+      "statuses": {
+        "200": 1066
+      }
+    },
+    {
+      "scenario": "rpc_plano_contas",
+      "requests": 515,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 16.89,
+      "p50_ms": 512.9,
+      "p90_ms": 844.1,
+      "p95_ms": 961,
+      "p99_ms": 1328.8,
+      "max_ms": 1922.9,
+      "statuses": {
+        "200": 515
+      }
+    },
+    {
+      "scenario": "lancamentos_pagina",
+      "requests": 2117,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 69.43,
+      "p50_ms": 426.9,
+      "p90_ms": 750.7,
+      "p95_ms": 890.1,
+      "p99_ms": 1217.8,
+      "max_ms": 2378.4,
+      "statuses": {
+        "200": 2117
+      }
+    },
+    {
+      "scenario": "contatos_busca",
+      "requests": 1028,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 33.72,
+      "p50_ms": 405.7,
+      "p90_ms": 709.3,
+      "p95_ms": 803.5,
+      "p99_ms": 1073.7,
+      "max_ms": 1723.9,
+      "statuses": {
+        "200": 1028
+      }
+    },
+    {
+      "scenario": "colaboradores_lista",
+      "requests": 1023,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 33.55,
+      "p50_ms": 317.7,
+      "p90_ms": 629.6,
+      "p95_ms": 774.2,
+      "p99_ms": 1004.4,
+      "max_ms": 1391.7,
+      "statuses": {
+        "200": 1023
+      }
+    },
+    {
+      "scenario": "lancamentos_periodo",
+      "requests": 1075,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 35.26,
+      "p50_ms": 313.5,
+      "p90_ms": 626.8,
+      "p95_ms": 757.7,
+      "p99_ms": 1060,
+      "max_ms": 2839.3,
+      "statuses": {
+        "200": 1075
+      }
+    },
+    {
+      "scenario": "cartoes_faturas",
+      "requests": 513,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 16.83,
+      "p50_ms": 302.7,
+      "p90_ms": 602.4,
+      "p95_ms": 745.5,
+      "p99_ms": 1029.3,
+      "max_ms": 1448.1,
+      "statuses": {
+        "200": 513
+      }
+    },
+    {
+      "scenario": "dashboard_saldos",
+      "requests": 1555,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 51,
+      "p50_ms": 326.4,
+      "p90_ms": 614.2,
+      "p95_ms": 728.8,
+      "p99_ms": 1042.3,
+      "max_ms": 1950,
+      "statuses": {
+        "200": 1555
+      }
+    }
+  ],
+  "violations": []
+}

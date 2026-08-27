@@ -151,7 +151,36 @@ const STAGES = [
         ? null
         : "variáveis SMOKE_* ausentes",
   },
+  {
+    id: "load-db",
+    label: "Carga no banco (latência das consultas + FKs sem índice)",
+    cmd: "node",
+    args: [
+      "scripts/load-test-db.mjs",
+      "--conns=10",
+      "--rounds=20",
+      ...(REQUIRE ? ["--require"] : []),
+    ],
+    needs: () =>
+      has("PGHOST") || has("SUPABASE_DB_URL") ? null : "PGHOST/SUPABASE_DB_URL ausente",
+  },
+  {
+    id: "load-api",
+    label: "Carga ponta a ponta na API (latência, throughput, erro)",
+    cmd: "node",
+    args: [
+      "scripts/load-test.mjs",
+      "--vus=20",
+      "--duration=30",
+      ...(REQUIRE ? ["--require"] : []),
+    ],
+    needs: () =>
+      has("LOAD_TEST_ACCESS_TOKEN") || has("TEST_USER", "TEST_PASS")
+        ? null
+        : "LOAD_TEST_ACCESS_TOKEN ou TEST_USER/TEST_PASS ausentes",
+  },
 ];
+
 
 const selected = STAGES.filter(
   (s) => (!only || only.includes(s.id)) && !skip.has(s.id),

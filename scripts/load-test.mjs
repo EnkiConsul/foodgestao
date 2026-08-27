@@ -188,10 +188,12 @@ const SCENARIOS = [
       rest("rpc/chart_accounts_report", {
         method: "POST",
         body: {
+          _context: "pj",
           _company_id: ctx.companyId,
           _from: ctx.from,
           _to: ctx.to,
           _regime: "competencia",
+          _cost_center_ids: null,
           _include_zero: false,
         },
       }),
@@ -201,7 +203,7 @@ const SCENARIOS = [
     weight: 2,
     run: () =>
       rest(
-        `dp_colaboradores?select=id,nome,cargo_id,unidade_id,status,regime&${companyFilter}&order=nome.asc&limit=100`,
+        `dp_colaboradores?select=id,nome,cargo_id,unidade_id,ativo,regime&${companyFilter}&order=nome.asc&limit=100`,
         { prefer: "count=exact" }
       ),
   },
@@ -245,9 +247,9 @@ async function vu(seed) {
     const bucket = stats.get(scenario.name);
     try {
       const r = await scenario.run();
-      bucket.samples.push(r.ms);
       bucket.statuses[r.status] = (bucket.statuses[r.status] ?? 0) + 1;
-      if (!r.ok) bucket.errors++;
+      if (r.ok) bucket.samples.push(r.ms);
+      else bucket.errors++;
     } catch {
       bucket.errors++;
       bucket.statuses.network = (bucket.statuses.network ?? 0) + 1;
