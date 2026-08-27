@@ -19,6 +19,9 @@ export type Database = {
           account_number: string | null
           account_type: Database["public"]["Enums"]["account_type"]
           agency: string | null
+          bank_balance: number | null
+          bank_balance_at: string | null
+          bank_balance_source: string | null
           bank_slug: string | null
           color: string | null
           company_id: string | null
@@ -41,6 +44,9 @@ export type Database = {
           account_number?: string | null
           account_type?: Database["public"]["Enums"]["account_type"]
           agency?: string | null
+          bank_balance?: number | null
+          bank_balance_at?: string | null
+          bank_balance_source?: string | null
           bank_slug?: string | null
           color?: string | null
           company_id?: string | null
@@ -63,6 +69,9 @@ export type Database = {
           account_number?: string | null
           account_type?: Database["public"]["Enums"]["account_type"]
           agency?: string | null
+          bank_balance?: number | null
+          bank_balance_at?: string | null
+          bank_balance_source?: string | null
           bank_slug?: string | null
           color?: string | null
           company_id?: string | null
@@ -986,6 +995,8 @@ export type Database = {
         Row: {
           account_id: string
           account_name: string
+          bank_balance: number | null
+          bank_drift: number | null
           company_id: string | null
           computed_balance: number
           context: Database["public"]["Enums"]["context_type"]
@@ -1002,6 +1013,8 @@ export type Database = {
         Insert: {
           account_id: string
           account_name: string
+          bank_balance?: number | null
+          bank_drift?: number | null
           company_id?: string | null
           computed_balance: number
           context: Database["public"]["Enums"]["context_type"]
@@ -1018,6 +1031,8 @@ export type Database = {
         Update: {
           account_id?: string
           account_name?: string
+          bank_balance?: number | null
+          bank_drift?: number | null
           company_id?: string | null
           computed_balance?: number
           context?: Database["public"]["Enums"]["context_type"]
@@ -10982,6 +10997,69 @@ export type Database = {
           },
         ]
       }
+      transaction_origin_changes: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          incoming: Json
+          pluggy_transaction_id: string | null
+          previous: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          staging_id: string | null
+          status: string
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          incoming: Json
+          pluggy_transaction_id?: string | null
+          previous: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          staging_id?: string | null
+          status?: string
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          incoming?: Json
+          pluggy_transaction_id?: string | null
+          previous?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          staging_id?: string | null
+          status?: string
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_origin_changes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_sources"
+            referencedColumns: ["transaction_id"]
+          },
+          {
+            foreignKeyName: "transaction_origin_changes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transaction_tags: {
         Row: {
           tag_id: string
@@ -12567,6 +12645,9 @@ export type Database = {
           account_number: string | null
           account_type: Database["public"]["Enums"]["account_type"]
           agency: string | null
+          bank_balance: number | null
+          bank_balance_at: string | null
+          bank_balance_source: string | null
           bank_slug: string | null
           color: string | null
           company_id: string | null
@@ -12975,6 +13056,10 @@ export type Database = {
         Args: { p_staging_ids: string[] }
         Returns: number
       }
+      pluggy_register_origin_change: {
+        Args: { _incoming: Json; _staging_id: string; _transaction_id: string }
+        Returns: string
+      }
       pluggy_remote_delete_claim: {
         Args: { _batch?: number; _lease_seconds?: number }
         Returns: {
@@ -13086,6 +13171,8 @@ export type Database = {
         Returns: {
           account_id: string
           account_name: string
+          bank_balance: number
+          bank_drift: number
           company_id: string
           computed_balance: number
           context: Database["public"]["Enums"]["context_type"]
@@ -13105,6 +13192,10 @@ export type Database = {
           source: string
           user_id: string
         }[]
+      }
+      resolve_transaction_origin_change: {
+        Args: { _accept: boolean; _change_id: string; _note?: string }
+        Returns: undefined
       }
       revert_chart_account_suggestion_batch: {
         Args: { _batch_id: string }
