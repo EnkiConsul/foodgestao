@@ -1,21 +1,38 @@
 {
-  "ranAt": "2026-08-27T14:41:57.828Z",
+  "ranAt": "2026-08-27T14:42:28.700Z",
   "requireMode": false,
   "results": [
     {
-      "id": "deno",
-      "status": "passed",
-      "ms": 52689
+      "id": "tenancy",
+      "status": "skipped",
+      "reason": "variáveis de tenancy ausentes: TEST_SUPABASE_URL, TEST_SUPABASE_ANON_KEY, TEST_USER_A_EMAIL, TEST_USER_A_PASSWORD, TEST_USER_B_EMAIL, TEST_USER_B_PASSWORD, TEST_USER_C_EMAIL, TEST_USER_C_PASSWORD, TEST_USER_D_EMAIL, TEST_USER_D_PASSWORD, TEST_COMPANY_1_ID, TEST_COMPANY_2_ID"
+    },
+    {
+      "id": "security",
+      "status": "failed",
+      "ms": 14097,
+      "exit": 1
+    },
+    {
+      "id": "policy",
+      "status": "failed",
+      "ms": 9802,
+      "exit": 1
     },
     {
       "id": "migrations",
       "status": "passed",
-      "ms": 107
+      "ms": 153
     },
     {
-      "id": "build",
-      "status": "passed",
-      "ms": 38621
+      "id": "backup",
+      "status": "skipped",
+      "reason": "RESTORE_DB_URL ausente (banco descartável de restore)"
+    },
+    {
+      "id": "smoke",
+      "status": "skipped",
+      "reason": "variáveis SMOKE_* ausentes"
     }
   ]
 }
