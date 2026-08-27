@@ -148,6 +148,17 @@ async function triggerSync(itemId: string, windowDays?: number) {
   await res.text();
 }
 
+/** O item existe em alguma conexão do sistema (v1 ou v2)? */
+async function itemIsKnown(admin: Admin, itemId: string): Promise<boolean> {
+  const [v1, v2] = await Promise.all([
+    admin.from('pluggy_connections').select('id', { count: 'exact', head: true })
+      .eq('pluggy_item_id', itemId),
+    admin.from('pluggy_v2_connections').select('id', { count: 'exact', head: true })
+      .eq('pluggy_item_id', itemId),
+  ]);
+  return (v1.count ?? 0) > 0 || (v2.count ?? 0) > 0;
+}
+
 async function processEvent(
   admin: Admin,
   ev: { event_type: string; pluggy_item_id: string | null; payload: any },
