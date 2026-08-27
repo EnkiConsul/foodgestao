@@ -97,6 +97,8 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
     },
   });
 
+  const refetchAll = () => { counts.refetch(); backlog.refetch(); };
+
   const requeue = async (id: string) => {
     const { error } = await supabase.rpc("webhook_requeue_admin", {
       _provider: provider,
@@ -107,9 +109,44 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
       return;
     }
     toast.success("Evento reenfileirado — será processado no próximo ciclo");
-    counts.refetch();
-    backlog.refetch();
+    refetchAll();
   };
+
+  const discard = async (id: string) => {
+    const { error } = await supabase.rpc("webhook_discard_admin", {
+      _provider: provider,
+      _event_id: id,
+      _reason: "descartado no painel administrativo",
+    });
+    if (error) {
+      toast.error(error.message ?? "Falha ao descartar evento");
+      return;
+    }
+    toast.success("Evento descartado");
+    refetchAll();
+  };
+
+  const discardByCode = async (code: string) => {
+    const { data, error } = await supabase.rpc("webhook_discard_by_code_admin", {
+      _provider: provider,
+      _error_code: code,
+      _reason: "descarte em lote no painel administrativo",
+    });
+    if (error) {
+      toast.error(error.message ?? "Falha ao descartar eventos");
+      return;
+    }
+    toast.success(`${data ?? 0} evento(s) descartado(s)`);
+    refetchAll();
+  };
+
+  const deadLetterCodes = Array.from(
+    new Set(
+      (backlog.data ?? [])
+        .filter((e) => e.status === "dead_letter" && e.error_code)
+        .map((e) => e.error_code as string),
+    ),
+  );
 
   return (
     <Card>
