@@ -10,7 +10,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PluggyConnectDialog, hasPluggyReturn } from "@/components/accounts/PluggyConnectDialog";
 import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
-import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2, CreditCard as CreditCardIcon, X } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2, CreditCard as CreditCardIcon, X, CalendarClock } from "lucide-react";
+import { PluggyBackfillDialog } from "@/components/conciliacao/PluggyBackfillDialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -362,6 +363,15 @@ export default function ConexoesPluggy() {
                         <RotateCw className="h-4 w-4 mr-1" /> Reconectar
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setBackfillItem({ itemId: c.pluggy_item_id, name: c.connector_name })}
+                      aria-label="Importar período"
+                      title="Importar um período específico"
+                    >
+                      <CalendarClock className="h-4 w-4" />
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => sync(c)} disabled={syncingId === c.id}>
                       {syncingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                     </Button>
