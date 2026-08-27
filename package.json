@@ -28,7 +28,8 @@
     "load:api": "node scripts/load-test.mjs",
     "release:gate": "node scripts/release-gate.mjs",
     "release:gate:strict": "node scripts/release-gate.mjs --require",
-    "quality:ceilings": "node scripts/quality-ceilings.mjs"
+    "quality:ceilings": "node scripts/quality-ceilings.mjs",
+    "load:synth": "node scripts/load-synth-db.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "3.0.4",
