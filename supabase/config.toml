@@ -32,19 +32,7 @@ project_id = "grtxmbffgmgnkawlvqhm"
     verify_jwt = false
   [functions.pluggy-webhook]
     verify_jwt = false
-  [functions.pluggy-consent-notifier]
-    verify_jwt = false
-  [functions.pluggy-webhook-drain]
-    verify_jwt = false
-  [functions.pluggy-webhook-configure]
-    verify_jwt = false
-  [functions.pluggy-remote-delete-worker]
-    verify_jwt = false
-  [functions.pluggy-v2-webhook]
-    verify_jwt = false
-  [functions.pluggy-v2-worker]
-    verify_jwt = false
-  [functions.pluggy-v2-alerts]
+  [functions.pluggy-cron-sync]
     verify_jwt = false
 
   [functions.mkt-lead]
