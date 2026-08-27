@@ -29,21 +29,26 @@ const ROUNDS = Math.max(1, Number(ARGS.get("rounds") ?? 20));
 const REPORT_PATH = ARGS.get("report") ?? "reports/load-test-db.json";
 const P95_BUDGET_MS = Number(ARGS.get("p95") ?? 500);
 
-// Conexão pelas variáveis PG* gerenciadas (sem string de conexão em argumento).
-if (!process.env.PGHOST && !process.env.SUPABASE_DB_URL) {
-  console.error("✖ Sem acesso ao banco (PGHOST/SUPABASE_DB_URL ausentes).");
+/**
+ * Alvo: `--db-url=` (banco descartável de carga sintética) tem prioridade;
+ * caso contrário usa as variáveis PG* gerenciadas ou SUPABASE_DB_URL.
+ */
+const DB_URL = ARGS.get("db-url") ?? process.env.SUPABASE_DB_URL ?? null;
+if (!DB_URL && !process.env.PGHOST) {
+  console.error("✖ Sem acesso ao banco (--db-url/PGHOST/SUPABASE_DB_URL ausentes).");
   process.exit(REQUIRE ? 1 : 0);
 }
 
+/** Argumentos de conexão do psql para o alvo escolhido. */
+const conn = (rest) => (DB_URL ? [DB_URL, ...rest] : rest);
+
 async function psql(sql) {
-  const args = process.env.PGHOST
-    ? ["-At", "-F", "\t", "-c", sql]
-    : [process.env.SUPABASE_DB_URL, "-At", "-F", "\t", "-c", sql];
-  const { stdout } = await run("psql", args, {
+  const { stdout } = await run("psql", conn(["-At", "-F", "\t", "-c", sql]), {
     maxBuffer: 32 * 1024 * 1024,
   });
   return stdout;
 }
+
 
 /** Uma empresa com volume para servir de parâmetro das consultas. */
 const companyId = (
