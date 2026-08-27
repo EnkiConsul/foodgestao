@@ -666,8 +666,13 @@ Deno.serve(async (req) => {
     // 3) Transactions — janela configurável (padrão 30 dias)
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
     const to = backfillTo ? new Date(`${backfillTo}T12:00:00Z`) : new Date();
-    const from = backfillFrom ? new Date(`${backfillFrom}T12:00:00Z`) : new Date();
-    if (!backfillFrom) from.setDate(to.getDate() - windowDays);
+    let from: Date;
+    if (backfillFrom) {
+      from = new Date(`${backfillFrom}T12:00:00Z`);
+    } else {
+      from = new Date(to.getTime());
+      from.setDate(from.getDate() - windowDays);
+    }
 
     let staged = 0;
     // Documentos da própria empresa (titulares das contas conectadas): nunca
