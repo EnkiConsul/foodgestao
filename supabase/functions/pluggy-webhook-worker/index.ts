@@ -11,9 +11,26 @@
 //
 // verify_jwt = false — protegido pelo header secreto interno (WEBHOOK_WORKER_SECRET,
 // com fallback para PLUGGY_CRON_SECRET, o segredo compartilhado dos jobs internos).
-import { secretMatches } from '../_shared/secret.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
+
+/**
+ * Comparação de segredos em tempo constante (inline: o bundler desta função não
+ * resolve `../_shared/`). Segredo aceito SOMENTE por cabeçalho.
+ */
+function secretMatches(
+  provided: string | null | undefined,
+  expected: string | null | undefined,
+): boolean {
+  if (!expected || !provided) return false;
+  const a = new TextEncoder().encode(provided);
+  const b = new TextEncoder().encode(expected);
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
