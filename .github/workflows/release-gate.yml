@@ -47,10 +47,10 @@ jobs:
       - run: npm ci --no-audit --no-fund
 
       - name: TypeScript strict
-        run: npm run typecheck:strict
+        run: node scripts/quality-ceilings.mjs typescript
 
       - name: ESLint (teto de warnings)
-        run: npx eslint . --max-warnings=546
+        run: node scripts/quality-ceilings.mjs eslint
 
       - name: Deno check das edge functions
         run: node scripts/deno-check.mjs --require

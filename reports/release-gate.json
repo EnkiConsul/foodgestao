@@ -1,24 +1,16 @@
 {
-  "ranAt": "2026-08-27T14:35:11.166Z",
+  "ranAt": "2026-08-27T14:40:14.757Z",
   "requireMode": false,
   "results": [
     {
       "id": "typescript",
-      "status": "failed",
-      "ms": 56553,
-      "exit": 2
+      "status": "passed",
+      "ms": 47522
     },
     {
       "id": "lint",
-      "status": "failed",
-      "ms": 19107,
-      "exit": 1
-    },
-    {
-      "id": "tests",
-      "status": "failed",
-      "ms": 75747,
-      "exit": 1
+      "status": "passed",
+      "ms": 16054
     }
   ]
 }

@@ -53,15 +53,15 @@ const TENANCY_ENV = [
 const STAGES = [
   {
     id: "typescript",
-    label: "TypeScript strict",
-    cmd: "npm",
-    args: ["run", "typecheck:strict"],
+    label: "TypeScript strict (teto de erros)",
+    cmd: "node",
+    args: ["scripts/quality-ceilings.mjs", "typescript"],
   },
   {
     id: "lint",
-    label: "ESLint (teto de warnings)",
-    cmd: "npx",
-    args: ["eslint", ".", "--max-warnings=546"],
+    label: "ESLint (tetos de erros/warnings)",
+    cmd: "node",
+    args: ["scripts/quality-ceilings.mjs", "eslint"],
   },
   {
     id: "tests",

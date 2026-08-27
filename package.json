@@ -25,7 +25,8 @@
     "backup:drill": "node scripts/backup-restore-drill.mjs",
     "smoke:checkout": "node scripts/smoke-checkout.mjs",
     "release:gate": "node scripts/release-gate.mjs",
-    "release:gate:strict": "node scripts/release-gate.mjs --require"
+    "release:gate:strict": "node scripts/release-gate.mjs --require",
+    "quality:ceilings": "node scripts/quality-ceilings.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "3.0.4",
