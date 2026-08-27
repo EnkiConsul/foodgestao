@@ -58,7 +58,7 @@ const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#000000',
+  color: '#0F1B3D',
   margin: '0 0 20px',
 }
 const text = {
@@ -69,7 +69,7 @@ const text = {
 }
 const link = { color: 'inherit', textDecoration: 'underline' }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: '#EB6119',
   color: '#ffffff',
   fontSize: '14px',
   borderRadius: '8px',
