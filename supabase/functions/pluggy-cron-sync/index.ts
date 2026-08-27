@@ -1,3 +1,4 @@
+import { secretMatches } from '../_shared/secret.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -31,9 +32,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const cronSecret = Deno.env.get('PLUGGY_CRON_SECRET') ?? '';
-  const provided = req.headers.get('x-cron-secret') ??
-    new URL(req.url).searchParams.get('secret') ?? '';
-  if (!cronSecret || provided !== cronSecret) {
+  // Segredo SOMENTE por cabeçalho (query string vaza em logs/referer).
+  const provided = req.headers.get('x-cron-secret') ?? '';
+  if (!secretMatches(provided, cronSecret)) {
     return new Response('forbidden', { status: 403, headers: corsHeaders });
   }
 

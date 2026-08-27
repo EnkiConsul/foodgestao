@@ -228,7 +228,9 @@ Deno.test("integração: invariantes em todos os payloads reais", () => {
     assert(out.length <= MAX_DESCRIPTION_LENGTH, `${key}: descrição longa demais`);
     assert(out === out.trim(), `${key}: espaços nas bordas`);
     assert(!/\s{2,}/.test(out), `${key}: espaços duplicados`);
-    // deno-lint-ignore no-control-regex
-    assert(!/[\u0000-\u001f]/.test(out), `${key}: caractere de controle`);
+    assert(
+      !out.split('').some((ch) => ch.charCodeAt(0) <= 0x1f),
+      `${key}: caractere de controle`,
+    );
   }
 });

@@ -26,7 +26,11 @@ Deno.serve(async (req) => {
 
   // --- Authorization gate ----------------------------------------------------
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const expectedSecret = Deno.env.get("EXPIRE_TRIALS_SECRET") ?? "";
+  // Segredo de cron: usa o segredo dedicado quando existir e, senão, o segredo
+  // de cron da plataforma (mesmo valor guardado no cofre e usado pelos demais
+  // agendamentos). Aceito SOMENTE por cabeçalho.
+  const expectedSecret = Deno.env.get("EXPIRE_TRIALS_SECRET") ??
+    Deno.env.get("PLUGGY_CRON_SECRET") ?? "";
 
   const authHeader = req.headers.get("Authorization") ?? "";
   const bearer = authHeader.toLowerCase().startsWith("bearer ")

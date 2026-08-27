@@ -102,7 +102,7 @@ export function ComplementosSalariaisPanel({
       },
       ...outros.map((p) => ({
         chave: p.id,
-        rotulo: nome(p.unidade_id, p.cargo_id),
+        rotulo: nome(p.unidade_id ?? null, p.cargo_id ?? null),
         resumo: resumoAssiduidade(p.payload as any),
       })),
     ];

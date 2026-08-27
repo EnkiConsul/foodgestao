@@ -920,9 +920,9 @@ export default function ConciliacaoPluggy() {
         const { data, error } = await supabase.rpc("pluggy_confirm_staging", {
           p_staging_ids: sids,
           p_account_id: acctId,
-          p_category_id: cat === "__none__" ? null : cat,
-          p_payment_method_id: pm === "__none__" ? null : pm,
-          p_contact_id: ct === "__none__" ? null : ct,
+          p_category_id: cat === "__none__" ? undefined : cat,
+          p_payment_method_id: pm === "__none__" ? undefined : pm,
+          p_contact_id: ct === "__none__" ? undefined : ct,
         });
         if (error) { toast.error("Falha ao confirmar: " + error.message); continue; }
         ok += Array.isArray(data) ? data.length : 0;
@@ -948,9 +948,9 @@ export default function ConciliacaoPluggy() {
         const { data, error } = await supabase.rpc("pluggy_confirm_staging_card", {
           p_staging_ids: sids,
           p_credit_card_id: cardId,
-          p_category_id: cat === "__none__" ? null : cat,
-          p_payment_method_id: pm === "__none__" ? null : pm,
-          p_contact_id: ct === "__none__" ? null : ct,
+          p_category_id: cat === "__none__" ? undefined : cat,
+          p_payment_method_id: pm === "__none__" ? undefined : pm,
+          p_contact_id: ct === "__none__" ? undefined : ct,
         });
         if (error) { toast.error("Falha ao confirmar no cartão: " + error.message); continue; }
         ok += Array.isArray(data) ? data.length : 0;
@@ -1274,7 +1274,7 @@ export default function ConciliacaoPluggy() {
   };
 
   /** Vincula o cadastro existente escolhido na confirmação de duplicados. */
-  const useExistingContact = async (contact: SimilarContact) => {
+  const aplicarContatoExistente = async (contact: SimilarContact) => {
     const rowId = duplicateCheck?.rowId ?? null;
     setDuplicateBusy(contact.id);
     try {
@@ -2224,7 +2224,7 @@ export default function ConciliacaoPluggy() {
         statementDocument={duplicateCheck?.document ?? null}
         candidates={duplicateCheck?.candidates ?? []}
         busyId={duplicateBusy}
-        onUseExisting={(c) => { void useExistingContact(c); }}
+        onUseExisting={(c) => { void aplicarContatoExistente(c); }}
         onEditExisting={(c) => { void editExistingContact(c); }}
         onCreateAnyway={() => {
           if (!duplicateCheck) return;

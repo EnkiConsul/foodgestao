@@ -6,7 +6,7 @@
 // - Sends OTP via Z-API WhatsApp
 // - ALWAYS returns { challenge_id, challenge_token, expires_in } to avoid user enumeration.
 //   When the identifier is unknown, no Z-API call is made but a decoy row is still created.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { checkZapiStatus, sendZapiText, normalizeBRPhone } from "../_shared/zapi.ts";
@@ -80,7 +80,7 @@ async function verifyTurnstile(token: string, ip: string | null): Promise<boolea
  * Uses hourly window; returns true when the caller is currently over the cap.
  */
 async function isRateLimited(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   bucket: string,
   keyHash: string,
   max: number,
@@ -121,7 +121,7 @@ function deliveryFailureStatus(error: string | undefined, httpStatus?: number): 
 }
 
 async function updateDeliveryStatus(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   challengeId: string,
   status: string,
   messageId?: string,
@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const admin = createClient(url, service, { auth: { persistSession: false } });
+  const admin: SupabaseClient = createClient(url, service, { auth: { persistSession: false } });
 
   const ip = req.headers.get("cf-connecting-ip")
     ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
   const { data: resolved } = await admin.rpc("resolve_login_identifier", { _identifier: body.identifier });
   const resolvedRow = Array.isArray(resolved) ? resolved[0] : resolved;
 
-  let userId: string | null = (resolvedRow?.user_id as string | undefined) ?? null;
+  const userId: string | null = (resolvedRow?.user_id as string | undefined) ?? null;
   let phone: string | null = null;
   let phoneSource: PhoneSource | null = null;
   let rawPhoneDigitCount = 0;

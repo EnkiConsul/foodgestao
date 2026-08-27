@@ -93,7 +93,7 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     mutationFn: async ({ data, motivo }: { data: string; motivo?: string | null }) => {
       const { data: res, error } = await supabase.rpc("dp_indisponibilidade_marcar", {
         p_data: data,
-        p_motivo: motivo?.trim() ? motivo.trim() : null,
+        p_motivo: motivo?.trim() ? motivo.trim() : undefined,
       });
       if (error) throw new Error(mensagemErro(error.message));
       return (res ?? {}) as { ofertas_encerradas?: number; idempotente?: boolean };

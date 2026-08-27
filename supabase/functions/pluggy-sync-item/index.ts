@@ -734,7 +734,17 @@ Deno.serve(async (req) => {
       // reprocessa um lançamento, o Pluggy emite um novo id para o MESMO
       // lançamento. Sem isso ele entraria duas vezes na conciliação.
       const providerIds = rows.map((r) => r.provider_id).filter((v): v is string => !!v);
-      const byProvider = new Map<string, { id: string; status: string; pluggy_transaction_id: string }>();
+      type PrevStaging = {
+        id: string;
+        status: string;
+        pluggy_transaction_id: string;
+        provider_id: string | null;
+        amount: number | null;
+        date: string | null;
+        description: string | null;
+        matched_transaction_id?: string | null;
+      };
+      const byProvider = new Map<string, PrevStaging>();
       for (let i = 0; i < providerIds.length; i += 200) {
         const slice = providerIds.slice(i, i + 200);
         const { data: prev } = await admin
@@ -744,8 +754,8 @@ Deno.serve(async (req) => {
           .eq('pluggy_account_id', acc.id)
           .in('provider_id', slice)
           .neq('status', 'duplicate');
-        for (const p of prev ?? []) {
-          if (p.provider_id) byProvider.set(p.provider_id, p as never);
+        for (const p of (prev ?? []) as PrevStaging[]) {
+          if (p.provider_id) byProvider.set(p.provider_id, p);
         }
       }
 

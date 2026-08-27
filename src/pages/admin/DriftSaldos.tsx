@@ -90,7 +90,7 @@ export default function AdminDriftSaldos() {
     mutationFn: async ({ id, note }: { id: string; note: string | null }) => {
       const { error } = await supabase.rpc("resolve_balance_drift", {
         _snapshot_id: id,
-        _note: note,
+        _note: note ?? undefined,
       });
       if (error) throw error;
     },

@@ -11,8 +11,9 @@
 //
 // verify_jwt = false — protegido pelo header secreto interno (WEBHOOK_WORKER_SECRET,
 // com fallback para PLUGGY_CRON_SECRET, o segredo compartilhado dos jobs internos).
+import { secretMatches } from '../_shared/secret.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -32,22 +33,12 @@ const SYNC_EVENTS = new Set([
   'transactions/updated',
 ]);
 
-function secretMatches(provided: string | null, expected: string | undefined): boolean {
-  if (!expected || !provided) return false;
-  const a = new TextEncoder().encode(provided);
-  const b = new TextEncoder().encode(expected);
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-  return diff === 0;
-}
-
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-type Admin = ReturnType<typeof createClient>;
+type Admin = SupabaseClient;
 
 class FatalEventError extends Error {
   code: string;
@@ -172,14 +163,14 @@ async function processEvent(
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  // Segredo SOMENTE por cabeçalho (query string vaza em logs/referer).
   const provided = req.headers.get('x-worker-secret') ??
-    req.headers.get('x-cron-secret') ??
-    new URL(req.url).searchParams.get('secret');
+    req.headers.get('x-cron-secret');
   if (!secretMatches(provided, WORKER_SECRET)) {
     return new Response('forbidden', { status: 403, headers: corsHeaders });
   }
 
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+  const admin: Admin = createClient(SUPABASE_URL, SERVICE_ROLE);
   const workerId = `pluggy-worker-${crypto.randomUUID().slice(0, 8)}`;
   const startedAt = Date.now();
 

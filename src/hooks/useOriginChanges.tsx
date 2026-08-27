@@ -75,7 +75,7 @@ export function useOriginChanges(companyId: string | null) {
       const { error } = await supabase.rpc("resolve_transaction_origin_change", {
         _change_id: changeId,
         _accept: accept,
-        _note: note ?? null,
+        _note: note ?? undefined,
       });
       setResolvingId(null);
       if (error) {

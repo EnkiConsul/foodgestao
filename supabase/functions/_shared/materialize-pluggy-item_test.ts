@@ -58,7 +58,7 @@ function makeSupabase(store: Store) {
 function execute(state: any, store: Store, kind: "one" | "many"): any {
   const tbl = store[state.table as keyof Store];
   if (state._op === "select") {
-    let rows = tbl.filter((r: Row) =>
+    const rows = tbl.filter((r: Row) =>
       state.filters.every((f: any) => r[f.col] === f.val) &&
       state._in.every((i: any) => i.vals.includes(r[i.col])),
     );

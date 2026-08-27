@@ -169,15 +169,22 @@ export default function AdminPluggyStatus() {
         if (error) {
           setWebhookStep({
             state: "error",
-            message: "Falha ao gerar a URL assinada.",
+            message: "Falha ao consultar a configuração do webhook.",
             detail: error.message ?? String(error),
           });
           return;
         }
-        if (data?.url && data?.has_secret) {
+        if (data?.has_secret && !data?.needs_setup) {
           setWebhookStep({
             state: "success",
-            message: "URL assinada disponível. Confirme se está colada na Pluggy.",
+            message: "Webhook registrado na Pluggy com o segredo em cabeçalho.",
+          });
+        } else if (data?.has_secret) {
+          setWebhookStep({
+            state: "error",
+            message:
+              "Webhook precisa ser registrado/atualizado na Pluggy (segredo em cabeçalho).",
+            detail: JSON.stringify(data, null, 2),
           });
         } else {
           setWebhookStep({

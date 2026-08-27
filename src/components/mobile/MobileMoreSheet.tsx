@@ -31,7 +31,7 @@ export function MobileMoreSheet({ groups, trigger, onCustomizeShortcut }: Props)
   const { favorites, isFavorite, toggle, max } = useFavoriteNavItems();
 
   const allItems: NavLeaf[] = useMemo(
-    () => groups.flatMap((g) => g.items),
+    () => groups.flatMap((g) => g.items ?? []),
     [groups],
   );
 
@@ -169,7 +169,7 @@ export function MobileMoreSheet({ groups, trigger, onCustomizeShortcut }: Props)
                     {group.label}
                   </h3>
                   <ItemList
-                    items={group.items}
+                    items={group.items ?? []}
                     pathname={pathname}
                     isFavorite={isFavorite}
                     onNavigate={go}

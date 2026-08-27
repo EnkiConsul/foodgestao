@@ -95,7 +95,7 @@ export default function DpFerias() {
         differenceInCalendarDays(parseISO(p.limite_concessivo), hoje) <= 90 &&
         differenceInCalendarDays(parseISO(p.limite_concessivo), hoje) >= 0,
     ).length;
-    const disponiveis = periodos.filter((p) => p.dias_saldo > 0 && p.status !== "em_aquisicao").length;
+    const disponiveis = periodos.filter((p) => (p.dias_saldo ?? 0) > 0 && p.status !== "em_aquisicao").length;
     const emGozo = gozos.filter((g) => g.status === "em_gozo").length;
     return { vencidos, vencendo, disponiveis, emGozo };
   }, [periodos, gozos, hoje]);

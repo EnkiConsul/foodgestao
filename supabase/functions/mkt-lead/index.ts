@@ -29,7 +29,16 @@ const BUSINESS_TYPES = [
 const INTERESTS = ["financeiro", "dp", "ambos"];
 
 function clean(v: unknown, max: number): string {
-  return typeof v === "string" ? v.replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, max) : "";
+  if (typeof v !== "string") return "";
+  // Controles removidos por ponto de código (sem regex de caractere de controle).
+  const sanitized = v
+    .split("")
+    .filter((ch) => {
+      const code = ch.charCodeAt(0);
+      return code > 0x1f && code !== 0x7f;
+    })
+    .join("");
+  return sanitized.trim().slice(0, max);
 }
 
 async function sha256(text: string) {
