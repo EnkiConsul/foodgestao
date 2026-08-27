@@ -155,6 +155,13 @@ async function processEvent(
   const type = ev.event_type;
   const itemId = ev.pluggy_item_id ?? ev.payload?.itemId ?? ev.payload?.item?.id ?? null;
 
+  // Item que não pertence a nenhuma conexão do sistema (item de teste, conexão já
+  // removida, ou item de outro ambiente): o evento é ruído — concluir sem dead letter.
+  if (itemId && !(await itemIsKnown(admin, itemId))) {
+    console.log(`pluggy-webhook-worker: item ${itemId} desconhecido — evento ignorado`);
+    return;
+  }
+
   if (type === 'transactions/deleted') {
     await handleTransactionsDeleted(admin, ev.payload);
     return;
