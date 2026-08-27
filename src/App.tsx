@@ -145,7 +145,6 @@ const CheckoutPagamento = lazyWithRetry(() => import("./pages/CheckoutPagamento"
 const Faturas = lazyWithRetry(() => import("./pages/Faturas"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 
-const Unsubscribe = lazyWithRetry(() => import("./pages/Unsubscribe"));
 const Privacidade = lazyWithRetry(() => import("./pages/legal/Privacidade"));
 const Termos = lazyWithRetry(() => import("./pages/legal/Termos"));
 const CookiesPage = lazyWithRetry(() => import("./pages/legal/Cookies"));
@@ -511,7 +510,6 @@ const AppRoutes = () => (
       <Route path="/guias/das-mei" element={<DasMei />} />
       <Route path="/buscar" element={<Buscar />} />
       <Route path="/dpo" element={<Navigate to="/encarregado-dados" replace />} />
-      <Route path="/unsubscribe" element={<Unsubscribe />} />
       <Route path="/planos" element={<PlanosGate />} />
       <Route path="/financeiro" element={<Navigate to="/" replace />} />
       <Route path="/departamento-pessoal" element={<Navigate to="/" replace />} />
