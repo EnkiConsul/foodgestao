@@ -1,16 +1,21 @@
 {
-  "ranAt": "2026-08-27T14:40:14.757Z",
+  "ranAt": "2026-08-27T14:41:57.828Z",
   "requireMode": false,
   "results": [
     {
-      "id": "typescript",
+      "id": "deno",
       "status": "passed",
-      "ms": 47522
+      "ms": 52689
     },
     {
-      "id": "lint",
+      "id": "migrations",
       "status": "passed",
-      "ms": 16054
+      "ms": 107
+    },
+    {
+      "id": "build",
+      "status": "passed",
+      "ms": 38621
     }
   ]
 }

@@ -81,3 +81,21 @@ encolher:
 - `MIGRATIONS_BASELINE` (default `20260828000000` em
   `scripts/migrations-check.mjs`) — migrations anteriores ao timestamp ficam fora
   das regras de GRANT/RLS/statements proibidos. Toda migration nova é validada.
+- `scripts/quality-ceilings.json` — tetos de erros TS strict, erros e warnings do
+  ESLint (`node scripts/quality-ceilings.mjs typescript|eslint`). O gate reprova
+  se a contagem subir; quando cai, o script avisa para baixar o teto.
+
+## Estado no dia da criação do gate (27/08/2026)
+
+| Métrica | Valor |
+| --- | --- |
+| Erros TS strict | 33 |
+| Erros ESLint | 16 |
+| Warnings ESLint | 1473 |
+| Edge functions falhando `deno check` | 18 (baseline) |
+| Testes | 937 passando, 1 falhando (`operacao-panorama.test.ts` → `trabalhando` com convocado pendente) |
+
+O teste de `operacao-panorama` é a única etapa realmente vermelha: a expectativa
+espera que convocado pendente conte como "trabalhando" e o motor atual conta
+apenas o aceito. Decida a regra de negócio e ajuste teste ou motor antes do
+primeiro release passar pelo gate.
