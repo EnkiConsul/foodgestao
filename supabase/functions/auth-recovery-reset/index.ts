@@ -56,40 +56,43 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { data: row } = await admin
-    .from("auth_recovery_challenges")
-    .select("id, user_id, status, reset_token_hash, reset_token_expires_at")
-    .eq("id", body.challenge_id)
-    .maybeSingle();
-
-  const invalid = () => json(400, { error: "Sessão de recuperação inválida ou expirada.", code: "invalid_reset" });
-
-  if (!row || row.status !== "verified" || !row.user_id) return invalid();
-  if (!row.reset_token_expires_at || new Date(row.reset_token_expires_at).getTime() < Date.now()) return invalid();
+  const invalid = () =>
+    json(400, { error: "Sessão de recuperação inválida ou expirada.", code: "invalid_reset" });
 
   const providedHash = await sha256Hex(body.reset_token);
-  if (!timingSafeEqualHex(providedHash, row.reset_token_hash ?? "")) return invalid();
 
-  // Update password via admin API
-  const { error: updErr } = await admin.auth.admin.updateUserById(row.user_id, {
+  // Atomic single-use consumption: the challenge is claimed (status -> completed and
+  // reset token cleared) in one conditional UPDATE. Concurrent replays get null.
+  const { data: claimedUserId, error: claimErr } = await admin.rpc("consume_recovery_reset", {
+    p_challenge_id: body.challenge_id,
+    p_reset_token_hash: providedHash,
+  });
+
+  if (claimErr) {
+    console.error("[auth-recovery-reset] claim error:", claimErr.message);
+    return json(500, { error: "Não foi possível redefinir sua senha. Tente novamente." });
+  }
+  if (!claimedUserId) return invalid();
+
+  // Update password via admin API — only after the token was consumed.
+  const { error: updErr } = await admin.auth.admin.updateUserById(claimedUserId as string, {
     password: body.new_password,
   });
   if (updErr) {
     console.error("[auth-recovery-reset] update error:", updErr.message);
-    return json(500, { error: "Não foi possível redefinir sua senha. Tente novamente." });
+    // The token is already consumed; make sure the challenge can never be reused.
+    await admin.rpc("fail_recovery_reset", { p_challenge_id: body.challenge_id });
+    return json(500, {
+      error: "Não foi possível redefinir sua senha. Solicite um novo código.",
+      code: "reset_failed",
+    });
   }
 
-  // Mark challenge completed and invalidate any first-access requirement
-  await admin
-    .from("auth_recovery_challenges")
-    .update({ status: "completed", completed_at: new Date().toISOString() })
-    .eq("id", row.id);
-
-  // Clear password_change_required flag if present
-  await admin
-    .from("auth_user_security_state")
-    .update({ must_change_password: false, password_changed_at: new Date().toISOString() })
-    .eq("user_id", row.user_id);
+  // Clear first-access / password_change_required flag
+  const { error: finErr } = await admin.rpc("finalize_recovery_reset", {
+    p_user_id: claimedUserId as string,
+  });
+  if (finErr) console.error("[auth-recovery-reset] finalize warning:", finErr.message);
 
   return json(200, { ok: true });
 });
