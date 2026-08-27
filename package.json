@@ -24,6 +24,8 @@
     "e2e": "node scripts/run-e2e.mjs",
     "backup:drill": "node scripts/backup-restore-drill.mjs",
     "smoke:checkout": "node scripts/smoke-checkout.mjs",
+    "load:db": "node scripts/load-test-db.mjs",
+    "load:api": "node scripts/load-test.mjs",
     "release:gate": "node scripts/release-gate.mjs",
     "release:gate:strict": "node scripts/release-gate.mjs --require",
     "quality:ceilings": "node scripts/quality-ceilings.mjs"

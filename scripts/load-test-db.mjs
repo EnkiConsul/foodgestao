@@ -9,7 +9,7 @@
  * 3. Lista chaves estrangeiras sem índice nas tabelas que crescem.
  *
  * Uso: node scripts/load-test-db.mjs [--conns=10] [--rounds=20] [--require]
- * Requer SUPABASE_DB_URL. Nenhum segredo é impresso.
+ * Usa as variáveis PG* gerenciadas. Nenhum segredo é impresso.
  */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -29,14 +29,17 @@ const ROUNDS = Math.max(1, Number(ARGS.get("rounds") ?? 20));
 const REPORT_PATH = ARGS.get("report") ?? "reports/load-test-db.json";
 const P95_BUDGET_MS = Number(ARGS.get("p95") ?? 500);
 
-const DB_URL = process.env.SUPABASE_DB_URL;
-if (!DB_URL) {
-  console.error("✖ SUPABASE_DB_URL ausente — não é possível medir o banco.");
+// Conexão pelas variáveis PG* gerenciadas (sem string de conexão em argumento).
+if (!process.env.PGHOST && !process.env.SUPABASE_DB_URL) {
+  console.error("✖ Sem acesso ao banco (PGHOST/SUPABASE_DB_URL ausentes).");
   process.exit(REQUIRE ? 1 : 0);
 }
 
 async function psql(sql) {
-  const { stdout } = await run("psql", [DB_URL, "-At", "-F", "\t", "-c", sql], {
+  const args = process.env.PGHOST
+    ? ["-At", "-F", "\t", "-c", sql]
+    : [process.env.SUPABASE_DB_URL, "-At", "-F", "\t", "-c", sql];
+  const { stdout } = await run("psql", args, {
     maxBuffer: 32 * 1024 * 1024,
   });
   return stdout;
@@ -106,34 +109,49 @@ const pct = (arr, p) => {
 };
 
 /* --------------------------- carga concorrente --------------------------- */
+/*
+ * Cada "conexão" é uma sessão psql persistente que repete a consulta ROUNDS
+ * vezes com \timing on. Assim a latência medida é a do servidor + rede, sem
+ * incluir o custo de abrir processo/TLS a cada execução.
+ */
+
+/** Executa `sql` repetido `reps` vezes numa única sessão e devolve as durações. */
+async function timedSession(sql, reps) {
+  const statement = `${sql.trim().replace(/;$/, "")};`;
+  const script = ["\\timing on", "\\o /dev/null", ...Array(reps).fill(statement)].join("\n");
+  const args = process.env.PGHOST
+    ? ["-At", "-q", "-f", "-"]
+    : [process.env.SUPABASE_DB_URL, "-At", "-q", "-f", "-"];
+
+  return new Promise((resolve) => {
+    const child = execFile("psql", args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
+      const times = [...`${stdout}${stderr}`.matchAll(/^Time:\s+([\d.]+)\s*ms/gm)].map((m) =>
+        Number(m[1])
+      );
+      resolve({ times, failed: err ? reps - times.length : reps - times.length });
+    });
+    child.stdin.end(script);
+  });
+}
 
 const results = [];
 for (const q of QUERIES) {
-  await psql(q.sql).catch(() => null); // warm-up
+  await timedSession(q.sql, 1); // warm-up (plano em cache)
 
-  const samples = [];
-  let errors = 0;
   const started = Date.now();
-
-  for (let round = 0; round < ROUNDS; round++) {
-    await Promise.all(
-      Array.from({ length: CONNS }, async () => {
-        const t0 = performance.now();
-        try {
-          await psql(q.sql);
-          samples.push(performance.now() - t0);
-        } catch {
-          errors++;
-        }
-      })
-    );
-  }
-
+  const sessions = await Promise.all(
+    Array.from({ length: CONNS }, () => timedSession(q.sql, ROUNDS))
+  );
   const elapsedS = (Date.now() - started) / 1000;
+
+  const samples = sessions.flatMap((s) => s.times);
+  const errors = sessions.reduce((a, s) => a + Math.max(0, s.failed), 0);
   const total = samples.length + errors;
+
   results.push({
     query: q.name,
     executions: total,
+    concurrency: CONNS,
     errors,
     qps: Number((total / elapsedS).toFixed(2)),
     p50_ms: pct(samples, 50),
@@ -142,9 +160,11 @@ for (const q of QUERIES) {
     max_ms: samples.length ? Number(Math.max(...samples).toFixed(1)) : null,
   });
   console.log(
-    `• ${q.name}: ${total} exec, ${Number((total / elapsedS).toFixed(2))} q/s, p95 ${pct(samples, 95)}ms`
+    `• ${q.name}: ${total} exec com ${CONNS} conexões, ${Number((total / elapsedS).toFixed(2))} q/s, ` +
+      `p50 ${pct(samples, 50)}ms p95 ${pct(samples, 95)}ms`
   );
 }
+
 
 /* ------------------------------- planos --------------------------------- */
 

@@ -13,6 +13,8 @@ Status por item, com a evidência gerada automaticamente e o que ainda depende d
 | Config das funções em sincronia | `reports/functions-config.json` | `functions-config` |
 | Agendamentos sem falha/atraso | `reports/cron-health.json` | `cron` |
 | Build de produção | saída do Vite | `build` |
+| Carga no banco (p95 + FKs sem índice) | `reports/load-test-db.json` | `load-db` |
+| Carga ponta a ponta na API | `reports/load-test.json` | `load-api` |
 
 O stage `functions-config` reprova quando `supabase/config.toml` ou o baseline do Deno citam
 função inexistente. O stage `cron` reprova quando um job ativo falhou, nunca executou ou está
@@ -39,7 +41,11 @@ Cada item abaixo tem script pronto; só falta a chave/ambiente:
 | Smoke de checkout | `node scripts/smoke-checkout.mjs --require` | `SMOKE_*` |
 | Asaas sandbox | `node scripts/smoke-asaas-sandbox.mjs` | chave sandbox Asaas |
 | Pluggy sandbox | `node scripts/smoke-pluggy-sandbox.mjs` | credenciais sandbox Pluggy |
+| Carga na API (token de teste) | `node scripts/load-test.mjs --vus=20 --duration=30 --require` | `LOAD_TEST_ACCESS_TOKEN` ou `TEST_*` |
 | Inventário de segredos | `node scripts/preflight-secrets.mjs` | — (só reporta presente/ausente) |
+
+Resultados e gargalos da última rodada de carga: `docs/runbooks/teste-carga.md`
+(saturação medida em ~290 req/s; p95 de categorias caiu de 1.703 ms para 280 ms).
 
 SMTP/e-mail gerenciado, MFA (TOTP) e PITR dependem de validação manual no ambiente e
 permanecem como pendência declarada.

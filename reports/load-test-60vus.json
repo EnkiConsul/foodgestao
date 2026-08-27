@@ -1,0 +1,144 @@
+{
+  "generated_at": "2026-08-27T19:59:53.388Z",
+  "config": {
+    "vus": 60,
+    "duration_s": 30,
+    "thresholds": {
+      "p95_ms": 1500,
+      "error_rate": 0.01
+    }
+  },
+  "totals": {
+    "requests": 8434,
+    "elapsed_s": 30.21,
+    "rps": 279.18,
+    "errors": 0,
+    "error_rate": 0,
+    "p50_ms": 199,
+    "p95_ms": 280.4,
+    "p99_ms": 565
+  },
+  "scenarios": [
+    {
+      "scenario": "categorias_arvore",
+      "requests": 990,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 32.77,
+      "p50_ms": 240.7,
+      "p90_ms": 336.9,
+      "p95_ms": 406.4,
+      "p99_ms": 614.9,
+      "max_ms": 1120.4,
+      "statuses": {
+        "200": 990
+      }
+    },
+    {
+      "scenario": "rpc_plano_contas",
+      "requests": 497,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 16.45,
+      "p50_ms": 208.3,
+      "p90_ms": 255.2,
+      "p95_ms": 309.9,
+      "p99_ms": 658,
+      "max_ms": 1176.6,
+      "statuses": {
+        "200": 497
+      }
+    },
+    {
+      "scenario": "lancamentos_pagina",
+      "requests": 1981,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 65.57,
+      "p50_ms": 201.7,
+      "p90_ms": 234.3,
+      "p95_ms": 251.3,
+      "p99_ms": 590.5,
+      "max_ms": 1184.6,
+      "statuses": {
+        "200": 1981
+      }
+    },
+    {
+      "scenario": "contatos_busca",
+      "requests": 994,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 32.9,
+      "p50_ms": 199.6,
+      "p90_ms": 228.4,
+      "p95_ms": 242.5,
+      "p99_ms": 540.4,
+      "max_ms": 962.7,
+      "statuses": {
+        "200": 994
+      }
+    },
+    {
+      "scenario": "colaboradores_lista",
+      "requests": 994,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 32.9,
+      "p50_ms": 193.1,
+      "p90_ms": 219.9,
+      "p95_ms": 238,
+      "p99_ms": 543.2,
+      "max_ms": 874.3,
+      "statuses": {
+        "200": 994
+      }
+    },
+    {
+      "scenario": "lancamentos_periodo",
+      "requests": 985,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 32.61,
+      "p50_ms": 192.8,
+      "p90_ms": 218.8,
+      "p95_ms": 236.1,
+      "p99_ms": 548.2,
+      "max_ms": 933.6,
+      "statuses": {
+        "200": 985
+      }
+    },
+    {
+      "scenario": "cartoes_faturas",
+      "requests": 498,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 16.48,
+      "p50_ms": 191.8,
+      "p90_ms": 213.8,
+      "p95_ms": 227.8,
+      "p99_ms": 554.9,
+      "max_ms": 975,
+      "statuses": {
+        "200": 498
+      }
+    },
+    {
+      "scenario": "dashboard_saldos",
+      "requests": 1495,
+      "errors": 0,
+      "error_rate": 0,
+      "rps": 49.49,
+      "p50_ms": 192.3,
+      "p90_ms": 212.3,
+      "p95_ms": 222.3,
+      "p99_ms": 522.6,
+      "max_ms": 907.9,
+      "statuses": {
+        "200": 1495
+      }
+    }
+  ],
+  "violations": []
+}
