@@ -11963,6 +11963,21 @@ export type Database = {
         }
         Returns: string
       }
+      cron_health: {
+        Args: { _window_hours?: number }
+        Returns: {
+          active: boolean
+          jobname: string
+          last_error: string
+          last_run: string
+          last_status: string
+          minutes_since_last: number
+          runs_failed: number
+          runs_ok: number
+          schedule: string
+          stale: boolean
+        }[]
+      }
       delete_account: { Args: { _account_id: string }; Returns: string }
       delete_ai_categorization_message: {
         Args: { p_msg_id: number }

@@ -66,8 +66,11 @@ describe("contarDia", () => {
     });
     expect(r.contagens.convocado_aceito).toBe(1);
     expect(r.contagens.convocado_pendente).toBe(1);
-    expect(r.trabalhando).toBe(2);
+    // Pendente nunca conta como trabalhando: fica apenas em "aguardando".
+    expect(r.trabalhando).toBe(1);
+    expect(r.aguardando).toBe(1);
     expect(r.pessoas).toHaveLength(2);
+
   });
 
   it("prioriza férias, atestado e folga extra sem dupla contagem", () => {
