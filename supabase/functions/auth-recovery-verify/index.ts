@@ -78,15 +78,35 @@ Deno.serve(async (req) => {
     return json(429, { error: "Muitas tentativas. Solicite um novo código.", code: "too_many_attempts" });
   }
 
+  // A reset token is already in flight for this challenge — do not mint another one.
+  if (
+    row.status === "verified" && row.reset_token_hash &&
+    row.reset_token_expires_at &&
+    new Date(row.reset_token_expires_at).getTime() > Date.now()
+  ) {
+    return json(409, {
+      error: "Este código já foi verificado. Conclua a redefinição ou solicite um novo código.",
+      code: "reset_already_issued",
+    });
+  }
+
   // Compare OTP hash (hash uses otp + challenge_token as salt)
   const otpHash = await sha256Hex(`${body.otp}:${body.challenge_token}`);
   const match = !!row.otp_hash && timingSafeEqualHex(otpHash, row.otp_hash);
 
   if (!match || !row.user_id) {
-    await admin
-      .from("auth_recovery_challenges")
-      .update({ otp_attempt_count: (row.otp_attempt_count ?? 0) + 1 })
-      .eq("id", row.id);
+    // Atomic increment: prevents bypassing MAX_ATTEMPTS with concurrent requests.
+    const { data: attempt } = await admin.rpc("increment_recovery_attempt", {
+      p_challenge_id: row.id,
+      p_max_attempts: MAX_ATTEMPTS,
+    });
+    const info = (attempt ?? {}) as { attempt_count?: number; status?: string };
+    if (info.status === "blocked" || (info.attempt_count ?? 0) >= MAX_ATTEMPTS) {
+      return json(429, {
+        error: "Muitas tentativas. Solicite um novo código.",
+        code: "too_many_attempts",
+      });
+    }
     return generic();
   }
 
@@ -95,7 +115,8 @@ Deno.serve(async (req) => {
   const resetTokenHash = await sha256Hex(resetToken);
   const resetExpires = new Date(Date.now() + RESET_TTL_SECONDS * 1000).toISOString();
 
-  await admin
+  // Only mint when no unexpired reset token exists yet (guards concurrent verifies).
+  const { data: minted } = await admin
     .from("auth_recovery_challenges")
     .update({
       status: "verified",
@@ -103,7 +124,18 @@ Deno.serve(async (req) => {
       reset_token_hash: resetTokenHash,
       reset_token_expires_at: resetExpires,
     })
-    .eq("id", row.id);
+    .eq("id", row.id)
+    .in("status", ["pending_otp", "pending_identity", "verified"])
+    .or(`reset_token_hash.is.null,reset_token_expires_at.lt.${new Date().toISOString()}`)
+    .select("id")
+    .maybeSingle();
+
+  if (!minted) {
+    return json(409, {
+      error: "Este código já foi verificado. Conclua a redefinição ou solicite um novo código.",
+      code: "reset_already_issued",
+    });
+  }
 
   return json(200, { reset_token: resetToken, expires_in: RESET_TTL_SECONDS });
 });
