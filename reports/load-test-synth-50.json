@@ -1,0 +1,189 @@
+{
+  "generated_at": "2026-08-27T21:24:58.154Z",
+  "config": {
+    "conns": 50,
+    "rounds": 10,
+    "p95_budget_ms": 500
+  },
+  "queries": [
+    {
+      "query": "totais_por_categoria_mes",
+      "executions": 500,
+      "concurrency": 50,
+      "errors": 0,
+      "qps": 233.97,
+      "p50_ms": 29.3,
+      "p95_ms": 223.4,
+      "p99_ms": 381.6,
+      "max_ms": 484.3
+    },
+    {
+      "query": "escala_itens_mes",
+      "executions": 500,
+      "concurrency": 50,
+      "errors": 0,
+      "qps": 334.67,
+      "p50_ms": 9.6,
+      "p95_ms": 75,
+      "p99_ms": 110.4,
+      "max_ms": 129.5
+    },
+    {
+      "query": "saldo_por_conta",
+      "executions": 500,
+      "concurrency": 50,
+      "errors": 0,
+      "qps": 361.53,
+      "p50_ms": 4.8,
+      "p95_ms": 60.1,
+      "p99_ms": 118.3,
+      "max_ms": 144.7
+    },
+    {
+      "query": "extrato_periodo",
+      "executions": 500,
+      "concurrency": 50,
+      "errors": 0,
+      "qps": 195.47,
+      "p50_ms": 6.6,
+      "p95_ms": 54.1,
+      "p99_ms": 83.9,
+      "max_ms": 115.3
+    },
+    {
+      "query": "extrato_bruto_pluggy",
+      "executions": 500,
+      "concurrency": 50,
+      "errors": 0,
+      "qps": 364.17,
+      "p50_ms": 3.1,
+      "p95_ms": 29,
+      "p99_ms": 41.4,
+      "max_ms": 97.5
+    },
+    {
+      "query": "faturas_abertas",
+      "executions": 500,
+      "concurrency": 50,
+      "errors": 0,
+      "qps": 455.79,
+      "p50_ms": 0.5,
+      "p95_ms": 23.6,
+      "p99_ms": 36.3,
+      "max_ms": 83.1
+    }
+  ],
+  "plans": [
+    {
+      "query": "extrato_periodo",
+      "execution_time": "1.663 ms",
+      "seq_scans": []
+    },
+    {
+      "query": "saldo_por_conta",
+      "execution_time": "3.553 ms",
+      "seq_scans": []
+    },
+    {
+      "query": "totais_por_categoria_mes",
+      "execution_time": "5.346 ms",
+      "seq_scans": []
+    },
+    {
+      "query": "faturas_abertas",
+      "execution_time": "0.765 ms",
+      "seq_scans": []
+    },
+    {
+      "query": "extrato_bruto_pluggy",
+      "execution_time": "1.281 ms",
+      "seq_scans": []
+    },
+    {
+      "query": "escala_itens_mes",
+      "execution_time": "1.031 ms",
+      "seq_scans": [
+        "->  Seq Scan on dp_escala_itens i  (cost=0.00..6964.00 rows=140000 width=36) (actual time=0.067..0.831 rows=1000 loops=1)"
+      ]
+    }
+  ],
+  "foreign_keys_without_index": [],
+  "biggest_tables": [
+    {
+      "table": "transactions",
+      "rows": 500000,
+      "size": "238 MB"
+    },
+    {
+      "table": "dp_escala_itens",
+      "rows": 140000,
+      "size": "55 MB"
+    },
+    {
+      "table": "pluggy_v2_transactions_raw",
+      "rows": 50000,
+      "size": "28 MB"
+    },
+    {
+      "table": "contact_companies",
+      "rows": 12000,
+      "size": "3792 kB"
+    },
+    {
+      "table": "contacts",
+      "rows": 12000,
+      "size": "3104 kB"
+    },
+    {
+      "table": "credit_card_invoices",
+      "rows": 9600,
+      "size": "3416 kB"
+    },
+    {
+      "table": "category_companies",
+      "rows": 8000,
+      "size": "2480 kB"
+    },
+    {
+      "table": "categories",
+      "rows": 8000,
+      "size": "2376 kB"
+    },
+    {
+      "table": "dp_colaboradores",
+      "rows": 5000,
+      "size": "2584 kB"
+    },
+    {
+      "table": "dp_cargos",
+      "rows": 1000,
+      "size": "352 kB"
+    },
+    {
+      "table": "accounts",
+      "rows": 800,
+      "size": "312 kB"
+    },
+    {
+      "table": "dp_unidades",
+      "rows": 400,
+      "size": "208 kB"
+    },
+    {
+      "table": "credit_cards",
+      "rows": 400,
+      "size": "232 kB"
+    },
+    {
+      "table": "dp_escalas",
+      "rows": 200,
+      "size": "136 kB"
+    },
+    {
+      "table": "pluggy_v2_accounts",
+      "rows": 200,
+      "size": "216 kB"
+    }
+  ],
+  "violations": []
+}
