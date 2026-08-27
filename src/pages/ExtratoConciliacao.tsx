@@ -318,7 +318,7 @@ export default function ExtratoConciliacao() {
       <OriginChangesBanner
         changes={originChanges}
         resolvingId={originResolvingId}
-        onResolve={(id, accept) => { void resolveOriginChange(id, accept); }}
+        onResolve={(id, accept) => resolveOriginChange(id, accept)}
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
