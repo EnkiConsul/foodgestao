@@ -19,10 +19,13 @@ import path from "node:path";
 const run = promisify(execFile);
 const ARGS = new Map(
   process.argv.slice(2).map((a) => {
-    const [k, v = "true"] = a.replace(/^--/, "").split("=");
-    return [k, v];
+    const raw = a.replace(/^--/, "");
+    const i = raw.indexOf("=");
+    // Só o primeiro "=" separa chave/valor (URLs de conexão contêm "=").
+    return i === -1 ? [raw, "true"] : [raw.slice(0, i), raw.slice(i + 1)];
   })
 );
+
 const REQUIRE = ARGS.has("require");
 const CONNS = Math.max(1, Number(ARGS.get("conns") ?? 10));
 const ROUNDS = Math.max(1, Number(ARGS.get("rounds") ?? 20));
