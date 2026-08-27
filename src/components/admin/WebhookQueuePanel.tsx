@@ -69,7 +69,7 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
     queryKey: ["webhook-queue-counts", provider],
     refetchInterval: 30_000,
     queryFn: async () => {
-      const statuses = ["pending", "processing", "retry", "dead_letter", "processed"];
+      const statuses = ["pending", "processing", "retry", "dead_letter", "discarded", "processed"];
       const results = await Promise.all(
         statuses.map((s) =>
           supabase.from(table).select("*", { count: "exact", head: true }).eq("status", s),
