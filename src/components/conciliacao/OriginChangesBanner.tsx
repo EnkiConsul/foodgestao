@@ -264,9 +264,9 @@ export function OriginChangesBanner({ changes, resolvingId, onResolve }: Props) 
               Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogFooter>
-      </AlertDialogContent>
+        </AlertDialogContent>
       </AlertDialog>
+
     </Card>
   );
 }
