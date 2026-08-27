@@ -63,6 +63,15 @@ Deno.serve(async (req) => {
     companyId = body?.company_id ?? null;
     const isFirstConnect = body?.first_connect === true;
 
+    // Janela de importação. Padrão 30 dias; eventos de atualização e backfill
+    // manual pedem janelas maiores (a importação é idempotente).
+    const rawDays = Number(body?.days ?? body?.window_days ?? 0);
+    const windowDays = Number.isFinite(rawDays) && rawDays > 0
+      ? Math.min(Math.trunc(rawDays), 720)
+      : 30;
+    const backfillFrom = typeof body?.from_date === 'string' ? body.from_date.slice(0, 10) : null;
+    const backfillTo = typeof body?.to_date === 'string' ? body.to_date.slice(0, 10) : null;
+
     // Verificação manual após consentimento no app do banco. Alguns fluxos de
     // Open Finance não retornam ao Connect e o webhook pode chegar sem ter sido
     // correlacionado à solicitação. Nesse caso, localizamos entre os eventos
