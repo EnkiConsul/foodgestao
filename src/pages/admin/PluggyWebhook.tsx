@@ -79,6 +79,8 @@ export default function AdminPluggyWebhook() {
           )}
         </CardContent>
       </Card>
+      <WebhookQueuePanel provider="pluggy" />
     </div>
+
   );
 }
