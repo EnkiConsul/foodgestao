@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Copy, Eye, EyeOff, Loader2, Webhook } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { WebhookQueuePanel } from "@/components/admin/WebhookQueuePanel";
 
 export default function AdminPluggyWebhook() {
   const [loading, setLoading] = useState(false);
