@@ -222,9 +222,14 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
                     </TableCell>
                     <TableCell>
                       {e.status === "dead_letter" || e.status === "retry" ? (
-                        <Button size="sm" variant="ghost" onClick={() => requeue(e.id)}>
-                          <RotateCcw className="h-4 w-4 mr-1" /> Reprocessar
-                        </Button>
+                        <div className="flex gap-1 whitespace-nowrap">
+                          <Button size="sm" variant="ghost" onClick={() => requeue(e.id)}>
+                            <RotateCcw className="h-4 w-4 mr-1" /> Reprocessar
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => discard(e.id)}>
+                            <Trash2 className="h-4 w-4 mr-1" /> Descartar
+                          </Button>
+                        </div>
                       ) : null}
                     </TableCell>
                   </TableRow>
