@@ -14,8 +14,6 @@ import { formatBRL } from "@/lib/billing";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useOriginChanges } from "@/hooks/useOriginChanges";
-import { OriginChangesBanner } from "@/components/conciliacao/OriginChangesBanner";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { applyFinancialScope, assertFinancialScope, isFinancialScopeReady } from "@/lib/financialScope";
@@ -132,7 +130,6 @@ export default function ExtratoConciliacao() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
-  const { changes: originChanges, resolvingId: originResolvingId, resolve: resolveOriginChange } = useOriginChanges(selectedCompanyId ?? null);
   const { maskBRL } = usePrivacy();
   const [searchParams] = useSearchParams();
 
@@ -315,12 +312,6 @@ export default function ExtratoConciliacao() {
 
   return (
     <div className="space-y-4">
-      <OriginChangesBanner
-        changes={originChanges}
-        resolvingId={originResolvingId}
-        onResolve={(id, accept) => resolveOriginChange(id, accept)}
-      />
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex items-start gap-2">
           <Button
