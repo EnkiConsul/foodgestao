@@ -25,7 +25,7 @@ BEGIN
   END IF;
 
   INSERT INTO public.accounts (user_id, name, account_type, context, initial_balance, current_balance)
-  VALUES (v_user, 'TEST conta fechamento', 'conta_corrente', 'pf', 0, 0)
+  VALUES (v_user, 'TEST conta fechamento', 'corrente', 'pf', 0, 0)
   RETURNING id INTO v_account;
 
   -- Cartão com conta padrão de pagamento
