@@ -1,0 +1,53 @@
+name: Release Freeze Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  freeze:
+    name: Verifica congelamento da main
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Avaliar marcador de freeze
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          HEAD_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          MARKER_FILE=.lovable/release-freeze.json
+
+          if [ ! -f "$MARKER_FILE" ]; then
+            echo "Sem marcador de freeze ($MARKER_FILE) — main liberada."
+            exit 0
+          fi
+
+          FROZEN=$(node -e "console.log(String(require('./$MARKER_FILE').frozen === true))")
+          SHA=$(node -e "console.log(require('./$MARKER_FILE').sha || 'desconhecido')")
+          HOTFIX_MARKER=$(node -e "console.log(require('./$MARKER_FILE').hotfix_marker || 'hotfix-approved')")
+
+          echo "SHA congelado : $SHA"
+          echo "SHA atual     : ${GITHUB_SHA}"
+
+          if [ "$FROZEN" != "true" ]; then
+            echo "Freeze desativado — main liberada."
+            exit 0
+          fi
+
+          HAYSTACK="${PR_TITLE:-} ${PR_LABELS:-} ${HEAD_MSG:-}"
+          if printf '%s' "$HAYSTACK" | grep -qi -- "$HOTFIX_MARKER"; then
+            echo "::notice::Hotfix aprovado detectado ('$HOTFIX_MARKER') — liberado durante o freeze."
+            echo "Lembre-se de atualizar sha/hotfixes em $MARKER_FILE e no runbook."
+            exit 0
+          fi
+
+          echo "::error::main congelada no SHA $SHA para certificação. Apenas hotfixes aprovados podem entrar — inclua '$HOTFIX_MARKER' no título/label do PR ou na mensagem do commit. Veja docs/runbooks/release-freeze.md."
+          exit 1
