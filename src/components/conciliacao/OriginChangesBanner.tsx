@@ -46,7 +46,7 @@ type Filtro = "todos" | "financeiro" | "descricao";
 interface Props {
   changes: OriginChange[];
   resolvingId: string | null;
-  onResolve: (changeId: string, accept: boolean) => void;
+  onResolve: (changeId: string, accept: boolean) => void | Promise<unknown>;
 }
 
 /**
