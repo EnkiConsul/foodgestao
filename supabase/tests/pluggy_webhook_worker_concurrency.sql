@@ -8,16 +8,14 @@
 --   psql -f supabase/tests/pluggy_webhook_worker_concurrency.sql
 --
 -- Encerra com ROLLBACK — não altera dados de produção.
--- T2 (expiração de lease), T3 (dead_letter) e T4 (finalize_success)
--- são cobertos pela função de teste service_role:
---   supabase/functions/pluggy-worker-selftest/index.ts
+-- T2 (finalize_success) e T3 (retry/dead_letter) são cobertos abaixo.
 -- ============================================================
 
 BEGIN;
 
 -- Seed: 10 eventos pendentes de teste (via RPC SECURITY DEFINER seria ideal,
 -- mas como só T1 usa esta seed, permitimos INSERT direto no schema public).
-INSERT INTO public.open_finance_webhook_events
+INSERT INTO public.pluggy_webhook_events
   (id, event_id, event_type, payload, status, attempt_count, max_attempts, created_at)
 SELECT
   gen_random_uuid(),
@@ -45,5 +43,27 @@ SELECT
     THEN 'PASS: 10 eventos reservados, zero overlap'
     ELSE 'FAIL'
   END AS t1_result;
+
+-- T2: finalize_success marca como processado
+WITH claimed AS (SELECT id FROM public.pluggy_webhook_claim('test-worker-c', 1, 60)),
+     fin AS (SELECT public.pluggy_webhook_finalize_success((SELECT id FROM claimed), 'test-worker-c'))
+SELECT
+  CASE WHEN (SELECT status FROM public.pluggy_webhook_events WHERE id = (SELECT id FROM claimed)) = 'processed'
+       AND (SELECT processed_at FROM public.pluggy_webhook_events WHERE id = (SELECT id FROM claimed)) IS NOT NULL
+  THEN 'PASS: finalize_success marca processed'
+  ELSE 'FAIL: finalize_success' END AS t2_result
+FROM fin;
+
+-- T3: falha fatal vai direto para dead_letter; falha comum agenda retry
+WITH claimed AS (SELECT id FROM public.pluggy_webhook_claim('test-worker-d', 2, 60) LIMIT 2),
+     ids AS (SELECT id, row_number() OVER () rn FROM claimed),
+     f1 AS (SELECT public.pluggy_webhook_finalize_failure((SELECT id FROM ids WHERE rn = 1), 'test-worker-d', 'boom', 'test_error', true)),
+     f2 AS (SELECT public.pluggy_webhook_finalize_failure((SELECT id FROM ids WHERE rn = 2), 'test-worker-d', 'boom', 'test_error', false))
+SELECT
+  CASE WHEN (SELECT status FROM public.pluggy_webhook_events WHERE id = (SELECT id FROM ids WHERE rn = 1)) = 'dead_letter'
+       AND (SELECT status FROM public.pluggy_webhook_events WHERE id = (SELECT id FROM ids WHERE rn = 2)) IN ('retry', 'dead_letter')
+  THEN 'PASS: falha fatal em dead_letter e falha comum reagendada'
+  ELSE 'FAIL: finalize_failure' END AS t3_result
+FROM f1, f2;
 
 ROLLBACK;

@@ -144,31 +144,58 @@ export type Database = {
       }
       asaas_webhook_events: {
         Row: {
+          attempt_count: number
+          claim_expires_at: string | null
           created_at: string
+          dead_lettered_at: string | null
           error: string | null
+          error_code: string | null
           event_id: string
           event_type: string
           id: string
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string
           payload: Json
           processed_at: string | null
+          status: string
+          updated_at: string
         }
         Insert: {
+          attempt_count?: number
+          claim_expires_at?: string | null
           created_at?: string
+          dead_lettered_at?: string | null
           error?: string | null
+          error_code?: string | null
           event_id: string
           event_type: string
           id?: string
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
           payload: Json
           processed_at?: string | null
+          status?: string
+          updated_at?: string
         }
         Update: {
+          attempt_count?: number
+          claim_expires_at?: string | null
           created_at?: string
+          dead_lettered_at?: string | null
           error?: string | null
+          error_code?: string | null
           event_id?: string
           event_type?: string
           id?: string
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
           payload?: Json
           processed_at?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -10501,34 +10528,61 @@ export type Database = {
       }
       pluggy_webhook_events: {
         Row: {
+          attempt_count: number
+          claim_expires_at: string | null
           created_at: string
+          dead_lettered_at: string | null
           error: string | null
-          event_id: string | null
+          error_code: string | null
+          event_id: string
           event_type: string
           id: string
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string
           payload: Json
           pluggy_item_id: string | null
           processed_at: string | null
+          status: string
+          updated_at: string
         }
         Insert: {
+          attempt_count?: number
+          claim_expires_at?: string | null
           created_at?: string
+          dead_lettered_at?: string | null
           error?: string | null
-          event_id?: string | null
+          error_code?: string | null
+          event_id: string
           event_type: string
           id?: string
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
           payload: Json
           pluggy_item_id?: string | null
           processed_at?: string | null
+          status?: string
+          updated_at?: string
         }
         Update: {
+          attempt_count?: number
+          claim_expires_at?: string | null
           created_at?: string
+          dead_lettered_at?: string | null
           error?: string | null
-          event_id?: string | null
+          error_code?: string | null
+          event_id?: string
           event_type?: string
           id?: string
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
           payload?: Json
           pluggy_item_id?: string | null
           processed_at?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -11532,6 +11586,32 @@ export type Database = {
         }
         Returns: undefined
       }
+      asaas_webhook_claim: {
+        Args: { _batch?: number; _lease_seconds?: number; _worker: string }
+        Returns: {
+          attempt_count: number
+          event_id: string
+          event_type: string
+          id: string
+          max_attempts: number
+          payload: Json
+        }[]
+      }
+      asaas_webhook_finalize_failure: {
+        Args: {
+          _error: string
+          _error_code?: string
+          _event_id: string
+          _fatal?: boolean
+          _worker: string
+        }
+        Returns: string
+      }
+      asaas_webhook_finalize_success: {
+        Args: { _event_id: string; _worker: string }
+        Returns: boolean
+      }
+      asaas_webhook_requeue: { Args: { _event_id: string }; Returns: boolean }
       assign_transaction_to_invoice: {
         Args: { _transaction_id: string }
         Returns: string
@@ -12915,19 +12995,33 @@ export type Database = {
         Args: { p_event_id: string; p_worker_id: string }
         Returns: boolean
       }
+      pluggy_webhook_claim: {
+        Args: { _batch?: number; _lease_seconds?: number; _worker: string }
+        Returns: {
+          attempt_count: number
+          event_id: string
+          event_type: string
+          id: string
+          max_attempts: number
+          payload: Json
+          pluggy_item_id: string
+        }[]
+      }
       pluggy_webhook_finalize_failure: {
         Args: {
-          p_error: string
-          p_error_code?: string
-          p_event_id: string
-          p_worker_id: string
+          _error: string
+          _error_code?: string
+          _event_id: string
+          _fatal?: boolean
+          _worker: string
         }
         Returns: string
       }
       pluggy_webhook_finalize_success: {
-        Args: { p_event_id: string; p_worker_id: string }
+        Args: { _event_id: string; _worker: string }
         Returns: boolean
       }
+      pluggy_webhook_requeue: { Args: { _event_id: string }; Returns: boolean }
       preview_default_categories: {
         Args: { _company_id: string }
         Returns: Json
@@ -13049,6 +13143,10 @@ export type Database = {
       }
       system_health_snapshot: { Args: never; Returns: Json }
       unaccent: { Args: { "": string }; Returns: string }
+      webhook_requeue_admin: {
+        Args: { _event_id: string; _provider: string }
+        Returns: boolean
+      }
     }
     Enums: {
       account_type:
