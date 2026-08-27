@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Loader2, RefreshCw, RotateCcw, AlertTriangle, Clock, Activity } from "lucide-react";
+import { Loader2, RefreshCw, RotateCcw, AlertTriangle, Clock, Activity, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Provider = "asaas" | "pluggy";
