@@ -11,7 +11,6 @@ import {
   Html,
   Link,
   Preview,
-  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
@@ -28,39 +27,31 @@ export const SignupEmail = ({
   recipient,
   confirmationUrl,
 }: SignupEmailProps) => (
-  <Html lang="pt-BR" dir="ltr">
+  <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Confirme seu e-mail para começar a usar o {siteName}</Preview>
+    <Preview>Confirm your email for {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Section style={brandBar}>
-          <Text style={brand}>
-            <span style={brandOrange}>360°</span>
-            <span style={brandNavy}>FOOD</span>
-          </Text>
-        </Section>
-        <Heading style={h1}>Confirme seu e-mail</Heading>
+        <Heading style={h1}>Confirm your email</Heading>
         <Text style={text}>
-          Boas-vindas ao{' '}
+          Thanks for signing up for{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
-          ! Falta só um passo para ativar sua conta.
+          !
         </Text>
         <Text style={text}>
-          Confirme o endereço{' '}
+          Please confirm your email address (
           <Link href={`mailto:${recipient}`} style={link}>
             {recipient}
-          </Link>{' '}
-          clicando no botão abaixo:
+          </Link>
+          ) by clicking the button below:
         </Text>
-        <Section style={{ textAlign: 'center' as const }}>
-          <Button style={button} href={confirmationUrl}>
-            Confirmar e-mail
-          </Button>
-        </Section>
+        <Button style={button} href={confirmationUrl}>
+          Verify Email
+        </Button>
         <Text style={footer}>
-          Se você não criou uma conta no {siteName}, pode ignorar este e-mail.
+          If you didn't create an account, you can safely ignore this email.
         </Text>
       </Container>
     </Body>
@@ -69,34 +60,27 @@ export const SignupEmail = ({
 
 export default SignupEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif" }
-const container = { padding: '32px 28px', maxWidth: '560px' }
-const brandBar = { paddingBottom: '24px', borderBottom: '1px solid hsl(30, 15%, 88%)', marginBottom: '28px' }
-const brand = { fontSize: '22px', fontWeight: 'bold' as const, letterSpacing: '0.5px', margin: 0 }
-const brandOrange = { color: 'hsl(18, 84%, 51%)' }
-const brandNavy = { color: 'hsl(224, 60%, 12%)' }
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
 const h1 = {
-  fontSize: '24px',
+  fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: 'hsl(224, 60%, 12%)',
+  color: '#000000',
   margin: '0 0 20px',
 }
 const text = {
-  fontSize: '15px',
-  color: 'hsl(224, 15%, 40%)',
-  lineHeight: '1.6',
-  margin: '0 0 20px',
+  fontSize: '14px',
+  color: '#55575d',
+  lineHeight: '1.5',
+  margin: '0 0 25px',
 }
-const link = { color: 'hsl(18, 84%, 51%)', textDecoration: 'underline' }
+const link = { color: 'inherit', textDecoration: 'underline' }
 const button = {
-  backgroundColor: 'hsl(18, 84%, 51%)',
+  backgroundColor: '#000000',
   color: '#ffffff',
-  fontSize: '15px',
-  fontWeight: 'bold' as const,
-  borderRadius: '12px',
-  padding: '14px 28px',
+  fontSize: '14px',
+  borderRadius: '8px',
+  padding: '12px 20px',
   textDecoration: 'none',
-  display: 'inline-block',
-  margin: '8px 0 24px',
 }
-const footer = { fontSize: '12px', color: 'hsl(224, 15%, 55%)', margin: '32px 0 0', lineHeight: '1.5' }
+const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
