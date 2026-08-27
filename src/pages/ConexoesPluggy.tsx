@@ -118,6 +118,7 @@ export default function ConexoesPluggy() {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [backfillItem, setBackfillItem] = useState<{ itemId: string; name: string | null } | null>(null);
   // Retorno do consentimento de Open Finance (?itemId=…) precisa abrir o
   // diálogo para concluir a conexão em vez de exigir um novo clique.
   const [connectOpen, setConnectOpen] = useState(() => hasPluggyReturn());
@@ -395,6 +396,15 @@ export default function ConexoesPluggy() {
           onConnected={() => load()}
         />
       )}
+
+      <PluggyBackfillDialog
+        open={!!backfillItem}
+        onOpenChange={(o) => { if (!o) setBackfillItem(null); }}
+        itemId={backfillItem?.itemId ?? null}
+        companyId={selectedCompanyId ?? null}
+        connectorName={backfillItem?.name}
+        onDone={() => load()}
+      />
 
       <PluggyCreditCardReviewDialog
         open={creditReviewOpen}

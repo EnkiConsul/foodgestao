@@ -5,6 +5,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
+import { compareBankLedger } from "@/lib/transactions/balance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -615,6 +616,23 @@ export default function ContasBancarias() {
                     <p className={`text-sm font-bold ${Number(a.current_balance) >= 0 ? "text-success" : "text-destructive"}`}>
                       {maskBRL(Number(a.current_balance))}
                     </p>
+                    {(() => {
+                      const cmp = compareBankLedger(Number(a.current_balance), a.bank_balance);
+                      if (cmp.bank === null) return null;
+                      return (
+                        <p
+                          className={`text-[10px] mt-0.5 ${cmp.divergent ? "text-warning" : "text-muted-foreground"}`}
+                          title={
+                            cmp.divergent
+                              ? "O saldo informado pelo banco difere do saldo calculado pelos lançamentos. Confira a conciliação."
+                              : "Saldo informado pelo banco (Open Finance)"
+                          }
+                        >
+                          Banco: {maskBRL(cmp.bank)}
+                          {cmp.divergent ? ` (${cmp.diff! > 0 ? "+" : ""}${maskBRL(cmp.diff!)})` : ""}
+                        </p>
+                      );
+                    })()}
                   </div>
                 </div>
 
