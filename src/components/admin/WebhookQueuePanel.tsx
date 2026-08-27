@@ -36,6 +36,13 @@ const STATUS_LABEL: Record<string, string> = {
   processed: "Processado",
   retry: "Retentativa",
   dead_letter: "Falha definitiva",
+  discarded: "Descartado",
+};
+
+const ERROR_CODE_HINT: Record<string, string> = {
+  pending_manual_link: "Conexão do banco não encontrada no sistema (item removido ou de outro ambiente).",
+  missing_item_id: "Evento sem identificação da conexão.",
+  processing_error: "Erro temporário no processamento.",
 };
 
 function statusBadge(status: string | null) {
