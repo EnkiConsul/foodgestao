@@ -106,6 +106,22 @@ const STAGES = [
     args: ["scripts/migrations-check.mjs"],
   },
   {
+    id: "functions-config",
+    label: "Config das edge functions em sincronia (config.toml + baseline Deno)",
+    cmd: "node",
+    args: ["scripts/functions-config-check.mjs", "--require"],
+  },
+  {
+    id: "cron",
+    label: "Healthcheck dos agendamentos (falha, nunca executado ou atrasado)",
+    cmd: "node",
+    args: ["scripts/cron-healthcheck.mjs", ...(REQUIRE ? ["--require"] : [])],
+    needs: () =>
+      has("CRON_HEALTH_DB_URL") || has("SUPABASE_DB_URL")
+        ? null
+        : "CRON_HEALTH_DB_URL/SUPABASE_DB_URL ausente",
+  },
+  {
     id: "build",
     label: "Build de produção",
     cmd: "npx",
