@@ -124,9 +124,8 @@ const pct = (arr, p) => {
 async function timedSession(sql, reps) {
   const statement = `${sql.trim().replace(/;$/, "")};`;
   const script = ["\\timing on", "\\o /dev/null", ...Array(reps).fill(statement)].join("\n");
-  const args = process.env.PGHOST
-    ? ["-At", "-q", "-f", "-"]
-    : [process.env.SUPABASE_DB_URL, "-At", "-q", "-f", "-"];
+  const args = conn(["-At", "-q", "-f", "-"]);
+
 
   return new Promise((resolve) => {
     const child = execFile("psql", args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
