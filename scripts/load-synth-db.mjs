@@ -247,8 +247,9 @@ create temporary table _seed_ctx as
 select c.id company_id, c.user_id,
        (select array_agg(a.id) from public.accounts a where a.company_id = c.id) accs,
        (select array_agg(cat.id) from public.categories cat where cat.company_id = c.id) cats,
-       (select array_agg(ct.id) from public.contacts ct where ct.company_id = c.id) cts
+       (select array_agg(cc.contact_id) from public.contact_companies cc where cc.company_id = c.id) cts
 from public.companies c where c.name like 'Empresa Sintética %';
+
 
 insert into public.transactions(
   id, user_id, company_id, context, description, transaction_type, amount, amount_paid,
