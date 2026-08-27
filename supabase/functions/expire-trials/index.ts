@@ -5,21 +5,18 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
  * Cron-only endpoint. Auth model:
  *  - verify_jwt = false (see supabase/config.toml)
  *  - Caller MUST present either:
- *      Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>   (service role JWT), OR
- *      x-cron-secret: <EXPIRE_TRIALS_SECRET>               (shared secret used by scheduler)
+ *      Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>   (exact match, constant time), OR
+ *      x-cron-secret: <EXPIRE_TRIALS_SECRET>               (exact match, constant time)
  *  - Any other caller (including anon/authenticated JWTs) is rejected with 403.
+ *
+ * SECURITY: we never inspect JWT claims to decide authorization — the signature is not
+ * verified here, so a forged token claiming role=service_role must NOT be accepted.
  */
-function parseJwtRole(token: string): string | null {
-  try {
-    const payload = token.split(".")[1];
-    if (!payload) return null;
-    const json = JSON.parse(
-      atob(payload.replace(/-/g, "+").replace(/_/g, "/")),
-    );
-    return typeof json?.role === "string" ? json.role : null;
-  } catch {
-    return null;
-  }
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length === 0 || b.length === 0 || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 Deno.serve(async (req) => {
@@ -37,13 +34,11 @@ Deno.serve(async (req) => {
     : "";
   const cronSecret = req.headers.get("x-cron-secret") ?? "";
 
-  const isServiceRoleJwt =
-    bearer.length > 0 &&
-    (bearer === serviceRoleKey || parseJwtRole(bearer) === "service_role");
-  const isCronSecret =
-    expectedSecret.length > 0 && cronSecret === expectedSecret;
+  const isServiceRoleKey = timingSafeEqual(bearer, serviceRoleKey ?? "");
+  const isCronSecret = expectedSecret.length > 0 &&
+    timingSafeEqual(cronSecret, expectedSecret);
 
-  if (!isServiceRoleJwt && !isCronSecret) {
+  if (!isServiceRoleKey && !isCronSecret) {
     return new Response(
       JSON.stringify({ ok: false, error: "Forbidden" }),
       {
@@ -56,41 +51,34 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
 
-    const { data, error } = await supabase
-      .from("subscriptions")
-      .update({ status: "expired", updated_at: new Date().toISOString() })
-      .eq("status", "trialing")
-      .lt("trial_ends_at", new Date().toISOString())
-      .select("id, user_id");
-
+    // Single transaction: expires trials AND time-limited exemptions atomically.
+    const { data, error } = await supabase.rpc("expire_trials_and_exemptions");
     if (error) throw error;
 
-    // Expire time-limited exemptions
-    const { data: exp, error: expErr } = await supabase
-      .from("subscriptions")
-      .update({
-        is_exempt: false,
-        exempt_until: null,
-        status: "past_due",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("is_exempt", true)
-      .not("exempt_until", "is", null)
-      .lt("exempt_until", new Date().toISOString())
-      .select("id");
-    if (expErr) throw expErr;
-
+    const result = (data ?? {}) as {
+      expired_count?: number;
+      exemptions_expired?: number;
+    };
 
     return new Response(
-      JSON.stringify({ ok: true, expired_count: data?.length ?? 0, exemptions_expired: exp?.length ?? 0 }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      JSON.stringify({
+        ok: true,
+        expired_count: result.expired_count ?? 0,
+        exemptions_expired: result.exemptions_expired ?? 0,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      },
     );
-
   } catch (err) {
     console.error("[expire-trials] error", err);
     return new Response(
-      JSON.stringify({ ok: false, error: String(err) }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
+      JSON.stringify({ ok: false, error: "internal_error" }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      },
     );
   }
 });
