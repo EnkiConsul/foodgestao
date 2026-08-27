@@ -306,11 +306,28 @@ cross join generate_series(1, 28) d
 where e.competencia = to_char(now(), 'YYYY-MM');
 
 -- extrato bruto de Open Finance ------------------------------------------
-insert into public.pluggy_v2_transactions_raw(id, company_id, created_at, payload, pluggy_transaction_id)
-select gen_random_uuid(), c.id, now() - ((n % 720) || ' day')::interval,
-       jsonb_build_object('amount', round((random()*5000)::numeric,2), 'description', 'RAW '||n),
-       'synth-'||c.id||'-'||n
+insert into public.pluggy_v2_connections(id, company_id, pluggy_item_id)
+select md5(c.id::text||':conn')::uuid, c.id, 'synth-item-'||c.id
+from public.companies c where c.name like 'Empresa Sintética %';
+
+insert into public.pluggy_v2_accounts(id, connection_id, company_id, pluggy_account_id, pluggy_item_id)
+select md5(c.id::text||':ofacc')::uuid, md5(c.id::text||':conn')::uuid, c.id,
+       'synth-acc-'||c.id, 'synth-item-'||c.id
+from public.companies c where c.name like 'Empresa Sintética %';
+
+insert into public.pluggy_v2_transactions_raw(
+  id, account_id, connection_id, company_id, pluggy_account_id, pluggy_transaction_id,
+  amount, type, date, description, raw, created_at)
+select gen_random_uuid(), md5(c.id::text||':ofacc')::uuid, md5(c.id::text||':conn')::uuid, c.id,
+       'synth-acc-'||c.id, 'synth-tx-'||c.id||'-'||n,
+       round((random()*5000)::numeric, 2),
+       case when n % 4 = 0 then 'CREDIT' else 'DEBIT' end,
+       (current_date - (n % 720))::date,
+       'RAW '||n,
+       jsonb_build_object('description', 'RAW '||n),
+       now() - ((n % 720) || ' day')::interval
 from public.companies c, generate_series(1, 250) n where c.name like 'Empresa Sintética %';
+
 
 set session_replication_role = default;
 `);
