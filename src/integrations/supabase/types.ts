@@ -11780,6 +11780,15 @@ export type Database = {
         }
         Returns: Json
       }
+      close_credit_card_invoices: {
+        Args: { _limit?: number; _today?: string }
+        Returns: {
+          closed: number
+          errors: Json
+          opened: number
+          payables: number
+        }[]
+      }
       consume_recovery_reset: {
         Args: { p_challenge_id: string; p_reset_token_hash: string }
         Returns: string
