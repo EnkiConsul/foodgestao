@@ -220,8 +220,8 @@ where c.name like 'Empresa Sintética %';
   psql(`
 set session_replication_role = replica;
 -- cartões e faturas -------------------------------------------------------
-insert into public.credit_cards(id, user_id, company_id, context, brand, last4, closing_day, due_day, credit_limit)
-select md5(c.id::text||':card:'||n)::uuid, c.user_id, c.id, 'pj', 'Visa', lpad(n::text,4,'0'), 20, 28, 50000
+insert into public.credit_cards(id, user_id, company_id, context, brand, closing_day, due_day, credit_limit)
+select md5(c.id::text||':card:'||n)::uuid, c.user_id, c.id, 'pj', 'Visa', 20, 28, 50000
 from public.companies c, generate_series(1,2) n
 where c.name like 'Empresa Sintética %';
 
