@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useOriginChanges } from "@/hooks/useOriginChanges";
+import { OriginChangesBanner } from "@/components/conciliacao/OriginChangesBanner";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -284,6 +286,7 @@ function renderCategoryItems(options: { cat: CategoryOpt; depth: number }[]) {
 export default function ConciliacaoPluggy() {
   const navigate = useNavigate();
   const { contextType, selectedCompanyId } = useCompanyContext();
+  const { changes: originChanges, resolvingId: originResolvingId, resolve: resolveOriginChange } = useOriginChanges(selectedCompanyId ?? null);
   const { maskBRL } = usePrivacy();
 
   const [searchParams] = useSearchParams();
@@ -1499,6 +1502,12 @@ export default function ConciliacaoPluggy() {
 
   return (
     <div className="space-y-4">
+      <OriginChangesBanner
+        changes={originChanges}
+        resolvingId={originResolvingId}
+        onResolve={(id, accept) => { void resolveOriginChange(id, accept); }}
+      />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex items-start gap-2">
           <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate("/contas-bancarias")} aria-label="Voltar">
