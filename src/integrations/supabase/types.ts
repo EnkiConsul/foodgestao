@@ -11780,6 +11780,10 @@ export type Database = {
         }
         Returns: Json
       }
+      consume_recovery_reset: {
+        Args: { p_challenge_id: string; p_reset_token_hash: string }
+        Returns: string
+      }
       contact_document_key: { Args: { _document: string }; Returns: string }
       create_and_link_open_finance_account: {
         Args: {
@@ -12423,6 +12427,11 @@ export type Database = {
         Args: { _company_id?: string }
         Returns: number
       }
+      expire_trials_and_exemptions: { Args: never; Returns: Json }
+      fail_recovery_reset: {
+        Args: { p_challenge_id: string }
+        Returns: undefined
+      }
       fidelidade360_is_free_month: {
         Args: { _cycle_month: number; _paid_months: number }
         Returns: boolean
@@ -12430,6 +12439,10 @@ export type Database = {
       fidelidade360_next_free_month: {
         Args: { _cycle_month: number }
         Returns: number
+      }
+      finalize_recovery_reset: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
       fn_cadastrar_empresa_onboarding: {
         Args: {
@@ -12598,6 +12611,10 @@ export type Database = {
         Returns: undefined
       }
       ignore_open_finance_raw: { Args: { _raw_ids: string[] }; Returns: Json }
+      increment_recovery_attempt: {
+        Args: { p_challenge_id: string; p_max_attempts?: number }
+        Returns: Json
+      }
       increment_rule_hit: { Args: { p_rule_id: string }; Returns: undefined }
       insert_audit_log: {
         Args: {
