@@ -1,9 +1,10 @@
 {
-  "frozen": true,
+  "frozen": false,
   "sha": "bcb88435e",
   "started_at": "2026-08-27T08:27:00Z",
   "owner": "Rafael Castro",
-  "reason": "Certificacao do release: main congelada, apenas hotfixes aprovados.",
+  "reason": "Freeze encerrado: certificacao concluida e hotfixes de webhooks/filas aplicados.",
   "hotfix_marker": "hotfix-approved",
-  "runbook": "docs/runbooks/release-freeze.md"
+  "runbook": "docs/runbooks/release-freeze.md",
+  "ended_at": "2026-08-27T14:10:00Z"
 }
