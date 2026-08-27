@@ -203,41 +203,42 @@ insert into public.category_companies(category_id, company_id)
 select cat.id, cat.company_id from public.categories cat
 where cat.name like 'Categoria %' and cat.company_id is not null;
 
--- contatos (60 por empresa) ----------------------------------------------
-insert into public.contacts(id, user_id, company_id, context, name, contact_type, document)
-select gen_random_uuid(), c.user_id, c.id, 'pj', 'Fornecedor '||n,
+-- contatos (60 por empresa; vínculo pela tabela associativa) --------------
+insert into public.contacts(id, user_id, name, contact_type, document)
+select md5(c.id::text||':contact:'||n)::uuid, c.user_id, 'Fornecedor '||n,
        case when n % 3 = 0 then 'cliente'::contact_type else 'fornecedor'::contact_type end,
        lpad(((random()*99999999999)::bigint)::text, 11, '0')
 from public.companies c, generate_series(1,60) n
 where c.name like 'Empresa Sintética %';
 
 insert into public.contact_companies(contact_id, company_id)
-select ct.id, ct.company_id from public.contacts ct
-where ct.name like 'Fornecedor %' and ct.company_id is not null;
+select md5(c.id::text||':contact:'||n)::uuid, c.id
+from public.companies c, generate_series(1,60) n
+where c.name like 'Empresa Sintética %';
 `);
 
   psql(`
 set session_replication_role = replica;
 -- cartões e faturas -------------------------------------------------------
-insert into public.credit_cards(id, user_id, company_id, context, name, closing_day, due_day, credit_limit)
-select gen_random_uuid(), c.user_id, c.id, 'pj', 'Cartão '||n, 20, 28, 50000
+insert into public.credit_cards(id, user_id, company_id, context, brand, last4, closing_day, due_day, credit_limit)
+select md5(c.id::text||':card:'||n)::uuid, c.user_id, c.id, 'pj', 'Visa', lpad(n::text,4,'0'), 20, 28, 50000
 from public.companies c, generate_series(1,2) n
 where c.name like 'Empresa Sintética %';
 
 insert into public.credit_card_invoices(
-  id, credit_card_id, user_id, company_id, reference_month, period_start, period_end,
+  id, credit_card_id, user_id, company_id, reference_month, period_start,
   closing_date, due_date, status, total_amount)
 select gen_random_uuid(), cc.id, cc.user_id, cc.company_id,
        (date_trunc('month', now()) - (m || ' month')::interval)::date,
        (date_trunc('month', now()) - (m || ' month')::interval)::date,
-       (date_trunc('month', now()) - (m || ' month')::interval + interval '1 month - 1 day')::date,
        (date_trunc('month', now()) - (m || ' month')::interval + interval '19 day')::date,
        (date_trunc('month', now()) - (m || ' month')::interval + interval '27 day')::date,
-       case when m = 0 then 'aberta' else 'paga' end,
+       (case when m = 0 then 'aberta' else 'paga' end)::invoice_cycle_status,
        round((random()*20000)::numeric, 2)
 from public.credit_cards cc, generate_series(0, 23) m
-where cc.name like 'Cartão %';
+where cc.company_id in (select id from public.companies where name like 'Empresa Sintética %');
 `);
+
 
   // Lançamentos em lotes por empresa para não estourar memória/WAL.
   psql(`
