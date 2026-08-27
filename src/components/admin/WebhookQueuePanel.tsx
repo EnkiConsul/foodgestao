@@ -168,8 +168,8 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {["pending", "processing", "retry", "dead_letter", "processed"].map((s) => (
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          {["pending", "processing", "retry", "dead_letter", "discarded", "processed"].map((s) => (
             <div key={s} className="rounded-lg border p-3">
               <p className="text-xs text-muted-foreground">{STATUS_LABEL[s]}</p>
               <p className={`text-xl font-bold ${s === "dead_letter" && (counts.data?.[s] ?? 0) > 0 ? "text-destructive" : ""}`}>
@@ -178,6 +178,23 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
             </div>
           ))}
         </div>
+
+        {deadLetterCodes.length > 0 ? (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+            <p className="text-xs font-medium">Falhas definitivas por motivo</p>
+            {deadLetterCodes.map((code) => (
+              <div key={code} className="flex items-center justify-between gap-3 flex-wrap">
+                <p className="text-xs text-muted-foreground">
+                  <code className="text-xs">{code}</code>
+                  {ERROR_CODE_HINT[code] ? ` — ${ERROR_CODE_HINT[code]}` : null}
+                </p>
+                <Button size="sm" variant="outline" onClick={() => discardByCode(code)}>
+                  <Trash2 className="h-4 w-4 mr-1" /> Descartar todos deste motivo
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         {backlog.isLoading ? (
           <div className="flex items-center justify-center py-8">
