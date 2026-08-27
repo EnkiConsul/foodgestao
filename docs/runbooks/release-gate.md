@@ -95,6 +95,15 @@ encolher:
 | Edge functions falhando `deno check` | 18 (baseline) |
 | Testes | 937 passando, 1 falhando (`operacao-panorama.test.ts` → `trabalhando` com convocado pendente) |
 
+| Security lint (`--ci --strict`) | 155 critical em `0028_anon_security_definer`, 184 warning em `0029_authenticated_security_definer` |
+
+Bloqueadores para o primeiro release verde:
+
+1. Triar `0028_anon_security_definer` — funções SECURITY DEFINER executáveis por
+   `anon`. Revogue o `EXECUTE` de `anon` nas que não precisam ser públicas ou
+   registre as exceções legítimas na memória de segurança.
+2. Resolver o teste de `operacao-panorama` (abaixo).
+
 O teste de `operacao-panorama` é a única etapa realmente vermelha: a expectativa
 espera que convocado pendente conte como "trabalhando" e o motor atual conta
 apenas o aceito. Decida a regra de negócio e ajuste teste ou motor antes do
