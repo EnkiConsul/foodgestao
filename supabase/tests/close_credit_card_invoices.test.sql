@@ -29,7 +29,7 @@ BEGIN
   RETURNING id INTO v_account;
 
   -- Cartão com conta padrão de pagamento
-  INSERT INTO public.credit_cards (user_id, name, context, closing_day, due_day,
+  INSERT INTO public.credit_cards (user_id, brand, context, closing_day, due_day,
                                    credit_limit, default_payment_account_id, minimum_payment_percent)
   VALUES (v_user, 'TEST cartao A', 'pf', 10, 20, 5000, v_account, 15)
   RETURNING id INTO v_card;
@@ -45,7 +45,7 @@ BEGIN
   VALUES (v_user, 'pf', v_card, v_inv, 'saida', CURRENT_DATE - 10, 200, 'TEST compra', 'confirmado');
 
   -- Cartão sem conta padrão de pagamento
-  INSERT INTO public.credit_cards (user_id, name, context, closing_day, due_day,
+  INSERT INTO public.credit_cards (user_id, brand, context, closing_day, due_day,
                                    credit_limit, default_payment_account_id, minimum_payment_percent)
   VALUES (v_user, 'TEST cartao B', 'pf', 10, 5, 1000, NULL, 15)
   RETURNING id INTO v_card2;
