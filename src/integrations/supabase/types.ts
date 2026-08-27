@@ -13143,6 +13143,10 @@ export type Database = {
       }
       system_health_snapshot: { Args: never; Returns: Json }
       unaccent: { Args: { "": string }; Returns: string }
+      webhook_requeue_admin: {
+        Args: { _event_id: string; _provider: string }
+        Returns: boolean
+      }
     }
     Enums: {
       account_type:
