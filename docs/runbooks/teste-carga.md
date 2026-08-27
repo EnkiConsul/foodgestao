@@ -61,10 +61,48 @@ Cloud (Backend → Advanced settings → Upgrade instance).
 4. **`chart_accounts_report` respondia HTTP 300 (PGRST203)** quando o filtro de situação
    não era enviado: existiam duas versões da função. A versão antiga e sem uso foi removida.
 
+## Rodada sintética em volume alvo (27/08/2026)
+
+Banco descartável local (nada toca a produção), criado por `scripts/load-synth-db.mjs`:
+esquema copiado apenas na definição (`pg_dump --schema-only`) e dados 100 % sintéticos.
+
+```bash
+npm run load:synth -- up --companies=200 --transactions=500000
+node scripts/load-test-db.mjs --db-url="$(npm run -s load:synth -- url)" --conns=50 --rounds=10 \
+  --report=reports/load-test-synth-50.json
+npm run load:synth -- down   # remove o cluster descartável
+```
+
+Volume gerado: **200 empresas, 500.000 lançamentos** (24 meses), 8.000 categorias,
+12.000 contatos, 9.600 faturas de cartão, 5.000 colaboradores, 140.000 itens de escala
+e 50.000 linhas de extrato bruto. `transactions` ficou com 238 MB.
+
+| Consulta | p95 @10 conns | p95 @25 | p95 @50 | Exec. no servidor |
+|----------|---------------|---------|---------|-------------------|
+| extrato_periodo | 57,7 ms | 55,0 ms | 54,1 ms | 1,7 ms |
+| saldo_por_conta | 32,7 ms | 32,5 ms | 60,1 ms | 3,6 ms |
+| totais_por_categoria_mes | 42,2 ms | 74,0 ms | 223,4 ms | 5,3 ms |
+| faturas_abertas | 29,7 ms | 17,5 ms | 23,6 ms | 0,8 ms |
+| extrato_bruto_pluggy | 13,9 ms | 16,2 ms | 29,0 ms | 1,3 ms |
+| escala_itens_mes | 15,1 ms | 29,8 ms | 75,0 ms | 1,0 ms |
+
+Resultado: **todas as consultas dentro do orçamento de p95 ≤ 500 ms em volume alvo**,
+zero erros, zero chaves estrangeiras sem índice e nenhuma varredura sequencial nas
+consultas financeiras. Throughput agregado sustentado de ~1.900 consultas/s a 50
+conexões, com degradação suave (a agregação por categoria/mês é a que mais sofre).
+
+Ressalvas: cluster local com `fsync=off`/`synchronous_commit=off` e sem RTT de rede —
+os números medem plano e CPU, não durabilidade nem latência de produção; e sem
+PostgREST local o teste não mede throughput ponta a ponta da API em volume alvo.
+
 ## Pendências para a próxima rodada
 
-- Teste com dados sintéticos em volume alvo (≈200 empresas / 500 mil lançamentos) em
-  banco descartável — o volume atual é pequeno demais para exercitar os planos.
-- Carga a partir de fora do sandbox (a latência de rede aqui mascara ~150 ms por chamada).
+- Único ponto de melhoria observado: `dp_escala_itens` faz varredura sequencial quando
+  a consulta filtra só por data; um índice `(company_id, data)` resolveria — não aplicado
+  agora por causa do congelamento de release.
+- Carga ponta a ponta da API em volume alvo exige staging com PostgREST (o sandbox não
+  tem), e carga a partir de fora do sandbox (a latência de rede aqui mascara ~150 ms por
+  chamada).
 - Definir o tamanho de instância recomendado por faixa de clientes a partir da medição de
-  saturação acima.
+  saturação (~290 req/s no volume atual).
+
