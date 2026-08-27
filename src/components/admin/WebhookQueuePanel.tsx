@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Loader2, RefreshCw, RotateCcw, AlertTriangle, Clock, Activity } from "lucide-react";
+import { Loader2, RefreshCw, RotateCcw, AlertTriangle, Clock, Activity, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Provider = "asaas" | "pluggy";
@@ -36,6 +36,13 @@ const STATUS_LABEL: Record<string, string> = {
   processed: "Processado",
   retry: "Retentativa",
   dead_letter: "Falha definitiva",
+  discarded: "Descartado",
+};
+
+const ERROR_CODE_HINT: Record<string, string> = {
+  pending_manual_link: "Conexão do banco não encontrada no sistema (item removido ou de outro ambiente).",
+  missing_item_id: "Evento sem identificação da conexão.",
+  processing_error: "Erro temporário no processamento.",
 };
 
 function statusBadge(status: string | null) {
@@ -62,7 +69,7 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
     queryKey: ["webhook-queue-counts", provider],
     refetchInterval: 30_000,
     queryFn: async () => {
-      const statuses = ["pending", "processing", "retry", "dead_letter", "processed"];
+      const statuses = ["pending", "processing", "retry", "dead_letter", "discarded", "processed"];
       const results = await Promise.all(
         statuses.map((s) =>
           supabase.from(table).select("*", { count: "exact", head: true }).eq("status", s),
@@ -90,6 +97,8 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
     },
   });
 
+  const refetchAll = () => { counts.refetch(); backlog.refetch(); };
+
   const requeue = async (id: string) => {
     const { error } = await supabase.rpc("webhook_requeue_admin", {
       _provider: provider,
@@ -100,9 +109,44 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
       return;
     }
     toast.success("Evento reenfileirado — será processado no próximo ciclo");
-    counts.refetch();
-    backlog.refetch();
+    refetchAll();
   };
+
+  const discard = async (id: string) => {
+    const { error } = await supabase.rpc("webhook_discard_admin", {
+      _provider: provider,
+      _event_id: id,
+      _reason: "descartado no painel administrativo",
+    });
+    if (error) {
+      toast.error(error.message ?? "Falha ao descartar evento");
+      return;
+    }
+    toast.success("Evento descartado");
+    refetchAll();
+  };
+
+  const discardByCode = async (code: string) => {
+    const { data, error } = await supabase.rpc("webhook_discard_by_code_admin", {
+      _provider: provider,
+      _error_code: code,
+      _reason: "descarte em lote no painel administrativo",
+    });
+    if (error) {
+      toast.error(error.message ?? "Falha ao descartar eventos");
+      return;
+    }
+    toast.success(`${data ?? 0} evento(s) descartado(s)`);
+    refetchAll();
+  };
+
+  const deadLetterCodes = Array.from(
+    new Set(
+      (backlog.data ?? [])
+        .filter((e) => e.status === "dead_letter" && e.error_code)
+        .map((e) => e.error_code as string),
+    ),
+  );
 
   return (
     <Card>
@@ -124,8 +168,8 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {["pending", "processing", "retry", "dead_letter", "processed"].map((s) => (
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          {["pending", "processing", "retry", "dead_letter", "discarded", "processed"].map((s) => (
             <div key={s} className="rounded-lg border p-3">
               <p className="text-xs text-muted-foreground">{STATUS_LABEL[s]}</p>
               <p className={`text-xl font-bold ${s === "dead_letter" && (counts.data?.[s] ?? 0) > 0 ? "text-destructive" : ""}`}>
@@ -134,6 +178,23 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
             </div>
           ))}
         </div>
+
+        {deadLetterCodes.length > 0 ? (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+            <p className="text-xs font-medium">Falhas definitivas por motivo</p>
+            {deadLetterCodes.map((code) => (
+              <div key={code} className="flex items-center justify-between gap-3 flex-wrap">
+                <p className="text-xs text-muted-foreground">
+                  <code className="text-xs">{code}</code>
+                  {ERROR_CODE_HINT[code] ? ` — ${ERROR_CODE_HINT[code]}` : null}
+                </p>
+                <Button size="sm" variant="outline" onClick={() => discardByCode(code)}>
+                  <Trash2 className="h-4 w-4 mr-1" /> Descartar todos deste motivo
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         {backlog.isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -178,9 +239,14 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
                     </TableCell>
                     <TableCell>
                       {e.status === "dead_letter" || e.status === "retry" ? (
-                        <Button size="sm" variant="ghost" onClick={() => requeue(e.id)}>
-                          <RotateCcw className="h-4 w-4 mr-1" /> Reprocessar
-                        </Button>
+                        <div className="flex gap-1 whitespace-nowrap">
+                          <Button size="sm" variant="ghost" onClick={() => requeue(e.id)}>
+                            <RotateCcw className="h-4 w-4 mr-1" /> Reprocessar
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => discard(e.id)}>
+                            <Trash2 className="h-4 w-4 mr-1" /> Descartar
+                          </Button>
+                        </div>
                       ) : null}
                     </TableCell>
                   </TableRow>
