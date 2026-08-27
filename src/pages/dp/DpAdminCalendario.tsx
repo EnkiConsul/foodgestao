@@ -458,7 +458,7 @@ export default function DpAdminCalendario() {
     mutationFn: async (folgaId: string) => {
       const { error } = await supabase.rpc("dp_folga_cancelar_admin", {
         p_folga_id: folgaId,
-        p_motivo: null,
+        p_motivo: undefined,
       });
       if (error) throw error;
     },
@@ -572,7 +572,7 @@ export default function DpAdminCalendario() {
       p_data: iso,
       p_extra: opts.extra,
       p_confirmar_deficit: opts.confirmarDeficit ?? false,
-      p_substituir_ids: opts.deleteIds && opts.deleteIds.length > 0 ? opts.deleteIds : null,
+      p_substituir_ids: opts.deleteIds && opts.deleteIds.length > 0 ? opts.deleteIds : undefined,
     });
     if (error) throw error;
 

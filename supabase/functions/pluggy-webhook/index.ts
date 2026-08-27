@@ -4,6 +4,7 @@
 // Este endpoint APENAS registra o evento na fila (inbox) `pluggy_webhook_events`.
 // O processamento (sincronização, deleções) é feito por `pluggy-webhook-worker`
 // via pg_cron, com tentativas, backoff exponencial e dead letter.
+import { secretMatches } from '../_shared/secret.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -16,9 +17,10 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const webhookSecret = Deno.env.get('PLUGGY_WEBHOOK_SECRET') ?? '';
-  const provided = req.headers.get('x-webhook-secret') ??
-    new URL(req.url).searchParams.get('secret') ?? '';
-  if (!webhookSecret || provided !== webhookSecret) {
+  // Segredo SOMENTE por cabeçalho: em query string ele vaza em log de acesso,
+  // histórico do navegador e referer.
+  const provided = req.headers.get('x-webhook-secret') ?? '';
+  if (!secretMatches(provided, webhookSecret)) {
     return new Response('forbidden', { status: 403, headers: corsHeaders });
   }
 

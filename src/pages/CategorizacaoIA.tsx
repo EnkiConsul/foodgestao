@@ -146,8 +146,8 @@ export default function CategorizacaoIA() {
     setRunningBatch(true);
     try {
       const { data, error } = await supabase.rpc("categorize_transactions_batch", {
-        p_context: contextType ? contextType.toUpperCase() : null,
-        p_company_id: selectedCompanyId ?? null,
+        p_context: contextType ? contextType.toUpperCase() : undefined,
+        p_company_id: selectedCompanyId ?? undefined,
         p_limit: 500,
       });
       if (error) throw error;

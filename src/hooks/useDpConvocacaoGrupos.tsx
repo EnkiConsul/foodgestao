@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { optionalRpcArg } from "@/lib/supabase/rpcArgs";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database, Json } from "@/integrations/supabase/types";
@@ -125,10 +126,10 @@ export function useSalvarRascunhoConvocacao() {
         p_necessidade_saida: args.necessidade_saida,
         p_necessidade_termina_no_dia_seguinte: args.necessidade_termina_no_dia_seguinte,
         p_horario_modo: args.horario_modo,
-        p_entrada: args.entrada ?? undefined,
-        p_saida: args.saida ?? undefined,
-        p_intervalo_minutos: args.intervalo_minutos ?? undefined,
-        p_termina_no_dia_seguinte: args.termina_no_dia_seguinte ?? undefined,
+        p_entrada: optionalRpcArg(args.entrada),
+        p_saida: optionalRpcArg(args.saida),
+        p_intervalo_minutos: optionalRpcArg(args.intervalo_minutos),
+        p_termina_no_dia_seguinte: optionalRpcArg(args.termina_no_dia_seguinte),
         p_carga_prevista_horas: args.carga_prevista_horas ?? undefined,
         p_vagas: args.vagas,
         p_colaborador_alvo_id: args.colaborador_alvo_id ?? undefined,
@@ -294,10 +295,10 @@ export function useDefinirOverrideDestinatario() {
         {
           p_ocorrencia_id: args.ocorrencia_id,
           p_colaborador_id: args.colaborador_id,
-          p_entrada: args.entrada ?? undefined,
-          p_saida: args.saida ?? undefined,
-          p_intervalo_minutos: args.intervalo_minutos ?? undefined,
-          p_termina_no_dia_seguinte: args.termina_no_dia_seguinte ?? undefined,
+          p_entrada: optionalRpcArg(args.entrada),
+          p_saida: optionalRpcArg(args.saida),
+          p_intervalo_minutos: optionalRpcArg(args.intervalo_minutos),
+          p_termina_no_dia_seguinte: optionalRpcArg(args.termina_no_dia_seguinte),
           p_expected_updated_at: args.expected_updated_at,
         },
       );
@@ -323,7 +324,7 @@ export async function buscarNecessidadeSugerida(args: {
 }) {
   const { data, error } = await supabase.rpc("dp_convocacao_necessidade_sugerida", {
     _company_id: args.company_id,
-    _unidade_id: args.unidade_id ?? undefined,
+    _unidade_id: optionalRpcArg(args.unidade_id),
     _cargo_id: args.cargo_id,
     _data: args.data,
   });
@@ -388,7 +389,7 @@ export function useSalvarConvocacaoConfig() {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       const { data, error } = await supabase.rpc("dp_convocacao_salvar_config", {
         p_company_id: selectedCompanyId,
-        p_unidade_id: args.unidade_id ?? undefined,
+        p_unidade_id: optionalRpcArg(args.unidade_id),
         p_expected_updated_at: args.expected_updated_at ?? undefined,
         p_antecedencia_minima_dias: args.antecedencia_minima_dias,
         p_prazo_resposta_dias_uteis: args.prazo_resposta_dias_uteis,

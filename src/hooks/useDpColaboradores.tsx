@@ -155,7 +155,7 @@ export function useDesligarDpColaborador() {
         p_colaborador_id: input.id,
         p_data_desligamento: input.data_desligamento,
         p_motivo: (input.motivo ?? null) as any,
-        p_observacao: input.observacao ?? null,
+        p_observacao: input.observacao ?? undefined,
         p_elegibilidade: (input.elegibilidade ?? null) as any,
       });
       if (error) throw error;
@@ -177,7 +177,7 @@ export function useEditarDesligamento() {
         p_colaborador_id: input.id,
         p_data_desligamento: input.data_desligamento,
         p_motivo: (input.motivo ?? null) as any,
-        p_observacao: input.observacao ?? null,
+        p_observacao: input.observacao ?? undefined,
         p_elegibilidade: (input.elegibilidade ?? null) as any,
       });
       if (error) throw error;

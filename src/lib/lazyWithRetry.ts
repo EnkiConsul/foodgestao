@@ -1,4 +1,4 @@
-import { lazy, type ComponentType } from "react";
+import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 
 const RELOAD_FLAG = "lovable:chunk-reloaded";
 
@@ -7,10 +7,10 @@ const RELOAD_FLAG = "lovable:chunk-reloaded";
  * ("Failed to fetch dynamically imported module"), tenta novamente com
  * cache-busting e, em último caso, recarrega a página uma única vez.
  */
-export function lazyWithRetry<T extends ComponentType<never>>(
+export function lazyWithRetry<P extends object, T extends ComponentType<P>>(
   factory: () => Promise<{ default: T }>,
-) {
-  return lazy(async () => {
+): LazyExoticComponent<ComponentType<P>> {
+  return lazy<ComponentType<P>>(async () => {
     try {
       const mod = await factory();
       sessionStorage.removeItem(RELOAD_FLAG);

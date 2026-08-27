@@ -305,3 +305,45 @@ export async function listItems(params: { page?: number; pageSize?: number } = {
   }>("GET", `/items?${qs.toString()}`);
 }
 
+
+// ---------------------------------------------------------------------------
+// Webhooks
+//
+// A Pluggy permite configurar cabeçalhos personalizados no webhook
+// (https://docs.pluggy.ai/docs/webhooks#webhook-headers). Usamos isso para
+// enviar o segredo em cabeçalho, nunca em query string.
+// ---------------------------------------------------------------------------
+
+export interface PluggyWebhook {
+  id: string;
+  url: string;
+  event: string;
+  headers?: Record<string, string> | null;
+  disabledAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export async function listWebhooks() {
+  return await request<{ results: PluggyWebhook[]; total?: number }>("GET", "/webhooks");
+}
+
+export async function createWebhook(input: {
+  url: string;
+  event: string;
+  headers?: Record<string, string>;
+}) {
+  return await request<PluggyWebhook>("POST", "/webhooks", input);
+}
+
+export async function updateWebhook(id: string, input: {
+  url?: string;
+  event?: string;
+  headers?: Record<string, string>;
+}) {
+  return await request<PluggyWebhook>("PATCH", `/webhooks/${id}`, input);
+}
+
+export async function deleteWebhook(id: string) {
+  return await request<{ id: string }>("DELETE", `/webhooks/${id}`);
+}

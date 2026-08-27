@@ -186,7 +186,13 @@ export const MAX_DESCRIPTION_LENGTH = 255;
 export function sanitizeDescription(raw: string | null | undefined): string {
   const s = String(raw ?? '')
     // remove caracteres de controle (inclui \u0000, \t, \n) e substitutos
-    .replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ')
+    .split('')
+    .map((ch) => {
+      const code = ch.charCodeAt(0);
+      // Controles C0/C1 viram espaço (checagem por código evita regex de controle).
+      return code <= 0x1f || (code >= 0x7f && code <= 0x9f) ? ' ' : ch;
+    })
+    .join('')
     .replace(/\uFFFD/g, '')
     .replace(/\s+/g, ' ')
     .trim()

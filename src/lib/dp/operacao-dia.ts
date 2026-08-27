@@ -85,10 +85,16 @@ export function rotuloAusencia(tipo: EscalaItemTipo): string {
 }
 
 const ordenaHora = (a: string | null, b: string | null) => {
+  if (a === null && b === null) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
   if (a === b) return 0;
-  if (!a) return 1;
-  if (!b) return -1;
-  return paraMinutos(a) - paraMinutos(b);
+  const minA = paraMinutos(a);
+  const minB = paraMinutos(b);
+  if (minA === null && minB === null) return 0;
+  if (minA === null) return 1;
+  if (minB === null) return -1;
+  return minA - minB;
 };
 
 /** Organiza a escala de um dia em blocos por turno + ausentes + pendências. */

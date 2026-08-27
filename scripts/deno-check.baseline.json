@@ -1,10 +1,7 @@
 [
   "ai-categorize-transactions",
   "ai-financial-agent",
-  "asaas-webhook-worker",
   "auth-email-hook",
-  "auth-recovery-request",
-  "auth-recovery-verify",
   "dp-doc-bulk-ingest",
   "dp-generate-disciplinary-pdf",
   "generate-category-ai-description",
@@ -12,7 +9,6 @@
   "mcp",
   "of-ai-suggest",
   "plin-ia-insights",
-  "pluggy-webhook-worker",
   "preview-transactional-email",
   "process-email-queue",
   "send-transactional-email",

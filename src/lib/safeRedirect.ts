@@ -11,6 +11,21 @@ export const DEFAULT_REDIRECT = "/hub";
 /** Rotas que nunca devem ser destino de redirect (evita loop de login). */
 const BLOCKED_PREFIXES = ["/auth", "/reset-password"];
 
+/**
+ * Remove caracteres de controle (U+0000–U+001F e U+007F) por ponto de código.
+ * Evitamos regex com literais de controle — a checagem por código é explícita
+ * e não depende de escapes difíceis de auditar.
+ */
+function stripControlChars(input: string): string {
+  let out = "";
+  for (const ch of input) {
+    const code = ch.codePointAt(0) ?? 0;
+    if (code <= 0x1f || code === 0x7f) continue;
+    out += ch;
+  }
+  return out;
+}
+
 export function sanitizeRedirect(
   raw: string | null | undefined,
   fallback: string = DEFAULT_REDIRECT,
@@ -19,7 +34,7 @@ export function sanitizeRedirect(
 
   // Remove espaços/controles que browsers ignoram ao resolver URLs
   // (ex.: "\n\thttp://evil.com" ou "/ /evil.com").
-  let value = raw.trim().replace(/[\u0000-\u001F\u007F]/g, "");
+  let value = stripControlChars(raw.trim());
   if (!value) return fallback;
 
   // Alguns fluxos chegam com o valor codificado mais de uma vez.
@@ -28,7 +43,7 @@ export function sanitizeRedirect(
     try {
       const decoded = decodeURIComponent(value);
       if (decoded === value) break;
-      value = decoded.trim().replace(/[\u0000-\u001F\u007F]/g, "");
+      value = stripControlChars(decoded.trim());
     } catch {
       return fallback;
     }

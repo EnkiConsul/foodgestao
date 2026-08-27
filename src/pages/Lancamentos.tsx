@@ -177,7 +177,7 @@ export default function Lancamentos() {
         p_limit: 500,
         p_min_confidence: 0.7,
         p_context: ctx,
-        p_company_id: companyId,
+        p_company_id: companyId ?? undefined,
         p_only_uncategorized: true,
       });
       if (error) throw error;
@@ -194,7 +194,7 @@ export default function Lancamentos() {
         const { data: enq } = await supabase.rpc("enqueue_uncategorized_for_ai", {
           p_limit: 200,
           p_context: ctx,
-          p_company_id: companyId,
+          p_company_id: companyId ?? undefined,
         });
         const enqueued = Number((Array.isArray(enq) ? enq[0]?.enqueued : (enq as any)?.enqueued) ?? 0);
         if (enqueued > 0) {

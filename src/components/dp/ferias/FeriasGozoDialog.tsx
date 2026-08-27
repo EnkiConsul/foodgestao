@@ -79,7 +79,7 @@ export function FeriasGozoDialog({
 
   const totalConsumido = dias + (Number(form.dias_abono) || 0);
   const saldoPeriodo = periodoSel
-    ? periodoSel.dias_saldo + (editing ? (editing.dias ?? 0) + (editing.dias_abono ?? 0) : 0)
+    ? (periodoSel.dias_saldo ?? 0) + (editing ? (editing.dias ?? 0) + (editing.dias_abono ?? 0) : 0)
     : 0;
   const excede = !!periodoSel && totalConsumido > saldoPeriodo;
 

@@ -1,6 +1,6 @@
 // Recovery step 2: verify the 6-digit OTP.
 // On success, mints a reset_token (single-use, 10min) tied to the challenge.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { timingSafeEqualHex } from "../_shared/zapi.ts";
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const admin = createClient(url, service, { auth: { persistSession: false } });
+  const admin: SupabaseClient = createClient(url, service, { auth: { persistSession: false } });
 
   let body: z.infer<typeof BodySchema>;
   try {
@@ -52,7 +52,9 @@ Deno.serve(async (req) => {
 
   const { data: row } = await admin
     .from("auth_recovery_challenges")
-    .select("id, user_id, status, otp_hash, otp_expires_at, otp_attempt_count, challenge_token_hash")
+    .select(
+      "id, user_id, status, otp_hash, otp_expires_at, otp_attempt_count, challenge_token_hash, reset_token_hash, reset_token_expires_at",
+    )
     .eq("id", body.challenge_id)
     .maybeSingle();
 

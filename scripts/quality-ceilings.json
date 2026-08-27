@@ -1,7 +1,7 @@
 {
   "comment": "Tetos de qualidade (ratchet decrescente). Baixe os números ao corrigir; nunca aumente.",
   "updated_at": "2026-08-27",
-  "typescript_strict_errors": 33,
-  "eslint_errors": 16,
-  "eslint_warnings": 1473
+  "typescript_strict_errors": 0,
+  "eslint_errors": 0,
+  "eslint_warnings": 1471
 }

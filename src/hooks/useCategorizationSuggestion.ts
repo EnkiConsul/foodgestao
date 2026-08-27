@@ -54,10 +54,10 @@ export function useCategorizationSuggestion({
     const handle = setTimeout(async () => {
       const { data, error } = await supabase.rpc("categorize_transaction", {
         p_description: desc,
-        p_transaction_type: transactionType ?? null,
-        p_context: context ? context.toUpperCase() : null,
-        p_company_id: companyId ?? null,
-        p_user_id: null,
+        p_transaction_type: transactionType ?? undefined,
+        p_context: context ? context.toUpperCase() : undefined,
+        p_company_id: companyId ?? undefined,
+        p_user_id: undefined,
         p_min_similarity: 0.45,
       });
       if (cancelled) return;
