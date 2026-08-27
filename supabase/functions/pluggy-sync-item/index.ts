@@ -739,7 +739,7 @@ Deno.serve(async (req) => {
         const slice = providerIds.slice(i, i + 200);
         const { data: prev } = await admin
           .from('pluggy_staging_transactions')
-          .select('id, status, provider_id, pluggy_transaction_id')
+          .select('id, status, provider_id, pluggy_transaction_id, amount, date, description, matched_transaction_id')
           .eq('company_id', effectiveCompanyId)
           .eq('pluggy_account_id', acc.id)
           .in('provider_id', slice)
@@ -748,6 +748,44 @@ Deno.serve(async (req) => {
           if (p.provider_id) byProvider.set(p.provider_id, p as never);
         }
       }
+
+      /**
+       * O banco alterou um lançamento que JÁ virou lançamento confirmado no
+       * sistema: nunca sobrescrevemos em silêncio — registramos a revisão para
+       * o usuário aceitar ou manter a versão atual.
+       */
+      const registerOriginChange = async (
+        prev: { id: string; amount: number | null; date: string | null; description: string | null; matched_transaction_id?: string | null },
+        next: { amount: number; date: string; description: string | null },
+      ) => {
+        const changedAmount = Math.abs(Number(prev.amount ?? 0) - Number(next.amount ?? 0)) > 0.004;
+        const changedDate = (prev.date ?? '') !== (next.date ?? '');
+        const changedDesc = (prev.description ?? '') !== (next.description ?? '');
+        if (!changedAmount && !changedDate && !changedDesc) return;
+
+        let txId = prev.matched_transaction_id ?? null;
+        if (!txId) {
+          const { data: tx } = await admin
+            .from('transactions')
+            .select('id')
+            .eq('pluggy_staging_transaction_id', prev.id)
+            .limit(1)
+            .maybeSingle();
+          txId = tx?.id ?? null;
+        }
+        if (!txId) return;
+
+        const { error } = await admin.rpc('pluggy_register_origin_change', {
+          _transaction_id: txId,
+          _staging_id: prev.id,
+          _incoming: {
+            amount: Math.abs(Number(next.amount ?? 0)),
+            transaction_date: next.date,
+            description: next.description,
+          },
+        });
+        if (error) console.error('origin change register error', error.message);
+      };
 
       const toInsert: typeof rows = [];
       for (const r of rows) {
@@ -769,6 +807,12 @@ Deno.serve(async (req) => {
                 raw: r.raw,
               })
               .eq('id', prev.id);
+          } else if (prev.status === 'confirmed') {
+            await registerOriginChange(prev, {
+              amount: Number(r.amount ?? 0),
+              date: r.date,
+              description: r.description,
+            });
           }
           continue;
         }
@@ -790,13 +834,21 @@ Deno.serve(async (req) => {
             })
             .eq('id', prev.id);
         } else {
-          // Já conciliado: registra a nova versão como duplicada (fora da tela).
+          // Já conciliado: registra a nova versão como duplicada (fora da tela)
+          // e abre revisão quando os valores realmente mudaram.
           await admin
             .from('pluggy_staging_transactions')
             .upsert({ ...r, status: 'duplicate' as never }, {
               onConflict: 'pluggy_transaction_id',
               ignoreDuplicates: true,
             });
+          if (prev.status === 'confirmed') {
+            await registerOriginChange(prev, {
+              amount: Number(r.amount ?? 0),
+              date: r.date,
+              description: r.description,
+            });
+          }
         }
       }
 
