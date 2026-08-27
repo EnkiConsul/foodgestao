@@ -231,3 +231,31 @@ export function statusChangePatch(
   }
   return patch;
 }
+
+/**
+ * Comparação entre o saldo do razão (calculado pelos lançamentos confirmados,
+ * fonte da verdade) e o saldo informado pelo banco via Open Finance (apenas
+ * referência). Divergência acima de meio centavo indica lançamento faltando,
+ * duplicado ou ainda a conciliar.
+ */
+export interface BankLedgerComparison {
+  ledger: number;
+  bank: number | null;
+  /** bank - ledger (null quando não há saldo do banco) */
+  diff: number | null;
+  divergent: boolean;
+}
+
+export function compareBankLedger(
+  ledger: number | null | undefined,
+  bank: number | null | undefined,
+  tolerance = CENT_EPSILON,
+): BankLedgerComparison {
+  const led = Number(ledger ?? 0);
+  if (bank === null || bank === undefined || Number.isNaN(Number(bank))) {
+    return { ledger: led, bank: null, diff: null, divergent: false };
+  }
+  const bnk = Number(bank);
+  const diff = Number((bnk - led).toFixed(2));
+  return { ledger: led, bank: bnk, diff, divergent: Math.abs(diff) > tolerance };
+}
