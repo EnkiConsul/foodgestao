@@ -1,0 +1,333 @@
+name: Release Gate
+
+# Gate OBRIGATÓRIO para liberar release (merge em main / promoção para produção).
+# Todas as etapas são bloqueantes — nenhuma pode ser ignorada por falta de secret.
+#
+# Secrets necessários (Settings → Secrets → Actions):
+#   STAGING_SUPABASE_DB_URL   banco de staging (security lint, policy sweep, migrations, backup)
+#   TEST_SUPABASE_URL / TEST_SUPABASE_ANON_KEY
+#   TEST_USER_{A,B,C,D}_EMAIL / _PASSWORD
+#   TEST_COMPANY_1_ID / TEST_COMPANY_2_ID
+#   SMOKE_BASE_URL / SMOKE_SUPABASE_URL / SMOKE_SUPABASE_ANON_KEY
+#   SMOKE_USER_EMAIL / SMOKE_USER_PASSWORD (opcional — cobrança PIX real de teste)
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      with_charge:
+        description: "Smoke do checkout cria cobrança PIX de teste"
+        type: boolean
+        default: false
+
+concurrency:
+  group: release-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  static:
+    name: TypeScript + Lint + Deno + Migrations + Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: npm ci --no-audit --no-fund
+
+      - name: TypeScript strict
+        run: node scripts/quality-ceilings.mjs typescript
+
+      - name: ESLint (teto de warnings)
+        run: node scripts/quality-ceilings.mjs eslint
+
+      - name: Deno check das edge functions
+        run: node scripts/deno-check.mjs --require
+
+      - name: Migrations (estático + estrutura)
+        run: node scripts/migrations-check.mjs
+
+      - name: Build de produção
+        run: npx vite build
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-gate-static-${{ github.run_id }}
+          path: reports/
+          retention-days: 30
+          if-no-files-found: ignore
+
+  tests:
+    name: Testes unitários + RLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci --no-audit --no-fund
+      - name: Vitest
+        run: npm test
+
+  tenancy:
+    name: Tenancy real (multiempresa)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci --no-audit --no-fund
+
+      - name: Verificar credenciais de tenancy
+        env:
+          TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          TEST_COMPANY_1_ID: ${{ secrets.TEST_COMPANY_1_ID }}
+          TEST_COMPANY_2_ID: ${{ secrets.TEST_COMPANY_2_ID }}
+          TEST_USER_A_EMAIL: ${{ secrets.TEST_USER_A_EMAIL }}
+          TEST_USER_B_EMAIL: ${{ secrets.TEST_USER_B_EMAIL }}
+          TEST_USER_C_EMAIL: ${{ secrets.TEST_USER_C_EMAIL }}
+          TEST_USER_D_EMAIL: ${{ secrets.TEST_USER_D_EMAIL }}
+        run: |
+          missing=""
+          for v in TEST_SUPABASE_URL TEST_SUPABASE_ANON_KEY TEST_COMPANY_1_ID TEST_COMPANY_2_ID \
+                   TEST_USER_A_EMAIL TEST_USER_B_EMAIL TEST_USER_C_EMAIL TEST_USER_D_EMAIL; do
+            [ -z "${!v}" ] && missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Gate de tenancy exige secrets ausentes:$missing"
+            exit 1
+          fi
+
+      - name: Vitest — suíte de tenancy (sem skip)
+        env:
+          TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          TEST_USER_A_EMAIL: ${{ secrets.TEST_USER_A_EMAIL }}
+          TEST_USER_A_PASSWORD: ${{ secrets.TEST_USER_A_PASSWORD }}
+          TEST_USER_B_EMAIL: ${{ secrets.TEST_USER_B_EMAIL }}
+          TEST_USER_B_PASSWORD: ${{ secrets.TEST_USER_B_PASSWORD }}
+          TEST_USER_C_EMAIL: ${{ secrets.TEST_USER_C_EMAIL }}
+          TEST_USER_C_PASSWORD: ${{ secrets.TEST_USER_C_PASSWORD }}
+          TEST_USER_D_EMAIL: ${{ secrets.TEST_USER_D_EMAIL }}
+          TEST_USER_D_PASSWORD: ${{ secrets.TEST_USER_D_PASSWORD }}
+          TEST_COMPANY_1_ID: ${{ secrets.TEST_COMPANY_1_ID }}
+          TEST_COMPANY_2_ID: ${{ secrets.TEST_COMPANY_2_ID }}
+        run: npx vitest run src/test/tenancy src/test/rls --reporter=verbose
+
+  security:
+    name: Security lint + Policy sweep (staging)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Instalar psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Verificar secret do banco
+        env:
+          DB: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB" ]; then
+            echo "::error::STAGING_SUPABASE_DB_URL ausente — gate de segurança não pode rodar."
+            exit 1
+          fi
+
+      - name: Security linter (strict)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+        run: node scripts/security-lint.mjs --ci --strict
+
+      - name: Policy sweep
+        env:
+          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+        run: node scripts/policy-sweep.mjs
+
+      - name: Relatórios JSON
+        if: always()
+        env:
+          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+        run: |
+          mkdir -p reports
+          node scripts/security-lint.mjs --json > reports/security-lint.json || true
+          node scripts/policy-sweep.mjs --json  > reports/policy-sweep.json  || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-gate-security-${{ github.run_id }}
+          path: reports/
+          retention-days: 30
+
+  migrations-backup:
+    name: Migrations aplicadas + Backup/restore drill
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      restore:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: restore_drill
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Instalar client Postgres 15
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-15 || sudo apt-get install -y postgresql-client
+
+      - name: Verificar secret do banco
+        env:
+          DB: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB" ]; then
+            echo "::error::STAGING_SUPABASE_DB_URL ausente — drill de backup não pode rodar."
+            exit 1
+          fi
+
+      - name: Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Migrations em sincronia (dry-run)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+        run: node scripts/migrations-check.mjs
+
+      - name: Backup/restore drill
+        env:
+          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          RESTORE_DB_URL: postgres://postgres:postgres@localhost:5432/restore_drill
+        run: node scripts/backup-restore-drill.mjs --require --schema-only
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-gate-backup-${{ github.run_id }}
+          path: reports/backup-restore.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  e2e:
+    name: E2E Playwright (preview local)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci --no-audit --no-fund
+      - name: Instalar Playwright (Python)
+        run: |
+          pip install --quiet playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Build + preview
+        run: |
+          npx vite build
+          nohup npx vite preview --port 8080 --host 127.0.0.1 > /tmp/preview.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -sf -o /dev/null http://127.0.0.1:8080/ && break
+            sleep 2
+          done
+          curl -sf -o /dev/null http://127.0.0.1:8080/ || { cat /tmp/preview.log; exit 1; }
+
+      - name: Rodar specs
+        env:
+          E2E_BASE_URL: http://127.0.0.1:8080
+        run: node scripts/run-e2e.mjs --require
+
+  staging-smoke:
+    name: Smoke test do checkout (staging)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [static, tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Smoke checkout
+        env:
+          SMOKE_BASE_URL: ${{ secrets.SMOKE_BASE_URL }}
+          SMOKE_SUPABASE_URL: ${{ secrets.SMOKE_SUPABASE_URL }}
+          SMOKE_SUPABASE_ANON_KEY: ${{ secrets.SMOKE_SUPABASE_ANON_KEY }}
+          SMOKE_USER_EMAIL: ${{ secrets.SMOKE_USER_EMAIL }}
+          SMOKE_USER_PASSWORD: ${{ secrets.SMOKE_USER_PASSWORD }}
+          SMOKE_PLAN_SLUG: ${{ secrets.SMOKE_PLAN_SLUG }}
+        run: |
+          EXTRA=""
+          if [ "${{ github.event.inputs.with_charge }}" = "true" ]; then EXTRA="--with-charge"; fi
+          node scripts/smoke-checkout.mjs --require $EXTRA
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-gate-smoke-${{ github.run_id }}
+          path: reports/smoke-checkout.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  gate:
+    name: ✅ Release gate
+    runs-on: ubuntu-latest
+    needs: [static, tests, tenancy, security, migrations-backup, e2e, staging-smoke]
+    if: always()
+    steps:
+      - name: Consolidar resultado
+        run: |
+          echo "static           : ${{ needs.static.result }}"
+          echo "tests            : ${{ needs.tests.result }}"
+          echo "tenancy          : ${{ needs.tenancy.result }}"
+          echo "security         : ${{ needs.security.result }}"
+          echo "migrations-backup: ${{ needs.migrations-backup.result }}"
+          echo "e2e              : ${{ needs.e2e.result }}"
+          echo "staging-smoke    : ${{ needs.staging-smoke.result }}"
+          fail=0
+          for r in "${{ needs.static.result }}" "${{ needs.tests.result }}" \
+                   "${{ needs.tenancy.result }}" "${{ needs.security.result }}" \
+                   "${{ needs.migrations-backup.result }}" "${{ needs.e2e.result }}" \
+                   "${{ needs.staging-smoke.result }}"; do
+            [ "$r" != "success" ] && fail=1
+          done
+          if [ "$fail" = "1" ]; then
+            echo "::error::Release gate REPROVADO — release bloqueado."
+            exit 1
+          fi
+          echo "Release gate APROVADO — release liberado."

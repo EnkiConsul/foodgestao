@@ -18,7 +18,15 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck:strict": "tsc -p ./tsconfig.strict.json --noEmit"
+    "typecheck:strict": "tsc -p ./tsconfig.strict.json --noEmit",
+    "deno:check": "node scripts/deno-check.mjs",
+    "migrations:check": "node scripts/migrations-check.mjs",
+    "e2e": "node scripts/run-e2e.mjs",
+    "backup:drill": "node scripts/backup-restore-drill.mjs",
+    "smoke:checkout": "node scripts/smoke-checkout.mjs",
+    "release:gate": "node scripts/release-gate.mjs",
+    "release:gate:strict": "node scripts/release-gate.mjs --require",
+    "quality:ceilings": "node scripts/quality-ceilings.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "3.0.4",

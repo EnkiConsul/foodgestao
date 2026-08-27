@@ -1,0 +1,12 @@
+{
+  "ranAt": "2026-08-27T14:42:48.470Z",
+  "requireMode": false,
+  "results": [
+    {
+      "id": "security",
+      "status": "failed",
+      "ms": 13068,
+      "exit": 1
+    }
+  ]
+}
