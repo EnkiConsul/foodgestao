@@ -20,6 +20,7 @@ const WORKER_SECRET = Deno.env.get('WEBHOOK_WORKER_SECRET') ?? Deno.env.get('PLU
 
 const BATCH_SIZE = Number(Deno.env.get('PLUGGY_WEBHOOK_BATCH_SIZE') ?? '10');
 const LEASE_SECONDS = 180;
+const UPDATE_WINDOW_DAYS = Number(Deno.env.get('PLUGGY_UPDATE_WINDOW_DAYS') ?? '90');
 const MAX_RUN_MS = 50_000;
 
 const SYNC_EVENTS = new Set([
@@ -116,14 +117,14 @@ async function handleItemError(admin: Admin, itemId: string | null, payload: any
   throw new FatalEventError(`item_error: ${detail}`, 'item_error');
 }
 
-async function triggerSync(itemId: string) {
+async function triggerSync(itemId: string, windowDays?: number) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/pluggy-sync-item`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${SERVICE_ROLE}`,
     },
-    body: JSON.stringify({ item_id: itemId }),
+    body: JSON.stringify(windowDays ? { item_id: itemId, days: windowDays } : { item_id: itemId }),
   });
   if (!res.ok) {
     const detail = (await res.text()).slice(0, 500);
@@ -160,7 +161,9 @@ async function processEvent(
   }
   if (SYNC_EVENTS.has(type)) {
     if (!itemId) throw new FatalEventError('missing_item_id', 'missing_item_id');
-    await triggerSync(itemId);
+    // Alterações na origem podem atingir lançamentos antigos: a janela padrão de
+    // 30 dias nunca os reprocessaria.
+    await triggerSync(itemId, type === 'transactions/updated' ? UPDATE_WINDOW_DAYS : undefined);
     return;
   }
   // Evento sem tratamento: registrado e concluído (nada a fazer).
