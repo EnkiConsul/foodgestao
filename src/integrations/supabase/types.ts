@@ -13249,6 +13249,14 @@ export type Database = {
       }
       system_health_snapshot: { Args: never; Returns: Json }
       unaccent: { Args: { "": string }; Returns: string }
+      webhook_discard_admin: {
+        Args: { _event_id: string; _provider: string; _reason?: string }
+        Returns: boolean
+      }
+      webhook_discard_by_code_admin: {
+        Args: { _error_code: string; _provider: string; _reason?: string }
+        Returns: number
+      }
       webhook_requeue_admin: {
         Args: { _event_id: string; _provider: string }
         Returns: boolean
