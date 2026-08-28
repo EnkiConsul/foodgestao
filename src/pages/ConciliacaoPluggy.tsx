@@ -49,6 +49,8 @@ import {
   isCardPluggyAccount,
   creditCardLabel,
   cleanProviderName,
+  isRowEntrada,
+
   type CreditCardOption,
   type CardRoutingMaps,
 } from "@/lib/conciliacao/cardRouting";
@@ -727,6 +729,16 @@ export default function ConciliacaoPluggy() {
     (r: StagingRow) => isCardPluggyAccount(r.pluggy_account_id, cardRouting),
     [cardRouting],
   );
+  /**
+   * Entrada/saída da linha: em contas de cartão a convenção do Open Finance é
+   * invertida (compra vem positiva com DEBIT = saída).
+   */
+  const rowIsEntrada = useCallback(
+    (r: StagingRow) =>
+      isRowEntrada({ amount: r.amount, type: r.type, isCardAccount: isCardPluggyAccount(r.pluggy_account_id, cardRouting) }),
+    [cardRouting],
+  );
+
 
   /**
    * Reprocessa os lançamentos já importados: linhas de contas de cartão deixam
@@ -1217,7 +1229,7 @@ export default function ConciliacaoPluggy() {
       if (!doc && existingNames.has(nameKey)) continue;
       if (!doc && nameKey.length < 3) continue;
 
-      const key = doc ? `doc:${doc}` : `name:${nameKey}:${r.amount >= 0 ? "cliente" : "fornecedor"}`;
+      const key = doc ? `doc:${doc}` : `name:${nameKey}:${rowIsEntrada(r) ? "cliente" : "fornecedor"}`;
       const current = byKey.get(key);
       if (current) {
         current.rowIds.push(r.id);
@@ -1234,14 +1246,14 @@ export default function ConciliacaoPluggy() {
         key,
         name: cp.name,
         document: cp.document ?? null,
-        type: r.amount >= 0 ? "cliente" : "fornecedor",
+        type: rowIsEntrada(r) ? "cliente" : "fornecedor",
         rowIds: [r.id],
         similarName,
       });
     }
 
     return Array.from(byKey.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [pendingFiltered, rowContact, rowKind, counterpartyByRow, contacts]);
+  }, [pendingFiltered, rowContact, rowKind, counterpartyByRow, contacts, rowIsEntrada]);
 
 
   // Pré-seleciona o fornecedor/cliente identificado pelo documento do extrato,
@@ -1269,7 +1281,7 @@ export default function ConciliacaoPluggy() {
     // Nomes vindos do extrato chegam em CAIXA ALTA: normalizamos antes de sugerir.
     const name = toProperName(cp?.name ?? "").trim();
     const document = cp?.document ?? null;
-    const isEntrada = row.amount >= 0;
+    const isEntrada = rowIsEntrada(row);
     const contactType: "cliente" | "fornecedor" =
       cp?.internal ? "fornecedor" : isEntrada ? "cliente" : "fornecedor";
 
@@ -1842,7 +1854,7 @@ export default function ConciliacaoPluggy() {
 
 
           {visibleRows.map((r) => {
-            const isEntrada = r.amount >= 0;
+            const isEntrada = rowIsEntrada(r);
             return (
               <div key={r.id} data-staging-id={r.id}>
               <StagingCard
@@ -1943,7 +1955,7 @@ export default function ConciliacaoPluggy() {
             </thead>
             <tbody>
               {visibleRows.map((r) => {
-                const isEntrada = r.amount >= 0;
+                const isEntrada = rowIsEntrada(r);
                 const disabled = r.status !== "pending";
                 return (
                   <tr key={r.id} data-staging-id={r.id} className="group border-t hover:bg-muted/30">

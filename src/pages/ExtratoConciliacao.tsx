@@ -197,8 +197,8 @@ export default function ExtratoConciliacao() {
   });
 
   const model = useMemo(
-    () => buildExtratoConciliacao({ staging, transactions, statusFilter }),
-    [staging, transactions, statusFilter],
+    () => buildExtratoConciliacao({ staging, transactions, statusFilter, isCardAccount: !!cardParam }),
+    [staging, transactions, statusFilter, cardParam],
   );
   const groups = useMemo(() => groupExtratoByDay(model.rows), [model.rows]);
 

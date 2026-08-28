@@ -51,7 +51,7 @@ export function useExtratoConciliacao(filtros: ExtratoConciliacaoFiltros) {
       for (let page = 0; ; page++) {
         let q = supabase
           .from("pluggy_staging_transactions")
-          .select("id, date, description, amount, status, matched_transaction_id, pluggy_account_id, connection_id")
+          .select("id, date, description, amount, type, status, matched_transaction_id, pluggy_account_id, connection_id")
           .eq("company_id", companyId)
           .gte("date", from)
           .lte("date", to)
