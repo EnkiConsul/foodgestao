@@ -57,6 +57,7 @@ import {
   type CreditCardOption,
   type CardRoutingMaps,
 } from "@/lib/conciliacao/cardRouting";
+import { formatProviderDescription, hasMerchantName } from "@/lib/conciliacao/cardDescription";
 
 
 
@@ -140,6 +141,16 @@ interface StagingRow {
   counterparty_name?: string | null;
   counterparty_document?: string | null;
   counterparty_document_type?: string | null;
+}
+
+/** Descrição exibida: rótulo legível quando o banco só mandou o código da operação. */
+function displayDescription(row: { description: string | null; raw?: unknown }): string {
+  return formatProviderDescription(row.description, row.raw) || "";
+}
+
+/** Aviso quando a descrição não traz estabelecimento (fornecedor precisa ser escolhido). */
+function descriptionNote(row: { description: string | null }): string | null {
+  return hasMerchantName(row.description) ? null : "banco não informou o estabelecimento";
 }
 
 interface Connection {
@@ -1899,7 +1910,8 @@ export default function ConciliacaoPluggy() {
             return (
               <div key={r.id} data-staging-id={r.id}>
               <StagingCard
-                row={r}
+                row={{ ...r, description: displayDescription(r) }}
+                descriptionNote={descriptionNote(r)}
                 accounts={accounts}
                 accountValue={rowAccount[r.id] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? ""}
                 onAccountChange={(v) => setRowAccount((p) => ({ ...p, [r.id]: v }))}
@@ -2022,10 +2034,13 @@ export default function ConciliacaoPluggy() {
                     <td className="p-2 max-w-[280px]">
                       <DescriptionEditor
                         compact
-                        value={r.description}
+                        value={displayDescription(r)}
                         disabled={disabled}
                         onSave={(v) => saveDescription(r.id, v)}
                       />
+                      {descriptionNote(r) && (
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">{descriptionNote(r)}</p>
+                      )}
 
                       {counterpartyLabel(counterpartyByRow[r.id] ?? { name: null, document: null, documentType: null, internal: false }) && (
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={counterpartyLabel(counterpartyByRow[r.id]!) ?? ""}>
