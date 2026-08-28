@@ -71,6 +71,23 @@ describe("extractCounterparty", () => {
     expect(cp.document).toBe("12.345.678/0001-95");
   });
 
+  it("extrai estabelecimento do texto bruto de cartão sem inventar CNPJ", () => {
+    const cp = extractCounterparty({
+      amount: 120,
+      description: "PONTO DA CARNE GOIANIA BR",
+      raw: {
+        descriptionRaw: "PONTO DA CARNE           GOIANIA      BR",
+        creditCardMetadata: { cardNumber: "0038" },
+      },
+    }, { cardAccount: true });
+    expect(cp).toEqual({
+      name: "Ponto da Carne",
+      document: null,
+      documentType: null,
+      internal: false,
+    });
+  });
+
   it("marca tarifas como débito interno do banco", () => {
     const cp = extractCounterparty({ amount: -32.9, description: "TARIFA PACOTE DE SERVICOS", raw: {} });
     expect(cp.internal).toBe(true);

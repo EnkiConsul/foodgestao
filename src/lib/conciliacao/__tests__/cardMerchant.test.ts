@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isCardBillPayment, merchantFromCardDescription } from "@/lib/conciliacao/cardMerchant";
+import { isCardBillPayment, merchantFromCardDescription, merchantFromCardRaw } from "@/lib/conciliacao/cardMerchant";
 
 describe("cardMerchant", () => {
   it("separa nome e cidade com país no fim", () => {
@@ -19,6 +19,15 @@ describe("cardMerchant", () => {
     expect(merchantFromCardDescription("DISTRIBUIDORA 365 VALPARAISO DEBR").name).toBe(
       "DISTRIBUIDORA 365",
     );
+  });
+
+  it("prioriza as colunas preservadas no texto bruto do banco", () => {
+    expect(merchantFromCardRaw("Descrição antiga", {
+      descriptionRaw: "YanneYareAlvesDe         GOIANIA      BR",
+    })).toEqual({ name: "YanneYareAlvesDe", city: "GOIANIA" });
+    expect(merchantFromCardRaw("CONCEBRA GOIANIA BR", {
+      descriptionRaw: "CONCEBRA                 GOIANIA      BR",
+    }).name).toBe("CONCEBRA");
   });
 
   it("mantém nome cortado pelo banco", () => {
