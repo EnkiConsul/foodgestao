@@ -13,7 +13,7 @@
  */
 
 import { toProperName } from "@/lib/text/properName";
-import { isCardBillPayment, merchantFromCardRaw } from "@/lib/conciliacao/cardMerchant";
+import { classifyCardLine } from "@/lib/conciliacao/cardLine";
 
 export type DocumentType = "CNPJ" | "CPF";
 
