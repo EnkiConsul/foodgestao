@@ -212,7 +212,7 @@ interface CategoryOpt {
   allow_transactions?: boolean | null;
   requires_review?: boolean | null;
 }
-interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: string | null; }
+interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: string | null; kind: "account" | "card" }
 
 /**
  * Monta as opções do seletor usando a MESMA árvore da página /categorias
