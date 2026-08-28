@@ -1007,7 +1007,7 @@ export default function ConciliacaoPluggy() {
           label: "Ver extrato",
           onClick: () =>
             navigate(
-              `/contas-bancarias/conciliacao/extrato${scopedLocalAccountId ? `?account=${scopedLocalAccountId}` : ""}`,
+              `/contas-bancarias/conciliacao/extrato${extratoQuery}`,
             ),
         },
       });
