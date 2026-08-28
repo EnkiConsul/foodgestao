@@ -35,6 +35,7 @@ export default function CartoesCredito() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
+  const navigate = useNavigate();
 
   const [cards, setCards] = useState<CreditCardRow[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
