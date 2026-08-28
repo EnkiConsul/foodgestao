@@ -159,42 +159,45 @@ export function cardLast4FromRaw(raw: unknown): string | null {
 
 
 /**
- * Descrição final para exibição de uma linha do extrato.
+ * Descrição exibida = texto do banco, sem reescrita.
  *
- * - Estabelecimento informado: só limpa o espaçamento excessivo do banco
- *   (`PONTO DA CARNE      GOIANIA   BR` → `PONTO DA CARNE • GOIANIA`).
- * - Só o código da operação: rótulo legível + categoria + final do cartão.
+ * A única normalização é colapsar os blocos de espaço com que o banco alinha as
+ * colunas (`PONTO DA CARNE      GOIANIA   BR` → `PONTO DA CARNE GOIANIA BR`),
+ * para o texto bater com o extrato do cartão.
  */
 export function formatProviderDescription(
   description: string | null | undefined,
-  raw?: unknown,
+  _raw?: unknown,
 ): string {
-  const original = String(description ?? "");
-  if (!collapse(original)) return "";
-
-  if (hasMerchantName(original)) return cleanMerchantSpacing(original);
-
-  const parts = [cardOperationLabel(original)];
-  const mcc = cardMccLabel((raw as CardRawShape | null)?.creditCardMetadata?.payeeMCC);
-  const category = cardCategoryLabel((raw as CardRawShape | null)?.category as string | null);
-  if (mcc) parts.push(mcc);
-  else if (category) parts.push(category);
-  const last4 = cardLast4FromRaw(raw);
-  if (last4) parts.push(`cartão ••••${last4}`);
-  return parts.filter(Boolean).join(" • ");
+  return collapse(String(description ?? ""));
 }
 
 /**
- * Bancos alinham a descrição em colunas de largura fixa
- * (`ESTABELECIMENTO      CIDADE     BR`). Trocamos os blocos de espaços por
- * separador e descartamos o sufixo de país.
+ * Informação auxiliar da linha de cartão (segunda linha/tooltip): tradução do
+ * código de operação, ramo do estabelecimento (MCC) ou categoria do provedor e
+ * final do cartão. Nunca substitui a descrição do banco.
  */
-export function cleanMerchantSpacing(description: string): string {
-  const blocks = description
-    .split(/\s{2,}/)
-    .map((b) => collapse(b))
-    .filter(Boolean)
-    .filter((b, index, arr) => !(index === arr.length - 1 && /^(BR|BRA|BRASIL)$/i.test(b)));
-  if (blocks.length === 0) return collapse(description);
-  return blocks.join(" • ");
+export function cardHintLabel(
+  description: string | null | undefined,
+  raw?: unknown,
+): string | null {
+  const parts: string[] = [];
+  const original = collapse(String(description ?? ""));
+
+  if (original && isCardOperationCode(original)) {
+    const label = cardOperationLabel(original);
+    if (label && label.toUpperCase() !== original.toUpperCase()) parts.push(label);
+  }
+
+  const meta = (raw as CardRawShape | null)?.creditCardMetadata ?? null;
+  const mcc = cardMccLabel(meta?.payeeMCC);
+  const category = cardCategoryLabel((raw as CardRawShape | null)?.category as string | null);
+  if (mcc) parts.push(mcc);
+  else if (category) parts.push(category);
+
+  const last4 = cardLast4FromRaw(raw);
+  if (last4) parts.push(`cartão ••••${last4}`);
+
+  return parts.length > 0 ? parts.join(" • ") : null;
 }
+
