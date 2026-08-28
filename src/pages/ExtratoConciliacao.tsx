@@ -28,6 +28,7 @@ import {
 } from "@/lib/conciliacao/extrato";
 import { downloadXlsx, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
 import { creditCardLabel, cleanProviderName } from "@/lib/conciliacao/cardRouting";
+import { formatProviderDescription } from "@/lib/conciliacao/cardDescription";
 
 type EditableTransaction = {
   id: string;
@@ -512,7 +513,7 @@ export default function ExtratoConciliacao() {
                             {r.platforms.map((p) => (
                               <div key={p.id} className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="min-w-0 flex-1">
-                                  <div className="truncate text-sm font-medium">{p.description}</div>
+                                  <div className="truncate text-sm font-medium">{formatProviderDescription(p.description)}</div>
                                   <div
                                     className={cn(
                                       "text-sm font-semibold tabular-nums",
