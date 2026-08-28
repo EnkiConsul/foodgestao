@@ -193,7 +193,7 @@ function StagingCardBase({
                   isEntrada ? "text-success" : "text-destructive",
                 )}
               >
-                {maskBRL(row.amount)}
+                {maskBRL(displayAmount ?? row.amount)}
               </span>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
