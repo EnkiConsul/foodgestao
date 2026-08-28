@@ -80,7 +80,7 @@ export function merchantFromCardDescription(
 
   // "Valparaiso deBR" → separa o código do país colado ao conector.
   const separated = raw.replace(
-    /\b(de|da|do)(BR|BRA|GB|UK|US|USA|PT|ES|AR|CL|UY|IT|FR|DE|NL|IE|CA|MX|PY)\b/g,
+    /\b(de|da|do)(BR|BRA|GB|UK|US|USA|PT|ES|AR|CL|UY|IT|FR|DE|NL|IE|CA|MX|PY)\b/gi,
     "$1 $2",
   );
 
