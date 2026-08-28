@@ -412,25 +412,31 @@ export default function ConciliacaoPluggy() {
 
 
 
-    // Resolve o escopo por conta antes de montar a query de staging
+    // Resolve o escopo antes de montar a query de staging.
+    // O escopo pode vir de uma conta bancária (?account=) ou de um cartão de
+    // crédito (?card=) — contas de cartão da Pluggy são vinculadas ao cartão,
+    // nunca a uma conta bancária, por isso precisam do vínculo próprio.
     let resolvedScope: ScopeInfo | null = null;
-    if (scopedLocalAccountId) {
-      const { data: pa } = await supabase
+    if (scopedCardId || scopedLocalAccountId) {
+      let paQuery = supabase
         .from("pluggy_accounts")
         .select("pluggy_account_id, connection_id, name")
-        .eq("company_id", selectedCompanyId)
-        .eq("linked_account_id", scopedLocalAccountId)
-        .maybeSingle();
+        .eq("company_id", selectedCompanyId);
+      paQuery = scopedCardId
+        ? paQuery.eq("linked_credit_card_id", scopedCardId)
+        : paQuery.eq("linked_account_id", scopedLocalAccountId!);
+      const { data: pa } = await paQuery.maybeSingle();
       if (pa) {
         resolvedScope = {
           pluggyAccountId: pa.pluggy_account_id,
           connectionId: pa.connection_id,
           name: pa.name ?? null,
+          kind: scopedCardId ? "card" : "account",
         };
       }
     }
     setScope(resolvedScope);
-    setScopeUnresolved(!!scopedLocalAccountId && !resolvedScope);
+    setScopeUnresolved(!!(scopedCardId || scopedLocalAccountId) && !resolvedScope);
     setConnectionId(resolvedScope ? resolvedScope.connectionId : "all");
 
     let stagingQuery = supabase.from("pluggy_staging_transactions")
