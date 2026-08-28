@@ -1253,7 +1253,7 @@ export default function ConciliacaoPluggy() {
     }
 
     return Array.from(byKey.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [pendingFiltered, rowContact, rowKind, counterpartyByRow, contacts]);
+  }, [pendingFiltered, rowContact, rowKind, counterpartyByRow, contacts, rowIsEntrada]);
 
 
   // Pré-seleciona o fornecedor/cliente identificado pelo documento do extrato,
