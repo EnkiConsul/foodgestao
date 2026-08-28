@@ -2270,7 +2270,20 @@ export default function ConciliacaoPluggy() {
                     <td className="p-2">
                       {r.status === "pending" ? (
                         <div className="flex items-center justify-end gap-1">
-                          <Button
+                          {possibleDuplicateIds.has(r.id) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-2 text-warning"
+                              disabled={rowBusy === r.id}
+                              onClick={() => markDuplicateIds([r.id])}
+                              aria-label="Marcar como duplicado"
+                              title="Marcar como duplicado"
+                            >
+                              <AlertTriangle className="h-4 w-4" />
+                            </Button>
+                          )}
+
                             size="sm"
                             variant="ghost"
                             className="h-8 px-2 text-muted-foreground hover:text-destructive"
