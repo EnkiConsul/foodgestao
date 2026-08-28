@@ -441,7 +441,7 @@ function buildDescriptionInternal(t: EnrichInput, options: EnrichOptions = {}): 
 
   // Fatura de cartão: sem merchant/paymentData, só o código da operação.
   if (!t.merchant && !t.paymentData) {
-    const card = buildCardDescription({ ...t, description: raw });
+    const card = buildCardDescription({ ...t, description: raw }, options);
     if (card) return card;
   }
 
