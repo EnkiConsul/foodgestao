@@ -13,7 +13,9 @@
  * parcela, estabelecimento e cidade.
  */
 
-import { isCardOperationCode, cardOperationLabel } from "@/lib/conciliacao/cardDescription";
+// Nota: este módulo não importa `cardDescription.ts` (que importa daqui) para
+// evitar ciclo — a checagem de código de operação é local.
+
 
 export type CardLineKind = "compra" | "pagamento_fatura" | "encargo" | "sem_identificacao";
 
