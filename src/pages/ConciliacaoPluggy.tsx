@@ -2038,9 +2038,15 @@ export default function ConciliacaoPluggy() {
                         disabled={disabled}
                         onSave={(v) => saveDescription(r.id, v)}
                       />
+                      {cardHintLabel(r.description, r.raw) && (
+                        <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={cardHintLabel(r.description, r.raw) ?? ""}>
+                          {cardHintLabel(r.description, r.raw)}
+                        </p>
+                      )}
                       {descriptionNote(r) && (
                         <p className="mt-0.5 text-[10px] text-muted-foreground">{descriptionNote(r)}</p>
                       )}
+
 
                       {counterpartyLabel(counterpartyByRow[r.id] ?? { name: null, document: null, documentType: null, internal: false }) && (
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={counterpartyLabel(counterpartyByRow[r.id]!) ?? ""}>
