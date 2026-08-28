@@ -106,9 +106,47 @@ export function cardCategoryLabel(category: string | null | undefined): string |
   return CATEGORY_LABELS[raw.toLowerCase()] ?? titleCase(raw);
 }
 
+/**
+ * MCC (ramo do estabelecimento) informado na fatura. Não identifica a loja,
+ * mas é a única pista quando o banco não manda o nome.
+ */
+const MCC_LABELS: Record<string, string> = {
+  "4111": "Transporte urbano",
+  "4121": "Táxi/aplicativo de transporte",
+  "4812": "Telefonia",
+  "4814": "Telecomunicações",
+  "4899": "TV/streaming por assinatura",
+  "5411": "Supermercado",
+  "5412": "Mercearia",
+  "5499": "Alimentos e conveniência",
+  "5541": "Combustível",
+  "5542": "Combustível (autoatendimento)",
+  "5812": "Restaurante",
+  "5813": "Bar",
+  "5814": "Fast-food",
+  "5815": "Mídia digital",
+  "5816": "Jogos digitais",
+  "5817": "Aplicativos",
+  "5818": "Serviços digitais",
+  "5912": "Farmácia",
+  "5942": "Livraria",
+  "5968": "Assinatura recorrente",
+  "7372": "Serviços de software",
+  "7997": "Academia/clube",
+  "8062": "Hospital",
+  "8071": "Laboratório",
+  "8099": "Serviços de saúde",
+};
+
+export function cardMccLabel(mcc: unknown): string | null {
+  const digits = String(mcc ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+  return MCC_LABELS[digits] ?? null;
+}
+
 interface CardRawShape {
   category?: unknown;
-  creditCardMetadata?: { cardNumber?: unknown } | null;
+  creditCardMetadata?: { cardNumber?: unknown; payeeMCC?: unknown } | null;
 }
 
 /** Final do cartão informado pelo banco (descarta placeholders como `0000`). */
@@ -118,6 +156,7 @@ export function cardLast4FromRaw(raw: unknown): string | null {
   if (!digits || /^0+$/.test(digits)) return null;
   return digits.slice(-4);
 }
+
 
 /**
  * Descrição final para exibição de uma linha do extrato.
