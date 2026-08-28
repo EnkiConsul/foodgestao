@@ -27,6 +27,7 @@ import {
   type ExtratoStatusFilter,
 } from "@/lib/conciliacao/extrato";
 import { downloadXlsx, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
+import { creditCardLabel, cleanProviderName } from "@/lib/conciliacao/cardRouting";
 
 type EditableTransaction = {
   id: string;
