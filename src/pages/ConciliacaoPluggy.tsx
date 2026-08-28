@@ -1626,7 +1626,7 @@ export default function ConciliacaoPluggy() {
         <Card className="border-primary/40 bg-primary/5">
           <CardContent className="p-3 text-sm text-foreground flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-primary shrink-0" />
-            Fila do cartão de crédito {scope.name ?? ""} — os lançamentos confirmados vão para a fatura do cartão.
+            {scope.name ? `Fila do cartão de crédito ${scope.name}` : "Fila do cartão de crédito"} — os lançamentos confirmados vão para a fatura do cartão.
           </CardContent>
         </Card>
       )}
