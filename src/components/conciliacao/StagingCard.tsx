@@ -242,6 +242,13 @@ function StagingCardBase({
                   Duplicado
                 </Badge>
               )}
+              {possibleDuplicate && row.status === "pending" && (
+                <Badge className="bg-warning/15 text-warning border-warning/30 text-[10px]">
+                  <AlertTriangle className="mr-1 h-3 w-3" />
+                  Possível duplicado
+                </Badge>
+              )}
+
               {isTransferBadge && (
                 <Badge variant="secondary" className="text-[10px]">Transferência</Badge>
               )}
