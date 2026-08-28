@@ -93,9 +93,17 @@ interface StagingCardProps {
   busy: boolean;
   isTransferBadge: boolean;
   maskBRL: (value: number) => string;
+  /** Valor já orientado pela direção (saída negativa, entrada positiva). */
+  displayAmount?: number;
+  /** Direção da linha resolvida pela tela (cartão inverte a convenção). */
+  isEntrada?: boolean;
+  /** true quando o banco reenviou a mesma linha com outro id do provedor. */
+  possibleDuplicate?: boolean;
+  onMarkDuplicate?: () => void;
   /** Salva a descrição editada do lançamento importado. */
   onDescriptionSave?: (value: string) => Promise<boolean | void>;
   onAction: (action: "confirm" | "ignore" | "split") => void;
+
 
 }
 
