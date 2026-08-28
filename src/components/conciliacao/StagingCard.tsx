@@ -488,7 +488,18 @@ function StagingCardBase({
                 </>
               )}
             </Button>
+            {possibleDuplicate && onMarkDuplicate && (
+              <Button
+                variant="outline"
+                className="col-span-2 h-10 text-warning"
+                disabled={busy}
+                onClick={onMarkDuplicate}
+              >
+                <AlertTriangle className="mr-1 h-4 w-4" /> Marcar como duplicado
+              </Button>
+            )}
           </div>
+
         )}
       </CardContent>
     </Card>
