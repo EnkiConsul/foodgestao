@@ -149,18 +149,21 @@ export default function ExtratoConciliacao() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      if (!accountParam || !selectedCompanyId) {
+      if ((!accountParam && !cardParam) || !selectedCompanyId) {
         setPluggyAccountId(null);
         setAccountName(null);
         return;
       }
       const { supabase } = await import("@/integrations/supabase/client");
-      const { data } = await supabase
+      let query = supabase
         .from("pluggy_accounts")
         .select("pluggy_account_id, name")
-        .eq("company_id", selectedCompanyId)
-        .eq("linked_account_id", accountParam)
-        .maybeSingle();
+        .eq("company_id", selectedCompanyId);
+      // Cartões de crédito conectados usam o vínculo com o cartão.
+      query = cardParam
+        ? query.eq("linked_credit_card_id", cardParam)
+        : query.eq("linked_account_id", accountParam!);
+      const { data } = await query.maybeSingle();
       if (!alive) return;
       setPluggyAccountId(data?.pluggy_account_id ?? null);
       setAccountName(data?.name ?? null);
@@ -168,7 +171,7 @@ export default function ExtratoConciliacao() {
     return () => {
       alive = false;
     };
-  }, [accountParam, selectedCompanyId]);
+  }, [accountParam, cardParam, selectedCompanyId]);
 
   const { staging, transactions, loading, error, reload } = useExtratoConciliacao({
     companyId: selectedCompanyId ?? null,
@@ -188,7 +191,8 @@ export default function ExtratoConciliacao() {
 
   const openForReconciliation = (stagingId: string) => {
     const params = new URLSearchParams();
-    if (accountParam) params.set("account", accountParam);
+    if (cardParam) params.set("card", cardParam);
+    else if (accountParam) params.set("account", accountParam);
     params.set("item", stagingId);
     navigate(`/contas-bancarias/conciliacao?${params.toString()}`);
   };
