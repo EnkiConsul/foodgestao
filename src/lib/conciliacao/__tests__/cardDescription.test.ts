@@ -56,7 +56,12 @@ describe("cardDescription", () => {
       }),
     ).toBe("Compra no crédito à vista • Serviços digitais • cartão ••••0038");
 
-    expect(cardHintLabel("PONTO DA CARNE GOIANIA BR", {})).toBeNull();
+    // Compra: o rótulo padronizado traz a cidade do estabelecimento.
+    expect(cardHintLabel("PONTO DA CARNE GOIANIA BR", {})).toBe("GOIANIA");
+    expect(cardHintLabel("Juros de atraso", {})).toBe("Encargo do cartão");
+    expect(cardHintLabel("Pagamento recebido", {})).toBe("Pagamento da fatura");
+    expect(cardHintLabel("Ipremium Store 2/3", {})).toBe("Parcela 2/3");
+
   });
 
   it("descrição vazia continua vazia", () => {
