@@ -13,6 +13,7 @@
  */
 
 import { toProperName } from "@/lib/text/properName";
+import { isCardBillPayment, merchantFromCardDescription } from "@/lib/conciliacao/cardMerchant";
 
 export type DocumentType = "CNPJ" | "CPF";
 
@@ -159,6 +160,11 @@ function pickExternalCandidate(
 export interface ExtractOptions {
   /** Documentos da própria empresa/conta, para descartar o próprio lado. */
   ownDocuments?: (string | null | undefined)[];
+  /**
+   * true quando a linha vem de conta de cartão do Open Finance. Nessas linhas
+   * não há `merchant`/`paymentData`: o estabelecimento está na descrição.
+   */
+  cardAccount?: boolean;
 }
 
 /**
@@ -274,6 +280,22 @@ export function extractCounterparty(
       documentType: documentTypeOf(external.document),
       internal: false,
     };
+  }
+
+  // Fatura de cartão: estabelecimento só existe na descrição, sem documento.
+  if (options.cardAccount) {
+    if (isCardBillPayment(row.description, row.category_pluggy)) {
+      return { ...EMPTY_COUNTERPARTY, internal: true };
+    }
+    const fromCard = merchantFromCardDescription(row.description, row.category_pluggy);
+    if (fromCard.name) {
+      return {
+        name: toProperName(fromCard.name) || fromCard.name,
+        document: null,
+        documentType: null,
+        internal: false,
+      };
+    }
   }
 
   // Sem contraparte externa: tarifas/juros/rendimentos são do próprio banco.

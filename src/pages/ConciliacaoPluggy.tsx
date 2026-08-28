@@ -1159,7 +1159,7 @@ export default function ConciliacaoPluggy() {
   const counterpartyByRow = useMemo(() => {
     const m: Record<string, Counterparty> = {};
     for (const r of rows) {
-      const base = extractCounterparty(r, { ownDocuments: [...ownDocumentSet] });
+      const base = extractCounterparty(r, { ownDocuments: [...ownDocumentSet], cardAccount: isCardRow(r) });
       if (base.internal) {
         const bank = bankByConnection[r.connection_id] ?? null;
         m[r.id] = {
@@ -1185,7 +1185,7 @@ export default function ConciliacaoPluggy() {
       };
     }
     return m;
-  }, [rows, ownDocumentSet, bankByConnection, connections]);
+  }, [rows, ownDocumentSet, bankByConnection, connections, isCardRow]);
 
   /** Contato cadastrado por documento (chave normalizada de CPF/CNPJ). */
   const contactIdByDocument = useMemo(() => {
