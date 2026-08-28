@@ -4,6 +4,7 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   buildDescription,
+  counterpartyName,
   pickSourceDescription,
   completeTruncatedName,
   externalCounterpartyName,
@@ -151,4 +152,29 @@ Deno.test("cartão: estabelecimento informado é preservado", () => {
     creditCardMetadata: { cardNumber: "0038" },
   };
   assertEquals(buildDescription(tx, OWN), "PONTO DA CARNE GOIANIA BR");
+});
+
+Deno.test("cartão: prioriza descriptionRaw e extrai estabelecimento da coluna", () => {
+  const tx = {
+    description: "Descrição antiga",
+    descriptionRaw: "PONTO DA CARNE           GOIANIA      BR",
+    amount: 120,
+    merchant: null,
+    paymentData: null,
+    creditCardMetadata: { cardNumber: "0038" },
+  };
+  assertEquals(buildDescription(tx, OWN), "PONTO DA CARNE GOIANIA BR");
+  assertEquals(counterpartyName(tx, OWN), "PONTO DA CARNE");
+});
+
+Deno.test("cartão: não cria contraparte para código ou pagamento da fatura", () => {
+  assertEquals(counterpartyName({
+    descriptionRaw: "CREDITO_A_VISTA",
+    creditCardMetadata: { cardNumber: "0038" },
+  }, OWN), null);
+  assertEquals(counterpartyName({
+    descriptionRaw: "Pagamento Fatura",
+    category: "Credit card payment",
+    creditCardMetadata: { cardNumber: "0038" },
+  }, OWN), null);
 });

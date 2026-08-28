@@ -115,3 +115,24 @@ export function merchantFromCardDescription(
 
   return { name, city: city || null };
 }
+
+/**
+ * Extrai o estabelecimento usando primeiro o espaçamento em colunas do texto
+ * bruto do banco. Ex.: `PONTO DA CARNE   GOIANIA   BR`.
+ */
+export function merchantFromCardRaw(
+  description: string | null | undefined,
+  raw?: unknown,
+  category?: string | null,
+): CardMerchant {
+  const providerRaw = raw as { descriptionRaw?: unknown; description?: unknown } | null;
+  const original = String(providerRaw?.descriptionRaw ?? providerRaw?.description ?? description ?? "").trim();
+  if (!original || isCardOperationCode(original) || isCardBillPayment(original, category)) return EMPTY;
+
+  const columns = original.split(/\s{2,}/).map((part) => part.trim()).filter(Boolean);
+  if (columns.length >= 2 && columns[0].length >= 3) {
+    return { name: columns[0], city: columns[1] ?? null };
+  }
+
+  return merchantFromCardDescription(original, category);
+}

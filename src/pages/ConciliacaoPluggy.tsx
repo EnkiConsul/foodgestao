@@ -143,7 +143,7 @@ interface StagingRow {
   counterparty_document_type?: string | null;
 }
 
-/** Descrição exibida: rótulo legível quando o banco só mandou o código da operação. */
+/** Descrição exibida: texto original do banco, com espaços normalizados. */
 function displayDescription(row: { description: string | null; raw?: unknown }): string {
   return formatProviderDescription(row.description, row.raw) || "";
 }
@@ -874,7 +874,7 @@ export default function ConciliacaoPluggy() {
     }
     const updates = pendingRows
       .map((r) => {
-        const cp = extractCounterparty(r, { ownDocuments: ownDocs });
+        const cp = extractCounterparty(r, { ownDocuments: ownDocs, cardAccount: isCardRow(r) });
         if (cp.internal) return null;
         const nextName = cp.name ?? null;
         const nextDocument = cp.document ?? null;

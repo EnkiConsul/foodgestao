@@ -187,7 +187,7 @@ export function cardCategoryLabel(category: string | null | undefined): string |
  * provedor com os blocos de espaço de alinhamento colapsados.
  */
 export function buildCardDescription(t: EnrichInput): string | null {
-  const raw = String(t.description ?? t.descriptionRaw ?? '').replace(/\s+/g, ' ').trim();
+  const raw = String(t.descriptionRaw ?? t.description ?? '').replace(/\s+/g, ' ').trim();
   if (!raw) return null;
   if (!isCardOperationCode(raw) && !t.creditCardMetadata) return null;
   return raw;
@@ -284,7 +284,28 @@ export function externalCounterpartyName(
 
 /** Nome da contraparte (quando disponível), independente do rótulo do banco. */
 export function counterpartyName(t: EnrichInput, options: EnrichOptions = {}): string | null {
-  return externalCounterpartyName(t, options);
+  const structured = externalCounterpartyName(t, options);
+  if (structured) return structured;
+
+  if (!t.creditCardMetadata || t.merchant || t.paymentData) return null;
+  const original = String(t.descriptionRaw ?? t.description ?? '').trim();
+  if (!original || isCardOperationCode(original)) return null;
+  if (/(pagamento\s+(?:da\s+)?fatura|pagamento\s+recebido|pagamento_recebido|credit\s*card\s*payment)/i.test(
+    `${original} ${t.category ?? ''}`,
+  )) return null;
+
+  // Extratos de cartão separam estabelecimento, cidade e país por colunas.
+  const columns = original.split(/\s{2,}/).map((part) => part.trim()).filter(Boolean);
+  if (columns.length >= 2 && columns[0].length >= 3) return columns[0];
+
+  // Fallback para bancos que já colapsaram os espaços: remove país e cidades
+  // mais comuns sem inventar um nome quando só há código de operação.
+  const withoutCountry = original.replace(/\s+(BR|BRA|GB|UK|US|USA|PT|ES|AR|CL|UY)$/i, '').trim();
+  const withoutCity = withoutCountry.replace(
+    /\s+(GOIANIA|ANAPOLIS|ABADIANIA|VALPARAISO(?:\s+DE)?|APARECIDA(?:\s+DE)?|SAO\s+PAULO|SOUTHAMPTON)$/i,
+    '',
+  ).trim();
+  return withoutCity.length >= 3 ? withoutCity : null;
 }
 
 /**

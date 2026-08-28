@@ -13,7 +13,7 @@
  */
 
 import { toProperName } from "@/lib/text/properName";
-import { isCardBillPayment, merchantFromCardDescription } from "@/lib/conciliacao/cardMerchant";
+import { isCardBillPayment, merchantFromCardRaw } from "@/lib/conciliacao/cardMerchant";
 
 export type DocumentType = "CNPJ" | "CPF";
 
@@ -287,7 +287,7 @@ export function extractCounterparty(
     if (isCardBillPayment(row.description, row.category_pluggy)) {
       return { ...EMPTY_COUNTERPARTY, internal: true };
     }
-    const fromCard = merchantFromCardDescription(row.description, row.category_pluggy);
+    const fromCard = merchantFromCardRaw(row.description, row.raw, row.category_pluggy);
     if (fromCard.name) {
       return {
         name: toProperName(fromCard.name) || fromCard.name,

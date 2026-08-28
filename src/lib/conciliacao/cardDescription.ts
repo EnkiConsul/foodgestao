@@ -145,8 +145,19 @@ export function cardMccLabel(mcc: unknown): string | null {
 }
 
 interface CardRawShape {
+  description?: unknown;
+  descriptionRaw?: unknown;
   category?: unknown;
   creditCardMetadata?: { cardNumber?: unknown; payeeMCC?: unknown } | null;
+}
+
+/** Texto original enviado pelo banco para a linha de cartão. */
+export function cardProviderDescription(
+  description: string | null | undefined,
+  raw?: unknown,
+): string {
+  const providerRaw = raw as CardRawShape | null;
+  return collapse(String(providerRaw?.descriptionRaw ?? providerRaw?.description ?? description ?? ""));
 }
 
 /** Final do cartão informado pelo banco (descarta placeholders como `0000`). */
@@ -167,9 +178,9 @@ export function cardLast4FromRaw(raw: unknown): string | null {
  */
 export function formatProviderDescription(
   description: string | null | undefined,
-  _raw?: unknown,
+  raw?: unknown,
 ): string {
-  return collapse(String(description ?? ""));
+  return cardProviderDescription(description, raw);
 }
 
 /**
