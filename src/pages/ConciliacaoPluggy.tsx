@@ -1185,7 +1185,7 @@ export default function ConciliacaoPluggy() {
       };
     }
     return m;
-  }, [rows, ownDocumentSet, bankByConnection, connections]);
+  }, [rows, ownDocumentSet, bankByConnection, connections, isCardRow]);
 
   /** Contato cadastrado por documento (chave normalizada de CPF/CNPJ). */
   const contactIdByDocument = useMemo(() => {
