@@ -271,7 +271,21 @@ export default function CartoesCredito() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
+                    <div className="flex flex-wrap items-center gap-1 shrink-0">
+                      <Button
+                        size="sm"
+                        variant={pendingByCard[card.id] ? "default" : "outline"}
+                        className="h-10 gap-2"
+                        onClick={() => navigate(`/contas-bancarias/conciliacao?card=${card.id}`)}
+                      >
+                        <ListChecks className="h-4 w-4" />
+                        Conciliar
+                        {pendingByCard[card.id] ? (
+                          <span className="rounded-full bg-primary-foreground/20 px-1.5 text-[10px] tabular-nums">
+                            {pendingByCard[card.id]}
+                          </span>
+                        ) : null}
+                      </Button>
                       <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => { setEditing(card); setFormOpen(true); }} aria-label="Editar cartão">
                         <Pencil className="h-4 w-4" />
                       </Button>
