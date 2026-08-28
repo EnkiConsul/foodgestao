@@ -184,31 +184,39 @@ export function formatProviderDescription(
 }
 
 /**
- * Informação auxiliar da linha de cartão (segunda linha/tooltip): tradução do
- * código de operação, ramo do estabelecimento (MCC) ou categoria do provedor e
- * final do cartão. Nunca substitui a descrição do banco.
+ * Informação auxiliar padronizada da linha de cartão (segunda linha/tooltip),
+ * igual para todos os bancos: tipo da linha (pagamento da fatura, encargo ou
+ * tradução do código genérico), parcela, cidade, ramo (MCC/categoria) e final
+ * do cartão. Nunca substitui a descrição do banco.
  */
 export function cardHintLabel(
   description: string | null | undefined,
   raw?: unknown,
 ): string | null {
   const parts: string[] = [];
-  const original = collapse(String(description ?? ""));
+  const line = classifyCardLine({
+    description,
+    raw,
+    category: (raw as CardRawShape | null)?.category as string | null,
+  });
 
-  if (original && isCardOperationCode(original)) {
-    const label = cardOperationLabel(original);
-    if (label && label.toUpperCase() !== original.toUpperCase()) parts.push(label);
-  }
+  const kind = cardLineKindLabel(line);
+  if (kind) parts.push(kind);
+
+  if (line.installment) parts.push(`Parcela ${line.installment.current}/${line.installment.total}`);
+  if (line.city) parts.push(line.city);
 
   const meta = (raw as CardRawShape | null)?.creditCardMetadata ?? null;
   const mcc = cardMccLabel(meta?.payeeMCC);
   const category = cardCategoryLabel((raw as CardRawShape | null)?.category as string | null);
   if (mcc) parts.push(mcc);
-  else if (category) parts.push(category);
+  else if (category && line.kind !== "compra") parts.push(category);
+  else if (category && line.kind === "compra" && !line.city) parts.push(category);
 
   const last4 = cardLast4FromRaw(raw);
   if (last4) parts.push(`cartão ••••${last4}`);
 
   return parts.length > 0 ? parts.join(" • ") : null;
 }
+
 
