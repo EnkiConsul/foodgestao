@@ -1588,10 +1588,22 @@ export default function ConciliacaoPluggy() {
         <Card className="border-warning/50 bg-warning/10">
           <CardContent className="p-3 text-sm text-foreground flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
-            Esta conta não possui vínculo com uma conexão Open Finance. Exibindo a fila completa da empresa.
+            {scopedCardId
+              ? "Este cartão não possui vínculo com uma conta conectada via Open Finance. Exibindo a fila completa da empresa."
+              : "Esta conta não possui vínculo com uma conexão Open Finance. Exibindo a fila completa da empresa."}
           </CardContent>
         </Card>
       )}
+
+      {scope?.kind === "card" && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="p-3 text-sm text-foreground flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary shrink-0" />
+            Fila do cartão de crédito {scope.name ?? ""} — os lançamentos confirmados vão para a fatura do cartão.
+          </CardContent>
+        </Card>
+      )}
+
 
       <div className="sticky top-14 z-20 -mx-3 space-y-2 border-b bg-background/95 px-3 py-2 backdrop-blur md:-mx-6 md:px-6 md:py-3 lg:top-16">
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
