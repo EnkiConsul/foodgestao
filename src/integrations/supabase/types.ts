@@ -13040,6 +13040,10 @@ export type Database = {
         Args: { p_staging_ids: string[] }
         Returns: number
       }
+      pluggy_mark_duplicate_staging: {
+        Args: { p_staging_ids: string[] }
+        Returns: number
+      }
       pluggy_register_origin_change: {
         Args: { _incoming: Json; _staging_id: string; _transaction_id: string }
         Returns: string
