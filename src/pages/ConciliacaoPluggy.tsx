@@ -434,15 +434,15 @@ export default function ConciliacaoPluggy() {
       const { data: pa } = await paQuery.maybeSingle();
       if (pa) {
         // O nome do provedor pode ser um placeholder ("Sem nome"); nesse caso
-        // usamos o cadastro local do cartão (emissor + final).
+        // usamos o cadastro local do cartão (emissor/bandeira + final).
         let label = cleanProviderName(pa.name);
         if (scopedCardId) {
           const { data: cardRow } = await supabase
             .from("credit_cards")
-            .select("issuer, brand, last4")
+            .select("id, issuer, brand, last4")
             .eq("id", scopedCardId)
             .maybeSingle();
-          label = creditCardLabel(cardRow ?? { last4: pa.number_masked }, pa.name);
+          label = creditCardLabel(cardRow ?? null) ?? cleanProviderName(pa.name);
         }
         resolvedScope = {
           pluggyAccountId: pa.pluggy_account_id,
