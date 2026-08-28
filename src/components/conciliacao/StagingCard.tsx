@@ -148,12 +148,17 @@ function StagingCardBase({
   busy,
   isTransferBadge,
   maskBRL,
+  displayAmount,
+  isEntrada: isEntradaProp,
+  possibleDuplicate,
+  onMarkDuplicate,
   onDescriptionSave,
   onAction,
 
 }: StagingCardProps) {
 
-  const isEntrada = row.amount >= 0;
+  const isEntrada = isEntradaProp ?? row.amount >= 0;
+
   const disabled = row.status !== "pending";
   const [open, setOpen] = useState(false);
 
