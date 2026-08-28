@@ -57,7 +57,7 @@ import {
   type CreditCardOption,
   type CardRoutingMaps,
 } from "@/lib/conciliacao/cardRouting";
-import { formatProviderDescription, hasMerchantName } from "@/lib/conciliacao/cardDescription";
+import { cardHintLabel, formatProviderDescription, hasMerchantName } from "@/lib/conciliacao/cardDescription";
 
 
 
