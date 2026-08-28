@@ -93,6 +93,18 @@ function normalizeToken(token: string): string {
     .toUpperCase();
 }
 
+/**
+ * Código de operação (`CREDITO_A_VISTA`) em vez de nome de estabelecimento.
+ * Duplicado aqui em versão mínima para não importar `cardDescription.ts`
+ * (que importa este módulo).
+ */
+function isOperationCode(text: string): boolean {
+  const value = collapse(text).toUpperCase();
+  if (!value) return false;
+  if (!value.includes("_")) return false;
+  return /^[A-Z0-9]+(?:[_ ][A-Z0-9]+)*$/.test(value);
+}
+
 /** true quando a linha é pagamento/crédito da própria fatura. */
 export function isCardBillMovement(text: string | null | undefined, category?: string | null): boolean {
   return BILL_MOVEMENT_RE.test(`${text ?? ""} ${category ?? ""}`);
