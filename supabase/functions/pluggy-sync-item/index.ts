@@ -1,7 +1,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { getItem, listAccounts, listItems, listTransactions, refreshItem, waitForItem } from '../_shared/pluggy.ts';
-import { buildDescription, counterpartyName } from '../_shared/tx-description.ts';
+import { getItem, listAccounts, listBills, listItems, listTransactions, refreshItem, waitForItem } from '../_shared/pluggy.ts';
+import { buildCardHints, buildDescription, counterpartyName } from '../_shared/tx-description.ts';
 import { extractCounterpartyDocument } from '../_shared/counterparty-doc.ts';
 import { materializePluggyItemV2 } from '../_shared/pluggy-v2-materialize.ts';
 
@@ -695,10 +695,23 @@ Deno.serve(async (req) => {
       if (ownCompany?.cnpj) ownDocuments.push(ownCompany.cnpj);
     } catch (_e) { /* opcional */ }
 
-    const enrichOptions = { ownDocuments, ownNames };
+    const baseEnrichOptions = { ownDocuments, ownNames };
 
     for (const acc of accounts) {
       if (pausedIds.has(acc.id)) continue;
+
+      // Cartão de crédito: alguns bancos só publicam a natureza real do
+      // lançamento (encargos/pagamentos) nas faturas, não nas transações.
+      let enrichOptions: Record<string, unknown> = baseEnrichOptions;
+      if ((acc.type ?? '').toUpperCase() === 'CREDIT') {
+        try {
+          const bills = await listBills(acc.id);
+          enrichOptions = { ...baseEnrichOptions, cardHints: buildCardHints(bills) };
+        } catch (e) {
+          console.warn('[pluggy-sync-item] bills fetch failed', acc.id, (e as Error)?.message);
+        }
+      }
+
       const txs = await listTransactions(acc.id, fmt(from), fmt(to));
       if (txs.length === 0) continue;
       const rows = txs.map((t: any): any => {

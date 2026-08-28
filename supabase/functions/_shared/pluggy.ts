@@ -95,6 +95,21 @@ export async function listTransactions(accountId: string, from: string, to: stri
   return all;
 }
 
+/**
+ * Faturas do cartão de crédito. Em vários bancos (BMG, por exemplo) a API de
+ * transações não traz o estabelecimento nem a natureza do lançamento — o texto
+ * real ("Multa Contratual", "IOF Rotativo", "ENCARG FINANC FATURADOS") só
+ * aparece nos encargos/pagamentos da fatura.
+ */
+export async function listBills(accountId: string) {
+  const res = await pluggyFetch(`/bills?accountId=${accountId}`);
+  if (!res.ok) return [];
+  const j = await res.json().catch(() => null);
+  return (j?.results ?? []) as any[];
+}
+
+
+
 export async function deleteItem(itemId: string): Promise<void> {
   const res = await pluggyFetch(`/items/${itemId}`, { method: "DELETE" });
   if (!res.ok && res.status !== 404) throw new Error(`delete_item_failed: ${res.status}`);
