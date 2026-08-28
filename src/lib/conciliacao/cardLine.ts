@@ -214,14 +214,13 @@ export function classifyCardLine(input: CardLineInput): CardLine {
   return { kind: "compra", text, merchant: name, city: parsed.city, installment };
 }
 
-/** Rótulo curto do tipo da linha (para a informação auxiliar). */
+/**
+ * Rótulo curto do tipo da linha. Para linhas sem identificação devolve null: a
+ * tradução do código genérico (`CREDITO_A_VISTA`) é feita em `cardDescription`.
+ */
 export function cardLineKindLabel(line: CardLine): string | null {
   if (line.kind === "pagamento_fatura") return "Pagamento da fatura";
   if (line.kind === "encargo") return "Encargo do cartão";
-  if (line.kind === "sem_identificacao") {
-    const label = cardOperationLabel(line.text);
-    if (label && label.toUpperCase() !== line.text.toUpperCase()) return label;
-    return null;
-  }
   return null;
 }
+
