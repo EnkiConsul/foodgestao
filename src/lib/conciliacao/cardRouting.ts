@@ -87,3 +87,32 @@ export function cleanProviderName(name: string | null | undefined): string | nul
   return PROVIDER_NAME_PLACEHOLDERS.has(value.toLowerCase()) ? null : value;
 }
 
+
+export interface RowDirectionInput {
+  amount: number;
+  /** `type` bruto do Open Finance ("DEBIT" | "CREDIT" | null). */
+  type?: string | null;
+  /** true quando a linha vem de uma conta de cartão de crédito. */
+  isCardAccount: boolean;
+}
+
+/**
+ * Orientação da linha (entrada/saída).
+ *
+ * Contas bancárias: valor positivo = entrada.
+ * Contas de cartão: a convenção do Open Finance é invertida — compras vêm
+ * positivas com `DEBIT` (saída) e pagamentos/estornos negativos com `CREDIT`
+ * (entrada).
+ */
+export function resolveRowDirection({ amount, type, isCardAccount }: RowDirectionInput): "entrada" | "saida" {
+  if (!isCardAccount) return amount >= 0 ? "entrada" : "saida";
+  const t = (type ?? "").trim().toUpperCase();
+  if (t === "DEBIT") return "saida";
+  if (t === "CREDIT") return "entrada";
+  return amount >= 0 ? "saida" : "entrada";
+}
+
+/** Atalho booleano para uso em JSX. */
+export function isRowEntrada(input: RowDirectionInput): boolean {
+  return resolveRowDirection(input) === "entrada";
+}
