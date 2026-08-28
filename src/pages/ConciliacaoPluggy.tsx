@@ -2035,7 +2035,7 @@ export default function ConciliacaoPluggy() {
                       )}
                     </td>
                     <td className={`p-2 text-right font-medium whitespace-nowrap ${isEntrada ? "text-success" : "text-destructive"}`}>
-                      {maskBRL(r.amount)}
+                      {maskBRL(rowAmount(r))}
                     </td>
                     <td className="p-2">
                       {isCardRow(r) ? (
