@@ -178,3 +178,35 @@ Deno.test("cartão: não cria contraparte para código ou pagamento da fatura", 
     creditCardMetadata: { cardNumber: "0038" },
   }, OWN), null);
 });
+
+Deno.test("cartão: padroniza encargos, movimentos da fatura, parcela e adquirente", () => {
+  const meta = { creditCardMetadata: { cardNumber: "3480" } };
+  // Encargos (Nubank/Neon) não têm fornecedor.
+  for (const t of [
+    "Juros de atraso",
+    "Multa de atraso",
+    "IOF de atraso",
+    "IOF de compra internacional",
+    "Saldo em atraso",
+    "IOF - GARMIN",
+  ]) {
+    assertEquals(counterpartyName({ descriptionRaw: t, ...meta }, OWN), null, t);
+  }
+  // Movimentos da própria fatura.
+  for (const t of ["Pagamento recebido", "Encerramento de dívida", "Crédito de atraso"]) {
+    assertEquals(counterpartyName({ descriptionRaw: t, ...meta }, OWN), null, t);
+  }
+  // Parcela fora do nome do fornecedor.
+  assertEquals(counterpartyName({ descriptionRaw: "Ipremium Store 2/3", ...meta }, OWN), "Ipremium Store");
+  assertEquals(counterpartyName({ descriptionRaw: "Ipremium Store 3/3", ...meta }, OWN), "Ipremium Store");
+  // Prefixo de adquirente removido.
+  assertEquals(
+    counterpartyName({ descriptionRaw: "MP *VOXALIMENTOS         GOIANIA      BR", ...meta }, OWN),
+    "VOXALIMENTOS",
+  );
+  // Cidade/país colados (Neon).
+  assertEquals(
+    counterpartyName({ descriptionRaw: "DISTRIBUIDORA 365        VALPARAISO DEBR", ...meta }, OWN),
+    "DISTRIBUIDORA 365",
+  );
+});
