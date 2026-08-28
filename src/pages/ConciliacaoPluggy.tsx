@@ -665,6 +665,17 @@ export default function ConciliacaoPluggy() {
     ignored: rows.filter((r) => r.status === "ignored").length,
   }), [rows]);
 
+  const originCounts = useMemo(() => {
+    let bank = 0;
+    let card = 0;
+    for (const r of rows) {
+      if (statusFilter !== "all" && r.status !== statusFilter) continue;
+      if (cardPluggyAccounts.has(r.pluggy_account_id)) card += 1;
+      else bank += 1;
+    }
+    return { bank, card };
+  }, [rows, statusFilter, cardPluggyAccounts]);
+
   const pendingFiltered = useMemo(() => filtered.filter((r) => r.status === "pending"), [filtered]);
   const allPendingSelected = pendingFiltered.length > 0 && pendingFiltered.every((r) => selected.has(r.id));
   const somePendingSelected = pendingFiltered.some((r) => selected.has(r.id));
