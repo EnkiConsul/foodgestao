@@ -50,6 +50,94 @@ export interface EnrichInput {
   amount?: number | null;
   paymentData?: any;
   merchant?: any;
+  /** Categoria informada pelo provedor (ex.: "Digital services"). */
+  category?: string | null;
+  /** Metadados da fatura do cartão (cardNumber, billId...). */
+  creditCardMetadata?: any;
+}
+
+/**
+ * Lançamentos de fatura de cartão frequentemente chegam sem estabelecimento:
+ * no lugar do nome vem o código da operação. Traduzimos para rótulo legível.
+ */
+const CARD_OPERATION_LABELS: Record<string, string> = {
+  CREDITO_A_VISTA: 'Compra no crédito à vista',
+  COMPRA_A_VISTA: 'Compra no crédito à vista',
+  CREDITO_PARCELADO: 'Compra parcelada',
+  COMPRA_PARCELADA: 'Compra parcelada',
+  PARCELA: 'Compra parcelada',
+  PARCELAMENTO_FATURA: 'Parcelamento da fatura',
+  PAGAMENTO_RECEBIDO: 'Pagamento da fatura',
+  PAGAMENTO_FATURA: 'Pagamento da fatura',
+  TARIFA: 'Tarifa do cartão',
+  ANUIDADE: 'Anuidade do cartão',
+  ENCARGOS: 'Encargos do cartão',
+  JUROS: 'Juros do cartão',
+  JUROS_ROTATIVO: 'Juros do rotativo',
+  MULTA: 'Multa por atraso',
+  IOF: 'IOF',
+  ESTORNO: 'Estorno',
+  CREDITO_ROTATIVO: 'Crédito rotativo',
+  SAQUE: 'Saque com o cartão',
+  SAQUE_CREDITO: 'Saque com o cartão',
+  TAXAS: 'Taxas do cartão',
+  OUTROS: 'Outros lançamentos do cartão',
+  OUTROS_CREDITOS: 'Outros créditos do cartão',
+};
+
+const CARD_CATEGORY_LABELS: Record<string, string> = {
+  'digital services': 'Serviços digitais',
+  'online services': 'Serviços online',
+  'food and beverages': 'Alimentação',
+  'food and drinks': 'Alimentação',
+  supermarkets: 'Supermercado',
+  groceries: 'Supermercado',
+  restaurants: 'Restaurantes',
+  transportation: 'Transporte',
+  travel: 'Viagem',
+  shopping: 'Compras',
+  electronics: 'Eletrônicos',
+  health: 'Saúde',
+  pharmacy: 'Farmácia',
+  education: 'Educação',
+  entertainment: 'Entretenimento',
+  'gas stations': 'Combustível',
+  telecommunications: 'Telecomunicações',
+  services: 'Serviços',
+  taxes: 'Impostos e taxas',
+  'bank fees': 'Tarifas bancárias',
+  'credit card payment': 'Pagamento de fatura',
+};
+
+/** true quando o texto é código de operação de cartão (não estabelecimento). */
+export function isCardOperationCode(description: string | null | undefined): boolean {
+  const value = String(description ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
+  if (!value) return false;
+  if (CARD_OPERATION_LABELS[value]) return true;
+  if (!value.includes('_')) return false;
+  return /^[A-Z0-9]+(?:[_ ][A-Z0-9]+)*$/.test(value);
+}
+
+/** Descrição de cartão a partir do código + categoria + final do cartão. */
+export function buildCardDescription(t: EnrichInput): string | null {
+  const raw = String(t.description ?? t.descriptionRaw ?? '').replace(/\s+/g, ' ').trim();
+  if (!isCardOperationCode(raw)) return null;
+
+  const key = raw.toUpperCase();
+  const humanized = key.replace(/_/g, ' ').toLowerCase();
+  const label = CARD_OPERATION_LABELS[key] ??
+    humanized.charAt(0).toUpperCase() + humanized.slice(1);
+
+  const parts = [label];
+  const cat = String(t.category ?? '').replace(/\s+/g, ' ').trim();
+  if (cat) {
+    const mapped = CARD_CATEGORY_LABELS[cat.toLowerCase()];
+    parts.push(mapped ?? cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase());
+  }
+  const digits = String(t.creditCardMetadata?.cardNumber ?? '').replace(/\D/g, '');
+  if (digits && !/^0+$/.test(digits)) parts.push(`cartão ••••${digits.slice(-4)}`);
+
+  return parts.join(' • ');
 }
 
 export interface EnrichOptions {
@@ -236,6 +324,12 @@ export function buildDescription(t: EnrichInput, options: EnrichOptions = {}): s
 
 function buildDescriptionInternal(t: EnrichInput, options: EnrichOptions = {}): string {
   const raw = pickSourceDescription(t);
+
+  // Fatura de cartão: sem merchant/paymentData, só o código da operação.
+  if (!t.merchant && !t.paymentData) {
+    const card = buildCardDescription({ ...t, description: raw });
+    if (card) return card;
+  }
 
   if (!isGenericDescription(raw)) {
     // "BANCO SICOOB S.A." não diz nada sobre o pagamento: se houver
