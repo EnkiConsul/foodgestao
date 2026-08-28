@@ -362,6 +362,8 @@ export default function ConciliacaoPluggy() {
   
 
   const [statusFilter, setStatusFilter] = useState<string>("pending");
+  /** Origem do lançamento: conta bancária ou cartão de crédito conectado. */
+  const [originFilter, setOriginFilter] = useState<"all" | "bank" | "card">("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(() => new Set(draft.selected));
   const [rowAccount, setRowAccount] = useState<Record<string, string>>(() => draft.rowAccount);
