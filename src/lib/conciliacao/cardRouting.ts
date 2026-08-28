@@ -73,3 +73,17 @@ export function creditCardLabel(card: CreditCardOption | undefined | null): stri
   if (card.last4) parts.push(`•••• ${card.last4}`);
   return parts.join(" ");
 }
+
+/**
+ * Nomes de conta vindos do Open Finance às vezes são placeholders
+ * ("Sem nome"); nesses casos não devem ser exibidos ao usuário.
+ */
+const PROVIDER_NAME_PLACEHOLDERS = new Set(["sem nome", "-", "--", "n/a", "na", "null", "undefined"]);
+
+/** Normaliza o nome vindo do provedor, devolvendo null para placeholders. */
+export function cleanProviderName(name: string | null | undefined): string | null {
+  const value = (name ?? "").trim();
+  if (!value) return null;
+  return PROVIDER_NAME_PLACEHOLDERS.has(value.toLowerCase()) ? null : value;
+}
+

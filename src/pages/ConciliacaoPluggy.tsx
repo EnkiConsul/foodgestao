@@ -48,6 +48,7 @@ import {
   routeStagingRows,
   isCardPluggyAccount,
   creditCardLabel,
+  cleanProviderName,
   type CreditCardOption,
   type CardRoutingMaps,
 } from "@/lib/conciliacao/cardRouting";
@@ -426,17 +427,28 @@ export default function ConciliacaoPluggy() {
     if (scopedCardId || scopedLocalAccountId) {
       let paQuery = supabase
         .from("pluggy_accounts")
-        .select("pluggy_account_id, connection_id, name")
+        .select("pluggy_account_id, connection_id, name, number_masked")
         .eq("company_id", selectedCompanyId);
       paQuery = scopedCardId
         ? paQuery.eq("linked_credit_card_id", scopedCardId)
         : paQuery.eq("linked_account_id", scopedLocalAccountId!);
       const { data: pa } = await paQuery.maybeSingle();
       if (pa) {
+        // O nome do provedor pode ser um placeholder ("Sem nome"); nesse caso
+        // usamos o cadastro local do cartão (emissor/bandeira + final).
+        let label = cleanProviderName(pa.name);
+        if (scopedCardId) {
+          const { data: cardRow } = await supabase
+            .from("credit_cards")
+            .select("id, issuer, brand, last4")
+            .eq("id", scopedCardId)
+            .maybeSingle();
+          label = creditCardLabel(cardRow ?? null) ?? cleanProviderName(pa.name);
+        }
         resolvedScope = {
           pluggyAccountId: pa.pluggy_account_id,
           connectionId: pa.connection_id,
-          name: pa.name ?? null,
+          name: label,
           kind: scopedCardId ? "card" : "account",
         };
       }
@@ -1614,7 +1626,7 @@ export default function ConciliacaoPluggy() {
         <Card className="border-primary/40 bg-primary/5">
           <CardContent className="p-3 text-sm text-foreground flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-primary shrink-0" />
-            Fila do cartão de crédito {scope.name ?? ""} — os lançamentos confirmados vão para a fatura do cartão.
+            {scope.name ? `Fila do cartão de crédito ${scope.name}` : "Fila do cartão de crédito"} — os lançamentos confirmados vão para a fatura do cartão.
           </CardContent>
         </Card>
       )}

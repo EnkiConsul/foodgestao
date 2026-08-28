@@ -27,6 +27,7 @@ import {
   type ExtratoStatusFilter,
 } from "@/lib/conciliacao/extrato";
 import { downloadXlsx, openPrintable } from "@/lib/relatorios/fluxoCaixaExport";
+import { creditCardLabel, cleanProviderName } from "@/lib/conciliacao/cardRouting";
 
 type EditableTransaction = {
   id: string;
@@ -126,6 +127,7 @@ function StatusBadge({ row }: { row: ExtratoRow }) {
   );
 }
 
+
 export default function ExtratoConciliacao() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -167,7 +169,19 @@ export default function ExtratoConciliacao() {
       const { data } = await query.maybeSingle();
       if (!alive) return;
       setPluggyAccountId(data?.pluggy_account_id ?? null);
-      setAccountName(data?.name ?? null);
+      // "Sem nome" e afins vindos do provedor não devem ir para a tela;
+      // para cartão preferimos o cadastro local (emissor/bandeira + final).
+      let label = cleanProviderName(data?.name);
+      if (cardParam) {
+        const { data: cardRow } = await supabase
+          .from("credit_cards")
+          .select("id, issuer, brand, last4")
+          .eq("id", cardParam)
+          .maybeSingle();
+        label = creditCardLabel(cardRow ?? null) ?? label;
+      }
+      if (!alive) return;
+      setAccountName(label);
     })();
     return () => {
       alive = false;
