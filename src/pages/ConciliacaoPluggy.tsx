@@ -743,6 +743,42 @@ export default function ConciliacaoPluggy() {
       isRowEntrada({ amount: r.amount, type: r.type, isCardAccount: isCardPluggyAccount(r.pluggy_account_id, cardRouting) }),
     [cardRouting],
   );
+  /** Valor exibido conforme a direção (saída negativa, entrada positiva). */
+  const rowAmount = useCallback(
+    (r: StagingRow) =>
+      signedRowAmount({
+        amount: r.amount,
+        type: r.type,
+        isCardAccount: isCardPluggyAccount(r.pluggy_account_id, cardRouting),
+      }),
+    [cardRouting],
+  );
+
+  /**
+   * Linhas pendentes de cartão que o banco reenviou com outro id do provedor
+   * (mesma fatura, data e valor): a versão antiga é sinalizada como possível
+   * duplicado, sem nenhuma exclusão automática.
+   */
+  const possibleDuplicateIds = useMemo(
+    () => findCardDuplicateIds(rows, (pa) => isCardPluggyAccount(pa, cardRouting)),
+    [rows, cardRouting],
+  );
+
+  /** Marca as linhas escolhidas como duplicadas (sai da fila de pendentes). */
+  const markDuplicateIds = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setRowBusy(ids[0]);
+    try {
+      const { error } = await supabase.rpc("pluggy_mark_duplicate_staging", { p_staging_ids: ids });
+      if (error) { toast.error("Falha ao marcar como duplicado"); return; }
+      toast.success(ids.length === 1 ? "Lançamento marcado como duplicado" : `${ids.length} lançamentos marcados como duplicados`);
+      load();
+    } finally {
+      setRowBusy(null);
+    }
+  };
+
+
 
 
   /**
