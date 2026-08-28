@@ -100,6 +100,8 @@ interface StagingCardProps {
   /** true quando o banco reenviou a mesma linha com outro id do provedor. */
   possibleDuplicate?: boolean;
   onMarkDuplicate?: () => void;
+  /** Aviso curto sobre a descrição (ex.: banco não informou o estabelecimento). */
+  descriptionNote?: string | null;
   /** Salva a descrição editada do lançamento importado. */
   onDescriptionSave?: (value: string) => Promise<boolean | void>;
   onAction: (action: "confirm" | "ignore" | "split") => void;
@@ -152,6 +154,7 @@ function StagingCardBase({
   isEntrada: isEntradaProp,
   possibleDuplicate,
   onMarkDuplicate,
+  descriptionNote,
   onDescriptionSave,
   onAction,
 
@@ -209,6 +212,9 @@ function StagingCardBase({
                 {maskBRL(displayAmount ?? row.amount)}
               </span>
             </div>
+            {descriptionNote && (
+              <p className="mt-0.5 text-[10px] text-muted-foreground">{descriptionNote}</p>
+            )}
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
               <span>{format(parseISO(row.date), "dd/MM/yyyy")}</span>
               {counterpartyLabel && (
