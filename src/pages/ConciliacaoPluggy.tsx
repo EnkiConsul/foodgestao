@@ -2283,8 +2283,9 @@ export default function ConciliacaoPluggy() {
                               <AlertTriangle className="h-4 w-4" />
                             </Button>
                           )}
-
+                          <Button
                             size="sm"
+
                             variant="ghost"
                             className="h-8 px-2 text-muted-foreground hover:text-destructive"
                             disabled={rowBusy === r.id}
