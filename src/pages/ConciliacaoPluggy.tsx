@@ -50,6 +50,9 @@ import {
   creditCardLabel,
   cleanProviderName,
   isRowEntrada,
+  signedRowAmount,
+  findCardDuplicateIds,
+
 
   type CreditCardOption,
   type CardRoutingMaps,
@@ -132,6 +135,8 @@ interface StagingRow {
   suggested_category_id: string | null;
   matched_transaction_id?: string | null;
   raw?: unknown;
+  created_at?: string | null;
+
   counterparty_name?: string | null;
   counterparty_document?: string | null;
   counterparty_document_type?: string | null;
@@ -738,6 +743,42 @@ export default function ConciliacaoPluggy() {
       isRowEntrada({ amount: r.amount, type: r.type, isCardAccount: isCardPluggyAccount(r.pluggy_account_id, cardRouting) }),
     [cardRouting],
   );
+  /** Valor exibido conforme a direção (saída negativa, entrada positiva). */
+  const rowAmount = useCallback(
+    (r: StagingRow) =>
+      signedRowAmount({
+        amount: r.amount,
+        type: r.type,
+        isCardAccount: isCardPluggyAccount(r.pluggy_account_id, cardRouting),
+      }),
+    [cardRouting],
+  );
+
+  /**
+   * Linhas pendentes de cartão que o banco reenviou com outro id do provedor
+   * (mesma fatura, data e valor): a versão antiga é sinalizada como possível
+   * duplicado, sem nenhuma exclusão automática.
+   */
+  const possibleDuplicateIds = useMemo(
+    () => findCardDuplicateIds(rows, (pa) => isCardPluggyAccount(pa, cardRouting)),
+    [rows, cardRouting],
+  );
+
+  /** Marca as linhas escolhidas como duplicadas (sai da fila de pendentes). */
+  const markDuplicateIds = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setRowBusy(ids[0]);
+    try {
+      const { error } = await supabase.rpc("pluggy_mark_duplicate_staging", { p_staging_ids: ids });
+      if (error) { toast.error("Falha ao marcar como duplicado"); return; }
+      toast.success(ids.length === 1 ? "Lançamento marcado como duplicado" : `${ids.length} lançamentos marcados como duplicados`);
+      load();
+    } finally {
+      setRowBusy(null);
+    }
+  };
+
+
 
 
   /**
@@ -1917,6 +1958,11 @@ export default function ConciliacaoPluggy() {
                 busy={rowBusy === r.id}
                 isTransferBadge={!!r.matched_transaction_id && transferTxIds.has(r.matched_transaction_id)}
                 maskBRL={maskBRL}
+                displayAmount={rowAmount(r)}
+                isEntrada={isEntrada}
+                possibleDuplicate={possibleDuplicateIds.has(r.id)}
+                onMarkDuplicate={() => markDuplicateIds([r.id])}
+
                 onDescriptionSave={(v) => saveDescription(r.id, v)}
                 onAction={(action) => handleRowAction(r.id, action)}
 
@@ -1989,7 +2035,7 @@ export default function ConciliacaoPluggy() {
                       )}
                     </td>
                     <td className={`p-2 text-right font-medium whitespace-nowrap ${isEntrada ? "text-success" : "text-destructive"}`}>
-                      {maskBRL(r.amount)}
+                      {maskBRL(rowAmount(r))}
                     </td>
                     <td className="p-2">
                       {isCardRow(r) ? (
@@ -2207,6 +2253,15 @@ export default function ConciliacaoPluggy() {
                             <AlertTriangle className="h-3 w-3 mr-1" />Duplicado
                           </Badge>
                         )}
+                        {possibleDuplicateIds.has(r.id) && r.status === "pending" && (
+                          <Badge
+                            className="bg-warning/15 text-warning border-warning/30 text-[10px]"
+                            title="O banco reenviou este lançamento com outra descrição (mesma fatura, data e valor)."
+                          >
+                            <AlertTriangle className="h-3 w-3 mr-1" />Possível duplicado
+                          </Badge>
+                        )}
+
                         {r.matched_transaction_id && transferTxIds.has(r.matched_transaction_id) && (
                           <Badge variant="secondary" className="text-[10px]">Transferência</Badge>
                         )}
@@ -2215,8 +2270,22 @@ export default function ConciliacaoPluggy() {
                     <td className="p-2">
                       {r.status === "pending" ? (
                         <div className="flex items-center justify-end gap-1">
+                          {possibleDuplicateIds.has(r.id) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-2 text-warning"
+                              disabled={rowBusy === r.id}
+                              onClick={() => markDuplicateIds([r.id])}
+                              aria-label="Marcar como duplicado"
+                              title="Marcar como duplicado"
+                            >
+                              <AlertTriangle className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             size="sm"
+
                             variant="ghost"
                             className="h-8 px-2 text-muted-foreground hover:text-destructive"
                             disabled={rowBusy === r.id}

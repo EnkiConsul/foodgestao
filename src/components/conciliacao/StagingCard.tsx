@@ -93,9 +93,17 @@ interface StagingCardProps {
   busy: boolean;
   isTransferBadge: boolean;
   maskBRL: (value: number) => string;
+  /** Valor já orientado pela direção (saída negativa, entrada positiva). */
+  displayAmount?: number;
+  /** Direção da linha resolvida pela tela (cartão inverte a convenção). */
+  isEntrada?: boolean;
+  /** true quando o banco reenviou a mesma linha com outro id do provedor. */
+  possibleDuplicate?: boolean;
+  onMarkDuplicate?: () => void;
   /** Salva a descrição editada do lançamento importado. */
   onDescriptionSave?: (value: string) => Promise<boolean | void>;
   onAction: (action: "confirm" | "ignore" | "split") => void;
+
 
 }
 
@@ -140,12 +148,17 @@ function StagingCardBase({
   busy,
   isTransferBadge,
   maskBRL,
+  displayAmount,
+  isEntrada: isEntradaProp,
+  possibleDuplicate,
+  onMarkDuplicate,
   onDescriptionSave,
   onAction,
 
 }: StagingCardProps) {
 
-  const isEntrada = row.amount >= 0;
+  const isEntrada = isEntradaProp ?? row.amount >= 0;
+
   const disabled = row.status !== "pending";
   const [open, setOpen] = useState(false);
 
@@ -193,7 +206,7 @@ function StagingCardBase({
                   isEntrada ? "text-success" : "text-destructive",
                 )}
               >
-                {maskBRL(row.amount)}
+                {maskBRL(displayAmount ?? row.amount)}
               </span>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
@@ -229,6 +242,13 @@ function StagingCardBase({
                   Duplicado
                 </Badge>
               )}
+              {possibleDuplicate && row.status === "pending" && (
+                <Badge className="bg-warning/15 text-warning border-warning/30 text-[10px]">
+                  <AlertTriangle className="mr-1 h-3 w-3" />
+                  Possível duplicado
+                </Badge>
+              )}
+
               {isTransferBadge && (
                 <Badge variant="secondary" className="text-[10px]">Transferência</Badge>
               )}
@@ -468,7 +488,18 @@ function StagingCardBase({
                 </>
               )}
             </Button>
+            {possibleDuplicate && onMarkDuplicate && (
+              <Button
+                variant="outline"
+                className="col-span-2 h-10 text-warning"
+                disabled={busy}
+                onClick={onMarkDuplicate}
+              >
+                <AlertTriangle className="mr-1 h-4 w-4" /> Marcar como duplicado
+              </Button>
+            )}
           </div>
+
         )}
       </CardContent>
     </Card>
