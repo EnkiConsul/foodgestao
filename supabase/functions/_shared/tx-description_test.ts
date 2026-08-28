@@ -127,3 +127,30 @@ Deno.test("nunca retorna vazio", () => {
   assertEquals(buildDescription({ description: "", descriptionRaw: "", amount: 0 }), "Transferência recebido de contraparte não identificada");
   assertEquals(buildDescription({ description: "?????", amount: 0 }), "Transferência recebido de contraparte não identificada");
 });
+
+Deno.test("cartão: código de operação vira rótulo legível", () => {
+  const tx = {
+    description: "CREDITO_A_VISTA",
+    descriptionRaw: "CREDITO_A_VISTA",
+    amount: 34.9,
+    merchant: null,
+    paymentData: null,
+    category: "Digital services",
+    creditCardMetadata: { cardNumber: "0038" },
+  };
+  assertEquals(
+    buildDescription(tx, OWN),
+    "Compra no crédito à vista • Serviços digitais • cartão ••••0038",
+  );
+});
+
+Deno.test("cartão: estabelecimento informado é preservado", () => {
+  const tx = {
+    description: "PONTO DA CARNE   GOIANIA   BR",
+    amount: 120,
+    merchant: null,
+    paymentData: null,
+    creditCardMetadata: { cardNumber: "0038" },
+  };
+  assertEquals(buildDescription(tx, OWN), "PONTO DA CARNE GOIANIA BR");
+});
