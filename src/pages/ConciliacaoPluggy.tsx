@@ -596,7 +596,7 @@ export default function ConciliacaoPluggy() {
       setTransferTxIds(new Set());
     }
     setLoading(false);
-  }, [selectedCompanyId, scopedLocalAccountId]);
+  }, [selectedCompanyId, scopedLocalAccountId, scopedCardId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -633,17 +633,19 @@ export default function ConciliacaoPluggy() {
       if (focusedStagingId && r.id !== focusedStagingId) return false;
       if (connectionId !== "all" && r.connection_id !== connectionId) return false;
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (originFilter === "card" && !cardPluggyAccounts.has(r.pluggy_account_id)) return false;
+      if (originFilter === "bank" && cardPluggyAccounts.has(r.pluggy_account_id)) return false;
       if (search && !(r.description ?? "").toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [rows, connectionId, statusFilter, search, focusedStagingId]);
+  }, [rows, connectionId, statusFilter, originFilter, cardPluggyAccounts, search, focusedStagingId]);
 
   /** Lista longa: renderizamos em blocos para não pagar o custo de centenas de linhas por render. */
   const PAGE_SIZE = 50;
   const [visibleLimit, setVisibleLimit] = useState(PAGE_SIZE);
   useEffect(() => {
     setVisibleLimit(PAGE_SIZE);
-  }, [connectionId, statusFilter, search, focusedStagingId]);
+  }, [connectionId, statusFilter, originFilter, search, focusedStagingId]);
   const visibleRows = useMemo(() => filtered.slice(0, visibleLimit), [filtered, visibleLimit]);
 
 
