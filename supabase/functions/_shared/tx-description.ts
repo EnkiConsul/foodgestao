@@ -147,65 +147,6 @@ export function mccLabel(mcc: unknown): string | null {
   return MCC_LABELS[digits] ?? null;
 }
 
-/** Tipos de encargo da fatura → rótulo em português. */
-const BILL_CHARGE_LABELS: Record<string, string> = {
-  LATE_PAYMENT_FEE: 'Multa por atraso',
-  INTEREST_LATE_PAYMENT: 'Juros por atraso',
-  IOF: 'IOF',
-  ANNUAL_FEE: 'Anuidade do cartão',
-  CASH_WITHDRAWAL_FEE: 'Tarifa de saque',
-  REVOLVING_INTEREST: 'Juros do rotativo',
-  INSTALLMENT_INTEREST: 'Juros de parcelamento',
-  OTHER: 'Encargos do cartão',
-};
-
-function titleCaseIfShouting(value: string): string {
-  const v = value.replace(/\s+/g, ' ').trim();
-  if (!v) return v;
-  if (v !== v.toUpperCase()) return v;
-  return v
-    .toLowerCase()
-    .split(' ')
-    .map((w) => (w.length > 2 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
-    .join(' ');
-}
-
-export interface CardBillLike {
-  id?: string;
-  financeCharges?: { type?: string; amount?: number; additionalInfo?: string }[] | null;
-  payments?: { amount?: number }[] | null;
-}
-
-/**
- * Índice `billId|valor` → rótulo, montado a partir dos encargos e pagamentos da
- * fatura. É o único lugar onde alguns bancos publicam a natureza real do
- * lançamento do cartão.
- */
-export function buildCardHints(bills: CardBillLike[] | null | undefined): Record<string, string> {
-  const hints: Record<string, string> = {};
-  const put = (billId: unknown, amount: unknown, label: string) => {
-    const id = String(billId ?? '').trim();
-    const value = Math.abs(Number(amount ?? 0));
-    if (!id || !value || !label) return;
-    const key = `${id}|${value.toFixed(2)}`;
-    if (!hints[key]) hints[key] = label;
-  };
-  for (const bill of bills ?? []) {
-    for (const charge of bill?.financeCharges ?? []) {
-      const info = String(charge?.additionalInfo ?? '').trim();
-      const typeLabel = BILL_CHARGE_LABELS[String(charge?.type ?? '').toUpperCase()] ?? null;
-      const label = info && !/^(na|n\/a|-)$/i.test(info)
-        ? titleCaseIfShouting(info)
-        : typeLabel;
-      if (label) put(bill?.id, charge?.amount, label);
-    }
-    for (const payment of bill?.payments ?? []) {
-      put(bill?.id, payment?.amount, 'Pagamento da fatura');
-    }
-  }
-  return hints;
-}
-
 /** true quando o texto é código de operação de cartão (não estabelecimento). */
 export function isCardOperationCode(description: string | null | undefined): boolean {
   const value = String(description ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
@@ -215,41 +156,43 @@ export function isCardOperationCode(description: string | null | undefined): boo
   return /^[A-Z0-9]+(?:[_ ][A-Z0-9]+)*$/.test(value);
 }
 
-/** Descrição de cartão a partir do código + categoria + final do cartão. */
-export function buildCardDescription(t: EnrichInput, options: EnrichOptions = {}): string | null {
-  const raw = String(t.description ?? t.descriptionRaw ?? '').replace(/\s+/g, ' ').trim();
-  if (!isCardOperationCode(raw)) return null;
-
+/**
+ * Rótulo legível do código de operação. NÃO é usado como descrição: a descrição
+ * gravada é sempre o texto do banco. Serve apenas como informação auxiliar.
+ */
+export function cardOperationLabel(description: string | null | undefined): string | null {
+  const raw = String(description ?? '').replace(/\s+/g, ' ').trim();
+  if (!raw) return null;
   const key = raw.toUpperCase();
+  if (CARD_OPERATION_LABELS[key]) return CARD_OPERATION_LABELS[key];
+  if (!key.includes('_')) return null;
   const humanized = key.replace(/_/g, ' ').toLowerCase();
-  const fallbackLabel = CARD_OPERATION_LABELS[key] ??
-    humanized.charAt(0).toUpperCase() + humanized.slice(1);
-
-  // 1) Encargo/pagamento identificado na fatura (texto do próprio extrato).
-  const billId = String(t.creditCardMetadata?.billId ?? '').trim();
-  const amount = Math.abs(Number(t.amount ?? 0));
-  const hint = billId && amount
-    ? options.cardHints?.[`${billId}|${amount.toFixed(2)}`] ?? null
-    : null;
-
-  const parts = [hint || fallbackLabel];
-
-  if (!hint) {
-    // 2) Ramo do estabelecimento (MCC) ou categoria do provedor.
-    const mcc = mccLabel(t.creditCardMetadata?.payeeMCC);
-    const cat = String(t.category ?? '').replace(/\s+/g, ' ').trim();
-    if (mcc) parts.push(mcc);
-    else if (cat) {
-      const mapped = CARD_CATEGORY_LABELS[cat.toLowerCase()];
-      parts.push(mapped ?? cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase());
-    }
-  }
-
-  const digits = String(t.creditCardMetadata?.cardNumber ?? '').replace(/\D/g, '');
-  if (digits && !/^0+$/.test(digits)) parts.push(`cartão ••••${digits.slice(-4)}`);
-
-  return parts.filter(Boolean).join(' • ');
+  return humanized.charAt(0).toUpperCase() + humanized.slice(1);
 }
+
+/** Rótulo auxiliar da categoria do provedor (nunca vira descrição). */
+export function cardCategoryLabel(category: string | null | undefined): string | null {
+  const cat = String(category ?? '').replace(/\s+/g, ' ').trim();
+  if (!cat) return null;
+  return CARD_CATEGORY_LABELS[cat.toLowerCase()] ??
+    cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
+}
+
+/**
+ * Descrição de lançamento de cartão = texto do banco, sem reescrita.
+ *
+ * O sistema já tentou traduzir código de operação, juntar categoria/MCC e casar
+ * encargos da fatura por valor — isso divergia do extrato do banco e podia
+ * rotular a linha errada. A regra agora é fidelidade: só devolvemos o texto do
+ * provedor com os blocos de espaço de alinhamento colapsados.
+ */
+export function buildCardDescription(t: EnrichInput): string | null {
+  const raw = String(t.description ?? t.descriptionRaw ?? '').replace(/\s+/g, ' ').trim();
+  if (!raw) return null;
+  if (!isCardOperationCode(raw) && !t.creditCardMetadata) return null;
+  return raw;
+}
+
 
 export interface EnrichOptions {
   /** Documentos (CNPJ/CPF) da própria empresa — nunca são contraparte. */
