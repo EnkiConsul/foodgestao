@@ -2253,6 +2253,15 @@ export default function ConciliacaoPluggy() {
                             <AlertTriangle className="h-3 w-3 mr-1" />Duplicado
                           </Badge>
                         )}
+                        {possibleDuplicateIds.has(r.id) && r.status === "pending" && (
+                          <Badge
+                            className="bg-warning/15 text-warning border-warning/30 text-[10px]"
+                            title="O banco reenviou este lançamento com outra descrição (mesma fatura, data e valor)."
+                          >
+                            <AlertTriangle className="h-3 w-3 mr-1" />Possível duplicado
+                          </Badge>
+                        )}
+
                         {r.matched_transaction_id && transferTxIds.has(r.matched_transaction_id) && (
                           <Badge variant="secondary" className="text-[10px]">Transferência</Badge>
                         )}
