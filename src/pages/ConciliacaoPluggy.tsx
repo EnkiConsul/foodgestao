@@ -354,7 +354,7 @@ export default function ConciliacaoPluggy() {
     return m;
   }, [categories]);
 
-  const draftKey = `conciliacao-draft:${selectedCompanyId ?? "none"}:${scopedLocalAccountId ?? "all"}`;
+  const draftKey = `conciliacao-draft:${selectedCompanyId ?? "none"}:${scopedCardId ? `card-${scopedCardId}` : scopedLocalAccountId ?? "all"}`;
   const draft = useMemo(() => readDraft(draftKey), [draftKey]);
 
   const [loading, setLoading] = useState(true);
