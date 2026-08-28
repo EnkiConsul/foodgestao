@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileText, Split } from "lucide-react";
+import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileText, Split, CreditCard } from "lucide-react";
 import { DividirLancamentoDialog } from "@/components/conciliacao/DividirLancamentoDialog";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -212,7 +212,7 @@ interface CategoryOpt {
   allow_transactions?: boolean | null;
   requires_review?: boolean | null;
 }
-interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: string | null; }
+interface ScopeInfo { pluggyAccountId: string; connectionId: string; name: string | null; kind: "account" | "card" }
 
 /**
  * Monta as opções do seletor usando a MESMA árvore da página /categorias
@@ -288,6 +288,7 @@ export default function ConciliacaoPluggy() {
 
   const [searchParams] = useSearchParams();
   const scopedLocalAccountId = searchParams.get("account");
+  const scopedCardId = searchParams.get("card");
   const focusedStagingId = searchParams.get("item");
 
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -353,7 +354,7 @@ export default function ConciliacaoPluggy() {
     return m;
   }, [categories]);
 
-  const draftKey = `conciliacao-draft:${selectedCompanyId ?? "none"}:${scopedLocalAccountId ?? "all"}`;
+  const draftKey = `conciliacao-draft:${selectedCompanyId ?? "none"}:${scopedCardId ? `card-${scopedCardId}` : scopedLocalAccountId ?? "all"}`;
   const draft = useMemo(() => readDraft(draftKey), [draftKey]);
 
   const [loading, setLoading] = useState(true);
@@ -361,6 +362,12 @@ export default function ConciliacaoPluggy() {
   
 
   const [statusFilter, setStatusFilter] = useState<string>("pending");
+  /** Origem do lançamento: conta bancária ou cartão de crédito conectado. */
+  const [originFilter, setOriginFilter] = useState<"all" | "bank" | "card">("all");
+  /** Mantém o escopo (conta ou cartão) ao navegar para o extrato. */
+  const extratoQuery = scopedCardId
+    ? `?card=${scopedCardId}`
+    : scopedLocalAccountId ? `?account=${scopedLocalAccountId}` : "";
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(() => new Set(draft.selected));
   const [rowAccount, setRowAccount] = useState<Record<string, string>>(() => draft.rowAccount);
@@ -411,25 +418,31 @@ export default function ConciliacaoPluggy() {
 
 
 
-    // Resolve o escopo por conta antes de montar a query de staging
+    // Resolve o escopo antes de montar a query de staging.
+    // O escopo pode vir de uma conta bancária (?account=) ou de um cartão de
+    // crédito (?card=) — contas de cartão da Pluggy são vinculadas ao cartão,
+    // nunca a uma conta bancária, por isso precisam do vínculo próprio.
     let resolvedScope: ScopeInfo | null = null;
-    if (scopedLocalAccountId) {
-      const { data: pa } = await supabase
+    if (scopedCardId || scopedLocalAccountId) {
+      let paQuery = supabase
         .from("pluggy_accounts")
         .select("pluggy_account_id, connection_id, name")
-        .eq("company_id", selectedCompanyId)
-        .eq("linked_account_id", scopedLocalAccountId)
-        .maybeSingle();
+        .eq("company_id", selectedCompanyId);
+      paQuery = scopedCardId
+        ? paQuery.eq("linked_credit_card_id", scopedCardId)
+        : paQuery.eq("linked_account_id", scopedLocalAccountId!);
+      const { data: pa } = await paQuery.maybeSingle();
       if (pa) {
         resolvedScope = {
           pluggyAccountId: pa.pluggy_account_id,
           connectionId: pa.connection_id,
           name: pa.name ?? null,
+          kind: scopedCardId ? "card" : "account",
         };
       }
     }
     setScope(resolvedScope);
-    setScopeUnresolved(!!scopedLocalAccountId && !resolvedScope);
+    setScopeUnresolved(!!(scopedCardId || scopedLocalAccountId) && !resolvedScope);
     setConnectionId(resolvedScope ? resolvedScope.connectionId : "all");
 
     let stagingQuery = supabase.from("pluggy_staging_transactions")
@@ -589,7 +602,7 @@ export default function ConciliacaoPluggy() {
       setTransferTxIds(new Set());
     }
     setLoading(false);
-  }, [selectedCompanyId, scopedLocalAccountId]);
+  }, [selectedCompanyId, scopedLocalAccountId, scopedCardId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -626,17 +639,19 @@ export default function ConciliacaoPluggy() {
       if (focusedStagingId && r.id !== focusedStagingId) return false;
       if (connectionId !== "all" && r.connection_id !== connectionId) return false;
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (originFilter === "card" && !cardPluggyAccounts.has(r.pluggy_account_id)) return false;
+      if (originFilter === "bank" && cardPluggyAccounts.has(r.pluggy_account_id)) return false;
       if (search && !(r.description ?? "").toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [rows, connectionId, statusFilter, search, focusedStagingId]);
+  }, [rows, connectionId, statusFilter, originFilter, cardPluggyAccounts, search, focusedStagingId]);
 
   /** Lista longa: renderizamos em blocos para não pagar o custo de centenas de linhas por render. */
   const PAGE_SIZE = 50;
   const [visibleLimit, setVisibleLimit] = useState(PAGE_SIZE);
   useEffect(() => {
     setVisibleLimit(PAGE_SIZE);
-  }, [connectionId, statusFilter, search, focusedStagingId]);
+  }, [connectionId, statusFilter, originFilter, search, focusedStagingId]);
   const visibleRows = useMemo(() => filtered.slice(0, visibleLimit), [filtered, visibleLimit]);
 
 
@@ -653,6 +668,17 @@ export default function ConciliacaoPluggy() {
     confirmed: rows.filter((r) => r.status === "confirmed").length,
     ignored: rows.filter((r) => r.status === "ignored").length,
   }), [rows]);
+
+  const originCounts = useMemo(() => {
+    let bank = 0;
+    let card = 0;
+    for (const r of rows) {
+      if (statusFilter !== "all" && r.status !== statusFilter) continue;
+      if (cardPluggyAccounts.has(r.pluggy_account_id)) card += 1;
+      else bank += 1;
+    }
+    return { bank, card };
+  }, [rows, statusFilter, cardPluggyAccounts]);
 
   const pendingFiltered = useMemo(() => filtered.filter((r) => r.status === "pending"), [filtered]);
   const allPendingSelected = pendingFiltered.length > 0 && pendingFiltered.every((r) => selected.has(r.id));
@@ -985,7 +1011,7 @@ export default function ConciliacaoPluggy() {
           label: "Ver extrato",
           onClick: () =>
             navigate(
-              `/contas-bancarias/conciliacao/extrato${scopedLocalAccountId ? `?account=${scopedLocalAccountId}` : ""}`,
+              `/contas-bancarias/conciliacao/extrato${extratoQuery}`,
             ),
         },
       });
@@ -1532,7 +1558,7 @@ export default function ConciliacaoPluggy() {
           Sincronizar
         </Button>
         <Button
-          onClick={() => navigate(`/contas-bancarias/conciliacao/extrato${scopedLocalAccountId ? `?account=${scopedLocalAccountId}` : ""}`)}
+          onClick={() => navigate(`/contas-bancarias/conciliacao/extrato${extratoQuery}`)}
           variant="outline"
           className="w-full sm:w-auto"
         >
@@ -1577,10 +1603,22 @@ export default function ConciliacaoPluggy() {
         <Card className="border-warning/50 bg-warning/10">
           <CardContent className="p-3 text-sm text-foreground flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
-            Esta conta não possui vínculo com uma conexão Open Finance. Exibindo a fila completa da empresa.
+            {scopedCardId
+              ? "Este cartão não possui vínculo com uma conta conectada via Open Finance. Exibindo a fila completa da empresa."
+              : "Esta conta não possui vínculo com uma conexão Open Finance. Exibindo a fila completa da empresa."}
           </CardContent>
         </Card>
       )}
+
+      {scope?.kind === "card" && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="p-3 text-sm text-foreground flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary shrink-0" />
+            Fila do cartão de crédito {scope.name ?? ""} — os lançamentos confirmados vão para a fatura do cartão.
+          </CardContent>
+        </Card>
+      )}
+
 
       <div className="sticky top-14 z-20 -mx-3 space-y-2 border-b bg-background/95 px-3 py-2 backdrop-blur md:-mx-6 md:px-6 md:py-3 lg:top-16">
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -1652,6 +1690,43 @@ export default function ConciliacaoPluggy() {
             </button>
           ))}
         </div>
+
+        {/* Origem (só faz sentido quando a fila mistura contas e cartões) */}
+        {!scope && originCounts.card > 0 && (
+          <div
+            role="tablist"
+            aria-label="Filtrar por origem"
+            className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 sm:flex-wrap sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {([
+              { value: "all", label: "Todas as origens", count: originCounts.bank + originCounts.card },
+              { value: "bank", label: "Contas", count: originCounts.bank },
+              { value: "card", label: "Cartões", count: originCounts.card },
+            ] as const).map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => setOriginFilter(f.value)}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium transition-colors",
+                  originFilter === f.value
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground",
+                )}
+              >
+                {f.label}
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 text-[10px] tabular-nums",
+                    originFilter === f.value ? "bg-primary-foreground/20" : "bg-muted",
+                  )}
+                >
+                  {f.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
 

@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CreditCard, Plus, Pencil, Trash2, Wallet, Calendar, AlertCircle } from "lucide-react";
+import { CreditCard, Plus, Pencil, Trash2, Wallet, Calendar, AlertCircle, ListChecks } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { CreditCardFormDialog } from "@/components/credit-cards/CreditCardFormDialog";
 import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
@@ -34,10 +35,12 @@ export default function CartoesCredito() {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
+  const navigate = useNavigate();
 
   const [cards, setCards] = useState<CreditCardRow[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingByCard, setPendingByCard] = useState<Record<string, number>>({});
 
   const [selectedCardId, setSelectedCardId] = useState<string>("all");
   const [formOpen, setFormOpen] = useState(false);
@@ -76,6 +79,39 @@ export default function CartoesCredito() {
   }, [user, contextType, selectedCompanyId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Pendências de conciliação por cartão: contas de cartão do Open Finance são
+  // vinculadas ao cartão (linked_credit_card_id), não a uma conta bancária,
+  // por isso a fila do cartão só aparece com um atalho próprio.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (contextType !== "pj" || !selectedCompanyId) { setPendingByCard({}); return; }
+      const { data: pa } = await supabase
+        .from("pluggy_accounts")
+        .select("pluggy_account_id, linked_credit_card_id")
+        .eq("company_id", selectedCompanyId)
+        .not("linked_credit_card_id", "is", null);
+      const byPluggyAccount = new Map<string, string>();
+      for (const row of (pa ?? []) as { pluggy_account_id: string; linked_credit_card_id: string | null }[]) {
+        if (row.linked_credit_card_id) byPluggyAccount.set(row.pluggy_account_id, row.linked_credit_card_id);
+      }
+      if (byPluggyAccount.size === 0) { if (active) setPendingByCard({}); return; }
+      const { data: staging } = await supabase
+        .from("pluggy_staging_transactions")
+        .select("pluggy_account_id")
+        .eq("company_id", selectedCompanyId)
+        .eq("status", "pending")
+        .in("pluggy_account_id", Array.from(byPluggyAccount.keys()));
+      const counts: Record<string, number> = {};
+      for (const row of (staging ?? []) as { pluggy_account_id: string }[]) {
+        const cardId = byPluggyAccount.get(row.pluggy_account_id);
+        if (cardId) counts[cardId] = (counts[cardId] ?? 0) + 1;
+      }
+      if (active) setPendingByCard(counts);
+    })();
+    return () => { active = false; };
+  }, [contextType, selectedCompanyId]);
 
   const filteredCards = useMemo(
     () => (selectedCardId === "all" ? cards : cards.filter((c) => c.id === selectedCardId)),
@@ -237,7 +273,21 @@ export default function CartoesCredito() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
+                    <div className="flex flex-wrap items-center gap-1 shrink-0">
+                      <Button
+                        size="sm"
+                        variant={pendingByCard[card.id] ? "default" : "outline"}
+                        className="h-10 gap-2"
+                        onClick={() => navigate(`/contas-bancarias/conciliacao?card=${card.id}`)}
+                      >
+                        <ListChecks className="h-4 w-4" />
+                        Conciliar
+                        {pendingByCard[card.id] ? (
+                          <span className="rounded-full bg-primary-foreground/20 px-1.5 text-[10px] tabular-nums">
+                            {pendingByCard[card.id]}
+                          </span>
+                        ) : null}
+                      </Button>
                       <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => { setEditing(card); setFormOpen(true); }} aria-label="Editar cartão">
                         <Pencil className="h-4 w-4" />
                       </Button>
