@@ -695,22 +695,10 @@ Deno.serve(async (req) => {
       if (ownCompany?.cnpj) ownDocuments.push(ownCompany.cnpj);
     } catch (_e) { /* opcional */ }
 
-    const baseEnrichOptions = { ownDocuments, ownNames };
+    const enrichOptions = { ownDocuments, ownNames };
 
     for (const acc of accounts) {
       if (pausedIds.has(acc.id)) continue;
-
-      // Cartão de crédito: alguns bancos só publicam a natureza real do
-      // lançamento (encargos/pagamentos) nas faturas, não nas transações.
-      let enrichOptions: Record<string, unknown> = baseEnrichOptions;
-      if ((acc.type ?? '').toUpperCase() === 'CREDIT') {
-        try {
-          const bills = await listBills(acc.id);
-          enrichOptions = { ...baseEnrichOptions, cardHints: buildCardHints(bills) };
-        } catch (e) {
-          console.warn('[pluggy-sync-item] bills fetch failed', acc.id, (e as Error)?.message);
-        }
-      }
 
       const txs = await listTransactions(acc.id, fmt(from), fmt(to));
       if (txs.length === 0) continue;
