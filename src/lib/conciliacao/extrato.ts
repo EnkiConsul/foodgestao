@@ -6,6 +6,8 @@
  * linha a linha e a lista de divergências.
  */
 
+import { resolveRowDirection } from "@/lib/conciliacao/cardRouting";
+
 export type ExtratoStatus = "pending" | "confirmed" | "ignored" | "duplicate";
 
 export interface ExtratoStagingLike {
