@@ -380,11 +380,12 @@ export function buildDescription(t: EnrichInput, options: EnrichOptions = {}): s
 function buildDescriptionInternal(t: EnrichInput, options: EnrichOptions = {}): string {
   const raw = pickSourceDescription(t);
 
-  // Fatura de cartão: sem merchant/paymentData, só o código da operação.
+  // Lançamento de cartão: mantemos o texto do banco, sem reescrita.
   if (!t.merchant && !t.paymentData) {
-    const card = buildCardDescription({ ...t, description: raw }, options);
+    const card = buildCardDescription({ ...t, description: raw });
     if (card) return card;
   }
+
 
   if (!isGenericDescription(raw)) {
     // "BANCO SICOOB S.A." não diz nada sobre o pagamento: se houver
