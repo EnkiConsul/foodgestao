@@ -15,6 +15,8 @@ export interface ExtratoStagingLike {
   amount: number;
   status: ExtratoStatus | string;
   matched_transaction_id?: string | null;
+  /** `type` bruto do Open Finance ("DEBIT" | "CREDIT"). */
+  type?: string | null;
   pluggy_account_id?: string | null;
   connection_id?: string | null;
 }
@@ -156,7 +158,9 @@ export function buildExtratoConciliacao({
         !linked?.length && s.matched_transaction_id ? txById.get(s.matched_transaction_id) : undefined;
       const txs = linked?.length ? linked : fallback ? [fallback] : [];
       const platforms = txs.map(toItem);
-      const amount = Number(s.amount ?? 0);
+      const rawAmount = Number(s.amount ?? 0);
+      const direction = resolveRowDirection({ amount: rawAmount, type: s.type, isCardAccount });
+      const amount = direction === "saida" ? -Math.abs(rawAmount) : Math.abs(rawAmount);
       const platformTotal = platforms.reduce((acc, p) => acc + Math.abs(p.amount), 0);
       const conciliado = status === "confirmed" && platforms.length > 0;
       return {
