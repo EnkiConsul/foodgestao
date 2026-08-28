@@ -727,6 +727,16 @@ export default function ConciliacaoPluggy() {
     (r: StagingRow) => isCardPluggyAccount(r.pluggy_account_id, cardRouting),
     [cardRouting],
   );
+  /**
+   * Entrada/saída da linha: em contas de cartão a convenção do Open Finance é
+   * invertida (compra vem positiva com DEBIT = saída).
+   */
+  const rowIsEntrada = useCallback(
+    (r: StagingRow) =>
+      isRowEntrada({ amount: r.amount, type: r.type, isCardAccount: isCardPluggyAccount(r.pluggy_account_id, cardRouting) }),
+    [cardRouting],
+  );
+
 
   /**
    * Reprocessa os lançamentos já importados: linhas de contas de cartão deixam
