@@ -198,7 +198,7 @@ export function classifyCardLine(input: CardLineInput): CardLine {
     return { kind: "encargo", text, merchant: null, city: null, installment: null };
   }
 
-  if (isCardOperationCode(text)) {
+  if (isOperationCode(text)) {
     return { kind: "sem_identificacao", text, merchant: null, city: null, installment: null };
   }
 
