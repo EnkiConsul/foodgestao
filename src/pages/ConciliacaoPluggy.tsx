@@ -135,6 +135,8 @@ interface StagingRow {
   suggested_category_id: string | null;
   matched_transaction_id?: string | null;
   raw?: unknown;
+  created_at?: string | null;
+
   counterparty_name?: string | null;
   counterparty_document?: string | null;
   counterparty_document_type?: string | null;
