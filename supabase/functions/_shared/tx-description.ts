@@ -199,8 +199,6 @@ export interface EnrichOptions {
   ownDocuments?: (string | null | undefined)[];
   /** Nomes/razões sociais da própria empresa — nunca são contraparte. */
   ownNames?: (string | null | undefined)[];
-  /** Índice `billId|valor` → rótulo, vindo das faturas do cartão. */
-  cardHints?: Record<string, string>;
 }
 
 
