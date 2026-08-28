@@ -126,7 +126,6 @@ function StatusBadge({ row }: { row: ExtratoRow }) {
   );
 }
 
-import { creditCardLabel, cleanProviderName } from "@/lib/conciliacao/cardRouting";
 
 export default function ExtratoConciliacao() {
   const navigate = useNavigate();
