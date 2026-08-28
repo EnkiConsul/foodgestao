@@ -175,8 +175,10 @@ export function formatProviderDescription(
   if (hasMerchantName(original)) return cleanMerchantSpacing(original);
 
   const parts = [cardOperationLabel(original)];
+  const mcc = cardMccLabel((raw as CardRawShape | null)?.creditCardMetadata?.payeeMCC);
   const category = cardCategoryLabel((raw as CardRawShape | null)?.category as string | null);
-  if (category) parts.push(category);
+  if (mcc) parts.push(mcc);
+  else if (category) parts.push(category);
   const last4 = cardLast4FromRaw(raw);
   if (last4) parts.push(`cartão ••••${last4}`);
   return parts.filter(Boolean).join(" • ");
