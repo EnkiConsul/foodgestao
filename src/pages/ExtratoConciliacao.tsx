@@ -134,6 +134,7 @@ export default function ExtratoConciliacao() {
   const [searchParams] = useSearchParams();
 
   const accountParam = searchParams.get("account");
+  const cardParam = searchParams.get("card");
   const connectionParam = searchParams.get("connection");
 
   const [from, setFrom] = useState(searchParams.get("from") ?? isoMonthsAgo(1));
