@@ -1558,7 +1558,7 @@ export default function ConciliacaoPluggy() {
           Sincronizar
         </Button>
         <Button
-          onClick={() => navigate(`/contas-bancarias/conciliacao/extrato${scopedLocalAccountId ? `?account=${scopedLocalAccountId}` : ""}`)}
+          onClick={() => navigate(`/contas-bancarias/conciliacao/extrato${extratoQuery}`)}
           variant="outline"
           className="w-full sm:w-auto"
         >
