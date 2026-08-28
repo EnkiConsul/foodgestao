@@ -290,23 +290,34 @@ export function counterpartyName(t: EnrichInput, options: EnrichOptions = {}): s
   if (!t.creditCardMetadata || t.merchant || t.paymentData) return null;
   const original = String(t.descriptionRaw ?? t.description ?? '').trim();
   if (!original || isCardOperationCode(original)) return null;
-  if (/(pagamento\s+(?:da\s+)?fatura|pagamento\s+recebido|pagamento_recebido|credit\s*card\s*payment)/i.test(
-    `${original} ${t.category ?? ''}`,
-  )) return null;
+  // Movimento da própria fatura (pagamento, estorno, encerramento de dívida)
+  // e encargos (juros, multa, IOF, tarifa, anuidade) não têm fornecedor.
+  const text = `${original} ${t.category ?? ''}`;
+  if (CARD_BILL_MOVEMENT_RE.test(text)) return null;
+  if (CARD_CHARGE_RE.test(text)) return null;
+
+  // Parcela no fim do texto ("Ipremium Store 2/3") não faz parte do nome.
+  const withoutInstallment = original
+    .replace(/[\s\-–]*(?:parc(?:ela)?\.?\s*)?\d{1,2}\s*\/\s*\d{1,2}\s*$/i, '')
+    .trim() || original;
 
   // Extratos de cartão separam estabelecimento, cidade e país por colunas.
-  const columns = original.split(/\s{2,}/).map((part) => part.trim()).filter(Boolean);
-  if (columns.length >= 2 && columns[0].length >= 3) return columns[0];
+  const columns = withoutInstallment.split(/\s{2,}/).map((part) => part.trim()).filter(Boolean);
+  if (columns.length >= 2 && columns[0].length >= 3) return stripCardAggregator(columns[0]);
 
   // Fallback para bancos que já colapsaram os espaços: remove país e cidades
   // mais comuns sem inventar um nome quando só há código de operação.
-  const withoutCountry = original.replace(/\s+(BR|BRA|GB|UK|US|USA|PT|ES|AR|CL|UY)$/i, '').trim();
+  const withoutCountry = withoutInstallment
+    .replace(/\s+(?:de)?(BR|BRA|GB|UK|US|USA|PT|ES|AR|CL|UY)$/i, '')
+    .trim();
   const withoutCity = withoutCountry.replace(
     /\s+(GOIANIA|ANAPOLIS|ABADIANIA|VALPARAISO(?:\s+DE)?|APARECIDA(?:\s+DE)?|SAO\s+PAULO|SOUTHAMPTON)$/i,
     '',
   ).trim();
-  return withoutCity.length >= 3 ? withoutCity : null;
+  const name = stripCardAggregator(withoutCity);
+  return name.length >= 3 ? name : null;
 }
+
 
 /**
  * Alguns bancos (Santander, por exemplo) cortam a descrição em ~30/60
