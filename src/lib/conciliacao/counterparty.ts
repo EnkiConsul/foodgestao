@@ -284,19 +284,25 @@ export function extractCounterparty(
 
   // Fatura de cartão: estabelecimento só existe na descrição, sem documento.
   if (options.cardAccount) {
-    if (isCardBillPayment(row.description, row.category_pluggy)) {
+    const line = classifyCardLine({
+      description: row.description,
+      raw: row.raw,
+      category: row.category_pluggy,
+    });
+    // Pagamento/crédito da fatura e encargos são do próprio cartão.
+    if (line.kind === "pagamento_fatura" || line.kind === "encargo") {
       return { ...EMPTY_COUNTERPARTY, internal: true };
     }
-    const fromCard = merchantFromCardRaw(row.description, row.raw, row.category_pluggy);
-    if (fromCard.name) {
+    if (line.kind === "compra" && line.merchant) {
       return {
-        name: toProperName(fromCard.name) || fromCard.name,
+        name: toProperName(line.merchant) || line.merchant,
         document: null,
         documentType: null,
         internal: false,
       };
     }
   }
+
 
   // Sem contraparte externa: tarifas/juros/rendimentos são do próprio banco.
   if (isInternalBankCharge(row)) {
