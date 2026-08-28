@@ -49,6 +49,8 @@ import {
   isCardPluggyAccount,
   creditCardLabel,
   cleanProviderName,
+  isRowEntrada,
+
   type CreditCardOption,
   type CardRoutingMaps,
 } from "@/lib/conciliacao/cardRouting";
