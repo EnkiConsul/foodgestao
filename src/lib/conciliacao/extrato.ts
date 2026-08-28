@@ -113,11 +113,18 @@ export function buildExtratoConciliacao({
   staging,
   transactions,
   statusFilter = "all",
+  isCardAccount = false,
 }: {
   staging: ExtratoStagingLike[];
   transactions: ExtratoTxLike[];
   statusFilter?: ExtratoStatusFilter;
+  /**
+   * Extrato de conta de cartão: a convenção do Open Finance é invertida
+   * (compra vem positiva com DEBIT), então o sinal é normalizado.
+   */
+  isCardAccount?: boolean;
 }): ExtratoModel {
+
   const txsByStaging = new Map<string, ExtratoTxLike[]>();
   const txById = new Map<string, ExtratoTxLike>();
   for (const tx of transactions) {
