@@ -116,3 +116,63 @@ export function resolveRowDirection({ amount, type, isCardAccount }: RowDirectio
 export function isRowEntrada(input: RowDirectionInput): boolean {
   return resolveRowDirection(input) === "entrada";
 }
+
+/**
+ * Valor exibido conforme a direção da linha (e não conforme o sinal cru do
+ * provedor): saída fica negativa, entrada positiva. Assim compra no cartão
+ * aparece como -R$ 34,90 e pagamento de fatura como R$ 146,68.
+ */
+export function signedRowAmount(input: RowDirectionInput): number {
+  const abs = Math.abs(Number(input.amount ?? 0));
+  return resolveRowDirection(input) === "saida" ? -abs : abs;
+}
+
+/** Extrai o id da fatura do cartão (`creditCardMetadata.billId`) do dado bruto. */
+export function cardBillId(raw: unknown): string | null {
+  const meta = (raw as { creditCardMetadata?: { billId?: unknown } } | null)?.creditCardMetadata;
+  const id = meta?.billId;
+  return typeof id === "string" && id.trim() ? id.trim() : null;
+}
+
+export interface DuplicateCandidateRow {
+  id: string;
+  date: string;
+  amount: number;
+  status: string;
+  pluggy_account_id: string;
+  raw?: unknown;
+  created_at?: string | null;
+}
+
+/**
+ * Linhas pendentes de cartão que o banco reenviou com outro id do provedor:
+ * mesma conta, mesma data, mesmo valor absoluto e mesma fatura. Devolve os ids
+ * das versões antigas (fica pendente apenas a mais recente).
+ */
+export function findCardDuplicateIds(
+  rows: DuplicateCandidateRow[],
+  isCardAccount: (pluggyAccountId: string) => boolean,
+): Set<string> {
+  const groups = new Map<string, DuplicateCandidateRow[]>();
+  for (const r of rows) {
+    if (r.status !== "pending") continue;
+    if (!isCardAccount(r.pluggy_account_id)) continue;
+    const bill = cardBillId(r.raw);
+    if (!bill) continue;
+    const key = `${r.pluggy_account_id}|${bill}|${r.date}|${Math.abs(Number(r.amount ?? 0)).toFixed(2)}`;
+    const list = groups.get(key);
+    if (list) list.push(r);
+    else groups.set(key, [r]);
+  }
+
+  const dupes = new Set<string>();
+  for (const list of groups.values()) {
+    if (list.length < 2) continue;
+    const sorted = list
+      .slice()
+      .sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")) || a.id.localeCompare(b.id));
+    for (const r of sorted.slice(0, -1)) dupes.add(r.id);
+  }
+  return dupes;
+}
+
