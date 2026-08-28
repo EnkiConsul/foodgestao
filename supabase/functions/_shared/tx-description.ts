@@ -282,7 +282,25 @@ export function externalCounterpartyName(
   return pickExternalCounterparty(t, options)?.name ?? null;
 }
 
+/**
+ * Padronização das linhas de cartão (mesmas regras de
+ * `src/lib/conciliacao/cardLine.ts`): movimento da fatura, encargo e prefixo
+ * de adquirente.
+ */
+const CARD_BILL_MOVEMENT_RE =
+  /(pagamento\s+(?:da\s+)?fatura|pagamento\s+recebido|pagamento_recebido|credit\s*card\s*payment|encerramento\s+de\s+d[ií]vida|cr[eé]dito\s+de\s+atraso|estorno|devolu[cç][aã]o|reembolso|ajuste\s+de\s+cr[eé]dito)/i;
+
+const CARD_CHARGE_RE =
+  /(\bjuros?\b|\bmulta\b|\bmora\b|\biof\b|\btarifa\b|\banuidade\b|\bencargos?\b|\bsaldo\s+em\s+atraso\b|\brotativo\b|\bparcelamento\s+(?:da\s+)?fatura\b|\btaxa[s]?\b|\bseguro\b)/i;
+
+/** Remove prefixo de adquirente ("MP *VOXALIMENTOS" → "VOXALIMENTOS"). */
+export function stripCardAggregator(name: string): string {
+  const stripped = name.replace(/^\s*[A-Za-z0-9.]{2,12}\s*\*+\s*/, '').trim();
+  return stripped.length >= 3 ? stripped : name.trim();
+}
+
 /** Nome da contraparte (quando disponível), independente do rótulo do banco. */
+
 export function counterpartyName(t: EnrichInput, options: EnrichOptions = {}): string | null {
   const structured = externalCounterpartyName(t, options);
   if (structured) return structured;
