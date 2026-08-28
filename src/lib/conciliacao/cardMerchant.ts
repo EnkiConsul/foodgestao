@@ -84,7 +84,7 @@ export function merchantFromCardDescription(
     "$1 $2",
   );
 
-  let tokens = separated.split(" ").filter(Boolean);
+  const tokens = separated.split(" ").filter(Boolean);
   const cityTokens: string[] = [];
 
   // País no fim.
