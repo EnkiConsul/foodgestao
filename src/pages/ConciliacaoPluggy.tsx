@@ -1675,6 +1675,43 @@ export default function ConciliacaoPluggy() {
             </button>
           ))}
         </div>
+
+        {/* Origem (só faz sentido quando a fila mistura contas e cartões) */}
+        {!scope && originCounts.card > 0 && (
+          <div
+            role="tablist"
+            aria-label="Filtrar por origem"
+            className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 sm:flex-wrap sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {([
+              { value: "all", label: "Todas as origens", count: originCounts.bank + originCounts.card },
+              { value: "bank", label: "Contas", count: originCounts.bank },
+              { value: "card", label: "Cartões", count: originCounts.card },
+            ] as const).map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => setOriginFilter(f.value)}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium transition-colors",
+                  originFilter === f.value
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground",
+                )}
+              >
+                {f.label}
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 text-[10px] tabular-nums",
+                    originFilter === f.value ? "bg-primary-foreground/20" : "bg-muted",
+                  )}
+                >
+                  {f.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
 
