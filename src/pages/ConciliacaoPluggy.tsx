@@ -288,6 +288,7 @@ export default function ConciliacaoPluggy() {
 
   const [searchParams] = useSearchParams();
   const scopedLocalAccountId = searchParams.get("account");
+  const scopedCardId = searchParams.get("card");
   const focusedStagingId = searchParams.get("item");
 
   const [connections, setConnections] = useState<Connection[]>([]);
