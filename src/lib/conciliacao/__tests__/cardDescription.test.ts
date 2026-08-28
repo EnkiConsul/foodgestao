@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
+  cardHintLabel,
   cardOperationLabel,
   cardLast4FromRaw,
-  cleanMerchantSpacing,
   formatProviderDescription,
   hasMerchantName,
   isCardOperationCode,
@@ -28,29 +28,34 @@ describe("cardDescription", () => {
     expect(cardLast4FromRaw(null)).toBeNull();
   });
 
-  it("monta rótulo com categoria e final do cartão", () => {
+  it("mantém o texto do banco sem reescrever", () => {
     expect(
       formatProviderDescription("CREDITO_A_VISTA", {
         category: "Digital services",
         creditCardMetadata: { cardNumber: "0038" },
       }),
-    ).toBe("Compra no crédito à vista • Serviços digitais • cartão ••••0038");
+    ).toBe("CREDITO_A_VISTA");
 
-    expect(formatProviderDescription("CREDITO_A_VISTA", { creditCardMetadata: { cardNumber: "0000" } })).toBe(
-      "Compra no crédito à vista",
+    expect(formatProviderDescription("PONTO DA CARNE           GOIANIA      BR", {})).toBe(
+      "PONTO DA CARNE GOIANIA BR",
     );
+    expect(hasMerchantName("PONTO DA CARNE           GOIANIA      BR")).toBe(true);
+    expect(formatProviderDescription("Pix recebido de ACME", {})).toBe("Pix recebido de ACME");
   });
 
-  it("preserva estabelecimento e limpa espaçamento", () => {
-    expect(hasMerchantName("PONTO DA CARNE           GOIANIA      BR")).toBe(true);
-    expect(formatProviderDescription("PONTO DA CARNE           GOIANIA      BR", {})).toBe(
-      "PONTO DA CARNE • GOIANIA",
-    );
-    expect(cleanMerchantSpacing("ModernMarket             GOIANIA      BR")).toBe("ModernMarket • GOIANIA");
-    expect(formatProviderDescription("Pix recebido de ACME", {})).toBe("Pix recebido de ACME");
+  it("rótulo auxiliar traz operação, ramo e final do cartão", () => {
+    expect(
+      cardHintLabel("CREDITO_A_VISTA", {
+        category: "Digital services",
+        creditCardMetadata: { cardNumber: "0038" },
+      }),
+    ).toBe("Compra no crédito à vista • Serviços digitais • cartão ••••0038");
+
+    expect(cardHintLabel("PONTO DA CARNE GOIANIA BR", {})).toBeNull();
   });
 
   it("descrição vazia continua vazia", () => {
     expect(formatProviderDescription(null, {})).toBe("");
   });
 });
+
