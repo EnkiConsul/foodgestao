@@ -96,10 +96,9 @@ export async function listTransactions(accountId: string, from: string, to: stri
 }
 
 /**
- * Faturas do cartão de crédito. Em vários bancos (BMG, por exemplo) a API de
- * transações não traz o estabelecimento nem a natureza do lançamento — o texto
- * real ("Multa Contratual", "IOF Rotativo", "ENCARG FINANC FATURADOS") só
- * aparece nos encargos/pagamentos da fatura.
+ * Faturas do cartão de crédito (valores/vencimentos). NÃO é usada para montar
+ * descrição de lançamento: casar encargo da fatura por valor rotulava a linha
+ * errada. A descrição do cartão é sempre o texto do banco.
  */
 export async function listBills(accountId: string) {
   const res = await pluggyFetch(`/bills?accountId=${accountId}`);
