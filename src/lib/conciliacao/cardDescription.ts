@@ -8,6 +8,8 @@
  * provedor e final do cartão).
  */
 
+import { cardLineKindLabel, classifyCardLine } from "@/lib/conciliacao/cardLine";
+
 /** Códigos de operação conhecidos → rótulo em português. */
 const OPERATION_LABELS: Record<string, string> = {
   CREDITO_A_VISTA: "Compra no crédito à vista",
