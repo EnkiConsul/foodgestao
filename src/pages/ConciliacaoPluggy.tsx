@@ -50,6 +50,9 @@ import {
   creditCardLabel,
   cleanProviderName,
   isRowEntrada,
+  signedRowAmount,
+  findCardDuplicateIds,
+
 
   type CreditCardOption,
   type CardRoutingMaps,
