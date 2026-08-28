@@ -204,6 +204,11 @@ export function cardHintLabel(
 
   const kind = cardLineKindLabel(line);
   if (kind) parts.push(kind);
+  else if (line.kind === "sem_identificacao" && isCardOperationCode(line.text)) {
+    const label = cardOperationLabel(line.text);
+    if (label && label.toUpperCase() !== line.text.toUpperCase()) parts.push(label);
+  }
+
 
   if (line.installment) parts.push(`Parcela ${line.installment.current}/${line.installment.total}`);
   if (line.city) parts.push(line.city);
