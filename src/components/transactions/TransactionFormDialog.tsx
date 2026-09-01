@@ -1052,7 +1052,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 ? (installmentMode === "total" ? "Valor total" : "Valor da parcela")
                 : "Valor"}
             </Label>
-            <CurrencyInput value={amount} onValueChange={setAmount} placeholder="0,00" />
+            <AmountField value={amount} onValueChange={setAmount} placeholder="0,00" />
           </div>
 
 
