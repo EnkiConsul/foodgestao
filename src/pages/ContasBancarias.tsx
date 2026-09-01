@@ -619,17 +619,30 @@ export default function ContasBancarias() {
                     {(() => {
                       const cmp = compareBankLedger(Number(a.current_balance), a.bank_balance);
                       if (cmp.bank === null) return null;
+                      const discarded = isBankReferenceDiscarded(a.bank_balance_source);
+                      const readAt = a.bank_balance_at
+                        ? new Date(a.bank_balance_at).toLocaleString("pt-BR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : null;
+                      const alert = cmp.divergent && !discarded;
                       return (
                         <p
-                          className={`text-[10px] mt-0.5 ${cmp.divergent ? "text-warning" : "text-muted-foreground"}`}
+                          className={`text-[10px] mt-0.5 ${alert ? "text-warning" : "text-muted-foreground"}`}
                           title={
-                            cmp.divergent
-                              ? "O saldo informado pelo banco difere do saldo calculado pelos lançamentos. Confira a conciliação."
-                              : "Saldo informado pelo banco (Open Finance)"
+                            discarded
+                              ? `O banco informou ${maskBRL(cmp.bank)}, valor incompatível com uma conta sem cheque especial; o app mantém o seu saldo.`
+                              : alert
+                                ? "O saldo informado pelo banco difere do saldo calculado pelos lançamentos. Confira a conciliação."
+                                : "Saldo informado pelo banco (Open Finance)"
                           }
                         >
-                          Banco: {maskBRL(cmp.bank)}
-                          {cmp.divergent ? ` (${cmp.diff! > 0 ? "+" : ""}${maskBRL(cmp.diff!)})` : ""}
+                          Saldo do banco: {maskBRL(cmp.bank)}
+                          {alert ? ` (${cmp.diff! > 0 ? "+" : ""}${maskBRL(cmp.diff!)})` : ""}
+                          {readAt ? ` · última leitura ${readAt}` : ""}
                         </p>
                       );
                     })()}
