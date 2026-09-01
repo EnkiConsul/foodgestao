@@ -662,7 +662,7 @@ Deno.serve(async (req) => {
               await admin.from('accounts').update({
                 bank_balance: ofBalanceInfo.reported,
                 bank_balance_at: new Date().toISOString(),
-                bank_balance_source: 'open_finance',
+                bank_balance_source: ofBalanceInfo.source,
               }).eq('id', targetAccountId);
             }
 
