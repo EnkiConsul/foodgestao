@@ -5,6 +5,8 @@ import { AlertTriangle, ChevronDown, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { parseEdgeFunctionError } from "@/lib/edgeFunctionError";
+import { describeConnectError, type ConnectErrorDescription } from "@/lib/pluggy/connectErrors";
+
 
 
 interface Props {
