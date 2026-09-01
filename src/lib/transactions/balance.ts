@@ -259,3 +259,16 @@ export function compareBankLedger(
   const diff = Number((bnk - led).toFixed(2));
   return { ledger: led, bank: bnk, diff, divergent: Math.abs(diff) > tolerance };
 }
+
+/** Marca gravada em `accounts.bank_balance_source` quando o valor do banco foi descartado. */
+export const BANK_BALANCE_SOURCE_DISCARDED = "open_finance_descartado";
+
+/**
+ * true quando o saldo informado pelo banco foi considerado não confiável na
+ * sincronização (ex.: negativo em conta corrente sem cheque especial). Nesse
+ * caso a diferença em relação ao razão não é divergência de conciliação e não
+ * deve ser sinalizada como alerta.
+ */
+export function isBankReferenceDiscarded(source: string | null | undefined): boolean {
+  return source === BANK_BALANCE_SOURCE_DISCARDED;
+}
