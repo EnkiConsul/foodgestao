@@ -426,6 +426,8 @@ export default function ConciliacaoPluggy() {
   const [creditCards, setCreditCards] = useState<CreditCardOption[]>([]);
   const [reprocessing, setReprocessing] = useState(false);
   const [counterpartyReprocessing, setCounterpartyReprocessing] = useState(false);
+  const [clearOpen, setClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const load = useCallback(async () => {
     if (!selectedCompanyId) { setLoading(false); return; }
