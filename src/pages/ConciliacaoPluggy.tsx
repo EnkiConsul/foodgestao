@@ -888,6 +888,31 @@ export default function ConciliacaoPluggy() {
   };
 
   /** Recalcula nome + CPF/CNPJ da contraparte das linhas pendentes já importadas. */
+  // Descarta o extrato pendente do escopo atual — útil quando o usuário apagou
+  // contas/cartões e quer recomeçar a conciliação sem resíduo.
+  const clearPending = async () => {
+    const ids = rows
+      .filter((r) => r.status === "pending")
+      .filter((r) => connectionId === "all" || r.connection_id === connectionId)
+      .map((r) => r.id);
+    if (ids.length === 0) {
+      toast.info("Não há lançamentos pendentes para limpar.");
+      setClearOpen(false);
+      return;
+    }
+    setClearing(true);
+    const { error } = await supabase.from("pluggy_staging_transactions").delete().in("id", ids);
+    setClearing(false);
+    setClearOpen(false);
+    if (error) {
+      toast.error("Não foi possível limpar o extrato pendente", { description: error.message });
+      return;
+    }
+    setRows((prev) => prev.filter((r) => !ids.includes(r.id)));
+    setSelected(new Set());
+    toast.success(`${ids.length} lançamento(s) pendente(s) removido(s).`);
+  };
+
   const reprocessCounterparties = async () => {
     if (!selectedCompanyId) return;
     const ownDocs = Array.from(ownDocumentSet);
