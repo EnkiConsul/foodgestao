@@ -66,6 +66,8 @@ function clearResume() {
 // Finance. Precisam ser consumidos aqui, senão o widget é reaberto do zero e o
 // usuário volta a ver a tela de boas-vindas da Pluggy.
 const RETURN_PARAMS = ["itemId", "item_id"] as const;
+const ERROR_PARAMS = ["error", "error_code", "errorCode"] as const;
+const ERROR_MESSAGE_PARAMS = ["error_description", "errorDescription", "error_message"] as const;
 
 function readReturnItemId(): string | null {
   if (typeof window === "undefined") return null;
@@ -79,16 +81,38 @@ function readReturnItemId(): string | null {
   return null;
 }
 
-/** Voltamos do consentimento do banco com um item já autorizado? */
+/** O banco devolveu um erro de autorização na URL de retorno? */
+function readReturnError(): { code: string | null; message: string | null } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const url = new URL(window.location.href);
+    let code: string | null = null;
+    for (const key of ERROR_PARAMS) {
+      const value = url.searchParams.get(key);
+      if (value) { code = value; break; }
+    }
+    let message: string | null = null;
+    for (const key of ERROR_MESSAGE_PARAMS) {
+      const value = url.searchParams.get(key);
+      if (value) { message = value; break; }
+    }
+    const status = url.searchParams.get("status");
+    if (!code && !message && status?.toLowerCase() !== "error") return null;
+    return { code, message };
+  } catch { /* noop */ }
+  return null;
+}
+
+/** Voltamos do consentimento do banco com um item já autorizado (ou com erro)? */
 export function hasPluggyReturn(): boolean {
-  return !!readReturnItemId();
+  return !!readReturnItemId() || !!readReturnError();
 }
 
 function clearReturnParams() {
   try {
     const url = new URL(window.location.href);
     let changed = false;
-    for (const key of RETURN_PARAMS) {
+    for (const key of [...RETURN_PARAMS, ...ERROR_PARAMS, ...ERROR_MESSAGE_PARAMS, "status"]) {
       if (url.searchParams.has(key)) { url.searchParams.delete(key); changed = true; }
     }
     if (!changed) return;
@@ -96,6 +120,7 @@ function clearReturnParams() {
     window.history.replaceState({}, "", `${url.pathname}${search ? `?${search}` : ""}${url.hash}`);
   } catch { /* noop */ }
 }
+
 
 
 function loadScript(): Promise<void> {
