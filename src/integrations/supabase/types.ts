@@ -13093,6 +13093,10 @@ export type Database = {
         }
         Returns: string
       }
+      purge_open_finance_link: {
+        Args: { _account_id?: string; _card_id?: string }
+        Returns: undefined
+      }
       read_ai_categorization_queue: {
         Args: { p_batch?: number; p_vt?: number }
         Returns: {
