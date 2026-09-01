@@ -191,6 +191,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
       setPhase("idle");
       setShowInterSteps(false);
       setDontShowAgain(false);
+      setFailure(null);
       return;
     }
     if (isFramed()) {
@@ -211,11 +212,39 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
       return;
     }
 
+    // Voltamos com erro do banco: a autorização não foi concluída.
+    const returnError = readReturnError();
+    if (returnError) {
+      clearReturnParams();
+      clearResume();
+      setPending(false);
+      setFailure(describeConnectError(returnError));
+      setPhase("failed");
+      return;
+    }
+
     let dismissed = false;
     try { dismissed = localStorage.getItem(INTRO_KEY) === "1"; } catch { /* noop */ }
     const skip = dismissed || hasPluggyResume() || !!itemIdToUpdate;
     setPhase(skip ? "launch" : "intro");
   }, [open, itemIdToUpdate, onOpenChange]);
+
+  /** Recomeça a conexão do zero, descartando qualquer estado retomado. */
+  const retryConnect = useCallback(() => {
+    clearResume();
+    clearReturnParams();
+    finishedRef.current = false;
+    launchedRef.current = false;
+    requestIdRef.current = null;
+    returnedItemIdRef.current = null;
+    setFailure(null);
+    setError(null);
+    setPending(false);
+    setWidgetReady(false);
+    setChecking(false);
+    setPhase("launch");
+  }, []);
+
 
 
 
