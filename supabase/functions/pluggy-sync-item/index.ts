@@ -4,6 +4,7 @@ import { getItem, listAccounts, listItems, listTransactions, refreshItem, waitFo
 import { buildDescription, counterpartyName } from '../_shared/tx-description.ts';
 import { extractCounterpartyDocument } from '../_shared/counterparty-doc.ts';
 import { materializePluggyItemV2 } from '../_shared/pluggy-v2-materialize.ts';
+import { resolveOpenFinanceBalance } from '../_shared/of-balance.ts';
 
 function normalizeLabel(value: string | null | undefined): string {
   return String(value ?? '')
