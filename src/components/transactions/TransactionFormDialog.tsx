@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyInput, parseCurrencyToNumber } from "@/components/ui/currency-input";
+import { AmountField } from "@/components/transactions/AmountField";
+
 import { toast } from "sonner";
 import { transactionSchema } from "@/lib/validations";
 import { getSignedAttachmentUrl } from "@/lib/attachments";
@@ -1052,7 +1054,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
                 ? (installmentMode === "total" ? "Valor total" : "Valor da parcela")
                 : "Valor"}
             </Label>
-            <CurrencyInput value={amount} onValueChange={setAmount} placeholder="0,00" />
+            <AmountField value={amount} onValueChange={setAmount} placeholder="0,00" />
           </div>
 
 
