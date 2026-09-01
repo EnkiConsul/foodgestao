@@ -639,7 +639,7 @@ Deno.serve(async (req) => {
               current_balance: ofBalance ?? 0,
               bank_balance: ofBalanceInfo.reported,
               bank_balance_at: ofBalanceInfo.reported !== null ? new Date().toISOString() : null,
-              bank_balance_source: ofBalanceInfo.reported !== null ? 'open_finance' : null,
+              bank_balance_source: ofBalanceInfo.source,
               color: '#1B3A5C',
               icon: 'wallet',
               is_active: true,
