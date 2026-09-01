@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileText, Split, CreditCard } from "lucide-react";
+import { ArrowLeft, Check, RefreshCw, Search, X, AlertTriangle, Loader2, UserPlus, Pencil, FileText, Split, CreditCard, Trash2 } from "lucide-react";
 import { DividirLancamentoDialog } from "@/components/conciliacao/DividirLancamentoDialog";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -426,6 +426,8 @@ export default function ConciliacaoPluggy() {
   const [creditCards, setCreditCards] = useState<CreditCardOption[]>([]);
   const [reprocessing, setReprocessing] = useState(false);
   const [counterpartyReprocessing, setCounterpartyReprocessing] = useState(false);
+  const [clearOpen, setClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const load = useCallback(async () => {
     if (!selectedCompanyId) { setLoading(false); return; }
@@ -540,8 +542,46 @@ export default function ConciliacaoPluggy() {
       });
     }
 
-    setConnections((conns ?? []) as Connection[]);
-    setRows((staging ?? []) as StagingRow[]);
+    // Conexões encerradas e contas Open Finance sem vínculo válido (conta ou
+    // cartão excluído) não devem aparecer: caso contrário o extrato antigo
+    // reaparece depois que o usuário apaga contas/cartões.
+    const allConns = (conns ?? []) as Connection[];
+    const activeConns: Connection[] = [];
+    const seenConnector = new Set<string>();
+    for (const c of allConns) {
+      if (c.status === "deleted") continue;
+      const key = (c.connector_name ?? c.id).trim().toLowerCase();
+      if (seenConnector.has(key)) continue;
+      seenConnector.add(key);
+      activeConns.push(c);
+    }
+    const activeConnIds = new Set(activeConns.map((c) => c.id));
+    const liveAccountIds = new Set(((accs ?? []) as { id: string }[]).map((a) => a.id));
+    const liveCardIds = new Set(((cards ?? []) as { id: string }[]).map((c) => c.id));
+    // Conta Open Finance válida: ainda existe e, se tem vínculo, o destino
+    // (conta ou cartão) também existe. Contas sem vínculo continuam visíveis
+    // porque é por elas que o usuário autoriza um cartão novo.
+    const validPluggyAccountIds = new Set(
+      ((pluggyAccts ?? []) as {
+        pluggy_account_id: string;
+        linked_account_id: string | null;
+        linked_credit_card_id?: string | null;
+      }[])
+        .filter((pa) => {
+          if (pa.linked_account_id) return liveAccountIds.has(pa.linked_account_id);
+          if (pa.linked_credit_card_id) return liveCardIds.has(pa.linked_credit_card_id);
+          return true;
+        })
+        .map((pa) => pa.pluggy_account_id),
+    );
+    const visibleStaging = ((staging ?? []) as StagingRow[]).filter(
+      (r) =>
+        (!r.connection_id || activeConnIds.has(r.connection_id)) &&
+        validPluggyAccountIds.has(r.pluggy_account_id),
+    );
+
+    setConnections(activeConns);
+    setRows(visibleStaging);
     setAccounts(((accs ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
     setPaymentMethods(((pms ?? []) as any[]).map((p) => ({ id: p.id, name: p.name })));
     setContacts((cts ?? []) as ContactOpt[]);
@@ -593,7 +633,7 @@ export default function ConciliacaoPluggy() {
     const catMap: Record<string, string> = {};
     const payMap: Record<string, string> = {};
     const pmOpts = ((pms ?? []) as { id: string; name: string }[]).map((p) => ({ id: p.id, name: p.name }));
-    for (const r of (staging ?? []) as StagingRow[]) {
+    for (const r of visibleStaging) {
       // Linhas de cartão não recebem conta bancária como destino.
       if (!isCardPluggyAccount(r.pluggy_account_id, cardRoutingMaps)) {
         const fallback = linkedMap[r.pluggy_account_id];
@@ -611,14 +651,14 @@ export default function ConciliacaoPluggy() {
 
     // Descarta seleções salvas que já não são mais pendentes
     const stillPending = new Set(
-      ((staging ?? []) as StagingRow[]).filter((r) => r.status === "pending").map((r) => r.id),
+      visibleStaging.filter((r) => r.status === "pending").map((r) => r.id),
     );
     setSelected((prev) => new Set(Array.from(prev).filter((id) => stillPending.has(id))));
 
 
 
     // Marca quais lançamentos já conciliados viraram transferência (para o badge)
-    const matchedIds = ((staging ?? []) as StagingRow[])
+    const matchedIds = visibleStaging
       .map((r) => r.matched_transaction_id)
       .filter((v): v is string => !!v);
     if (matchedIds.length > 0) {
@@ -850,6 +890,31 @@ export default function ConciliacaoPluggy() {
   };
 
   /** Recalcula nome + CPF/CNPJ da contraparte das linhas pendentes já importadas. */
+  // Descarta o extrato pendente do escopo atual — útil quando o usuário apagou
+  // contas/cartões e quer recomeçar a conciliação sem resíduo.
+  const clearPending = async () => {
+    const ids = rows
+      .filter((r) => r.status === "pending")
+      .filter((r) => connectionId === "all" || r.connection_id === connectionId)
+      .map((r) => r.id);
+    if (ids.length === 0) {
+      toast.info("Não há lançamentos pendentes para limpar.");
+      setClearOpen(false);
+      return;
+    }
+    setClearing(true);
+    const { error } = await supabase.from("pluggy_staging_transactions").delete().in("id", ids);
+    setClearing(false);
+    setClearOpen(false);
+    if (error) {
+      toast.error("Não foi possível limpar o extrato pendente", { description: error.message });
+      return;
+    }
+    setRows((prev) => prev.filter((r) => !ids.includes(r.id)));
+    setSelected(new Set());
+    toast.success(`${ids.length} lançamento(s) pendente(s) removido(s).`);
+  };
+
   const reprocessCounterparties = async () => {
     if (!selectedCompanyId) return;
     const ownDocs = Array.from(ownDocumentSet);
@@ -1669,6 +1734,16 @@ export default function ConciliacaoPluggy() {
             Cadastrar fornecedores/clientes ({bulkContactCandidates.length})
           </Button>
         )}
+        <Button
+          onClick={() => setClearOpen(true)}
+          disabled={clearing || rows.filter((r) => r.status === "pending").length === 0}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          {clearing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+          Limpar extrato pendente
+        </Button>
+
 
       </div>
 
@@ -2451,6 +2526,25 @@ export default function ConciliacaoPluggy() {
         contacts={contacts}
         onDone={() => { setSplitRowId(null); load(); }}
       />
+
+      <Dialog open={clearOpen} onOpenChange={setClearOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Limpar extrato pendente</DialogTitle>
+            <DialogDescription>
+              Os lançamentos pendentes exibidos aqui serão descartados. Lançamentos já conciliados
+              não são afetados. Uma nova sincronização pode trazer o período novamente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClearOpen(false)} disabled={clearing}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => void clearPending()} disabled={clearing}>
+              {clearing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Limpar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       
     </div>
