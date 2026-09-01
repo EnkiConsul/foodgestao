@@ -477,6 +477,11 @@ Deno.serve(async (req) => {
         console.warn('open finance balance implausivel; nao semeia saldo', {
           pluggyAccountId: acc.id,
           reported: ofBalanceInfo.reported,
+          rawReported: ofBalanceInfo.rawReported,
+          closingBalance: (acc as { bankData?: { closingBalance?: number | null } }).bankData?.closingBalance ?? null,
+          automaticallyInvestedBalance:
+            (acc as { bankData?: { automaticallyInvestedBalance?: number | null } }).bankData
+              ?.automaticallyInvestedBalance ?? null,
         });
       }
 
