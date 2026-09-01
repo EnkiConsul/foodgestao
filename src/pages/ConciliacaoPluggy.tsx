@@ -1733,7 +1733,16 @@ export default function ConciliacaoPluggy() {
             <UserPlus className="h-4 w-4 mr-2" />
             Cadastrar fornecedores/clientes ({bulkContactCandidates.length})
           </Button>
-        )}
+        <Button
+          onClick={() => setClearOpen(true)}
+          disabled={clearing || rows.filter((r) => r.status === "pending").length === 0}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          {clearing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+          Limpar extrato pendente
+        </Button>
+
 
       </div>
 
