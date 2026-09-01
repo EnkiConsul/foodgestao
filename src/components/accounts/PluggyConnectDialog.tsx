@@ -171,7 +171,9 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
   const [widgetReady, setWidgetReady] = useState(false);
   const [pending, setPending] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "intro" | "launch" | "framed" | "returning">("idle");
+  const [phase, setPhase] = useState<"idle" | "intro" | "launch" | "framed" | "returning" | "failed">("idle");
+  const [failure, setFailure] = useState<ConnectErrorDescription | null>(null);
+
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [showInterSteps, setShowInterSteps] = useState(false);
   const instanceRef = useRef<any>(null);
