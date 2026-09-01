@@ -5,6 +5,8 @@ import { AlertTriangle, ChevronDown, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { parseEdgeFunctionError } from "@/lib/edgeFunctionError";
+import { describeConnectError, type ConnectErrorDescription } from "@/lib/pluggy/connectErrors";
+
 
 
 interface Props {
@@ -66,6 +68,8 @@ function clearResume() {
 // Finance. Precisam ser consumidos aqui, senão o widget é reaberto do zero e o
 // usuário volta a ver a tela de boas-vindas da Pluggy.
 const RETURN_PARAMS = ["itemId", "item_id"] as const;
+const ERROR_PARAMS = ["error", "error_code", "errorCode"] as const;
+const ERROR_MESSAGE_PARAMS = ["error_description", "errorDescription", "error_message"] as const;
 
 function readReturnItemId(): string | null {
   if (typeof window === "undefined") return null;
@@ -79,16 +83,38 @@ function readReturnItemId(): string | null {
   return null;
 }
 
-/** Voltamos do consentimento do banco com um item já autorizado? */
+/** O banco devolveu um erro de autorização na URL de retorno? */
+function readReturnError(): { code: string | null; message: string | null } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const url = new URL(window.location.href);
+    let code: string | null = null;
+    for (const key of ERROR_PARAMS) {
+      const value = url.searchParams.get(key);
+      if (value) { code = value; break; }
+    }
+    let message: string | null = null;
+    for (const key of ERROR_MESSAGE_PARAMS) {
+      const value = url.searchParams.get(key);
+      if (value) { message = value; break; }
+    }
+    const status = url.searchParams.get("status");
+    if (!code && !message && status?.toLowerCase() !== "error") return null;
+    return { code, message };
+  } catch { /* noop */ }
+  return null;
+}
+
+/** Voltamos do consentimento do banco com um item já autorizado (ou com erro)? */
 export function hasPluggyReturn(): boolean {
-  return !!readReturnItemId();
+  return !!readReturnItemId() || !!readReturnError();
 }
 
 function clearReturnParams() {
   try {
     const url = new URL(window.location.href);
     let changed = false;
-    for (const key of RETURN_PARAMS) {
+    for (const key of [...RETURN_PARAMS, ...ERROR_PARAMS, ...ERROR_MESSAGE_PARAMS, "status"]) {
       if (url.searchParams.has(key)) { url.searchParams.delete(key); changed = true; }
     }
     if (!changed) return;
@@ -96,6 +122,7 @@ function clearReturnParams() {
     window.history.replaceState({}, "", `${url.pathname}${search ? `?${search}` : ""}${url.hash}`);
   } catch { /* noop */ }
 }
+
 
 
 function loadScript(): Promise<void> {
@@ -146,7 +173,9 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
   const [widgetReady, setWidgetReady] = useState(false);
   const [pending, setPending] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "intro" | "launch" | "framed" | "returning">("idle");
+  const [phase, setPhase] = useState<"idle" | "intro" | "launch" | "framed" | "returning" | "failed">("idle");
+  const [failure, setFailure] = useState<ConnectErrorDescription | null>(null);
+
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [showInterSteps, setShowInterSteps] = useState(false);
   const instanceRef = useRef<any>(null);
@@ -162,6 +191,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
       setPhase("idle");
       setShowInterSteps(false);
       setDontShowAgain(false);
+      setFailure(null);
       return;
     }
     if (isFramed()) {
@@ -182,11 +212,39 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
       return;
     }
 
+    // Voltamos com erro do banco: a autorização não foi concluída.
+    const returnError = readReturnError();
+    if (returnError) {
+      clearReturnParams();
+      clearResume();
+      setPending(false);
+      setFailure(describeConnectError(returnError));
+      setPhase("failed");
+      return;
+    }
+
     let dismissed = false;
     try { dismissed = localStorage.getItem(INTRO_KEY) === "1"; } catch { /* noop */ }
     const skip = dismissed || hasPluggyResume() || !!itemIdToUpdate;
     setPhase(skip ? "launch" : "intro");
   }, [open, itemIdToUpdate, onOpenChange]);
+
+  /** Recomeça a conexão do zero, descartando qualquer estado retomado. */
+  const retryConnect = useCallback(() => {
+    clearResume();
+    clearReturnParams();
+    finishedRef.current = false;
+    launchedRef.current = false;
+    requestIdRef.current = null;
+    returnedItemIdRef.current = null;
+    setFailure(null);
+    setError(null);
+    setPending(false);
+    setWidgetReady(false);
+    setChecking(false);
+    setPhase("launch");
+  }, []);
+
 
 
 
@@ -417,9 +475,16 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           },
           onError: (err: any) => {
             console.error("PluggyConnect error", err);
-            setError(err?.message ?? "Erro na conexão");
+            const described = describeConnectError({
+              code: err?.code ?? err?.data?.code ?? null,
+              message: err?.message ?? err?.data?.message ?? null,
+            });
             setWidgetReady(false);
+            setPending(false);
+            setFailure(described);
+            setPhase("failed");
           },
+
           onClose: () => {
             // Não limpa o resume: o usuário pode ter concluído no app do banco.
             setWidgetReady(false);
@@ -584,6 +649,39 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     );
   }
 
+  if (phase === "failed" && failure) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Falha na autorização do banco"
+      >
+        <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+            <div>
+              <h2 className="text-lg font-semibold">{failure.title}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{failure.message}</p>
+            </div>
+          </div>
+          <p className="mt-4 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+            {failure.hint}
+          </p>
+          {failure.code && (
+            <p className="mt-3 text-xs text-muted-foreground">Código do banco: {failure.code}</p>
+          )}
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { clearResume(); onOpenChange(false); }}>
+              Fechar
+            </Button>
+            <Button onClick={retryConnect}>Tentar novamente</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (widgetReady && !error && !pending) return null;
 
 
@@ -606,28 +704,39 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
             : "Uma janela segura será aberta para você autenticar-se no seu banco."}
         </p>
         {pending && !error && (
-          <p className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
-            Travou na tela do banco pedindo o <strong>“Módulo de Segurança”</strong>? Autorize pelo
-            app do banco no celular (leitura do QR Code) ou repita a conexão pelo navegador do
-            telefone. Depois volte aqui e clique em “Já autorizei, verificar agora”.
-          </p>
+          <>
+            <p className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+              Travou na tela do banco pedindo o <strong>“Módulo de Segurança”</strong>? Autorize pelo
+              app do banco no celular (leitura do QR Code) ou repita a conexão pelo navegador do
+              telefone. Depois volte aqui e clique em “Já autorizei, verificar agora”.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Se apareceu uma tela de erro no site do banco, a autorização não foi concluída — use
+              “Tentar novamente”.
+            </p>
+          </>
         )}
+
         <div className="flex items-center justify-center py-6">
           {(loading || (pending && !error)) && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
           {error && <p className="text-sm text-destructive text-center">{error}</p>}
         </div>
         {(error || pending) && (
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             {pending && !error && (
               <Button onClick={manualCheck} disabled={checking}>
                 {checking ? "Verificando…" : "Já autorizei, verificar agora"}
               </Button>
             )}
+            <Button variant="outline" onClick={retryConnect}>
+              Tentar novamente
+            </Button>
             <Button variant="outline" onClick={() => { clearResume(); onOpenChange(false); }}>
               Fechar
             </Button>
           </div>
         )}
+
       </div>
     </div>
   );
