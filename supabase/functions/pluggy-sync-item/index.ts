@@ -470,7 +470,15 @@ Deno.serve(async (req) => {
       const transferNumber = (acc as { bankData?: { transferNumber?: string | null } }).bankData?.transferNumber ?? null;
       const ofAgency = extractAgencyFromTransferNumber(transferNumber);
       const ofAccountType = inferOpenFinanceAccountType(sourceName, bankSlug, acc.subtype ?? null);
-      const ofBalance = typeof acc.balance === 'number' ? acc.balance : null;
+      const ofBalanceInfo = resolveOpenFinanceBalance(acc);
+      const ofBalance = ofBalanceInfo.seed;
+      if (ofBalanceInfo.implausible) {
+        console.warn('open finance balance implausivel; nao semeia saldo', {
+          pluggyAccountId: acc.id,
+          reported: ofBalanceInfo.reported,
+        });
+      }
+
 
       const { data: upserted } = await admin.from('pluggy_accounts').upsert({
         connection_id: conn.id,
