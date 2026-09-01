@@ -540,8 +540,43 @@ export default function ConciliacaoPluggy() {
       });
     }
 
-    setConnections((conns ?? []) as Connection[]);
-    setRows((staging ?? []) as StagingRow[]);
+    // Conexões encerradas e contas Open Finance sem vínculo válido (conta ou
+    // cartão excluído) não devem aparecer: caso contrário o extrato antigo
+    // reaparece depois que o usuário apaga contas/cartões.
+    const allConns = (conns ?? []) as Connection[];
+    const activeConns: Connection[] = [];
+    const seenConnector = new Set<string>();
+    for (const c of allConns) {
+      if (c.status === "deleted") continue;
+      const key = (c.connector_name ?? c.id).trim().toLowerCase();
+      if (seenConnector.has(key)) continue;
+      seenConnector.add(key);
+      activeConns.push(c);
+    }
+    const activeConnIds = new Set(activeConns.map((c) => c.id));
+    const liveAccountIds = new Set(((accs ?? []) as { id: string }[]).map((a) => a.id));
+    const liveCardIds = new Set(((cards ?? []) as { id: string }[]).map((c) => c.id));
+    const linkedPluggyAccountIds = new Set(
+      ((pluggyAccts ?? []) as {
+        pluggy_account_id: string;
+        linked_account_id: string | null;
+        linked_credit_card_id?: string | null;
+      }[])
+        .filter(
+          (pa) =>
+            (pa.linked_account_id && liveAccountIds.has(pa.linked_account_id)) ||
+            (pa.linked_credit_card_id && liveCardIds.has(pa.linked_credit_card_id)),
+        )
+        .map((pa) => pa.pluggy_account_id),
+    );
+    const visibleStaging = ((staging ?? []) as StagingRow[]).filter(
+      (r) =>
+        (!r.connection_id || activeConnIds.has(r.connection_id)) &&
+        linkedPluggyAccountIds.has(r.pluggy_account_id),
+    );
+
+    setConnections(activeConns);
+    setRows(visibleStaging);
     setAccounts(((accs ?? []) as any[]).map((a) => ({ id: a.id, name: a.name })));
     setPaymentMethods(((pms ?? []) as any[]).map((p) => ({ id: p.id, name: p.name })));
     setContacts((cts ?? []) as ContactOpt[]);
