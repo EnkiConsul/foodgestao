@@ -47,3 +47,29 @@ Deno.test("sem saldo reportado", () => {
   assertEquals(r.seed, null);
   assertEquals(r.implausible, false);
 });
+
+Deno.test("negativo com aplicação automática que cobre o descoberto usa o saldo disponível", () => {
+  const r = resolveOpenFinanceBalance({
+    type: "BANK",
+    subtype: "CHECKING_ACCOUNT",
+    balance: -53.26,
+    bankData: { closingBalance: -53.26, automaticallyInvestedBalance: 100.5 },
+  });
+  assertEquals(r.reported, 47.24);
+  assertEquals(r.rawReported, -53.26);
+  assertEquals(r.seed, 47.24);
+  assertEquals(r.implausible, false);
+  assertEquals(r.source, "open_finance");
+});
+
+Deno.test("santander: aplicação automática insuficiente mantém descarte", () => {
+  const r = resolveOpenFinanceBalance({
+    type: "BANK",
+    subtype: "CHECKING_ACCOUNT",
+    balance: -53.26,
+    bankData: { closingBalance: -53.26, automaticallyInvestedBalance: 0.08 },
+  });
+  assertEquals(r.seed, null);
+  assertEquals(r.implausible, true);
+  assertEquals(r.source, "open_finance_descartado");
+});
