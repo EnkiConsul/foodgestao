@@ -649,6 +649,39 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     );
   }
 
+  if (phase === "failed" && failure) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Falha na autorização do banco"
+      >
+        <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+            <div>
+              <h2 className="text-lg font-semibold">{failure.title}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{failure.message}</p>
+            </div>
+          </div>
+          <p className="mt-4 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+            {failure.hint}
+          </p>
+          {failure.code && (
+            <p className="mt-3 text-xs text-muted-foreground">Código do banco: {failure.code}</p>
+          )}
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { clearResume(); onOpenChange(false); }}>
+              Fechar
+            </Button>
+            <Button onClick={retryConnect}>Tentar novamente</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (widgetReady && !error && !pending) return null;
 
 
@@ -671,12 +704,19 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
             : "Uma janela segura será aberta para você autenticar-se no seu banco."}
         </p>
         {pending && !error && (
-          <p className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
-            Travou na tela do banco pedindo o <strong>“Módulo de Segurança”</strong>? Autorize pelo
-            app do banco no celular (leitura do QR Code) ou repita a conexão pelo navegador do
-            telefone. Depois volte aqui e clique em “Já autorizei, verificar agora”.
-          </p>
+          <>
+            <p className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+              Travou na tela do banco pedindo o <strong>“Módulo de Segurança”</strong>? Autorize pelo
+              app do banco no celular (leitura do QR Code) ou repita a conexão pelo navegador do
+              telefone. Depois volte aqui e clique em “Já autorizei, verificar agora”.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Se apareceu uma tela de erro no site do banco, a autorização não foi concluída — use
+              “Tentar novamente”.
+            </p>
+          </>
         )}
+
         <div className="flex items-center justify-center py-6">
           {(loading || (pending && !error)) && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
           {error && <p className="text-sm text-destructive text-center">{error}</p>}
