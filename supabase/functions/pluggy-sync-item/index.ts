@@ -624,6 +624,9 @@ Deno.serve(async (req) => {
               context: 'pj',
               initial_balance: ofBalance ?? 0,
               current_balance: ofBalance ?? 0,
+              bank_balance: ofBalanceInfo.reported,
+              bank_balance_at: ofBalanceInfo.reported !== null ? new Date().toISOString() : null,
+              bank_balance_source: ofBalanceInfo.reported !== null ? 'open_finance' : null,
               color: '#1B3A5C',
               icon: 'wallet',
               is_active: true,
@@ -638,6 +641,7 @@ Deno.serve(async (req) => {
               // Usa RPC que habilita a flag do motor financeiro para contornar o guard.
               await admin.rpc('sync_of_account_balance', {
                 _account_id: targetAccountId,
+
                 _new_balance: ofBalance,
               });
             }
