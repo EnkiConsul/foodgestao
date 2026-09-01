@@ -2527,6 +2527,25 @@ export default function ConciliacaoPluggy() {
         onDone={() => { setSplitRowId(null); load(); }}
       />
 
+      <Dialog open={clearOpen} onOpenChange={setClearOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Limpar extrato pendente</DialogTitle>
+            <DialogDescription>
+              Os lançamentos pendentes exibidos aqui serão descartados. Lançamentos já conciliados
+              não são afetados. Uma nova sincronização pode trazer o período novamente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClearOpen(false)} disabled={clearing}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => void clearPending()} disabled={clearing}>
+              {clearing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Limpar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       
     </div>
 
