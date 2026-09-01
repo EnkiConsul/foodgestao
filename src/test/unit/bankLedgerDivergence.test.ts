@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareBankLedger } from "@/lib/transactions/balance";
+import { compareBankLedger, isBankReferenceDiscarded } from "@/lib/transactions/balance";
 
 describe("compareBankLedger", () => {
   it("não aponta divergência quando não há saldo do banco", () => {
@@ -25,5 +25,17 @@ describe("compareBankLedger", () => {
     const r = compareBankLedger(null, 50);
     expect(r.ledger).toBe(0);
     expect(r.diff).toBe(50);
+  });
+});
+
+describe("isBankReferenceDiscarded", () => {
+  it("reconhece a referência descartada pela sincronização", () => {
+    expect(isBankReferenceDiscarded("open_finance_descartado")).toBe(true);
+  });
+
+  it("não descarta a referência normal do Open Finance", () => {
+    expect(isBankReferenceDiscarded("open_finance")).toBe(false);
+    expect(isBankReferenceDiscarded(null)).toBe(false);
+    expect(isBankReferenceDiscarded(undefined)).toBe(false);
   });
 });

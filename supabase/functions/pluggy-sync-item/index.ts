@@ -477,6 +477,11 @@ Deno.serve(async (req) => {
         console.warn('open finance balance implausivel; nao semeia saldo', {
           pluggyAccountId: acc.id,
           reported: ofBalanceInfo.reported,
+          rawReported: ofBalanceInfo.rawReported,
+          closingBalance: (acc as { bankData?: { closingBalance?: number | null } }).bankData?.closingBalance ?? null,
+          automaticallyInvestedBalance:
+            (acc as { bankData?: { automaticallyInvestedBalance?: number | null } }).bankData
+              ?.automaticallyInvestedBalance ?? null,
         });
       }
 
@@ -556,7 +561,7 @@ Deno.serve(async (req) => {
             await admin.from('accounts').update({
               bank_balance: ofBalanceInfo.reported,
               bank_balance_at: new Date().toISOString(),
-              bank_balance_source: 'open_finance',
+              bank_balance_source: ofBalanceInfo.source,
             }).eq('id', localAcc.id);
           }
 
@@ -634,7 +639,7 @@ Deno.serve(async (req) => {
               current_balance: ofBalance ?? 0,
               bank_balance: ofBalanceInfo.reported,
               bank_balance_at: ofBalanceInfo.reported !== null ? new Date().toISOString() : null,
-              bank_balance_source: ofBalanceInfo.reported !== null ? 'open_finance' : null,
+              bank_balance_source: ofBalanceInfo.source,
               color: '#1B3A5C',
               icon: 'wallet',
               is_active: true,
@@ -657,7 +662,7 @@ Deno.serve(async (req) => {
               await admin.from('accounts').update({
                 bank_balance: ofBalanceInfo.reported,
                 bank_balance_at: new Date().toISOString(),
-                bank_balance_source: 'open_finance',
+                bank_balance_source: ofBalanceInfo.source,
               }).eq('id', targetAccountId);
             }
 
