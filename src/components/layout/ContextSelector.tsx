@@ -13,6 +13,12 @@ export function ContextSelector() {
   // contas novas são PJ-first e nunca veem o espaço pessoal vazio.
   const isLegacyPf = contextType === "pf" || legacyPf.data === true;
   const currentValue = contextType === "pf" ? "pf|null" : `pj|${selectedCompanyId}`;
+  const currentLabel =
+    contextType === "pf"
+      ? "Pessoal"
+      : companies.find((c) => c.id === selectedCompanyId)?.trade_name ||
+        companies.find((c) => c.id === selectedCompanyId)?.name ||
+        "";
 
   const handleChange = (val: string) => {
     const [type, companyId] = val.split("|");
@@ -33,29 +39,30 @@ export function ContextSelector() {
         ) : (
           <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         )}
-        <SelectValue placeholder="Selecione a empresa" />
+        <span className="min-w-0 flex-1 truncate text-left">
+          {currentLabel || "Selecione a empresa"}
+        </span>
       </SelectTrigger>
 
       <SelectContent>
         {isLegacyPf && (
-          <SelectItem value="pf|null" textValue="Pessoal">
+          <SelectItem value="pf|null">
             <span className="flex items-center gap-2">
               <User aria-hidden className="h-3.5 w-3.5" />
-              <SelectItemText>Pessoal</SelectItemText>
+              Pessoal
             </span>
           </SelectItem>
         )}
         {companies.map((c) => (
-          <SelectItem key={c.id} value={`pj|${c.id}`} textValue={c.trade_name || c.name}>
+          <SelectItem key={c.id} value={`pj|${c.id}`}>
             <span className="flex items-center gap-2">
               <Building2 aria-hidden className="h-3.5 w-3.5" />
-              <SelectItemText>
-                <span className="truncate max-w-[140px]">{c.trade_name || c.name}</span>
-              </SelectItemText>
+              <span className="truncate max-w-[220px]">{c.trade_name || c.name}</span>
             </span>
           </SelectItem>
         ))}
       </SelectContent>
+
 
     </Select>
   );
