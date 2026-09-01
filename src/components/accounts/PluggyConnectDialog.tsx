@@ -475,9 +475,16 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           },
           onError: (err: any) => {
             console.error("PluggyConnect error", err);
-            setError(err?.message ?? "Erro na conexão");
+            const described = describeConnectError({
+              code: err?.code ?? err?.data?.code ?? null,
+              message: err?.message ?? err?.data?.message ?? null,
+            });
             setWidgetReady(false);
+            setPending(false);
+            setFailure(described);
+            setPhase("failed");
           },
+
           onClose: () => {
             // Não limpa o resume: o usuário pode ter concluído no app do banco.
             setWidgetReady(false);
