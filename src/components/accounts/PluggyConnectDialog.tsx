@@ -722,17 +722,21 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           {error && <p className="text-sm text-destructive text-center">{error}</p>}
         </div>
         {(error || pending) && (
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             {pending && !error && (
               <Button onClick={manualCheck} disabled={checking}>
                 {checking ? "Verificando…" : "Já autorizei, verificar agora"}
               </Button>
             )}
+            <Button variant="outline" onClick={retryConnect}>
+              Tentar novamente
+            </Button>
             <Button variant="outline" onClick={() => { clearResume(); onOpenChange(false); }}>
               Fechar
             </Button>
           </div>
         )}
+
       </div>
     </div>
   );
