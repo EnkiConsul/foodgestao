@@ -556,17 +556,20 @@ export default function ConciliacaoPluggy() {
     const activeConnIds = new Set(activeConns.map((c) => c.id));
     const liveAccountIds = new Set(((accs ?? []) as { id: string }[]).map((a) => a.id));
     const liveCardIds = new Set(((cards ?? []) as { id: string }[]).map((c) => c.id));
-    const linkedPluggyAccountIds = new Set(
+    // Conta Open Finance válida: ainda existe e, se tem vínculo, o destino
+    // (conta ou cartão) também existe. Contas sem vínculo continuam visíveis
+    // porque é por elas que o usuário autoriza um cartão novo.
+    const validPluggyAccountIds = new Set(
       ((pluggyAccts ?? []) as {
         pluggy_account_id: string;
         linked_account_id: string | null;
         linked_credit_card_id?: string | null;
       }[])
-        .filter(
-          (pa) =>
-            (pa.linked_account_id && liveAccountIds.has(pa.linked_account_id)) ||
-            (pa.linked_credit_card_id && liveCardIds.has(pa.linked_credit_card_id)),
-        )
+        .filter((pa) => {
+          if (pa.linked_account_id) return liveAccountIds.has(pa.linked_account_id);
+          if (pa.linked_credit_card_id) return liveCardIds.has(pa.linked_credit_card_id);
+          return true;
+        })
         .map((pa) => pa.pluggy_account_id),
     );
     const visibleStaging = ((staging ?? []) as StagingRow[]).filter(
