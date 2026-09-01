@@ -575,7 +575,7 @@ export default function ConciliacaoPluggy() {
     const visibleStaging = ((staging ?? []) as StagingRow[]).filter(
       (r) =>
         (!r.connection_id || activeConnIds.has(r.connection_id)) &&
-        linkedPluggyAccountIds.has(r.pluggy_account_id),
+        validPluggyAccountIds.has(r.pluggy_account_id),
     );
 
     setConnections(activeConns);
@@ -631,7 +631,7 @@ export default function ConciliacaoPluggy() {
     const catMap: Record<string, string> = {};
     const payMap: Record<string, string> = {};
     const pmOpts = ((pms ?? []) as { id: string; name: string }[]).map((p) => ({ id: p.id, name: p.name }));
-    for (const r of (staging ?? []) as StagingRow[]) {
+    for (const r of visibleStaging) {
       // Linhas de cartão não recebem conta bancária como destino.
       if (!isCardPluggyAccount(r.pluggy_account_id, cardRoutingMaps)) {
         const fallback = linkedMap[r.pluggy_account_id];
@@ -649,14 +649,14 @@ export default function ConciliacaoPluggy() {
 
     // Descarta seleções salvas que já não são mais pendentes
     const stillPending = new Set(
-      ((staging ?? []) as StagingRow[]).filter((r) => r.status === "pending").map((r) => r.id),
+      visibleStaging.filter((r) => r.status === "pending").map((r) => r.id),
     );
     setSelected((prev) => new Set(Array.from(prev).filter((id) => stillPending.has(id))));
 
 
 
     // Marca quais lançamentos já conciliados viraram transferência (para o badge)
-    const matchedIds = ((staging ?? []) as StagingRow[])
+    const matchedIds = visibleStaging
       .map((r) => r.matched_transaction_id)
       .filter((v): v is string => !!v);
     if (matchedIds.length > 0) {
