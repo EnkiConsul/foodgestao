@@ -11952,10 +11952,6 @@ export type Database = {
         Args: { p_msg_id: number }
         Returns: boolean
       }
-      delete_email: {
-        Args: { message_id: number; queue_name: string }
-        Returns: boolean
-      }
       dp_adicionar_dias_uteis: {
         Args: { _base: string; _dias: number; _timezone: string }
         Returns: string
@@ -12562,11 +12558,6 @@ export type Database = {
         }
         Returns: string
       }
-      email_queue_dispatch: { Args: never; Returns: undefined }
-      enqueue_email: {
-        Args: { payload: Json; queue_name: string }
-        Returns: number
-      }
       enqueue_open_finance_scheduled_syncs: { Args: never; Returns: number }
       enqueue_uncategorized_for_ai: {
         Args: { p_company_id?: string; p_context?: string; p_limit?: number }
@@ -12793,15 +12784,6 @@ export type Database = {
           _of_account_id: string
         }
         Returns: string
-      }
-      move_to_dlq: {
-        Args: {
-          dlq_name: string
-          message_id: number
-          payload: Json
-          source_queue: string
-        }
-        Returns: number
       }
       open_finance_sync_health: { Args: { _company_id: string }; Returns: Json }
       pay_credit_card_invoice: {
@@ -13116,14 +13098,6 @@ export type Database = {
         Returns: {
           message: Json
           msg_id: number
-        }[]
-      }
-      read_email_batch: {
-        Args: { batch_size: number; queue_name: string; vt: number }
-        Returns: {
-          message: Json
-          msg_id: number
-          read_ct: number
         }[]
       }
       recalc_credit_card_invoice_totals: {
