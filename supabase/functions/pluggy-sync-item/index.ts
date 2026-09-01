@@ -4,6 +4,7 @@ import { getItem, listAccounts, listItems, listTransactions, refreshItem, waitFo
 import { buildDescription, counterpartyName } from '../_shared/tx-description.ts';
 import { extractCounterpartyDocument } from '../_shared/counterparty-doc.ts';
 import { materializePluggyItemV2 } from '../_shared/pluggy-v2-materialize.ts';
+import { resolveOpenFinanceBalance } from '../_shared/of-balance.ts';
 
 function normalizeLabel(value: string | null | undefined): string {
   return String(value ?? '')
@@ -470,7 +471,15 @@ Deno.serve(async (req) => {
       const transferNumber = (acc as { bankData?: { transferNumber?: string | null } }).bankData?.transferNumber ?? null;
       const ofAgency = extractAgencyFromTransferNumber(transferNumber);
       const ofAccountType = inferOpenFinanceAccountType(sourceName, bankSlug, acc.subtype ?? null);
-      const ofBalance = typeof acc.balance === 'number' ? acc.balance : null;
+      const ofBalanceInfo = resolveOpenFinanceBalance(acc);
+      const ofBalance = ofBalanceInfo.seed;
+      if (ofBalanceInfo.implausible) {
+        console.warn('open finance balance implausivel; nao semeia saldo', {
+          pluggyAccountId: acc.id,
+          reported: ofBalanceInfo.reported,
+        });
+      }
+
 
       const { data: upserted } = await admin.from('pluggy_accounts').upsert({
         connection_id: conn.id,
@@ -542,7 +551,15 @@ Deno.serve(async (req) => {
               _account_id: localAcc.id,
               _new_balance: ofBalance,
             });
+          } else if (ofBalanceInfo.reported !== null) {
+            // Saldo implausível: guarda apenas como referência do banco.
+            await admin.from('accounts').update({
+              bank_balance: ofBalanceInfo.reported,
+              bank_balance_at: new Date().toISOString(),
+              bank_balance_source: 'open_finance',
+            }).eq('id', localAcc.id);
           }
+
 
           const metadataPatch: Record<string, string> = {};
           if (ofAgency && !localAcc.agency) metadataPatch.agency = ofAgency;
@@ -615,6 +632,9 @@ Deno.serve(async (req) => {
               context: 'pj',
               initial_balance: ofBalance ?? 0,
               current_balance: ofBalance ?? 0,
+              bank_balance: ofBalanceInfo.reported,
+              bank_balance_at: ofBalanceInfo.reported !== null ? new Date().toISOString() : null,
+              bank_balance_source: ofBalanceInfo.reported !== null ? 'open_finance' : null,
               color: '#1B3A5C',
               icon: 'wallet',
               is_active: true,
@@ -629,9 +649,18 @@ Deno.serve(async (req) => {
               // Usa RPC que habilita a flag do motor financeiro para contornar o guard.
               await admin.rpc('sync_of_account_balance', {
                 _account_id: targetAccountId,
+
                 _new_balance: ofBalance,
               });
+            } else if (ofBalanceInfo.reported !== null) {
+              // Saldo implausível: guarda apenas como referência do banco.
+              await admin.from('accounts').update({
+                bank_balance: ofBalanceInfo.reported,
+                bank_balance_at: new Date().toISOString(),
+                bank_balance_source: 'open_finance',
+              }).eq('id', targetAccountId);
             }
+
             // Completa agência apenas quando ainda está vazia (não sobrescreve edição manual).
             if (ofAgency) {
               const { data: localAcc } = await admin
