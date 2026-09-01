@@ -551,7 +551,15 @@ Deno.serve(async (req) => {
               _account_id: localAcc.id,
               _new_balance: ofBalance,
             });
+          } else if (ofBalanceInfo.reported !== null) {
+            // Saldo implausível: guarda apenas como referência do banco.
+            await admin.from('accounts').update({
+              bank_balance: ofBalanceInfo.reported,
+              bank_balance_at: new Date().toISOString(),
+              bank_balance_source: 'open_finance',
+            }).eq('id', localAcc.id);
           }
+
 
           const metadataPatch: Record<string, string> = {};
           if (ofAgency && !localAcc.agency) metadataPatch.agency = ofAgency;
