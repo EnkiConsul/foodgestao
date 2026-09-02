@@ -604,9 +604,9 @@ export default function ContasBancarias() {
                     })()}
 
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                      {a.context === "pj" && a.company_id
-                        ? companies.find((c) => c.id === a.company_id)?.trade_name || companies.find((c) => c.id === a.company_id)?.name || "Empresa"
-                        : "Pessoal"}
+                      {companies.find((c) => c.id === a.company_id)?.trade_name ||
+                        companies.find((c) => c.id === a.company_id)?.name ||
+                        "Empresa"}
                       {" · "}Saldo inicial: {maskBRL(Number(a.initial_balance))}
                     </p>
                   </div>

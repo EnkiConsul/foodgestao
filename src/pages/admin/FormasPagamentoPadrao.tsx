@@ -79,15 +79,15 @@ export default function AdminFormasPagamentoPadrao() {
       toast.error("Informe o nome da forma de pagamento");
       return;
     }
-    if (!form.visible_pf && !form.visible_pj) {
-      toast.error("Selecione pelo menos um contexto (Pessoal ou Empresa)");
+    if (!form.visible_pj) {
+      toast.error("A forma de pagamento precisa estar disponível para empresas");
       return;
     }
     setSaving(true);
     const payload = {
       name,
       sort_order: Number(form.sort_order) || 0,
-      visible_pf: !!form.visible_pf,
+      visible_pf: false,
       visible_pj: !!form.visible_pj,
       is_active: form.is_active !== false,
     };
@@ -164,9 +164,6 @@ export default function AdminFormasPagamentoPadrao() {
                     <Badge variant={item.is_active ? "secondary" : "outline"} className="text-[10px] h-4 px-1.5">
                       {item.is_active ? "Ativo" : "Inativo"}
                     </Badge>
-                    {item.visible_pf && (
-                      <Badge variant="outline" className="text-[10px] h-4 px-1.5">Pessoal</Badge>
-                    )}
                     {item.visible_pj && (
                       <Badge variant="outline" className="text-[10px] h-4 px-1.5">Empresa</Badge>
                     )}
@@ -224,14 +221,6 @@ export default function AdminFormasPagamentoPadrao() {
                 type="number"
                 value={form.sort_order ?? 0}
                 onChange={(e) => setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="tpl-pf">Criar para Pessoa Física (Pessoal)</Label>
-              <Switch
-                id="tpl-pf"
-                checked={!!form.visible_pf}
-                onCheckedChange={(v) => setForm((f) => ({ ...f, visible_pf: v }))}
               />
             </div>
             <div className="flex items-center justify-between">
