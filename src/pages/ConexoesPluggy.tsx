@@ -286,9 +286,16 @@ export default function ConexoesPluggy() {
             Gerencie os bancos conectados via Pluggy e sincronize lançamentos.
           </p>
         </div>
+        <Button variant="outline" onClick={verificarPendentes} disabled={verificando}>
+          {verificando
+            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            : <RefreshCw className="h-4 w-4 mr-2" />}
+          Verificar conexões pendentes
+        </Button>
         <Button onClick={() => { setReconnectItemId(undefined); setConnectOpen(true); }}>
           <Plus className="h-4 w-4 mr-2" /> Conectar banco
         </Button>
+
       </div>
 
       {!loading && pendingCount > 0 && (
