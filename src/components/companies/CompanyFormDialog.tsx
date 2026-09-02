@@ -132,7 +132,6 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <>
               <div className="space-y-2">
                 <Label htmlFor="company-name">Razão Social *</Label>
                 <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Razão social da empresa" required maxLength={200} />
@@ -177,7 +176,6 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
                 <Label htmlFor="company-address">Endereço</Label>
                 <Input id="company-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" maxLength={300} />
               </div>
-          </>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={saving || cnpjLookupPending || !name.trim()}>
