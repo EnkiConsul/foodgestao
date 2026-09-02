@@ -128,15 +128,12 @@ export function CategoryRow({
           </TableCell>
           <TableCell className="py-1.5 hidden md:table-cell">
             <div className="flex items-center gap-1 flex-wrap">
-              {(cat as any).visible_pf && (
-                <Badge variant="outline" className="text-[10px] h-4 px-1.5">PF</Badge>
-              )}
               {(catCompanyMap.get(cat.id) || []).map((compId) => (
                 <Badge key={compId} variant="outline" className="text-[10px] h-4 px-1.5">
                   {companyMap.get(compId) ?? "Empresa"}
                 </Badge>
               ))}
-              {!(cat as any).visible_pf && !(catCompanyMap.get(cat.id) || []).length && (
+              {!(catCompanyMap.get(cat.id) || []).length && (
                 <span className="text-[10px] text-muted-foreground">Sem visibilidade</span>
               )}
             </div>

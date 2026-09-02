@@ -592,9 +592,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
   const paymentMethodOptions: SearchableSelectOption[] = filteredPaymentMethods.map((pm) => ({
     value: pm.id,
     label: pm.name,
-    trailing: pm.visible_pf ? (
-      <Badge variant="outline" className="shrink-0 text-[10px] h-4 px-1.5">Pessoal</Badge>
-    ) : undefined,
+    trailing: undefined,
   }));
 
 

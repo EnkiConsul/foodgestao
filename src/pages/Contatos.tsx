@@ -198,9 +198,6 @@ export default function Contatos() {
                     )}
                   </div>
                   <div className="flex items-center gap-1 mt-1 flex-wrap">
-                    {(contact as any).visible_pf && (
-                      <Badge variant="outline" className="text-[10px] h-4 px-1.5">Pessoal</Badge>
-                    )}
                     {(companyBadgesMap.get(contact.id) ?? []).map((name, i) => (
                       <Badge key={i} variant="secondary" className="text-[10px] h-4 px-1.5">{name}</Badge>
                     ))}

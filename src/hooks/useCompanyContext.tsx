@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { useLegacyPfData } from "@/hooks/useLegacyPfData";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeRealtime } from "@/lib/realtimeHub";
 import { toast } from "sonner";
@@ -104,13 +103,12 @@ function loadFromStorage(): { contextType: ContextType; selectedCompanyId: strin
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.contextType === "pf" || parsed.contextType === "pj") {
-        return { contextType: parsed.contextType, selectedCompanyId: parsed.selectedCompanyId ?? null };
+      if (parsed.contextType === "pj") {
+        return { contextType: "pj", selectedCompanyId: parsed.selectedCompanyId ?? null };
       }
     }
   } catch {}
-  // PJ-first: contas novas começam no contexto empresarial; o espaço pessoal
-  // não é mais criado automaticamente.
+  // A plataforma é exclusivamente empresarial: o único contexto é PJ.
   return { contextType: "pj", selectedCompanyId: null };
 }
 
@@ -124,9 +122,6 @@ function persist(contextType: ContextType, selectedCompanyId: string | null) {
 export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const legacyPf = useLegacyPfData();
-  const legacyPfRef = useRef<boolean>(false);
-  legacyPfRef.current = legacyPf.data === true;
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -175,19 +170,12 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
 
     // Validação do selectedCompanyId salvo: se o usuário perdeu acesso à
     // empresa, limpa e seleciona a primeira acessível. Sem empresa
-    // disponível, só cai para PF quando há dados PF legados; caso
-    // contrário permanece em PJ (o app segue para o fluxo de onboarding).
+    // disponível, permanece em PJ (o app segue para o fluxo de onboarding).
     setSelectedCompanyId((prev) => {
       if (contextTypeRef.current !== "pj") return prev;
       if (prev && list.some((c) => c.id === prev)) return prev;
       const fallback = list[0]?.id ?? null;
-      if (!fallback) {
-        if (legacyPfRef.current) {
-          setContextType("pf");
-          persist("pf", null);
-        }
-        return null;
-      }
+      if (!fallback) return null;
       persist("pj", fallback);
       return fallback;
     });

@@ -317,10 +317,6 @@ export function ChartAccountFormDialog({ open, onOpenChange, onSaved, editAccoun
           <div className="space-y-3 border-t pt-4">
             <Label className="text-sm font-semibold">Visibilidade</Label>
             <p className="text-xs text-muted-foreground">Selecione onde esta conta ficará disponível</p>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
-              Pessoa Física (PF)
-            </label>
             {companies.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

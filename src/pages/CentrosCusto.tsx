@@ -175,9 +175,6 @@ export default function CentrosCusto() {
                     <Badge variant={item.is_active ? "secondary" : "outline"} className="text-[10px] h-4 px-1.5">
                       {item.is_active ? "Ativo" : "Inativo"}
                     </Badge>
-                    {item.visible_pf && (
-                      <Badge variant="outline" className="text-[10px] h-4 px-1.5">Pessoal</Badge>
-                    )}
                     {(companiesByCostCenter[item.id] ?? []).map((name, i) => (
                       <Badge key={i} variant="outline" className="text-[10px] h-4 px-1.5">{name}</Badge>
                     ))}

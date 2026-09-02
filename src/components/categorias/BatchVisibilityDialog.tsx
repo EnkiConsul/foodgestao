@@ -35,10 +35,6 @@ export function BatchVisibilityDialog({
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">Selecione onde as categorias ficarão disponíveis</p>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
-            Pessoa Física (PF)
-          </label>
           {companies.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresas</p>

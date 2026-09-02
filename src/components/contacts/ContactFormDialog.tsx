@@ -118,7 +118,7 @@ export function ContactFormDialog({
   const [document, setDocument] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [visiblePf, setVisiblePf] = useState(true);
+  const visiblePf = false;
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const cnpjLookup = useCnpjLookup();
@@ -133,7 +133,6 @@ export function ContactFormDialog({
       setDocument(editContact.document ?? "");
       setAddress(editContact.address ?? "");
       setNotes(editContact.notes ?? "");
-      setVisiblePf((editContact as any).visible_pf ?? true);
       // Load linked companies
       supabase
         .from("contact_companies" as any)
@@ -145,7 +144,6 @@ export function ContactFormDialog({
     } else {
       setName(defaultName ?? ""); setContactType(defaultContactType ?? "cliente"); setEmail(""); setPhone("");
       setDocument(defaultDocument ? maskCpfCnpj(defaultDocument) : ""); setAddress(""); setNotes("");
-      setVisiblePf(defaultVisiblePf ?? true);
       setSelectedCompanyIds(defaultCompanyIds ?? []);
     }
     // `defaultCompanyIds` entra pela chave estável abaixo para não reabrir o efeito
@@ -188,7 +186,7 @@ export function ContactFormDialog({
     }
 
     if (!visiblePf && selectedCompanyIds.length === 0) {
-      toast.error("Selecione pelo menos uma vinculação (Pessoa Física ou empresa).");
+      toast.error("Selecione pelo menos uma empresa.");
       return;
     }
 
@@ -391,10 +389,6 @@ export function ContactFormDialog({
             <div className="space-y-3 sm:col-span-2">
               <Label>Vinculado a *</Label>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
-                  <span className="text-sm">Pessoa Física (Pessoal)</span>
-                </label>
                 {companies.map((company) => (
                   <label key={company.id} className="flex items-center gap-2 cursor-pointer">
                     <Checkbox

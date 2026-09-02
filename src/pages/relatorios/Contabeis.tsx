@@ -183,7 +183,7 @@ export default function RelatoriosContabeis() {
                 contextLabel={
                   contextType === "pj"
                     ? companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa"
-                    : "Pessoa Física"
+                    : "Empresa"
                 }
               />
             )}
