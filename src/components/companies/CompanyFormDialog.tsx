@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { companySchema, validateWithToast } from "@/lib/validations";
 import { CnpjInput } from "@/components/shared/CnpjInput";
@@ -26,7 +25,6 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [cnpjLookupPending, setCnpjLookupPending] = useState(false);
-  const [profileType, setProfileType] = useState<"pessoal" | "empresarial">("empresarial");
   const [name, setName] = useState("");
   const [tradeName, setTradeName] = useState("");
   const [cnpj, setCnpj] = useState("");
@@ -37,7 +35,6 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
 
   useEffect(() => {
     if (company) {
-      setProfileType((company as any).profile_type === "pessoal" ? "pessoal" : "empresarial");
       setName(company.name);
       setTradeName(company.trade_name ?? "");
       setCnpj(company.cnpj ?? "");
@@ -56,7 +53,6 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
         setAddress(composed);
       }
     } else {
-      setProfileType("empresarial");
       setName("");
       setTradeName("");
       setCnpj("");
@@ -75,9 +71,8 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
       return;
     }
 
-    const isPessoal = profileType === "pessoal";
     const cnpjDigits = cnpj.replace(/\D/g, "");
-    if (!isPessoal && cnpjDigits.length > 0) {
+    if (cnpjDigits.length > 0) {
       if (cnpjDigits.length !== 14) {
         toast.error("CNPJ deve conter 14 dígitos.");
         return;
@@ -90,7 +85,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
 
     const validated = validateWithToast(companySchema, {
       name,
-      trade_name: isPessoal ? null : (tradeName || null),
+      trade_name: tradeName || null,
       cnpj: cnpj || null,
       email: email || null,
       phone: phone || null,
@@ -101,7 +96,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
 
     setSaving(true);
 
-    const payload = { ...validated, user_id: user.id, profile_type: profileType };
+    const payload = { ...validated, user_id: user.id, profile_type: "empresarial" };
 
     let error;
     if (company) {
@@ -137,55 +132,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Tipo de perfil visível apenas ao editar perfis legados PF */}
-          {company && company.profile_type === "pessoal" ? (
-            <div className="space-y-2">
-              <Label>Tipo de Perfil</Label>
-              <RadioGroup value={profileType} onValueChange={(v) => setProfileType(v as "pessoal" | "empresarial")} className="flex gap-4">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="pessoal" id="profile-pessoal" />
-                  <Label htmlFor="profile-pessoal" className="font-normal cursor-pointer">Pessoal</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="empresarial" id="profile-empresarial" />
-                  <Label htmlFor="profile-empresarial" className="font-normal cursor-pointer">Empresarial</Label>
-                </div>
-              </RadioGroup>
-            </div>
-          ) : null}
-          {profileType === "pessoal" ? (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="company-name">Nome Completo *</Label>
-                <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome completo" required maxLength={200} />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="company-cnpj">CPF</Label>
-                  <Input id="company-cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="000.000.000-00" maxLength={20} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company-phone">Telefone</Label>
-                  <Input id="company-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="company-whatsapp">WhatsApp Cadastrado</Label>
-                  <Input id="company-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company-email">E-mail</Label>
-                  <Input id="company-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" maxLength={100} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company-address">Endereço</Label>
-                <Input id="company-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" maxLength={300} />
-              </div>
-            </>
-          ) : (
-            <>
+          <>
               <div className="space-y-2">
                 <Label htmlFor="company-name">Razão Social *</Label>
                 <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Razão social da empresa" required maxLength={200} />
@@ -230,8 +177,7 @@ export function CompanyFormDialog({ open, onOpenChange, onSaved, company }: Comp
                 <Label htmlFor="company-address">Endereço</Label>
                 <Input id="company-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" maxLength={300} />
               </div>
-            </>
-          )}
+          </>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={saving || cnpjLookupPending || !name.trim()}>

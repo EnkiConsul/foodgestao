@@ -59,7 +59,6 @@ export function AdminCompanies() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os tipos</SelectItem>
-              <SelectItem value="pessoal">Pessoal</SelectItem>
               <SelectItem value="empresarial">Empresarial</SelectItem>
             </SelectContent>
           </Select>
