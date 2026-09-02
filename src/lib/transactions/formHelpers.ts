@@ -21,18 +21,29 @@ export type CategoryNode = Tables<"categories"> & { children: CategoryNode[]; de
 export function buildCategoryTree(cats: Tables<"categories">[]): CategoryNode[] {
   const map = new Map<string, CategoryNode>();
   const roots: CategoryNode[] = [];
+  const orphans: CategoryNode[] = [];
   cats.forEach((c) => map.set(c.id, { ...c, children: [], depth: 0 }));
   cats.forEach((c) => {
     const node = map.get(c.id)!;
     if (c.parent_id && map.has(c.parent_id)) {
-      const parent = map.get(c.parent_id)!;
-      node.depth = parent.depth + 1;
-      parent.children.push(node);
+      map.get(c.parent_id)!.children.push(node);
+    } else if (c.parent_id) {
+      // Pai ausente da lista (legado): mantém recuo visual e vai para o fim.
+      node.depth = 1;
+      orphans.push(node);
     } else {
       roots.push(node);
     }
   });
-  return roots;
+  // Profundidade calculada na varredura raiz → filhos, imune à ordem de entrada.
+  const setDepth = (list: CategoryNode[], depth: number) => {
+    list.forEach((n) => {
+      n.depth = depth;
+      if (n.children.length) setDepth(n.children, depth + 1);
+    });
+  };
+  setDepth(roots, 0);
+  return [...roots, ...orphans];
 }
 
 export function flattenCategoryTree(nodes: CategoryNode[]): SearchableSelectOption[] {
