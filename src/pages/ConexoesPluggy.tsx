@@ -360,9 +360,18 @@ export default function ConexoesPluggy() {
       ) : (
         <div className="grid gap-3">
           {connections.map((c) => {
-            const st = statusLabels[c.status] ?? { label: c.status, className: "" };
+            // Item que fica "atualizando" por horas está travado no banco: em vez
+            // de girar para sempre, sinalizamos que precisa de ação (reconectar).
+            const stuckSince = c.last_sync_attempt_at ?? c.last_synced_at;
+            const isStuck = c.status === "updating" && stuckSince
+              ? Date.now() - new Date(stuckSince).getTime() > 6 * 60 * 60 * 1000
+              : false;
+            const st = isStuck
+              ? { label: "Requer atenção", className: "bg-warning/15 text-warning border-warning/30" }
+              : statusLabels[c.status] ?? { label: c.status, className: "" };
             const m = meta[c.id] ?? { count: 0, pending: 0, paused: 0 };
-            const isLoginErr = c.status === "login_error" || c.status === "waiting_user_input";
+            const isLoginErr = c.status === "login_error" || c.status === "waiting_user_input" || isStuck;
+
             return (
               <Card key={c.id}>
                 <CardContent className="p-4 flex items-center gap-4">
