@@ -118,6 +118,7 @@ export default function ConexoesPluggy() {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [verificando, setVerificando] = useState(false);
   const [backfillItem, setBackfillItem] = useState<{ itemId: string; name: string | null } | null>(null);
   // Retorno do consentimento de Open Finance (?itemId=…) precisa abrir o
   // diálogo para concluir a conexão em vez de exigir um novo clique.
