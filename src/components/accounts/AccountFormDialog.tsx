@@ -44,7 +44,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("corrente");
   const [initialBalance, setInitialBalance] = useState("");
-  const [ownerType, setOwnerType] = useState<"pf" | "pj">("pf");
+  const [ownerType, setOwnerType] = useState<"pf" | "pj">("pj");
   const [ownerCompanyId, setOwnerCompanyId] = useState<string | null>(null);
   const [bankSlug, setBankSlug] = useState<string | null>(null);
   const [agency, setAgency] = useState("");
@@ -195,7 +195,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
             </div>
             <div className="space-y-2">
               <Label htmlFor="name">Nome da conta</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Nubank PJ, Itaú Pessoal..." required maxLength={100} />
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Conta Nubank PJ, Itaú Empresas..." required maxLength={100} />
             </div>
           </section>
 
@@ -214,7 +214,6 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
                 >
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pf">Pessoa Física (Pessoal)</SelectItem>
                     {companies.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.trade_name || c.name}</SelectItem>
                     ))}

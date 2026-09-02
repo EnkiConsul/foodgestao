@@ -36,7 +36,7 @@ export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem 
     defaultValues: { name: "", is_active: true },
   });
 
-  const [visiblePf, setVisiblePf] = useState(true);
+  const visiblePf = false;
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]);
 
   const isActive = watch("is_active");
@@ -52,7 +52,6 @@ export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem 
       if (editItem) {
         setValue("name", editItem.name);
         setValue("is_active", editItem.is_active);
-        setVisiblePf(editItem.visible_pf ?? true);
         // Load existing company links
         supabase
           .from("payment_method_companies" as any)
@@ -63,7 +62,6 @@ export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem 
           });
       } else {
         reset({ name: "", is_active: true });
-        setVisiblePf(true);
         setSelectedCompanyIds([]);
       }
     }
@@ -141,10 +139,6 @@ export function PaymentMethodFormDialog({ open, onOpenChange, onSaved, editItem 
           <div className="space-y-3">
             <Label>Vinculado a *</Label>
             <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
-                <span className="text-sm">Pessoa Física (Pessoal)</span>
-              </label>
               {companies.map((company) => (
                 <label key={company.id} className="flex items-center gap-2 cursor-pointer">
                   <Checkbox
