@@ -486,7 +486,10 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
         const idx = parentIndex ? `${parentIndex}.${i + 1}` : `${i + 1}`;
         const g = n as unknown as CategoryGuidance;
         const hint = g.guidance_include || g.ai_description || null;
-        const synthetic = n.children.length > 0 || (n as any).allow_transactions === false;
+        const synthetic =
+          n.children.length > 0 ||
+          (n as any).allow_transactions === false ||
+          (n as any).is_active === false;
         out.push({
           value: n.id,
           label: n.name,
