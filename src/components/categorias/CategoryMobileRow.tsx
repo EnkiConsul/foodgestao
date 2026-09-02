@@ -101,15 +101,12 @@ export function CategoryMobileRow({
         </div>
         <div className="flex flex-wrap items-center gap-1">
           <CategoryTypeBadge type={cat.transaction_type} />
-          {(cat as any).visible_pf && (
-            <Badge variant="outline" className="h-4 px-1.5 text-[10px]">PF</Badge>
-          )}
           {companies.map((compId) => (
             <Badge key={compId} variant="outline" className="h-4 px-1.5 text-[10px]">
               {companyMap.get(compId) ?? "Empresa"}
             </Badge>
           ))}
-          {!(cat as any).visible_pf && companies.length === 0 && (
+          {companies.length === 0 && (
             <span className="text-[10px] text-muted-foreground">Sem visibilidade</span>
           )}
           {!isActive && (

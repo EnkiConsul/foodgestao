@@ -186,7 +186,7 @@ export function ContactFormDialog({
     }
 
     if (!visiblePf && selectedCompanyIds.length === 0) {
-      toast.error("Selecione pelo menos uma vinculação (Pessoa Física ou empresa).");
+      toast.error("Selecione pelo menos uma empresa.");
       return;
     }
 

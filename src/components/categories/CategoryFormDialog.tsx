@@ -725,11 +725,6 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
             <Section title="Visibilidade" description="Selecione onde esta categoria ficará disponível.">
 
-              <label className="flex items-center gap-3 rounded-md border p-3 text-sm cursor-pointer hover:bg-accent/50 transition-colors">
-                <Checkbox checked={visiblePf} onCheckedChange={(v) => setVisiblePf(!!v)} />
-                Pessoa Física (PF)
-              </label>
-
               {companies.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Empresas</p>

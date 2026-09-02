@@ -94,9 +94,7 @@ export default function Hub() {
     : hubCandidates;
 
 
-  const contextLabel = contextType === "pj"
-    ? companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa"
-    : "Pessoa Física";
+  const contextLabel = companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa";
 
   return (
     <div className="mx-auto max-w-6xl">
