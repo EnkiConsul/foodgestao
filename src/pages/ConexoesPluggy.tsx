@@ -189,6 +189,33 @@ export default function ConexoesPluggy() {
     reloadPendingCredit();
   };
 
+  // Alguns bancos concluem a autorização sem devolver a conexão ao navegador
+  // (QR Code / app do banco) e o webhook pode não chegar. Aqui procuramos na
+  // Pluggy as conexões autorizadas que ainda não foram importadas.
+  const verificarPendentes = async () => {
+    if (!selectedCompanyId) return;
+    setVerificando(true);
+    const { data, error } = await supabase.functions.invoke("pluggy-reconcile-items", {
+      body: { company_id: selectedCompanyId },
+    });
+    setVerificando(false);
+    if (error) { toast.error("Não foi possível verificar as conexões pendentes."); return; }
+    const importadas = (data?.imported ?? []) as Array<{ connector_name: string | null }>;
+    if (importadas.length === 0) {
+      toast.info("Nenhuma conexão pendente encontrada na Pluggy.");
+      return;
+    }
+    const nomes = importadas.map((i) => i.connector_name ?? "banco").join(", ");
+    toast.success(
+      importadas.length === 1
+        ? `Conexão importada: ${nomes}`
+        : `${importadas.length} conexões importadas: ${nomes}`,
+    );
+    await load({ silent: true });
+    reloadPendingCredit();
+  };
+
+
   // Autorizações que ficaram presas (usuário desistiu no app do banco) podem ser
   // canceladas para limpar o aviso de "Conexão em andamento".
   const cancelarPendentes = async () => {
