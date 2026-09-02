@@ -118,6 +118,7 @@ export default function ConexoesPluggy() {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [verificando, setVerificando] = useState(false);
   const [backfillItem, setBackfillItem] = useState<{ itemId: string; name: string | null } | null>(null);
   // Retorno do consentimento de Open Finance (?itemId=…) precisa abrir o
   // diálogo para concluir a conexão em vez de exigir um novo clique.
@@ -189,6 +190,33 @@ export default function ConexoesPluggy() {
     reloadPendingCredit();
   };
 
+  // Alguns bancos concluem a autorização sem devolver a conexão ao navegador
+  // (QR Code / app do banco) e o webhook pode não chegar. Aqui procuramos na
+  // Pluggy as conexões autorizadas que ainda não foram importadas.
+  const verificarPendentes = async () => {
+    if (!selectedCompanyId) return;
+    setVerificando(true);
+    const { data, error } = await supabase.functions.invoke("pluggy-reconcile-items", {
+      body: { company_id: selectedCompanyId },
+    });
+    setVerificando(false);
+    if (error) { toast.error("Não foi possível verificar as conexões pendentes."); return; }
+    const importadas = (data?.imported ?? []) as Array<{ connector_name: string | null }>;
+    if (importadas.length === 0) {
+      toast.info("Nenhuma conexão pendente encontrada na Pluggy.");
+      return;
+    }
+    const nomes = importadas.map((i) => i.connector_name ?? "banco").join(", ");
+    toast.success(
+      importadas.length === 1
+        ? `Conexão importada: ${nomes}`
+        : `${importadas.length} conexões importadas: ${nomes}`,
+    );
+    await load({ silent: true });
+    reloadPendingCredit();
+  };
+
+
   // Autorizações que ficaram presas (usuário desistiu no app do banco) podem ser
   // canceladas para limpar o aviso de "Conexão em andamento".
   const cancelarPendentes = async () => {
@@ -258,9 +286,16 @@ export default function ConexoesPluggy() {
             Gerencie os bancos conectados via Pluggy e sincronize lançamentos.
           </p>
         </div>
+        <Button variant="outline" onClick={verificarPendentes} disabled={verificando}>
+          {verificando
+            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            : <RefreshCw className="h-4 w-4 mr-2" />}
+          Verificar conexões pendentes
+        </Button>
         <Button onClick={() => { setReconnectItemId(undefined); setConnectOpen(true); }}>
           <Plus className="h-4 w-4 mr-2" /> Conectar banco
         </Button>
+
       </div>
 
       {!loading && pendingCount > 0 && (
@@ -325,9 +360,18 @@ export default function ConexoesPluggy() {
       ) : (
         <div className="grid gap-3">
           {connections.map((c) => {
-            const st = statusLabels[c.status] ?? { label: c.status, className: "" };
+            // Item que fica "atualizando" por horas está travado no banco: em vez
+            // de girar para sempre, sinalizamos que precisa de ação (reconectar).
+            const stuckSince = c.last_sync_attempt_at ?? c.last_synced_at;
+            const isStuck = c.status === "updating" && stuckSince
+              ? Date.now() - new Date(stuckSince).getTime() > 6 * 60 * 60 * 1000
+              : false;
+            const st = isStuck
+              ? { label: "Requer atenção", className: "bg-warning/15 text-warning border-warning/30" }
+              : statusLabels[c.status] ?? { label: c.status, className: "" };
             const m = meta[c.id] ?? { count: 0, pending: 0, paused: 0 };
-            const isLoginErr = c.status === "login_error" || c.status === "waiting_user_input";
+            const isLoginErr = c.status === "login_error" || c.status === "waiting_user_input" || isStuck;
+
             return (
               <Card key={c.id}>
                 <CardContent className="p-4 flex items-center gap-4">

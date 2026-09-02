@@ -62,6 +62,47 @@ export async function listItems(page = 1, pageSize = 100) {
   return res.json();
 }
 
+export interface ListItemsV2Result {
+  ok: boolean;
+  httpStatus: number;
+  results: any[];
+  next: string | null;
+  error?: string;
+}
+
+/**
+ * Listagem de itens por cursor (`GET /v2/items`). É opt-in na Pluggy: quando não
+ * está habilitada para o time, a resposta vem 401/403 — por isso devolvemos o
+ * status em vez de lançar, para o chamador cair no caminho alternativo.
+ */
+export async function listItemsV2(
+  opts: { clientUserId?: string; connectorId?: number; after?: string } = {},
+): Promise<ListItemsV2Result> {
+  const params = new URLSearchParams();
+  if (opts.clientUserId) params.set("clientUserId", opts.clientUserId);
+  if (typeof opts.connectorId === "number") params.set("connectorId", String(opts.connectorId));
+  if (opts.after) params.set("after", opts.after);
+  const qs = params.toString();
+  const res = await pluggyFetch(`/v2/items${qs ? `?${qs}` : ""}`);
+  if (!res.ok) {
+    return {
+      ok: false,
+      httpStatus: res.status,
+      results: [],
+      next: null,
+      error: (await res.text()).slice(0, 300),
+    };
+  }
+  const json = await res.json();
+  return {
+    ok: true,
+    httpStatus: res.status,
+    results: Array.isArray(json?.results) ? json.results : [],
+    next: json?.next ?? json?.nextCursor ?? null,
+  };
+}
+
+
 export async function listAccounts(itemId: string) {
   const res = await pluggyFetch(`/accounts?itemId=${itemId}`);
   if (!res.ok) throw new Error(`list_accounts_failed: ${res.status}`);
