@@ -54,9 +54,9 @@
     --sidebar-border: 155 16% 20%;
     --sidebar-ring: 141 98% 40%;
 
-    /* Pessoas 360° tokens — só usados dentro de .dp-shell */
-    --dp-canvas: 150 20% 97%;
-    --dp-border: 150 14% 88%;
+    /* Pessoas 360° tokens — alinhados ao Financeiro 360° */
+    --dp-canvas: 150 14% 98%;
+    --dp-border: 150 12% 88%;
     --dp-pending-bg: 38 90% 96%;
     --dp-pending-border: 38 85% 82%;
     --dp-birthday-bg: 150 40% 97%;
@@ -82,10 +82,7 @@
   }
 
 
-  /* Pessoas 360° — override de radius mais arredondado (0.75rem) só dentro do módulo DP */
   .dp-shell {
-    --radius: 0.75rem;
-
     /* Onboarding wizard tokens */
     --onboarding-canvas: 155 22% 9%;
     --onboarding-card: 0 0% 100%;
@@ -136,6 +133,14 @@
     --sidebar-accent-foreground: 150 10% 90%;
     --sidebar-border: 155 16% 17%;
     --sidebar-ring: 141 90% 44%;
+
+    /* Pessoas 360° tokens no tema escuro */
+    --dp-canvas: 155 25% 7%;
+    --dp-border: 155 16% 19%;
+    --dp-pending-bg: 38 40% 14%;
+    --dp-pending-border: 38 40% 26%;
+    --dp-birthday-bg: 155 20% 12%;
+    --dp-birthday-border: 155 16% 22%;
   }
 
 }
@@ -160,10 +165,7 @@
 
 @layer components {
   .dp-shell main {
-    background-color: hsl(var(--dp-canvas));
-    background-image:
-      radial-gradient(circle at 1px 1px, hsl(var(--dp-border) / 0.45) 1px, transparent 0);
-    background-size: 26px 26px;
+    background-color: hsl(var(--background));
   }
 
   .dp-shell .dp-page > header,

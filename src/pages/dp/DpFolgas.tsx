@@ -764,7 +764,7 @@ export default function DpFolgas() {
                     onClick={() => openDay(day)}
                     title={blocked?.reason}
                     className={cn(
-                      "min-h-[112px] bg-white p-2 text-left flex flex-col gap-1.5 transition-colors hover:bg-muted/30",
+                      "min-h-[112px] bg-card p-2 text-left flex flex-col gap-1.5 transition-colors hover:bg-muted/30",
                       !inMonth && "bg-muted/10 text-muted-foreground",
                       blocked && inMonth && "bg-destructive/15 border border-destructive/40",
                       lotado && inMonth && "bg-red-50/60",
@@ -838,7 +838,7 @@ export default function DpFolgas() {
             </div>
 
             {/* Mobile: lista vertical (uma linha por dia do mês) */}
-            <ul className="md:hidden divide-y rounded-lg border border-[hsl(var(--dp-border))] overflow-hidden bg-white">
+            <ul className="md:hidden divide-y rounded-lg border border-[hsl(var(--dp-border))] overflow-hidden bg-card">
               {days.filter((d) => isSameMonth(d, cursor)).map((day) => {
                 const key = format(day, "yyyy-MM-dd");
                 const events = eventsByDay.get(key) ?? [];

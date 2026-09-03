@@ -124,8 +124,8 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
     (variant === "portal" ? "Colaborador" : "Administrador");
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-[hsl(var(--dp-border))] bg-white">
-      <SidebarHeader className={cn("border-b border-[hsl(var(--dp-border))] bg-white", collapsed ? "px-1 py-2" : "p-4")}>
+    <Sidebar collapsible="icon" className="border-r-0">
+      <SidebarHeader className={cn("border-b border-sidebar-border", collapsed ? "px-1 py-2" : "p-4")}>
         <div className={cn("flex w-full", collapsed ? "flex-col items-center justify-center gap-1" : "flex-row items-center justify-between gap-2")}>
           <img
             src={collapsed ? symbol360.url : assinatura360.url}
@@ -136,12 +136,12 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
           <SidebarToggleButton className={collapsed ? "h-6 w-6 p-1" : "h-7 w-7 p-0"} />
         </div>
         {!collapsed && (
-          <p className="text-xs text-muted-foreground mt-1 ml-1">{subtitle}</p>
+          <p className="text-xs text-sidebar-foreground/70 mt-1 ml-1">{subtitle}</p>
         )}
       </SidebarHeader>
 
 
-      <SidebarContent className="bg-white px-2 py-3">
+      <SidebarContent className="px-2 py-3">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
@@ -164,12 +164,12 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-[hsl(var(--dp-border))] bg-white p-3 space-y-2">
+      <SidebarFooter className="border-t border-sidebar-border p-3 space-y-2">
         {!collapsed && (
           <button
             type="button"
             onClick={() => setOrganizarOpen(true)}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
           >
             <ListOrdered className="h-3.5 w-3.5" />
             Organizar menu
@@ -184,7 +184,7 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
           <button
             type="button"
             onClick={() => setTelasOpen(true)}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
           >
             {hiddenEnabled ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             Telas em desenvolvimento
@@ -196,7 +196,7 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
         {variant === "admin" && !collapsed && (
           <Link
             to="/hub"
-            className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-xs text-sidebar-foreground/70 hover:text-sidebar-foreground rounded-lg hover:bg-sidebar-accent transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Voltar ao Hub
@@ -204,17 +204,17 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
         )}
         {!collapsed && user && (
           <div className="px-3 py-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-foreground truncate">
+            <p className="text-xs font-semibold uppercase tracking-wide text-sidebar-foreground truncate">
               {displayName}
             </p>
-            <p className="text-[11px] text-muted-foreground truncate">
+            <p className="text-[11px] text-sidebar-foreground/60 truncate">
               {displayRole}
             </p>
           </div>
         )}
         <button
           onClick={signOut}
-          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-primary hover:bg-accent rounded-lg transition-colors font-medium"
+          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-sidebar-primary hover:bg-sidebar-accent rounded-lg transition-colors font-medium"
         >
           <LogOut className="h-4 w-4" />
           {!collapsed && <span>Sair</span>}
@@ -235,11 +235,10 @@ function DpLink({ item, collapsed }: { item: Extract<Item, { kind: "link" }>; co
         className={
           cn(
             "flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
+            "transition-all duration-200 hover:translate-x-1",
             isActive
-              ? item.home
-                ? "bg-primary text-primary-foreground font-semibold shadow-sm"
-                : "bg-primary/10 text-primary font-medium"
-              : "text-foreground/70 hover:bg-accent hover:text-foreground",
+              ? "bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
+              : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
           )
         }
       >
@@ -281,7 +280,7 @@ function DpGroup({
           to={item.hubUrl ?? item.items[0].url}
           className={cn(
             "flex items-center justify-center px-3 py-2.5 rounded-lg transition-colors",
-            active ? "bg-primary/10 text-primary" : "text-foreground/70 hover:bg-accent",
+            active ? "bg-sidebar-accent text-sidebar-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent",
           )}
           aria-label={item.title}
         >
@@ -303,9 +302,10 @@ function DpGroup({
         aria-label={isOpen ? `Fechar menu ${item.title}` : `Abrir menu ${item.title}`}
         className={cn(
           "flex items-center gap-3 w-full px-3 py-2.5 text-sm rounded-lg transition-colors",
+          "transition-all duration-200",
           active
-            ? "bg-primary/10 text-primary font-medium"
-            : "text-foreground/70 hover:bg-accent hover:text-foreground",
+            ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
         )}
       >
         <item.icon className="h-4 w-4 shrink-0" />
@@ -313,7 +313,7 @@ function DpGroup({
         <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
       </button>
       {isOpen && (
-        <div className="mt-1 ml-4 pl-3 border-l border-[hsl(var(--dp-border))] space-y-0.5">
+        <div className="mt-1 ml-4 pl-3 border-l border-sidebar-border space-y-0.5">
           {item.items.map((sub) => (
             <NavLink
               key={sub.url}
@@ -323,8 +323,8 @@ function DpGroup({
                 cn(
                   "flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
                   isActiveRoute(sub.url)
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-foreground/60 hover:bg-accent hover:text-foreground",
+                    ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                 )
               }
             >
@@ -334,7 +334,7 @@ function DpGroup({
                 <span
                   title={sub.badge}
                   aria-label={sub.badge}
-                  className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50"
+                  className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-sidebar-foreground/40"
                 />
               )}
 
