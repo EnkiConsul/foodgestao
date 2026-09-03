@@ -224,14 +224,18 @@ export default function EsqueciSenha() {
                   hidden={!!turnstileError}
                 />
               )}
-              {turnstileError && (
-                <Alert variant="destructive">
-                  <AlertDescription className="text-xs">
-                    Verificação de segurança indisponível ({turnstileError}). Recarregue a página ou tente outro
-                    navegador.
-                  </AlertDescription>
-                </Alert>
-              )}
+              {turnstileError && (() => {
+                const info = describeTurnstileError(turnstileError, currentHostname());
+                return (
+                  <Alert variant="destructive">
+                    <AlertDescription className="text-xs space-y-1">
+                      <p className="font-medium">{info.title}</p>
+                      <p>{info.message}</p>
+                      {info.hint && <p>{info.hint}</p>}
+                    </AlertDescription>
+                  </Alert>
+                );
+              })()}
 
               <Button
                 type="submit"
