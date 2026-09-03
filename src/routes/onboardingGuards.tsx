@@ -16,7 +16,7 @@ import { resolveOnboardingStatus } from "@/lib/onboardingStatus";
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const { setContext } = useCompanyContext();
+  const { setContext, selectedCompanyId } = useCompanyContext();
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   const [mfaChecking, setMfaChecking] = useState(true);
@@ -38,7 +38,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     resolveOnboardingStatus(user.id)
       .then(({ completed, companyId }) => {
         if (cancelled) return;
-        if (completed && companyId) setContext("pj", companyId);
+        // Só semeia a empresa quando ainda não há escolha do usuário: caso
+        // contrário, cada navegação/recarga sobrescrevia a empresa
+        // selecionada no seletor do topo.
+        if (completed && companyId && !selectedCompanyId) setContext("pj", companyId);
         setOnboardingCompleted(completed);
         setCheckingOnboarding(false);
       })
@@ -61,7 +64,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [setContext, user?.id]);
+  }, [setContext, selectedCompanyId, user?.id]);
 
   if (loading || checkingOnboarding || mfaChecking) {
     return (
@@ -92,7 +95,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
  */
 export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  const { setContext } = useCompanyContext();
+  const { setContext, selectedCompanyId } = useCompanyContext();
   const [checking, setChecking] = useState(true);
   const [completed, setCompleted] = useState(false);
 
@@ -107,7 +110,10 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
     resolveOnboardingStatus(user.id)
       .then(({ completed, companyId }) => {
         if (cancelled) return;
-        if (completed && companyId) setContext("pj", companyId);
+        // Só semeia a empresa quando ainda não há escolha do usuário: caso
+        // contrário, cada navegação/recarga sobrescrevia a empresa
+        // selecionada no seletor do topo.
+        if (completed && companyId && !selectedCompanyId) setContext("pj", companyId);
         setCompleted(completed);
         setChecking(false);
       })
@@ -120,7 +126,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [setContext, user?.id]);
+  }, [setContext, selectedCompanyId, user?.id]);
 
   if (loading || checking) {
     return (
