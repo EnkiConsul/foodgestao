@@ -192,10 +192,16 @@ export default function ContasBancarias() {
           .from("transactions")
           .select("id", { count: "exact", head: true })
           .or(`account_id.eq.${deleteAccount.id},destination_account_id.eq.${deleteAccount.id},connection_account_id.eq.${deleteAccount.id}`),
-        supabase
-          .from("credit_cards")
-          .select("id, brand, last4")
-          .eq("default_payment_account_id", deleteAccount.id),
+        (contextType === "pj" && selectedCompanyId
+          ? supabase
+              .from("credit_cards")
+              .select("id, brand, last4")
+              .eq("default_payment_account_id", deleteAccount.id)
+              .eq("company_id", selectedCompanyId)
+          : supabase
+              .from("credit_cards")
+              .select("id, brand, last4")
+              .eq("default_payment_account_id", deleteAccount.id)),
       ]);
       if (!cancelled) {
         setDeleteHasTx((count ?? 0) > 0);
@@ -233,10 +239,12 @@ export default function ContasBancarias() {
   const handleUnlinkCards = async () => {
     if (!deleteAccount || linkedCards.length === 0) return;
     setUnlinkingCards(true);
-    const { error } = await supabase
+    let uq = supabase
       .from("credit_cards")
       .update({ default_payment_account_id: null })
       .eq("default_payment_account_id", deleteAccount.id);
+    if (contextType === "pj" && selectedCompanyId) uq = uq.eq("company_id", selectedCompanyId);
+    const { error } = await uq;
     setUnlinkingCards(false);
     if (error) { toast.error("Erro ao desvincular cartões"); return; }
     toast.success("Cartões desvinculados. Agora você pode excluir a conta.");
