@@ -199,6 +199,16 @@ export default function CartoesCredito() {
               <p className="text-xs text-muted-foreground">
                 Nada é cadastrado sem sua autorização. Revise os dados e confirme para criar ou vincular.
               </p>
+              {pendingCredit.some((p) => p.other_company_name) && (
+                <p className="mt-1 text-xs font-medium text-warning">
+                  {pendingCredit
+                    .filter((p) => p.other_company_name)
+                    .map((p) => `•••• ${p.number_masked ?? "----"} já cadastrado em ${p.other_company_name}`)
+                    .join(" · ")}
+                  {" — confirme se esta conexão bancária deveria estar nesta empresa."}
+                </p>
+              )}
+
             </div>
             <Button size="sm" onClick={() => setReviewOpen(true)}>Revisar cartões</Button>
           </CardContent>
