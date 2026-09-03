@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     }
     if (body.urls.length > 20) return json({ error: "max 20 urls" }, 400);
 
-    const siteUrl = body.siteUrl ?? "https://www.aveto360.com/";
+    const siteUrl = body.siteUrl ?? "https://aveto360.com/";
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
     const gscKey = Deno.env.get("GOOGLE_SEARCH_CONSOLE_API_KEY");
     if (!lovableKey || !gscKey) {
