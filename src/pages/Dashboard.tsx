@@ -78,57 +78,51 @@ export default function Dashboard() {
     invalidateKeyPrefixes: ["dashboard-"],
   });
 
-  const { data: transactions = [] } = useQuery({
-    queryKey: ["dashboard-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString(), paymentStatus],
-    enabled: !!user && isFinancialScopeReady(contextType, user?.id, selectedCompanyId),
-    queryFn: async () => {
-      const scope = assertFinancialScope({ context: contextType, userId: user!.id, companyId: selectedCompanyId });
-      const startDate = activeRange.from.toISOString().split("T")[0];
-      const endDate = activeRange.to.toISOString().split("T")[0];
-      let q = applyFinancialScope(
-        supabase
-          .from("transactions")
-          .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date"),
-        scope,
-      )
-        // Mesmo critério de Lançamentos: quando existe vencimento, o período é o do due_date.
-        .or(
-          `and(due_date.is.null,transaction_date.gte.${startDate},transaction_date.lte.${endDate}),and(due_date.gte.${startDate},due_date.lte.${endDate})`,
-        )
-        .neq("status", "cancelado");
+  const scopeArgs = {
+    userId: user?.id ?? "",
+    contextType,
+    companyId: selectedCompanyId,
+  };
+  const scopeReady = !!user && isFinancialScopeReady(contextType, user?.id, selectedCompanyId);
 
-      if (paymentStatus !== "todos") q = q.eq("status", paymentStatus);
-      const { data } = await q;
-      return data ?? [];
-    },
-  });
+  const txArgs = {
+    ...scopeArgs,
+    periodKey: periodPreset,
+    fromISO: activeRange.from.toISOString(),
+    toISO: activeRange.to.toISOString(),
+    paymentStatus,
+  };
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ["dashboard-categories", user?.id, contextType, selectedCompanyId],
-    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_accessible_categories", {
-        _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-      });
-      return (data ?? []).map((c: any) => ({ id: c.id, name: c.name, color: c.color }));
-    },
+  const transactionsQuery = useQuery({
+    queryKey: dashboardTransactionsKey(txArgs),
+    enabled: scopeReady,
+    queryFn: () => fetchDashboardTransactions(txArgs),
   });
+  const transactions = transactionsQuery.data ?? [];
 
-  const { data: accounts = [] } = useQuery({
-    queryKey: ["dashboard-accounts", user?.id, contextType, selectedCompanyId],
-    enabled: !!user,
-    queryFn: async () => {
-      if (contextType === "pj" && !selectedCompanyId) return [];
-      const { data } = await supabase.rpc("get_accessible_accounts", {
-        _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-      });
-      return (data ?? []).map((a: any) => ({
-        name: a.name, current_balance: a.current_balance, color: a.color, is_active: a.is_active, bank_slug: a.bank_slug,
-      }));
-    },
+  const categoriesQuery = useQuery({
+    queryKey: dashboardCategoriesKey(scopeArgs),
+    enabled: scopeReady,
+    queryFn: () => fetchDashboardCategories(scopeArgs),
   });
+  const categories = categoriesQuery.data ?? [];
+
+  const accountsQuery = useQuery({
+    queryKey: dashboardAccountsKey(scopeArgs),
+    enabled: scopeReady,
+    queryFn: () => fetchDashboardAccounts(scopeArgs),
+  });
+  const accounts = accountsQuery.data ?? [];
+
+  // Primeira carga do escopo atual (troca de empresa cai aqui): mostramos
+  // skeletons em vez de zeros, que passavam a impressão de tela travada.
+  const loadingTx = transactionsQuery.isPending && scopeReady;
+  const loadingAccounts = accountsQuery.isPending && scopeReady;
+  const refreshing =
+    !loadingTx &&
+    !loadingAccounts &&
+    (transactionsQuery.isFetching || accountsQuery.isFetching || categoriesQuery.isFetching);
+
 
   const totalBankBalance = useMemo(
     () => accounts.reduce((sum, a) => sum + Number(a.current_balance), 0),
