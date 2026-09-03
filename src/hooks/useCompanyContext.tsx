@@ -217,15 +217,22 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     };
   }, [user?.id, refreshCompanies]);
 
-  // Ao mudar de escopo (contextType + empresa), invalida caches financeiros
-  // para impedir vazamento de dados de uma empresa em outra.
+  // Ao mudar de escopo (contextType + empresa): as chaves de consulta já
+  // incluem a empresa, então o cache por empresa é isolado. Em vez de
+  // descartar tudo (que forçava carga fria a cada troca, inclusive ao voltar
+  // para a empresa anterior), cancelamos as buscas em andamento do escopo
+  // antigo e apenas invalidamos o cache — os dados já vistos reaparecem na
+  // hora e são revalidados em segundo plano.
   useEffect(() => {
     const nextScope = `${contextType}|${selectedCompanyId ?? ""}`;
     if (lastActiveScopeRef.current !== nextScope) {
       lastActiveScopeRef.current = nextScope;
-      queryClient.removeQueries({ predicate: (q) => keyMatchesFinancial(q.queryKey) });
+      const predicate = (q: { queryKey: unknown }) => keyMatchesFinancial(q.queryKey);
+      queryClient.cancelQueries({ predicate });
+      queryClient.invalidateQueries({ predicate });
     }
   }, [contextType, selectedCompanyId, queryClient]);
+
 
   const setContext = useCallback((type: ContextType, companyId: string | null) => {
     setContextType(type);
