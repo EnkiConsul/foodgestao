@@ -25,6 +25,9 @@ export type LancamentoTransaction = {
   attachment_url: string | null;
   installment_number: number | null;
   installment_total: number | null;
+  credit_card_id?: string | null;
+  credit_card_invoice_id?: string | null;
+  is_invoice_payment?: boolean | null;
 };
 
 export type LancamentoDisplayRow = {
