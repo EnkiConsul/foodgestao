@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://www.gestor360food.com/sitemap.xml
+Sitemap: https://www.aveto360.com/sitemap.xml

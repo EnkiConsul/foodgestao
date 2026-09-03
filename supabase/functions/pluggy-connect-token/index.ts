@@ -10,8 +10,8 @@ function isAllowedOauthRedirectUri(value: unknown): value is string {
     if (url.username || url.password || url.hash) return false;
     const allowedHosts = new Set([
       'foodgestao.lovable.app',
-      'gestor360food.com',
-      'www.gestor360food.com',
+      'aveto360.com',
+      'www.aveto360.com',
     ]);
     return allowedHosts.has(url.hostname)
       || url.hostname.endsWith('.lovable.app')

@@ -1,8 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = [
-  "https://gestor360food.com",
-  "https://www.gestor360food.com",
+  "https://aveto360.com",
+  "https://www.aveto360.com",
   "https://foodgestao.lovable.app",
   "https://id-preview--ceeb4a17-6191-46b0-a351-c97a8211c03e.lovable.app",
   "http://localhost:5173",

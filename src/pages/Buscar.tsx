@@ -93,7 +93,7 @@ export default function Buscar() {
                       {r.description}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground/70">
-                      gestor360food.com{r.path}
+                      aveto360.com{r.path}
                     </p>
                   </Link>
                 </li>

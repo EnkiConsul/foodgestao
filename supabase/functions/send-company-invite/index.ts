@@ -3,7 +3,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const TEMPLATE_NAME = 'company-invite'
-const APP_URL = 'https://gestor360food.com'
+const APP_URL = 'https://aveto360.com'
 
 function json(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
