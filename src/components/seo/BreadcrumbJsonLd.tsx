@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 
-const SITE_ORIGIN = "https://gestor360food.com";
+const SITE_ORIGIN = "https://aveto360.com";
 
 export type BreadcrumbItem = {
   name: string;
