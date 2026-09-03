@@ -10,6 +10,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { checkZapiStatus, sendZapiText, normalizeBRPhone } from "../_shared/zapi.ts";
+import { turnstileSecretsFor } from "../_shared/turnstile-env.ts";
 
 const BodySchema = z.object({
   identifier: z.string().trim().min(3).max(255),
@@ -47,9 +48,9 @@ function randomOTP6(): string {
   return (arr[0] % 1_000_000).toString().padStart(6, "0");
 }
 
-async function verifyTurnstile(token: string, ip: string | null): Promise<boolean> {
-  const secrets = [Deno.env.get("TURNSTILE_SECRET"), Deno.env.get("TURNSTILE_SECRET_KEY")]
-    .filter((s): s is string => !!s);
+async function verifyTurnstile(req: Request, token: string, ip: string | null): Promise<boolean> {
+  const secrets = turnstileSecretsFor(req);
+
   const seen = new Set<string>();
   for (const secret of secrets) {
     if (seen.has(secret)) continue;
@@ -153,7 +154,7 @@ Deno.serve(async (req) => {
   }
 
   // 1) Turnstile
-  const ok = await verifyTurnstile(body.turnstile_token, ip);
+  const ok = await verifyTurnstile(req, body.turnstile_token, ip);
   if (!ok) return json(400, { error: "Verificação de segurança falhou.", code: "captcha_failed" });
 
   // 2) Rate limit — check IP first so unknown identifiers still count against a single attacker.

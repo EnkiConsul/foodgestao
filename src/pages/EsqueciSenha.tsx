@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock, IdCard, ShieldCheck, MessageCircle, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
-import { useTurnstileSiteKey } from "@/hooks/useTurnstileSiteKey";
+import { useTurnstileConfig } from "@/hooks/useTurnstileSiteKey";
 import { describeTurnstileError, currentHostname } from "@/lib/auth/turnstileErrors";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,7 +17,7 @@ type Step = "identify" | "otp" | "password" | "done";
 
 export default function EsqueciSenha() {
   const navigate = useNavigate();
-  const siteKey = useTurnstileSiteKey();
+  const { siteKey, mode: turnstileMode } = useTurnstileConfig();
 
   const [step, setStep] = useState<Step>("identify");
   const [identifier, setIdentifier] = useState("");
@@ -224,6 +224,11 @@ export default function EsqueciSenha() {
                   onError={(code) => { setTurnstileToken(null); setTurnstileError(code); }}
                   hidden={!!turnstileError}
                 />
+              )}
+              {turnstileMode === "test" && !turnstileError && (
+                <p className="text-xs text-muted-foreground">
+                  Verificação em modo de teste (ambiente de preview).
+                </p>
               )}
               {turnstileError && (() => {
                 const info = describeTurnstileError(turnstileError, currentHostname());

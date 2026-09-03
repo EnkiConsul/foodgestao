@@ -5,6 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
+import { turnstileSecretsFor } from "../_shared/turnstile-env.ts";
 
 const BodySchema = z.object({
   identifier: z.string().trim().min(3).max(255),
@@ -34,11 +35,10 @@ async function verifyWithSecret(secret: string, token: string, ip: string | null
   return await resp.json();
 }
 
-async function verifyTurnstile(token: string, ip: string | null): Promise<boolean> {
+async function verifyTurnstile(req: Request, token: string, ip: string | null): Promise<boolean> {
   // Two secrets may be configured (legacy + current widget). Try each one so a
   // mismatch between site key and secret does not lock everyone out.
-  const secrets = [Deno.env.get("TURNSTILE_SECRET"), Deno.env.get("TURNSTILE_SECRET_KEY")]
-    .filter((s): s is string => !!s);
+  const secrets = turnstileSecretsFor(req);
   if (secrets.length === 0) {
     console.error("[auth-login] TURNSTILE_SECRET not configured");
     return false;
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
   }
 
   // 1) Turnstile
-  const captchaOk = await verifyTurnstile(body.turnstile_token, ip);
+  const captchaOk = await verifyTurnstile(req, body.turnstile_token, ip);
   if (!captchaOk) return json(400, { error: "Verificação de segurança falhou. Recarregue e tente novamente.", code: "captcha_failed" });
 
   const admin = createClient(url, service, { auth: { persistSession: false } });

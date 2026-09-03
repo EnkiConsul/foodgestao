@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
-import { useTurnstileSiteKey } from "@/hooks/useTurnstileSiteKey";
+import { useTurnstileConfig } from "@/hooks/useTurnstileSiteKey";
 import { describeTurnstileError, currentHostname } from "@/lib/auth/turnstileErrors";
 import { unifiedSignIn } from "@/lib/authUnified";
 import { sanitizeRedirect } from "@/lib/safeRedirect";
@@ -101,7 +101,7 @@ export default function Auth() {
   const [duplicateEmail, setDuplicateEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resending, setResending] = useState(false);
-  const turnstileSiteKey = useTurnstileSiteKey();
+  const { siteKey: turnstileSiteKey, mode: turnstileMode } = useTurnstileConfig();
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
 
@@ -650,6 +650,11 @@ export default function Auth() {
                   onExpire={() => setTurnstileToken("")}
                   onError={(code) => { setTurnstileToken(""); setTurnstileError(code); }}
                 />
+                {turnstileMode === "test" && !turnstileError && (
+                  <p className="text-xs text-muted-foreground">
+                    Verificação em modo de teste (ambiente de preview).
+                  </p>
+                )}
                 {turnstileError && (
                   <div
                     role="alert"
