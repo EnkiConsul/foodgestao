@@ -7,7 +7,17 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { applyFinancialScope, assertFinancialScope, isFinancialScopeReady } from "@/lib/financialScope";
+import { isFinancialScopeReady } from "@/lib/financialScope";
+import {
+  dashboardAccountsKey,
+  dashboardCategoriesKey,
+  dashboardTransactionsKey,
+  fetchDashboardAccounts,
+  fetchDashboardCategories,
+  fetchDashboardTransactions,
+} from "@/lib/dashboardQueries";
+import { Skeleton } from "@/components/ui/skeleton";
+
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -78,57 +88,51 @@ export default function Dashboard() {
     invalidateKeyPrefixes: ["dashboard-"],
   });
 
-  const { data: transactions = [] } = useQuery({
-    queryKey: ["dashboard-transactions", user?.id, contextType, selectedCompanyId, periodPreset, customRange.from.toISOString(), customRange.to.toISOString(), paymentStatus],
-    enabled: !!user && isFinancialScopeReady(contextType, user?.id, selectedCompanyId),
-    queryFn: async () => {
-      const scope = assertFinancialScope({ context: contextType, userId: user!.id, companyId: selectedCompanyId });
-      const startDate = activeRange.from.toISOString().split("T")[0];
-      const endDate = activeRange.to.toISOString().split("T")[0];
-      let q = applyFinancialScope(
-        supabase
-          .from("transactions")
-          .select("amount, amount_paid, transaction_type, transaction_date, category_id, status, due_date"),
-        scope,
-      )
-        // Mesmo critério de Lançamentos: quando existe vencimento, o período é o do due_date.
-        .or(
-          `and(due_date.is.null,transaction_date.gte.${startDate},transaction_date.lte.${endDate}),and(due_date.gte.${startDate},due_date.lte.${endDate})`,
-        )
-        .neq("status", "cancelado");
+  const scopeArgs = {
+    userId: user?.id ?? "",
+    contextType,
+    companyId: selectedCompanyId,
+  };
+  const scopeReady = !!user && isFinancialScopeReady(contextType, user?.id, selectedCompanyId);
 
-      if (paymentStatus !== "todos") q = q.eq("status", paymentStatus);
-      const { data } = await q;
-      return data ?? [];
-    },
-  });
+  const txArgs = {
+    ...scopeArgs,
+    periodKey: periodPreset,
+    fromISO: activeRange.from.toISOString(),
+    toISO: activeRange.to.toISOString(),
+    paymentStatus,
+  };
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ["dashboard-categories", user?.id, contextType, selectedCompanyId],
-    enabled: !!user && (contextType === "pf" || !!selectedCompanyId),
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_accessible_categories", {
-        _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-      });
-      return (data ?? []).map((c: any) => ({ id: c.id, name: c.name, color: c.color }));
-    },
+  const transactionsQuery = useQuery({
+    queryKey: dashboardTransactionsKey(txArgs),
+    enabled: scopeReady,
+    queryFn: () => fetchDashboardTransactions(txArgs),
   });
+  const transactions = transactionsQuery.data ?? [];
 
-  const { data: accounts = [] } = useQuery({
-    queryKey: ["dashboard-accounts", user?.id, contextType, selectedCompanyId],
-    enabled: !!user,
-    queryFn: async () => {
-      if (contextType === "pj" && !selectedCompanyId) return [];
-      const { data } = await supabase.rpc("get_accessible_accounts", {
-        _context: contextType,
-        _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-      });
-      return (data ?? []).map((a: any) => ({
-        name: a.name, current_balance: a.current_balance, color: a.color, is_active: a.is_active, bank_slug: a.bank_slug,
-      }));
-    },
+  const categoriesQuery = useQuery({
+    queryKey: dashboardCategoriesKey(scopeArgs),
+    enabled: scopeReady,
+    queryFn: () => fetchDashboardCategories(scopeArgs),
   });
+  const categories = categoriesQuery.data ?? [];
+
+  const accountsQuery = useQuery({
+    queryKey: dashboardAccountsKey(scopeArgs),
+    enabled: scopeReady,
+    queryFn: () => fetchDashboardAccounts(scopeArgs),
+  });
+  const accounts = accountsQuery.data ?? [];
+
+  // Primeira carga do escopo atual (troca de empresa cai aqui): mostramos
+  // skeletons em vez de zeros, que passavam a impressão de tela travada.
+  const loadingTx = transactionsQuery.isPending && scopeReady;
+  const loadingAccounts = accountsQuery.isPending && scopeReady;
+  const refreshing =
+    !loadingTx &&
+    !loadingAccounts &&
+    (transactionsQuery.isFetching || accountsQuery.isFetching || categoriesQuery.isFetching);
+
 
   const totalBankBalance = useMemo(
     () => accounts.reduce((sum, a) => sum + Number(a.current_balance), 0),
@@ -281,7 +285,11 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Visão Geral das Suas Finanças</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Visão Geral das Suas Finanças
+            {refreshing && <span className="ml-2 text-xs italic opacity-70">atualizando…</span>}
+          </p>
+
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5 p-1 bg-muted/50 rounded-full border border-border/60">
@@ -395,16 +403,21 @@ export default function Dashboard() {
                 )} />
               </div>
               <div className="mt-1.5 md:mt-2">
-                <div className={cn(
-                  "font-display font-bold tracking-tight text-lg sm:text-2xl leading-tight whitespace-nowrap",
-                  isHero
-                    ? "text-primary-foreground"
-                    : kpi.variant === "accent-success"
-                      ? "text-success"
-                      : "text-foreground"
-                )}>
-                  {kpi.value}
-                </div>
+                {loadingTx || loadingAccounts ? (
+                  <Skeleton className="h-7 w-24 rounded-md" />
+                ) : (
+                  <div className={cn(
+                    "font-display font-bold tracking-tight text-lg sm:text-2xl leading-tight whitespace-nowrap",
+                    isHero
+                      ? "text-primary-foreground"
+                      : kpi.variant === "accent-success"
+                        ? "text-success"
+                        : "text-foreground"
+                  )}>
+                    {kpi.value}
+                  </div>
+                )}
+
                 {kpi.variant === "accent-success" || kpi.variant === "accent-primary" ? (
                   <div className={cn("h-1 w-full rounded-full mt-2.5 overflow-hidden", "bg-muted")}>
                     <div
@@ -446,7 +459,10 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          {monthlyData.length === 0 ? (
+          {loadingTx ? (
+            <Skeleton className="h-56 w-full rounded-xl" />
+          ) : monthlyData.length === 0 ? (
+
             <div className="flex items-center justify-center h-56 text-muted-foreground text-sm">
               Nenhuma transação registrada ainda
             </div>
@@ -468,7 +484,14 @@ export default function Dashboard() {
         <div className="col-span-12 lg:col-span-4 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
           <h2 className="font-display text-lg font-bold text-foreground mb-1">Top 5 Categorias</h2>
           <p className="text-xs text-muted-foreground mb-5">Distribuição de despesas</p>
-          {topCategories.length === 0 ? (
+          {loadingTx ? (
+            <div className="space-y-4">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-8 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : topCategories.length === 0 ? (
+
             <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
               Nenhuma despesa categorizada ainda
             </div>
@@ -516,7 +539,10 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          {dailyEvolution.length === 0 ? (
+          {loadingTx ? (
+            <Skeleton className="h-48 w-full rounded-xl" />
+          ) : dailyEvolution.length === 0 ? (
+
             <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
               Sem movimentação diária no período
             </div>
@@ -538,7 +564,14 @@ export default function Dashboard() {
         <div className="col-span-12 lg:col-span-5 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
           <h2 className="font-display text-lg font-bold text-foreground mb-1">Saldo por Conta</h2>
           <p className="text-xs text-muted-foreground mb-5">Posição atual das contas financeiras</p>
-          {accounts.length === 0 ? (
+          {loadingAccounts ? (
+            <div className="space-y-2.5">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-[58px] w-full rounded-xl" />
+              ))}
+            </div>
+          ) : accounts.length === 0 ? (
+
             <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
               Nenhuma conta cadastrada
             </div>

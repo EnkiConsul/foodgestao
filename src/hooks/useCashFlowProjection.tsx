@@ -1,9 +1,11 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { dashboardAccountsKey, fetchDashboardAccounts } from "@/lib/dashboardQueries";
+
 
 export type HorizonDays = 7 | 15 | 30 | 60 | 90;
 
@@ -41,6 +43,8 @@ function parseISODate(s: string) {
 export function useCashFlowProjection(horizonDays: HorizonDays) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
+  const queryClient = useQueryClient();
+
 
   useRealtimeSync({
     tables: ["transactions", "accounts", "credit_cards", "credit_card_invoices"],
@@ -77,20 +81,22 @@ export function useCashFlowProjection(horizonDays: HorizonDays) {
         return { points: [] as CashFlowPoint[], totals: emptyTotals() };
       }
 
-      // 1) Contas + saldo inicial (exclui cartões de crédito)
-      const { data: accountsData, error: accErr } = await supabase.rpc(
-        "get_accessible_accounts",
-        {
-          _context: contextType,
-          _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
-        }
-      );
-      if (accErr) throw accErr;
-      const startingBalance = (accountsData ?? [])
-        .filter((a: any) => a.is_active && a.account_type !== "cartao_credito")
-        .reduce((s: number, a: any) => s + Number(a.current_balance ?? 0), 0);
+      // 1) Contas (reaproveita o cache do Dashboard), lançamentos pendentes e
+      //    cartões em paralelo — antes eram três idas e voltas em sequência.
+      const accountsPromise = queryClient.ensureQueryData({
+        queryKey: dashboardAccountsKey({
+          userId: user!.id,
+          contextType,
+          companyId: selectedCompanyId,
+        }),
+        queryFn: () =>
+          fetchDashboardAccounts({
+            userId: user!.id,
+            contextType,
+            companyId: selectedCompanyId,
+          }),
+      });
 
-      // 2) Lançamentos pendentes no horizonte (exclui os já ligados a fatura de cartão — a fatura agrega)
       let txq = supabase
         .from("transactions")
         .select("amount, amount_paid, due_date, transaction_type, credit_card_invoice_id, status")
@@ -104,16 +110,27 @@ export function useCashFlowProjection(horizonDays: HorizonDays) {
       } else {
         txq = txq.eq("context", "pf");
       }
-      const { data: txs, error: txErr } = await txq;
-      if (txErr) throw txErr;
 
-      // 3) Faturas de cartão a vencer no horizonte
       let cq = supabase.from("credit_cards").select("id, context, company_id, is_active");
       if (contextType === "pj") cq = cq.eq("context", "pj").eq("company_id", selectedCompanyId!);
       else cq = cq.eq("context", "pf");
-      const { data: cards, error: ce } = await cq;
-      if (ce) throw ce;
-      const cardIds = (cards ?? []).filter((c) => c.is_active).map((c) => c.id);
+
+      const [accountsData, txRes, cardsRes] = await Promise.all([
+        accountsPromise,
+        txq,
+        cq,
+      ]);
+
+      const startingBalance = (accountsData ?? [])
+        .filter((a) => a.is_active && a.account_type !== "cartao_credito")
+        .reduce((s: number, a) => s + Number(a.current_balance ?? 0), 0);
+
+      if (txRes.error) throw txRes.error;
+      const txs = txRes.data;
+
+      if (cardsRes.error) throw cardsRes.error;
+      const cardIds = (cardsRes.data ?? []).filter((c) => c.is_active).map((c) => c.id);
+
 
       let invoices: Array<{ due_date: string; total_amount: number; paid_amount: number }> = [];
       if (cardIds.length > 0) {
