@@ -11932,6 +11932,10 @@ export type Database = {
         }
         Returns: string
       }
+      credit_card_other_company: {
+        Args: { _company_id: string; _number: string }
+        Returns: string
+      }
       cron_health: {
         Args: { _window_hours?: number }
         Returns: {
