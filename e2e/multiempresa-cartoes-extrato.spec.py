@@ -44,8 +44,9 @@ ANON_KEY = (
     "LCJpYXQiOjE3NzA4MDM5ODYsImV4cCI6MjA4NjM3OTk4Nn0."
     "izfpHRU8CroQC-3tXxbW_iyuU1g0AIJoWQMS-JRSgko"
 )
-STORAGE_KEY = os.environ.get(
-    "LOVABLE_BROWSER_SUPABASE_STORAGE_KEY", f"sb-{PROJECT_REF}-auth-token"
+# A variável injetada pode existir vazia — daí o `or` no fallback.
+STORAGE_KEY = (
+    os.environ.get("LOVABLE_BROWSER_SUPABASE_STORAGE_KEY") or f"sb-{PROJECT_REF}-auth-token"
 )
 
 ROUTES = [
@@ -184,7 +185,6 @@ async def main() -> int:
             "([k, s]) => localStorage.setItem(k, s)",
             [STORAGE_KEY, json.dumps(session)],
         )
-        print(f"session keys={sorted(session)} key={STORAGE_KEY} url={page.url}")
 
         for idx, company in enumerate(pair):
             other = pair[1 - idx]
