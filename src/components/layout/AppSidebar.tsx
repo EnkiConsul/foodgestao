@@ -1,8 +1,8 @@
 import { LogOut, MessageCircle, LayoutGrid } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
-import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
-import symbol360 from "@/assets/360food-symbol.png.asset.json";
+import assinatura360 from "@/assets/aveto360-assinatura.png.asset.json";
+import symbol360 from "@/assets/aveto360-symbol.png.asset.json";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveModule } from "@/hooks/useActiveModule";

@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
-import logo from "@/assets/360food-horizontal.png.asset.json";
+import logo from "@/assets/aveto360-horizontal.png.asset.json";
 import { cn } from "@/lib/utils";
 
 interface OnboardingShellProps {

@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import logoHorizontal from "@/assets/360food-horizontal.png.asset.json";
-import logoIcon from "@/assets/360food-icon.png.asset.json";
-import logoSymbol from "@/assets/360food-symbol.png.asset.json";
+import logoHorizontal from "@/assets/aveto360-horizontal.png.asset.json";
+import logoIcon from "@/assets/aveto360-icon.png.asset.json";
+import logoSymbol from "@/assets/aveto360-symbol.png.asset.json";
 
 const sizeMap = {
   sm: "h-9",

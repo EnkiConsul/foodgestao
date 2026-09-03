@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { findBank, getBankLogoUrl, inferBankSlug, useBanks } from "@/lib/banks";
-import brandSymbol from "@/assets/360food-symbol.png.asset.json";
+import brandSymbol from "@/assets/aveto360-symbol.png.asset.json";
 
 interface BankLogoProps {
   slug?: string | null;
