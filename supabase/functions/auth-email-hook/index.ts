@@ -19,7 +19,7 @@ const SITE_NAME = "Aveto 360"
 const SENDER_DOMAIN = "notify.aveto360.com"
 const ROOT_DOMAIN = "aveto360.com"
 const FROM_DOMAIN = "aveto360.com"
-const SITE_URL = `https://${ROOT_DOMAIN}`
+const SITE_URL = `https://www.${ROOT_DOMAIN}`
 
 // Template mapping for preview mode
 const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
