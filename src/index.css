@@ -6,80 +6,81 @@
 
 @layer base {
   :root {
-    /* Brand Aveto 360: laranja #EB6119 sobre marinho #0F1B3D, com branco */
-    --background: 30 20% 98%;
-    --foreground: 224 60% 12%;
+    /* Brand Aveto 360: verde #02AB3D sobre preto/grafite #0B0F0D, com branco */
+    --background: 150 14% 98%;
+    --foreground: 155 25% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 60% 12%;
+    --card-foreground: 155 25% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 60% 12%;
+    --popover-foreground: 155 25% 10%;
 
-    --primary: 18 84% 51%;
+    --primary: 141 98% 34%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 224 55% 96%;
-    --secondary-foreground: 224 60% 18%;
+    --secondary: 150 20% 95%;
+    --secondary-foreground: 155 25% 16%;
 
-    --muted: 30 15% 95%;
-    --muted-foreground: 224 15% 40%;
+    --muted: 150 12% 95%;
+    --muted-foreground: 155 10% 40%;
 
-    --accent: 18 90% 94%;
-    --accent-foreground: 18 84% 30%;
+    --accent: 141 60% 94%;
+    --accent-foreground: 141 85% 22%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 60% 38%;
+    --success: 141 98% 30%;
     --success-foreground: 0 0% 100%;
     /* Verde legível como TEXTO (WCAG AA) — usado em valores positivos. */
-    --success-strong: 152 62% 30%;
+    --success-strong: 141 85% 24%;
 
     --warning: 38 92% 52%;
     --warning-foreground: 38 90% 15%;
 
-    --border: 30 15% 88%;
-    --input: 30 15% 88%;
-    --ring: 18 84% 51%;
+    --border: 150 12% 88%;
+    --input: 150 12% 88%;
+    --ring: 141 98% 34%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 224 60% 15%;
-    --sidebar-foreground: 30 25% 92%;
-    --sidebar-primary: 18 84% 55%;
+    --sidebar-background: 155 22% 9%;
+    --sidebar-foreground: 150 12% 92%;
+    --sidebar-primary: 141 98% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 50% 22%;
-    --sidebar-accent-foreground: 30 25% 96%;
-    --sidebar-border: 224 45% 25%;
-    --sidebar-ring: 18 84% 55%;
+    --sidebar-accent: 155 20% 16%;
+    --sidebar-accent-foreground: 150 14% 96%;
+    --sidebar-border: 155 16% 20%;
+    --sidebar-ring: 141 98% 40%;
 
     /* Pessoas 360° tokens — só usados dentro de .dp-shell */
-    --dp-canvas: 36 45% 97%;
-    --dp-border: 30 25% 88%;
+    --dp-canvas: 150 20% 97%;
+    --dp-border: 150 14% 88%;
     --dp-pending-bg: 38 90% 96%;
     --dp-pending-border: 38 85% 82%;
-    --dp-birthday-bg: 30 60% 97%;
-    --dp-birthday-border: 30 55% 85%;
+    --dp-birthday-bg: 150 40% 97%;
+    --dp-birthday-border: 150 30% 85%;
     --dp-birthday-nasc: 340 80% 92%;
     --dp-birthday-contrat: 200 75% 90%;
 
     /* ===== Site institucional (landing) — tokens de marca ===== */
-    --site-navy: 219 51% 18%;              /* #172A46 */
-    --site-navy-deep: 219 55% 13%;
+    --site-navy: 155 22% 11%;              /* grafite esverdeado da marca */
+    --site-navy-deep: 155 28% 6%;          /* #0B0F0D */
     --site-navy-foreground: 0 0% 100%;
-    --site-orange: 17 89% 51%;             /* #F15A16 */
+    --site-orange: 141 98% 34%;            /* #02AB3D — verde Aveto */
     --site-orange-foreground: 0 0% 100%;
-    --site-surface: 220 20% 98%;           /* #F7F8FA */
-    --site-ink: 219 45% 14%;
-    --site-muted: 220 12% 46%;             /* #667085 */
-    --site-line: 220 16% 90%;
-    --site-success: 158 75% 36%;           /* #16A36A */
-    --gradient-site-hero: linear-gradient(160deg, hsl(var(--site-navy-deep)) 0%, hsl(var(--site-navy)) 55%, hsl(219 48% 24%) 100%);
-    --gradient-site-orange: linear-gradient(135deg, hsl(var(--site-orange)) 0%, hsl(28 92% 55%) 100%);
+    --site-surface: 150 14% 98%;
+    --site-ink: 155 25% 10%;
+    --site-muted: 155 8% 42%;
+    --site-line: 150 12% 90%;
+    --site-success: 141 85% 28%;
+    --gradient-site-hero: linear-gradient(160deg, hsl(var(--site-navy-deep)) 0%, hsl(var(--site-navy)) 55%, hsl(155 20% 16%) 100%);
+    --gradient-site-orange: linear-gradient(135deg, hsl(var(--site-orange)) 0%, hsl(150 82% 30%) 100%);
     --shadow-site-card: 0 1px 2px hsl(var(--site-ink) / 0.05), 0 12px 32px -18px hsl(var(--site-ink) / 0.18);
     --shadow-site-float: 0 24px 60px -24px hsl(var(--site-ink) / 0.35);
   }
+
 
   /* Pessoas 360° — override de radius mais arredondado (0.75rem) só dentro do módulo DP */
   .dp-shell {
