@@ -188,7 +188,10 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
-      gcTime: 5 * 60_000,
+      // Retenção maior em memória: voltar a uma empresa já visitada mostra os
+      // dados imediatamente (e revalida em segundo plano).
+      gcTime: 15 * 60_000,
+
       refetchOnWindowFocus: false,
       retry: 1,
     },
