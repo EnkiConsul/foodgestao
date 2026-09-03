@@ -209,7 +209,7 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           <a href="/legal/privacidade" target="_blank" className="text-primary underline hover:no-underline">
             Política de Privacidade
           </a>{" "}
-          do 360°FOOD.
+          do Aveto 360.
         </label>
       </div>
       {errors.aceitouLgpd && <p className="text-xs text-destructive">{errors.aceitouLgpd}</p>}

@@ -13,7 +13,7 @@ export type SearchDoc = {
 export const SEARCH_INDEX: SearchDoc[] = [
   {
     path: "/",
-    title: "360°FOOD — Gestão financeira para o food service",
+    title: "Aveto 360 — Gestão financeira para o food service",
     description:
       "Unifique finanças pessoais e da sua operação. Contas a pagar e receber, orçamentos, fluxo de caixa e relatórios.",
     keywords: [
@@ -25,7 +25,7 @@ export const SEARCH_INDEX: SearchDoc[] = [
   {
     path: "/auth",
     title: "Entrar ou criar conta",
-    description: "Acesse sua conta 360°FOOD ou crie um cadastro gratuito.",
+    description: "Acesse sua conta Aveto 360 ou crie um cadastro gratuito.",
     keywords: ["login", "entrar", "cadastro", "criar conta", "acessar", "senha"],
     section: "Conta",
   },
@@ -50,14 +50,14 @@ export const SEARCH_INDEX: SearchDoc[] = [
   {
     path: "/privacidade",
     title: "Política de Privacidade",
-    description: "Como o 360°FOOD trata seus dados pessoais em conformidade com a LGPD.",
+    description: "Como o Aveto 360 trata seus dados pessoais em conformidade com a LGPD.",
     keywords: ["privacidade", "lgpd", "dados pessoais", "política"],
     section: "Legal",
   },
   {
     path: "/termos",
     title: "Termos de Uso",
-    description: "Regras de uso da plataforma 360°FOOD.",
+    description: "Regras de uso da plataforma Aveto 360.",
     keywords: ["termos", "uso", "condições", "contrato"],
     section: "Legal",
   },

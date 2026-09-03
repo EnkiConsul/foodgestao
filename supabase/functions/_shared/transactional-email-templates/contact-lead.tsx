@@ -4,7 +4,7 @@ import {
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 
-const SITE_NAME = '360°FOOD'
+const SITE_NAME = 'Aveto 360'
 
 interface ContactLeadProps {
   name?: string
@@ -58,7 +58,7 @@ const Row = ({ label, value }: { label: string; value?: string }) => (
 export const template = {
   component: ContactLeadEmail,
   subject: (d: Record<string, any>) =>
-    d?.name ? `Novo lead: ${d.name}` : 'Novo lead do site 360°FOOD',
+    d?.name ? `Novo lead: ${d.name}` : 'Novo lead do site Aveto 360',
   displayName: 'Contato — Lead do site',
   // Hard-coded recipient: the contact form is publicly callable, so the
   // recipient must never be controlled by the caller.

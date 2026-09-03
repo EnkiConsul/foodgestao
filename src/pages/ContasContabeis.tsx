@@ -303,7 +303,7 @@ export default function ContasContabeis() {
 
   return (
     <div className="space-y-4 md:space-y-6 pb-20 md:pb-0">
-      <Helmet><title>Contas Contábeis | 360°FOOD</title></Helmet>
+      <Helmet><title>Contas Contábeis | Aveto 360</title></Helmet>
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
         <div>
           <h1 className="text-xl md:text-2xl font-bold">Contas Contábeis</h1>

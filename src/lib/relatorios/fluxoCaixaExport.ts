@@ -94,7 +94,7 @@ export function buildPrintableHtml(t: PrintableTable): string {
   </header>
   <table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>
   <footer>${(t.notes ?? []).map((n) => `<div>${escapeHtml(n)}</div>`).join("")}
-    <div>Gerado em ${escapeHtml(new Date().toLocaleString("pt-BR"))} · 360°FOOD</div>
+    <div>Gerado em ${escapeHtml(new Date().toLocaleString("pt-BR"))} · Aveto 360</div>
   </footer>
 </body></html>`;
 }
@@ -141,7 +141,7 @@ export function safeSheetName(name: string): string {
 export async function downloadXlsx(filename: string, sheets: XlsxSheet[]) {
   const ExcelJS = (await import("exceljs")).default ?? (await import("exceljs"));
   const wb = new ExcelJS.Workbook();
-  wb.creator = "360°FOOD";
+  wb.creator = "Aveto 360";
   wb.created = new Date();
 
   for (const s of sheets) {
@@ -216,7 +216,7 @@ export async function downloadXlsx(filename: string, sheets: XlsxSheet[]) {
       const row = ws.addRow([n]);
       row.getCell(1).font = { name: "Arial", size: 8, italic: true, color: { argb: "FF666666" } };
     }
-    const gen = ws.addRow([`Gerado em ${new Date().toLocaleString("pt-BR")} · 360°FOOD`]);
+    const gen = ws.addRow([`Gerado em ${new Date().toLocaleString("pt-BR")} · Aveto 360`]);
     gen.getCell(1).font = { name: "Arial", size: 8, italic: true, color: { argb: "FF666666" } };
 
     s.head.forEach((h, i) => {

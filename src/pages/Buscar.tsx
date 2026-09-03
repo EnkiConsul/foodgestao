@@ -26,11 +26,11 @@ export default function Buscar() {
   }
 
   const title = trimmed
-    ? `Resultados para "${trimmed}" — 360°FOOD`
-    : "Buscar no 360°FOOD";
+    ? `Resultados para "${trimmed}" — Aveto 360`
+    : "Buscar no Aveto 360";
   const description = trimmed
-    ? `Resultados de busca para "${trimmed}" no site 360°FOOD.`
-    : "Busque por guias, planos e páginas do 360°FOOD.";
+    ? `Resultados de busca para "${trimmed}" no site Aveto 360.`
+    : "Busque por guias, planos e páginas do Aveto 360.";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -54,7 +54,7 @@ export default function Buscar() {
 
       <main className="container mx-auto max-w-3xl px-4 py-6 sm:py-14">
         <h1 className="mb-4 sm:mb-6 text-xl sm:text-3xl font-bold tracking-tight">
-          Buscar No 360°FOOD
+          Buscar No Aveto 360
         </h1>
 
         <form onSubmit={onSubmit} role="search" className="mb-6 sm:mb-8 flex flex-col sm:flex-row gap-2">
@@ -136,7 +136,7 @@ export default function Buscar() {
       </main>
 
       <footer className="border-t border-border/60 py-8 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} 360°FOOD
+        © {new Date().getFullYear()} Aveto 360
       </footer>
     </div>
   );

@@ -10,7 +10,7 @@ export async function asaasFetch(path: string, init: RequestInit = {}) {
     headers: {
       "Content-Type": "application/json",
       "access_token": ASAAS_API_KEY,
-      "User-Agent": "360FOOD/1.0",
+      "User-Agent": "Aveto360/1.0",
       ...(init.headers ?? {}),
     },
   });

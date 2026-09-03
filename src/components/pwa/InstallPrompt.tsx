@@ -157,7 +157,7 @@ export function InstallPrompt() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm text-foreground">
-            Instalar 360°FOOD
+            Instalar Aveto 360
           </p>
           {showIos ? (
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">

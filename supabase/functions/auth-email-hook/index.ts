@@ -15,7 +15,7 @@ const corsHeaders = {
 }
 
 // Configuration
-const SITE_NAME = "360°FOOD"
+const SITE_NAME = "Aveto 360"
 const SENDER_DOMAIN = "notify.gestor360food.com"
 const ROOT_DOMAIN = "gestor360food.com"
 const FROM_DOMAIN = "gestor360food.com"

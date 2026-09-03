@@ -54,7 +54,7 @@ export function AppSidebar() {
         <div className={cn("flex w-full", collapsed ? "flex-col items-center justify-center gap-1" : "flex-row items-center justify-between")}>
           <img
             src={collapsed ? symbol360.url : assinatura360.url}
-            alt="360°FOOD"
+            alt="Aveto 360"
             className={cn(
               "object-contain select-none",
               collapsed ? "h-6 w-auto max-w-full" : "h-12 w-auto max-w-full"

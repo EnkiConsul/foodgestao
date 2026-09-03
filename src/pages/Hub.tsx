@@ -23,7 +23,7 @@ function statusBadge(status: ModuleStatus, available: boolean) {
 function ModuleCard({ def, status }: { def: ModuleDefinition; status: ModuleStatus }) {
   const Icon = def.icon;
   const usable = def.available && isModuleUsable(status);
-  const waMsg = encodeURIComponent(`Olá! Tenho interesse em contratar o módulo ${def.name} no 360°FOOD.`);
+  const waMsg = encodeURIComponent(`Olá! Tenho interesse em contratar o módulo ${def.name} no Aveto 360.`);
 
   return (
     <Card
@@ -99,7 +99,7 @@ export default function Hub() {
   return (
     <div className="mx-auto max-w-6xl">
       <Helmet>
-        <title>Hub de Módulos — 360°FOOD</title>
+        <title>Hub de Módulos — Aveto 360</title>
         <meta name="description" content="Acesse os módulos contratados: Financeiro e Pessoas." />
       </Helmet>
 

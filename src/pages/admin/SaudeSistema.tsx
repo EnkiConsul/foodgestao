@@ -66,7 +66,7 @@ export default function AdminSaudeSistema() {
   return (
     <div className="space-y-6">
       <Helmet>
-        <title>Saúde do Sistema | 360°FOOD</title>
+        <title>Saúde do Sistema | Aveto 360</title>
         <meta
           name="description"
           content="Painel técnico de saúde do sistema: banco de dados, volumes e integrações."

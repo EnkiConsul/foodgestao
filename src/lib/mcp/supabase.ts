@@ -60,7 +60,7 @@ export function supabaseForUser(ctx: ToolContext) {
 
 export function notAuthenticated() {
   return {
-    content: [{ type: "text" as const, text: "Não autenticado. Conecte-se novamente ao 360°FOOD." }],
+    content: [{ type: "text" as const, text: "Não autenticado. Conecte-se novamente ao Aveto 360." }],
     isError: true,
   };
 }

@@ -10,10 +10,10 @@ const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unse
 
 export default defineMcp({
   name: "360-food",
-  title: "360°FOOD",
+  title: "Aveto 360",
   version: "0.1.0",
   instructions:
-    "Ferramentas do 360°FOOD (gestão financeira e de pessoas para food service). Use list_companies para descobrir as empresas do usuário, list_accounts para saldos, list_transactions para lançamentos e contas a pagar/receber, e list_colaboradores para a equipe do módulo Pessoas 360°. Todas as chamadas respeitam as permissões do usuário conectado.",
+    "Ferramentas do Aveto 360 (gestão financeira e de pessoas para food service). Use list_companies para descobrir as empresas do usuário, list_accounts para saldos, list_transactions para lançamentos e contas a pagar/receber, e list_colaboradores para a equipe do módulo Pessoas 360°. Todas as chamadas respeitam as permissões do usuário conectado.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",

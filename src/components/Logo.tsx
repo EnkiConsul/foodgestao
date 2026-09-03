@@ -23,7 +23,7 @@ export function Logo({ size = "md", className, linkTo = "/", variant = "horizont
   const img = (
     <img
       src={src}
-      alt="360°FOOD"
+      alt="Aveto 360"
       className={cn(sizeMap[size], "w-auto select-none", className)}
       draggable={false}
     />

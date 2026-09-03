@@ -123,7 +123,7 @@ export default function OAuthConsent() {
           <CardDescription>
             {error
               ? error
-              : `${clientName} poderá consultar os dados do 360°FOOD com as suas permissões de acesso.`}
+              : `${clientName} poderá consultar os dados do Aveto 360 com as suas permissões de acesso.`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -151,7 +151,7 @@ export default function OAuthConsent() {
                 </ul>
               ) : null}
               <p className="text-xs text-muted-foreground">
-                Isso não ignora as permissões e políticas de acesso do 360°FOOD.
+                Isso não ignora as permissões e políticas de acesso do Aveto 360.
               </p>
               <div className="flex gap-2">
                 <Button className="flex-1" disabled={busy} onClick={() => decide(true)}>

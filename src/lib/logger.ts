@@ -1,5 +1,5 @@
 /**
- * Logger centralizado do 360°FOOD.
+ * Logger centralizado do Aveto 360.
  *
  * Objetivo: ter um único ponto de saída para erros/avisos do front-end, para que
  * a instrumentação (Sentry, Logflare, etc.) possa ser ligada sem varrer o código.

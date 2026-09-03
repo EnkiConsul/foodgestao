@@ -64,7 +64,7 @@ export default function DpFolhaPeriodo() {
   const empresa =
     companies.find((c) => c.id === selectedCompanyId)?.trade_name ||
     companies.find((c) => c.id === selectedCompanyId)?.name ||
-    "360°FOOD";
+    "Aveto 360";
 
   const imprimir = (alvo: typeof linhas) => {
     if (!periodo) return;
@@ -97,7 +97,7 @@ export default function DpFolhaPeriodo() {
   return (
     <DpPage>
       <Helmet>
-        <title>Folha {competencia} | Pessoas 360°FOOD</title>
+        <title>Folha {competencia} | Pessoas Aveto 360</title>
         <meta name="description" content="Lançamentos da folha do período, com proventos, descontos e ciclo de aprovação." />
       </Helmet>
 

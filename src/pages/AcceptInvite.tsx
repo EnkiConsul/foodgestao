@@ -84,7 +84,7 @@ export default function AcceptInvite() {
             <CardHeader className="text-center">
               <CardTitle>Convite para Empresa</CardTitle>
               <CardDescription>
-                Você recebeu um convite para se juntar a uma empresa no 360°FOOD.
+                Você recebeu um convite para se juntar a uma empresa no Aveto 360.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-3">

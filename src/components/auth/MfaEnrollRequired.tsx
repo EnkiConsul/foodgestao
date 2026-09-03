@@ -211,7 +211,7 @@ export function MfaEnrollRequired({ onSuccess }: Props) {
           </div>
           <h3 className="text-lg font-semibold">2FA ativada com sucesso</h3>
           <p className="text-sm text-muted-foreground max-w-sm">
-            A partir de agora, sempre que você entrar no 360°FOOD será solicitado um código do seu
+            A partir de agora, sempre que você entrar no Aveto 360 será solicitado um código do seu
             aplicativo autenticador.
           </p>
         </div>

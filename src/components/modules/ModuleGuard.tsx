@@ -31,7 +31,7 @@ export function ModuleGuard({ module, children }: ModuleGuardProps) {
   const def = MODULE_BY_SLUG[module];
   const Icon = def.icon;
   const waMsg = encodeURIComponent(
-    `Olá! Tenho interesse em contratar o módulo ${def.name} no 360°FOOD.`,
+    `Olá! Tenho interesse em contratar o módulo ${def.name} no Aveto 360.`,
   );
 
   return (

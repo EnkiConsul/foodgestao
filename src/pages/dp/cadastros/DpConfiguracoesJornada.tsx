@@ -249,7 +249,7 @@ export default function DpConfiguracoesJornada() {
     <DpPage>
       {!embedded && (
         <Helmet>
-          <title>Regras De Folgas | Pessoas 360°FOOD</title>
+          <title>Regras De Folgas | Pessoas Aveto 360</title>
           <meta name="description" content="Configure a periodicidade de folga dominical, o descanso por acordo coletivo e as regras de férias do Departamento Pessoal, por empresa ou por unidade." />
         </Helmet>
       )}

@@ -4,7 +4,7 @@ import { supabaseForUser, notAuthenticated } from "../supabase";
 export default defineTool({
   name: "list_companies",
   title: "Listar empresas",
-  description: "Lista as empresas (perfis PJ) que o usuário conectado pode acessar no 360°FOOD.",
+  description: "Lista as empresas (perfis PJ) que o usuário conectado pode acessar no Aveto 360.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {

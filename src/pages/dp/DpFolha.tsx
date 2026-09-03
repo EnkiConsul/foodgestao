@@ -38,7 +38,7 @@ export default function DpFolha() {
   return (
     <DpPage>
       <Helmet>
-        <title>Folha de Pagamento | Pessoas 360°FOOD</title>
+        <title>Folha de Pagamento | Pessoas Aveto 360</title>
         <meta name="description" content="Períodos da folha de pagamento por competência, com status do ciclo de aprovação." />
       </Helmet>
 

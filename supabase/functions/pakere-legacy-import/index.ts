@@ -1,4 +1,4 @@
-// Edge Function TEMPORÁRIA — migração one-shot Pakere → 360°FOOD DP.
+// Edge Function TEMPORÁRIA — migração one-shot Pakere → Aveto 360 DP.
 // Será removida após a validação da importação. Sem UI, sem rota, sem menu.
 // Modos suportados: diagnose | dry-run | execute | rollback
 //

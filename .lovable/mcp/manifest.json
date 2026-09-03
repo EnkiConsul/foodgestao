@@ -13,13 +13,13 @@
     "server": {
       "name": "360-food",
       "version": "0.1.0",
-      "title": "360°FOOD"
+      "title": "Aveto 360"
     },
     "tools": [
       {
         "name": "list_companies",
         "title": "Listar empresas",
-        "description": "Lista as empresas (perfis PJ) que o usuário conectado pode acessar no 360°FOOD.",
+        "description": "Lista as empresas (perfis PJ) que o usuário conectado pode acessar no Aveto 360.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,

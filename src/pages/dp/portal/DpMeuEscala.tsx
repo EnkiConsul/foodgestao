@@ -94,7 +94,7 @@ export default function DpMeuEscala() {
   return (
     <div className="space-y-4 p-4">
       <Helmet>
-        <title>Minha Escala | 360°FOOD</title>
+        <title>Minha Escala | Aveto 360</title>
         <meta name="description" content="Veja seus dias de trabalho, horários e folgas da escala publicada pela sua unidade." />
       </Helmet>
 

@@ -129,7 +129,7 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
         <div className={cn("flex w-full", collapsed ? "flex-col items-center justify-center gap-1" : "flex-row items-center justify-between gap-2")}>
           <img
             src={collapsed ? symbol360.url : assinatura360.url}
-            alt="360°FOOD"
+            alt="Aveto 360"
             className={cn("object-contain", collapsed ? "h-6 w-auto max-w-full" : "h-10 w-auto")}
             draggable={false}
           />

@@ -41,7 +41,7 @@ export default function DpRescisoes() {
   return (
     <DpPage>
       <Helmet>
-        <title>Rescisões (TRCT) | Pessoas 360°FOOD</title>
+        <title>Rescisões (TRCT) | Pessoas Aveto 360</title>
         <meta
           name="description"
           content="Calcule o acerto rescisório dos colaboradores desligados e gere o lançamento na folha de pagamento."

@@ -15,7 +15,7 @@ export default function Cookies() {
         lastUpdated={c.last_updated}
         body={c.body}
         canonicalPath="/cookies"
-        metaDescription="Como o 360°FOOD usa cookies e como você pode gerenciar suas preferências."
+        metaDescription="Como o Aveto 360 usa cookies e como você pode gerenciar suas preferências."
       />
       <div className="fixed bottom-4 right-4 z-50">
         <Button size="sm" onClick={openCookieSettings}>Gerenciar cookies</Button>

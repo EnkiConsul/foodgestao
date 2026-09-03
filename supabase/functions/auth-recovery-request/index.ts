@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
   // 5) Send via Z-API only when a real user/phone is available
   if (userId && phone) {
     const msg = [
-      "🔐 *360°FOOD — Recuperação de senha*",
+      "🔐 *Aveto 360 — Recuperação de senha*",
       "",
       `Seu código de verificação é: *${otp}*`,
       `Ele expira em ${Math.floor(OTP_TTL_SECONDS / 60)} minutos.`,

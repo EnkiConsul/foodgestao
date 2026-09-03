@@ -164,8 +164,8 @@ export default function EsqueciSenha() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
       <Helmet>
-        <title>Recuperar senha — 360°FOOD</title>
-        <meta name="description" content="Recupere o acesso à sua conta 360°FOOD com verificação via WhatsApp." />
+        <title>Recuperar senha — Aveto 360</title>
+        <meta name="description" content="Recupere o acesso à sua conta Aveto 360 com verificação via WhatsApp." />
       </Helmet>
 
       <div className="w-full max-w-md space-y-3">

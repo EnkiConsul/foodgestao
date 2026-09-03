@@ -88,7 +88,7 @@ export default function DpPontoApuracao() {
   return (
     <DpPage>
       <Helmet>
-        <title>Apuração para Folha | Pessoas 360°FOOD</title>
+        <title>Apuração para Folha | Pessoas Aveto 360</title>
         <meta
           name="description"
           content="Rubricas do ponto por colaborador: horas normais, extras 50% e 100%, adicional noturno, faltas e DSR."

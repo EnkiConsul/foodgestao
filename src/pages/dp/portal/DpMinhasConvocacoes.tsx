@@ -208,7 +208,7 @@ export default function DpMinhasConvocacoes() {
 
   return (
     <div className="p-4 space-y-4 pb-24">
-      <Helmet><title>Minhas Convocações — 360°FOOD</title></Helmet>
+      <Helmet><title>Minhas Convocações — Aveto 360</title></Helmet>
 
       <header className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-2xl bg-primary/10 text-primary grid place-items-center">
