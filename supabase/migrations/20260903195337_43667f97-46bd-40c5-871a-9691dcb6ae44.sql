@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.pluggy_accounts_guard_card_company() FROM PUBLIC;

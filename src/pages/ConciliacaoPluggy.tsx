@@ -462,6 +462,7 @@ export default function ConciliacaoPluggy() {
             .from("credit_cards")
             .select("id, issuer, brand, last4")
             .eq("id", scopedCardId)
+            .eq("company_id", selectedCompanyId)
             .maybeSingle();
           label = creditCardLabel(cardRow ?? null) ?? cleanProviderName(pa.name);
         }

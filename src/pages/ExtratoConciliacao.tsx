@@ -178,6 +178,7 @@ export default function ExtratoConciliacao() {
           .from("credit_cards")
           .select("id, issuer, brand, last4")
           .eq("id", cardParam)
+          .eq("company_id", selectedCompanyId!)
           .maybeSingle();
         label = creditCardLabel(cardRow ?? null) ?? label;
       }
