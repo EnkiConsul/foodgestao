@@ -520,7 +520,10 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          {dailyEvolution.length === 0 ? (
+          {loadingTx ? (
+            <Skeleton className="h-48 w-full rounded-xl" />
+          ) : dailyEvolution.length === 0 ? (
+
             <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
               Sem movimentação diária no período
             </div>
