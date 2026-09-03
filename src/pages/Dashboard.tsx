@@ -450,7 +450,10 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          {monthlyData.length === 0 ? (
+          {loadingTx ? (
+            <Skeleton className="h-56 w-full rounded-xl" />
+          ) : monthlyData.length === 0 ? (
+
             <div className="flex items-center justify-center h-56 text-muted-foreground text-sm">
               Nenhuma transação registrada ainda
             </div>
