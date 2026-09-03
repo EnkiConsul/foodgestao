@@ -1,9 +1,11 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { dashboardAccountsKey, fetchDashboardAccounts } from "@/lib/dashboardQueries";
+
 
 export type HorizonDays = 7 | 15 | 30 | 60 | 90;
 
