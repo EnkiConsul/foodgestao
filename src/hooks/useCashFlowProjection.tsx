@@ -43,6 +43,8 @@ function parseISODate(s: string) {
 export function useCashFlowProjection(horizonDays: HorizonDays) {
   const { user } = useAuth();
   const { contextType, selectedCompanyId } = useCompanyContext();
+  const queryClient = useQueryClient();
+
 
   useRealtimeSync({
     tables: ["transactions", "accounts", "credit_cards", "credit_card_invoices"],
