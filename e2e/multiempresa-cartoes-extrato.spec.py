@@ -184,6 +184,7 @@ async def main() -> int:
             "([k, s]) => localStorage.setItem(k, s)",
             [STORAGE_KEY, json.dumps(session)],
         )
+        print(f"session keys={sorted(session)} key={STORAGE_KEY} url={page.url}")
 
         for idx, company in enumerate(pair):
             other = pair[1 - idx]
