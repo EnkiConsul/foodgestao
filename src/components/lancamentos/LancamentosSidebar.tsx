@@ -45,6 +45,10 @@ export interface FilterPanelProps {
   setFilterPaymentMethod: (v: string[]) => void;
   filterCategory: string;
   setFilterCategory: (v: string) => void;
+  filterOrigemConta: boolean;
+  setFilterOrigemConta: (v: boolean) => void;
+  filterOrigemCartao: boolean;
+  setFilterOrigemCartao: (v: boolean) => void;
   filterCredito: boolean;
   setFilterCredito: (v: boolean) => void;
   filterDebito: boolean;
@@ -70,6 +74,8 @@ export function FilterPanel(props: FilterPanelProps) {
     filterAccount, setFilterAccount,
     filterPaymentMethod, setFilterPaymentMethod,
     filterCategory, setFilterCategory,
+    filterOrigemConta, setFilterOrigemConta,
+    filterOrigemCartao, setFilterOrigemCartao,
     filterCredito, setFilterCredito,
     filterDebito, setFilterDebito,
     filterTransferencia, setFilterTransferencia,
@@ -113,6 +119,19 @@ export function FilterPanel(props: FilterPanelProps) {
             {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
+      </FilterSection>
+
+      <FilterSection title="Origem">
+        <div className="space-y-0.5 mt-0.5">
+          <label className="flex items-center gap-1 text-[11px]">
+            <Checkbox checked={filterOrigemConta} onCheckedChange={(v) => setFilterOrigemConta(!!v)} className="h-3 w-3" />
+            Conta bancária
+          </label>
+          <label className="flex items-center gap-1 text-[11px]">
+            <Checkbox checked={filterOrigemCartao} onCheckedChange={(v) => setFilterOrigemCartao(!!v)} className="h-3 w-3" />
+            Cartão de crédito
+          </label>
+        </div>
       </FilterSection>
 
       <FilterSection title="Lançamentos">

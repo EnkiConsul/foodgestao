@@ -79,7 +79,9 @@ export function LancamentoCard({ row: r, isSelected, formatBRL, callbacks }: Lan
             <span className="text-sm font-medium truncate">{r.description}</span>
           </div>
           <div className="mt-0.5 text-[11px] text-muted-foreground truncate">
-            {[r.categoryName, r.accountName].filter(Boolean).join(" • ") || "—"}
+            {[r.categoryName, r.origin === "cartao" ? `Cartão · ${r.accountName ?? "cartão de crédito"}` : r.accountName]
+              .filter(Boolean)
+              .join(" • ") || "—"}
           </div>
         </div>
         <div className={cn("text-right font-semibold text-sm whitespace-nowrap", valueColorClass)}>
