@@ -542,7 +542,14 @@ export default function Dashboard() {
         <div className="col-span-12 lg:col-span-5 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
           <h2 className="font-display text-lg font-bold text-foreground mb-1">Saldo por Conta</h2>
           <p className="text-xs text-muted-foreground mb-5">Posição atual das contas financeiras</p>
-          {accounts.length === 0 ? (
+          {loadingAccounts ? (
+            <div className="space-y-2.5">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-[58px] w-full rounded-xl" />
+              ))}
+            </div>
+          ) : accounts.length === 0 ? (
+
             <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
               Nenhuma conta cadastrada
             </div>
