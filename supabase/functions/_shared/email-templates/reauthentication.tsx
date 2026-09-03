@@ -1,60 +1,64 @@
 /// <reference types="npm:@types/react@18.3.1" />
 
 import * as React from 'npm:react@18.3.1'
-
-import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Preview,
-  Text,
-} from 'npm:@react-email/components@0.0.22'
+import { Heading, Section, Text } from 'npm:@react-email/components@0.0.22'
+import { EmailLayout } from './EmailLayout.tsx'
 
 interface ReauthenticationEmailProps {
   token: string
 }
 
 export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => (
-  <Html lang="en" dir="ltr">
-    <Head />
-    <Preview>Your verification code</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Heading style={h1}>Confirm reauthentication</Heading>
-        <Text style={text}>Use the code below to confirm your identity:</Text>
-        <Text style={codeStyle}>{token}</Text>
-        <Text style={footer}>
-          This code will expire shortly. If you didn't request this, you can
-          safely ignore this email.
-        </Text>
-      </Container>
-    </Body>
-  </Html>
+  <EmailLayout
+    siteUrl={`https://www.aveto360.com`}
+    siteName="Aveto 360"
+    preview="Seu código de verificação Aveto 360"
+  >
+    <Heading style={h1}>Confirme sua identidade</Heading>
+    <Text style={text}>
+      Use o código abaixo para confirmar sua identidade no Aveto 360:
+    </Text>
+    <Section style={{ textAlign: 'center', margin: '28px 0' }}>
+      <Text style={codeStyle}>{token}</Text>
+    </Section>
+    <Text style={footer}>
+      Este código expira em breve. Se você não solicitou este código, pode
+      ignorar este e-mail com segurança.
+    </Text>
+  </EmailLayout>
 )
 
 export default ReauthenticationEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
   color: '#0B0F0D',
-  margin: '0 0 20px',
+  margin: '0 0 18px',
 }
+
 const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
+  fontSize: '15px',
+  color: '#4B5563',
+  lineHeight: '1.6',
+  margin: '0 0 16px',
 }
+
 const codeStyle = {
   fontFamily: 'Courier, monospace',
-  fontSize: '22px',
+  fontSize: '32px',
   fontWeight: 'bold' as const,
+  letterSpacing: '4px',
   color: '#0B0F0D',
-  margin: '0 0 30px',
+  backgroundColor: '#F3F4F6',
+  borderRadius: '8px',
+  padding: '16px 24px',
+  display: 'inline-block',
+  margin: '0',
 }
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+
+const footer = {
+  fontSize: '12px',
+  color: '#9CA3AF',
+  margin: '24px 0 0',
+}
