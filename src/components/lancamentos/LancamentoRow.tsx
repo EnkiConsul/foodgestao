@@ -139,7 +139,14 @@ export function LancamentoRow({
       {/* Conta */}
       {visibleColumns.conta && (
         <TableCell className="text-xs py-2 text-muted-foreground whitespace-nowrap">
-          {r.accountName || "—"}
+          {r.origin === "cartao" ? (
+            <span className="inline-flex items-center gap-1">
+              <Badge variant="outline" className="h-4 px-1 text-[10px]">Cartão</Badge>
+              {r.accountName || "Cartão de crédito"}
+            </span>
+          ) : (
+            r.accountName || "—"
+          )}
         </TableCell>
       )}
 

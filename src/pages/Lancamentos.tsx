@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } fro
 import { useSearchParams } from "react-router-dom";
 import { resolveAttachments } from "@/lib/attachments";
 import { amountColorClass } from "@/lib/transaction-sign";
+import { resolveLancamentoOrigin, sumDespesas, sumReceitas, type LancamentoOrigin } from "@/lib/transactions/lancamentoOrigin";
+import { creditCardLabel } from "@/lib/conciliacao/cardRouting";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -81,6 +83,9 @@ type Transaction = {
   attachment_url: string | null; // legacy, kept for query compat
   installment_number: number | null;
   installment_total: number | null;
+  credit_card_id?: string | null;
+  credit_card_invoice_id?: string | null;
+  is_invoice_payment?: boolean | null;
 };
 
 type DisplayRow = {
@@ -104,6 +109,8 @@ type DisplayRow = {
   isRecurring: boolean;
   isRecurrenceChild: boolean;
   attachmentCount: number;
+  origin: LancamentoOrigin;
+  isInvoicePayment: boolean;
   original: Transaction;
 };
 
@@ -248,6 +255,9 @@ export default function Lancamentos() {
   const [filterAtrasado, setFilterAtrasado] = useState(true);
   const [filterPaymentMethod, setFilterPaymentMethod] = useState<string[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterOrigemConta, setFilterOrigemConta] = useState(true);
+  const [filterOrigemCartao, setFilterOrigemCartao] = useState(true);
+  const [cards, setCards] = useState<{ id: string; brand: string | null; last4: string | null; issuer: string | null }[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   // Date range filter
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
@@ -263,7 +273,7 @@ export default function Lancamentos() {
     const query = applyFinancialScope(
       supabase
         .from("transactions")
-        .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total")
+        .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, credit_card_id, credit_card_invoice_id, is_invoice_payment")
         .eq("id", transactionId),
       scope,
     );
@@ -345,6 +355,14 @@ export default function Lancamentos() {
       }).then(({ data }) => setPaymentMethods((data ?? []).map((pm: any) => ({ id: pm.id, name: pm.name }))));
     }
     if (contextType === "pj" && !selectedCompanyId) {
+      setCards([]);
+    } else {
+      void supabase
+        .from("credit_cards")
+        .select("id, brand, last4, issuer")
+        .then(({ data }) => setCards((data ?? []) as typeof cards));
+    }
+    if (contextType === "pj" && !selectedCompanyId) {
       setCategories([]);
     } else {
       supabase
@@ -370,7 +388,7 @@ export default function Lancamentos() {
     const q = applyFinancialScope(
       supabase
         .from("transactions")
-        .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)"),
+        .select("id, description, amount, transaction_type, transaction_date, status, category_id, account_id, payment_method_id, due_date, amount_paid, bill_status, payment_date, contact_id, notes, destination_account_id, is_recurring, parent_transaction_id, attachment_url, installment_number, installment_total, credit_card_id, credit_card_invoice_id, is_invoice_payment, categories!fk_transactions_category(name), accounts!fk_transactions_account(name), payment_methods!fk_transactions_payment_method(name)"),
       scope,
     )
       .or(`and(due_date.is.null,transaction_date.gte.${monthStart},transaction_date.lte.${monthEnd}),and(due_date.gte.${monthStart},due_date.lte.${monthEnd})`)
@@ -649,7 +667,10 @@ export default function Lancamentos() {
       if (eff === "entrada" && !filterCredito) return;
       if (eff === "saida" && !filterDebito) return;
       if (eff === "transferencia" && !filterTransferencia) return;
-      if (filterAccount.length > 0 && !filterAccount.includes(t.account_id)) return;
+      const origin = resolveLancamentoOrigin(t);
+      if (origin === "conta" && !filterOrigemConta) return;
+      if (origin === "cartao" && !filterOrigemCartao) return;
+      if (filterAccount.length > 0 && (origin === "cartao" || !filterAccount.includes(t.account_id))) return;
       if (filterPaymentMethod.length > 0 && (!t.payment_method_id || !filterPaymentMethod.includes(t.payment_method_id))) return;
       if (filterCategory !== "all" && t.category_id !== filterCategory) return;
 
@@ -683,7 +704,10 @@ export default function Lancamentos() {
         date: t.transaction_date,
         transactionType: t.transaction_type,
         categoryName: t.categories?.name || null,
-        accountName: t.accounts?.name || null,
+        accountName:
+          origin === "cartao"
+            ? creditCardLabel(cards.find((c) => c.id === t.credit_card_id) ?? null)
+            : t.accounts?.name || null,
         paymentMethodName: t.payment_methods?.name || null,
         txStatus: t.status,
         billStatus: computed,
@@ -695,6 +719,8 @@ export default function Lancamentos() {
         isRecurring: t.is_recurring,
         isRecurrenceChild: !!t.parent_transaction_id,
         attachmentCount: attachmentCounts.get(t.id) || 0,
+        origin,
+        isInvoicePayment: !!t.is_invoice_payment,
         installmentNumber: t.installment_number,
         installmentTotal: t.installment_total,
         original: t,
@@ -710,7 +736,7 @@ export default function Lancamentos() {
     let running = previousBalance;
     rows.forEach((r) => {
       const isPaid = r.hasDueDate && r.amountPaid >= r.amount;
-      if (r.txStatus === "confirmado" || isPaid) {
+      if (r.origin !== "cartao" && (r.txStatus === "confirmado" || isPaid)) {
         if (r.transactionType === "entrada") running += r.amount;
         else if (r.transactionType === "saida") running -= r.amount;
       }
@@ -718,21 +744,21 @@ export default function Lancamentos() {
     });
 
     return rows;
-  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterPago, filterAVencer, filterAtrasado, filterAccount, filterPaymentMethod, filterCategory, dateFrom, dateTo, sortBy, previousBalance, monthStart, monthEnd]);
+  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterPago, filterAVencer, filterAtrasado, filterAccount, filterPaymentMethod, filterCategory, filterOrigemConta, filterOrigemCartao, cards, dateFrom, dateTo, sortBy, previousBalance, monthStart, monthEnd]);
 
   // Totals
   const totals = useMemo(() => {
     const effectiveRows = displayRows.filter((r) => r.txStatus === "confirmado" || (r.hasDueDate && r.amountPaid >= r.amount));
-    const receitas = effectiveRows.filter((r) => r.transactionType === "entrada").reduce((s, r) => s + r.amount, 0);
-    const despesas = effectiveRows.filter((r) => r.transactionType === "saida").reduce((s, r) => s + r.amount, 0);
+    const receitas = sumReceitas(effectiveRows);
+    const despesas = sumDespesas(effectiveRows);
 
     const pending = displayRows.filter((r) => r.billStatus !== "pago");
     const aPagar = pending.filter((r) => r.transactionType === "saida").reduce((s, r) => s + r.amount - r.amountPaid, 0);
     const aReceber = pending.filter((r) => r.transactionType === "entrada").reduce((s, r) => s + r.amount - r.amountPaid, 0);
     const atrasadas = displayRows.filter((r) => r.billStatus === "atrasado").length;
 
-    const allReceitas = displayRows.filter((r) => r.transactionType === "entrada").reduce((s, r) => s + r.amount, 0);
-    const allDespesas = displayRows.filter((r) => r.transactionType === "saida").reduce((s, r) => s + r.amount, 0);
+    const allReceitas = sumReceitas(displayRows);
+    const allDespesas = sumDespesas(displayRows);
     const saldoPeriodo = allReceitas - allDespesas;
     const saldoAcumulado = previousBalance + saldoPeriodo;
 
@@ -771,6 +797,8 @@ export default function Lancamentos() {
     setFilterAccount([]);
     setFilterPaymentMethod([]);
     setFilterCategory("all");
+    setFilterOrigemConta(true);
+    setFilterOrigemCartao(true);
     setFilterCredito(true);
     setFilterDebito(true);
     setFilterTransferencia(true);
@@ -798,6 +826,8 @@ export default function Lancamentos() {
     filterAccount, setFilterAccount,
     filterPaymentMethod, setFilterPaymentMethod,
     filterCategory, setFilterCategory,
+    filterOrigemConta, setFilterOrigemConta,
+    filterOrigemCartao, setFilterOrigemCartao,
     filterCredito, setFilterCredito,
     filterDebito, setFilterDebito,
     filterTransferencia, setFilterTransferencia,
