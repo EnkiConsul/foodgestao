@@ -244,9 +244,20 @@ Deno.serve(async (req) => {
     // Look up existing connection (if any)
     const { data: existing } = await admin
       .from('pluggy_connections')
-      .select('id, company_id')
+      .select('id, company_id, status')
       .eq('pluggy_item_id', itemId)
       .maybeSingle();
+
+    // Conexão já excluída na empresa não deve ser ressuscitada por uma nova
+    // sincronização: sem isso, o espelho volta e os cartões reaparecem na fila
+    // de autorização mesmo depois de o usuário excluir a conta/cartão.
+    if (existing?.status === 'deleted') {
+      console.log('pluggy sync ignorado: conexao excluida', { itemId, connectionId: existing.id });
+      return new Response(JSON.stringify({ ok: true, skipped: 'connection_deleted' }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
 
     // Fallback: resolve company via connect request (service-role/webhook path,
     // quando o navegador não conclui o fluxo — ex.: Open Finance por QR Code).
