@@ -47,9 +47,9 @@ function randomOTP6(): string {
   return (arr[0] % 1_000_000).toString().padStart(6, "0");
 }
 
-async function verifyTurnstile(token: string, ip: string | null): Promise<boolean> {
-  const secrets = [Deno.env.get("TURNSTILE_SECRET"), Deno.env.get("TURNSTILE_SECRET_KEY")]
-    .filter((s): s is string => !!s);
+async function verifyTurnstile(req: Request, token: string, ip: string | null): Promise<boolean> {
+  const secrets = turnstileSecretsFor(req);
+
   const seen = new Set<string>();
   for (const secret of secrets) {
     if (seen.has(secret)) continue;
