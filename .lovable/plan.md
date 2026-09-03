@@ -1,33 +1,35 @@
-# Cartões repetidos entre empresas: avisar e permitir remover a conexão duplicada
+# Cartão do Open Finance voltando na empresa errada
 
-## O que os dados mostram agora
+## O que está acontecendo (verificado nos dados)
 
-Não há mais nenhum cartão da Familia sendo lido pela Raptor. Os três cartões cadastrados continuam apenas na Familia. O que aparece hoje na Raptor são **contas de cartão detectadas no Open Finance dentro de conexões criadas na própria Raptor**:
+O cartão BMG "CARTAO BARCELONA" (final 2691) está cadastrado na **Familia**, correto. O que aparece na Raptor não é o cartão da Familia: é uma **conta de cartão lida pela conexão BMG que existe na própria Raptor** (conexão criada em 25/08, com lançamentos já confirmados), e o mesmo vale para Neon 4103 e C6 2555.
 
-- Neon 4103 — conexão criada hoje 18:10 na Raptor
-- C6 "Bandeirado" 2555 — conexão criada hoje 18:10 na Raptor
-- BMG "CARTAO BARCELONA" 2691 — conexão criada hoje 18:37 na Raptor
+Por que ela insiste em aparecer:
 
-São os mesmos cartões físicos que já estão cadastrados na Familia, porque o mesmo acesso bancário foi conectado nas duas empresas. Elas estão na fila "cartão de crédito detectado" (status pendente) — nenhuma foi cadastrada como cartão da Raptor.
+- O espelho de contas do Open Finance é identificado pelo código de conta do provedor (`pluggy_account_id`).
+- Quando a conexão é reautenticada, o banco emite **novos códigos de conta para o mesmo cartão físico**. Foi o que ocorreu ontem/hoje: as leituras de 18:10 e 18:37 criaram linhas novas para Neon 4103, C6 2555 e BMG 2691 na Raptor.
+- A decisão anterior do usuário ("Ignorar") fica presa à linha antiga. A herança existente só copia vínculo de cartão já autorizado — não copia "ignorado". Resultado: o cartão volta para a fila "cartão de crédito detectado" a cada nova leitura.
+- Não há nenhum aviso de que aquele cartão (mesmo banco + mesmos 4 dígitos) já está cadastrado em outra empresa do usuário.
 
-Ou seja: não é vazamento entre empresas, é conexão bancária duplicada. Hoje o app não avisa isso nem oferece um caminho para desfazer, então a fila fica insistindo em cartões que não pertencem àquela empresa.
+Não há leitura de cartão de uma empresa por outra: as permissões já estão escopadas por empresa.
 
 ## O que será feito
 
-1. **Aviso de cartão já cadastrado em outra empresa** — na fila de cartões detectados e no diálogo de autorização, quando o cartão do Open Finance corresponder (banco + últimos 4 dígitos) a um cartão já cadastrado em outra empresa do usuário, mostrar um alerta: "Este cartão já está cadastrado na empresa Familia. Se o cartão não é desta empresa, remova a conexão bancária desta empresa."
+1. **A decisão do usuário passa a valer para o cartão, não para o código do provedor** — ao detectar um cartão, herdar a decisão anterior da mesma empresa pelo par banco + últimos 4 dígitos: se já foi ignorado, entra como ignorado; se já foi vinculado, herda o vínculo. Assim o cartão para de reaparecer depois de cada reautenticação.
 
-2. **Descartar sem ficar voltando** — a ação "Ignorar" passa a valer também para novas leituras do mesmo cartão (mesmo banco + final) naquela empresa, de modo que ele não reapareça na fila em cada sincronização.
+2. **Aviso de cartão de outra empresa** — na fila de cartões detectados e no diálogo de autorização, quando o cartão corresponder a um cartão já cadastrado em outra empresa do usuário, mostrar: "Este cartão já está cadastrado na empresa Familia — confirme se esta conexão bancária deveria estar nesta empresa."
 
-3. **Remover a conexão da empresa errada** — no cartão da conexão em Contas Financeiras, disponibilizar "Remover esta conexão desta empresa", com confirmação explicando que a conexão e o extrato pendente daquela empresa são apagados e que lançamentos já confirmados permanecem.
+3. **Limpeza dos casos atuais** — marcar como ignoradas as linhas pendentes duplicadas de Neon 4103, C6 2555 e BMG 2691 na Raptor, herdando a decisão anterior. Nada de conexão, conta ou lançamento confirmado é apagado.
 
-4. **Aviso ao conectar banco já conectado em outra empresa** — antes de concluir uma nova conexão, se o mesmo banco já estiver conectado em outra empresa do usuário, exibir aviso perguntando se é realmente esta a empresa dona daquela conta.
+4. **Ação para corrigir a empresa da conexão** — no cartão da conexão em Contas Financeiras, oferecer "Remover esta conexão desta empresa", com confirmação explicando que a conexão e o extrato pendente daquela empresa saem, e que lançamentos já confirmados permanecem. É o caminho para quem conectou o banco na empresa errada.
 
-5. **Validar** — com Raptor selecionada, a fila deve mostrar o alerta de duplicidade nos três cartões; após remover as conexões duplicadas, a fila fica vazia e a Familia segue com seus três cartões e conciliação intactos.
+5. **Validar** — com Raptor selecionada, a fila de cartões detectados fica vazia; forçar uma nova leitura e confirmar que os cartões não voltam; com Familia selecionada, os três cartões e as faturas seguem intactos.
 
 ## Detalhes técnicos
 
-- Comparação de duplicidade: `pluggy_accounts.number_masked` / `raw->>'number'` + `pluggy_connections.connector_name` contra `credit_cards` (issuer/brand + last4) das outras empresas do usuário. Como a leitura de cartões passou a ser escopada por empresa, a checagem roda em uma função no banco (`security definer`, restrita a empresas em que o usuário é membro) que devolve apenas o nome da empresa onde o cartão já existe — sem expor os dados do cartão.
-- "Ignorar persistente": nova tabela `pluggy_credit_ignores` (empresa, conector, final do cartão) com RLS por empresa e GRANTs; a fila de `usePluggyCreditReview` exclui os pares ignorados.
-- Remoção da conexão: reutilizar a rotina existente de exclusão de conexão Open Finance (conexão + contas espelhadas + staging da empresa), acionada por conexão em `ContasBancarias`.
-- Aviso ao conectar: checagem no início do fluxo do `PluggyConnectDialog`, comparando o conector escolhido com conexões ativas de outras empresas do usuário.
-- Sem mudança em saldo, fechamento de fatura ou lançamentos confirmados.
+- `supabase/functions/pluggy-sync-item/index.ts`: na etapa de espelhamento de contas CREDIT, ampliar a herança atual para buscar a linha anterior da mesma empresa por `number_masked` (+ conector) considerando também `credit_review_status IN ('ignored','linked')`, e replicar status/vínculo/`credit_review_at`. Sem alterar o `onConflict: 'pluggy_account_id'`.
+- Nova função no banco (`security definer`, restrita a empresas do usuário) que, dado banco + final, devolve apenas o **nome da empresa** onde já existe cartão cadastrado — usada pelo aviso, sem expor dados do cartão de outra empresa.
+- `usePluggyCreditReview` passa a trazer o aviso de duplicidade junto de cada pendência; `PluggyCreditCardReviewDialog` exibe o alerta acima dos campos.
+- Migração de dados pontual marcando como `ignored` as três linhas pendentes da Raptor cujo par banco+final já tinha decisão anterior naquela empresa.
+- Remoção de conexão por empresa: reutilizar a rotina existente de exclusão de conexão Open Finance (`pluggy-pause-or-delete`), acionada por conexão em `ContasBancarias`.
+- Sem mudança em saldo, fechamento de fatura, conciliação ou lançamentos confirmados.
