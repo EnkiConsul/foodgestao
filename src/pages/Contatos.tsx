@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
-import { Plus, Search, Users, Pencil, Trash2, Mail, Phone } from "lucide-react";
+import { ContactImportDialog } from "@/components/contacts/ContactImportDialog";
+import { Plus, Search, Users, Pencil, Trash2, Mail, Phone, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
