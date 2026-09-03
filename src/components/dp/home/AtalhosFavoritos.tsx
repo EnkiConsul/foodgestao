@@ -57,7 +57,7 @@ export function AtalhosFavoritos({ items }: { items?: Atalho[] } = {}) {
   };
 
   return (
-    <div className="rounded-2xl border-2 border-[hsl(var(--dp-border))] bg-white p-5">
+    <div className="rounded-2xl border-2 border-[hsl(var(--dp-border))] bg-card p-5">
       <div className="flex items-center gap-2 mb-4">
         <Star className="h-5 w-5 text-primary fill-primary" />
         <h2 className="text-lg font-semibold">Atalhos Favoritos</h2>

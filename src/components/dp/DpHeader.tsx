@@ -9,7 +9,7 @@ import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 
 export function DpHeader({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-[hsl(var(--dp-border))] bg-white/80 backdrop-blur px-3 md:px-4">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-background/80 backdrop-blur px-3 md:px-4">
       <SidebarTrigger className="h-10 w-10 shrink-0 md:h-9 md:w-9" />
       <div className="min-w-0 shrink md:hidden">
         <ModuleSwitcherChip />
