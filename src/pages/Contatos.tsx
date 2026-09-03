@@ -242,6 +242,15 @@ export default function Contatos() {
         editContact={editContact}
       />
 
+      <ContactImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        existingContacts={contacts.map((c) => ({ id: c.id, name: c.name, document: c.document }))}
+        onImported={() => { refetch(); refetchCompanies(); }}
+      />
+
+
+
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
