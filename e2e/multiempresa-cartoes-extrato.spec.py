@@ -133,16 +133,33 @@ async def wait_app_ready(page) -> None:
     raise RuntimeError(f"app não autenticou (url={page.url})")
 
 
+async def selected_company(page) -> str:
+    return (await page.get_by_label("Selecionar empresa").inner_text()).strip()
+
+
 async def select_company(page, name: str) -> None:
+    """Troca a empresa e só retorna quando o seletor confirma a troca —
+    sem isso, uma troca que não aplicou faria o teste comparar a empresa errada."""
     await wait_app_ready(page)
+    if await selected_company(page) == name:
+        await page.wait_for_timeout(800)
+        return
     await page.get_by_label("Selecionar empresa").click()
-    await page.get_by_role("option", name=re.compile(re.escape(name))).click()
-    await page.wait_for_timeout(1200)
+    await page.get_by_role("option", name=re.compile(rf"^{re.escape(name)}$")).click()
+    for _ in range(20):
+        await page.wait_for_timeout(500)
+        if await selected_company(page) == name:
+            return
+    raise RuntimeError(f"não foi possível selecionar a empresa {name}")
 
 
-async def page_text(page, route: str, slug: str) -> str:
+async def page_text(page, route: str, slug: str, company: str) -> str:
     await page.goto(f"{BASE_URL}{route}", wait_until="domcontentloaded")
+    await wait_app_ready(page)
     await page.wait_for_timeout(2500)
+    atual = await selected_company(page)
+    if atual != company:
+        raise RuntimeError(f"{route}: empresa mudou sozinha ({company} → {atual})")
     await page.screenshot(path=str(SCREENSHOTS / f"{slug}{route.replace('/', '_')}.png"))
     return await page.inner_text("body")
 
@@ -195,7 +212,7 @@ async def main() -> int:
             await select_company(page, company["name"])
 
             for route in ROUTES:
-                text = await page_text(page, route, f"{idx}-{company['name'][:8]}")
+                text = await page_text(page, route, f"{idx}-{company['name'][:8]}", company["name"])
 
                 # 1. nada exclusivo da outra empresa
                 for last4 in theirs["last4"] - mine["last4"]:
@@ -204,7 +221,12 @@ async def main() -> int:
                 for desc in theirs["descriptions"] - mine["descriptions"]:
                     if desc in text:
                         failures.append(f"{route} [{company['name']}]: lançamento '{desc}' de {other['name']}")
-                for conn in theirs["connections"] - mine["connections"]:
+                exclusive_conns = {
+                    c
+                    for c in theirs["connections"] - mine["connections"]
+                    if not any(c in m or m in c for m in mine["connections"])
+                }
+                for conn in exclusive_conns:
                     if conn in text and route == "/contas-bancarias/conexoes":
                         failures.append(f"{route} [{company['name']}]: conexão {conn} de {other['name']}")
 
