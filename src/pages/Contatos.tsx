@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
-import { Plus, Search, Users, Pencil, Trash2, Mail, Phone } from "lucide-react";
+import { ContactImportDialog } from "@/components/contacts/ContactImportDialog";
+import { Plus, Search, Users, Pencil, Trash2, Mail, Phone, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -36,6 +37,7 @@ export default function Contatos() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   // Atualização em tempo real de contatos (clientes / fornecedores)
   useRealtimeSync({
@@ -129,9 +131,14 @@ export default function Contatos() {
           <h1 className="text-2xl font-bold tracking-tight">Contatos</h1>
           <p className="text-sm text-muted-foreground">Gerencie clientes e fornecedores</p>
         </div>
-        <Button onClick={openNew} className="hidden md:flex">
-          <Plus className="h-4 w-4 mr-2" /> Novo Contato
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" /> <span className="hidden sm:inline">Importar planilha</span>
+          </Button>
+          <Button onClick={openNew} className="hidden md:flex">
+            <Plus className="h-4 w-4 mr-2" /> Novo Contato
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -234,6 +241,15 @@ export default function Contatos() {
         onSaved={() => { refetch(); refetchCompanies(); }}
         editContact={editContact}
       />
+
+      <ContactImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        existingContacts={contacts.map((c) => ({ id: c.id, name: c.name, document: c.document }))}
+        onImported={() => { refetch(); refetchCompanies(); }}
+      />
+
+
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
