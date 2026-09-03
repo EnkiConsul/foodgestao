@@ -16,9 +16,9 @@ const corsHeaders = {
 
 // Configuration
 const SITE_NAME = "Aveto 360"
-const SENDER_DOMAIN = "notify.gestor360food.com"
-const ROOT_DOMAIN = "gestor360food.com"
-const FROM_DOMAIN = "gestor360food.com"
+const SENDER_DOMAIN = "notify.aveto360.com"
+const ROOT_DOMAIN = "aveto360.com"
+const FROM_DOMAIN = "aveto360.com"
 const SITE_URL = `https://${ROOT_DOMAIN}`
 
 // Template mapping for preview mode

@@ -10,10 +10,10 @@ import { TEMPLATES } from './registry.ts'
 const SITE_NAME = "Aveto 360"
 // SENDER_DOMAIN is the verified sender subdomain FQDN (e.g., "notify.example.com").
 // It MUST match the subdomain delegated to Lovable's nameservers. NEVER use the root domain.
-const SENDER_DOMAIN = "notify.gestor360food.com"
+const SENDER_DOMAIN = "notify.aveto360.com"
 // FROM_DOMAIN is the domain shown in the From: header (e.g., "example.com").
 // Can be the root domain when display_from_root is enabled — this is cosmetic only.
-const FROM_DOMAIN = "gestor360food.com"
+const FROM_DOMAIN = "aveto360.com"
 
 export type SendTemplateEmailResult =
   | { sent: true }
