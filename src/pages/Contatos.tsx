@@ -37,6 +37,7 @@ export default function Contatos() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   // Atualização em tempo real de contatos (clientes / fornecedores)
   useRealtimeSync({
