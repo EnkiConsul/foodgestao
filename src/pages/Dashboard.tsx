@@ -472,7 +472,14 @@ export default function Dashboard() {
         <div className="col-span-12 lg:col-span-4 p-6 rounded-3xl bg-card border border-border/60 shadow-sm">
           <h2 className="font-display text-lg font-bold text-foreground mb-1">Top 5 Categorias</h2>
           <p className="text-xs text-muted-foreground mb-5">Distribuição de despesas</p>
-          {topCategories.length === 0 ? (
+          {loadingTx ? (
+            <div className="space-y-4">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-8 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : topCategories.length === 0 ? (
+
             <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
               Nenhuma despesa categorizada ainda
             </div>
