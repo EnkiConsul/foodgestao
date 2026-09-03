@@ -12,6 +12,8 @@ export interface PluggyCreditReviewRow {
   raw: unknown;
   credit_review_status: string | null;
   linked_credit_card_id: string | null;
+  /** Empresa do usuário onde este mesmo cartão já está cadastrado (aviso de duplicidade). */
+  other_company_name?: string | null;
 }
 
 /**
@@ -36,7 +38,21 @@ export function usePluggyCreditReview() {
       .eq("credit_review_status", "pending")
       .is("linked_credit_card_id", null)
       .order("created_at", { ascending: false });
-    setPending((data ?? []) as unknown as PluggyCreditReviewRow[]);
+
+    const rows = (data ?? []) as unknown as PluggyCreditReviewRow[];
+
+    // Aviso: o mesmo cartão (últimos dígitos) já cadastrado em outra empresa
+    // do usuário costuma indicar conexão feita na empresa errada.
+    const withWarning = await Promise.all(rows.map(async (row) => {
+      if (!row.number_masked) return row;
+      const { data: otherCompany } = await supabase.rpc("credit_card_other_company", {
+        _company_id: selectedCompanyId,
+        _number: row.number_masked,
+      });
+      return { ...row, other_company_name: (otherCompany as string | null) ?? null };
+    }));
+
+    setPending(withWarning);
     setLoading(false);
   }, [contextType, selectedCompanyId]);
 
@@ -44,3 +60,4 @@ export function usePluggyCreditReview() {
 
   return { pending, loading, reload };
 }
+
