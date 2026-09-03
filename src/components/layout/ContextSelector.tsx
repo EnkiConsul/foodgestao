@@ -1,10 +1,23 @@
 import { Building2, Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { startOfMonth, endOfMonth } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 
+import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import {
+  dashboardAccountsKey,
+  dashboardCategoriesKey,
+  dashboardTransactionsKey,
+  fetchDashboardAccounts,
+  fetchDashboardCategories,
+  fetchDashboardTransactions,
+} from "@/lib/dashboardQueries";
 
 export function ContextSelector() {
   const { selectedCompanyId, companies, setContext, syncing } = useCompanyContext();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const currentValue = `pj|${selectedCompanyId}`;
   const currentLabel =
@@ -12,9 +25,40 @@ export function ContextSelector() {
     companies.find((c) => c.id === selectedCompanyId)?.name ||
     "";
 
+  /**
+   * Pré-carrega as consultas do Dashboard da empresa escolhida em paralelo com
+   * o re-render da troca de contexto, para os números aparecerem sem espera.
+   */
+  const prefetchDashboard = (companyId: string) => {
+    if (!user?.id) return;
+    const scopeArgs = { userId: user.id, contextType: "pj" as const, companyId };
+    const now = new Date();
+    const txArgs = {
+      ...scopeArgs,
+      periodKey: "month",
+      fromISO: startOfMonth(now).toISOString(),
+      toISO: endOfMonth(now).toISOString(),
+      paymentStatus: "todos" as const,
+    };
+    void queryClient.prefetchQuery({
+      queryKey: dashboardTransactionsKey(txArgs),
+      queryFn: () => fetchDashboardTransactions(txArgs),
+    });
+    void queryClient.prefetchQuery({
+      queryKey: dashboardCategoriesKey(scopeArgs),
+      queryFn: () => fetchDashboardCategories(scopeArgs),
+    });
+    void queryClient.prefetchQuery({
+      queryKey: dashboardAccountsKey(scopeArgs),
+      queryFn: () => fetchDashboardAccounts(scopeArgs),
+    });
+  };
+
   const handleChange = (val: string) => {
     const [, companyId] = val.split("|");
-    setContext("pj", companyId === "null" ? null : companyId);
+    const nextId = companyId === "null" ? null : companyId;
+    if (nextId) prefetchDashboard(nextId);
+    setContext("pj", nextId);
   };
 
   return (
