@@ -357,10 +357,11 @@ export default function Lancamentos() {
     if (contextType === "pj" && !selectedCompanyId) {
       setCards([]);
     } else {
-      void supabase
-        .from("credit_cards")
-        .select("id, brand, last4, issuer")
-        .then(({ data }) => setCards((data ?? []) as typeof cards));
+      let cq = supabase.from("credit_cards").select("id, brand, last4, issuer");
+      cq = contextType === "pj"
+        ? cq.eq("context", "pj").eq("company_id", selectedCompanyId!)
+        : cq.eq("context", "pf");
+      void cq.then(({ data }) => setCards((data ?? []) as typeof cards));
     }
     if (contextType === "pj" && !selectedCompanyId) {
       setCategories([]);
