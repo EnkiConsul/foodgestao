@@ -73,13 +73,13 @@ export function buildPrintableHtml(t: PrintableTable): string {
 <style>
   @page { size: A4 ${t.landscape ? "landscape" : "portrait"}; margin: 12mm; }
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0F1B3D; margin: 0; }
-  header { border-bottom: 3px solid #EB6119; padding-bottom: 8px; margin-bottom: 12px; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0B0F0D; margin: 0; }
+  header { border-bottom: 3px solid #02AB3D; padding-bottom: 8px; margin-bottom: 12px; }
   h1 { font-size: 16px; margin: 0 0 2px; }
   .sub { font-size: 11px; color: #555; }
   table { width: 100%; border-collapse: collapse; font-size: 10px; }
   th, td { padding: 4px 6px; border-bottom: 1px solid #e5e7eb; }
-  th { background: #0F1B3D; color: #fff; text-transform: uppercase; font-size: 9px; }
+  th { background: #0B0F0D; color: #fff; text-transform: uppercase; font-size: 9px; }
   .right { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .left { text-align: left; }
   tr.group td { background: #f3f4f6; font-weight: 700; }
@@ -130,8 +130,8 @@ export type XlsxSheet = {
 };
 
 const NUM_FMT = '#,##0.00;[Red]-#,##0.00;"–"';
-const NAVY = "FF0F1B3D";
-const ORANGE = "FFEB6119";
+const INK = "FF0B0F0D";
+const BRAND = "FF02AB3D";
 
 export function safeSheetName(name: string): string {
   return (name.replace(/[:\\/?*[\]]/g, " ").trim() || "Planilha").slice(0, 31);

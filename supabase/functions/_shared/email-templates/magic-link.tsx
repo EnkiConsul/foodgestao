@@ -50,7 +50,7 @@ const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#0F1B3D',
+  color: '#0B0F0D',
   margin: '0 0 20px',
 }
 const text = {
@@ -60,7 +60,7 @@ const text = {
   margin: '0 0 25px',
 }
 const button = {
-  backgroundColor: '#EB6119',
+  backgroundColor: '#02AB3D',
   color: '#ffffff',
   fontSize: '14px',
   borderRadius: '8px',
