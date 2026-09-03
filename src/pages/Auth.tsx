@@ -13,6 +13,7 @@ import { Helmet } from "react-helmet-async";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
 import { useTurnstileSiteKey } from "@/hooks/useTurnstileSiteKey";
+import { describeTurnstileError, currentHostname } from "@/lib/auth/turnstileErrors";
 import { unifiedSignIn } from "@/lib/authUnified";
 import { sanitizeRedirect } from "@/lib/safeRedirect";
 
@@ -654,11 +655,11 @@ export default function Auth() {
                     role="alert"
                     className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive space-y-2"
                   >
-                    <p className="font-medium">Verificação de segurança indisponível neste domínio.</p>
-                    <p className="text-destructive/90">
-                      Não foi possível carregar o CAPTCHA (código {turnstileError}). Acesse pelo site oficial{" "}
-                      <span className="font-mono">gestor360food.com</span> ou peça ao administrador para autorizar este hostname no painel Cloudflare Turnstile.
-                    </p>
+                    <p className="font-medium">{describeTurnstileError(turnstileError, currentHostname()).title}</p>
+                    <p className="text-destructive/90">{describeTurnstileError(turnstileError, currentHostname()).message}</p>
+                    {describeTurnstileError(turnstileError, currentHostname()).hint && (
+                      <p className="text-destructive/90">{describeTurnstileError(turnstileError, currentHostname()).hint}</p>
+                    )}
                     <Button
                       type="button"
                       variant="outline"

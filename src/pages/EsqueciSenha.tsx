@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock, IdCard, ShieldCheck, MessageCircle, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
 import { useTurnstileSiteKey } from "@/hooks/useTurnstileSiteKey";
+import { describeTurnstileError, currentHostname } from "@/lib/auth/turnstileErrors";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -224,14 +225,18 @@ export default function EsqueciSenha() {
                   hidden={!!turnstileError}
                 />
               )}
-              {turnstileError && (
-                <Alert variant="destructive">
-                  <AlertDescription className="text-xs">
-                    Verificação de segurança indisponível ({turnstileError}). Recarregue a página ou tente outro
-                    navegador.
-                  </AlertDescription>
-                </Alert>
-              )}
+              {turnstileError && (() => {
+                const info = describeTurnstileError(turnstileError, currentHostname());
+                return (
+                  <Alert variant="destructive">
+                    <AlertDescription className="text-xs space-y-1">
+                      <p className="font-medium">{info.title}</p>
+                      <p>{info.message}</p>
+                      {info.hint && <p>{info.hint}</p>}
+                    </AlertDescription>
+                  </Alert>
+                );
+              })()}
 
               <Button
                 type="submit"
