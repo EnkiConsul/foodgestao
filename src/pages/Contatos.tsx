@@ -131,9 +131,14 @@ export default function Contatos() {
           <h1 className="text-2xl font-bold tracking-tight">Contatos</h1>
           <p className="text-sm text-muted-foreground">Gerencie clientes e fornecedores</p>
         </div>
-        <Button onClick={openNew} className="hidden md:flex">
-          <Plus className="h-4 w-4 mr-2" /> Novo Contato
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" /> <span className="hidden sm:inline">Importar planilha</span>
+          </Button>
+          <Button onClick={openNew} className="hidden md:flex">
+            <Plus className="h-4 w-4 mr-2" /> Novo Contato
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
