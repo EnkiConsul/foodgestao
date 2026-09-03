@@ -9,13 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CreditCard, Plus, Pencil, Trash2, Wallet, Calendar, AlertCircle, ListChecks } from "lucide-react";
+import { CreditCard, Plus, Pencil, Trash2, Wallet, Calendar, AlertCircle, ListChecks, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { CreditCardFormDialog } from "@/components/credit-cards/CreditCardFormDialog";
 import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
 import { PayInvoiceDialog } from "@/components/credit-cards/PayInvoiceDialog";
+import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
+import { InvoiceTransactionsList, type InvoiceTransaction } from "@/components/credit-cards/InvoiceTransactionsList";
 import type { Database } from "@/integrations/supabase/types";
 
 type CreditCardRow = Database["public"]["Tables"]["credit_cards"]["Row"];
@@ -48,6 +50,10 @@ export default function CartoesCredito() {
   const [payInvoice, setPayInvoice] = useState<Invoice | null>(null);
   const [deleteCard, setDeleteCard] = useState<CreditCardRow | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
+  const [txByInvoice, setTxByInvoice] = useState<Record<string, InvoiceTransaction[]>>({});
+  const [loadingInvoiceTx, setLoadingInvoiceTx] = useState<string | null>(null);
+  const [editTx, setEditTx] = useState<InvoiceTransaction | null>(null);
   const { pending: pendingCredit, reload: reloadPendingCredit } = usePluggyCreditReview();
 
 
@@ -79,6 +85,28 @@ export default function CartoesCredito() {
   }, [user, contextType, selectedCompanyId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const loadInvoiceTransactions = useCallback(async (invoiceId: string) => {
+    setLoadingInvoiceTx(invoiceId);
+    const { data, error } = await supabase
+      .from("transactions")
+      .select(
+        "id, description, amount, transaction_type, transaction_date, installment_number, installment_total, is_invoice_payment, category_id, account_id, credit_card_id, contact_id, notes, due_date, payment_method_id, categories!fk_transactions_category(name), contacts(name)"
+      )
+      .eq("credit_card_invoice_id", invoiceId)
+      .order("transaction_date", { ascending: true });
+    if (error) toast.error("Erro ao carregar lançamentos da fatura");
+    setTxByInvoice((prev) => ({ ...prev, [invoiceId]: (data ?? []) as unknown as InvoiceTransaction[] }));
+    setLoadingInvoiceTx(null);
+  }, []);
+
+  const toggleInvoice = useCallback((invoiceId: string) => {
+    setExpandedInvoiceId((prev) => {
+      if (prev === invoiceId) return null;
+      if (!txByInvoice[invoiceId]) void loadInvoiceTransactions(invoiceId);
+      return invoiceId;
+    });
+  }, [txByInvoice, loadInvoiceTransactions]);
 
   // Pendências de conciliação por cartão: contas de cartão do Open Finance são
   // vinculadas ao cartão (linked_credit_card_id), não a uma conta bancária,
@@ -314,8 +342,18 @@ export default function CartoesCredito() {
                         const s = statusLabels[inv.status];
                         const remaining = Number(inv.total_amount) - Number(inv.paid_amount);
                         const canPay = inv.status === "fechada" || inv.status === "parcial" || inv.status === "vencida" || inv.status === "atrasada";
+                        const expanded = expandedInvoiceId === inv.id;
                         return (
-                          <div key={inv.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-card p-3">
+                          <div key={inv.id} className="rounded-md border bg-card">
+                          <div className="flex flex-wrap items-center justify-between gap-2 p-3">
+                            <button
+                              type="button"
+                              onClick={() => toggleInvoice(inv.id)}
+                              aria-expanded={expanded}
+                              aria-label={expanded ? "Ocultar lançamentos da fatura" : "Ver lançamentos da fatura"}
+                              className="flex min-w-0 flex-1 items-start gap-2 text-left"
+                            >
+                              <ChevronDown className={`mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-medium">
@@ -331,6 +369,7 @@ export default function CartoesCredito() {
                                 )}
                               </p>
                             </div>
+                            </button>
                             <div className="text-right shrink-0">
                               <p className="text-sm font-bold">{maskBRL(Number(inv.total_amount))}</p>
                               {canPay && remaining > 0 && (
@@ -345,6 +384,17 @@ export default function CartoesCredito() {
                               </Badge>
                             ) : null}
                           </div>
+                          {expanded && (
+                            <InvoiceTransactionsList
+                              rows={txByInvoice[inv.id]}
+                              loading={loadingInvoiceTx === inv.id}
+                              previousBalance={Number(inv.previous_balance)}
+                              invoiceTotal={Number(inv.total_amount)}
+                              maskBRL={maskBRL}
+                              onSelect={(tx) => setEditTx(tx)}
+                            />
+                          )}
+                          </div>
                         );
                       })
                     )}
@@ -355,6 +405,19 @@ export default function CartoesCredito() {
           })}
         </div>
       )}
+
+      <TransactionFormDialog
+        open={!!editTx}
+        onOpenChange={(open) => { if (!open) setEditTx(null); }}
+        onCreated={() => {
+          const invId = expandedInvoiceId;
+          setEditTx(null);
+          void fetchAll();
+          if (invId) void loadInvoiceTransactions(invId);
+        }}
+        transaction={editTx}
+        editScope="single"
+      />
 
       <CreditCardFormDialog
         open={formOpen}
