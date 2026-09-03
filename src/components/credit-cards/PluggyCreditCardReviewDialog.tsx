@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput, parseCurrencyToNumber, formatCurrency } from "@/components/ui/currency-input";
 import { toast } from "sonner";
-import { CreditCard } from "lucide-react";
+import { AlertTriangle, CreditCard } from "lucide-react";
 import { buildCreditCardSuggestion } from "@/lib/pluggy/creditCardSuggestion";
 import { getAccountPaymentLabel } from "@/lib/accounts/accountLabels";
 import type { PluggyCreditReviewRow } from "@/hooks/usePluggyCreditReview";
@@ -193,6 +193,16 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
         </DialogHeader>
 
         <div className="space-y-3">
+          {account.other_company_name && (
+            <div className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <p>
+                Este cartão já está cadastrado na empresa <strong>{account.other_company_name}</strong> — confirme se esta
+                conexão bancária deveria estar nesta empresa.
+              </p>
+            </div>
+          )}
+
           <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-2">
             <div className="flex items-center justify-between gap-2">
               <Label className="text-xs text-muted-foreground">Nome do cartão</Label>

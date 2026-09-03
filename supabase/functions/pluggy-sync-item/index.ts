@@ -244,9 +244,20 @@ Deno.serve(async (req) => {
     // Look up existing connection (if any)
     const { data: existing } = await admin
       .from('pluggy_connections')
-      .select('id, company_id')
+      .select('id, company_id, status')
       .eq('pluggy_item_id', itemId)
       .maybeSingle();
+
+    // Conexão já excluída na empresa não deve ser ressuscitada por uma nova
+    // sincronização: sem isso, o espelho volta e os cartões reaparecem na fila
+    // de autorização mesmo depois de o usuário excluir a conta/cartão.
+    if (existing?.status === 'deleted') {
+      console.log('pluggy sync ignorado: conexao excluida', { itemId, connectionId: existing.id });
+      return new Response(JSON.stringify({ ok: true, skipped: 'connection_deleted' }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
 
     // Fallback: resolve company via connect request (service-role/webhook path,
     // quando o navegador não conclui o fluxo — ex.: Open Finance por QR Code).
@@ -502,9 +513,10 @@ Deno.serve(async (req) => {
         .single();
 
       // Cartões de crédito NÃO são materializados automaticamente: apenas ficam
-      // pendentes de autorização do usuário na tela de revisão. Se o mesmo cartão
-      // já havia sido autorizado numa conexão anterior do mesmo banco, herda o
-      // vínculo em vez de pedir autorização de novo.
+      // pendentes de autorização do usuário na tela de revisão. A decisão do
+      // usuário vale para o CARTÃO (banco + últimos dígitos), não para o código
+      // de conta do provedor — que muda a cada reautenticação. Por isso herdamos
+      // tanto o vínculo já autorizado quanto a decisão de ignorar.
       if (
         upserted &&
         (acc.type ?? '').toUpperCase() === 'CREDIT' &&
@@ -512,29 +524,39 @@ Deno.serve(async (req) => {
         (upserted.credit_review_status ?? 'none') === 'none'
       ) {
         let inheritedCardId: string | null = null;
+        let inheritedIgnored = false;
         if (acc.number) {
-          const { data: priorCard } = await admin
+          const { data: priorRows } = await admin
             .from('pluggy_accounts')
-            .select('linked_credit_card_id')
+            .select('linked_credit_card_id, credit_review_status')
             .eq('company_id', effectiveCompanyId)
             .eq('number_masked', acc.number)
-            .not('linked_credit_card_id', 'is', null)
             .neq('id', upserted.id)
-            .limit(1)
-            .maybeSingle();
-          inheritedCardId = priorCard?.linked_credit_card_id ?? null;
+            .in('credit_review_status', ['linked', 'ignored'])
+            .order('credit_review_at', { ascending: false })
+            .limit(5);
+          const prior = (priorRows ?? []) as Array<{
+            linked_credit_card_id: string | null;
+            credit_review_status: string | null;
+          }>;
+          inheritedCardId = prior.find((p) => p.linked_credit_card_id)?.linked_credit_card_id ?? null;
+          inheritedIgnored = !inheritedCardId && prior.some((p) => p.credit_review_status === 'ignored');
         }
+        const reviewPatch = inheritedCardId
+          ? {
+            linked_credit_card_id: inheritedCardId,
+            credit_review_status: 'linked',
+            credit_review_at: new Date().toISOString(),
+          }
+          : inheritedIgnored
+            ? { credit_review_status: 'ignored', credit_review_at: new Date().toISOString() }
+            : { credit_review_status: 'pending' };
         await admin
           .from('pluggy_accounts')
-          .update(inheritedCardId
-            ? {
-              linked_credit_card_id: inheritedCardId,
-              credit_review_status: 'linked',
-              credit_review_at: new Date().toISOString(),
-            }
-            : { credit_review_status: 'pending' })
+          .update(reviewPatch)
           .eq('id', upserted.id);
       }
+
 
 
       if (upserted?.linked_account_id && (acc.type ?? '').toUpperCase() === 'BANK') {
