@@ -113,7 +113,23 @@ def company_fingerprint(company_id: str, token: str) -> dict:
 
 # --------------------------------------------------------------------- browser
 
+async def wait_app_ready(page) -> None:
+    """Espera a sessão hidratar: o seletor de empresa só existe autenticado."""
+    for attempt in range(4):
+        try:
+            await page.wait_for_selector('[aria-label="Selecionar empresa"]', timeout=15000)
+            return
+        except Exception:
+            if "/auth" in page.url:
+                await page.goto(f"{BASE_URL}/cartoes-credito", wait_until="domcontentloaded")
+            else:
+                await page.reload(wait_until="domcontentloaded")
+            await page.wait_for_timeout(2000)
+    raise RuntimeError(f"app não autenticou (url={page.url})")
+
+
 async def select_company(page, name: str) -> None:
+    await wait_app_ready(page)
     await page.get_by_label("Selecionar empresa").click()
     await page.get_by_role("option", name=re.compile(re.escape(name))).click()
     await page.wait_for_timeout(1200)
@@ -170,7 +186,7 @@ async def main() -> int:
             mine, theirs = prints[company["id"]], prints[other["id"]]
 
             await page.goto(f"{BASE_URL}/cartoes-credito", wait_until="domcontentloaded")
-            await page.wait_for_timeout(2000)
+            await page.wait_for_timeout(3000)
             await select_company(page, company["name"])
 
             for route in ROUTES:
