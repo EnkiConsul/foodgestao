@@ -49,7 +49,9 @@ export interface DashboardAccount {
   color: string | null;
   is_active: boolean;
   bank_slug?: string | null;
+  account_type?: string | null;
 }
+
 
 export const dashboardTransactionsKey = (a: DashboardTransactionsArgs) =>
   [
