@@ -137,6 +137,18 @@ async def selected_company(page) -> str:
     return (await page.get_by_label("Selecionar empresa").inner_text()).strip()
 
 
+CONTEXT_KEY = "app-company-context"
+
+
+async def set_company_storage(page, company_id: str) -> None:
+    """Fixa a empresa ativa como o app persiste, para que a navegação
+    direta por URL (recarga completa) mantenha o mesmo escopo."""
+    await page.evaluate(
+        "([k, v]) => localStorage.setItem(k, v)",
+        [CONTEXT_KEY, json.dumps({"contextType": "pj", "selectedCompanyId": company_id})],
+    )
+
+
 async def select_company(page, name: str) -> None:
     """Troca a empresa e só retorna quando o seletor confirma a troca —
     sem isso, uma troca que não aplicou faria o teste comparar a empresa errada."""
@@ -207,8 +219,12 @@ async def main() -> int:
             other = pair[1 - idx]
             mine, theirs = prints[company["id"]], prints[other["id"]]
 
+            # Troca pelo seletor do topo (caminho real do usuário) e fixa o
+            # mesmo escopo no storage para as recargas seguintes.
             await page.goto(f"{BASE_URL}/cartoes-credito", wait_until="domcontentloaded")
-            await page.wait_for_timeout(3000)
+            await wait_app_ready(page)
+            await set_company_storage(page, company["id"])
+            await page.reload(wait_until="domcontentloaded")
             await select_company(page, company["name"])
 
             for route in ROUTES:
