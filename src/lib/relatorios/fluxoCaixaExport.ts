@@ -166,7 +166,7 @@ export async function downloadXlsx(filename: string, sheets: XlsxSheet[]) {
     ws.mergeCells(span(1));
     const titleCell = ws.getCell("A1");
     titleCell.value = s.title;
-    titleCell.font = { name: "Arial", size: 14, bold: true, color: { argb: NAVY } };
+    titleCell.font = { name: "Arial", size: 14, bold: true, color: { argb: INK } };
 
     ws.mergeCells(span(2));
     const subCell = ws.getCell("A2");
@@ -180,9 +180,9 @@ export async function downloadXlsx(filename: string, sheets: XlsxSheet[]) {
     headerRow.values = s.head;
     headerRow.eachCell((cell, col) => {
       cell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FFFFFFFF" } };
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: NAVY } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: INK } };
       cell.alignment = { horizontal: col === 1 ? "left" : "right", vertical: "middle", wrapText: true };
-      cell.border = { bottom: { style: "thin", color: { argb: ORANGE } } };
+      cell.border = { bottom: { style: "thin", color: { argb: BRAND } } };
     });
     headerRow.height = 20;
 
@@ -196,7 +196,7 @@ export async function downloadXlsx(filename: string, sheets: XlsxSheet[]) {
           name: "Arial",
           size: 9,
           bold: r.kind === "group" || r.kind === "saldo" || r.kind === "total",
-          color: { argb: NAVY },
+          color: { argb: INK },
         };
         cell.alignment = {
           horizontal: isNum ? "right" : "left",
