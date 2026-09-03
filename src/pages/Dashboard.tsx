@@ -399,16 +399,21 @@ export default function Dashboard() {
                 )} />
               </div>
               <div className="mt-1.5 md:mt-2">
-                <div className={cn(
-                  "font-display font-bold tracking-tight text-lg sm:text-2xl leading-tight whitespace-nowrap",
-                  isHero
-                    ? "text-primary-foreground"
-                    : kpi.variant === "accent-success"
-                      ? "text-success"
-                      : "text-foreground"
-                )}>
-                  {kpi.value}
-                </div>
+                {loadingTx || loadingAccounts ? (
+                  <Skeleton className="h-7 w-24 rounded-md" />
+                ) : (
+                  <div className={cn(
+                    "font-display font-bold tracking-tight text-lg sm:text-2xl leading-tight whitespace-nowrap",
+                    isHero
+                      ? "text-primary-foreground"
+                      : kpi.variant === "accent-success"
+                        ? "text-success"
+                        : "text-foreground"
+                  )}>
+                    {kpi.value}
+                  </div>
+                )}
+
                 {kpi.variant === "accent-success" || kpi.variant === "accent-primary" ? (
                   <div className={cn("h-1 w-full rounded-full mt-2.5 overflow-hidden", "bg-muted")}>
                     <div
