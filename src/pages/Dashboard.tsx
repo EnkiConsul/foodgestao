@@ -7,7 +7,17 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { applyFinancialScope, assertFinancialScope, isFinancialScopeReady } from "@/lib/financialScope";
+import { isFinancialScopeReady } from "@/lib/financialScope";
+import {
+  dashboardAccountsKey,
+  dashboardCategoriesKey,
+  dashboardTransactionsKey,
+  fetchDashboardAccounts,
+  fetchDashboardCategories,
+  fetchDashboardTransactions,
+} from "@/lib/dashboardQueries";
+import { Skeleton } from "@/components/ui/skeleton";
+
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
