@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-const GA_ID = "G-Z52R86F1JE";
+const GA_ID = "G-S82MB9C11K";
 
 declare global {
   interface Window {
