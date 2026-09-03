@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock, IdCard, ShieldCheck, MessageCircle, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
 import { useTurnstileSiteKey } from "@/hooks/useTurnstileSiteKey";
+import { describeTurnstileError, currentHostname } from "@/lib/auth/turnstileErrors";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
