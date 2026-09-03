@@ -285,7 +285,11 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Visão Geral das Suas Finanças</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Visão Geral das Suas Finanças
+            {refreshing && <span className="ml-2 text-xs italic opacity-70">atualizando…</span>}
+          </p>
+
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5 p-1 bg-muted/50 rounded-full border border-border/60">
