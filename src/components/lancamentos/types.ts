@@ -51,6 +51,8 @@ export type LancamentoDisplayRow = {
   isRecurring: boolean;
   isRecurrenceChild: boolean;
   attachmentCount: number;
+  origin: "conta" | "cartao";
+  isInvoicePayment: boolean;
   original: LancamentoTransaction;
 };
 
