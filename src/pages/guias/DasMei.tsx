@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
-const PAGE_URL = "https://www.gestor360food.com/guias/das-mei";
+const PAGE_URL = "https://www.aveto360.com/guias/das-mei";
 const TITLE = "DAS MEI 2026: o que é, valores, prazos e como pagar";
 const DESCRIPTION =
   "Guia completo do DAS MEI: o que é, valores atualizados de 2026, datas de vencimento, como emitir o boleto, o que acontece se atrasar e dicas para se organizar.";
@@ -49,11 +49,11 @@ export default function DasMei() {
     "@type": "Article",
     headline: TITLE,
     description: DESCRIPTION,
-    author: { "@type": "Organization", name: "360°FOOD" },
+    author: { "@type": "Organization", name: "Aveto 360" },
     publisher: {
       "@type": "Organization",
-      name: "360°FOOD",
-      logo: { "@type": "ImageObject", url: "https://www.gestor360food.com/icon-512.png" },
+      name: "Aveto 360",
+      logo: { "@type": "ImageObject", url: "https://www.aveto360.com/icon-512.png" },
     },
     mainEntityOfPage: PAGE_URL,
     datePublished: "2026-06-30",
@@ -185,7 +185,7 @@ export default function DasMei() {
           </ul>
 
           <div className="not-prose my-10 rounded-xl border border-primary/20 bg-primary/5 p-6">
-            <h3 className="text-lg font-semibold mb-2">Controle seu MEI no 360°FOOD</h3>
+            <h3 className="text-lg font-semibold mb-2">Controle seu MEI no Aveto 360</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Cadastre o DAS como recorrência, receba lembretes de vencimento e acompanhe o
               faturamento anual em tempo real. Teste grátis por 7 dias, sem cartão de crédito.
@@ -212,7 +212,7 @@ export default function DasMei() {
           <Link to="/cookies" className="hover:text-foreground">Cookies</Link>
           <Link to="/encarregado-dados" className="hover:text-foreground">DPO</Link>
         </div>
-        <p className="mt-3">© {new Date().getFullYear()} 360°FOOD</p>
+        <p className="mt-3">© {new Date().getFullYear()} Aveto 360</p>
       </footer>
     </div>
   );

@@ -70,7 +70,7 @@ export default function RelatoriosContabeis() {
   return (
     <div className="space-y-4">
       <Helmet>
-        <title>DRE Gerencial | 360°FOOD</title>
+        <title>DRE Gerencial | Aveto 360</title>
         <meta
           name="description"
           content="DRE Gerencial gerada dinamicamente a partir do plano de contas."

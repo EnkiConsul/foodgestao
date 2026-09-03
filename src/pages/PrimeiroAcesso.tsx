@@ -74,7 +74,7 @@ export default function PrimeiroAcesso() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Helmet><title>Primeiro acesso — 360°FOOD</title></Helmet>
+      <Helmet><title>Primeiro acesso — Aveto 360</title></Helmet>
       <div className="w-full max-w-md space-y-3">
         <Link
           to="/"

@@ -345,7 +345,7 @@ export default function DpOperacaoPanorama() {
   return (
     <DpPage>
       <Helmet>
-        <title>Operação | Pessoas 360°FOOD</title>
+        <title>Operação | Pessoas Aveto 360</title>
         <meta
           name="description"
           content="Acompanhe quantos colaboradores fixos, intermitentes convocados, folgas, férias e atestados a operação tem em cada dia."

@@ -97,7 +97,7 @@ export default function DpPontoConsolidado() {
   return (
     <DpPage>
       <Helmet>
-        <title>Ponto do Time | Pessoas 360°FOOD</title>
+        <title>Ponto do Time | Pessoas Aveto 360</title>
         <meta
           name="description"
           content="Consolidação mensal do ponto de todos os colaboradores, com banco de horas e fechamento em lote."

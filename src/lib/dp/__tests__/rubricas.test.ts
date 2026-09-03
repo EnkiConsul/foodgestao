@@ -69,7 +69,7 @@ describe("rubricas avulsas (Fase 16)", () => {
   it("inclui as rubricas avulsas no holerite", () => {
     const detalhe = lerDetalhe({ ...detalheBase, extras: [{ descricao: "Prêmio", natureza: "provento", valor: 300 }] });
     const linhas = linhasDoHolerite({
-      empresa: "360°FOOD",
+      empresa: "Aveto 360",
       colaborador: "Karine",
       competencia: "2026-06-01",
       tipo: "contracheque_mensal",

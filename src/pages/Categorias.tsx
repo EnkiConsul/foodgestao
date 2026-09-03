@@ -109,7 +109,7 @@ export default function Categorias() {
     }
     const created = (data as any)?.created ?? 0;
     const skipped = (data as any)?.skipped ?? 0;
-    toast.success("Plano padrão 360°FOOD importado", {
+    toast.success("Plano padrão Aveto 360 importado", {
       description: `${created} categoria(s) criada(s), ${skipped} já existia(m).`,
     });
     refetchAll();
@@ -132,7 +132,7 @@ export default function Categorias() {
     const unlinked = (data as any)?.unlinked ?? 0;
     const detached = (data as any)?.detached ?? 0;
     const created = (data as any)?.seed?.created ?? 0;
-    toast.success("Plano padrão 360°FOOD aplicado", {
+    toast.success("Plano padrão Aveto 360 aplicado", {
       description:
         `${deleted} categoria(s) removida(s)` +
         (unlinked > 0 ? `, ${unlinked} desvinculada(s)` : "") +
@@ -547,7 +547,7 @@ export default function Categorias() {
                   disabled={seeding}
                 >
                   <Sparkles className="h-4 w-4" />
-                  {seeding ? "Importando..." : "Importar plano 360°FOOD"}
+                  {seeding ? "Importando..." : "Importar plano Aveto 360"}
                 </Button>
                 <HelpHint text={CATEGORIA_HELP.importar} label="Ajuda: importar plano padrão" />
               </div>
@@ -588,7 +588,7 @@ export default function Categorias() {
                 <DropdownMenuItem onClick={handleSeedDefaults} disabled={seeding} className="items-start gap-2">
                   <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
                   <span className="flex flex-col">
-                    <span>{seeding ? "Importando..." : "Importar plano 360°FOOD"}</span>
+                    <span>{seeding ? "Importando..." : "Importar plano Aveto 360"}</span>
                     <span className="text-xs text-muted-foreground whitespace-normal">{CATEGORIA_HELP.importar}</span>
                   </span>
                 </DropdownMenuItem>
@@ -902,7 +902,7 @@ export default function Categorias() {
       <AlertDialog open={replaceOpen} onOpenChange={setReplaceOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Substituir pelo plano padrão 360°FOOD?</AlertDialogTitle>
+            <AlertDialogTitle>Substituir pelo plano padrão Aveto 360?</AlertDialogTitle>
             <AlertDialogDescription>
               As categorias atuais desta empresa serão removidas e o plano padrão será recriado com
               as orientações e vínculos contábeis atualizados.

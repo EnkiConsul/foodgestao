@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { findBank, getBankLogoUrl, inferBankSlug, useBanks } from "@/lib/banks";
-import brandSymbol from "@/assets/360food-symbol.png.asset.json";
+import brandSymbol from "@/assets/aveto360-symbol.png.asset.json";
 
 interface BankLogoProps {
   slug?: string | null;
@@ -13,7 +13,7 @@ interface BankLogoProps {
   fallbackColor?: string;
 }
 
-/** Contas de dinheiro em espécie não pertencem a nenhum banco — usam a marca 360°FOOD. */
+/** Contas de dinheiro em espécie não pertencem a nenhum banco — usam a marca Aveto 360. */
 function isCashAccountName(text?: string | null): boolean {
   if (!text) return false;
   const t = text
@@ -38,7 +38,7 @@ export function BankLogo({ slug, fallbackName, size = 40, className, fallbackCol
     return (
       <img
         src={brandSymbol.url}
-        alt="360°FOOD"
+        alt="Aveto 360"
         loading="lazy"
         className={cn("rounded-lg object-contain bg-white border p-1", className)}
         style={{ width: size, height: size }}

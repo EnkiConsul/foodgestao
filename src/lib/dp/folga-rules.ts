@@ -1,4 +1,4 @@
-// Regras de negócio para folgas do 360°FOOD.
+// Regras de negócio para folgas do Aveto 360.
 
 export type DateStatusKind =
   | "available"

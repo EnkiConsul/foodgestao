@@ -6,136 +6,138 @@
 
 @layer base {
   :root {
-    /* Brand 360°FOOD: laranja #EB6119 sobre marinho #0F1B3D, com branco */
-    --background: 30 20% 98%;
-    --foreground: 224 60% 12%;
+    /* Brand Aveto 360: verde #02AB3D sobre preto/grafite #0B0F0D, com branco */
+    --background: 150 14% 98%;
+    --foreground: 155 25% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 60% 12%;
+    --card-foreground: 155 25% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 60% 12%;
+    --popover-foreground: 155 25% 10%;
 
-    --primary: 18 84% 51%;
+    --primary: 141 98% 34%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 224 55% 96%;
-    --secondary-foreground: 224 60% 18%;
+    --secondary: 150 20% 95%;
+    --secondary-foreground: 155 25% 16%;
 
-    --muted: 30 15% 95%;
-    --muted-foreground: 224 15% 40%;
+    --muted: 150 12% 95%;
+    --muted-foreground: 155 10% 40%;
 
-    --accent: 18 90% 94%;
-    --accent-foreground: 18 84% 30%;
+    --accent: 141 60% 94%;
+    --accent-foreground: 141 85% 22%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 60% 38%;
+    --success: 141 98% 30%;
     --success-foreground: 0 0% 100%;
     /* Verde legível como TEXTO (WCAG AA) — usado em valores positivos. */
-    --success-strong: 152 62% 30%;
+    --success-strong: 141 85% 24%;
 
     --warning: 38 92% 52%;
     --warning-foreground: 38 90% 15%;
 
-    --border: 30 15% 88%;
-    --input: 30 15% 88%;
-    --ring: 18 84% 51%;
+    --border: 150 12% 88%;
+    --input: 150 12% 88%;
+    --ring: 141 98% 34%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 224 60% 15%;
-    --sidebar-foreground: 30 25% 92%;
-    --sidebar-primary: 18 84% 55%;
+    --sidebar-background: 155 22% 9%;
+    --sidebar-foreground: 150 12% 92%;
+    --sidebar-primary: 141 98% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 50% 22%;
-    --sidebar-accent-foreground: 30 25% 96%;
-    --sidebar-border: 224 45% 25%;
-    --sidebar-ring: 18 84% 55%;
+    --sidebar-accent: 155 20% 16%;
+    --sidebar-accent-foreground: 150 14% 96%;
+    --sidebar-border: 155 16% 20%;
+    --sidebar-ring: 141 98% 40%;
 
     /* Pessoas 360° tokens — só usados dentro de .dp-shell */
-    --dp-canvas: 36 45% 97%;
-    --dp-border: 30 25% 88%;
+    --dp-canvas: 150 20% 97%;
+    --dp-border: 150 14% 88%;
     --dp-pending-bg: 38 90% 96%;
     --dp-pending-border: 38 85% 82%;
-    --dp-birthday-bg: 30 60% 97%;
-    --dp-birthday-border: 30 55% 85%;
+    --dp-birthday-bg: 150 40% 97%;
+    --dp-birthday-border: 150 30% 85%;
     --dp-birthday-nasc: 340 80% 92%;
     --dp-birthday-contrat: 200 75% 90%;
 
     /* ===== Site institucional (landing) — tokens de marca ===== */
-    --site-navy: 219 51% 18%;              /* #172A46 */
-    --site-navy-deep: 219 55% 13%;
+    --site-navy: 155 22% 11%;              /* grafite esverdeado da marca */
+    --site-navy-deep: 155 28% 6%;          /* #0B0F0D */
     --site-navy-foreground: 0 0% 100%;
-    --site-orange: 17 89% 51%;             /* #F15A16 */
+    --site-orange: 141 98% 34%;            /* #02AB3D — verde Aveto */
     --site-orange-foreground: 0 0% 100%;
-    --site-surface: 220 20% 98%;           /* #F7F8FA */
-    --site-ink: 219 45% 14%;
-    --site-muted: 220 12% 46%;             /* #667085 */
-    --site-line: 220 16% 90%;
-    --site-success: 158 75% 36%;           /* #16A36A */
-    --gradient-site-hero: linear-gradient(160deg, hsl(var(--site-navy-deep)) 0%, hsl(var(--site-navy)) 55%, hsl(219 48% 24%) 100%);
-    --gradient-site-orange: linear-gradient(135deg, hsl(var(--site-orange)) 0%, hsl(28 92% 55%) 100%);
+    --site-surface: 150 14% 98%;
+    --site-ink: 155 25% 10%;
+    --site-muted: 155 8% 42%;
+    --site-line: 150 12% 90%;
+    --site-success: 141 85% 28%;
+    --gradient-site-hero: linear-gradient(160deg, hsl(var(--site-navy-deep)) 0%, hsl(var(--site-navy)) 55%, hsl(155 20% 16%) 100%);
+    --gradient-site-orange: linear-gradient(135deg, hsl(var(--site-orange)) 0%, hsl(150 82% 30%) 100%);
     --shadow-site-card: 0 1px 2px hsl(var(--site-ink) / 0.05), 0 12px 32px -18px hsl(var(--site-ink) / 0.18);
     --shadow-site-float: 0 24px 60px -24px hsl(var(--site-ink) / 0.35);
   }
+
 
   /* Pessoas 360° — override de radius mais arredondado (0.75rem) só dentro do módulo DP */
   .dp-shell {
     --radius: 0.75rem;
 
     /* Onboarding wizard tokens */
-    --onboarding-canvas: 224 60% 12%;
+    --onboarding-canvas: 155 22% 9%;
     --onboarding-card: 0 0% 100%;
-    --onboarding-accent-soft: 18 90% 96%;
+    --onboarding-accent-soft: 141 60% 95%;
   }
 
   .dark {
-    --background: 224 55% 8%;
-    --foreground: 30 25% 92%;
+    --background: 155 25% 7%;
+    --foreground: 150 12% 92%;
 
-    --card: 224 50% 12%;
-    --card-foreground: 30 25% 92%;
+    --card: 155 20% 11%;
+    --card-foreground: 150 12% 92%;
 
-    --popover: 224 50% 12%;
-    --popover-foreground: 30 25% 92%;
+    --popover: 155 20% 11%;
+    --popover-foreground: 150 12% 92%;
 
-    --primary: 18 84% 55%;
-    --primary-foreground: 224 60% 10%;
+    --primary: 141 90% 42%;
+    --primary-foreground: 155 30% 8%;
 
-    --secondary: 224 40% 18%;
-    --secondary-foreground: 30 25% 92%;
+    --secondary: 155 18% 17%;
+    --secondary-foreground: 150 12% 92%;
 
-    --muted: 224 40% 16%;
-    --muted-foreground: 30 12% 65%;
+    --muted: 155 16% 15%;
+    --muted-foreground: 150 8% 65%;
 
-    --accent: 224 40% 20%;
-    --accent-foreground: 30 25% 92%;
+    --accent: 155 18% 19%;
+    --accent-foreground: 150 12% 92%;
 
     --destructive: 0 65% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 55% 40%;
+    --success: 141 80% 38%;
     --success-foreground: 0 0% 100%;
-    --success-strong: 152 62% 62%;
+    --success-strong: 141 70% 60%;
 
     --warning: 38 82% 50%;
     --warning-foreground: 38 90% 96%;
 
-    --border: 224 40% 20%;
-    --input: 224 40% 20%;
-    --ring: 18 84% 55%;
+    --border: 155 16% 19%;
+    --input: 155 16% 19%;
+    --ring: 141 90% 42%;
 
-    --sidebar-background: 224 65% 7%;
-    --sidebar-foreground: 30 22% 86%;
-    --sidebar-primary: 18 84% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 50% 16%;
-    --sidebar-accent-foreground: 30 22% 88%;
-    --sidebar-border: 224 40% 18%;
-    --sidebar-ring: 18 84% 55%;
+    --sidebar-background: 155 28% 6%;
+    --sidebar-foreground: 150 10% 88%;
+    --sidebar-primary: 141 90% 44%;
+    --sidebar-primary-foreground: 155 30% 8%;
+    --sidebar-accent: 155 20% 14%;
+    --sidebar-accent-foreground: 150 10% 90%;
+    --sidebar-border: 155 16% 17%;
+    --sidebar-ring: 141 90% 44%;
   }
+
 }
 
 @layer base {

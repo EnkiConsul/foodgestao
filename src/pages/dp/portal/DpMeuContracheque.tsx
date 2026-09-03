@@ -35,7 +35,7 @@ export default function DpMeuContracheque() {
   const imprimir = (i: (typeof itens)[number]) => {
     const ok = imprimirHolerite(`Demonstrativo ${i.competencia.slice(0, 7)}`, [
       {
-        empresa: "360°FOOD",
+        empresa: "Aveto 360",
         colaborador: nome,
         competencia: i.competencia,
         tipo: i.tipo,
@@ -50,7 +50,7 @@ export default function DpMeuContracheque() {
 
   return (
     <div className="space-y-4 p-4 pb-24">
-      <Helmet><title>Meus Contracheques — 360°FOOD</title></Helmet>
+      <Helmet><title>Meus Contracheques — Aveto 360</title></Helmet>
 
       <header className="flex items-center gap-3">
         <div className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/10 text-primary">

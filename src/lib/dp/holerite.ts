@@ -177,7 +177,7 @@ const ESTILO = `
   body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; margin: 0; padding: 16px; }
   .holerite { border: 1px solid #ccc; border-radius: 6px; padding: 16px; margin-bottom: 16px; page-break-inside: avoid; }
   .holerite + .holerite { page-break-before: always; }
-  header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #EB6119; padding-bottom: 8px; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #02AB3D; padding-bottom: 8px; }
   header h2 { margin: 0 0 2px; font-size: 15px; }
   header p { margin: 0; font-size: 11px; color: #555; }
   .comp { text-align: right; text-transform: capitalize; }
@@ -189,7 +189,7 @@ const ESTILO = `
   .rubricas th { background: #f6f6f6; text-align: left; font-size: 11px; }
   .rubricas .r { text-align: right; } .rubricas .c { text-align: center; }
   tfoot td { font-weight: bold; background: #fafafa; }
-  tfoot .liquido td { background: #0F1B3D; color: #fff; }
+  tfoot .liquido td { background: #0B0F0D; color: #fff; }
   .fgts { margin-top: 8px; font-size: 11px; color: #555; }
   .assinatura { margin-top: 24px; font-size: 11px; color: #555; }
   .linha-assinatura { margin-top: 28px; border-top: 1px solid #333; width: 60%; }

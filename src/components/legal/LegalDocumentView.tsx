@@ -19,13 +19,13 @@ export function LegalDocumentView({ title, lastUpdated, body, metaDescription, c
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>{title} — 360°FOOD</title>
-        <meta name="description" content={metaDescription ?? `${title} — 360°FOOD`} />
-        <meta property="og:title" content={`${title} — 360°FOOD`} />
-        <meta property="og:description" content={metaDescription ?? `${title} — 360°FOOD`} />
+        <title>{title} — Aveto 360</title>
+        <meta name="description" content={metaDescription ?? `${title} — Aveto 360`} />
+        <meta property="og:title" content={`${title} — Aveto 360`} />
+        <meta property="og:description" content={metaDescription ?? `${title} — Aveto 360`} />
         <meta property="og:type" content="article" />
-        <meta name="twitter:title" content={`${title} — 360°FOOD`} />
-        <meta name="twitter:description" content={metaDescription ?? `${title} — 360°FOOD`} />
+        <meta name="twitter:title" content={`${title} — Aveto 360`} />
+        <meta name="twitter:description" content={metaDescription ?? `${title} — Aveto 360`} />
       </Helmet>
       <BreadcrumbJsonLd items={[{ name: title, path: canonicalPath }]} />
 
@@ -58,7 +58,7 @@ export function LegalDocumentView({ title, lastUpdated, body, metaDescription, c
           <Link to="/cookies" className="hover:text-foreground">Cookies</Link>
           <Link to="/encarregado-dados" className="hover:text-foreground">DPO</Link>
         </div>
-        <p className="mt-3">© {new Date().getFullYear()} 360°FOOD</p>
+        <p className="mt-3">© {new Date().getFullYear()} Aveto 360</p>
       </footer>
     </div>
   );

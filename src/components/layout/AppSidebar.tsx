@@ -1,8 +1,8 @@
 import { LogOut, MessageCircle, LayoutGrid } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
-import assinatura360 from "@/assets/360food-assinatura.png.asset.json";
-import symbol360 from "@/assets/360food-symbol.png.asset.json";
+import assinatura360 from "@/assets/aveto360-assinatura.png.asset.json";
+import symbol360 from "@/assets/aveto360-symbol.png.asset.json";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveModule } from "@/hooks/useActiveModule";
@@ -54,7 +54,7 @@ export function AppSidebar() {
         <div className={cn("flex w-full", collapsed ? "flex-col items-center justify-center gap-1" : "flex-row items-center justify-between")}>
           <img
             src={collapsed ? symbol360.url : assinatura360.url}
-            alt="360°FOOD"
+            alt="Aveto 360"
             className={cn(
               "object-contain select-none",
               collapsed ? "h-6 w-auto max-w-full" : "h-12 w-auto max-w-full"

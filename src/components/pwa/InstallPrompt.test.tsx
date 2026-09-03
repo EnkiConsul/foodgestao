@@ -158,38 +158,38 @@ describe("InstallPrompt rendering", () => {
   it("shows iOS instructions on iPhone Safari, not installed, not dismissed", () => {
     setNavigator({ ua: UA.iphoneSafari, platform: "iPhone" });
     render(<InstallPrompt />);
-    expect(screen.getByText(/Instalar 360°FOOD/i)).toBeInTheDocument();
+    expect(screen.getByText(/Instalar Aveto 360/i)).toBeInTheDocument();
     expect(screen.getByText(/Adicionar à Tela de Início/i)).toBeInTheDocument();
   });
 
   it("hides on iPhone Chrome (non-Safari)", () => {
     setNavigator({ ua: UA.iphoneChrome, platform: "iPhone" });
     render(<InstallPrompt />);
-    expect(screen.queryByText(/Instalar 360°FOOD/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Instalar Aveto 360/i)).not.toBeInTheDocument();
   });
 
   it("hides inside Instagram in-app browser", () => {
     setNavigator({ ua: UA.iphoneInstagram, platform: "iPhone" });
     render(<InstallPrompt />);
-    expect(screen.queryByText(/Instalar 360°FOOD/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Instalar Aveto 360/i)).not.toBeInTheDocument();
   });
 
   it("hides when running as installed PWA (standalone)", () => {
     setNavigator({ ua: UA.iphoneSafari, platform: "iPhone", standalone: true });
     render(<InstallPrompt />);
-    expect(screen.queryByText(/Instalar 360°FOOD/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Instalar Aveto 360/i)).not.toBeInTheDocument();
   });
 
   it("hides when recently dismissed", () => {
     setNavigator({ ua: UA.iphoneSafari, platform: "iPhone" });
     localStorage.setItem("pwa-install-dismissed-at", String(Date.now()));
     render(<InstallPrompt />);
-    expect(screen.queryByText(/Instalar 360°FOOD/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Instalar Aveto 360/i)).not.toBeInTheDocument();
   });
 
   it("hides on desktop", () => {
     setNavigator({ ua: UA.desktopChrome, platform: "MacIntel" });
     render(<InstallPrompt />);
-    expect(screen.queryByText(/Instalar 360°FOOD/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Instalar Aveto 360/i)).not.toBeInTheDocument();
   });
 });

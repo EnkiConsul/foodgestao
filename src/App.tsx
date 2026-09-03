@@ -543,7 +543,7 @@ const AppShell = () => {
 };
 
 const App = () => (
-  <ErrorBoundary scope="app" title="Falha ao iniciar o 360°FOOD">
+  <ErrorBoundary scope="app" title="Falha ao iniciar o Aveto 360">
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>

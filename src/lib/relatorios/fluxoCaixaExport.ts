@@ -73,13 +73,13 @@ export function buildPrintableHtml(t: PrintableTable): string {
 <style>
   @page { size: A4 ${t.landscape ? "landscape" : "portrait"}; margin: 12mm; }
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0F1B3D; margin: 0; }
-  header { border-bottom: 3px solid #EB6119; padding-bottom: 8px; margin-bottom: 12px; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0B0F0D; margin: 0; }
+  header { border-bottom: 3px solid #02AB3D; padding-bottom: 8px; margin-bottom: 12px; }
   h1 { font-size: 16px; margin: 0 0 2px; }
   .sub { font-size: 11px; color: #555; }
   table { width: 100%; border-collapse: collapse; font-size: 10px; }
   th, td { padding: 4px 6px; border-bottom: 1px solid #e5e7eb; }
-  th { background: #0F1B3D; color: #fff; text-transform: uppercase; font-size: 9px; }
+  th { background: #0B0F0D; color: #fff; text-transform: uppercase; font-size: 9px; }
   .right { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .left { text-align: left; }
   tr.group td { background: #f3f4f6; font-weight: 700; }
@@ -94,7 +94,7 @@ export function buildPrintableHtml(t: PrintableTable): string {
   </header>
   <table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>
   <footer>${(t.notes ?? []).map((n) => `<div>${escapeHtml(n)}</div>`).join("")}
-    <div>Gerado em ${escapeHtml(new Date().toLocaleString("pt-BR"))} · 360°FOOD</div>
+    <div>Gerado em ${escapeHtml(new Date().toLocaleString("pt-BR"))} · Aveto 360</div>
   </footer>
 </body></html>`;
 }
@@ -130,8 +130,8 @@ export type XlsxSheet = {
 };
 
 const NUM_FMT = '#,##0.00;[Red]-#,##0.00;"–"';
-const NAVY = "FF0F1B3D";
-const ORANGE = "FFEB6119";
+const INK = "FF0B0F0D";
+const BRAND = "FF02AB3D";
 
 export function safeSheetName(name: string): string {
   return (name.replace(/[:\\/?*[\]]/g, " ").trim() || "Planilha").slice(0, 31);
@@ -141,7 +141,7 @@ export function safeSheetName(name: string): string {
 export async function downloadXlsx(filename: string, sheets: XlsxSheet[]) {
   const ExcelJS = (await import("exceljs")).default ?? (await import("exceljs"));
   const wb = new ExcelJS.Workbook();
-  wb.creator = "360°FOOD";
+  wb.creator = "Aveto 360";
   wb.created = new Date();
 
   for (const s of sheets) {
@@ -166,7 +166,7 @@ export async function downloadXlsx(filename: string, sheets: XlsxSheet[]) {
     ws.mergeCells(span(1));
     const titleCell = ws.getCell("A1");
     titleCell.value = s.title;
-    titleCell.font = { name: "Arial", size: 14, bold: true, color: { argb: NAVY } };
+    titleCell.font = { name: "Arial", size: 14, bold: true, color: { argb: INK } };
 
     ws.mergeCells(span(2));
     const subCell = ws.getCell("A2");
@@ -180,9 +180,9 @@ export async function downloadXlsx(filename: string, sheets: XlsxSheet[]) {
     headerRow.values = s.head;
     headerRow.eachCell((cell, col) => {
       cell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FFFFFFFF" } };
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: NAVY } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: INK } };
       cell.alignment = { horizontal: col === 1 ? "left" : "right", vertical: "middle", wrapText: true };
-      cell.border = { bottom: { style: "thin", color: { argb: ORANGE } } };
+      cell.border = { bottom: { style: "thin", color: { argb: BRAND } } };
     });
     headerRow.height = 20;
 
@@ -196,7 +196,7 @@ export async function downloadXlsx(filename: string, sheets: XlsxSheet[]) {
           name: "Arial",
           size: 9,
           bold: r.kind === "group" || r.kind === "saldo" || r.kind === "total",
-          color: { argb: NAVY },
+          color: { argb: INK },
         };
         cell.alignment = {
           horizontal: isNum ? "right" : "left",
@@ -216,7 +216,7 @@ export async function downloadXlsx(filename: string, sheets: XlsxSheet[]) {
       const row = ws.addRow([n]);
       row.getCell(1).font = { name: "Arial", size: 8, italic: true, color: { argb: "FF666666" } };
     }
-    const gen = ws.addRow([`Gerado em ${new Date().toLocaleString("pt-BR")} · 360°FOOD`]);
+    const gen = ws.addRow([`Gerado em ${new Date().toLocaleString("pt-BR")} · Aveto 360`]);
     gen.getCell(1).font = { name: "Arial", size: 8, italic: true, color: { argb: "FF666666" } };
 
     s.head.forEach((h, i) => {

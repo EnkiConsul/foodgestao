@@ -6,7 +6,7 @@ const SITE_ORIGIN = PUBLIC_SITE_ORIGIN;
 
 /**
  * Emits a canonical <link> and <meta property="og:url"> pointing to the
- * gestor360food.com origin for the current route on every page.
+ * aveto360.com origin for the current route on every page.
  *
  * Mount once inside the router; per-page <Helmet> title/description still work,
  * and this override wins for og:url thanks to Helmet's property-based dedupe.

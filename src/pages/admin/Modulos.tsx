@@ -97,7 +97,7 @@ export default function AdminModulos() {
 
   return (
     <div className="space-y-6">
-      <Helmet><title>Módulos — Admin 360°FOOD</title></Helmet>
+      <Helmet><title>Módulos — Admin Aveto 360</title></Helmet>
       <AdminPageHeader
         title="Contratação de Módulos"
         description="Ative, suspenda ou cancele módulos por empresa. Financeiro é ativado automaticamente."

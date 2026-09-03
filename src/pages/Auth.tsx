@@ -20,7 +20,7 @@ import { sanitizeRedirect } from "@/lib/safeRedirect";
 import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
-import logoMarinho from "@/assets/360food-logo-marinho.png.asset.json";
+import logoMarinho from "@/assets/aveto360-logo.png.asset.json";
 
 // Login identifier: e-mail OR CPF (11 digits with or without punctuation)
 const loginSchema = z.object({
@@ -385,20 +385,20 @@ export default function Auth() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Helmet>
-        <title>Entrar ou criar conta — 360°FOOD</title>
-        <meta name="description" content="Acesse sua conta 360°FOOD ou crie um cadastro gratuito para gerenciar suas finanças pessoais e empresariais." />
-        <meta property="og:title" content="Entrar ou criar conta — 360°FOOD" />
-        <meta property="og:description" content="Acesse sua conta 360°FOOD ou crie um cadastro gratuito para gerenciar suas finanças." />
+        <title>Entrar ou criar conta — Aveto 360</title>
+        <meta name="description" content="Acesse sua conta Aveto 360 ou crie um cadastro gratuito para gerenciar suas finanças pessoais e empresariais." />
+        <meta property="og:title" content="Entrar ou criar conta — Aveto 360" />
+        <meta property="og:description" content="Acesse sua conta Aveto 360 ou crie um cadastro gratuito para gerenciar suas finanças." />
       </Helmet>
-      <h1 className="sr-only">Acesse sua conta ou crie seu cadastro no 360°FOOD</h1>
+      <h1 className="sr-only">Acesse sua conta ou crie seu cadastro no Aveto 360</h1>
       <div className="w-full max-w-md space-y-3">
         <Card className="w-full shadow-lg">
 
         <CardHeader className="text-center space-y-3">
-          <CardTitle className="sr-only">360°FOOD</CardTitle>
+          <CardTitle className="sr-only">Aveto 360</CardTitle>
           <img
             src={logoMarinho.url}
-            alt="360°FOOD"
+            alt="Aveto 360"
             className="mx-auto h-16 w-auto select-none"
             draggable={false}
           />

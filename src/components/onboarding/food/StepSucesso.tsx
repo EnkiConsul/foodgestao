@@ -29,7 +29,7 @@ export function StepSucesso({ nomeFantasia, razaoSocial, modulosSlugs, trialTerm
           Cadastro concluído!
         </h2>
         <p className="text-sm text-muted-foreground">
-          Bem-vindo(a) ao 360°FOOD. Sua empresa já está pronta para operar.
+          Bem-vindo(a) ao Aveto 360. Sua empresa já está pronta para operar.
         </p>
       </div>
 

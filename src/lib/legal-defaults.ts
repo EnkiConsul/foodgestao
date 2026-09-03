@@ -29,7 +29,7 @@ export const LEGAL_DEFAULTS = {
 
 Última atualização: **${TODAY}**
 
-A **360°FOOD** ("nós", "nosso", "Controlador") está comprometida com a proteção dos seus dados pessoais, em conformidade com a **Lei Geral de Proteção de Dados — LGPD (Lei nº 13.709/2018)** e o **Marco Civil da Internet (Lei nº 12.965/2014)**.
+A **Aveto 360** ("nós", "nosso", "Controlador") está comprometida com a proteção dos seus dados pessoais, em conformidade com a **Lei Geral de Proteção de Dados — LGPD (Lei nº 13.709/2018)** e o **Marco Civil da Internet (Lei nº 12.965/2014)**.
 
 ## 1. Quem somos
 Somos uma plataforma SaaS de gestão financeira para pessoas físicas, MEIs e pequenas empresas no Brasil.
@@ -101,10 +101,10 @@ Veja a página do [Encarregado de Dados](/encarregado-dados) para mais informaç
 
 Última atualização: **${TODAY}**
 
-Estes Termos regulam o uso da plataforma **360°FOOD**. Ao criar uma conta, você concorda integralmente com estas condições e com a [Política de Privacidade](/privacidade).
+Estes Termos regulam o uso da plataforma **Aveto 360**. Ao criar uma conta, você concorda integralmente com estas condições e com a [Política de Privacidade](/privacidade).
 
 ## 1. Definições
-- **Plataforma**: o software 360°FOOD, acessível via web.
+- **Plataforma**: o software Aveto 360, acessível via web.
 - **Usuário**: pessoa física ou jurídica que acessa a Plataforma.
 - **Assinatura**: plano contratado para acesso aos recursos pagos.
 
@@ -134,7 +134,7 @@ Estes Termos regulam o uso da plataforma **360°FOOD**. Ao criar uma conta, voc�
 O descumprimento permite suspensão imediata da conta.
 
 ## 6. Propriedade intelectual
-- A Plataforma, marca, código e layout pertencem à 360°FOOD.
+- A Plataforma, marca, código e layout pertencem à Aveto 360.
 - Os dados inseridos pelo Usuário permanecem de sua propriedade. Concedemos a você licença de uso da Plataforma; você nos concede licença limitada para processar seus dados para prestar o serviço.
 
 ## 7. Limitação de responsabilidade
@@ -197,9 +197,9 @@ dpo@360food.com`,
   legal_dpo: {
     title: "Encarregado de Tratamento de Dados (DPO)",
     last_updated: TODAY,
-    dpo_name: "Encarregado de Dados — 360°FOOD",
+    dpo_name: "Encarregado de Dados — Aveto 360",
     dpo_email: "dpo@360food.com",
-    controller_name: "360°FOOD",
+    controller_name: "Aveto 360",
     controller_cnpj: "00.000.000/0000-00",
     controller_address: "Brasil",
     body: `# Encarregado de Tratamento de Dados Pessoais

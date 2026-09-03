@@ -36,7 +36,7 @@ export default function TrialExpired() {
               <div className="space-y-1">
                 <h1 className="text-2xl font-bold tracking-tight">{headline}</h1>
                 <p className="text-muted-foreground">
-                  Para continuar acessando o 360°FOOD e seus dados, escolha um plano que melhor atenda seu negócio.
+                  Para continuar acessando o Aveto 360 e seus dados, escolha um plano que melhor atenda seu negócio.
                 </p>
               </div>
             </div>

@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import logoHorizontal from "@/assets/360food-horizontal.png.asset.json";
-import logoIcon from "@/assets/360food-icon.png.asset.json";
-import logoSymbol from "@/assets/360food-symbol.png.asset.json";
+import logoHorizontal from "@/assets/aveto360-horizontal.png.asset.json";
+import logoIcon from "@/assets/aveto360-icon.png.asset.json";
+import logoSymbol from "@/assets/aveto360-symbol.png.asset.json";
 
 const sizeMap = {
   sm: "h-9",
@@ -23,7 +23,7 @@ export function Logo({ size = "md", className, linkTo = "/", variant = "horizont
   const img = (
     <img
       src={src}
-      alt="360°FOOD"
+      alt="Aveto 360"
       className={cn(sizeMap[size], "w-auto select-none", className)}
       draggable={false}
     />

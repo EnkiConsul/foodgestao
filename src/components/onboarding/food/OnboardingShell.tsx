@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
-import logo from "@/assets/360food-horizontal.png.asset.json";
+import logo from "@/assets/aveto360-horizontal.png.asset.json";
 import { cn } from "@/lib/utils";
 
 interface OnboardingShellProps {
@@ -19,7 +19,7 @@ export function OnboardingShell({ currentStep, children }: OnboardingShellProps)
       <div className="mx-auto w-full max-w-3xl space-y-8">
         {/* Logo */}
         <div className="flex justify-center">
-          <img src={logo.url} alt="360°FOOD" className="h-10 md:h-12 w-auto" />
+          <img src={logo.url} alt="Aveto 360" className="h-10 md:h-12 w-auto" />
         </div>
 
         {/* Stepper */}
@@ -70,7 +70,7 @@ export function OnboardingShell({ currentStep, children }: OnboardingShellProps)
         </div>
 
         <p className="text-center text-xs text-white/60">
-          © {new Date().getFullYear()} 360°FOOD — Gestão inteligente para bares e restaurantes
+          © {new Date().getFullYear()} Aveto 360 — Gestão inteligente para bares e restaurantes
         </p>
       </div>
     </div>

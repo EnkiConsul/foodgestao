@@ -131,8 +131,8 @@ export function categoriasTurno(fonte?: FonteCategorias) {
 
 /** Cores sugeridas para identificar o turno na grade da escala. */
 export const CORES_TURNO = [
-  "#EB6119",
-  "#0F1B3D",
+  "#02AB3D",
+  "#0B0F0D",
   "#2E7D32",
   "#0288D1",
   "#8E24AA",

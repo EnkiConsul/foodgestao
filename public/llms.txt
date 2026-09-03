@@ -1,8 +1,8 @@
-# 360°FOOD
+# Aveto 360
 
 > Plataforma brasileira de gestão financeira que unifica finanças pessoais (PF) e empresariais (PJ) em um só lugar, ideal para MEI, pequenas empresas e profissionais autônomos.
 
-360°FOOD oferece controle de contas a pagar e a receber, fluxo de caixa, orçamentos por categoria, relatórios analíticos, gestão de múltiplas contas bancárias, transações recorrentes, multiusuário com perfis de acesso e modo privacidade. Teste grátis por 7 dias, sem cartão de crédito.
+Aveto 360 oferece controle de contas a pagar e a receber, fluxo de caixa, orçamentos por categoria, relatórios analíticos, gestão de múltiplas contas bancárias, transações recorrentes, multiusuário com perfis de acesso e modo privacidade. Teste grátis por 7 dias, sem cartão de crédito.
 
 ## Pages
 

@@ -130,7 +130,7 @@ export default function DpMeuHome() {
 
   return (
     <DpPage>
-      <Helmet><title>Portal do Colaborador — 360°FOOD</title></Helmet>
+      <Helmet><title>Portal do Colaborador — Aveto 360</title></Helmet>
 
       <header className="dp-content-card rounded-2xl bg-card border border-[hsl(var(--dp-border))] p-5 md:p-6">
         <div className="flex items-center gap-3">

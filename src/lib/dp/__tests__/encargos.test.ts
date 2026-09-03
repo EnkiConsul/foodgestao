@@ -56,7 +56,7 @@ describe("encargos legais (Fase 17)", () => {
       horas: { normais: 220, extras50: 0, extras100: 0, noturnos: 0, falta: 0, atraso: 0, diasFalta: 0, dsrPerdidos: 0 },
     });
     const linhas = linhasDoHolerite({
-      empresa: "360°FOOD",
+      empresa: "Aveto 360",
       colaborador: "Karine",
       competencia: "2026-06-01",
       tipo: "contracheque_mensal",

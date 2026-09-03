@@ -315,7 +315,7 @@ export default function RelatorioFluxoCaixa() {
   return (
     <div className="space-y-4">
       <Helmet>
-        <title>Relatório de Fluxo de Caixa | 360°FOOD</title>
+        <title>Relatório de Fluxo de Caixa | Aveto 360</title>
         <meta
           name="description"
           content="Relatório gerencial de fluxo de caixa por categoria, mês a mês, com médias, totais e saldo do período."

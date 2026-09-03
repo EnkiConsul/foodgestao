@@ -38,7 +38,7 @@ const INVALID_CREDENTIALS: Omit<ConnectErrorDescription, "code"> = {
 const BANK_UNAVAILABLE: Omit<ConnectErrorDescription, "code"> = {
   title: "Banco temporariamente indisponível",
   message: "O ambiente de Open Finance do banco não respondeu.",
-  hint: "Aguarde alguns minutos e inicie a conexão novamente. Não é um problema no 360°FOOD.",
+  hint: "Aguarde alguns minutos e inicie a conexão novamente. Não é um problema no Aveto 360.",
 };
 
 const TIMEOUT: Omit<ConnectErrorDescription, "code"> = {

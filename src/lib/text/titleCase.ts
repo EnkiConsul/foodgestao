@@ -16,7 +16,7 @@ const CONECTIVOS = new Set([
 const PRESERVAR = [
   "CLT", "DP", "PIX", "CPF", "CNPJ", "RG", "PJ", "PF", "MEI", "DSR", "FGTS",
   "INSS", "IRRF", "ASO", "EPI", "EPIs", "SESMT", "TRCT", "IA", "PDF", "CSV",
-  "360°FOOD", "13º", "eSocial",
+  "Aveto 360", "13º", "eSocial",
 ];
 
 const PRESERVAR_MAP = new Map(PRESERVAR.map((s) => [s.toLowerCase(), s]));

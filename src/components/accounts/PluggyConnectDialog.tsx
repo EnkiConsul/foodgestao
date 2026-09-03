@@ -619,7 +619,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
               <li>
                 Se não houver QR Code, instale o Módulo de Segurança do banco e reinicie o
                 computador — ou repita a conexão pelo <strong>celular</strong>, acessando o
-                360°FOOD no navegador do telefone.
+                Aveto 360 no navegador do telefone.
               </li>
               <li>
                 Depois de autorizar, volte aqui e toque em{" "}

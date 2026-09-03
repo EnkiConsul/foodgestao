@@ -55,7 +55,7 @@ function supabaseForUser(ctx) {
 }
 function notAuthenticated() {
   return {
-    content: [{ type: "text", text: "N\xE3o autenticado. Conecte-se novamente ao 360\xB0FOOD." }],
+    content: [{ type: "text", text: "N\xE3o autenticado. Conecte-se novamente ao Aveto 360." }],
     isError: true
   };
 }
@@ -64,7 +64,7 @@ function notAuthenticated() {
 var list_companies_default = defineTool({
   name: "list_companies",
   title: "Listar empresas",
-  description: "Lista as empresas (perfis PJ) que o usu\xE1rio conectado pode acessar no 360\xB0FOOD.",
+  description: "Lista as empresas (perfis PJ) que o usu\xE1rio conectado pode acessar no Aveto 360.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
@@ -184,9 +184,9 @@ var list_colaboradores_default = defineTool4({
 var projectRef = "grtxmbffgmgnkawlvqhm";
 var mcp_default = defineMcp({
   name: "360-food",
-  title: "360\xB0FOOD",
+  title: "Aveto 360",
   version: "0.1.0",
-  instructions: "Ferramentas do 360\xB0FOOD (gest\xE3o financeira e de pessoas para food service). Use list_companies para descobrir as empresas do usu\xE1rio, list_accounts para saldos, list_transactions para lan\xE7amentos e contas a pagar/receber, e list_colaboradores para a equipe do m\xF3dulo Pessoas 360\xB0. Todas as chamadas respeitam as permiss\xF5es do usu\xE1rio conectado.",
+  instructions: "Ferramentas do Aveto 360 (gest\xE3o financeira e de pessoas para food service). Use list_companies para descobrir as empresas do usu\xE1rio, list_accounts para saldos, list_transactions para lan\xE7amentos e contas a pagar/receber, e list_colaboradores para a equipe do m\xF3dulo Pessoas 360\xB0. Todas as chamadas respeitam as permiss\xF5es do usu\xE1rio conectado.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"

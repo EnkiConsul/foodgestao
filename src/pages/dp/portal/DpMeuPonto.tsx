@@ -98,7 +98,7 @@ export default function DpMeuPonto() {
   return (
     <div className="space-y-4 p-4 pb-24">
       <Helmet>
-        <title>Meu Ponto | 360°FOOD</title>
+        <title>Meu Ponto | Aveto 360</title>
         <meta name="description" content="Registre sua entrada, intervalo e saída e acompanhe as horas do dia." />
       </Helmet>
 
