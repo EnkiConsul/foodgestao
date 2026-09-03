@@ -1,10 +1,10 @@
 import * as React from 'npm:react@18.3.1'
-import {
-  Body, Button, Container, Head, Heading, Hr, Html, Preview, Section, Text,
-} from 'npm:@react-email/components@0.0.22'
+import { Button, Heading, Section, Text } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
+import { EmailLayout } from '../email-templates/EmailLayout.tsx'
 
 const SITE_NAME = 'Aveto 360'
+const SITE_URL = 'https://www.aveto360.com'
 
 interface CompanyInviteProps {
   companyName?: string
@@ -23,36 +23,32 @@ const roleLabel = (r?: string) => {
 }
 
 const CompanyInviteEmail = ({ companyName, inviterName, role, inviteUrl }: CompanyInviteProps) => (
-  <Html lang="pt-BR" dir="ltr">
-    <Head />
-    <Preview>Você foi convidado para {companyName ?? 'uma empresa'} no {SITE_NAME}</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Heading style={h1}>Você recebeu um convite</Heading>
-        <Text style={text}>
-          {inviterName ? <><strong>{inviterName}</strong> convidou você</> : 'Você foi convidado'}{' '}
-          para participar de <strong>{companyName ?? 'uma empresa'}</strong> no {SITE_NAME} como{' '}
-          <strong>{roleLabel(role)}</strong>.
-        </Text>
+  <EmailLayout
+    siteUrl={SITE_URL}
+    siteName={SITE_NAME}
+    preview={`Você foi convidado para ${companyName ?? 'uma empresa'} no ${SITE_NAME}`}
+  >
+    <Heading style={h1}>Você recebeu um convite</Heading>
+    <Text style={text}>
+      {inviterName ? <><strong>{inviterName}</strong> convidou você</> : 'Você foi convidado'}{' '}
+      para participar de <strong>{companyName ?? 'uma empresa'}</strong> no {SITE_NAME} como{' '}
+      <strong>{roleLabel(role)}</strong>.
+    </Text>
 
-        <Section style={{ textAlign: 'center', margin: '24px 0' }}>
-          <Button href={inviteUrl} style={cta}>
-            Aceitar convite
-          </Button>
-        </Section>
+    <Section style={{ textAlign: 'center', margin: '28px 0' }}>
+      <Button href={inviteUrl} style={cta}>
+        Aceitar convite
+      </Button>
+    </Section>
 
-        <Text style={smallText}>
-          Se o botão não funcionar, copie e cole este link no seu navegador:
-        </Text>
-        <Text style={linkText}>{inviteUrl}</Text>
-
-        <Hr style={hr} />
-        <Text style={footer}>
-          Se você não esperava este convite, pode ignorar este e-mail com segurança.
-        </Text>
-      </Container>
-    </Body>
-  </Html>
+    <Text style={smallText}>
+      Se o botão não funcionar, copie e cole este link no seu navegador:
+    </Text>
+    <Text style={linkText}>{inviteUrl}</Text>
+    <Text style={footer}>
+      Se você não esperava este convite, pode ignorar este e-mail com segurança.
+    </Text>
+  </EmailLayout>
 )
 
 export const template = {
@@ -64,19 +60,17 @@ export const template = {
     companyName: 'Empresa Exemplo LTDA',
     inviterName: 'João da Silva',
     role: 'member',
-    inviteUrl: 'https://360food.com/convite/abc123',
+    inviteUrl: 'https://www.aveto360.com/convite/abc123',
   },
 } satisfies TemplateEntry
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, Helvetica, sans-serif' }
-const container = { padding: '24px 28px', maxWidth: '560px' }
-const h1 = { fontSize: '22px', fontWeight: 700, color: '#0f172a', margin: '0 0 16px' }
-const text = { fontSize: '15px', color: '#334155', lineHeight: '1.6', margin: '0 0 16px' }
-const smallText = { fontSize: '13px', color: '#64748b', lineHeight: '1.5', margin: '24px 0 4px' }
-const linkText = { fontSize: '12px', color: '#22C9A0', wordBreak: 'break-all' as const, margin: '0 0 16px' }
+const h1 = { fontSize: '22px', fontWeight: 700, color: '#0B0F0D', margin: '0 0 16px' }
+const text = { fontSize: '15px', color: '#4B5563', lineHeight: '1.6', margin: '0 0 16px' }
+const smallText = { fontSize: '13px', color: '#6B7280', lineHeight: '1.5', margin: '24px 0 4px' }
+const linkText = { fontSize: '12px', color: '#02AB3D', wordBreak: 'break-all' as const, margin: '0 0 16px' }
 const cta = {
-  backgroundColor: '#22C9A0',
-  color: '#ffffff',
+  backgroundColor: '#02AB3D',
+  color: '#FFFFFF',
   padding: '12px 24px',
   borderRadius: '8px',
   textDecoration: 'none',
@@ -84,5 +78,4 @@ const cta = {
   fontSize: '15px',
   display: 'inline-block',
 }
-const hr = { borderColor: '#e2e8f0', margin: '24px 0 12px' }
-const footer = { fontSize: '12px', color: '#94a3b8', margin: '0' }
+const footer = { fontSize: '12px', color: '#9CA3AF', margin: '24px 0 0' }
