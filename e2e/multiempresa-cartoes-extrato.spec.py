@@ -60,13 +60,17 @@ ROUTES = [
 # ---------------------------------------------------------------- sessão / REST
 
 def load_session() -> dict | None:
-    raw = os.environ.get("LOVABLE_BROWSER_SUPABASE_SESSION_JSON")
-    if raw:
-        return json.loads(raw)
+    """Sessão mais recente primeiro: o cache de `lovable auth-session` é
+    preferido porque a variável injetada pode estar expirada."""
     cached = Path.home() / ".cache" / "lovable-auth" / "session.json"
     if cached.exists():
         data = json.loads(cached.read_text())
-        return data.get("session", data)
+        sess = data.get("session", data)
+        if sess.get("access_token"):
+            return sess
+    raw = os.environ.get("LOVABLE_BROWSER_SUPABASE_SESSION_JSON")
+    if raw:
+        return json.loads(raw)
     return None
 
 
