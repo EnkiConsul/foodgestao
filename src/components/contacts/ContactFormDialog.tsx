@@ -405,6 +405,11 @@ export function ContactFormDialog({
                     {cnpjLookupPending && (
                       <p className="text-xs text-muted-foreground">Consultando Receita Federal…</p>
                     )}
+                    {!cnpjLookupPending && situacao && !/^ativa$/i.test(situacao.trim()) && (
+                      <p className="text-xs text-warning">
+                        Situação na Receita Federal: {situacao}. O cadastro é permitido, mas confira os dados.
+                      </p>
+                    )}
                   </div>
                 );
               })()}
