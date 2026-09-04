@@ -799,9 +799,9 @@ export default function ContasBancarias() {
             </div>
             <p className="text-muted-foreground">
               {deactivateOfBank ? (
-                <>Esta conta é sincronizada via Open Finance com o <strong>{deactivateOfBank}</strong>. A conexão <strong>permanece ativa</strong> e continua aparecendo no painel do Open Finance: apenas a sincronização desta conta fica <strong>pausada</strong> — e volta automaticamente ao reativar.</>
+                <>Esta conta é sincronizada via Open Finance com o <strong>{deactivateOfBank}</strong>. A autorização do banco <strong>continua válida</strong>: apenas a sincronização desta conta fica <strong>pausada</strong> — e volta automaticamente ao reativar. Para cancelar o acesso ao banco, use <strong>Desconectar Open Finance</strong> em Conexões.</>
               ) : (
-                <>Desativar uma conta <strong>não</strong> remove nenhuma conexão Open Finance. Se houver vínculo, a sincronização daquela conta fica apenas pausada até a reativação.</>
+                <>Desativar uma conta <strong>não</strong> cancela nenhuma autorização de Open Finance. Se houver vínculo, a sincronização daquela conta fica apenas pausada até a reativação; para cancelar o acesso ao banco, use <strong>Desconectar Open Finance</strong> em Conexões.</>
               )}
             </p>
           </div>
