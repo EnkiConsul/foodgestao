@@ -9956,6 +9956,10 @@ export type Database = {
           last_synced_at: string | null
           next_sync_at: string
           pluggy_item_id: string
+          provider_delete_status: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
           status: Database["public"]["Enums"]["pluggy_connection_status"]
           sync_attempts: number
           updated_at: string
@@ -9976,6 +9980,10 @@ export type Database = {
           last_synced_at?: string | null
           next_sync_at?: string
           pluggy_item_id: string
+          provider_delete_status?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           status?: Database["public"]["Enums"]["pluggy_connection_status"]
           sync_attempts?: number
           updated_at?: string
@@ -9996,6 +10004,10 @@ export type Database = {
           last_synced_at?: string | null
           next_sync_at?: string
           pluggy_item_id?: string
+          provider_delete_status?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           status?: Database["public"]["Enums"]["pluggy_connection_status"]
           sync_attempts?: number
           updated_at?: string
@@ -13469,6 +13481,7 @@ export type Database = {
         | "updated"
         | "error"
         | "deleted"
+        | "revoked"
       pluggy_staging_status: "pending" | "confirmed" | "ignored" | "duplicate"
       pluggy_v2_connection_status:
         | "created"
@@ -13914,6 +13927,7 @@ export const Constants = {
         "updated",
         "error",
         "deleted",
+        "revoked",
       ],
       pluggy_staging_status: ["pending", "confirmed", "ignored", "duplicate"],
       pluggy_v2_connection_status: [
