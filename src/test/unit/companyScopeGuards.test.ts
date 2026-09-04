@@ -11,7 +11,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-/** Telas/hooks que exibem cartões, faturas e extrato conciliado. */
+/** Telas/hooks que exibem cartões, faturas, extrato e cadastros compartilhados. */
 const FILES = [
   "src/pages/CartoesCredito.tsx",
   "src/pages/ConciliacaoPluggy.tsx",
@@ -20,6 +20,12 @@ const FILES = [
   "src/hooks/usePluggyCreditReview.tsx",
   "src/components/credit-cards/PluggyCreditCardReviewDialog.tsx",
   "src/components/credit-cards/InvoiceTransactionsList.tsx",
+  "src/pages/Contatos.tsx",
+  "src/pages/Categorias.tsx",
+  "src/pages/CentrosCusto.tsx",
+  "src/pages/FormasPagamento.tsx",
+  "src/pages/Orcamento.tsx",
+  "src/pages/relatorios/FluxoCaixa.tsx",
 ] as const;
 
 /** Tabelas com dados financeiros de uma única empresa. */
@@ -30,7 +36,13 @@ const TENANT_TABLES = [
   "pluggy_accounts",
   "pluggy_connections",
   "pluggy_staging_transactions",
+  "contacts",
+  "categories",
+  "cost_centers",
+  "payment_methods",
+  "budgets",
 ] as const;
+
 
 const SCOPE_MARKERS = [
   "company_id",

@@ -122,4 +122,51 @@ suite("Tenancy: multiempresa (Bloco I)", () => {
       .eq("id", rows[0].id);
     expect(error).toBeTruthy();
   });
+
+  // Cadastros compartilhados: sem atalho de "dono vê sempre".
+  it("D não vê contatos vinculados à Empresa 1", async () => {
+    const { data: ids } = await clientA
+      .from("contact_companies")
+      .select("contact_id")
+      .eq("company_id", COMPANY_1)
+      .limit(1);
+    if (!ids || ids.length === 0) return;
+    const { data } = await clientD.from("contacts").select("id").eq("id", ids[0].contact_id);
+    expect(data ?? []).toEqual([]);
+  });
+
+  it("D não vê categorias vinculadas à Empresa 1", async () => {
+    const { data: ids } = await clientA
+      .from("category_companies")
+      .select("category_id")
+      .eq("company_id", COMPANY_1)
+      .limit(1);
+    if (!ids || ids.length === 0) return;
+    const { data } = await clientD.from("categories").select("id").eq("id", ids[0].category_id);
+    expect(data ?? []).toEqual([]);
+  });
+
+  it("D não vê formas de pagamento vinculadas à Empresa 1", async () => {
+    const { data: ids } = await clientA
+      .from("payment_method_companies")
+      .select("payment_method_id")
+      .eq("company_id", COMPANY_1)
+      .limit(1);
+    if (!ids || ids.length === 0) return;
+    const { data } = await clientD
+      .from("payment_methods")
+      .select("id")
+      .eq("id", ids[0].payment_method_id);
+    expect(data ?? []).toEqual([]);
+  });
+
+  it("D não vê faturas de cartão da Empresa 1", async () => {
+    const { data } = await clientD
+      .from("credit_card_invoices")
+      .select("id")
+      .eq("company_id", COMPANY_1)
+      .limit(1);
+    expect(data ?? []).toEqual([]);
+  });
 });
+

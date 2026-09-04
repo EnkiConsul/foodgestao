@@ -10940,6 +10940,7 @@ export type Database = {
       tags: {
         Row: {
           color: string | null
+          company_id: string | null
           created_at: string
           id: string
           name: string
@@ -10947,6 +10948,7 @@ export type Database = {
         }
         Insert: {
           color?: string | null
+          company_id?: string | null
           created_at?: string
           id?: string
           name: string
@@ -10954,12 +10956,21 @@ export type Database = {
         }
         Update: {
           color?: string | null
+          company_id?: string | null
           created_at?: string
           id?: string
           name?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tags_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transaction_attachments: {
         Row: {
