@@ -29,6 +29,7 @@ interface Connection {
   last_sync_status: string | null;
   last_sync_error: string | null;
   last_error: any;
+  revoked_at?: string | null;
 }
 
 /**
