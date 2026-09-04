@@ -878,7 +878,7 @@ export default function ContasBancarias() {
                 {linkedOf.multi ? (
                   <>Esta conta é sincronizada pelo <strong>{linkedOf.bankName}</strong>. Apenas esta conta será desconectada; as demais contas do mesmo banco continuam conectadas.</>
                 ) : (
-                  <>Esta conta está conectada via Open Finance ao <strong>{linkedOf.bankName}</strong>. A conexão com este banco também será removida. O histórico já importado é mantido.</>
+                  <>Esta conta está conectada via Open Finance ao <strong>{linkedOf.bankName}</strong>. O acesso a este banco será <strong>desconectado</strong> (autorização revogada). Todo o histórico já importado é mantido.</>
                 )}
               </p>
             </div>
