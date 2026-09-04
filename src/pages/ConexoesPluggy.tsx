@@ -469,6 +469,41 @@ export default function ConexoesPluggy() {
         </div>
       )}
 
+      {!loading && revoked.length > 0 && (
+        <div className="space-y-2 pt-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Desconectados</p>
+          <div className="grid gap-2">
+            {revoked.map((c) => (
+              <Card key={c.id} className="bg-muted/30">
+                <CardContent className="p-3 flex items-center gap-3">
+                  {c.connector_image_url ? (
+                    <img src={c.connector_image_url} alt="" className="h-8 w-8 rounded object-contain bg-muted opacity-70" />
+                  ) : (
+                    <div className="h-8 w-8 rounded bg-muted" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium truncate">{c.connector_name ?? "Banco"}</p>
+                      <Badge variant="outline" className="text-muted-foreground">Desconectado</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Acesso revogado{c.revoked_at ? ` em ${fmtDateTime(c.revoked_at)}` : ""} · lançamentos mantidos
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setReconnectItemId(undefined); setConnectOpen(true); }}
+                  >
+                    <RotateCw className="h-4 w-4 mr-1" /> Reconectar banco
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {selectedCompanyId && (
         <PluggyConnectDialog
           open={connectOpen}
