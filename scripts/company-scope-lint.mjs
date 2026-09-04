@@ -210,6 +210,9 @@ function runStatic() {
 /* (B) Checagens de RLS no banco                                       */
 /* ------------------------------------------------------------------ */
 
+/** Tabelas cujo escopo vem do registro-pai (sem coluna própria de empresa). */
+const JOIN_SCOPED_TABLES = ["transaction_attachments", "credit_card_invoices"];
+
 const TABLE_LIST_SQL = TENANT_TABLES.map((t) => `'${t}'`).join(",");
 
 const DB_CHECKS = [
@@ -307,7 +310,9 @@ const DB_CHECKS = [
     description:
       "Tabela multiempresa sem coluna `company_id` nem tabela associativa `*_companies` (escopo depende só de joins)",
     sql: `
-      WITH t(name) AS (VALUES ${TENANT_TABLES.map((x) => `('${x}')`).join(",")})
+      WITH t(name) AS (VALUES ${TENANT_TABLES.filter((x) => !JOIN_SCOPED_TABLES.includes(x))
+        .map((x) => `('${x}')`)
+        .join(",")})
       SELECT t.name AS finding
       FROM t
       WHERE NOT EXISTS (

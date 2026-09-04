@@ -47,6 +47,14 @@ jobs:
         # Baixe este teto ao mesmo tempo em que reduz warnings; nunca aumente.
         run: npx eslint . --max-warnings=546
 
+      - name: Isolamento entre empresas (escopo + RLS)
+        # Falha se alguma leitura multiempresa perder o filtro de empresa ou se
+        # alguma policy RLS permitir bypass entre empresas. As checagens de
+        # banco são puladas automaticamente sem SUPABASE_DB_URL.
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: npm run scope-lint:ci
+
       - name: Vitest (unit + RLS regression)
         # Suíte de tenancy em src/test/tenancy é auto-skipped quando
         # TEST_SUPABASE_URL e credenciais dos 4 usuários não estão setadas.
