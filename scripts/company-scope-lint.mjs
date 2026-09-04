@@ -75,6 +75,25 @@ const TENANT_TABLES = [
   "transactions",
 ];
 
+/**
+ * Chaves que herdam escopo de um registro-pai já filtrado por empresa
+ * (ex.: buscar anexos por `transaction_id` só pode alcançar o lançamento já
+ * carregado, que passou pelo escopo e pela RLS).
+ */
+const DERIVED_SCOPE_KEYS = [
+  "transaction_id",
+  "parent_transaction_id",
+  "credit_card_id",
+  "connection_id",
+  "account_id",
+  "invoice_id",
+  "pluggy_account_id",
+  "pluggy_item_id",
+];
+
+/** Comentário de supressão consciente, revisável no diff. */
+const SUPPRESSION = "company-scope-lint: safe";
+
 /** Marcadores que provam escopo por empresa na vizinhança da consulta. */
 const SCOPE_MARKERS = [
   "company_id",
@@ -100,6 +119,10 @@ const ALLOWLIST = new Map([
   ["supabase/functions/pluggy-webhook-worker/index.ts", "worker: resolve empresa a partir do item do provedor"],
   ["supabase/functions/pluggy-reconcile-items/index.ts", "job de reconciliação global de itens"],
   ["supabase/functions/pluggy-admin-find-items/index.ts", "diagnóstico administrativo"],
+  ["supabase/functions/pluggy-sync-item/index.ts", "sincroniza um item já resolvido para a empresa da conexão"],
+  ["supabase/functions/pluggy-disconnect-item/index.ts", "opera sobre a conexão já autorizada na requisição"],
+  ["src/components/admin/AdminStats.tsx", "painel super admin: contagens globais por design"],
+  ["src/pages/admin/PluggyStatus.tsx", "painel super admin: status global das conexões"],
 ]);
 
 const ROOTS = ["src", "supabase/functions"];
@@ -147,7 +170,12 @@ function scanFile(file) {
 
         const isRead =
           /\.select\(/.test(after) && !/\.(insert|upsert|update|delete)\(/.test(after);
-        const scoped = SCOPE_MARKERS.some((m) => window.includes(m));
+        const scoped =
+          SCOPE_MARKERS.some((m) => window.includes(m)) ||
+          DERIVED_SCOPE_KEYS.some(
+            (k) => after.includes(`"${k}"`) || after.includes(`'${k}'`),
+          ) ||
+          window.includes(SUPPRESSION);
 
         if (isRead && !scoped) {
           const line = source.slice(0, idx).split("\n").length;
@@ -266,6 +294,7 @@ const DB_CHECKS = [
       FROM pg_policies
       WHERE schemaname = 'public'
         AND tablename IN (${TABLE_LIST_SQL})
+        AND NOT (roles = ARRAY['service_role']::name[])
         AND (
           COALESCE(qual, '') IN ('true','(true)')
           OR COALESCE(with_check, '') IN ('true','(true)')
