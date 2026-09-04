@@ -15,6 +15,7 @@ import { PluggyBackfillDialog } from "@/components/conciliacao/PluggyBackfillDia
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { connectionState } from "@/lib/pluggy/connectionState";
 
 interface Connection {
   id: string;
