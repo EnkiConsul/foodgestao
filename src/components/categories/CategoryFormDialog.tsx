@@ -327,6 +327,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
     // Compute next sort_order for the target parent (append at end of siblings)
     const computeNextSortOrder = async (parentIdVal: string | null) => {
+      // company-scope-lint: safe — lê apenas sort_order para posicionar o
+      // novo item; a RLS já limita às categorias das empresas do usuário.
       let query = supabase
         .from("categories")
         .select("sort_order")

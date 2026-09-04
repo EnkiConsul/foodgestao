@@ -35,6 +35,9 @@ export default function CentrosCusto() {
     queryKey: ["cost-centers", user?.id],
     enabled: !!user,
     queryFn: async () => {
+      // company-scope-lint: safe — tela de cadastro: lista os centros de custo
+      // das empresas do usuário (a RLS garante o recorte) e exibe em cada linha
+      // as empresas vinculadas.
       const { data, error } = await supabase
         .from("cost_centers")
         .select("id, name, description, is_active, visible_pf")
