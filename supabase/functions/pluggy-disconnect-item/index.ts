@@ -130,7 +130,6 @@ Deno.serve(async (req) => {
         provider_delete_status: providerDeleteStatus,
         last_sync_status: 'revoked',
         last_sync_error: null,
-        next_sync_at: null,
       })
       .eq('id', conn.id);
     if (updErr) throw new Error(`revoke_failed: ${updErr.message}`);
