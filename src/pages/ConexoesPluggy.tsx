@@ -10,11 +10,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PluggyConnectDialog, hasPluggyReturn } from "@/components/accounts/PluggyConnectDialog";
 import { PluggyCreditCardReviewDialog } from "@/components/credit-cards/PluggyCreditCardReviewDialog";
 import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
-import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2, CreditCard as CreditCardIcon, X, CalendarClock } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Trash2, RotateCw, Loader2, CreditCard as CreditCardIcon, X, CalendarClock, Pause, Play, Unplug } from "lucide-react";
 import { PluggyBackfillDialog } from "@/components/conciliacao/PluggyBackfillDialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { connectionState } from "@/lib/pluggy/connectionState";
 
 interface Connection {
   id: string;
@@ -29,6 +30,7 @@ interface Connection {
   last_sync_status: string | null;
   last_sync_error: string | null;
   last_error: any;
+  revoked_at?: string | null;
 }
 
 /**
@@ -42,9 +44,8 @@ function dedupeByConnector(list: Connection[]): Connection[] {
     const key = c.connector_id != null ? `id:${c.connector_id}` : `name:${c.connector_name ?? c.id}`;
     const prev = kept.get(key);
     if (!prev) { kept.set(key, c); continue; }
-    const prevDeleted = prev.status === "deleted";
-    const curDeleted = c.status === "deleted";
-    if (prevDeleted && !curDeleted) kept.set(key, c);
+    const encerrada = (x: Connection) => x.status === "deleted" || x.status === "revoked";
+    if (encerrada(prev) && !encerrada(c)) kept.set(key, c);
   }
   return Array.from(kept.values());
 }
@@ -61,6 +62,7 @@ const statusLabels: Record<string, { label: string; className: string }> = {
   error: { label: "Erro", className: "bg-destructive/15 text-destructive border-destructive/30" },
   waiting_user_input: { label: "Aguarda MFA", className: "bg-warning/15 text-warning border-warning/30" },
   deleted: { label: "Encerrada — reconectar", className: "bg-muted text-muted-foreground border-muted-foreground/20" },
+  revoked: { label: "Desconectado", className: "bg-muted text-muted-foreground border-muted-foreground/20" },
 };
 
 function fmtDateTime(v: string | null | undefined) {
@@ -126,6 +128,8 @@ export default function ConexoesPluggy() {
 
   const [reconnectItemId, setReconnectItemId] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<Connection | null>(null);
+  const [revoked, setRevoked] = useState<Connection[]>([]);
+  const [pausingId, setPausingId] = useState<string | null>(null);
   const [creditReviewOpen, setCreditReviewOpen] = useState(false);
   const [confirmCancelPending, setConfirmCancelPending] = useState(false);
   const [cancelingPending, setCancelingPending] = useState(false);
@@ -136,13 +140,14 @@ export default function ConexoesPluggy() {
     if (!opts?.silent) setLoading(true);
 
     const { data: conns } = await supabase.from("pluggy_connections")
-      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status, last_sync_error, last_error")
+      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status, last_sync_error, last_error, revoked_at")
       .eq("company_id", selectedCompanyId).order("created_at", { ascending: false });
 
-    // Conexões encerradas (ou sem nenhuma conta restante) foram excluídas pelo
-    // usuário e não devem voltar à lista — a reconexão é feita pelo botão de
-    // conectar banco.
-    const ativas = ((conns ?? []) as Connection[]).filter((c) => c.status !== "deleted");
+    // `deleted` é o estado legado de conexões apagadas: continua fora da lista.
+    // `revoked` (desconectada pelo usuário) fica visível numa seção própria,
+    // como prova da revogação e atalho para reconectar.
+    const todas = (conns ?? []) as Connection[];
+    const ativas = todas.filter((c) => c.status !== "deleted" && c.status !== "revoked");
     const contagens = await Promise.all(
       ativas.map((c) =>
         supabase.from("pluggy_accounts").select("id", { head: true, count: "exact" }).eq("connection_id", c.id),
@@ -151,6 +156,10 @@ export default function ConexoesPluggy() {
     const comContas = ativas.filter((_, i) => (contagens[i].count ?? 0) > 0);
     const list = dedupeByConnector(comContas);
     setConnections(list);
+    setRevoked(
+      dedupeByConnector(todas.filter((c) => c.status === "revoked"))
+        .filter((c) => !list.some((a) => (a.connector_id ?? -1) === (c.connector_id ?? -2))),
+    );
 
 
 
@@ -255,15 +264,31 @@ export default function ConexoesPluggy() {
 
 
 
+  // Revogar o consentimento: cancela o acesso no banco e mantém o histórico.
   const disconnect = async () => {
     if (!confirmDelete) return;
     const { error } = await supabase.functions.invoke("pluggy-disconnect-item", {
-      body: { connection_id: confirmDelete.id },
+      body: { connection_id: confirmDelete.id, mode: "revoke" },
     });
     if (error) { toast.error("Falha ao desconectar"); return; }
-    toast.success("Conexão removida");
+    toast.success("Acesso ao banco desconectado. Seus lançamentos foram mantidos.");
     setConfirmDelete(null);
     load();
+  };
+
+  // Pausar/retomar: nada é cancelado no banco, só as coletas automáticas.
+  const togglePause = async (c: Connection, pause: boolean) => {
+    setPausingId(c.id);
+    const { error } = await supabase.functions.invoke("pluggy-disconnect-item", {
+      body: { connection_id: c.id, mode: pause ? "pause" : "resume" },
+    });
+    setPausingId(null);
+    if (error) {
+      toast.error(pause ? "Não foi possível pausar a sincronização." : "Não foi possível retomar a sincronização.");
+      return;
+    }
+    toast.success(pause ? "Sincronização pausada" : "Sincronização retomada");
+    load({ silent: true });
   };
 
   if (contextType !== "pj") {
@@ -420,14 +445,63 @@ export default function ConexoesPluggy() {
                     <Button size="sm" variant="ghost" onClick={() => sync(c)} disabled={syncingId === c.id}>
                       {syncingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(c)} aria-label="Desconectar">
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => togglePause(c, connectionState(c.status, m) !== "pausado")}
+                      disabled={pausingId === c.id || m.count === 0}
+                      aria-label={connectionState(c.status, m) === "pausado" ? "Retomar sincronização" : "Pausar sincronização"}
+                      title={connectionState(c.status, m) === "pausado" ? "Retomar sincronização" : "Pausar sincronização"}
+                    >
+                      {pausingId === c.id
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : connectionState(c.status, m) === "pausado"
+                          ? <Play className="h-4 w-4" />
+                          : <Pause className="h-4 w-4" />}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(c)} aria-label="Desconectar Open Finance" title="Desconectar Open Finance (revogar acesso)">
+                      <Unplug className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {!loading && revoked.length > 0 && (
+        <div className="space-y-2 pt-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Desconectados</p>
+          <div className="grid gap-2">
+            {revoked.map((c) => (
+              <Card key={c.id} className="bg-muted/30">
+                <CardContent className="p-3 flex items-center gap-3">
+                  {c.connector_image_url ? (
+                    <img src={c.connector_image_url} alt="" className="h-8 w-8 rounded object-contain bg-muted opacity-70" />
+                  ) : (
+                    <div className="h-8 w-8 rounded bg-muted" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium truncate">{c.connector_name ?? "Banco"}</p>
+                      <Badge variant="outline" className="text-muted-foreground">Desconectado</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Acesso revogado{c.revoked_at ? ` em ${fmtDateTime(c.revoked_at)}` : ""} · lançamentos mantidos
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setReconnectItemId(undefined); setConnectOpen(true); }}
+                  >
+                    <RotateCw className="h-4 w-4 mr-1" /> Reconectar banco
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 
@@ -462,10 +536,12 @@ export default function ConexoesPluggy() {
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Desconectar {confirmDelete?.connector_name ?? "banco"}?</AlertDialogTitle>
+            <AlertDialogTitle>Desconectar {confirmDelete?.connector_name ?? "banco"} do Open Finance?</AlertDialogTitle>
             <AlertDialogDescription>
-              Isso remove a conexão no Open Finance e apaga os lançamentos pendentes de conciliação.
-              Lançamentos já confirmados são mantidos.
+              O acesso ao banco é cancelado (autorização revogada) e as sincronizações param.
+              Todos os lançamentos, saldos e conciliações já registrados são mantidos.
+              Para voltar a receber os lançamentos, será necessário autorizar o banco novamente.
+              Se você só quer interromper temporariamente, use <strong>Pausar sincronização</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

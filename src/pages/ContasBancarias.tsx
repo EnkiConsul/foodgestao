@@ -283,7 +283,7 @@ export default function ContasBancarias() {
         if (ofError) {
           toast.warning("Conta excluída, mas a conexão Open Finance não pôde ser removida — tente em Conexões.");
         } else {
-          toast.success(linkedOf.multi ? "Conta Open Finance desvinculada" : "Conexão Open Finance removida");
+          toast.success(linkedOf.multi ? "Conta Open Finance desvinculada" : "Acesso ao banco desconectado — histórico mantido");
         }
       }
       fetchAccounts();
@@ -325,7 +325,7 @@ export default function ContasBancarias() {
     }
 
     // Desativação: a trigger pausa a sincronização daquela conta.
-    // A conexão na Pluggy é preservada (nada é excluído no provedor).
+    // O consentimento na Pluggy é preservado — revogar é ação separada em Conexões.
     if (account.is_active) {
       toast.success("Conta desativada — sincronização Open Finance pausada, se houver");
       fetchAccounts();
@@ -799,9 +799,9 @@ export default function ContasBancarias() {
             </div>
             <p className="text-muted-foreground">
               {deactivateOfBank ? (
-                <>Esta conta é sincronizada via Open Finance com o <strong>{deactivateOfBank}</strong>. A conexão <strong>permanece ativa</strong> e continua aparecendo no painel do Open Finance: apenas a sincronização desta conta fica <strong>pausada</strong> — e volta automaticamente ao reativar.</>
+                <>Esta conta é sincronizada via Open Finance com o <strong>{deactivateOfBank}</strong>. A autorização do banco <strong>continua válida</strong>: apenas a sincronização desta conta fica <strong>pausada</strong> — e volta automaticamente ao reativar. Para cancelar o acesso ao banco, use <strong>Desconectar Open Finance</strong> em Conexões.</>
               ) : (
-                <>Desativar uma conta <strong>não</strong> remove nenhuma conexão Open Finance. Se houver vínculo, a sincronização daquela conta fica apenas pausada até a reativação.</>
+                <>Desativar uma conta <strong>não</strong> cancela nenhuma autorização de Open Finance. Se houver vínculo, a sincronização daquela conta fica apenas pausada até a reativação; para cancelar o acesso ao banco, use <strong>Desconectar Open Finance</strong> em Conexões.</>
               )}
             </p>
           </div>
@@ -878,7 +878,7 @@ export default function ContasBancarias() {
                 {linkedOf.multi ? (
                   <>Esta conta é sincronizada pelo <strong>{linkedOf.bankName}</strong>. Apenas esta conta será desconectada; as demais contas do mesmo banco continuam conectadas.</>
                 ) : (
-                  <>Esta conta está conectada via Open Finance ao <strong>{linkedOf.bankName}</strong>. A conexão com este banco também será removida. O histórico já importado é mantido.</>
+                  <>Esta conta está conectada via Open Finance ao <strong>{linkedOf.bankName}</strong>. O acesso a este banco será <strong>desconectado</strong> (autorização revogada). Todo o histórico já importado é mantido.</>
                 )}
               </p>
             </div>

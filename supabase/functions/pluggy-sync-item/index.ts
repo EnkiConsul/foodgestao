@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
           .eq('company_id', requestRow.company_id)
           .eq('created_by', userId)
           .gte('created_at', connectionSince)
-          .neq('status', 'deleted')
+          .not('status', 'in', '("deleted","revoked")')
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -251,9 +251,11 @@ Deno.serve(async (req) => {
     // Conexão já excluída na empresa não deve ser ressuscitada por uma nova
     // sincronização: sem isso, o espelho volta e os cartões reaparecem na fila
     // de autorização mesmo depois de o usuário excluir a conta/cartão.
-    if (existing?.status === 'deleted') {
-      console.log('pluggy sync ignorado: conexao excluida', { itemId, connectionId: existing.id });
-      return new Response(JSON.stringify({ ok: true, skipped: 'connection_deleted' }), {
+    // Conexão revogada pelo usuário (consentimento cancelado na Pluggy) também
+    // não volta a sincronizar: é preciso nova autorização.
+    if (existing?.status === 'deleted' || existing?.status === 'revoked') {
+      console.log('pluggy sync ignorado: conexao encerrada', { itemId, connectionId: existing.id, status: existing.status });
+      return new Response(JSON.stringify({ ok: true, skipped: existing.status === 'revoked' ? 'connection_revoked' : 'connection_deleted' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
