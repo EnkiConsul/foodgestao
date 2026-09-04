@@ -535,10 +535,12 @@ export default function ConexoesPluggy() {
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Desconectar {confirmDelete?.connector_name ?? "banco"}?</AlertDialogTitle>
+            <AlertDialogTitle>Desconectar {confirmDelete?.connector_name ?? "banco"} do Open Finance?</AlertDialogTitle>
             <AlertDialogDescription>
-              Isso remove a conexão no Open Finance e apaga os lançamentos pendentes de conciliação.
-              Lançamentos já confirmados são mantidos.
+              O acesso ao banco é cancelado (autorização revogada) e as sincronizações param.
+              Todos os lançamentos, saldos e conciliações já registrados são mantidos.
+              Para voltar a receber os lançamentos, será necessário autorizar o banco novamente.
+              Se você só quer interromper temporariamente, use <strong>Pausar sincronização</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
