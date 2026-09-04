@@ -169,6 +169,56 @@ export function ContactFormDialog({
     return () => { cancelled = true; clearTimeout(timer); };
   }, [docDigitsLive, editContact?.id, open]);
 
+  /**
+   * Consulta do CNPJ na Receita Federal. Preenche apenas campos vazios para não
+   * apagar o que o usuário já digitou; o nome é editável normalmente depois.
+   */
+  const [situacao, setSituacao] = useState<string | null>(null);
+  const lastLookupRef = useRef<string | null>(null);
+
+  const runLookup = useCallback(async (digits: string) => {
+    if (digits.length !== 14 || !isValidCnpj(digits)) return;
+    lastLookupRef.current = digits;
+    try {
+      const d = await cnpjLookup.mutateAsync(digits);
+      const fantasia = d.nome_fantasia?.trim() || "";
+      const razao = d.razao_social?.trim() || "";
+      const preferred = fantasia || razao;
+      if (preferred) setName((prev) => (prev.trim() ? prev : preferred));
+      if (d.email) setEmail((prev) => (prev.trim() ? prev : d.email!));
+      if (d.telefone) setPhone((prev) => (prev.trim() ? prev : d.telefone!));
+      if (d.endereco_formatado) setAddress((prev) => (prev.trim() ? prev : d.endereco_formatado));
+      if (fantasia && razao && fantasia.toUpperCase() !== razao.toUpperCase()) {
+        const line = `Razão social: ${razao}`;
+        setNotes((prev) => (prev.includes(line) ? prev : prev.trim() ? `${prev}\n${line}` : line));
+      }
+      setSituacao(d.situacao ?? null);
+      notifyCnpjSuccess(d);
+    } catch (e) {
+      lastLookupRef.current = null;
+      notifyCnpjError(e, { onRetry: () => { void runLookup(digits); } });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cnpjLookup.mutateAsync]);
+
+  // Ao abrir em modo edição, não consulta o documento já salvo automaticamente.
+  useEffect(() => {
+    if (open && editContact) lastLookupRef.current = normalizeDocumento(editContact.document);
+    if (!open) { lastLookupRef.current = null; setSituacao(null); }
+  }, [open, editContact]);
+
+  // Busca automática ao completar um CNPJ válido (debounce na digitação).
+  useEffect(() => {
+    if (docDigitsLive.length !== 14 || !isValidCnpj(docDigitsLive)) return;
+    if (lastLookupRef.current === docDigitsLive) return;
+    if (duplicate) return;
+    if (cnpjLookupPending) return;
+    const timer = setTimeout(() => { void runLookup(docDigitsLive); }, 600);
+    return () => clearTimeout(timer);
+  }, [docDigitsLive, duplicate, cnpjLookupPending, runLookup]);
+
+
+
 
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds((prev) =>
