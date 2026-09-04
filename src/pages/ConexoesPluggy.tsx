@@ -447,14 +447,14 @@ export default function ConexoesPluggy() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => togglePause(c, !(m.count > 0 && m.paused === m.count))}
+                      onClick={() => togglePause(c, connectionState(c.status, m) !== "pausado")}
                       disabled={pausingId === c.id || m.count === 0}
-                      aria-label={m.count > 0 && m.paused === m.count ? "Retomar sincronização" : "Pausar sincronização"}
-                      title={m.count > 0 && m.paused === m.count ? "Retomar sincronização" : "Pausar sincronização"}
+                      aria-label={connectionState(c.status, m) === "pausado" ? "Retomar sincronização" : "Pausar sincronização"}
+                      title={connectionState(c.status, m) === "pausado" ? "Retomar sincronização" : "Pausar sincronização"}
                     >
                       {pausingId === c.id
                         ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : m.count > 0 && m.paused === m.count
+                        : connectionState(c.status, m) === "pausado"
                           ? <Play className="h-4 w-4" />
                           : <Pause className="h-4 w-4" />}
                     </Button>
