@@ -263,15 +263,31 @@ export default function ConexoesPluggy() {
 
 
 
+  // Revogar o consentimento: cancela o acesso no banco e mantém o histórico.
   const disconnect = async () => {
     if (!confirmDelete) return;
     const { error } = await supabase.functions.invoke("pluggy-disconnect-item", {
-      body: { connection_id: confirmDelete.id },
+      body: { connection_id: confirmDelete.id, mode: "revoke" },
     });
     if (error) { toast.error("Falha ao desconectar"); return; }
-    toast.success("Conexão removida");
+    toast.success("Acesso ao banco desconectado. Seus lançamentos foram mantidos.");
     setConfirmDelete(null);
     load();
+  };
+
+  // Pausar/retomar: nada é cancelado no banco, só as coletas automáticas.
+  const togglePause = async (c: Connection, pause: boolean) => {
+    setPausingId(c.id);
+    const { error } = await supabase.functions.invoke("pluggy-disconnect-item", {
+      body: { connection_id: c.id, mode: pause ? "pause" : "resume" },
+    });
+    setPausingId(null);
+    if (error) {
+      toast.error(pause ? "Não foi possível pausar a sincronização." : "Não foi possível retomar a sincronização.");
+      return;
+    }
+    toast.success(pause ? "Sincronização pausada" : "Sincronização retomada");
+    load({ silent: true });
   };
 
   if (contextType !== "pj") {
