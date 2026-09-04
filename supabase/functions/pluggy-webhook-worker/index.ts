@@ -109,7 +109,8 @@ async function handleItemDeleted(admin: Admin, itemId: string | null) {
   await admin.from('pluggy_connections')
     .update({ status: 'deleted', last_sync_status: 'item_deleted_at_provider' })
     .eq('pluggy_item_id', itemId)
-    .neq('status', 'deleted');
+    // Conexão já revogada pelo usuário mantém o estado "revoked" (auditoria).
+    .not('status', 'in', '("deleted","revoked")');
 }
 
 async function handleItemError(admin: Admin, itemId: string | null, payload: any) {
