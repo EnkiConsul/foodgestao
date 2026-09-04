@@ -137,13 +137,14 @@ export default function ConexoesPluggy() {
     if (!opts?.silent) setLoading(true);
 
     const { data: conns } = await supabase.from("pluggy_connections")
-      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status, last_sync_error, last_error")
+      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status, last_sync_error, last_error, revoked_at")
       .eq("company_id", selectedCompanyId).order("created_at", { ascending: false });
 
-    // Conexões encerradas (ou sem nenhuma conta restante) foram excluídas pelo
-    // usuário e não devem voltar à lista — a reconexão é feita pelo botão de
-    // conectar banco.
-    const ativas = ((conns ?? []) as Connection[]).filter((c) => c.status !== "deleted");
+    // `deleted` é o estado legado de conexões apagadas: continua fora da lista.
+    // `revoked` (desconectada pelo usuário) fica visível numa seção própria,
+    // como prova da revogação e atalho para reconectar.
+    const todas = (conns ?? []) as Connection[];
+    const ativas = todas.filter((c) => c.status !== "deleted" && c.status !== "revoked");
     const contagens = await Promise.all(
       ativas.map((c) =>
         supabase.from("pluggy_accounts").select("id", { head: true, count: "exact" }).eq("connection_id", c.id),
@@ -152,6 +153,10 @@ export default function ConexoesPluggy() {
     const comContas = ativas.filter((_, i) => (contagens[i].count ?? 0) > 0);
     const list = dedupeByConnector(comContas);
     setConnections(list);
+    setRevoked(
+      dedupeByConnector(todas.filter((c) => c.status === "revoked"))
+        .filter((c) => !list.some((a) => (a.connector_id ?? -1) === (c.connector_id ?? -2))),
+    );
 
 
 
