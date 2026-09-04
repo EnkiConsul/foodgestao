@@ -363,19 +363,6 @@ export function ContactFormDialog({
                   (docDigits.length === 11 && !isValidCpf(docDigits)) ||
                   (docDigits.length === 14 && !isValidCnpj(docDigits));
                 const canLookup = docDigits.length === 14 && isValidCnpj(docDigits) && !cnpjLookupPending;
-                const runLookup = async () => {
-                  if (!canLookup) return;
-                  try {
-                    const d = await cnpjLookup.mutateAsync(docDigits);
-                    if (d.razao_social) setName(d.nome_fantasia || d.razao_social);
-                    if (d.email && !email) setEmail(d.email);
-                    if (d.telefone && !phone) setPhone(d.telefone);
-                    if (d.endereco_formatado) setAddress(d.endereco_formatado);
-                    notifyCnpjSuccess(d);
-                  } catch (e) {
-                    notifyCnpjError(e, { onRetry: () => { void runLookup(); } });
-                  }
-                };
                 return (
                   <div className="space-y-1">
                     <div className="flex gap-2">
