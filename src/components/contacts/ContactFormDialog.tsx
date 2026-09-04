@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -169,6 +169,56 @@ export function ContactFormDialog({
     return () => { cancelled = true; clearTimeout(timer); };
   }, [docDigitsLive, editContact?.id, open]);
 
+  /**
+   * Consulta do CNPJ na Receita Federal. Preenche apenas campos vazios para não
+   * apagar o que o usuário já digitou; o nome é editável normalmente depois.
+   */
+  const [situacao, setSituacao] = useState<string | null>(null);
+  const lastLookupRef = useRef<string | null>(null);
+
+  const runLookup = useCallback(async (digits: string) => {
+    if (digits.length !== 14 || !isValidCnpj(digits)) return;
+    lastLookupRef.current = digits;
+    try {
+      const d = await cnpjLookup.mutateAsync(digits);
+      const fantasia = d.nome_fantasia?.trim() || "";
+      const razao = d.razao_social?.trim() || "";
+      const preferred = fantasia || razao;
+      if (preferred) setName((prev) => (prev.trim() ? prev : preferred));
+      if (d.email) setEmail((prev) => (prev.trim() ? prev : d.email!));
+      if (d.telefone) setPhone((prev) => (prev.trim() ? prev : d.telefone!));
+      if (d.endereco_formatado) setAddress((prev) => (prev.trim() ? prev : d.endereco_formatado));
+      if (fantasia && razao && fantasia.toUpperCase() !== razao.toUpperCase()) {
+        const line = `Razão social: ${razao}`;
+        setNotes((prev) => (prev.includes(line) ? prev : prev.trim() ? `${prev}\n${line}` : line));
+      }
+      setSituacao(d.situacao ?? null);
+      notifyCnpjSuccess(d);
+    } catch (e) {
+      lastLookupRef.current = null;
+      notifyCnpjError(e, { onRetry: () => { void runLookup(digits); } });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cnpjLookup.mutateAsync]);
+
+  // Ao abrir em modo edição, não consulta o documento já salvo automaticamente.
+  useEffect(() => {
+    if (open && editContact) lastLookupRef.current = normalizeDocumento(editContact.document);
+    if (!open) { lastLookupRef.current = null; setSituacao(null); }
+  }, [open, editContact]);
+
+  // Busca automática ao completar um CNPJ válido (debounce na digitação).
+  useEffect(() => {
+    if (docDigitsLive.length !== 14 || !isValidCnpj(docDigitsLive)) return;
+    if (lastLookupRef.current === docDigitsLive) return;
+    if (duplicate) return;
+    if (cnpjLookupPending) return;
+    const timer = setTimeout(() => { void runLookup(docDigitsLive); }, 600);
+    return () => clearTimeout(timer);
+  }, [docDigitsLive, duplicate, cnpjLookupPending, runLookup]);
+
+
+
 
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds((prev) =>
@@ -313,19 +363,6 @@ export function ContactFormDialog({
                   (docDigits.length === 11 && !isValidCpf(docDigits)) ||
                   (docDigits.length === 14 && !isValidCnpj(docDigits));
                 const canLookup = docDigits.length === 14 && isValidCnpj(docDigits) && !cnpjLookupPending;
-                const runLookup = async () => {
-                  if (!canLookup) return;
-                  try {
-                    const d = await cnpjLookup.mutateAsync(docDigits);
-                    if (d.razao_social) setName(d.nome_fantasia || d.razao_social);
-                    if (d.email && !email) setEmail(d.email);
-                    if (d.telefone && !phone) setPhone(d.telefone);
-                    if (d.endereco_formatado) setAddress(d.endereco_formatado);
-                    notifyCnpjSuccess(d);
-                  } catch (e) {
-                    notifyCnpjError(e, { onRetry: () => { void runLookup(); } });
-                  }
-                };
                 return (
                   <div className="space-y-1">
                     <div className="flex gap-2">
@@ -344,7 +381,7 @@ export function ContactFormDialog({
                           type="button"
                           variant="outline"
                           size="icon"
-                          onClick={runLookup}
+                          onClick={() => { void runLookup(docDigits); }}
                           disabled={!canLookup}
                           title="Buscar dados do CNPJ na Receita Federal"
                           aria-label="Buscar CNPJ"
@@ -367,6 +404,11 @@ export function ContactFormDialog({
 
                     {cnpjLookupPending && (
                       <p className="text-xs text-muted-foreground">Consultando Receita Federal…</p>
+                    )}
+                    {!cnpjLookupPending && situacao && !/^ativa$/i.test(situacao.trim()) && (
+                      <p className="text-xs text-warning">
+                        Situação na Receita Federal: {situacao}. O cadastro é permitido, mas confira os dados.
+                      </p>
                     )}
                   </div>
                 );
