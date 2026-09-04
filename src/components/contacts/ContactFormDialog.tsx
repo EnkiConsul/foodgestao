@@ -381,7 +381,7 @@ export function ContactFormDialog({
                           type="button"
                           variant="outline"
                           size="icon"
-                          onClick={runLookup}
+                          onClick={() => { void runLookup(docDigits); }}
                           disabled={!canLookup}
                           title="Buscar dados do CNPJ na Receita Federal"
                           aria-label="Buscar CNPJ"
