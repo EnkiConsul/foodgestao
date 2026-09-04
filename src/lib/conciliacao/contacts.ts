@@ -141,6 +141,9 @@ export async function findExistingContact(params: {
   document: string | null;
 }): Promise<{ id: string; name: string; contact_type: string | null; document: string | null } | null> {
   const { userId, name, document } = params;
+  // company-scope-lint: safe — cadastro de contatos é compartilhado entre as
+  // empresas do usuário; a RLS limita o resultado às empresas das quais ele
+  // participa e nenhum dado financeiro é lido aqui.
   const { data, error } = await supabase
     .from("contacts")
     .select("id, name, contact_type, document")
