@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
   const { data: conns, error: connErr } = await admin
     .from('pluggy_connections')
     .select('id, pluggy_item_id, sync_attempts')
-    .not('status', 'in', '("deleted","login_error")')
+    .not('status', 'in', '("deleted","revoked","login_error")')
     .lt('sync_attempts', MAX_ATTEMPTS)
     .lte('next_sync_at', new Date().toISOString())
     .order('next_sync_at', { ascending: true })
