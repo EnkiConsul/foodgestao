@@ -127,6 +127,8 @@ export default function ConexoesPluggy() {
 
   const [reconnectItemId, setReconnectItemId] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<Connection | null>(null);
+  const [revoked, setRevoked] = useState<Connection[]>([]);
+  const [pausingId, setPausingId] = useState<string | null>(null);
   const [creditReviewOpen, setCreditReviewOpen] = useState(false);
   const [confirmCancelPending, setConfirmCancelPending] = useState(false);
   const [cancelingPending, setCancelingPending] = useState(false);
