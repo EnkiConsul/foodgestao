@@ -283,7 +283,7 @@ export default function ContasBancarias() {
         if (ofError) {
           toast.warning("Conta excluída, mas a conexão Open Finance não pôde ser removida — tente em Conexões.");
         } else {
-          toast.success(linkedOf.multi ? "Conta Open Finance desvinculada" : "Conexão Open Finance removida");
+          toast.success(linkedOf.multi ? "Conta Open Finance desvinculada" : "Acesso ao banco desconectado — histórico mantido");
         }
       }
       fetchAccounts();
@@ -325,7 +325,7 @@ export default function ContasBancarias() {
     }
 
     // Desativação: a trigger pausa a sincronização daquela conta.
-    // A conexão na Pluggy é preservada (nada é excluído no provedor).
+    // O consentimento na Pluggy é preservado — revogar é ação separada em Conexões.
     if (account.is_active) {
       toast.success("Conta desativada — sincronização Open Finance pausada, se houver");
       fetchAccounts();
