@@ -444,8 +444,22 @@ export default function ConexoesPluggy() {
                     <Button size="sm" variant="ghost" onClick={() => sync(c)} disabled={syncingId === c.id}>
                       {syncingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(c)} aria-label="Desconectar">
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => togglePause(c, !(m.count > 0 && m.paused === m.count))}
+                      disabled={pausingId === c.id || m.count === 0}
+                      aria-label={m.count > 0 && m.paused === m.count ? "Retomar sincronização" : "Pausar sincronização"}
+                      title={m.count > 0 && m.paused === m.count ? "Retomar sincronização" : "Pausar sincronização"}
+                    >
+                      {pausingId === c.id
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : m.count > 0 && m.paused === m.count
+                          ? <Play className="h-4 w-4" />
+                          : <Pause className="h-4 w-4" />}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(c)} aria-label="Desconectar Open Finance" title="Desconectar Open Finance (revogar acesso)">
+                      <Unplug className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 </CardContent>
