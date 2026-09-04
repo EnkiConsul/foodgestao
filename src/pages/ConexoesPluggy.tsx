@@ -43,9 +43,8 @@ function dedupeByConnector(list: Connection[]): Connection[] {
     const key = c.connector_id != null ? `id:${c.connector_id}` : `name:${c.connector_name ?? c.id}`;
     const prev = kept.get(key);
     if (!prev) { kept.set(key, c); continue; }
-    const prevDeleted = prev.status === "deleted";
-    const curDeleted = c.status === "deleted";
-    if (prevDeleted && !curDeleted) kept.set(key, c);
+    const encerrada = (x: Connection) => x.status === "deleted" || x.status === "revoked";
+    if (encerrada(prev) && !encerrada(c)) kept.set(key, c);
   }
   return Array.from(kept.values());
 }
