@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
           .eq('company_id', requestRow.company_id)
           .eq('created_by', userId)
           .gte('created_at', connectionSince)
-          .neq('status', 'deleted')
+          .not('status', 'in', '("deleted","revoked")')
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
