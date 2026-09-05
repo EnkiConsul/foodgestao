@@ -83,7 +83,7 @@ export function FolgaRegrasPanel({ diasPermitidos }: Props) {
   );
 
   const ativos = useMemo(
-    () => colaboradores.filter((c) => (c.status ?? "ativo") === "ativo"),
+    () => colaboradores.filter((c) => c.ativo !== false),
     [colaboradores],
   );
 
