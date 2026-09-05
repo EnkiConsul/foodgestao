@@ -87,8 +87,9 @@ export function FolgaRegrasPanel({
   const [form, setForm] = useState<RegraLimiteInput | null>(null);
   const [excluirId, setExcluirId] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"todas" | TipoRegraFolga>("todas");
-  const [replicando, setReplicando] = useState<RegraLimiteFolga | null>(null);
+  const [replicando, setReplicando] = useState<RegraVisivel | null>(null);
   const [alvos, setAlvos] = useState<string[]>([]);
+
 
   const diasDisponiveis = useMemo(() => {
     const dias = diasPermitidosParaLimite(diasPermitidos ?? ORDEM_DIAS_SEG_DOM);
