@@ -379,6 +379,8 @@ export default function DpMeuCalendario() {
 
   const { regras: regrasLimite } = useDpFolgaLimites(myUnidade);
 
+  const myCargoId = (meRef.data as { cargo_id?: string | null } | undefined)?.cargo_id ?? null;
+
   const dayLimits = useMemo(() => {
     const m = new Map<string, number>();
     const rows = [...(diaConfigQuery.data ?? [])] as any[];
@@ -396,13 +398,30 @@ export default function DpMeuCalendario() {
       const res = resolverLimiteFolga({
         data: iso,
         unidadeId: myUnidade,
-        cargoId: (meRef.data as { cargo_id?: string | null } | undefined)?.cargo_id ?? null,
+        cargoId: myCargoId,
         regras: regrasLimite,
       });
       if (res.limite != null) m.set(iso, res.limite);
     }
     return m;
-  }, [diaConfigQuery.data, myUnidade, regrasLimite, range.startDate, range.endDate, meRef.data]);
+  }, [diaConfigQuery.data, myUnidade, myCargoId, regrasLimite, range.startDate, range.endDate]);
+
+  // Escopo de cargos da regra recorrente resolvida por dia (null = todos os cargos).
+  // Exceções de data específica (dia_config) valem para a unidade inteira.
+  const dayRegraCargos = useMemo(() => {
+    const m = new Map<string, string[] | null>();
+    for (const d of eachDayOfInterval({ start: range.startDate, end: range.endDate })) {
+      const iso = ymd(d);
+      const res = resolverLimiteFolga({
+        data: iso,
+        unidadeId: myUnidade,
+        cargoId: myCargoId,
+        regras: regrasLimite,
+      });
+      m.set(iso, res.origem === "regra_recorrente" ? res.regra?.cargo_ids ?? null : null);
+    }
+    return m;
+  }, [myUnidade, myCargoId, regrasLimite, range.startDate, range.endDate]);
 
 
   const allFolgasRecords: FolgaRecord[] = useMemo(
