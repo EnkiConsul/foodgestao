@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import type { RegraLimiteFolga, TipoRegraFolga } from "@/lib/dp/folga-limites";
+import type { RegraLimiteFolga, RegraLimiteFolgaBase, TipoRegraFolga } from "@/lib/dp/folga-limites";
+
 
 export type RegraLimiteInput = {
   /** Identificador temporário usado no modo rascunho do formulário de unidade. */
