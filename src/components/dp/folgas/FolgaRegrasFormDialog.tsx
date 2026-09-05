@@ -441,8 +441,8 @@ export function FolgaRegrasFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden">
+        <DialogHeader className="shrink-0 border-b pb-4 pr-8">
           <div className="flex items-center gap-2">
             {modo === "criar" && (
               <Button variant="ghost" size="icon" onClick={() => setEtapa("unidade")}>
@@ -461,7 +461,7 @@ export function FolgaRegrasFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-4">
           {unidadeEfetiva && (
             <div className="rounded-md border bg-muted/40 p-3 text-xs">
               <p className="flex items-center gap-2 font-medium text-foreground">
@@ -931,7 +931,7 @@ export function FolgaRegrasFormDialog({
           </SubSection>
         </div>
 
-        <DialogFooter className="border-t pt-4">
+        <DialogFooter className="shrink-0 border-t pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
