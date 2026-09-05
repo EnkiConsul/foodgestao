@@ -193,6 +193,20 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
     onSuccess: invalidate,
   });
 
+  /** Remove todas as regras de folga de uma unidade (usado no "Limpar"). */
+  const excluirTodasDaUnidade = useMutation({
+    mutationFn: async (unidadeId: string) => {
+      if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
+      const { error } = await supabase
+        .from("dp_folga_limite_regras")
+        .delete()
+        .eq("company_id", selectedCompanyId)
+        .eq("unidade_id", unidadeId);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
   const alternarAtivo = useMutation({
     mutationFn: async (params: { id: string; ativo: boolean }) => {
       const { error } = await supabase
@@ -204,14 +218,28 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
     onSuccess: invalidate,
   });
 
+  /** Grava várias regras de uma vez, mantendo os vínculos de cada uma. */
+  const salvarMuitas = useMutation({
+    mutationFn: async (inputs: RegraLimiteInput[]) => {
+      for (const input of inputs) {
+        await salvar.mutateAsync(input);
+      }
+    },
+    onSuccess: invalidate,
+  });
+
   return {
     regras: query.data ?? [],
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: query.refetch,
     salvar,
+    salvarMuitas,
     replicar,
     excluir,
+    excluirTodasDaUnidade,
     alternarAtivo,
+    contagem: contagem.data ?? {},
+    contagemIsLoading: contagem.isLoading,
   };
 }
