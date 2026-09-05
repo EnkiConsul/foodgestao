@@ -8,11 +8,12 @@ A lista "Atribuir folga manual" também mostra todos os colaboradores ativos da 
 
 ## Mudanças
 
-### 1. Cancelar a folga direto na janela do dia
-- Cada pessoa listada em "Escala do dia" passa a ter a ação de cancelar, com uma confirmação curta ("Cancelar a folga de Sara em 13/09?").
-- A folga sai do calendário mas **fica registrada como cancelada** no histórico, com quem cancelou e quando — nada é apagado.
+### 1. Cancelar ou remarcar a folga direto na janela do dia
+- Cada pessoa listada em "Escala do dia" passa a ter duas ações: **Cancelar folga** e **Mudar data**.
+- Cancelar pede uma confirmação curta ("Cancelar a folga de Sara em 13/09?"). A folga sai do calendário mas **fica registrada como cancelada** no histórico, com quem cancelou e quando — nada é apagado.
+- Mudar data abre um campo de data já preenchido com o dia atual: ao confirmar, a folga passa para o novo dia. Se o novo dia estiver bloqueado, cheio ou for dia de não trabalho da pessoa, o aviso aparece e a mudança não acontece. A troca fica registrada no histórico.
 - Vale para os dois tipos de registro: a folga atribuída pelo dia (solicitação aprovada) e a folga efetivada. Férias e atestados continuam sendo tratados pela aba de solicitações, não por aqui.
-- A folga que vem da regra de folga fixa semanal do colaborador não tem botão de cancelar (ela não é um lançamento, é a escala dele); no lugar aparece uma explicação curta de que se muda na configuração de trabalho da pessoa.
+- A folga que vem da regra de folga fixa semanal do colaborador não tem essas ações (ela não é um lançamento, é a escala dele); no lugar aparece uma explicação curta de que se muda na configuração de trabalho da pessoa.
 
 ### 2. Só oferecer folga a quem trabalha naquele dia
 - A lista de colaboradores da atribuição do dia passa a excluir quem, na configuração de trabalho vigente naquela data, tem aquele dia da semana marcado como "não trabalha".
@@ -22,7 +23,8 @@ A lista "Atribuir folga manual" também mostra todos os colaboradores ativos da 
 
 ## Notas técnicas
 
-- `src/pages/dp/DpFolgas.tsx`: nova ação de cancelamento por evento; para solicitações, `status = 'cancelada'` (em vez de nada) e, para `dp_folgas`, trocar o `delete` atual pela função existente `dp_folga_cancelar_admin`, que cancela preservando o registro. Confirmação via `AlertDialog`.
+- `src/pages/dp/DpFolgas.tsx`: ações de cancelar e remarcar por evento; para solicitações, `status = 'cancelada'` (em vez de nada) e, para `dp_folgas`, trocar o `delete` atual pela função existente `dp_folga_cancelar_admin`, que cancela preservando o registro. Confirmação via `AlertDialog`.
+- Remarcar: para solicitação, atualizar `data_alvo`; para `dp_folgas`, cancelar a folga atual via `dp_folga_cancelar_admin` e criar a nova data com `dp_folga_criar_admin`, que já valida bloqueio, limite do dia e cobertura mínima e devolve o aviso a exibir.
 - `src/hooks/useDpFolgasQueries.tsx`: nova consulta das configurações de trabalho vigentes da empresa (`dp_colaborador_config_trabalho` + `dp_colaborador_config_dias`, filtrando por `company_id` e vigência que cobre o mês), devolvendo um mapa colaborador → dias em que trabalha.
 - Novo utilitário em `src/lib/dp/` com a função pura "trabalha neste dia?" (resolve a vigência da data e cai no padrão "trabalha" quando não há configuração), com testes unitários cobrindo: dia não trabalhado, colaborador sem configuração, e troca de vigência no meio do mês.
 - Sem migração de banco: as colunas e a função de cancelamento já existem.
