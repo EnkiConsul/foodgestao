@@ -460,14 +460,32 @@ export default function DpFolgas() {
     return map;
   }, [query.data, folgasQuery.data, tipoFilter, colabs.data, unidadeFilter, colabFilter, days, rangeStart, rangeEnd]);
 
-  const capacityByDay = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const c of diaConfigQuery.data ?? []) {
-      const cur = map.get(c.data) ?? 0;
-      map.set(c.data, cur + (c.limite_folgas ?? 0));
+  /** Limite efetivo de pessoas em folga por dia: exceção da data ou regra fixa cadastrada. */
+  const limiteByDay = useMemo(() => {
+    const map = new Map<string, LimiteResolvido>();
+    for (const d of days) {
+      const key = format(d, "yyyy-MM-dd");
+      map.set(
+        key,
+        resolverLimiteFolga({
+          data: key,
+          unidadeId: unidadeFilter !== "todas" ? unidadeFilter : null,
+          regras: regrasLimite,
+          diaConfig: diaConfigQuery.data ?? [],
+        }),
+      );
     }
     return map;
-  }, [diaConfigQuery.data]);
+  }, [days, unidadeFilter, regrasLimite, diaConfigQuery.data]);
+
+  const capacityByDay = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const [key, res] of limiteByDay) {
+      if (res.limite != null) map.set(key, res.limite);
+    }
+    return map;
+  }, [limiteByDay]);
+
 
   const blockedByDate = useMemo(() => {
     type BlockInfo = {
