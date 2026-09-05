@@ -471,6 +471,80 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={!!replicando}
+        onOpenChange={(o) => {
+          if (!o) {
+            setReplicando(null);
+            setAlvos([]);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Replicar Regra Para Outras Unidades</DialogTitle>
+            <DialogDescription>
+              Uma cópia independente da regra é criada em cada unidade marcada. Editar uma delas
+              depois não altera as outras.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setAlvos(outrasUnidades.map((u: { id: string }) => u.id))}
+              >
+                Selecionar todas
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setAlvos([])}>
+                Limpar seleção
+              </Button>
+            </div>
+            <div className="max-h-56 space-y-2 overflow-y-auto rounded-xl border p-3">
+              {outrasUnidades.length === 0 && (
+                <p className="text-xs text-muted-foreground">Não há outras unidades cadastradas.</p>
+              )}
+              {outrasUnidades.map((u: { id: string; nome: string }) => (
+                <label key={u.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={alvos.includes(u.id)}
+                    onCheckedChange={(v) =>
+                      setAlvos((prev) =>
+                        v === true ? [...prev, u.id] : prev.filter((id) => id !== u.id),
+                      )
+                    }
+                  />
+                  {u.nome}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReplicando(null);
+                setAlvos([]);
+              }}
+              disabled={replicar.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => void confirmarReplicacao()}
+              disabled={replicar.isPending || alvos.length === 0}
+            >
+              {replicar.isPending ? "Replicando..." : `Replicar em ${alvos.length} unidade(s)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+
       <AlertDialog open={!!excluirId} onOpenChange={(o) => !o && setExcluirId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
