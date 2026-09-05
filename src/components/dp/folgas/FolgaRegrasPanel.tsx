@@ -40,7 +40,17 @@ type Props = {
   unidadeId: string | null;
   /** Dias da semana em que existe folga (dias de descanso negociados). */
   diasPermitidos?: number[];
+  /**
+   * `direto` (padrão): grava no banco a cada operação.
+   * `rascunho`: mantém as regras em memória e avisa o pai via `onChangeRascunho`.
+   */
+  modo?: "direto" | "rascunho";
+  /** Regras em rascunho — obrigatório quando modo = "rascunho". */
+  regrasRascunho?: RegraLimiteInput[];
+  /** Chamado a cada alteração no modo rascunho. */
+  onChangeRascunho?: (regras: RegraLimiteInput[]) => void;
 };
+
 
 /** Cadastro único das regras de folga da unidade: quantidade, cargo e quem não folga junto. */
 export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
