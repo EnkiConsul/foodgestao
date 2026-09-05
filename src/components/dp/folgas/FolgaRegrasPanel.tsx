@@ -262,9 +262,10 @@ export function FolgaRegrasPanel({
         <ul className="space-y-2">
           {visiveis.map((r) => {
             const Icone = ICONE[r.tipo] ?? Users;
+            const chave = chaveRegra(r);
             return (
               <li
-                key={r.id}
+                key={chave}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"
               >
                 <div className="min-w-0 space-y-1">
@@ -302,12 +303,22 @@ export function FolgaRegrasPanel({
                   <Switch
                     checked={r.ativo}
                     aria-label="Regra ativa"
-                    onCheckedChange={(v) => alternarAtivo.mutate({ id: r.id, ativo: v })}
+                    onCheckedChange={(v) => {
+                      if (rascunho) {
+                        onChangeRascunho?.(
+                          regrasRascunho.map((item) =>
+                            (item.clientId ?? item.id) === chave ? { ...item, ativo: v } : item,
+                          ),
+                        );
+                      } else {
+                        alternarAtivo.mutate({ id: r.id, ativo: v });
+                      }
+                    }}
                   />
                   <Button variant="ghost" size="sm" onClick={() => abrirEdicao(r)}>
                     Editar
                   </Button>
-                  {outrasUnidades.length > 0 && (
+                  {!rascunho && outrasUnidades.length > 0 && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -324,10 +335,11 @@ export function FolgaRegrasPanel({
                     variant="ghost"
                     size="icon"
                     aria-label="Excluir regra"
-                    onClick={() => setExcluirId(r.id)}
+                    onClick={() => setExcluirId(chave)}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
                   </Button>
+
                 </div>
               </li>
             );
