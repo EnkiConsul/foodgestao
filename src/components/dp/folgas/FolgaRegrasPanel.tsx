@@ -373,7 +373,7 @@ export function FolgaRegrasPanel({
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   {form.tipo === "quantidade" &&
-                    "Quantas pessoas podem folgar ao mesmo tempo neste dia."}
+                    "Quantas pessoas podem folgar ao mesmo tempo neste dia — com a opção de contar só alguns cargos."}
                   {form.tipo === "cargo" &&
                     "Quantas pessoas de determinados cargos podem folgar ao mesmo tempo."}
                   {form.tipo === "colaboradores" &&
