@@ -129,6 +129,10 @@ export default function DpConfiguracoesJornada() {
   const naoConfigurada = !!unidadeId && !temExcecao;
   const porAcordo = form.tipo_descanso_domingo === "acordo_coletivo";
   const resumoFolgas = useMemo(() => resumoEscolhaFolgas(form), [form]);
+  /** Dias da semana em que existe folga — usados no cadastro das regras. */
+  const diasDeFolga = useMemo(() => diasElegiveisDaConfig(form), [form]);
+  const { data: valeRegras } = useDpValeRegrasEmpresa();
+
 
   const travadoClt = form.regra_dsr === "clt";
   /** Base única da regra de folgas (unifica regra_dsr + tipo_descanso_domingo). */
