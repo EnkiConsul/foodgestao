@@ -146,8 +146,9 @@ export function FolgaRegrasPanel({
     });
   };
 
-  const abrirEdicao = (r: RegraLimiteFolga) =>
+  const abrirEdicao = (r: RegraVisivel) =>
     setForm({
+      clientId: "clientId" in r ? r.clientId : undefined,
       id: r.id,
       tipo: r.tipo,
       nome: r.nome,
@@ -160,6 +161,7 @@ export function FolgaRegrasPanel({
       cargo_ids: [...r.cargo_ids],
       colaborador_ids: [...r.colaborador_ids],
     });
+
 
   const confirmar = async () => {
     if (!form) return;
