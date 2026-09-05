@@ -6720,6 +6720,46 @@ export type Database = {
           },
         ]
       }
+      dp_folga_limite_regra_colaboradores: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          regra_id: string
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          regra_id: string
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          regra_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_folga_limite_regra_colaboradores_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folga_limite_regra_colaboradores_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folga_limite_regra_colaboradores_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "dp_folga_limite_regras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_folga_limite_regras: {
         Row: {
           ativo: boolean
@@ -6728,7 +6768,9 @@ export type Database = {
           dia_semana: number | null
           id: string
           maximo: number
+          nome: string | null
           observacao: string | null
+          tipo: string
           unidade_id: string | null
           updated_at: string
           vigencia_fim: string | null
@@ -6741,7 +6783,9 @@ export type Database = {
           dia_semana?: number | null
           id?: string
           maximo?: number
+          nome?: string | null
           observacao?: string | null
+          tipo?: string
           unidade_id?: string | null
           updated_at?: string
           vigencia_fim?: string | null
@@ -6754,7 +6798,9 @@ export type Database = {
           dia_semana?: number | null
           id?: string
           maximo?: number
+          nome?: string | null
           observacao?: string | null
+          tipo?: string
           unidade_id?: string | null
           updated_at?: string
           vigencia_fim?: string | null
@@ -12596,6 +12642,10 @@ export type Database = {
       dp_folga_autoatribuir_todas: { Args: never; Returns: Json }
       dp_folga_cancelar_admin: {
         Args: { p_folga_id: string; p_motivo?: string }
+        Returns: Json
+      }
+      dp_folga_conflito_colaboradores: {
+        Args: { _colaborador: string; _company: string; _data: string }
         Returns: Json
       }
       dp_folga_criar_admin: {
