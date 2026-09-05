@@ -331,21 +331,13 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="limite-unidade">Vale para</Label>
-                  <Select
-                    value={form.unidade_id ?? "empresa"}
-                    onValueChange={(v) => set("unidade_id", v === "empresa" ? null : v)}
-                  >
-                    <SelectTrigger id="limite-unidade"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="empresa">Toda a empresa</SelectItem>
-                      {unidades.map((u: { id: string; nome: string }) => (
-                        <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-1.5 sm:col-span-2 rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  Esta regra vale para a unidade{" "}
+                  <strong>{nomeUnidade.get(form.unidade_id) ?? "selecionada"}</strong>. Depois de
+                  salvar você pode copiá-la para outras unidades pelo botão "Replicar".
                 </div>
+
+
 
                 <div className="space-y-1.5">
                   <Label htmlFor="limite-dia">Dia da semana</Label>
