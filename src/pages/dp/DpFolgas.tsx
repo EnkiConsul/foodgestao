@@ -55,6 +55,12 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpFolgasQueries } from "@/hooks/useDpFolgasQueries";
+import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
+import {
+  origemLimiteLabel,
+  resolverLimiteFolga,
+  type LimiteResolvido,
+} from "@/lib/dp/folga-limites";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
