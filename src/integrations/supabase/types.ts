@@ -4481,6 +4481,10 @@ export type Database = {
           domingos_por_mes: number
           domingos_por_mes_mulher: number
           exige_validacao_menor: boolean
+          folga_autoatribuir: boolean
+          folga_janela_abre_dia: number
+          folga_janela_ativa: boolean
+          folga_janela_fecha_dia: number
           folgas_fds_por_mes: number
           id: string
           modo_domingo: string
@@ -4530,6 +4534,10 @@ export type Database = {
           domingos_por_mes?: number
           domingos_por_mes_mulher?: number
           exige_validacao_menor?: boolean
+          folga_autoatribuir?: boolean
+          folga_janela_abre_dia?: number
+          folga_janela_ativa?: boolean
+          folga_janela_fecha_dia?: number
           folgas_fds_por_mes?: number
           id?: string
           modo_domingo?: string
@@ -4579,6 +4587,10 @@ export type Database = {
           domingos_por_mes?: number
           domingos_por_mes_mulher?: number
           exige_validacao_menor?: boolean
+          folga_autoatribuir?: boolean
+          folga_janela_abre_dia?: number
+          folga_janela_ativa?: boolean
+          folga_janela_fecha_dia?: number
           folgas_fds_por_mes?: number
           id?: string
           modo_domingo?: string
@@ -6612,6 +6624,69 @@ export type Database = {
           },
         ]
       }
+      dp_folga_autoatribuicao_execucoes: {
+        Row: {
+          company_id: string
+          competencia: string
+          concluida_em: string | null
+          created_at: string
+          detalhes: Json
+          erro: string | null
+          id: string
+          iniciada_em: string | null
+          quantidade_excedida: number
+          quantidade_gerada: number
+          status: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          competencia: string
+          concluida_em?: string | null
+          created_at?: string
+          detalhes?: Json
+          erro?: string | null
+          id?: string
+          iniciada_em?: string | null
+          quantidade_excedida?: number
+          quantidade_gerada?: number
+          status?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          competencia?: string
+          concluida_em?: string | null
+          created_at?: string
+          detalhes?: Json
+          erro?: string | null
+          id?: string
+          iniciada_em?: string | null
+          quantidade_excedida?: number
+          quantidade_gerada?: number
+          status?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_folga_autoatribuicao_execucoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folga_autoatribuicao_execucoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_folga_limite_regra_cargos: {
         Row: {
           cargo_id: string
@@ -8315,6 +8390,7 @@ export type Database = {
           criado_por: string | null
           data_alvo: string | null
           data_fim: string | null
+          fora_da_janela: boolean
           id: string
           motivo: string | null
           respondido_em: string | null
@@ -8332,6 +8408,7 @@ export type Database = {
           criado_por?: string | null
           data_alvo?: string | null
           data_fim?: string | null
+          fora_da_janela?: boolean
           id?: string
           motivo?: string | null
           respondido_em?: string | null
@@ -8349,6 +8426,7 @@ export type Database = {
           criado_por?: string | null
           data_alvo?: string | null
           data_fim?: string | null
+          fora_da_janela?: boolean
           id?: string
           motivo?: string | null
           respondido_em?: string | null
@@ -12134,6 +12212,10 @@ export type Database = {
           domingos_por_mes: number
           domingos_por_mes_mulher: number
           exige_validacao_menor: boolean
+          folga_autoatribuir: boolean
+          folga_janela_abre_dia: number
+          folga_janela_ativa: boolean
+          folga_janela_fecha_dia: number
           folgas_fds_por_mes: number
           id: string
           modo_domingo: string
@@ -12507,6 +12589,11 @@ export type Database = {
         Args: { _periodo_id: string }
         Returns: undefined
       }
+      dp_folga_autoatribuir_competencia: {
+        Args: { _company: string; _competencia: string; _unidade: string }
+        Returns: Json
+      }
+      dp_folga_autoatribuir_todas: { Args: never; Returns: Json }
       dp_folga_cancelar_admin: {
         Args: { p_folga_id: string; p_motivo?: string }
         Returns: Json
@@ -12523,6 +12610,10 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_folga_dias_fds_aplicaveis: {
+        Args: { _company: string; _unidade: string }
+        Returns: number[]
+      }
       dp_folga_limite_dia: {
         Args: {
           p_cargo: string
@@ -12534,7 +12625,11 @@ export type Database = {
         Returns: Json
       }
       dp_folga_solicitar: {
-        Args: { p_data: string; p_motivo?: string }
+        Args: { p_data: string; p_fora_da_janela?: boolean; p_motivo?: string }
+        Returns: Json
+      }
+      dp_folgas_janela_efetiva: {
+        Args: { _company: string; _data_ref?: string; _unidade?: string }
         Returns: Json
       }
       dp_folha_desfazer_despesa: {
@@ -13472,6 +13567,7 @@ export type Database = {
         | "admin_manual"
         | "ferias"
         | "automatica_clt"
+        | "auto_fechamento_periodo"
       dp_folga_status: "agendada" | "cancelada" | "realizada"
       dp_folga_tipo: "normal" | "extra" | "ferias" | "abono" | "licenca"
       dp_folha_lancamento_status:
@@ -13904,6 +14000,7 @@ export const Constants = {
         "admin_manual",
         "ferias",
         "automatica_clt",
+        "auto_fechamento_periodo",
       ],
       dp_folga_status: ["agendada", "cancelada", "realizada"],
       dp_folga_tipo: ["normal", "extra", "ferias", "abono", "licenca"],
