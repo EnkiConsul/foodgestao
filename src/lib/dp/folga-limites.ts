@@ -32,6 +32,10 @@ export type RegraLimiteFolga = {
   colaborador_ids: string[];
 };
 
+/** Regra sem identificador obrigatório — usada em formulários e rascunho. */
+export type RegraLimiteFolgaBase = Omit<RegraLimiteFolga, "id">;
+
+
 
 
 export type LimiteDiaConfig = {
