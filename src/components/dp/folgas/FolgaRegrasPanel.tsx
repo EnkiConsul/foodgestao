@@ -53,12 +53,30 @@ type Props = {
 
 
 /** Cadastro único das regras de folga da unidade: quantidade, cargo e quem não folga junto. */
-export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
+export function FolgaRegrasPanel({
+  unidadeId,
+  diasPermitidos,
+  modo = "direto",
+  regrasRascunho = [],
+  onChangeRascunho,
+}: Props) {
   const { data: unidades = [] } = useDpUnidades();
   const { data: cargos = [] } = useDpCargos();
   const { data: colaboradores = [] } = useDpColaboradores();
-  const { regras, isLoading, salvar, replicar, excluir, alternarAtivo } =
-    useDpFolgaLimites(unidadeId);
+  const hook = useDpFolgaLimites(unidadeId);
+  const {
+    regras: regrasDoBanco,
+    isLoading: isLoadingDoBanco,
+    salvar,
+    replicar,
+    excluir,
+    alternarAtivo,
+  } = hook;
+
+  const rascunho = modo === "rascunho";
+  const regras = rascunho ? regrasRascunho : regrasDoBanco;
+  const isLoading = rascunho ? false : isLoadingDoBanco;
+
 
   const [form, setForm] = useState<RegraLimiteInput | null>(null);
   const [excluirId, setExcluirId] = useState<string | null>(null);
