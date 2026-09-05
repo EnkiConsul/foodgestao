@@ -33,12 +33,9 @@ import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
 import {
   DP_CONFIG_DP_DEFAULT,
   DIA_SEMANA_CURTO,
-  MODO_FREQUENCIA_LABEL,
-  ORDEM_DIAS_SEG_DOM,
   diasElegiveisDaConfig,
   padraoLegalDomingo,
   semanasDaConfig,
-  type ModoFrequencia,
 } from "@/lib/dp/dsr-rules";
 
 const STORAGE_KEY = "dp:regras-folgas:unidade";
@@ -118,7 +115,7 @@ function UnitCard({
             <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Editar
           </Button>
           {configurada && (
-            <Button variant="ghost" size="icon-sm" onClick={onLimpar} title="Limpar regras">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onLimpar} title="Limpar regras">
               <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
             </Button>
           )}
@@ -172,7 +169,6 @@ export default function DpConfiguracoesJornada() {
   const {
     configPadrao,
     rows,
-    unidadesConfiguradas,
     isLoading,
     isError,
     refetch,
@@ -180,14 +176,12 @@ export default function DpConfiguracoesJornada() {
     removendo,
   } = useDpConfigDp(null);
   const { data: todasUnidades = [], isLoading: unidadesCarregando, isError: unidadesErro } = useDpUnidades();
+  const { contagem: contagemParticularidades } = useDpFolgaLimites(null);
 
   const [dialog, setDialog] = useState<DialogState>({ open: false });
   const [limparAberto, setLimparAberto] = useState<string | null>(null);
 
-  const unidades = useMemo(
-    () => todasUnidades.filter((u) => unidadesConfiguradas.has(u.id) || true),
-    [todasUnidades],
-  );
+  const unidades = useMemo(() => todasUnidades, [todasUnidades]);
 
   const regraDaUnidade = (unidadeId: string): DpConfigDpForm => {
     const row = rows.find((r) => r.unidade_id === unidadeId);
@@ -215,8 +209,6 @@ export default function DpConfiguracoesJornada() {
       </DpPage>
     );
   }
-
-  const dialogUnidadeId = dialog.open && dialog.modo === "editar" ? dialog.unidadeId : null;
 
   return (
     <DpPage>
@@ -285,7 +277,7 @@ export default function DpConfiguracoesJornada() {
                 key={u.id}
                 unidade={u}
                 regra={regraDaUnidade(u.id)}
-                contagemParticularidades={0}
+                contagemParticularidades={contagemParticularidades[u.id] ?? 0}
                 onEdit={() => setDialog({ open: true, modo: "editar", unidadeId: u.id, copiarDe: null })}
                 onLimpar={() => setLimparAberto(u.id)}
               />
@@ -336,15 +328,7 @@ export default function DpConfiguracoesJornada() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {dialogUnidadeId && <ParticularidadesCount unidadeId={dialogUnidadeId} />}
     </DpPage>
   );
 }
 
-/** Componente auxiliar para carregar a contagem de particularidades no diálogo. */
-function ParticularidadesCount({ unidadeId }: { unidadeId: string }) {
-  const { contagem } = useDpFolgaLimites(unidadeId);
-  // Não renderiza nada; só mantém a query em cache para o diálogo.
-  return null;
-}
