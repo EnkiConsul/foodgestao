@@ -1,10 +1,23 @@
-// Limite de quantidade de pessoas em folga por dia.
-// Funções puras — sem acesso a banco — espelhando a função dp_folga_limite_dia do banco.
+// Regras de folga: limite de pessoas por dia, limite por cargo e pessoas que
+// não podem folgar no mesmo dia.
+// Funções puras — sem acesso a banco — espelhando as funções do banco
+// dp_folga_limite_dia e dp_folga_conflito_colaboradores.
 
 import { DIA_SEMANA_LABEL } from "./dsr-rules";
 
+/** Tipo da regra escolhido pelo gestor no cadastro único de regras de folga. */
+export type TipoRegraFolga = "quantidade" | "cargo" | "colaboradores";
+
+export const TIPO_REGRA_LABEL: Record<TipoRegraFolga, string> = {
+  quantidade: "Quantidade de pessoas por dia",
+  cargo: "Limite por cargo",
+  colaboradores: "Não folgam juntos",
+};
+
 export type RegraLimiteFolga = {
   id: string;
+  tipo: TipoRegraFolga;
+  nome: string | null;
   unidade_id: string | null;
   /** null = vale para todos os dias da semana. */
   dia_semana: number | null;
@@ -14,7 +27,10 @@ export type RegraLimiteFolga = {
   ativo: boolean;
   /** Vazio = qualquer cargo. */
   cargo_ids: string[];
+  /** Pessoas que não podem folgar no mesmo dia (tipo `colaboradores`). */
+  colaborador_ids: string[];
 };
+
 
 export type LimiteDiaConfig = {
   data: string;
