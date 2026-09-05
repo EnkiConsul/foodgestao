@@ -25,6 +25,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
+import { resolverLimiteFolga } from "@/lib/dp/folga-limites";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -345,7 +347,7 @@ export default function DpMeuCalendario() {
       });
     // Dias sem exceção herdam a regra fixa cadastrada pela empresa
     for (const d of eachDayOfInterval({ start: range.startDate, end: range.endDate })) {
-      const iso = toISO(d);
+      const iso = ymd(d);
       if (m.has(iso)) continue;
       const res = resolverLimiteFolga({
         data: iso,
