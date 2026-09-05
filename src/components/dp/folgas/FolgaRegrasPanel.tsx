@@ -29,7 +29,13 @@ import {
 } from "@/lib/dp/folga-limites";
 import { DIA_SEMANA_LABEL, ORDEM_DIAS_SEG_DOM } from "@/lib/dp/dsr-rules";
 
+/** Regra vinda do banco ou em rascunho no formulário de unidade. */
+type RegraVisivel = RegraLimiteFolga | RegraLimiteInput;
+
+const chaveRegra = (r: RegraVisivel) => ("clientId" in r && r.clientId ? r.clientId : r.id);
+
 const ICONE: Record<TipoRegraFolga, typeof Users> = {
+
   quantidade: Users,
   cargo: Briefcase,
   colaboradores: UserX,
