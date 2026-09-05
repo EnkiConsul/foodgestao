@@ -491,7 +491,12 @@ export default function DpConfiguracoesJornada() {
 
         <SubSection
           title={rotulos.titulo}
-          description="Quantas vezes o colaborador folga no domingo, conforme a base legal ou negociada."
+          description={
+            apenasDomingo
+              ? "Quantas vezes o colaborador folga no domingo, conforme a base legal ou negociada."
+              : `Considera os dias de descanso negociados (${nomesDiasDeFolga}).`
+          }
+
         >
 
         <div className="grid gap-4 sm:grid-cols-2">
