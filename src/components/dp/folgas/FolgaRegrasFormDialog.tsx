@@ -211,21 +211,37 @@ export function FolgaRegrasFormDialog({
         .join(", "),
     [diasDeFolga],
   );
-  const rotulos = apenasDomingo
-    ? {
-        titulo: "Frequência Da Folga Dominical (DSR)",
-        porMes: "Domingos de folga por mês",
-        semanas: "Domingo de folga a cada (semanas)",
-        porMesMulher: "Domingos por mês — mulheres",
-        semanasMulher: "Domingo de folga — mulheres (semanas)",
-      }
-    : {
-        titulo: "Frequência Da Folga De Descanso (DSR)",
-        porMes: "Folgas de fim de semana por mês",
-        semanas: "Folga de descanso a cada (semanas)",
-        porMesMulher: "Folgas de fim de semana por mês — mulheres",
-        semanasMulher: "Folga de descanso — mulheres (semanas)",
-      };
+  const tipoDias: TipoDiasDescanso = apenasDomingo ? "domingo" : tipoDiasDescanso(diasDeFolga);
+  const rotulos =
+    tipoDias === "domingo"
+      ? {
+          titulo: "Frequência Da Folga Dominical (DSR)",
+          porMes: "Domingos de folga por mês",
+          semanas: "Domingo de folga a cada (semanas)",
+          porMesMulher: "Domingos por mês — mulheres",
+          semanasMulher: "Domingo de folga — mulheres (semanas)",
+          todo: "Todo domingo",
+          equivale: "1 domingo",
+        }
+      : tipoDias === "fim_de_semana"
+        ? {
+            titulo: "Frequência Da Folga De Descanso (DSR)",
+            porMes: "Folgas de fim de semana por mês",
+            semanas: "Folga de descanso a cada (semanas)",
+            porMesMulher: "Folgas de fim de semana por mês — mulheres",
+            semanasMulher: "Folga de descanso — mulheres (semanas)",
+            todo: "Todo fim de semana",
+            equivale: "1 folga de fim de semana",
+          }
+        : {
+            titulo: "Frequência Da Folga De Descanso (DSR)",
+            porMes: "Folgas de descanso por mês",
+            semanas: "Folga de descanso a cada (semanas)",
+            porMesMulher: "Folgas de descanso por mês — mulheres",
+            semanasMulher: "Folga de descanso — mulheres (semanas)",
+            todo: "Toda semana (dia marcado)",
+            equivale: "1 folga",
+          };
 
   const travadoClt = form.regra_dsr === "clt";
   const baseRegra: BaseRegraOpcao = porAcordo ? "cct" : form.regra_dsr === "clt" ? "clt" : "propria";
