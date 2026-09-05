@@ -23,7 +23,8 @@ A lista "Atribuir folga manual" também mostra todos os colaboradores ativos da 
 
 ## Notas técnicas
 
-- `src/pages/dp/DpFolgas.tsx`: nova ação de cancelamento por evento; para solicitações, `status = 'cancelada'` (em vez de nada) e, para `dp_folgas`, trocar o `delete` atual pela função existente `dp_folga_cancelar_admin`, que cancela preservando o registro. Confirmação via `AlertDialog`.
+- `src/pages/dp/DpFolgas.tsx`: ações de cancelar e remarcar por evento; para solicitações, `status = 'cancelada'` (em vez de nada) e, para `dp_folgas`, trocar o `delete` atual pela função existente `dp_folga_cancelar_admin`, que cancela preservando o registro. Confirmação via `AlertDialog`.
+- Remarcar: para solicitação, atualizar `data_alvo`; para `dp_folgas`, cancelar a folga atual via `dp_folga_cancelar_admin` e criar a nova data com `dp_folga_criar_admin`, que já valida bloqueio, limite do dia e cobertura mínima e devolve o aviso a exibir.
 - `src/hooks/useDpFolgasQueries.tsx`: nova consulta das configurações de trabalho vigentes da empresa (`dp_colaborador_config_trabalho` + `dp_colaborador_config_dias`, filtrando por `company_id` e vigência que cobre o mês), devolvendo um mapa colaborador → dias em que trabalha.
 - Novo utilitário em `src/lib/dp/` com a função pura "trabalha neste dia?" (resolve a vigência da data e cai no padrão "trabalha" quando não há configuração), com testes unitários cobrindo: dia não trabalhado, colaborador sem configuração, e troca de vigência no meio do mês.
 - Sem migração de banco: as colunas e a função de cancelamento já existem.
