@@ -338,12 +338,8 @@ export function FolgaRegrasFormDialog({
       toast.error("Escolha a unidade que receberá as regras.");
       return;
     }
-    if (copiarDeSelecionado) {
-      const origem = todasUnidades.find((u) => u.id === copiarDeSelecionado);
-      if (origem) {
-        const row = configPadrao; // fallback seguro
-        setForm({ ...form, ...row });
-      }
+    if (copiarDeSelecionado && configOrigem) {
+      setForm({ ...configOrigem });
     }
     setEtapa("formulario");
   };
