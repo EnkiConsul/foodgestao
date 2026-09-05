@@ -63,7 +63,26 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
     qc.invalidateQueries({ queryKey: ["dp_folga_limite_regras"] });
   };
 
+  /** Conta quantas regras de folga cada unidade da empresa possui. */
+  const contagem = useQuery({
+    queryKey: ["dp_folga_limite_regras_contagem", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data, error } = await supabase
+        .from("dp_folga_limite_regras")
+        .select("unidade_id")
+        .eq("company_id", selectedCompanyId!);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data ?? []).forEach((r: { unidade_id: string }) => {
+        map[r.unidade_id] = (map[r.unidade_id] ?? 0) + 1;
+      });
+      return map;
+    },
+  });
+
   /** Grava os cargos e as pessoas vinculadas a uma regra (substituindo os anteriores). */
+
   const gravarVinculos = async (
     regraId: string,
     cargos: string[],
