@@ -1,0 +1,2 @@
+- [x] Quantidade por dia com escolha de cargos
+- [x] Cabeçalho fixo na janela Editar Regras de Folgas

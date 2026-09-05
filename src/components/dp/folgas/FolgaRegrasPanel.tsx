@@ -373,7 +373,7 @@ export function FolgaRegrasPanel({
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   {form.tipo === "quantidade" &&
-                    "Quantas pessoas podem folgar ao mesmo tempo neste dia."}
+                    "Quantas pessoas podem folgar ao mesmo tempo neste dia — com a opção de contar só alguns cargos."}
                   {form.tipo === "cargo" &&
                     "Quantas pessoas de determinados cargos podem folgar ao mesmo tempo."}
                   {form.tipo === "colaboradores" &&
@@ -462,9 +462,17 @@ export function FolgaRegrasPanel({
                 </div>
               </div>
 
-              {form.tipo === "cargo" && (
+              {(form.tipo === "cargo" || form.tipo === "quantidade") && (
                 <div className="space-y-2">
-                  <Label>Cargos</Label>
+                  <Label>
+                    Cargos{form.tipo === "quantidade" ? " (opcional)" : ""}
+                  </Label>
+                  {form.tipo === "quantidade" && (
+                    <p className="text-xs text-muted-foreground">
+                      Sem cargo marcado, a regra vale para todos os cargos da unidade. Com cargos
+                      marcados, a contagem de pessoas em folga vale só para esses cargos.
+                    </p>
+                  )}
                   <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border p-3">
                     {cargos.length === 0 && (
                       <p className="text-xs text-muted-foreground">Nenhum cargo cadastrado.</p>

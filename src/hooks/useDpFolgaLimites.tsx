@@ -151,7 +151,7 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
 
       await gravarVinculos(
         regraId!,
-        input.tipo === "cargo" ? input.cargo_ids : [],
+        input.tipo === "colaboradores" ? [] : input.cargo_ids,
         input.tipo === "colaboradores" ? input.colaborador_ids : [],
       );
       return regraId!;

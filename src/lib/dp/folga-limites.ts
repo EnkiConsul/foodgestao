@@ -122,6 +122,19 @@ export function resolverLimiteFolga(params: {
   return { limite: escolhida.maximo, origem: "regra_recorrente", regra: escolhida };
 }
 
+/**
+ * Quantas pessoas ocupam folga no dia dentro do escopo da regra: sem cargos na
+ * regra, contam todos; com cargos, contam só quem pertence a eles.
+ */
+export function ocupacaoNoEscopo<T extends { cargoId?: string | null }>(
+  pessoas: readonly T[],
+  cargoIds: readonly string[] | null | undefined,
+): number {
+  if (!cargoIds || cargoIds.length === 0) return pessoas.length;
+  const escopo = new Set(cargoIds);
+  return pessoas.filter((p) => p.cargoId != null && escopo.has(p.cargoId)).length;
+}
+
 
 /** Frase curta para exibir a regra na lista de cadastro. */
 export function resumoRegraLimite(

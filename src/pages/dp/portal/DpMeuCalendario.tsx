@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
-import { resolverLimiteFolga } from "@/lib/dp/folga-limites";
+import { ocupacaoNoEscopo, resolverLimiteFolga } from "@/lib/dp/folga-limites";
 import {
   resolverJanela,
   podeMarcarNormal,
@@ -221,7 +221,7 @@ export default function DpMeuCalendario() {
       const { data, error } = await supabase
         .from("dp_folgas")
         .select(
-          "id, data, colaborador_id, status, tipo, extra, origem, criado_por, dp_colaboradores(nome, unidade_id)",
+          "id, data, colaborador_id, status, tipo, extra, origem, criado_por, dp_colaboradores(nome, unidade_id, cargo_id)",
         )
         .eq("company_id", companyId!)
         .gte("data", range.start)
@@ -379,6 +379,8 @@ export default function DpMeuCalendario() {
 
   const { regras: regrasLimite } = useDpFolgaLimites(myUnidade);
 
+  const myCargoId = (meRef.data as { cargo_id?: string | null } | undefined)?.cargo_id ?? null;
+
   const dayLimits = useMemo(() => {
     const m = new Map<string, number>();
     const rows = [...(diaConfigQuery.data ?? [])] as any[];
@@ -396,13 +398,30 @@ export default function DpMeuCalendario() {
       const res = resolverLimiteFolga({
         data: iso,
         unidadeId: myUnidade,
-        cargoId: (meRef.data as { cargo_id?: string | null } | undefined)?.cargo_id ?? null,
+        cargoId: myCargoId,
         regras: regrasLimite,
       });
       if (res.limite != null) m.set(iso, res.limite);
     }
     return m;
-  }, [diaConfigQuery.data, myUnidade, regrasLimite, range.startDate, range.endDate, meRef.data]);
+  }, [diaConfigQuery.data, myUnidade, myCargoId, regrasLimite, range.startDate, range.endDate]);
+
+  // Escopo de cargos da regra recorrente resolvida por dia (null = todos os cargos).
+  // Exceções de data específica (dia_config) valem para a unidade inteira.
+  const dayRegraCargos = useMemo(() => {
+    const m = new Map<string, string[] | null>();
+    for (const d of eachDayOfInterval({ start: range.startDate, end: range.endDate })) {
+      const iso = ymd(d);
+      const res = resolverLimiteFolga({
+        data: iso,
+        unidadeId: myUnidade,
+        cargoId: myCargoId,
+        regras: regrasLimite,
+      });
+      m.set(iso, res.origem === "regra_recorrente" ? res.regra?.cargo_ids ?? null : null);
+    }
+    return m;
+  }, [myUnidade, myCargoId, regrasLimite, range.startDate, range.endDate]);
 
 
   const allFolgasRecords: FolgaRecord[] = useMemo(
@@ -505,15 +524,22 @@ export default function DpMeuCalendario() {
       const bloq = manualBlocked.get(iso);
       if (bloq && !bloq.liberada) throw new Error("Esta data está bloqueada administrativamente.");
 
-      // 7) lotação (limite efetivo x ocupantes da unidade)
+      // 7) lotação (limite efetivo x ocupantes da unidade). Quando a regra do dia limita
+      // cargos, a contagem considera só folgas de pessoas desses cargos.
       const limite = dayLimits.get(iso) ?? 1;
-      const ocupados = folgas.filter(
-        (f: any) =>
-          f.data === iso &&
-          f.extra !== true &&
-          f.status !== "cancelada" &&
-          (!myUnidade || f.dp_colaboradores?.unidade_id === myUnidade),
-      ).length;
+      const escopoCargos = dayRegraCargos.get(iso) ?? null;
+      const ocupados = ocupacaoNoEscopo(
+        folgas
+          .filter(
+            (f: any) =>
+              f.data === iso &&
+              f.extra !== true &&
+              f.status !== "cancelada" &&
+              (!myUnidade || f.dp_colaboradores?.unidade_id === myUnidade),
+          )
+          .map((f: any) => ({ cargoId: (f.dp_colaboradores?.cargo_id ?? null) as string | null })),
+        escopoCargos,
+      );
       if (ocupados >= limite) throw new Error("Data indisponível. Limite de folgas atingido.");
 
       // 8) pessoas que não podem folgar no mesmo dia

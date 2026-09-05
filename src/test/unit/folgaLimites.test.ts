@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ocupacaoNoEscopo,
   conflitoColaboradores,
   diasPermitidosParaLimite,
   resolverLimiteFolga,
@@ -179,5 +180,68 @@ describe("regras de tipo colaboradores", () => {
 describe("diasPermitidosParaLimite", () => {
   it("ordena, remove repetidos e descarta inválidos", () => {
     expect(diasPermitidosParaLimite([6, 0, 6, 9, -1])).toEqual([0, 6]);
+  });
+});
+
+describe("regra de quantidade com cargos", () => {
+  const regraQuantidadePorCargo: RegraLimiteFolga = {
+    ...base,
+    tipo: "quantidade",
+    cargo_ids: ["cozinheiro", "ajudante"],
+    maximo: 1,
+  };
+
+  it("combina com pessoa do cargo e ignora quem não é do cargo", () => {
+    const data = "2026-09-12"; // sábado
+    const doCargo = resolverLimiteFolga({
+      data,
+      unidadeId: "u1",
+      cargoId: "cozinheiro",
+      regras: [regraQuantidadePorCargo],
+    });
+    expect(doCargo.limite).toBe(1);
+    expect(doCargo.origem).toBe("regra_recorrente");
+    expect(doCargo.regra?.cargo_ids).toEqual(["cozinheiro", "ajudante"]);
+
+    const foraDoCargo = resolverLimiteFolga({
+      data,
+      unidadeId: "u1",
+      cargoId: "garcom",
+      regras: [regraQuantidadePorCargo],
+    });
+    expect(foraDoCargo.origem).toBe("sem_limite");
+  });
+
+  it("regra de quantidade sem cargos continua valendo para todos", () => {
+    const r = resolverLimiteFolga({
+      data: "2026-09-12",
+      unidadeId: "u1",
+      cargoId: "garcom",
+      regras: [base],
+    });
+    expect(r.limite).toBe(3);
+    expect(r.origem).toBe("regra_recorrente");
+  });
+});
+
+describe("ocupacaoNoEscopo", () => {
+  const folgas = [
+    { cargoId: "cozinheiro" },
+    { cargoId: "garcom" },
+    { cargoId: "cozinheiro" },
+    { cargoId: null },
+  ];
+
+  it("sem escopo de cargos, conta todas as folgas", () => {
+    expect(ocupacaoNoEscopo(folgas, null)).toBe(4);
+    expect(ocupacaoNoEscopo(folgas, [])).toBe(4);
+    expect(ocupacaoNoEscopo(folgas, undefined)).toBe(4);
+  });
+
+  it("com escopo, conta só folgas de pessoas dos cargos", () => {
+    expect(ocupacaoNoEscopo(folgas, ["cozinheiro"])).toBe(2);
+    expect(ocupacaoNoEscopo(folgas, ["garcom"])).toBe(1);
+    expect(ocupacaoNoEscopo(folgas, ["cozinheiro", "garcom"])).toBe(3);
+    expect(ocupacaoNoEscopo(folgas, ["chapeiro"])).toBe(0);
   });
 });
