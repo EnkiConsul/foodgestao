@@ -1,10 +1,23 @@
-// Limite de quantidade de pessoas em folga por dia.
-// Funções puras — sem acesso a banco — espelhando a função dp_folga_limite_dia do banco.
+// Regras de folga: limite de pessoas por dia, limite por cargo e pessoas que
+// não podem folgar no mesmo dia.
+// Funções puras — sem acesso a banco — espelhando as funções do banco
+// dp_folga_limite_dia e dp_folga_conflito_colaboradores.
 
 import { DIA_SEMANA_LABEL } from "./dsr-rules";
 
+/** Tipo da regra escolhido pelo gestor no cadastro único de regras de folga. */
+export type TipoRegraFolga = "quantidade" | "cargo" | "colaboradores";
+
+export const TIPO_REGRA_LABEL: Record<TipoRegraFolga, string> = {
+  quantidade: "Quantidade de pessoas por dia",
+  cargo: "Limite por cargo",
+  colaboradores: "Não folgam juntos",
+};
+
 export type RegraLimiteFolga = {
   id: string;
+  tipo: TipoRegraFolga;
+  nome: string | null;
   unidade_id: string | null;
   /** null = vale para todos os dias da semana. */
   dia_semana: number | null;
@@ -14,7 +27,10 @@ export type RegraLimiteFolga = {
   ativo: boolean;
   /** Vazio = qualquer cargo. */
   cargo_ids: string[];
+  /** Pessoas que não podem folgar no mesmo dia (tipo `colaboradores`). */
+  colaborador_ids: string[];
 };
+
 
 export type LimiteDiaConfig = {
   data: string;
@@ -77,11 +93,13 @@ export function resolverLimiteFolga(params: {
   const wd = diaSemanaISO(data);
   const candidatas = regras.filter((r) => {
     if (!r.ativo) return false;
+    if (r.tipo === "colaboradores") return false;
     if (r.unidade_id !== null && r.unidade_id !== unidadeId) return false;
     if (r.dia_semana !== null && r.dia_semana !== wd) return false;
     if (r.cargo_ids.length > 0 && (!cargoId || !r.cargo_ids.includes(cargoId))) return false;
     return vigente(r, data);
   });
+
 
   if (candidatas.length === 0) return { limite: null, origem: "sem_limite" };
 
@@ -100,16 +118,65 @@ export function resolverLimiteFolga(params: {
 /** Frase curta para exibir a regra na lista de cadastro. */
 export function resumoRegraLimite(
   regra: RegraLimiteFolga,
-  nomes: { unidade?: string | null; cargos?: string[] } = {},
+  nomes: { unidade?: string | null; cargos?: string[]; colaboradores?: string[] } = {},
 ): string {
   const escopo = regra.unidade_id ? (nomes.unidade ?? "Unidade") : "Toda a empresa";
   const dia =
     regra.dia_semana === null
       ? "todos os dias"
       : `${DIA_SEMANA_LABEL[regra.dia_semana]?.toLowerCase() ?? "dia"}s`;
+
+  if (regra.tipo === "colaboradores") {
+    const pessoas = (nomes.colaboradores ?? []).filter(Boolean);
+    const lista =
+      pessoas.length > 1
+        ? `${pessoas.slice(0, -1).join(", ")} e ${pessoas[pessoas.length - 1]}`
+        : (pessoas[0] ?? "As pessoas selecionadas");
+    return `${lista} não folgam no mesmo dia (${escopo.toLowerCase()}, ${dia})`;
+  }
+
   const cargos =
     regra.cargo_ids.length === 0
       ? "qualquer cargo"
       : (nomes.cargos ?? []).filter(Boolean).join(", ") || "cargos selecionados";
   return `${escopo}, ${dia}, ${cargos}: no máximo ${regra.maximo} em folga`;
 }
+
+/**
+ * Dias da semana que podem ser escolhidos no cadastro de regras: só os dias em
+ * que existe folga (dias de descanso negociados, ou sábado/domingo na CLT).
+ */
+export function diasPermitidosParaLimite(dias: number[]): number[] {
+  return [...new Set(dias.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort(
+    (a, b) => a - b,
+  );
+}
+
+/**
+ * Pessoa em conflito com `colaboradorId` na data: alguém da mesma regra de
+ * "não folgam juntos" que já está de folga no dia.
+ */
+export function conflitoColaboradores(params: {
+  data: string;
+  colaboradorId: string;
+  unidadeId?: string | null;
+  regras: RegraLimiteFolga[];
+  /** Ids de quem já está de folga na data (ativos, sem férias/licença). */
+  emFolgaNaData: string[];
+}): { colaboradorId: string; regra: RegraLimiteFolga } | null {
+  const { data, colaboradorId, unidadeId = null, regras, emFolgaNaData } = params;
+  const wd = diaSemanaISO(data);
+  const emFolga = new Set(emFolgaNaData.filter((id) => id !== colaboradorId));
+
+  for (const r of regras) {
+    if (r.tipo !== "colaboradores" || !r.ativo) continue;
+    if (r.unidade_id !== null && r.unidade_id !== unidadeId) continue;
+    if (r.dia_semana !== null && r.dia_semana !== wd) continue;
+    if (!vigente(r, data)) continue;
+    if (!r.colaborador_ids.includes(colaboradorId)) continue;
+    const colega = r.colaborador_ids.find((id) => id !== colaboradorId && emFolga.has(id));
+    if (colega) return { colaboradorId: colega, regra: r };
+  }
+  return null;
+}
+

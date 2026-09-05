@@ -516,6 +516,25 @@ export default function DpMeuCalendario() {
       ).length;
       if (ocupados >= limite) throw new Error("Data indisponível. Limite de folgas atingido.");
 
+      // 8) pessoas que não podem folgar no mesmo dia
+      const { data: conflito, error: conflitoErr } = await supabase.rpc(
+        "dp_folga_conflito_colaboradores",
+        {
+          _company: meRef.data.company_id,
+          _colaborador: meRef.data.id,
+          _data: iso,
+        },
+      );
+      if (conflitoErr) throw conflitoErr;
+      const c = (conflito ?? null) as { conflito?: boolean; colega_nome?: string | null } | null;
+      if (c?.conflito) {
+        throw new Error(
+          `${c.colega_nome ?? "Um colega"} já está de folga neste dia e vocês não podem folgar juntos. Escolha outro dia.`,
+        );
+      }
+
+
+
       const { error } = await supabase.from("dp_folgas").insert({
         company_id: meRef.data.company_id,
         colaborador_id: meRef.data.id,
@@ -583,6 +602,11 @@ export default function DpMeuCalendario() {
             "Neste dia já foi atingido o número de pessoas que podem folgar. Escolha outro dia ou fale com o DP.",
           );
 
+        if (raw.includes("FOLGA_INCOMPATIBILIDADE"))
+          throw new Error(
+            raw.split("FOLGA_INCOMPATIBILIDADE:").pop()?.trim() ||
+              "Você não pode folgar no mesmo dia de um colega desta regra.",
+          );
         if (raw.includes("DUPLICATE_REQUEST"))
           throw new Error("Você já tem uma solicitação pendente para este dia.");
         if (raw.includes("PAST_DATE_NOT_EDITABLE"))

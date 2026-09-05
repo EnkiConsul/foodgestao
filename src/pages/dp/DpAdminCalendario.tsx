@@ -568,9 +568,23 @@ export default function DpAdminCalendario() {
     const res = (data ?? {}) as {
       ok?: boolean;
       limite_atingido?: boolean;
+      incompatibilidade?: boolean;
+      colega?: string | null;
       mensagem?: string;
       limite?: { limite?: number | null; em_folga?: number | null };
     };
+    if (res.ok === false && res.incompatibilidade) {
+      toast.error(
+        res.mensagem ??
+          "Esta pessoa não pode folgar no mesmo dia de outra que já está de folga.",
+        {
+          description: res.colega
+            ? `${res.colega} já está de folga neste dia e existe uma regra que impede as duas folgarem juntas.`
+            : "Existe uma regra que impede essas pessoas de folgarem juntas.",
+        },
+      );
+      return false;
+    }
     if (res.ok === false && res.limite_atingido) {
       const max = res.limite?.limite;
       toast.error(res.mensagem ?? "Limite de pessoas em folga neste dia já foi atingido.", {
@@ -581,6 +595,7 @@ export default function DpAdminCalendario() {
       });
       return false;
     }
+
     return true;
   };
 

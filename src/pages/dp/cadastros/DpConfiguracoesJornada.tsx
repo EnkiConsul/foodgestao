@@ -27,7 +27,9 @@ import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
 import { useSindicatoContextoUnidade } from "@/hooks/useSindicatoContextoUnidade";
 import { MenosProtetivaBadge } from "@/components/dp/MenosProtetivaBadge";
 import { SalvarRegrasDialog } from "@/components/dp/SalvarRegrasDialog";
-import { FolgaLimitesPanel } from "@/components/dp/folgas/FolgaLimitesPanel";
+import { FolgaRegrasPanel } from "@/components/dp/folgas/FolgaRegrasPanel";
+import { useDpValeRegrasEmpresa } from "@/hooks/useDpValeRegras";
+import { diasElegiveisDaConfig } from "@/lib/dp/dsr-rules";
 import {
   DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo, isMenosProtetiva,
   semanasDaConfig, MODO_FREQUENCIA_LABEL, DIA_SEMANA_CURTO, ORDEM_DIAS_SEG_DOM,
@@ -127,6 +129,10 @@ export default function DpConfiguracoesJornada() {
   const naoConfigurada = !!unidadeId && !temExcecao;
   const porAcordo = form.tipo_descanso_domingo === "acordo_coletivo";
   const resumoFolgas = useMemo(() => resumoEscolhaFolgas(form), [form]);
+  /** Dias da semana em que existe folga — usados no cadastro das regras. */
+  const diasDeFolga = useMemo(() => diasElegiveisDaConfig(form), [form]);
+  const { data: valeRegras } = useDpValeRegrasEmpresa();
+
 
   const travadoClt = form.regra_dsr === "clt";
   /** Base única da regra de folgas (unifica regra_dsr + tipo_descanso_domingo). */
@@ -451,6 +457,10 @@ export default function DpConfiguracoesJornada() {
 
         <Separator />
 
+        <FolgaRegrasPanel diasPermitidos={diasDeFolga} />
+
+        <Separator />
+
         <SubSection
           title="Frequência Da Folga Dominical (DSR)"
           description="Quantas vezes o colaborador folga no domingo, conforme a base legal ou negociada."
@@ -711,6 +721,38 @@ export default function DpConfiguracoesJornada() {
               </div>
             </div>
 
+            {(valeRegras?.va_ativo || valeRegras?.vt_ativo) && (
+              <div className="rounded-md bg-muted/50 p-3 text-xs">
+                <p className="font-medium">Datas de corte dos vales</p>
+                <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                  {valeRegras?.va_ativo && (
+                    <li>
+                      Vale-alimentação: paga no dia {valeRegras.va_dia_pagamento ?? "—"}
+                      {valeRegras.va_dias_corte != null
+                        ? `, com contagem fechada ${valeRegras.va_dias_corte} dia(s) antes`
+                        : ""}
+                      .
+                    </li>
+                  )}
+                  {valeRegras?.vt_ativo && (
+                    <li>
+                      Vale-transporte: paga no dia {valeRegras.vt_dia_pagamento ?? "—"}
+                      {valeRegras.vt_dias_corte != null
+                        ? `, com contagem fechada ${valeRegras.vt_dias_corte} dia(s) antes`
+                        : ""}
+                      .
+                    </li>
+                  )}
+                </ul>
+                <p className="mt-1 text-muted-foreground">
+                  Encerrar a escolha das folgas até essa data ajuda a fechar os vales já com as folgas
+                  definidas.
+                </p>
+              </div>
+            )}
+
+
+
             <div className="flex items-start justify-between gap-4 rounded-md border p-3">
               <div className="space-y-0.5">
                 <Label htmlFor="janela-auto">Definir automaticamente quem não escolher</Label>
@@ -728,10 +770,6 @@ export default function DpConfiguracoesJornada() {
             </div>
           </div>
         </SubSection>
-
-        <Separator />
-
-        <FolgaLimitesPanel />
 
 
 
