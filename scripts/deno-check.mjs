@@ -71,7 +71,7 @@ for (const file of entries) {
   const name = file.split("/")[2];
   const res = spawnSync(
     deno.cmd,
-    [...deno.prefix, "check", "--no-lock", "--quiet", file],
+    [...deno.prefix, "check", "--no-lock", "--quiet", "--node-modules-dir=none", file],
     { encoding: "utf8" },
   );
   if (res.status === 0) {

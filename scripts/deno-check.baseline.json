@@ -1,7 +1,5 @@
 [
   "ai-categorize-transactions",
-  "ai-financial-agent",
-  "auth-email-hook",
   "dp-doc-bulk-ingest",
   "dp-generate-disciplinary-pdf",
   "generate-category-ai-description",
