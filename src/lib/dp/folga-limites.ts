@@ -71,8 +71,9 @@ function vigente(regra: RegraLimiteFolga, iso: string): boolean {
 }
 
 /**
- * Limite efetivo do dia: exceção da data vence a regra recorrente e,
- * entre as regras, a mais específica (unidade > cargo > dia da semana) vence.
+ * Limite efetivo do dia: exceção da data vence a regra recorrente e, entre as
+ * regras da unidade, a mais específica (cargo > dia da semana) vence.
+ * `unidadeId` nulo = visão consolidada (não filtra por unidade).
  */
 export function resolverLimiteFolga(params: {
   data: string;
@@ -96,7 +97,7 @@ export function resolverLimiteFolga(params: {
   const candidatas = regras.filter((r) => {
     if (!r.ativo) return false;
     if (r.tipo === "colaboradores") return false;
-    if (r.unidade_id !== null && r.unidade_id !== unidadeId) return false;
+    if (unidadeId !== null && r.unidade_id !== unidadeId) return false;
     if (r.dia_semana !== null && r.dia_semana !== wd) return false;
     if (r.cargo_ids.length > 0 && (!cargoId || !r.cargo_ids.includes(cargoId))) return false;
     return vigente(r, data);
@@ -106,7 +107,7 @@ export function resolverLimiteFolga(params: {
   if (candidatas.length === 0) return { limite: null, origem: "sem_limite" };
 
   const peso = (r: RegraLimiteFolga) =>
-    (r.unidade_id !== null ? 4 : 0) + (r.cargo_ids.length > 0 ? 2 : 0) + (r.dia_semana !== null ? 1 : 0);
+    (r.cargo_ids.length > 0 ? 2 : 0) + (r.dia_semana !== null ? 1 : 0);
 
   const escolhida = [...candidatas].sort((a, b) => {
     const d = peso(b) - peso(a);
@@ -116,6 +117,7 @@ export function resolverLimiteFolga(params: {
 
   return { limite: escolhida.maximo, origem: "regra_recorrente", regra: escolhida };
 }
+
 
 /** Frase curta para exibir a regra na lista de cadastro. */
 export function resumoRegraLimite(
