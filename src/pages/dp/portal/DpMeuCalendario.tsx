@@ -66,6 +66,16 @@ import { isSocio } from "@/lib/dp/contrato-policy";
 import { MinhaDisponibilidadeCard } from "@/components/dp/MinhaDisponibilidadeCard";
 import { regimeConvocavel } from "@/lib/dp/convocacoes-planejamento";
 
+/** Retorno do cálculo do período de escolha feito no servidor. */
+interface JanelaRemota {
+  ativa: boolean;
+  abre_dia: number;
+  fecha_dia: number;
+  hoje: string;
+  competencia: string;
+  estado: string;
+}
+
 const STATUS_LABEL: Record<DateStatusKind, string> = {
   available: "Disponível",
   mine: "Sua folga",
