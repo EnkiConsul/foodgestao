@@ -605,7 +605,7 @@ export function FolgaRegrasFormDialog({
                   <SelectContent>
                     {(Object.keys(MODO_FREQUENCIA_LABEL) as ModoFrequencia[]).map((m) => (
                       <SelectItem key={m} value={m}>
-                        {MODO_FREQUENCIA_LABEL[m]}
+                        {modoFrequenciaLabel(m, tipoDias)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -651,11 +651,11 @@ export function FolgaRegrasFormDialog({
                       <SelectItem value="1">1 por mês</SelectItem>
                       <SelectItem value="2">2 por mês</SelectItem>
                       <SelectItem value="3">3 por mês</SelectItem>
-                      <SelectItem value="4">Todo domingo</SelectItem>
+                      <SelectItem value="4">{rotulos.todo}</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Equivale a 1 domingo a cada {semanas.geral ? semanas.geral.toFixed(1) : "—"} semana(s).
+                    Equivale a {rotulos.equivale} a cada {semanas.geral ? semanas.geral.toFixed(1) : "—"} semana(s).
                   </p>
                   {isMenosProtetiva(semanas.geral, padrao) && (
                     <MenosProtetivaBadge
@@ -681,7 +681,7 @@ export function FolgaRegrasFormDialog({
                   <SelectContent>
                     {(Object.keys(MODO_FREQUENCIA_LABEL) as ModoFrequencia[]).map((m) => (
                       <SelectItem key={m} value={m}>
-                        {MODO_FREQUENCIA_LABEL[m]}
+                        {modoFrequenciaLabel(m, tipoDias)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -737,11 +737,11 @@ export function FolgaRegrasFormDialog({
                       <SelectItem value="1">1 por mês</SelectItem>
                       <SelectItem value="2">2 por mês</SelectItem>
                       <SelectItem value="3">3 por mês</SelectItem>
-                      <SelectItem value="4">Todo domingo</SelectItem>
+                      <SelectItem value="4">{rotulos.todo}</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Equivale a 1 domingo a cada {semanas.mulher ? semanas.mulher.toFixed(1) : "—"} semana(s).
+                    Equivale a {rotulos.equivale} a cada {semanas.mulher ? semanas.mulher.toFixed(1) : "—"} semana(s).
                   </p>
                   {isMenosProtetiva(semanas.mulher, PADRAO_LEGAL_DOMINGO_MULHER) && (
                     <MenosProtetivaBadge
