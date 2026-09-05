@@ -56,6 +56,8 @@ if (!deno) {
   process.exit(0);
 }
 
+// `mcp/index.ts` é gerado pelo plugin Vite a partir de src/lib/mcp (JS sem
+// tipos) — permanece no baseline por natureza, não por dívida.
 // Baseline (ratchet decrescente): funções com falhas herdadas. Remova nomes ao
 // corrigi-los; nunca adicione — função nova que falha reprova o gate.
 const BASELINE_FILE = "scripts/deno-check.baseline.json";
