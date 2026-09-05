@@ -29,19 +29,6 @@ import {
 } from "@/lib/dp/folga-limites";
 import { DIA_SEMANA_LABEL, ORDEM_DIAS_SEG_DOM } from "@/lib/dp/dsr-rules";
 
-const VAZIO: RegraLimiteInput = {
-  tipo: "quantidade",
-  nome: null,
-  unidade_id: null,
-  dia_semana: null,
-  maximo: 1,
-  vigencia_inicio: null,
-  vigencia_fim: null,
-  ativo: true,
-  cargo_ids: [],
-  colaborador_ids: [],
-};
-
 const ICONE: Record<TipoRegraFolga, typeof Users> = {
   quantidade: Users,
   cargo: Briefcase,
@@ -49,20 +36,25 @@ const ICONE: Record<TipoRegraFolga, typeof Users> = {
 };
 
 type Props = {
+  /** Unidade em edição: toda regra pertence a ela. */
+  unidadeId: string | null;
   /** Dias da semana em que existe folga (dias de descanso negociados). */
   diasPermitidos?: number[];
 };
 
-/** Cadastro único das regras de folga: quantidade, cargo e quem não folga junto. */
-export function FolgaRegrasPanel({ diasPermitidos }: Props) {
+/** Cadastro único das regras de folga da unidade: quantidade, cargo e quem não folga junto. */
+export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
   const { data: unidades = [] } = useDpUnidades();
   const { data: cargos = [] } = useDpCargos();
   const { data: colaboradores = [] } = useDpColaboradores();
-  const { regras, isLoading, salvar, excluir, alternarAtivo } = useDpFolgaLimites();
+  const { regras, isLoading, salvar, replicar, excluir, alternarAtivo } =
+    useDpFolgaLimites(unidadeId);
 
   const [form, setForm] = useState<RegraLimiteInput | null>(null);
   const [excluirId, setExcluirId] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"todas" | TipoRegraFolga>("todas");
+  const [replicando, setReplicando] = useState<RegraLimiteFolga | null>(null);
+  const [alvos, setAlvos] = useState<string[]>([]);
 
   const diasDisponiveis = useMemo(() => {
     const dias = diasPermitidosParaLimite(diasPermitidos ?? ORDEM_DIAS_SEG_DOM);
@@ -87,6 +79,11 @@ export function FolgaRegrasPanel({ diasPermitidos }: Props) {
     [colaboradores],
   );
 
+  const outrasUnidades = useMemo(
+    () => unidades.filter((u: { id: string }) => u.id !== unidadeId),
+    [unidades, unidadeId],
+  );
+
   const visiveis = useMemo(
     () => (filtro === "todas" ? regras : regras.filter((r) => r.tipo === filtro)),
     [regras, filtro],
@@ -95,8 +92,25 @@ export function FolgaRegrasPanel({ diasPermitidos }: Props) {
   const set = <K extends keyof RegraLimiteInput>(key: K, value: RegraLimiteInput[K]) =>
     setForm((f) => (f ? { ...f, [key]: value } : f));
 
-  const abrirNova = () =>
-    setForm({ ...VAZIO, dia_semana: diasDisponiveis.length === 1 ? diasDisponiveis[0] : null });
+  const abrirNova = () => {
+    if (!unidadeId) {
+      toast.error("Escolha a unidade no topo da tela para cadastrar a regra.");
+      return;
+    }
+    setForm({
+      tipo: "quantidade",
+      nome: null,
+      unidade_id: unidadeId,
+      dia_semana: diasDisponiveis.length === 1 ? diasDisponiveis[0] : null,
+      maximo: 1,
+      vigencia_inicio: null,
+      vigencia_fim: null,
+      ativo: true,
+      cargo_ids: [],
+      colaborador_ids: [],
+    });
+  };
+
   const abrirEdicao = (r: RegraLimiteFolga) =>
     setForm({
       id: r.id,
