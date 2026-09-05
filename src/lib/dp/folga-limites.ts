@@ -124,7 +124,7 @@ export function resumoRegraLimite(
   regra: RegraLimiteFolga,
   nomes: { unidade?: string | null; cargos?: string[]; colaboradores?: string[] } = {},
 ): string {
-  const escopo = regra.unidade_id ? (nomes.unidade ?? "Unidade") : "Toda a empresa";
+  const escopo = nomes.unidade ?? "Unidade";
   const dia =
     regra.dia_semana === null
       ? "todos os dias"
