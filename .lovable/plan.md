@@ -8,12 +8,17 @@ Na janela de regras de folgas (Pessoas > Folgas > Regras > Editar), quando os di
 
 Apenas textos na janela de regras — nada muda no cálculo nem nos dados gravados:
 
-1. **Modelo de frequência** (geral e mulheres): quando houver mais dias de descanso além do domingo, a opção passa a ser "X folgas de fim de semana por mês"; no padrão CLT/só domingo, segue "X domingos por mês". A opção "A cada X semanas" não muda.
-2. **Opção "Todo domingo"** do campo de quantidade por mês: vira "Toda semana (dia marcado)" quando houver sábado negociado.
-3. **Texto de equivalência** "Equivale a 1 domingo a cada X semana(s)": passa a "Equivale a 1 folga a cada X semana(s)" quando houver sábado negociado.
-4. **Resumo no card da unidade** (lista de unidades): se usar a mesma constante com menção a domingo, adaptar igualmente.
+Os textos passam a acompanhar os dias realmente marcados em "Dias de descanso negociados", em três situações:
 
-A regra de decisão reaproveita o `apenasDomingo` já calculado na janela (domingo sozinho = textos dominicais; sábado ou outros dias = textos de "folga de fim de semana").
+- **Só domingo** (padrão CLT): textos atuais de domingo — "X domingos por mês", "Todo domingo", "Equivale a 1 domingo a cada X semana(s)".
+- **Sábado + domingo**: "X folgas de fim de semana por mês", "Todo fim de semana", "Equivale a 1 folga de fim de semana a cada X semana(s)".
+- **Qualquer outro dia ou mistura** (ex.: quarta-feira, terça + domingo): textos neutros — "X folgas de descanso por mês", "Toda semana (dia marcado)", "Equivale a 1 folga a cada X semana(s)". Os campos de quantidade ao lado ("Folgas de fim de semana por mês") também passam a "Folgas de descanso por mês" nesse caso.
+
+Aplica-se ao **modelo de frequência** (geral e mulheres), à **opção "Todo domingo"** e ao **texto de equivalência**. O título do quadro já se adapta ("Frequência da Folga de Descanso (DSR)"); a linha "Considera os dias de descanso negociados (sábado, domingo)" já lista os dias marcados e permanece.
+
+**Resumo no card da unidade** (lista de unidades): se usar a mesma constante com menção a domingo, adaptar igualmente.
+
+A regra de decisão é derivada dos dias marcados (só domingo / sábado+domingo / demais), estendendo o `apenasDomingo` já calculado na janela.
 
 ## Detalhes técnicos
 
