@@ -583,6 +583,11 @@ export default function DpMeuCalendario() {
             "Neste dia já foi atingido o número de pessoas que podem folgar. Escolha outro dia ou fale com o DP.",
           );
 
+        if (raw.includes("FOLGA_INCOMPATIBILIDADE"))
+          throw new Error(
+            raw.split("FOLGA_INCOMPATIBILIDADE:").pop()?.trim() ||
+              "Você não pode folgar no mesmo dia de um colega desta regra.",
+          );
         if (raw.includes("DUPLICATE_REQUEST"))
           throw new Error("Você já tem uma solicitação pendente para este dia.");
         if (raw.includes("PAST_DATE_NOT_EDITABLE"))
