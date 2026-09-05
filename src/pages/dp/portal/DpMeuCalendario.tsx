@@ -507,10 +507,11 @@ export default function DpMeuCalendario() {
       });
       if (error) {
         const raw = error.message ?? "";
-        if (raw.includes("COVERAGE_MINIMUM"))
+        if (raw.includes("FOLGA_LIMITE_DIA"))
           throw new Error(
-            "Neste dia a equipe ficaria abaixo da cobertura mínima. Fale com o DP para avaliar uma exceção.",
+            "Neste dia já foi atingido o número de pessoas que podem folgar. Escolha outro dia ou fale com o DP.",
           );
+
         if (raw.includes("DUPLICATE_REQUEST"))
           throw new Error("Você já tem uma solicitação pendente para este dia.");
         if (raw.includes("PAST_DATE_NOT_EDITABLE"))
