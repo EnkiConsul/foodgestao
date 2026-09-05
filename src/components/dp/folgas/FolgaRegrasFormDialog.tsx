@@ -49,6 +49,9 @@ import {
   isMenosProtetiva,
   semanasDaConfig,
   MODO_FREQUENCIA_LABEL,
+  modoFrequenciaLabel,
+  tipoDiasDescanso,
+  type TipoDiasDescanso,
   DIA_SEMANA_CURTO,
   DIA_SEMANA_LABEL,
   ORDEM_DIAS_SEG_DOM,
@@ -211,21 +214,37 @@ export function FolgaRegrasFormDialog({
         .join(", "),
     [diasDeFolga],
   );
-  const rotulos = apenasDomingo
-    ? {
-        titulo: "Frequência Da Folga Dominical (DSR)",
-        porMes: "Domingos de folga por mês",
-        semanas: "Domingo de folga a cada (semanas)",
-        porMesMulher: "Domingos por mês — mulheres",
-        semanasMulher: "Domingo de folga — mulheres (semanas)",
-      }
-    : {
-        titulo: "Frequência Da Folga De Descanso (DSR)",
-        porMes: "Folgas de fim de semana por mês",
-        semanas: "Folga de descanso a cada (semanas)",
-        porMesMulher: "Folgas de fim de semana por mês — mulheres",
-        semanasMulher: "Folga de descanso — mulheres (semanas)",
-      };
+  const tipoDias: TipoDiasDescanso = apenasDomingo ? "domingo" : tipoDiasDescanso(diasDeFolga);
+  const rotulos =
+    tipoDias === "domingo"
+      ? {
+          titulo: "Frequência Da Folga Dominical (DSR)",
+          porMes: "Domingos de folga por mês",
+          semanas: "Domingo de folga a cada (semanas)",
+          porMesMulher: "Domingos por mês — mulheres",
+          semanasMulher: "Domingo de folga — mulheres (semanas)",
+          todo: "Todo domingo",
+          equivale: "1 domingo",
+        }
+      : tipoDias === "fim_de_semana"
+        ? {
+            titulo: "Frequência Da Folga De Descanso (DSR)",
+            porMes: "Folgas de fim de semana por mês",
+            semanas: "Folga de descanso a cada (semanas)",
+            porMesMulher: "Folgas de fim de semana por mês — mulheres",
+            semanasMulher: "Folga de descanso — mulheres (semanas)",
+            todo: "Todo fim de semana",
+            equivale: "1 folga de fim de semana",
+          }
+        : {
+            titulo: "Frequência Da Folga De Descanso (DSR)",
+            porMes: "Folgas de descanso por mês",
+            semanas: "Folga de descanso a cada (semanas)",
+            porMesMulher: "Folgas de descanso por mês — mulheres",
+            semanasMulher: "Folga de descanso — mulheres (semanas)",
+            todo: "Toda semana (dia marcado)",
+            equivale: "1 folga",
+          };
 
   const travadoClt = form.regra_dsr === "clt";
   const baseRegra: BaseRegraOpcao = porAcordo ? "cct" : form.regra_dsr === "clt" ? "clt" : "propria";
@@ -586,7 +605,7 @@ export function FolgaRegrasFormDialog({
                   <SelectContent>
                     {(Object.keys(MODO_FREQUENCIA_LABEL) as ModoFrequencia[]).map((m) => (
                       <SelectItem key={m} value={m}>
-                        {MODO_FREQUENCIA_LABEL[m]}
+                        {modoFrequenciaLabel(m, tipoDias)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -632,11 +651,11 @@ export function FolgaRegrasFormDialog({
                       <SelectItem value="1">1 por mês</SelectItem>
                       <SelectItem value="2">2 por mês</SelectItem>
                       <SelectItem value="3">3 por mês</SelectItem>
-                      <SelectItem value="4">Todo domingo</SelectItem>
+                      <SelectItem value="4">{rotulos.todo}</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Equivale a 1 domingo a cada {semanas.geral ? semanas.geral.toFixed(1) : "—"} semana(s).
+                    Equivale a {rotulos.equivale} a cada {semanas.geral ? semanas.geral.toFixed(1) : "—"} semana(s).
                   </p>
                   {isMenosProtetiva(semanas.geral, padrao) && (
                     <MenosProtetivaBadge
@@ -662,7 +681,7 @@ export function FolgaRegrasFormDialog({
                   <SelectContent>
                     {(Object.keys(MODO_FREQUENCIA_LABEL) as ModoFrequencia[]).map((m) => (
                       <SelectItem key={m} value={m}>
-                        {MODO_FREQUENCIA_LABEL[m]}
+                        {modoFrequenciaLabel(m, tipoDias)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -718,11 +737,11 @@ export function FolgaRegrasFormDialog({
                       <SelectItem value="1">1 por mês</SelectItem>
                       <SelectItem value="2">2 por mês</SelectItem>
                       <SelectItem value="3">3 por mês</SelectItem>
-                      <SelectItem value="4">Todo domingo</SelectItem>
+                      <SelectItem value="4">{rotulos.todo}</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Equivale a 1 domingo a cada {semanas.mulher ? semanas.mulher.toFixed(1) : "—"} semana(s).
+                    Equivale a {rotulos.equivale} a cada {semanas.mulher ? semanas.mulher.toFixed(1) : "—"} semana(s).
                   </p>
                   {isMenosProtetiva(semanas.mulher, PADRAO_LEGAL_DOMINGO_MULHER) && (
                     <MenosProtetivaBadge
