@@ -174,7 +174,7 @@ export function conflitoColaboradores(params: {
 
   for (const r of regras) {
     if (r.tipo !== "colaboradores" || !r.ativo) continue;
-    if (r.unidade_id !== null && r.unidade_id !== unidadeId) continue;
+    if (unidadeId !== null && r.unidade_id !== unidadeId) continue;
     if (r.dia_semana !== null && r.dia_semana !== wd) continue;
     if (!vigente(r, data)) continue;
     if (!r.colaborador_ids.includes(colaboradorId)) continue;
