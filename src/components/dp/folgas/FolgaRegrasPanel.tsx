@@ -258,6 +258,19 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
                   <Button variant="ghost" size="sm" onClick={() => abrirEdicao(r)}>
                     Editar
                   </Button>
+                  {outrasUnidades.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setReplicando(r);
+                        setAlvos([]);
+                      }}
+                    >
+                      Replicar
+                    </Button>
+                  )}
+
                   <Button
                     variant="ghost"
                     size="icon"
