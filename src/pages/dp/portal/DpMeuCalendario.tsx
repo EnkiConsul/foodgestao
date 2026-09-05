@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
-import { resolverLimiteFolga } from "@/lib/dp/folga-limites";
+import { ocupacaoNoEscopo, resolverLimiteFolga } from "@/lib/dp/folga-limites";
 import {
   resolverJanela,
   podeMarcarNormal,
@@ -221,7 +221,7 @@ export default function DpMeuCalendario() {
       const { data, error } = await supabase
         .from("dp_folgas")
         .select(
-          "id, data, colaborador_id, status, tipo, extra, origem, criado_por, dp_colaboradores(nome, unidade_id)",
+          "id, data, colaborador_id, status, tipo, extra, origem, criado_por, dp_colaboradores(nome, unidade_id, cargo_id)",
         )
         .eq("company_id", companyId!)
         .gte("data", range.start)
