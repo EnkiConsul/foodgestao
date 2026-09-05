@@ -38,8 +38,6 @@ import {
   semanasDaConfig,
 } from "@/lib/dp/dsr-rules";
 
-const STORAGE_KEY = "dp:regras-folgas:unidade";
-
 type DialogState =
   | { open: false }
   | { open: true; modo: "criar"; unidadeId: null; copiarDe: string | null }
