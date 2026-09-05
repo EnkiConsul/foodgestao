@@ -659,6 +659,11 @@ export default function DpConfiguracoesJornada() {
 
         <Separator />
 
+        <FolgaRegrasPanel unidadeId={unidadeId ?? null} diasPermitidos={diasDeFolga} />
+
+        <Separator />
+
+
         <SubSection
           title="Troca De Folga Entre Colaboradores"
           description="Define se os colaboradores podem trocar folgas entre si e sobre quais folgas a troca vale."
