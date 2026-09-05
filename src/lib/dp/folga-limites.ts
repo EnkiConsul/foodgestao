@@ -136,6 +136,39 @@ export function ocupacaoNoEscopo<T extends { cargoId?: string | null }>(
 }
 
 
+/** Rótulo do dia da semana da regra ("todos os dias", "sábados"...). */
+export function diaRegraLabel(diaSemana: number | null): string {
+  return diaSemana === null
+    ? "todos os dias"
+    : `${DIA_SEMANA_LABEL[diaSemana]?.toLowerCase() ?? "dia"}s`;
+}
+
+/** Partes separadas do resumo, para montar o item da lista em blocos. */
+export function partesRegraLimite(
+  regra: RegraLimiteFolgaBase,
+  nomes: { cargos?: string[]; colaboradores?: string[] } = {},
+): { dia: string; escopo: string[]; escopoVazio: string; limite: string } {
+  const dia = diaRegraLabel(regra.dia_semana);
+
+  if (regra.tipo === "colaboradores") {
+    const pessoas = (nomes.colaboradores ?? []).filter(Boolean);
+    return {
+      dia,
+      escopo: pessoas,
+      escopoVazio: "Pessoas selecionadas",
+      limite: "Não podem folgar no mesmo dia",
+    };
+  }
+
+  const cargos = (nomes.cargos ?? []).filter(Boolean);
+  return {
+    dia,
+    escopo: regra.cargo_ids.length === 0 ? [] : cargos,
+    escopoVazio: "Qualquer cargo",
+    limite: `Máximo ${regra.maximo} ${regra.maximo === 1 ? "pessoa" : "pessoas"} em folga`,
+  };
+}
+
 /** Frase curta para exibir a regra na lista de cadastro. */
 export function resumoRegraLimite(
   regra: RegraLimiteFolgaBase,
@@ -143,10 +176,7 @@ export function resumoRegraLimite(
 ): string {
 
   const escopo = nomes.unidade ?? "Unidade";
-  const dia =
-    regra.dia_semana === null
-      ? "todos os dias"
-      : `${DIA_SEMANA_LABEL[regra.dia_semana]?.toLowerCase() ?? "dia"}s`;
+  const dia = diaRegraLabel(regra.dia_semana);
 
   if (regra.tipo === "colaboradores") {
     const pessoas = (nomes.colaboradores ?? []).filter(Boolean);
