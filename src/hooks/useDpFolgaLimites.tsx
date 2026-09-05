@@ -161,7 +161,8 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
 
   /** Cria cópias independentes de uma regra nas unidades escolhidas. */
   const replicar = useMutation({
-    mutationFn: async (params: { regra: RegraLimiteFolga; unidadeIds: string[] }) => {
+    mutationFn: async (params: { regra: RegraLimiteFolgaBase; unidadeIds: string[] }) => {
+
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       const { regra, unidadeIds } = params;
       const alvos = unidadeIds.filter((id) => id && id !== regra.unidade_id);
