@@ -662,6 +662,75 @@ export default function DpConfiguracoesJornada() {
 
         <Separator />
 
+        <SubSection
+          title="Período Mensal Para Escolha Das Folgas"
+          description="Define os dias do mês em que os colaboradores podem escolher as folgas do mês seguinte. Fora desse período eles só conseguem solicitar exceção."
+        >
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="janela-ativa">Usar período mensal de escolha</Label>
+                <p className="text-xs text-muted-foreground">
+                  Quando desligado, a marcação segue liberada como hoje.
+                </p>
+              </div>
+              <Switch
+                id="janela-ativa"
+                checked={form.folga_janela_ativa}
+                onCheckedChange={(v) => set("folga_janela_ativa", v)}
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="janela-abre">Abre no dia</Label>
+                <Input
+                  id="janela-abre" type="number" min={1} max={28}
+                  disabled={!form.folga_janela_ativa}
+                  value={form.folga_janela_abre_dia}
+                  onChange={(e) =>
+                    set("folga_janela_abre_dia", Math.min(28, Math.max(1, num(e.target.value, 10))))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="janela-fecha">Encerra no dia</Label>
+                <Input
+                  id="janela-fecha" type="number" min={1} max={28}
+                  disabled={!form.folga_janela_ativa}
+                  value={form.folga_janela_fecha_dia}
+                  onChange={(e) =>
+                    set("folga_janela_fecha_dia", Math.min(28, Math.max(1, num(e.target.value, 20))))
+                  }
+                />
+                {form.folga_janela_fecha_dia < form.folga_janela_abre_dia && (
+                  <p className="text-xs text-destructive">
+                    O dia de encerramento precisa ser igual ou depois do dia de abertura.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="janela-auto">Definir automaticamente quem não escolher</Label>
+                <p className="text-xs text-muted-foreground">
+                  Depois do encerramento, quem não marcou recebe folga de fim de semana começando pelos
+                  dias mais vazios. Se não houver mais vaga, o sistema avisa você.
+                </p>
+              </div>
+              <Switch
+                id="janela-auto"
+                disabled={!form.folga_janela_ativa}
+                checked={form.folga_autoatribuir}
+                onCheckedChange={(v) => set("folga_autoatribuir", v)}
+              />
+            </div>
+          </div>
+        </SubSection>
+
+        <Separator />
+
         <FolgaLimitesPanel />
 
 

@@ -27,6 +27,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
 import { resolverLimiteFolga } from "@/lib/dp/folga-limites";
+import {
+  resolverJanela,
+  podeMarcarNormal,
+  mensagemJanela,
+  type JanelaResolvida,
+} from "@/lib/dp/folga-janela";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -59,6 +65,16 @@ import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { MinhaDisponibilidadeCard } from "@/components/dp/MinhaDisponibilidadeCard";
 import { regimeConvocavel } from "@/lib/dp/convocacoes-planejamento";
+
+/** Retorno do cálculo do período de escolha feito no servidor. */
+interface JanelaRemota {
+  ativa: boolean;
+  abre_dia: number;
+  fecha_dia: number;
+  hoje: string;
+  competencia: string;
+  estado: string;
+}
 
 const STATUS_LABEL: Record<DateStatusKind, string> = {
   available: "Disponível",
@@ -136,6 +152,34 @@ export default function DpMeuCalendario() {
   const resumoFolgas = resumoEscolhaFolgas(regrasConfig, { sexo: (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null });
   /** No padrão CLT o sistema gera a folga dominical — o colaborador não marca nem remove. */
   const folgaCltAutomatica = folgaDominicalAutomatica(regrasConfig);
+
+  /** Período mensal de escolha das folgas (fonte da verdade no servidor). */
+  const janelaQuery = useQuery({
+    queryKey: ["dp_folga_janela", companyId, myUnidade],
+    enabled: !!companyId,
+    queryFn: async (): Promise<JanelaRemota | null> => {
+      const { data, error } = await supabase.rpc("dp_folgas_janela_efetiva", {
+        _company: companyId!,
+        _unidade: myUnidade ?? undefined,
+      });
+      if (error) throw error;
+      return (data ?? null) as unknown as JanelaRemota | null;
+    },
+  });
+
+  const janela = useMemo<JanelaResolvida>(() => {
+    const remota = janelaQuery.data;
+    return resolverJanela(
+      {
+        ativa: remota?.ativa === true,
+        abreDia: Number(remota?.abre_dia ?? 10),
+        fechaDia: Number(remota?.fecha_dia ?? 20),
+      },
+      remota?.hoje ? parseYMD(remota.hoje) : new Date(),
+    );
+  }, [janelaQuery.data]);
+
+  const avisoJanela = janela.estado === "inativa" ? "" : mensagemJanela(janela, formatBR);
 
 
 
@@ -415,6 +459,15 @@ export default function DpMeuCalendario() {
         throw new Error('Apenas fins de semana podem ser marcados diretamente. Use "Solicitar exceção".');
       }
 
+      // 2a) período mensal de escolha
+      if (!podeMarcarNormal(janela, d)) {
+        throw new Error(
+          janela.estado === "antes"
+            ? `A escolha das folgas abre em ${formatBR(janela.abreEm)}. Use "Solicitar exceção".`
+            : `A escolha das folgas deste período foi encerrada. Use "Solicitar exceção".`,
+        );
+      }
+
       // 2b) folga dominical automática (padrão CLT): definida pelo sistema
       if (wd === 0 && folgaCltAutomatica) {
         throw new Error(
@@ -521,6 +574,7 @@ export default function DpMeuCalendario() {
       const { error } = await supabase.rpc("dp_folga_solicitar", {
         p_data: selectedDay.iso,
         p_motivo: motivo,
+        p_fora_da_janela: true,
       });
       if (error) {
         const raw = error.message ?? "";
@@ -604,6 +658,18 @@ export default function DpMeuCalendario() {
     return { date, isWeekend, occupants, isMine, canTrade };
   }, [selectedDay, occupantsByDate, meRef.data?.id, minhasFolgasFuturas]);
 
+  /** A folga do dia selecionado foi definida pelo sistema no fechamento do período? */
+  const minhaFolgaAutomatica = useMemo(() => {
+    if (!selectedDay || !meRef.data?.id) return false;
+    return folgas.some(
+      (f) =>
+        f.colaborador_id === meRef.data!.id &&
+        f.data === selectedDay.iso &&
+        f.status !== "cancelada" &&
+        f.origem === "auto_fechamento_periodo",
+    );
+  }, [selectedDay, folgas, meRef.data?.id]);
+
   const showExceptionBtn =
     selectedDay &&
     !["past", "mine", "fixed", "pending", "swapped", "weekday"].includes(selectedDay.status);
@@ -626,6 +692,19 @@ export default function DpMeuCalendario() {
             Escolha suas folgas de fim de semana.
           </p>
           <p className="text-xs text-muted-foreground mt-1">{resumoFolgas.texto}</p>
+          {avisoJanela && (
+            <div
+              className={cn(
+                "mt-3 flex items-start gap-2 rounded-xl border px-3 py-2 text-xs font-medium",
+                janela.estado === "aberta"
+                  ? "border-emerald-200 bg-emerald-500/10 text-emerald-700"
+                  : "border-amber-200 bg-amber-500/10 text-amber-700",
+              )}
+            >
+              <AlertCircle className="size-4 shrink-0" />
+              <span>{avisoJanela}</span>
+            </div>
+          )}
         </div>
 
         <Button
@@ -790,6 +869,11 @@ export default function DpMeuCalendario() {
                 {selectedDay.status === "available" && !dayInfo.isWeekend && (
                   <p className="text-xs text-muted-foreground">
                     Somente fins de semana podem ser marcados diretamente. Use "Solicitar exceção" para outros dias.
+                  </p>
+                )}
+                {selectedDay.status === "mine" && minhaFolgaAutomatica && (
+                  <p className="rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
+                    Folga definida automaticamente porque você não escolheu no período de marcação.
                   </p>
                 )}
                 {selectedDay.status === "mine" && (

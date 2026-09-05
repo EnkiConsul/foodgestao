@@ -574,6 +574,25 @@ export default function DpFolgas() {
 
   // Stats do mês corrente (dias dentro do mês). Dias sem limite cadastrado
   // não entram na capacidade — o limite passou a ser opcional.
+  /** Distribuições automáticas que precisaram passar do limite do dia. */
+  const execucoesQuery = useQuery({
+    queryKey: ["dp_folga_auto_exec", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_folga_autoatribuicao_execucoes")
+        .select("id, competencia, quantidade_gerada, quantidade_excedida")
+        .eq("company_id", selectedCompanyId!)
+        .gt("quantidade_excedida", 0)
+        .order("competencia", { ascending: false })
+        .limit(3);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const execucoesExcedidas = execucoesQuery.data ?? [];
+
   const stats = useMemo(() => {
     let marcadas = 0;
     let capacidade = 0;
@@ -666,6 +685,26 @@ export default function DpFolgas() {
 
         }
       />
+
+      {execucoesExcedidas.length > 0 && (
+        <div className="rounded-xl border border-amber-300 bg-amber-500/10 p-4">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600" />
+            <div className="space-y-1 text-sm">
+              <p className="font-semibold text-amber-800">
+                Folgas definidas automaticamente acima do limite
+              </p>
+              {execucoesExcedidas.map((e) => (
+                <p key={e.id} className="text-xs text-amber-800/90">
+                  {format(new Date(`${e.competencia}T00:00:00`), "MMMM 'de' yyyy", { locale: ptBR })}:{" "}
+                  {e.quantidade_gerada} folga(s) definida(s) pelo sistema, sendo {e.quantidade_excedida}{" "}
+                  em dias que já estavam no limite. Revise esses dias no calendário.
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
