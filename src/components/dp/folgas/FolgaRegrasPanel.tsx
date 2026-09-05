@@ -155,15 +155,32 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
     }
   };
 
+  const confirmarReplicacao = async () => {
+    if (!replicando) return;
+    try {
+      const total = await replicar.mutateAsync({ regra: replicando, unidadeIds: alvos });
+      toast.success(
+        total === 1 ? "Regra copiada para 1 unidade" : `Regra copiada para ${total} unidades`,
+      );
+      setReplicando(null);
+      setAlvos([]);
+    } catch (e) {
+      toast.error("Não foi possível replicar a regra", {
+        description: e instanceof Error ? e.message : "Tente novamente.",
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold">Regras Das Folgas</h3>
+          <h3 className="text-sm font-semibold">Particularidade De Folgas</h3>
           <p className="text-xs text-muted-foreground">
-            Cadastre quantas regras quiser: quantas pessoas podem folgar por dia, limite por cargo e
-            pessoas que não podem folgar no mesmo dia. Todas valem juntas quando o colaborador marca
-            a folga. Um limite lançado para uma data específica no calendário vale como exceção.
+            Travas do dia a dia desta unidade: quantas pessoas podem folgar por dia, limite por
+            cargo e pessoas que não podem folgar no mesmo dia. Todas valem juntas quando o
+            colaborador marca a folga. Um limite lançado para uma data específica no calendário vale
+            como exceção. Cada regra pode ser copiada para outras unidades.
           </p>
         </div>
         <Button variant="outline" className="gap-2" onClick={abrirNova}>
@@ -171,6 +188,7 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
           Nova regra
         </Button>
       </div>
+
 
       <div className="flex flex-wrap gap-2">
         {(["todas", "quantidade", "cargo", "colaboradores"] as const).map((t) => (
