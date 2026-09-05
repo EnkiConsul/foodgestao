@@ -459,6 +459,15 @@ export default function DpMeuCalendario() {
         throw new Error('Apenas fins de semana podem ser marcados diretamente. Use "Solicitar exceção".');
       }
 
+      // 2a) período mensal de escolha
+      if (!podeMarcarNormal(janela, d)) {
+        throw new Error(
+          janela.estado === "antes"
+            ? `A escolha das folgas abre em ${formatBR(janela.abreEm)}. Use "Solicitar exceção".`
+            : `A escolha das folgas deste período foi encerrada. Use "Solicitar exceção".`,
+        );
+      }
+
       // 2b) folga dominical automática (padrão CLT): definida pelo sistema
       if (wd === 0 && folgaCltAutomatica) {
         throw new Error(
@@ -565,6 +574,7 @@ export default function DpMeuCalendario() {
       const { error } = await supabase.rpc("dp_folga_solicitar", {
         p_data: selectedDay.iso,
         p_motivo: motivo,
+        p_fora_da_janela: true,
       });
       if (error) {
         const raw = error.message ?? "";
