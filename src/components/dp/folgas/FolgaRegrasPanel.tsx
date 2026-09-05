@@ -526,9 +526,14 @@ export function FolgaRegrasPanel({
               Cancelar
             </Button>
             <Button onClick={() => void confirmar()} disabled={salvar.isPending}>
-              {salvar.isPending ? "Salvando..." : "Salvar regra"}
+              {rascunho
+                ? "Salvar no rascunho"
+                : salvar.isPending
+                  ? "Salvando..."
+                  : "Salvar regra"}
             </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 
