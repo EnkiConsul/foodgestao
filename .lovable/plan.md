@@ -1,12 +1,25 @@
-# Folgas — reorganizar as regras e novas travas
+# Folgas — cadastro único de regras e novas travas
 
-## 1. Aproximar "Quantas pessoas podem folgar por dia" dos dias de descanso
+## 1. Um só cadastro de "Regras de folga", junto dos dias de descanso
 
-O bloco de limites hoje fica no fim da tela, longe de onde o gestor marca os dias de descanso negociados. Ele passa a aparecer imediatamente depois do bloco "Base da regra de folgas" (onde ficam os dias negociados e o teto mensal), antes de "Frequência da folga dominical". Nenhuma regra muda — só o lugar na tela.
+Hoje o limite de pessoas por dia é um bloco solto no fim da tela. Ele passa a ser um cadastro único chamado **"Regras de folga"**, logo depois do bloco onde o gestor marca os dias de descanso negociados.
 
-## 2. Dia da semana da nova regra limitado aos dias negociados
+Ao clicar em "Nova regra", o gestor escolhe primeiro o **tipo de regra**:
 
-No cadastro de uma nova regra de limite, a lista de dias da semana passa a mostrar somente os dias marcados em "Dias de descanso negociados" (mais a opção "todos os dias"), já que folga só acontece nesses dias. Quando a empresa está no padrão CLT (só domingo), aparece apenas domingo. Se nenhum dia estiver marcado, a tela avisa para marcar os dias de descanso primeiro em vez de mostrar uma lista vazia. Regras já salvas com um dia que saiu da lista continuam visíveis e sinalizadas como "dia não é mais dia de descanso".
+- **Quantidade de pessoas por dia** — no máximo X pessoas em folga no dia (toda a empresa ou uma unidade).
+- **Limite por cargo** — no máximo X pessoas de um ou mais cargos em folga no dia.
+- **Colaboradores específicos que não folgam juntos** — duas ou mais pessoas que não podem ter folga na mesma data (ex.: Hanna e Sara).
+
+Os campos do formulário mudam conforme o tipo, então não há campos separados espalhados pela tela. Todos os tipos compartilham escopo (empresa ou unidade), dia da semana, vigência (início e fim opcionais) e liga/desliga.
+
+Várias regras podem existir ao mesmo tempo e o sistema lê **todas** na hora de liberar a marcação: cada regra é verificada de forma independente e a primeira que impedir o dia bloqueia a marcação, com a mensagem daquela regra. Entre regras de limite, a mais específica (unidade + cargo + dia) continua vencendo a mais geral; um limite lançado para uma data específica no calendário continua sendo exceção e vence as regras fixas.
+
+A lista mostra todas as regras juntas, com selo do tipo, resumo em linguagem simples ("Na Unidade Centro, sábados, Garçom: no máximo 2 em folga" / "Hanna e Sara não folgam no mesmo dia"), edição, liga/desliga e exclusão, e um filtro por tipo.
+
+## 2. Dia da semana limitado aos dias negociados
+
+No cadastro de qualquer regra, a lista de dias da semana passa a mostrar somente os dias marcados em "Dias de descanso negociados" (mais a opção "todos os dias"), já que folga só acontece nesses dias. No padrão CLT aparece apenas domingo. Se nenhum dia estiver marcado, a tela avisa para marcar os dias de descanso primeiro em vez de mostrar uma lista vazia. Regras já salvas com um dia que saiu da lista continuam visíveis e sinalizadas como "dia não é mais dia de descanso".
+
 
 ## 3. Período mensal de escolha ligado por padrão (10 a 20) e comparação com o corte dos vales
 
