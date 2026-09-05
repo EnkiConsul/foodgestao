@@ -551,19 +551,9 @@ export default function DpAdminCalendario() {
     conflitos: { id: string; data: string; tipo: string | null }[];
   } | null>(null);
 
-  /** Cobertura mínima que exige confirmação explícita do gestor. */
-  const [coberturaAlerta, setCoberturaAlerta] = useState<{
-    iso: string;
-    extra: boolean;
-    deleteIds?: string[];
-    mensagem: string;
-    minimo: number | null;
-    capacidade: number | null;
-  } | null>(null);
-
   const insertFolga = async (
     iso: string,
-    opts: { extra: boolean; deleteIds?: string[]; confirmarDeficit?: boolean },
+    opts: { extra: boolean; deleteIds?: string[] },
   ) => {
     // A substituição é atômica no backend: as folgas antigas só são canceladas
     // (nunca apagadas) quando a nova folga é efetivamente criada.
@@ -571,30 +561,29 @@ export default function DpAdminCalendario() {
       p_colaborador_id: assignUser,
       p_data: iso,
       p_extra: opts.extra,
-      p_confirmar_deficit: opts.confirmarDeficit ?? false,
       p_substituir_ids: opts.deleteIds && opts.deleteIds.length > 0 ? opts.deleteIds : undefined,
     });
     if (error) throw error;
 
     const res = (data ?? {}) as {
       ok?: boolean;
-      requer_confirmacao?: boolean;
+      limite_atingido?: boolean;
       mensagem?: string;
-      cobertura?: { minimo?: number | null; capacidade_apos_acao?: number | null };
+      limite?: { limite?: number | null; em_folga?: number | null };
     };
-    if (res.ok === false && res.requer_confirmacao) {
-      setCoberturaAlerta({
-        iso,
-        extra: opts.extra,
-        deleteIds: opts.deleteIds,
-        mensagem: res.mensagem ?? "Esta folga deixará a equipe abaixo da cobertura mínima.",
-        minimo: res.cobertura?.minimo ?? null,
-        capacidade: res.cobertura?.capacidade_apos_acao ?? null,
+    if (res.ok === false && res.limite_atingido) {
+      const max = res.limite?.limite;
+      toast.error(res.mensagem ?? "Limite de pessoas em folga neste dia já foi atingido.", {
+        description:
+          max != null
+            ? `Neste dia só ${max} ${max === 1 ? "pessoa pode" : "pessoas podem"} folgar. Marque como folga extra ou escolha outro dia.`
+            : "Marque como folga extra ou escolha outro dia.",
       });
       return false;
     }
     return true;
   };
+
 
   const atribuirCommit = useMutation({
     mutationFn: async (input: {
