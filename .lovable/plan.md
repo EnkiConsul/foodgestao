@@ -19,7 +19,7 @@ No cadastro de uma nova regra de limite, a lista de dias da semana passa a mostr
 Novo bloco "Quem não pode folgar no mesmo dia", junto das outras regras de folga:
 
 - O gestor escolhe duas ou mais pessoas que não podem ter folga na mesma data (ex.: Hanna e Sara), com um nome curto para o grupo e liga/desliga.
-- A restrição vale para qualquer dia de folga, inclusive férias? Não — considera apenas folgas (marcadas pelo colaborador, atribuídas pelo administrador ou definidas automaticamente).
+- A restrição olha apenas folgas (marcadas pelo colaborador, atribuídas pelo administrador ou definidas automaticamente); férias e licenças não entram na conta.
 - Lista com edição e exclusão e um resumo em linguagem simples ("Hanna e Sara não folgam no mesmo dia").
 - A trava vale nos três caminhos: marcação pelo portal ("Sara já está de folga neste dia e vocês não podem folgar juntos"), atribuição pelo administrador (mesmo aviso, sem gravar) e distribuição automática do fim do período, que pula o dia e procura o próximo permitido.
 - Se a distribuição automática não encontrar dia sem conflito, a pessoa entra no aviso já existente no topo do calendário de folgas, com o motivo.
