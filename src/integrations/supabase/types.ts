@@ -6612,6 +6612,96 @@ export type Database = {
           },
         ]
       }
+      dp_folga_limite_regra_cargos: {
+        Row: {
+          cargo_id: string
+          created_at: string
+          regra_id: string
+        }
+        Insert: {
+          cargo_id: string
+          created_at?: string
+          regra_id: string
+        }
+        Update: {
+          cargo_id?: string
+          created_at?: string
+          regra_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_folga_limite_regra_cargos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folga_limite_regra_cargos_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "dp_folga_limite_regras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_folga_limite_regras: {
+        Row: {
+          ativo: boolean
+          company_id: string
+          created_at: string
+          dia_semana: number | null
+          id: string
+          maximo: number
+          observacao: string | null
+          unidade_id: string | null
+          updated_at: string
+          vigencia_fim: string | null
+          vigencia_inicio: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          company_id: string
+          created_at?: string
+          dia_semana?: number | null
+          id?: string
+          maximo?: number
+          observacao?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          company_id?: string
+          created_at?: string
+          dia_semana?: number | null
+          id?: string
+          maximo?: number
+          observacao?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_folga_limite_regras_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folga_limite_regras_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_folgas: {
         Row: {
           colaborador_id: string
@@ -12430,6 +12520,16 @@ export type Database = {
           p_observacao?: string
           p_substituir_ids?: string[]
           p_tipo?: string
+        }
+        Returns: Json
+      }
+      dp_folga_limite_dia: {
+        Args: {
+          p_cargo: string
+          p_company: string
+          p_data: string
+          p_ignorar_colaborador?: string
+          p_unidade: string
         }
         Returns: Json
       }
