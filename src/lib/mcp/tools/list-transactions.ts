@@ -42,7 +42,13 @@ export default defineTool({
     if (transaction_type) query = query.eq("transaction_type", transaction_type);
     if (status) query = query.eq("status", status);
     const { data, error } = await query;
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    if (error) {
+      console.error("[mcp] query error:", error.message);
+      return {
+        content: [{ type: "text", text: "Não foi possível consultar os dados agora." }],
+        isError: true,
+      };
+    }
     const rows = data ?? [];
     const entradas = rows
       .filter((r) => r.transaction_type === "entrada")

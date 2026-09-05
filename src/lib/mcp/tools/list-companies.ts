@@ -14,7 +14,13 @@ export default defineTool({
       .from("companies")
       .select("id, name, trade_name, cnpj, is_active, profile_type, cidade, uf")
       .order("name");
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    if (error) {
+      console.error("[mcp] query error:", error.message);
+      return {
+        content: [{ type: "text", text: "Não foi possível consultar os dados agora." }],
+        isError: true,
+      };
+    }
     return {
       content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
       structuredContent: { companies: data ?? [] },

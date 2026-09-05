@@ -13,9 +13,14 @@
 //   variables?: Record<string,string>,      // valores globais
 // }
 
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
+import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
+import {
+  callerClient,
+  canAdminister,
+  requireCompanyAccess,
+  requireUser,
+} from "../_shared/authz.ts";
 
 const BodySchema = z.object({
   company_id: z.string().uuid(),
@@ -29,27 +34,26 @@ const BodySchema = z.object({
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
+    const user = await requireUser(req);
+    if (!user) return jsonError(req, "unauthorized");
 
     const parsed = BodySchema.safeParse(await req.json());
-    if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
+    if (!parsed.success) return jsonError(req, "invalid_input", parsed.error.flatten().fieldErrors);
     const { company_id, canal, assunto, corpo, colaborador_ids, variables } = parsed.data;
 
-    const url = Deno.env.get("SUPABASE_URL")!;
-    const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(url, anon, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const access = await requireCompanyAccess(user.id, company_id);
+    if (!access || !canAdminister(access)) return jsonError(req, "forbidden");
+
+    const supabase = callerClient(user.token);
 
     const { data: colabs, error } = await supabase
       .from("dp_colaboradores")
       .select("id, user_id, nome, email, email_portal, email_contato, whatsapp, telefone")
       .in("id", colaborador_ids)
       .eq("company_id", company_id);
-    if (error) return json({ error: error.message }, 400);
+    if (error) return jsonError(req, "invalid_input", error.message);
 
     const substitute = (tpl: string, extra: Record<string, string>) => {
       const vars: Record<string, string> = { ...variables, ...extra };
@@ -66,7 +70,7 @@ Deno.serve(async (req) => {
     }));
     if (rows.length > 0) {
       const { error: msgErr } = await supabase.from("dp_mensagens").insert(rows);
-      if (msgErr) return json({ error: msgErr.message }, 400);
+      if (msgErr) return jsonError(req, "invalid_input", msgErr.message);
     }
 
     // Enviar por e-mail se aplicável e se Resend estiver configurado
@@ -94,7 +98,8 @@ Deno.serve(async (req) => {
           });
           if (!r.ok) {
             const txt = await r.text();
-            results.push({ id: c.id, error: txt, status: r.status });
+            console.error("[dp-send-broadcast] resend:", r.status, txt);
+            results.push({ id: c.id, error: "envio_falhou", status: r.status });
           } else {
             results.push({ id: c.id, sent: true });
           }
@@ -106,15 +111,10 @@ Deno.serve(async (req) => {
       results.push({ note: `Canal ${canal} apenas persistido em dp_mensagens (integração externa não configurada).` });
     }
 
-    return json({ total: rows.length, results });
+    return jsonResponse(req, 200, { total: rows.length, results });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    return jsonError(req, "internal", e);
   }
 });
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
+

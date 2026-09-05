@@ -71,7 +71,13 @@ var list_companies_default = defineTool({
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
     const { data, error } = await supabase.from("companies").select("id, name, trade_name, cnpj, is_active, profile_type, cidade, uf").order("name");
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    if (error) {
+      console.error("[mcp] query error:", error.message);
+      return {
+        content: [{ type: "text", text: "N\xE3o foi poss\xEDvel consultar os dados agora." }],
+        isError: true
+      };
+    }
     return {
       content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
       structuredContent: { companies: data ?? [] }
@@ -98,7 +104,13 @@ var list_accounts_default = defineTool2({
     if (company_id) query = query.eq("company_id", company_id);
     if (context) query = query.eq("context", context);
     const { data, error } = await query;
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    if (error) {
+      console.error("[mcp] query error:", error.message);
+      return {
+        content: [{ type: "text", text: "N\xE3o foi poss\xEDvel consultar os dados agora." }],
+        isError: true
+      };
+    }
     const rows = data ?? [];
     const total = rows.reduce((sum, r) => sum + Number(r.current_balance ?? 0), 0);
     return {
@@ -139,7 +151,13 @@ var list_transactions_default = defineTool3({
     if (transaction_type) query = query.eq("transaction_type", transaction_type);
     if (status) query = query.eq("status", status);
     const { data, error } = await query;
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    if (error) {
+      console.error("[mcp] query error:", error.message);
+      return {
+        content: [{ type: "text", text: "N\xE3o foi poss\xEDvel consultar os dados agora." }],
+        isError: true
+      };
+    }
     const rows = data ?? [];
     const entradas = rows.filter((r) => r.transaction_type === "entrada").reduce((s, r) => s + Number(r.amount ?? 0), 0);
     const saidas = rows.filter((r) => r.transaction_type === "saida").reduce((s, r) => s + Number(r.amount ?? 0), 0);
@@ -172,7 +190,13 @@ var list_colaboradores_default = defineTool4({
     ).eq("company_id", company_id).is("deleted_at", null).order("nome").limit(limit ?? 100);
     if (apenas_ativos !== false) query = query.eq("ativo", true);
     const { data, error } = await query;
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    if (error) {
+      console.error("[mcp] query error:", error.message);
+      return {
+        content: [{ type: "text", text: "N\xE3o foi poss\xEDvel consultar os dados agora." }],
+        isError: true
+      };
+    }
     return {
       content: [{ type: "text", text: JSON.stringify({ count: data?.length ?? 0, colaboradores: data ?? [] }, null, 2) }],
       structuredContent: { count: data?.length ?? 0, colaboradores: data ?? [] }

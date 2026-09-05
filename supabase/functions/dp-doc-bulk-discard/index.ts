@@ -4,6 +4,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireCompanyAccess, requireUser } from "../_shared/authz.ts";
 import { z } from "npm:zod@3";
 
 const BUCKET = "dp-bulk-import";
@@ -18,8 +19,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
+    const user = await requireUser(req);
+    if (!user) return json({ error: "Não autenticado" }, 401);
+    const authHeader = `Bearer ${user.token}`;
 
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
@@ -33,6 +35,9 @@ Deno.serve(async (req) => {
 
     if (parsed.data.cleanup_abandoned) {
       if (!parsed.data.company_id) return json({ error: "company_id obrigatório" }, 400);
+      if (!(await requireCompanyAccess(user.id, parsed.data.company_id))) {
+        return json({ error: "Sem permissão para esta operação." }, 403);
+      }
       const cutoff = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
 
       const { data: batches, error: listErr } = await userClient
@@ -42,7 +47,10 @@ Deno.serve(async (req) => {
         .in("status", ["ready", "failed", "processing"])
         .lt("created_at", cutoff)
         .limit(25);
-      if (listErr) return json({ error: listErr.message }, 500);
+      if (listErr) {
+        console.error("[dp-doc-bulk-discard]", listErr.message);
+        return json({ error: "Não foi possível concluir a operação." }, 500);
+      }
 
       let removed = 0;
       for (const batch of batches ?? []) {
@@ -60,8 +68,14 @@ Deno.serve(async (req) => {
       .select("id, company_id, source_file_path, status")
       .eq("id", parsed.data.batch_id)
       .maybeSingle();
-    if (bErr) return json({ error: bErr.message }, 500);
+    if (bErr) {
+      console.error("[dp-doc-bulk-discard]", bErr.message);
+      return json({ error: "Não foi possível concluir a operação." }, 500);
+    }
     if (!batch) return json({ error: "Lote não encontrado" }, 404);
+    if (!(await requireCompanyAccess(user.id, String(batch.company_id)))) {
+      return json({ error: "Sem permissão para esta operação." }, 403);
+    }
 
     const didRemove = await discardBatchIfTemporary(userClient, svc, batch);
     if (!didRemove) {
@@ -70,7 +84,8 @@ Deno.serve(async (req) => {
 
     return json({ ok: true });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    console.error("[dp-doc-bulk-discard] fatal:", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });
 

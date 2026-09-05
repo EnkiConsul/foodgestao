@@ -8,6 +8,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireCompanyAccess, requireUser } from "../_shared/authz.ts";
 import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
 import { z } from "npm:zod@3";
 
@@ -19,8 +20,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
+    const user = await requireUser(req);
+    if (!user) return json({ error: "Não autenticado" }, 401);
+    const authHeader = `Bearer ${user.token}`;
 
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
@@ -39,7 +41,13 @@ Deno.serve(async (req) => {
       .select("*, dp_colaboradores(nome, cpf, matricula, cargo)")
       .eq("id", parsed.data.registro_id)
       .maybeSingle();
-    if (regErr || !reg) return json({ error: regErr?.message ?? "Registro não encontrado" }, 404);
+    if (regErr || !reg) {
+      if (regErr) console.error("[dp-generate-disciplinary-pdf] read:", regErr.message);
+      return json({ error: "Registro não encontrado" }, 404);
+    }
+    if (!(await requireCompanyAccess(user.id, String(reg.company_id)))) {
+      return json({ error: "Sem permissão para esta operação." }, 403);
+    }
 
     // Empresa (nome no cabeçalho)
     const supabaseSvc = createClient(url, service);
@@ -125,7 +133,10 @@ Deno.serve(async (req) => {
     const up = await supabaseSvc.storage.from(BUCKET).upload(path, bytes, {
       contentType: "application/pdf", upsert: true,
     });
-    if (up.error) return json({ error: up.error.message }, 500);
+    if (up.error) {
+      console.error("[dp-generate-disciplinary-pdf]", up.error.message);
+      return json({ error: "Não foi possível concluir a operação." }, 500);
+    }
 
     await supabaseSvc.from("dp_registros_disciplinares")
       .update({ pdf_storage_path: path }).eq("id", reg.id);
@@ -134,7 +145,8 @@ Deno.serve(async (req) => {
 
     return json({ path, signed_url: signed.data?.signedUrl });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    console.error("[dp-generate-disciplinary-pdf] fatal:", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });
 

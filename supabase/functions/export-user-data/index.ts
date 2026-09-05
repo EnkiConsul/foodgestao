@@ -69,12 +69,14 @@ Deno.serve(async (req) => {
       try {
         const { data, error } = await admin.from(t).select("*").eq("user_id", userId);
         if (error) {
-          result[t] = { error: error.message };
+          console.error("[export-user-data]", t, error.message);
+          result[t] = { error: "falha_ao_exportar" };
         } else {
           result[t] = data ?? [];
         }
       } catch (e) {
-        result[t] = { error: e instanceof Error ? e.message : "unknown" };
+        console.error("[export-user-data]", t, e);
+        result[t] = { error: "falha_ao_exportar" };
       }
     }
 
@@ -104,6 +106,7 @@ Deno.serve(async (req) => {
 
     return json(result, 200);
   } catch (e) {
-    return json({ error: e instanceof Error ? e.message : "Erro interno" }, 500);
+    console.error("[export-user-data] fatal:", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });

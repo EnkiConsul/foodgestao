@@ -85,7 +85,8 @@ Se não houver dados suficientes para algum tipo, gere um insight genérico orie
     return json({ insights });
   } catch (e) {
     console.error("360-ia-insights error", e);
-    return json({ error: (e as Error).message || "Internal error" }, 500);
+    console.error("[plin-ia-insights] fatal:", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });
 

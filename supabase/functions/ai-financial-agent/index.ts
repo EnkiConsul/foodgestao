@@ -153,10 +153,15 @@ Deno.serve(async (req) => {
       },
     });
 
-    return result.toUIMessageStreamResponse({ headers: corsHeaders });
+    const streamed = result.toUIMessageStreamResponse();
+    for (const [key, value] of Object.entries(corsHeaders)) {
+      streamed.headers.set(key, value);
+    }
+    return streamed;
   } catch (e) {
     console.error("360-ia error", e);
-    return json({ error: (e as Error).message || "Internal error" }, 500);
+    console.error("[ai-financial-agent] fatal:", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });
 
@@ -181,67 +186,80 @@ function buildTools(
 
   const call = async (fn: string, args: Record<string, unknown>) => {
     const { data, error } = await sb.rpc(fn, { ...base, ...args });
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("[ai-financial-agent] rpc", fn, error.message);
+      return { error: "Não foi possível consultar os dados agora." };
+    }
     return { data };
   };
+
+  const periodSchema = z.object({ from: dateOpt, to: dateOpt });
+  const periodTypeSchema = z.object({ from: dateOpt, to: dateOpt, type: typeOpt });
+  const daysSchema = z.object({ days: z.number().int().min(1).max(90).optional() });
+  const monthsSchema = z.object({ months: z.number().int().min(1).max(24).optional() });
+  const emptySchema = z.object({});
+  const searchSchema = z.object({
+    from: dateOpt,
+    to: dateOpt,
+    type: typeOpt,
+    status: z.enum(["pendente", "confirmado", "cancelado"]).optional(),
+    account_id: z.string().uuid().optional(),
+    category_id: z.string().uuid().optional(),
+    contact_id: z.string().uuid().optional(),
+    min: z.number().optional(),
+    max: z.number().optional(),
+    query: z.string().optional().describe("Trecho de texto para buscar na descrição"),
+    limit: z.number().int().min(1).max(50).optional(),
+  });
+  type Period = z.infer<typeof periodSchema>;
+  type PeriodType = z.infer<typeof periodTypeSchema>;
+  type Search = z.infer<typeof searchSchema>;
 
   return {
     plin_ia_summary: tool({
       description: "Resumo financeiro do período: receitas, despesas, saldo líquido, quantidade de lançamentos pendentes e vencidos. Padrão: mês atual.",
-      inputSchema: z.object({ from: dateOpt, to: dateOpt }),
-      execute: (a) => call("plin_ia_summary", { _from: a.from ?? null, _to: a.to ?? null }),
+      inputSchema: periodSchema,
+      execute: (a: Period) => call("plin_ia_summary", { _from: a.from ?? null, _to: a.to ?? null }),
     }),
     plin_ia_by_account: tool({
       description: "Totais agrupados por conta bancária (ex.: Nubank, Caixa) no período. Use quando o usuário citar um banco/conta ou pedir comparação entre contas.",
-      inputSchema: z.object({ from: dateOpt, to: dateOpt, type: typeOpt }),
-      execute: (a) => call("plin_ia_by_account", { _from: a.from ?? null, _to: a.to ?? null, _type: a.type ?? null }),
+      inputSchema: periodTypeSchema,
+      execute: (a: PeriodType) => call("plin_ia_by_account", { _from: a.from ?? null, _to: a.to ?? null, _type: a.type ?? null }),
     }),
     plin_ia_by_category: tool({
       description: "Totais por categoria no período. Use para 'onde gastei mais', ranking de categorias, etc.",
-      inputSchema: z.object({ from: dateOpt, to: dateOpt, type: typeOpt }),
-      execute: (a) => call("plin_ia_by_category", { _from: a.from ?? null, _to: a.to ?? null, _type: a.type ?? null }),
+      inputSchema: periodTypeSchema,
+      execute: (a: PeriodType) => call("plin_ia_by_category", { _from: a.from ?? null, _to: a.to ?? null, _type: a.type ?? null }),
     }),
     plin_ia_by_contact: tool({
       description: "Totais por cliente/fornecedor no período.",
-      inputSchema: z.object({ from: dateOpt, to: dateOpt, type: typeOpt }),
-      execute: (a) => call("plin_ia_by_contact", { _from: a.from ?? null, _to: a.to ?? null, _type: a.type ?? null }),
+      inputSchema: periodTypeSchema,
+      execute: (a: PeriodType) => call("plin_ia_by_contact", { _from: a.from ?? null, _to: a.to ?? null, _type: a.type ?? null }),
     }),
     plin_ia_upcoming: tool({
       description: "Lista lançamentos pendentes com vencimento nos próximos N dias (padrão 7).",
-      inputSchema: z.object({ days: z.number().int().min(1).max(90).optional() }),
-      execute: (a) => call("plin_ia_upcoming", { _days: a.days ?? 7 }),
+      inputSchema: daysSchema,
+      execute: (a: z.infer<typeof daysSchema>) => call("plin_ia_upcoming", { _days: a.days ?? 7 }),
     }),
     plin_ia_overdue: tool({
       description: "Lista lançamentos vencidos ainda em aberto.",
-      inputSchema: z.object({}),
+      inputSchema: emptySchema,
       execute: () => call("plin_ia_overdue", {}),
     }),
     plin_ia_cashflow: tool({
       description: "Série mensal de receitas/despesas/saldo dos últimos N meses (padrão 6).",
-      inputSchema: z.object({ months: z.number().int().min(1).max(24).optional() }),
-      execute: (a) => call("plin_ia_cashflow", { _months: a.months ?? 6 }),
+      inputSchema: monthsSchema,
+      execute: (a: z.infer<typeof monthsSchema>) => call("plin_ia_cashflow", { _months: a.months ?? 6 }),
     }),
     plin_ia_accounts_balance: tool({
       description: "Saldos atuais de todas as contas bancárias ativas.",
-      inputSchema: z.object({}),
+      inputSchema: emptySchema,
       execute: () => call("plin_ia_accounts_balance", {}),
     }),
     plin_ia_search_transactions: tool({
       description: "Busca lançamentos com filtros combináveis (período, tipo, status, conta, categoria, contato, faixa de valor, texto). Máx 50 resultados.",
-      inputSchema: z.object({
-        from: dateOpt,
-        to: dateOpt,
-        type: typeOpt,
-        status: z.enum(["pendente", "confirmado", "cancelado"]).optional(),
-        account_id: z.string().uuid().optional(),
-        category_id: z.string().uuid().optional(),
-        contact_id: z.string().uuid().optional(),
-        min: z.number().optional(),
-        max: z.number().optional(),
-        query: z.string().optional().describe("Trecho de texto para buscar na descrição"),
-        limit: z.number().int().min(1).max(50).optional(),
-      }),
-      execute: (a) => call("plin_ia_search_transactions", {
+      inputSchema: searchSchema,
+      execute: (a: Search) => call("plin_ia_search_transactions", {
         _from: a.from ?? null, _to: a.to ?? null,
         _type: a.type ?? null, _status: a.status ?? null,
         _account_id: a.account_id ?? null, _category_id: a.category_id ?? null, _contact_id: a.contact_id ?? null,
