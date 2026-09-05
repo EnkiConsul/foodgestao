@@ -19,7 +19,8 @@ const COLUNAS =
   "id, company_id, unidade_id, setor_comercio, modo_frequencia_domingo, periodicidade_domingo, domingos_por_mes, " +
   "modo_frequencia_domingo_mulher, periodicidade_domingo_mulher, domingos_por_mes_mulher, " +
   "regra_dsr, exige_validacao_menor, tipo_descanso_domingo, dias_descanso_negociados, negociacao_id, folgas_fds_por_mes, " +
-  "troca_folga_modo, troca_folga_escopo";
+  "troca_folga_modo, troca_folga_escopo, folga_janela_ativa, folga_janela_abre_dia, " +
+  "folga_janela_fecha_dia, folga_autoatribuir";
 
 const asModo = (v: unknown): ModoFrequencia => (v === "por_mes" ? "por_mes" : "semanas");
 
@@ -43,6 +44,10 @@ function mapRow(data: Record<string, unknown>): ConfigRow {
     folgas_fds_por_mes: Number(data.folgas_fds_por_mes ?? 1),
     troca_folga_modo: (data.troca_folga_modo ?? "aprovacao_admin") as DpConfigDpForm["troca_folga_modo"],
     troca_folga_escopo: (data.troca_folga_escopo ?? "ambas") as DpConfigDpForm["troca_folga_escopo"],
+    folga_janela_ativa: data.folga_janela_ativa === true,
+    folga_janela_abre_dia: Number(data.folga_janela_abre_dia ?? 10),
+    folga_janela_fecha_dia: Number(data.folga_janela_fecha_dia ?? 20),
+    folga_autoatribuir: data.folga_autoatribuir !== false,
   };
 }
 

@@ -90,6 +90,14 @@ export interface DpConfigDp {
   troca_folga_modo: TrocaFolgaModo;
   /** Folgas sobre as quais a troca é permitida. */
   troca_folga_escopo: TrocaFolgaEscopo;
+  /** Usa a janela mensal de escolha das folgas? */
+  folga_janela_ativa: boolean;
+  /** Dia do mês em que a marcação abre (1 a 28). */
+  folga_janela_abre_dia: number;
+  /** Dia do mês em que a marcação encerra (1 a 28). */
+  folga_janela_fecha_dia: number;
+  /** Após o encerramento, distribui automaticamente quem não escolheu. */
+  folga_autoatribuir: boolean;
 }
 
 export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id" | "unidade_id"> = {
@@ -108,6 +116,10 @@ export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id" | "unidade_id">
   folgas_fds_por_mes: 1,
   troca_folga_modo: "aprovacao_admin",
   troca_folga_escopo: "ambas",
+  folga_janela_ativa: false,
+  folga_janela_abre_dia: 10,
+  folga_janela_fecha_dia: 20,
+  folga_autoatribuir: true,
 };
 
 
