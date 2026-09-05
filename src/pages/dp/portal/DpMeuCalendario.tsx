@@ -680,6 +680,19 @@ export default function DpMeuCalendario() {
             Escolha suas folgas de fim de semana.
           </p>
           <p className="text-xs text-muted-foreground mt-1">{resumoFolgas.texto}</p>
+          {avisoJanela && (
+            <div
+              className={cn(
+                "mt-3 flex items-start gap-2 rounded-xl border px-3 py-2 text-xs font-medium",
+                janela.estado === "aberta"
+                  ? "border-emerald-200 bg-emerald-500/10 text-emerald-700"
+                  : "border-amber-200 bg-amber-500/10 text-amber-700",
+              )}
+            >
+              <AlertCircle className="size-4 shrink-0" />
+              <span>{avisoJanela}</span>
+            </div>
+          )}
         </div>
 
         <Button
