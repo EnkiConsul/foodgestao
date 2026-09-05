@@ -1089,15 +1089,25 @@ export default function DpFolgas() {
                 </div>
               )}
 
-              {selectedIsWeekend && (
+              {selectedDay && (
                 <div className="space-y-3 rounded-2xl border bg-muted/30 p-5">
                   <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                    <Settings2 className="h-3.5 w-3.5" /> Configuração do Dia
+                    <Settings2 className="h-3.5 w-3.5" /> Quantas Pessoas Podem Folgar
                   </h3>
+                  {(() => {
+                    const res = limiteByDay.get(format(selectedDay, "yyyy-MM-dd"));
+                    return (
+                      <p className="text-[11px] text-muted-foreground">
+                        {res?.limite != null
+                          ? `Hoje o limite é ${res.limite} ${res.limite === 1 ? "pessoa" : "pessoas"} em folga — ${origemLimiteLabel(res.origem).toLowerCase()}.`
+                          : "Nenhum limite para este dia. Cadastre uma regra fixa em Folgas > Regras ou informe uma exceção abaixo."}
+                      </p>
+                    );
+                  })()}
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <Label className="mb-1.5 block text-[10px] font-bold text-muted-foreground">
-                        Limite de colaboradores
+                        Exceção só para esta data
                       </Label>
                       <Input
                         type="number"
@@ -1117,9 +1127,10 @@ export default function DpFolgas() {
                       {salvarLimite.isPending ? "..." : "Salvar"}
                     </Button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">0 = sem limite (livre).</p>
+                  <p className="text-[11px] text-muted-foreground">0 = ninguém pode folgar neste dia.</p>
                 </div>
               )}
+
 
               <div className="space-y-3">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
