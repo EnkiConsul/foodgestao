@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  conflitoColaboradores,
+  diasPermitidosParaLimite,
   resolverLimiteFolga,
   resumoRegraLimite,
   type RegraLimiteFolga,
@@ -7,6 +9,8 @@ import {
 
 const base: RegraLimiteFolga = {
   id: "r1",
+  tipo: "quantidade",
+  nome: null,
   unidade_id: null,
   dia_semana: null,
   maximo: 3,
@@ -14,7 +18,9 @@ const base: RegraLimiteFolga = {
   vigencia_fim: null,
   ativo: true,
   cargo_ids: [],
+  colaborador_ids: [],
 };
+
 
 describe("resolverLimiteFolga", () => {
   it("devolve sem limite quando não há regra nem exceção", () => {
