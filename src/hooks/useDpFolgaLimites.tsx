@@ -4,6 +4,8 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { RegraLimiteFolga, TipoRegraFolga } from "@/lib/dp/folga-limites";
 
 export type RegraLimiteInput = {
+  /** Identificador temporário usado no modo rascunho do formulário de unidade. */
+  clientId?: string;
   id?: string;
   tipo: TipoRegraFolga;
   nome: string | null;
@@ -16,6 +18,7 @@ export type RegraLimiteInput = {
   cargo_ids: string[];
   colaborador_ids: string[];
 };
+
 
 /**
  * Cadastro único das regras de folga (quantidade, cargo e quem não folga junto).
