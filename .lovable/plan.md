@@ -29,7 +29,7 @@ Folgas > Regras
 
 ## Dentro da janela
 
-Mesmos campos de hoje, na mesma ordem, com rodapé fixo ("Cancelar" / "Salvar regras"):
+Mesmos campos de hoje, com o nome da unidade fixo no cabeçalho da janela (para não precisar rolar para lembrar qual unidade está sendo editada) e rodapé fixo ("Cancelar" / "Salvar regras"):
 
 1. Base da regra de folgas (CLT, convenção/acordo, política própria) e dias de descanso negociados
 2. Frequência da folga de descanso (DSR), com os rótulos que já se adaptam a sábado + domingo
