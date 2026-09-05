@@ -125,9 +125,10 @@ export function resolverLimiteFolga(params: {
 
 /** Frase curta para exibir a regra na lista de cadastro. */
 export function resumoRegraLimite(
-  regra: RegraLimiteFolga,
+  regra: RegraLimiteFolgaBase,
   nomes: { unidade?: string | null; cargos?: string[]; colaboradores?: string[] } = {},
 ): string {
+
   const escopo = nomes.unidade ?? "Unidade";
   const dia =
     regra.dia_semana === null
