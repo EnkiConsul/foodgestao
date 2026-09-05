@@ -621,11 +621,21 @@ export function FolgaRegrasPanel({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={excluir.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={rascunho ? false : excluir.isPending}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
                 if (!excluirId) return;
+                if (rascunho) {
+                  onChangeRascunho?.(
+                    regrasRascunho.filter((item) => (item.clientId ?? item.id) !== excluirId),
+                  );
+                  toast.success("Regra removida do rascunho");
+                  setExcluirId(null);
+                  return;
+                }
                 excluir.mutate(excluirId, {
                   onSuccess: () => {
                     toast.success("Regra excluída");
@@ -637,13 +647,14 @@ export function FolgaRegrasPanel({
                     }),
                 });
               }}
-              disabled={excluir.isPending}
+              disabled={rascunho ? false : excluir.isPending}
             >
-              {excluir.isPending ? "Excluindo..." : "Excluir"}
+              {rascunho ? "Excluir" : excluir.isPending ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }
