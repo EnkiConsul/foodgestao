@@ -830,7 +830,8 @@ export default function DpFolgas() {
                               : "bg-emerald-100 text-emerald-700",
                           )}
                         >
-                          {aprov}/{cap}
+                          {aprov}{cap != null ? `/${cap}` : ""}
+
                         </span>
                       )}
                     </div>
