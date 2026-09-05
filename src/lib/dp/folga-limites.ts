@@ -18,7 +18,8 @@ export type RegraLimiteFolga = {
   id: string;
   tipo: TipoRegraFolga;
   nome: string | null;
-  unidade_id: string | null;
+  /** Toda regra pertence a uma unidade. */
+  unidade_id: string;
   /** null = vale para todos os dias da semana. */
   dia_semana: number | null;
   maximo: number;
@@ -30,6 +31,7 @@ export type RegraLimiteFolga = {
   /** Pessoas que não podem folgar no mesmo dia (tipo `colaboradores`). */
   colaborador_ids: string[];
 };
+
 
 
 export type LimiteDiaConfig = {
