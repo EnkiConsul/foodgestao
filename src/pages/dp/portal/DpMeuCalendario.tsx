@@ -163,7 +163,7 @@ export default function DpMeuCalendario() {
         _unidade: myUnidade ?? undefined,
       });
       if (error) throw error;
-      return (data ?? null) as JanelaRemota | null;
+      return (data ?? null) as unknown as JanelaRemota | null;
     },
   });
 
