@@ -12,8 +12,16 @@ function json(body: Record<string, unknown>, status = 200) {
   })
 }
 
+type EmailLogClient = {
+  from: (table: string) => {
+    insert: (
+      row: Record<string, unknown>,
+    ) => PromiseLike<{ error: { code?: string; message: string } | null }>
+  }
+}
+
 async function logSend(
-  supabase: ReturnType<typeof createClient>,
+  supabase: EmailLogClient,
   recipient: string,
   status: 'sent' | 'suppressed' | 'failed',
   errorMessage?: string,
