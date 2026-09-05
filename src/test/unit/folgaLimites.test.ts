@@ -111,3 +111,73 @@ describe("resumoRegraLimite", () => {
     expect(resumoRegraLimite(base)).toBe("Toda a empresa, todos os dias, qualquer cargo: no máximo 3 em folga");
   });
 });
+
+describe("regras de tipo colaboradores", () => {
+  const dupla: RegraLimiteFolga = {
+    ...base,
+    id: "d1",
+    tipo: "colaboradores",
+    maximo: 0,
+    colaborador_ids: ["hanna", "sara"],
+  };
+
+  it("não interfere no limite de quantidade", () => {
+    const r = resolverLimiteFolga({ data: "2026-09-12", regras: [dupla] });
+    expect(r.origem).toBe("sem_limite");
+  });
+
+  it("aponta o colega quando o outro já está de folga no dia", () => {
+    const c = conflitoColaboradores({
+      data: "2026-09-13",
+      colaboradorId: "hanna",
+      regras: [dupla],
+      emFolgaNaData: ["sara", "joao"],
+    });
+    expect(c?.colaboradorId).toBe("sara");
+  });
+
+  it("libera quando ninguém da regra está de folga", () => {
+    expect(
+      conflitoColaboradores({
+        data: "2026-09-13",
+        colaboradorId: "hanna",
+        regras: [dupla],
+        emFolgaNaData: ["joao"],
+      }),
+    ).toBeNull();
+  });
+
+  it("respeita dia da semana e unidade da regra", () => {
+    const soSabadoU1 = { ...dupla, dia_semana: 6, unidade_id: "u1" };
+    expect(
+      conflitoColaboradores({
+        data: "2026-09-13", // domingo
+        colaboradorId: "hanna",
+        unidadeId: "u1",
+        regras: [soSabadoU1],
+        emFolgaNaData: ["sara"],
+      }),
+    ).toBeNull();
+    expect(
+      conflitoColaboradores({
+        data: "2026-09-12", // sábado
+        colaboradorId: "hanna",
+        unidadeId: "u2",
+        regras: [soSabadoU1],
+        emFolgaNaData: ["sara"],
+      }),
+    ).toBeNull();
+  });
+
+  it("descreve a regra de pessoas em linguagem simples", () => {
+    expect(
+      resumoRegraLimite(dupla, { colaboradores: ["Hanna", "Sara"] }),
+    ).toBe("Hanna e Sara não folgam no mesmo dia (toda a empresa, todos os dias)");
+  });
+});
+
+describe("diasPermitidosParaLimite", () => {
+  it("ordena, remove repetidos e descarta inválidos", () => {
+    expect(diasPermitidosParaLimite([6, 0, 6, 9, -1])).toEqual([0, 6]);
+  });
+});
