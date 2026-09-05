@@ -658,6 +658,18 @@ export default function DpMeuCalendario() {
     return { date, isWeekend, occupants, isMine, canTrade };
   }, [selectedDay, occupantsByDate, meRef.data?.id, minhasFolgasFuturas]);
 
+  /** A folga do dia selecionado foi definida pelo sistema no fechamento do período? */
+  const minhaFolgaAutomatica = useMemo(() => {
+    if (!selectedDay || !meRef.data?.id) return false;
+    return folgas.some(
+      (f) =>
+        f.colaborador_id === meRef.data!.id &&
+        f.data === selectedDay.iso &&
+        f.status !== "cancelada" &&
+        f.origem === "auto_fechamento_periodo",
+    );
+  }, [selectedDay, folgas, meRef.data?.id]);
+
   const showExceptionBtn =
     selectedDay &&
     !["past", "mine", "fixed", "pending", "swapped", "weekday"].includes(selectedDay.status);
@@ -857,6 +869,11 @@ export default function DpMeuCalendario() {
                 {selectedDay.status === "available" && !dayInfo.isWeekend && (
                   <p className="text-xs text-muted-foreground">
                     Somente fins de semana podem ser marcados diretamente. Use "Solicitar exceção" para outros dias.
+                  </p>
+                )}
+                {selectedDay.status === "mine" && minhaFolgaAutomatica && (
+                  <p className="rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
+                    Folga definida automaticamente porque você não escolheu no período de marcação.
                   </p>
                 )}
                 {selectedDay.status === "mine" && (
