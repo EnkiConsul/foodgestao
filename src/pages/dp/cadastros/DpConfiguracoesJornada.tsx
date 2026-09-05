@@ -27,6 +27,7 @@ import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
 import { useSindicatoContextoUnidade } from "@/hooks/useSindicatoContextoUnidade";
 import { MenosProtetivaBadge } from "@/components/dp/MenosProtetivaBadge";
 import { SalvarRegrasDialog } from "@/components/dp/SalvarRegrasDialog";
+import { FolgaLimitesPanel } from "@/components/dp/folgas/FolgaLimitesPanel";
 import {
   DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo, isMenosProtetiva,
   semanasDaConfig, MODO_FREQUENCIA_LABEL, DIA_SEMANA_CURTO, ORDEM_DIAS_SEG_DOM,
@@ -658,6 +659,12 @@ export default function DpConfiguracoesJornada() {
             </div>
           </div>
         </SubSection>
+
+        <Separator />
+
+        <FolgaLimitesPanel />
+
+
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
           <p className="text-xs text-muted-foreground">

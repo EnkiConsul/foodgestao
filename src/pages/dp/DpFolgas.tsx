@@ -55,6 +55,12 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpFolgasQueries } from "@/hooks/useDpFolgasQueries";
+import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
+import {
+  origemLimiteLabel,
+  resolverLimiteFolga,
+  type LimiteResolvido,
+} from "@/lib/dp/folga-limites";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -375,6 +381,10 @@ export default function DpFolgas() {
     folgasQuery,
   } = useDpFolgasQueries({ cursor, rangeStart, rangeEnd, unidadeFilter, colabFilter, tipoFilter });
 
+  const { regras: regrasLimite } = useDpFolgaLimites();
+
+
+
 
   const days = useMemo(
     () => eachDayOfInterval({ start: rangeStart, end: rangeEnd }),
@@ -460,14 +470,32 @@ export default function DpFolgas() {
     return map;
   }, [query.data, folgasQuery.data, tipoFilter, colabs.data, unidadeFilter, colabFilter, days, rangeStart, rangeEnd]);
 
-  const capacityByDay = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const c of diaConfigQuery.data ?? []) {
-      const cur = map.get(c.data) ?? 0;
-      map.set(c.data, cur + (c.limite_folgas ?? 0));
+  /** Limite efetivo de pessoas em folga por dia: exceção da data ou regra fixa cadastrada. */
+  const limiteByDay = useMemo(() => {
+    const map = new Map<string, LimiteResolvido>();
+    for (const d of days) {
+      const key = format(d, "yyyy-MM-dd");
+      map.set(
+        key,
+        resolverLimiteFolga({
+          data: key,
+          unidadeId: unidadeFilter !== "todas" ? unidadeFilter : null,
+          regras: regrasLimite,
+          diaConfig: diaConfigQuery.data ?? [],
+        }),
+      );
     }
     return map;
-  }, [diaConfigQuery.data]);
+  }, [days, unidadeFilter, regrasLimite, diaConfigQuery.data]);
+
+  const capacityByDay = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const [key, res] of limiteByDay) {
+      if (res.limite != null) map.set(key, res.limite);
+    }
+    return map;
+  }, [limiteByDay]);
+
 
   const blockedByDate = useMemo(() => {
     type BlockInfo = {
@@ -544,21 +572,23 @@ export default function DpFolgas() {
     return m;
   }, [datasBloqueadasQuery.data, regrasBloqueioQuery.data, unidadeFilter, rangeStart, rangeEnd, unidadesQuery.data]);
 
-  const defaultDailyCap = 1;
-
-
-
-  // Stats do mês corrente (dias dentro do mês)
+  // Stats do mês corrente (dias dentro do mês). Dias sem limite cadastrado
+  // não entram na capacidade — o limite passou a ser opcional.
   const stats = useMemo(() => {
     let marcadas = 0;
     let capacidade = 0;
     let lotados = 0;
+    let semLimite = 0;
     for (const d of eachDayOfInterval({ start: monthStart, end: monthEnd })) {
       const key = format(d, "yyyy-MM-dd");
       const evs = eventsByDay.get(key) ?? [];
       const aprov = evs.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
-      const cap = capacityByDay.get(key) ?? defaultDailyCap;
+      const cap = capacityByDay.get(key) ?? null;
       marcadas += aprov;
+      if (cap == null) {
+        semLimite += 1;
+        continue;
+      }
       capacidade += cap;
       if (aprov >= cap && cap > 0) lotados += 1;
     }
@@ -566,9 +596,11 @@ export default function DpFolgas() {
       marcadas,
       capacidade,
       lotados,
+      semLimite,
       restantes: Math.max(0, capacidade - marcadas),
     };
   }, [eventsByDay, capacityByDay, monthStart, monthEnd]);
+
 
   const selectedEvents = selectedDay
     ? eventsByDay.get(format(selectedDay, "yyyy-MM-dd")) ?? []
@@ -752,10 +784,11 @@ export default function DpFolgas() {
                 const events = eventsByDay.get(key) ?? [];
                 const inMonth = isSameMonth(day, cursor);
                 const isToday = isSameDay(day, new Date());
-                const cap = capacityByDay.get(key) ?? defaultDailyCap;
+                const cap = capacityByDay.get(key) ?? null;
                 const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
                 const blocked = blockedByDate.get(key);
-                const lotado = !blocked && cap > 0 && aprov >= cap;
+                const lotado = !blocked && cap != null && cap > 0 && aprov >= cap;
+
                 const parcial = !blocked && aprov > 0 && !lotado;
 
                 return (
@@ -797,7 +830,8 @@ export default function DpFolgas() {
                               : "bg-emerald-100 text-emerald-700",
                           )}
                         >
-                          {aprov}/{cap}
+                          {aprov}{cap != null ? `/${cap}` : ""}
+
                         </span>
                       )}
                     </div>
@@ -843,10 +877,11 @@ export default function DpFolgas() {
                 const key = format(day, "yyyy-MM-dd");
                 const events = eventsByDay.get(key) ?? [];
                 const isToday = isSameDay(day, new Date());
-                const cap = capacityByDay.get(key) ?? defaultDailyCap;
+                const cap = capacityByDay.get(key) ?? null;
                 const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
                 const blocked = blockedByDate.get(key);
-                const lotado = !blocked && cap > 0 && aprov >= cap;
+                const lotado = !blocked && cap != null && cap > 0 && aprov >= cap;
+
                 const parcial = !blocked && aprov > 0 && !lotado;
                 const wd = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][day.getDay()];
                 const hasEvents = events.length > 0 || !!blocked;
@@ -895,7 +930,7 @@ export default function DpFolgas() {
                                 ? "bg-emerald-100 text-emerald-700 border-emerald-200"
                                 : "bg-muted text-muted-foreground border-border",
                           )}>
-                            {aprov}/{cap}
+                            {aprov}{cap != null ? `/${cap}` : ""}
                           </span>
                         )}
                         {events.map((ev) => {
@@ -1054,15 +1089,25 @@ export default function DpFolgas() {
                 </div>
               )}
 
-              {selectedIsWeekend && (
+              {selectedDay && (
                 <div className="space-y-3 rounded-2xl border bg-muted/30 p-5">
                   <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                    <Settings2 className="h-3.5 w-3.5" /> Configuração do Dia
+                    <Settings2 className="h-3.5 w-3.5" /> Quantas Pessoas Podem Folgar
                   </h3>
+                  {(() => {
+                    const res = limiteByDay.get(format(selectedDay, "yyyy-MM-dd"));
+                    return (
+                      <p className="text-[11px] text-muted-foreground">
+                        {res?.limite != null
+                          ? `Hoje o limite é ${res.limite} ${res.limite === 1 ? "pessoa" : "pessoas"} em folga — ${origemLimiteLabel(res.origem).toLowerCase()}.`
+                          : "Nenhum limite para este dia. Cadastre uma regra fixa em Folgas > Regras ou informe uma exceção abaixo."}
+                      </p>
+                    );
+                  })()}
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <Label className="mb-1.5 block text-[10px] font-bold text-muted-foreground">
-                        Limite de colaboradores
+                        Exceção só para esta data
                       </Label>
                       <Input
                         type="number"
@@ -1082,9 +1127,10 @@ export default function DpFolgas() {
                       {salvarLimite.isPending ? "..." : "Salvar"}
                     </Button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">0 = sem limite (livre).</p>
+                  <p className="text-[11px] text-muted-foreground">0 = ninguém pode folgar neste dia.</p>
                 </div>
               )}
+
 
               <div className="space-y-3">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">

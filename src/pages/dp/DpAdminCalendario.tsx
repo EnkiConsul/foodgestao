@@ -551,19 +551,9 @@ export default function DpAdminCalendario() {
     conflitos: { id: string; data: string; tipo: string | null }[];
   } | null>(null);
 
-  /** Cobertura mínima que exige confirmação explícita do gestor. */
-  const [coberturaAlerta, setCoberturaAlerta] = useState<{
-    iso: string;
-    extra: boolean;
-    deleteIds?: string[];
-    mensagem: string;
-    minimo: number | null;
-    capacidade: number | null;
-  } | null>(null);
-
   const insertFolga = async (
     iso: string,
-    opts: { extra: boolean; deleteIds?: string[]; confirmarDeficit?: boolean },
+    opts: { extra: boolean; deleteIds?: string[] },
   ) => {
     // A substituição é atômica no backend: as folgas antigas só são canceladas
     // (nunca apagadas) quando a nova folga é efetivamente criada.
@@ -571,48 +561,45 @@ export default function DpAdminCalendario() {
       p_colaborador_id: assignUser,
       p_data: iso,
       p_extra: opts.extra,
-      p_confirmar_deficit: opts.confirmarDeficit ?? false,
       p_substituir_ids: opts.deleteIds && opts.deleteIds.length > 0 ? opts.deleteIds : undefined,
     });
     if (error) throw error;
 
     const res = (data ?? {}) as {
       ok?: boolean;
-      requer_confirmacao?: boolean;
+      limite_atingido?: boolean;
       mensagem?: string;
-      cobertura?: { minimo?: number | null; capacidade_apos_acao?: number | null };
+      limite?: { limite?: number | null; em_folga?: number | null };
     };
-    if (res.ok === false && res.requer_confirmacao) {
-      setCoberturaAlerta({
-        iso,
-        extra: opts.extra,
-        deleteIds: opts.deleteIds,
-        mensagem: res.mensagem ?? "Esta folga deixará a equipe abaixo da cobertura mínima.",
-        minimo: res.cobertura?.minimo ?? null,
-        capacidade: res.cobertura?.capacidade_apos_acao ?? null,
+    if (res.ok === false && res.limite_atingido) {
+      const max = res.limite?.limite;
+      toast.error(res.mensagem ?? "Limite de pessoas em folga neste dia já foi atingido.", {
+        description:
+          max != null
+            ? `Neste dia só ${max} ${max === 1 ? "pessoa pode" : "pessoas podem"} folgar. Marque como folga extra ou escolha outro dia.`
+            : "Marque como folga extra ou escolha outro dia.",
       });
       return false;
     }
     return true;
   };
 
+
   const atribuirCommit = useMutation({
     mutationFn: async (input: {
       iso: string;
       modo: "force" | "extra" | "substituir";
       conflitoIds?: string[];
-      confirmarDeficit?: boolean;
     }) => {
       return insertFolga(input.iso, {
         extra: input.modo === "extra",
         deleteIds: input.modo === "substituir" ? input.conflitoIds : undefined,
-        confirmarDeficit: input.confirmarDeficit,
       });
     },
     onSuccess: (aplicado, input) => {
       qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
       setConfirmDialog(null);
-      if (!aplicado) return; // aguardando confirmação de cobertura
+      if (!aplicado) return; // limite de folgas do dia atingido
       toast.success(input.modo === "extra" ? "Folga extra atribuída" : "Folga atribuída");
       const colab = colaboradores.find((c: any) => c.id === assignUser);
       if (colab && isSocio(colab.vinculo_label)) {
@@ -628,24 +615,6 @@ export default function DpAdminCalendario() {
     onError: (e: any) => toast.error(e.message ?? "Erro ao atribuir"),
   });
 
-  const confirmarCobertura = useMutation({
-    mutationFn: async () => {
-      if (!coberturaAlerta) return false;
-      return insertFolga(coberturaAlerta.iso, {
-        extra: coberturaAlerta.extra,
-        deleteIds: coberturaAlerta.deleteIds,
-        confirmarDeficit: true,
-      });
-
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
-      toast.success("Folga atribuída com registro da exceção de cobertura");
-      setCoberturaAlerta(null);
-      setAssignUser("");
-    },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao atribuir"),
-  });
 
 
 
@@ -1092,39 +1061,8 @@ export default function DpAdminCalendario() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!coberturaAlerta} onOpenChange={(o) => !o && setCoberturaAlerta(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Equipe abaixo do mínimo</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2 text-sm">
-                <p>{coberturaAlerta?.mensagem}</p>
-                {coberturaAlerta?.minimo != null && (
-                  <p className="text-muted-foreground">
-                    Mínimo definido para o dia: <strong>{coberturaAlerta.minimo}</strong> · Equipe prevista após esta
-                    folga: <strong>{coberturaAlerta.capacidade ?? 0}</strong>
-                  </p>
-                )}
-                <p className="text-muted-foreground">
-                  Se você continuar, a exceção fica registrada no histórico da empresa com o seu nome.
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={confirmarCobertura.isPending}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                confirmarCobertura.mutate();
-              }}
-              disabled={confirmarCobertura.isPending}
-            >
-              {confirmarCobertura.isPending ? "Salvando..." : "Continuar mesmo assim"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
+
 
 
 

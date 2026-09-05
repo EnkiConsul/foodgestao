@@ -25,6 +25,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
+import { resolverLimiteFolga } from "@/lib/dp/folga-limites";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -110,7 +112,7 @@ export default function DpMeuCalendario() {
       if (!data) return null;
       const { data: c } = await supabase
         .from("dp_colaboradores")
-        .select("id, company_id, nome, sexo, regime, domingos_folga_mes, folga_fixa_semana, ativo, unidade_id, vinculo_label")
+        .select("id, company_id, nome, sexo, regime, cargo_id, domingos_folga_mes, folga_fixa_semana, ativo, unidade_id, vinculo_label")
         .eq("id", data)
         .single();
       return c;
@@ -331,6 +333,8 @@ export default function DpMeuCalendario() {
     return m;
   }, [bloqueiosQuery.data, regrasBloqueioQuery.data, myUnidade, range.startDate, range.endDate]);
 
+  const { regras: regrasLimite } = useDpFolgaLimites();
+
   const dayLimits = useMemo(() => {
     const m = new Map<string, number>();
     const rows = [...(diaConfigQuery.data ?? [])] as any[];
@@ -341,8 +345,21 @@ export default function DpMeuCalendario() {
       .forEach((r) => {
         if (!m.has(r.data)) m.set(r.data, r.limite_folgas);
       });
+    // Dias sem exceção herdam a regra fixa cadastrada pela empresa
+    for (const d of eachDayOfInterval({ start: range.startDate, end: range.endDate })) {
+      const iso = ymd(d);
+      if (m.has(iso)) continue;
+      const res = resolverLimiteFolga({
+        data: iso,
+        unidadeId: myUnidade,
+        cargoId: (meRef.data as { cargo_id?: string | null } | undefined)?.cargo_id ?? null,
+        regras: regrasLimite,
+      });
+      if (res.limite != null) m.set(iso, res.limite);
+    }
     return m;
-  }, [diaConfigQuery.data, myUnidade]);
+  }, [diaConfigQuery.data, myUnidade, regrasLimite, range.startDate, range.endDate, meRef.data]);
+
 
   const allFolgasRecords: FolgaRecord[] = useMemo(
     () =>
@@ -507,10 +524,11 @@ export default function DpMeuCalendario() {
       });
       if (error) {
         const raw = error.message ?? "";
-        if (raw.includes("COVERAGE_MINIMUM"))
+        if (raw.includes("FOLGA_LIMITE_DIA"))
           throw new Error(
-            "Neste dia a equipe ficaria abaixo da cobertura mínima. Fale com o DP para avaliar uma exceção.",
+            "Neste dia já foi atingido o número de pessoas que podem folgar. Escolha outro dia ou fale com o DP.",
           );
+
         if (raw.includes("DUPLICATE_REQUEST"))
           throw new Error("Você já tem uma solicitação pendente para este dia.");
         if (raw.includes("PAST_DATE_NOT_EDITABLE"))
