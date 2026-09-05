@@ -39,7 +39,7 @@ Mesmos campos de hoje, na mesma ordem, com rodapé fixo ("Cancelar" / "Salvar re
 
 Comportamentos preservados: aviso de contexto sindical da unidade, alertas de ciência legal quando a regra é menos protetiva que a lei, e a opção de aplicar as mesmas regras a outras unidades no momento de salvar.
 
-Ao cadastrar uma unidade nova, o bloco "Particularidade de Folgas" fica indisponível com o aviso de que ele é liberado depois de salvar as regras da unidade — as particularidades são gravadas por unidade e precisam da unidade já salva.
+As particularidades fazem parte do mesmo fluxo, inclusive numa unidade nova: as regras criadas na janela ficam numa lista provisória e são gravadas junto com o resto quando você clica em "Salvar regras". Se copiar as regras de outra unidade, as particularidades dela também vêm copiadas e podem ser alteradas ou removidas antes de salvar.
 
 ## Detalhes técnicos
 
