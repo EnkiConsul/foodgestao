@@ -7,7 +7,7 @@ export type RegraLimiteInput = {
   id?: string;
   tipo: TipoRegraFolga;
   nome: string | null;
-  unidade_id: string | null;
+  unidade_id: string;
   dia_semana: number | null;
   maximo: number;
   vigencia_inicio: string | null;
@@ -17,14 +17,17 @@ export type RegraLimiteInput = {
   colaborador_ids: string[];
 };
 
-/** Cadastro único das regras de folga (quantidade, cargo e quem não folga junto). */
-export function useDpFolgaLimites() {
+/**
+ * Cadastro único das regras de folga (quantidade, cargo e quem não folga junto).
+ * Toda regra pertence a uma unidade; `unidadeId` define o recorte lido e gravado.
+ */
+export function useDpFolgaLimites(unidadeId?: string | null) {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["dp_folga_limite_regras", selectedCompanyId],
-    enabled: !!selectedCompanyId,
+    queryKey: ["dp_folga_limite_regras", selectedCompanyId, unidadeId ?? null],
+    enabled: !!selectedCompanyId && !!unidadeId,
     queryFn: async (): Promise<RegraLimiteFolga[]> => {
       const { data, error } = await supabase
         .from("dp_folga_limite_regras")
@@ -33,6 +36,7 @@ export function useDpFolgaLimites() {
             "dp_folga_limite_regra_cargos(cargo_id), dp_folga_limite_regra_colaboradores(colaborador_id)",
         )
         .eq("company_id", selectedCompanyId!)
+        .eq("unidade_id", unidadeId!)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return (data ?? []).map((r: any) => ({
@@ -57,9 +61,30 @@ export function useDpFolgaLimites() {
     qc.invalidateQueries({ queryKey: ["dp_folga_limite_regras"] });
   };
 
+  /** Grava os cargos e as pessoas vinculadas a uma regra (substituindo os anteriores). */
+  const gravarVinculos = async (
+    regraId: string,
+    cargos: string[],
+    pessoas: string[],
+  ) => {
+    if (cargos.length > 0) {
+      const { error } = await supabase
+        .from("dp_folga_limite_regra_cargos")
+        .insert(cargos.map((cargo_id) => ({ regra_id: regraId, cargo_id })));
+      if (error) throw error;
+    }
+    if (pessoas.length > 0) {
+      const { error } = await supabase
+        .from("dp_folga_limite_regra_colaboradores")
+        .insert(pessoas.map((colaborador_id) => ({ regra_id: regraId, colaborador_id })));
+      if (error) throw error;
+    }
+  };
+
   const salvar = useMutation({
     mutationFn: async (input: RegraLimiteInput) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
+      if (!input.unidade_id) throw new Error("Selecione uma unidade.");
       const payload = {
         company_id: selectedCompanyId,
         tipo: input.tipo,
@@ -99,26 +124,45 @@ export function useDpFolgaLimites() {
         regraId = data.id;
       }
 
-      const cargos = input.tipo === "cargo" ? input.cargo_ids : [];
-      if (cargos.length > 0) {
-        const { error } = await supabase
-          .from("dp_folga_limite_regra_cargos")
-          .insert(cargos.map((cargo_id) => ({ regra_id: regraId!, cargo_id })));
-        if (error) throw error;
-      }
-
-      const pessoas = input.tipo === "colaboradores" ? input.colaborador_ids : [];
-      if (pessoas.length > 0) {
-        const { error } = await supabase
-          .from("dp_folga_limite_regra_colaboradores")
-          .insert(pessoas.map((colaborador_id) => ({ regra_id: regraId!, colaborador_id })));
-        if (error) throw error;
-      }
+      await gravarVinculos(
+        regraId!,
+        input.tipo === "cargo" ? input.cargo_ids : [],
+        input.tipo === "colaboradores" ? input.colaborador_ids : [],
+      );
       return regraId!;
     },
     onSuccess: invalidate,
   });
 
+  /** Cria cópias independentes de uma regra nas unidades escolhidas. */
+  const replicar = useMutation({
+    mutationFn: async (params: { regra: RegraLimiteFolga; unidadeIds: string[] }) => {
+      if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
+      const { regra, unidadeIds } = params;
+      const alvos = unidadeIds.filter((id) => id && id !== regra.unidade_id);
+      for (const alvo of alvos) {
+        const { data, error } = await supabase
+          .from("dp_folga_limite_regras")
+          .insert({
+            company_id: selectedCompanyId,
+            tipo: regra.tipo,
+            nome: regra.nome,
+            unidade_id: alvo,
+            dia_semana: regra.dia_semana,
+            maximo: regra.maximo,
+            vigencia_inicio: regra.vigencia_inicio,
+            vigencia_fim: regra.vigencia_fim,
+            ativo: regra.ativo,
+          })
+          .select("id")
+          .single();
+        if (error) throw error;
+        await gravarVinculos(data.id, regra.cargo_ids, regra.colaborador_ids);
+      }
+      return alvos.length;
+    },
+    onSuccess: invalidate,
+  });
 
   const excluir = useMutation({
     mutationFn: async (id: string) => {
@@ -145,6 +189,7 @@ export function useDpFolgaLimites() {
     isError: query.isError,
     refetch: query.refetch,
     salvar,
+    replicar,
     excluir,
     alternarAtivo,
   };
