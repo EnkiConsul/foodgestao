@@ -784,10 +784,11 @@ export default function DpFolgas() {
                 const events = eventsByDay.get(key) ?? [];
                 const inMonth = isSameMonth(day, cursor);
                 const isToday = isSameDay(day, new Date());
-                const cap = capacityByDay.get(key) ?? defaultDailyCap;
+                const cap = capacityByDay.get(key) ?? null;
                 const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
                 const blocked = blockedByDate.get(key);
-                const lotado = !blocked && cap > 0 && aprov >= cap;
+                const lotado = !blocked && cap != null && cap > 0 && aprov >= cap;
+
                 const parcial = !blocked && aprov > 0 && !lotado;
 
                 return (
