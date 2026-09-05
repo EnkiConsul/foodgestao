@@ -930,7 +930,7 @@ export default function DpFolgas() {
                                 ? "bg-emerald-100 text-emerald-700 border-emerald-200"
                                 : "bg-muted text-muted-foreground border-border",
                           )}>
-                            {aprov}/{cap}
+                            {aprov}{cap != null ? `/${cap}` : ""}
                           </span>
                         )}
                         {events.map((ev) => {
