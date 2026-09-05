@@ -133,6 +133,37 @@ export default function DpConfiguracoesJornada() {
   const diasDeFolga = useMemo(() => diasElegiveisDaConfig(form), [form]);
   const { data: valeRegras } = useDpValeRegrasEmpresa();
 
+  /** Só domingo é dia de descanso? Muda os rótulos da frequência de DSR. */
+  const apenasDomingo = useMemo(
+    () => !porAcordo || diasDeFolga.filter((d) => d !== 0).length === 0,
+    [porAcordo, diasDeFolga],
+  );
+  const nomesDiasDeFolga = useMemo(
+    () =>
+      ORDEM_DIAS_SEG_DOM.filter((d) => diasDeFolga.includes(d))
+        .map((d) => DIA_SEMANA_LABEL[d]?.toLowerCase() ?? "")
+        .filter(Boolean)
+        .join(", "),
+    [diasDeFolga],
+  );
+  const rotulos = apenasDomingo
+    ? {
+        titulo: "Frequência Da Folga Dominical (DSR)",
+        porMes: "Domingos de folga por mês",
+        semanas: "Domingo de folga a cada (semanas)",
+        porMesMulher: "Domingos por mês — mulheres",
+        semanasMulher: "Domingo de folga — mulheres (semanas)",
+      }
+    : {
+        titulo: "Frequência Da Folga De Descanso (DSR)",
+        porMes: "Folgas de fim de semana por mês",
+        semanas: "Folga de descanso a cada (semanas)",
+        porMesMulher: "Folgas de fim de semana por mês — mulheres",
+        semanasMulher: "Folga de descanso — mulheres (semanas)",
+      };
+
+
+
 
   const travadoClt = form.regra_dsr === "clt";
   /** Base única da regra de folgas (unifica regra_dsr + tipo_descanso_domingo). */
