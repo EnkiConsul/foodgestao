@@ -27,7 +27,9 @@ import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
 import { useSindicatoContextoUnidade } from "@/hooks/useSindicatoContextoUnidade";
 import { MenosProtetivaBadge } from "@/components/dp/MenosProtetivaBadge";
 import { SalvarRegrasDialog } from "@/components/dp/SalvarRegrasDialog";
-import { FolgaLimitesPanel } from "@/components/dp/folgas/FolgaLimitesPanel";
+import { FolgaRegrasPanel } from "@/components/dp/folgas/FolgaRegrasPanel";
+import { useDpValeRegrasEmpresa } from "@/hooks/useDpValeRegras";
+import { diasElegiveisDaConfig } from "@/lib/dp/dsr-rules";
 import {
   DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo, isMenosProtetiva,
   semanasDaConfig, MODO_FREQUENCIA_LABEL, DIA_SEMANA_CURTO, ORDEM_DIAS_SEG_DOM,
@@ -451,6 +453,10 @@ export default function DpConfiguracoesJornada() {
 
         <Separator />
 
+        <FolgaRegrasPanel diasPermitidos={diasDeFolga} />
+
+        <Separator />
+
         <SubSection
           title="Frequência Da Folga Dominical (DSR)"
           description="Quantas vezes o colaborador folga no domingo, conforme a base legal ou negociada."
@@ -728,10 +734,6 @@ export default function DpConfiguracoesJornada() {
             </div>
           </div>
         </SubSection>
-
-        <Separator />
-
-        <FolgaLimitesPanel />
 
 
 
