@@ -93,11 +93,13 @@ export function resolverLimiteFolga(params: {
   const wd = diaSemanaISO(data);
   const candidatas = regras.filter((r) => {
     if (!r.ativo) return false;
+    if (r.tipo === "colaboradores") return false;
     if (r.unidade_id !== null && r.unidade_id !== unidadeId) return false;
     if (r.dia_semana !== null && r.dia_semana !== wd) return false;
     if (r.cargo_ids.length > 0 && (!cargoId || !r.cargo_ids.includes(cargoId))) return false;
     return vigente(r, data);
   });
+
 
   if (candidatas.length === 0) return { limite: null, origem: "sem_limite" };
 
