@@ -27,18 +27,20 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
 
   const query = useQuery({
     queryKey: ["dp_folga_limite_regras", selectedCompanyId, unidadeId ?? null],
-    enabled: !!selectedCompanyId && !!unidadeId,
+    enabled: !!selectedCompanyId,
     queryFn: async (): Promise<RegraLimiteFolga[]> => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("dp_folga_limite_regras")
         .select(
           "id, tipo, nome, unidade_id, dia_semana, maximo, vigencia_inicio, vigencia_fim, ativo, " +
             "dp_folga_limite_regra_cargos(cargo_id), dp_folga_limite_regra_colaboradores(colaborador_id)",
         )
-        .eq("company_id", selectedCompanyId!)
-        .eq("unidade_id", unidadeId!)
-        .order("created_at", { ascending: true });
+        .eq("company_id", selectedCompanyId!);
+      // Sem unidade = visão consolidada da empresa (todas as unidades).
+      if (unidadeId) q = q.eq("unidade_id", unidadeId);
+      const { data, error } = await q.order("created_at", { ascending: true });
       if (error) throw error;
+
       return (data ?? []).map((r: any) => ({
         id: r.id,
         tipo: (r.tipo ?? "quantidade") as TipoRegraFolga,
