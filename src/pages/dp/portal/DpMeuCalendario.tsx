@@ -524,15 +524,22 @@ export default function DpMeuCalendario() {
       const bloq = manualBlocked.get(iso);
       if (bloq && !bloq.liberada) throw new Error("Esta data está bloqueada administrativamente.");
 
-      // 7) lotação (limite efetivo x ocupantes da unidade)
+      // 7) lotação (limite efetivo x ocupantes da unidade). Quando a regra do dia limita
+      // cargos, a contagem considera só folgas de pessoas desses cargos.
       const limite = dayLimits.get(iso) ?? 1;
-      const ocupados = folgas.filter(
-        (f: any) =>
-          f.data === iso &&
-          f.extra !== true &&
-          f.status !== "cancelada" &&
-          (!myUnidade || f.dp_colaboradores?.unidade_id === myUnidade),
-      ).length;
+      const escopoCargos = dayRegraCargos.get(iso) ?? null;
+      const ocupados = ocupacaoNoEscopo(
+        folgas
+          .filter(
+            (f: any) =>
+              f.data === iso &&
+              f.extra !== true &&
+              f.status !== "cancelada" &&
+              (!myUnidade || f.dp_colaboradores?.unidade_id === myUnidade),
+          )
+          .map((f: any) => ({ cargoId: (f.dp_colaboradores?.cargo_id ?? null) as string | null })),
+        escopoCargos,
+      );
       if (ocupados >= limite) throw new Error("Data indisponível. Limite de folgas atingido.");
 
       // 8) pessoas que não podem folgar no mesmo dia
