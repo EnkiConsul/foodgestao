@@ -590,18 +590,16 @@ export default function DpAdminCalendario() {
       iso: string;
       modo: "force" | "extra" | "substituir";
       conflitoIds?: string[];
-      confirmarDeficit?: boolean;
     }) => {
       return insertFolga(input.iso, {
         extra: input.modo === "extra",
         deleteIds: input.modo === "substituir" ? input.conflitoIds : undefined,
-        confirmarDeficit: input.confirmarDeficit,
       });
     },
     onSuccess: (aplicado, input) => {
       qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
       setConfirmDialog(null);
-      if (!aplicado) return; // aguardando confirmação de cobertura
+      if (!aplicado) return; // limite de folgas do dia atingido
       toast.success(input.modo === "extra" ? "Folga extra atribuída" : "Folga atribuída");
       const colab = colaboradores.find((c: any) => c.id === assignUser);
       if (colab && isSocio(colab.vinculo_label)) {
@@ -617,24 +615,6 @@ export default function DpAdminCalendario() {
     onError: (e: any) => toast.error(e.message ?? "Erro ao atribuir"),
   });
 
-  const confirmarCobertura = useMutation({
-    mutationFn: async () => {
-      if (!coberturaAlerta) return false;
-      return insertFolga(coberturaAlerta.iso, {
-        extra: coberturaAlerta.extra,
-        deleteIds: coberturaAlerta.deleteIds,
-        confirmarDeficit: true,
-      });
-
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
-      toast.success("Folga atribuída com registro da exceção de cobertura");
-      setCoberturaAlerta(null);
-      setAssignUser("");
-    },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao atribuir"),
-  });
 
 
 
