@@ -721,6 +721,38 @@ export default function DpConfiguracoesJornada() {
               </div>
             </div>
 
+            {(valeRegras?.va_ativo || valeRegras?.vt_ativo) && (
+              <div className="rounded-md bg-muted/50 p-3 text-xs">
+                <p className="font-medium">Datas de corte dos vales</p>
+                <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                  {valeRegras?.va_ativo && (
+                    <li>
+                      Vale-alimentação: paga no dia {valeRegras.va_dia_pagamento ?? "—"}
+                      {valeRegras.va_dias_corte != null
+                        ? `, com contagem fechada ${valeRegras.va_dias_corte} dia(s) antes`
+                        : ""}
+                      .
+                    </li>
+                  )}
+                  {valeRegras?.vt_ativo && (
+                    <li>
+                      Vale-transporte: paga no dia {valeRegras.vt_dia_pagamento ?? "—"}
+                      {valeRegras.vt_dias_corte != null
+                        ? `, com contagem fechada ${valeRegras.vt_dias_corte} dia(s) antes`
+                        : ""}
+                      .
+                    </li>
+                  )}
+                </ul>
+                <p className="mt-1 text-muted-foreground">
+                  Encerrar a escolha das folgas até essa data ajuda a fechar os vales já com as folgas
+                  definidas.
+                </p>
+              </div>
+            )}
+
+
+
             <div className="flex items-start justify-between gap-4 rounded-md border p-3">
               <div className="space-y-0.5">
                 <Label htmlFor="janela-auto">Definir automaticamente quem não escolher</Label>
