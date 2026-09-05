@@ -331,6 +331,8 @@ export default function DpMeuCalendario() {
     return m;
   }, [bloqueiosQuery.data, regrasBloqueioQuery.data, myUnidade, range.startDate, range.endDate]);
 
+  const { regras: regrasLimite } = useDpFolgaLimites();
+
   const dayLimits = useMemo(() => {
     const m = new Map<string, number>();
     const rows = [...(diaConfigQuery.data ?? [])] as any[];
@@ -341,8 +343,21 @@ export default function DpMeuCalendario() {
       .forEach((r) => {
         if (!m.has(r.data)) m.set(r.data, r.limite_folgas);
       });
+    // Dias sem exceção herdam a regra fixa cadastrada pela empresa
+    for (const d of eachDayOfInterval({ start: range.startDate, end: range.endDate })) {
+      const iso = toISO(d);
+      if (m.has(iso)) continue;
+      const res = resolverLimiteFolga({
+        data: iso,
+        unidadeId: myUnidade,
+        cargoId: (meRef.data as { cargo_id?: string | null } | undefined)?.cargo_id ?? null,
+        regras: regrasLimite,
+      });
+      if (res.limite != null) m.set(iso, res.limite);
+    }
     return m;
-  }, [diaConfigQuery.data, myUnidade]);
+  }, [diaConfigQuery.data, myUnidade, regrasLimite, range.startDate, range.endDate, meRef.data]);
+
 
   const allFolgasRecords: FolgaRecord[] = useMemo(
     () =>
