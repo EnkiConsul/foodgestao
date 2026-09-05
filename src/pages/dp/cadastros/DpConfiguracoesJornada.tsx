@@ -32,7 +32,7 @@ import { useDpValeRegrasEmpresa } from "@/hooks/useDpValeRegras";
 import { diasElegiveisDaConfig } from "@/lib/dp/dsr-rules";
 import {
   DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo, isMenosProtetiva,
-  semanasDaConfig, MODO_FREQUENCIA_LABEL, DIA_SEMANA_CURTO, ORDEM_DIAS_SEG_DOM,
+  semanasDaConfig, MODO_FREQUENCIA_LABEL, DIA_SEMANA_CURTO, DIA_SEMANA_LABEL, ORDEM_DIAS_SEG_DOM,
   padroesCltDe, PADRAO_LEGAL_DOMINGO_MULHER, resumoEscolhaFolgas, aplicarBaseRegra,
   TROCA_FOLGA_MODO_LABEL, TROCA_FOLGA_ESCOPO_LABEL,
   type AlertaCiencia, type ModoFrequencia, type TrocaFolgaModo, type TrocaFolgaEscopo,
