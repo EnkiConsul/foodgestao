@@ -138,6 +138,7 @@ export function FolgaRegrasFormDialog({
   const [alertas, setAlertas] = useState<AlertaCiencia[]>([]);
 
   const { saveMany, saving, configPadrao } = useDpConfigDp(null);
+  const { config: configOrigem } = useDpConfigDp(copiarDeSelecionado);
   const hookLimites = useDpFolgaLimites(unidadeEfetiva);
   const hookLimitesOrigem = useDpFolgaLimites(copiarDeSelecionado);
 
