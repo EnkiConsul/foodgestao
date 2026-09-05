@@ -29,19 +29,6 @@ import {
 } from "@/lib/dp/folga-limites";
 import { DIA_SEMANA_LABEL, ORDEM_DIAS_SEG_DOM } from "@/lib/dp/dsr-rules";
 
-const VAZIO: RegraLimiteInput = {
-  tipo: "quantidade",
-  nome: null,
-  unidade_id: null,
-  dia_semana: null,
-  maximo: 1,
-  vigencia_inicio: null,
-  vigencia_fim: null,
-  ativo: true,
-  cargo_ids: [],
-  colaborador_ids: [],
-};
-
 const ICONE: Record<TipoRegraFolga, typeof Users> = {
   quantidade: Users,
   cargo: Briefcase,
@@ -49,20 +36,25 @@ const ICONE: Record<TipoRegraFolga, typeof Users> = {
 };
 
 type Props = {
+  /** Unidade em edição: toda regra pertence a ela. */
+  unidadeId: string | null;
   /** Dias da semana em que existe folga (dias de descanso negociados). */
   diasPermitidos?: number[];
 };
 
-/** Cadastro único das regras de folga: quantidade, cargo e quem não folga junto. */
-export function FolgaRegrasPanel({ diasPermitidos }: Props) {
+/** Cadastro único das regras de folga da unidade: quantidade, cargo e quem não folga junto. */
+export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
   const { data: unidades = [] } = useDpUnidades();
   const { data: cargos = [] } = useDpCargos();
   const { data: colaboradores = [] } = useDpColaboradores();
-  const { regras, isLoading, salvar, excluir, alternarAtivo } = useDpFolgaLimites();
+  const { regras, isLoading, salvar, replicar, excluir, alternarAtivo } =
+    useDpFolgaLimites(unidadeId);
 
   const [form, setForm] = useState<RegraLimiteInput | null>(null);
   const [excluirId, setExcluirId] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"todas" | TipoRegraFolga>("todas");
+  const [replicando, setReplicando] = useState<RegraLimiteFolga | null>(null);
+  const [alvos, setAlvos] = useState<string[]>([]);
 
   const diasDisponiveis = useMemo(() => {
     const dias = diasPermitidosParaLimite(diasPermitidos ?? ORDEM_DIAS_SEG_DOM);
@@ -87,6 +79,11 @@ export function FolgaRegrasPanel({ diasPermitidos }: Props) {
     [colaboradores],
   );
 
+  const outrasUnidades = useMemo(
+    () => unidades.filter((u: { id: string }) => u.id !== unidadeId),
+    [unidades, unidadeId],
+  );
+
   const visiveis = useMemo(
     () => (filtro === "todas" ? regras : regras.filter((r) => r.tipo === filtro)),
     [regras, filtro],
@@ -95,8 +92,25 @@ export function FolgaRegrasPanel({ diasPermitidos }: Props) {
   const set = <K extends keyof RegraLimiteInput>(key: K, value: RegraLimiteInput[K]) =>
     setForm((f) => (f ? { ...f, [key]: value } : f));
 
-  const abrirNova = () =>
-    setForm({ ...VAZIO, dia_semana: diasDisponiveis.length === 1 ? diasDisponiveis[0] : null });
+  const abrirNova = () => {
+    if (!unidadeId) {
+      toast.error("Escolha a unidade no topo da tela para cadastrar a regra.");
+      return;
+    }
+    setForm({
+      tipo: "quantidade",
+      nome: null,
+      unidade_id: unidadeId,
+      dia_semana: diasDisponiveis.length === 1 ? diasDisponiveis[0] : null,
+      maximo: 1,
+      vigencia_inicio: null,
+      vigencia_fim: null,
+      ativo: true,
+      cargo_ids: [],
+      colaborador_ids: [],
+    });
+  };
+
   const abrirEdicao = (r: RegraLimiteFolga) =>
     setForm({
       id: r.id,
@@ -141,15 +155,32 @@ export function FolgaRegrasPanel({ diasPermitidos }: Props) {
     }
   };
 
+  const confirmarReplicacao = async () => {
+    if (!replicando) return;
+    try {
+      const total = await replicar.mutateAsync({ regra: replicando, unidadeIds: alvos });
+      toast.success(
+        total === 1 ? "Regra copiada para 1 unidade" : `Regra copiada para ${total} unidades`,
+      );
+      setReplicando(null);
+      setAlvos([]);
+    } catch (e) {
+      toast.error("Não foi possível replicar a regra", {
+        description: e instanceof Error ? e.message : "Tente novamente.",
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold">Regras Das Folgas</h3>
+          <h3 className="text-sm font-semibold">Particularidade De Folgas</h3>
           <p className="text-xs text-muted-foreground">
-            Cadastre quantas regras quiser: quantas pessoas podem folgar por dia, limite por cargo e
-            pessoas que não podem folgar no mesmo dia. Todas valem juntas quando o colaborador marca
-            a folga. Um limite lançado para uma data específica no calendário vale como exceção.
+            Travas do dia a dia desta unidade: quantas pessoas podem folgar por dia, limite por
+            cargo e pessoas que não podem folgar no mesmo dia. Todas valem juntas quando o
+            colaborador marca a folga. Um limite lançado para uma data específica no calendário vale
+            como exceção. Cada regra pode ser copiada para outras unidades.
           </p>
         </div>
         <Button variant="outline" className="gap-2" onClick={abrirNova}>
@@ -157,6 +188,7 @@ export function FolgaRegrasPanel({ diasPermitidos }: Props) {
           Nova regra
         </Button>
       </div>
+
 
       <div className="flex flex-wrap gap-2">
         {(["todas", "quantidade", "cargo", "colaboradores"] as const).map((t) => (
@@ -226,6 +258,19 @@ export function FolgaRegrasPanel({ diasPermitidos }: Props) {
                   <Button variant="ghost" size="sm" onClick={() => abrirEdicao(r)}>
                     Editar
                   </Button>
+                  {outrasUnidades.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setReplicando(r);
+                        setAlvos([]);
+                      }}
+                    >
+                      Replicar
+                    </Button>
+                  )}
+
                   <Button
                     variant="ghost"
                     size="icon"
@@ -286,21 +331,13 @@ export function FolgaRegrasPanel({ diasPermitidos }: Props) {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="limite-unidade">Vale para</Label>
-                  <Select
-                    value={form.unidade_id ?? "empresa"}
-                    onValueChange={(v) => set("unidade_id", v === "empresa" ? null : v)}
-                  >
-                    <SelectTrigger id="limite-unidade"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="empresa">Toda a empresa</SelectItem>
-                      {unidades.map((u: { id: string; nome: string }) => (
-                        <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-1.5 sm:col-span-2 rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  Esta regra vale para a unidade{" "}
+                  <strong>{nomeUnidade.get(form.unidade_id) ?? "selecionada"}</strong>. Depois de
+                  salvar você pode copiá-la para outras unidades pelo botão "Replicar".
                 </div>
+
+
 
                 <div className="space-y-1.5">
                   <Label htmlFor="limite-dia">Dia da semana</Label>
@@ -433,6 +470,80 @@ export function FolgaRegrasPanel({ diasPermitidos }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog
+        open={!!replicando}
+        onOpenChange={(o) => {
+          if (!o) {
+            setReplicando(null);
+            setAlvos([]);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Replicar Regra Para Outras Unidades</DialogTitle>
+            <DialogDescription>
+              Uma cópia independente da regra é criada em cada unidade marcada. Editar uma delas
+              depois não altera as outras.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setAlvos(outrasUnidades.map((u: { id: string }) => u.id))}
+              >
+                Selecionar todas
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setAlvos([])}>
+                Limpar seleção
+              </Button>
+            </div>
+            <div className="max-h-56 space-y-2 overflow-y-auto rounded-xl border p-3">
+              {outrasUnidades.length === 0 && (
+                <p className="text-xs text-muted-foreground">Não há outras unidades cadastradas.</p>
+              )}
+              {outrasUnidades.map((u: { id: string; nome: string }) => (
+                <label key={u.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={alvos.includes(u.id)}
+                    onCheckedChange={(v) =>
+                      setAlvos((prev) =>
+                        v === true ? [...prev, u.id] : prev.filter((id) => id !== u.id),
+                      )
+                    }
+                  />
+                  {u.nome}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReplicando(null);
+                setAlvos([]);
+              }}
+              disabled={replicar.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => void confirmarReplicacao()}
+              disabled={replicar.isPending || alvos.length === 0}
+            >
+              {replicar.isPending ? "Replicando..." : `Replicar em ${alvos.length} unidade(s)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
 
       <AlertDialog open={!!excluirId} onOpenChange={(o) => !o && setExcluirId(null)}>
         <AlertDialogContent>

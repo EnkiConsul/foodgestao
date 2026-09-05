@@ -6771,7 +6771,7 @@ export type Database = {
           nome: string | null
           observacao: string | null
           tipo: string
-          unidade_id: string | null
+          unidade_id: string
           updated_at: string
           vigencia_fim: string | null
           vigencia_inicio: string | null
@@ -6786,7 +6786,7 @@ export type Database = {
           nome?: string | null
           observacao?: string | null
           tipo?: string
-          unidade_id?: string | null
+          unidade_id: string
           updated_at?: string
           vigencia_fim?: string | null
           vigencia_inicio?: string | null
@@ -6801,7 +6801,7 @@ export type Database = {
           nome?: string | null
           observacao?: string | null
           tipo?: string
-          unidade_id?: string | null
+          unidade_id?: string
           updated_at?: string
           vigencia_fim?: string | null
           vigencia_inicio?: string | null

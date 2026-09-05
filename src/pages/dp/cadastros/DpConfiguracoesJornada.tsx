@@ -32,7 +32,7 @@ import { useDpValeRegrasEmpresa } from "@/hooks/useDpValeRegras";
 import { diasElegiveisDaConfig } from "@/lib/dp/dsr-rules";
 import {
   DP_CONFIG_DP_DEFAULT, alertasDeCiencia, padraoLegalDomingo, isMenosProtetiva,
-  semanasDaConfig, MODO_FREQUENCIA_LABEL, DIA_SEMANA_CURTO, ORDEM_DIAS_SEG_DOM,
+  semanasDaConfig, MODO_FREQUENCIA_LABEL, DIA_SEMANA_CURTO, DIA_SEMANA_LABEL, ORDEM_DIAS_SEG_DOM,
   padroesCltDe, PADRAO_LEGAL_DOMINGO_MULHER, resumoEscolhaFolgas, aplicarBaseRegra,
   TROCA_FOLGA_MODO_LABEL, TROCA_FOLGA_ESCOPO_LABEL,
   type AlertaCiencia, type ModoFrequencia, type TrocaFolgaModo, type TrocaFolgaEscopo,
@@ -132,6 +132,37 @@ export default function DpConfiguracoesJornada() {
   /** Dias da semana em que existe folga — usados no cadastro das regras. */
   const diasDeFolga = useMemo(() => diasElegiveisDaConfig(form), [form]);
   const { data: valeRegras } = useDpValeRegrasEmpresa();
+
+  /** Só domingo é dia de descanso? Muda os rótulos da frequência de DSR. */
+  const apenasDomingo = useMemo(
+    () => !porAcordo || diasDeFolga.filter((d) => d !== 0).length === 0,
+    [porAcordo, diasDeFolga],
+  );
+  const nomesDiasDeFolga = useMemo(
+    () =>
+      ORDEM_DIAS_SEG_DOM.filter((d) => diasDeFolga.includes(d))
+        .map((d) => DIA_SEMANA_LABEL[d]?.toLowerCase() ?? "")
+        .filter(Boolean)
+        .join(", "),
+    [diasDeFolga],
+  );
+  const rotulos = apenasDomingo
+    ? {
+        titulo: "Frequência Da Folga Dominical (DSR)",
+        porMes: "Domingos de folga por mês",
+        semanas: "Domingo de folga a cada (semanas)",
+        porMesMulher: "Domingos por mês — mulheres",
+        semanasMulher: "Domingo de folga — mulheres (semanas)",
+      }
+    : {
+        titulo: "Frequência Da Folga De Descanso (DSR)",
+        porMes: "Folgas de fim de semana por mês",
+        semanas: "Folga de descanso a cada (semanas)",
+        porMesMulher: "Folgas de fim de semana por mês — mulheres",
+        semanasMulher: "Folga de descanso — mulheres (semanas)",
+      };
+
+
 
 
   const travadoClt = form.regra_dsr === "clt";
@@ -457,13 +488,15 @@ export default function DpConfiguracoesJornada() {
 
         <Separator />
 
-        <FolgaRegrasPanel diasPermitidos={diasDeFolga} />
-
-        <Separator />
 
         <SubSection
-          title="Frequência Da Folga Dominical (DSR)"
-          description="Quantas vezes o colaborador folga no domingo, conforme a base legal ou negociada."
+          title={rotulos.titulo}
+          description={
+            apenasDomingo
+              ? "Quantas vezes o colaborador folga no domingo, conforme a base legal ou negociada."
+              : `Considera os dias de descanso negociados (${nomesDiasDeFolga}).`
+          }
+
         >
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -511,7 +544,7 @@ export default function DpConfiguracoesJornada() {
 
           {form.modo_frequencia_domingo === "semanas" ? (
             <div className="space-y-1.5">
-              <Label htmlFor="per-domingo">Domingo de folga a cada (semanas)</Label>
+              <Label htmlFor="per-domingo">{rotulos.semanas}</Label>
               <Input
                 id="per-domingo" type="number" min={0} max={12} disabled={travadoClt}
                 value={form.periodicidade_domingo}
@@ -529,7 +562,7 @@ export default function DpConfiguracoesJornada() {
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Label htmlFor="dom-mes">Domingos de folga por mês</Label>
+              <Label htmlFor="dom-mes">{rotulos.porMes}</Label>
               <Select
                 disabled={travadoClt}
                 value={String(form.domingos_por_mes)}
@@ -575,7 +608,7 @@ export default function DpConfiguracoesJornada() {
 
           {form.modo_frequencia_domingo_mulher === "semanas" ? (
             <div className="space-y-1.5">
-              <Label htmlFor="per-domingo-mulher">Domingo de folga — mulheres (semanas)</Label>
+              <Label htmlFor="per-domingo-mulher">{rotulos.semanasMulher} <span className="text-muted-foreground">(Art. 386)</span></Label>
               <Input
                 id="per-domingo-mulher" type="number" min={0} max={12} disabled={travadoClt}
                 value={form.periodicidade_domingo_mulher}
@@ -593,7 +626,7 @@ export default function DpConfiguracoesJornada() {
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Label htmlFor="dom-mes-mulher">Domingos por mês — mulheres</Label>
+              <Label htmlFor="dom-mes-mulher">{rotulos.porMesMulher} <span className="text-muted-foreground">(Art. 386)</span></Label>
               <Select
                 disabled={travadoClt}
                 value={String(form.domingos_por_mes_mulher)}
@@ -625,6 +658,11 @@ export default function DpConfiguracoesJornada() {
         </SubSection>
 
         <Separator />
+
+        <FolgaRegrasPanel unidadeId={unidadeId ?? null} diasPermitidos={diasDeFolga} />
+
+        <Separator />
+
 
         <SubSection
           title="Troca De Folga Entre Colaboradores"

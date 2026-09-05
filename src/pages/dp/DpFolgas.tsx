@@ -381,7 +381,10 @@ export default function DpFolgas() {
     folgasQuery,
   } = useDpFolgasQueries({ cursor, rangeStart, rangeEnd, unidadeFilter, colabFilter, tipoFilter });
 
-  const { regras: regrasLimite } = useDpFolgaLimites();
+  const { regras: regrasLimite } = useDpFolgaLimites(
+    unidadeFilter === "todas" ? null : unidadeFilter,
+  );
+
 
 
 

@@ -377,7 +377,7 @@ export default function DpMeuCalendario() {
     return m;
   }, [bloqueiosQuery.data, regrasBloqueioQuery.data, myUnidade, range.startDate, range.endDate]);
 
-  const { regras: regrasLimite } = useDpFolgaLimites();
+  const { regras: regrasLimite } = useDpFolgaLimites(myUnidade);
 
   const dayLimits = useMemo(() => {
     const m = new Map<string, number>();

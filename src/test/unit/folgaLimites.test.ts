@@ -11,7 +11,7 @@ const base: RegraLimiteFolga = {
   id: "r1",
   tipo: "quantidade",
   nome: null,
-  unidade_id: null,
+  unidade_id: "u1",
   dia_semana: null,
   maximo: 3,
   vigencia_inicio: null,
@@ -28,7 +28,7 @@ describe("resolverLimiteFolga", () => {
     expect(r).toEqual({ limite: null, origem: "sem_limite" });
   });
 
-  it("usa a regra da empresa quando não há nada mais específico", () => {
+  it("usa a regra da unidade quando não há nada mais específico", () => {
     const r = resolverLimiteFolga({ data: "2026-09-12", regras: [base] });
     expect(r.limite).toBe(3);
     expect(r.origem).toBe("regra_recorrente");
@@ -107,8 +107,8 @@ describe("resumoRegraLimite", () => {
     ).toBe("Unidade Centro, sábados, Garçom: no máximo 2 em folga");
   });
 
-  it("descreve a regra geral da empresa", () => {
-    expect(resumoRegraLimite(base)).toBe("Toda a empresa, todos os dias, qualquer cargo: no máximo 3 em folga");
+  it("descreve a regra geral da unidade", () => {
+    expect(resumoRegraLimite(base)).toBe("Unidade, todos os dias, qualquer cargo: no máximo 3 em folga");
   });
 });
 
@@ -172,7 +172,7 @@ describe("regras de tipo colaboradores", () => {
   it("descreve a regra de pessoas em linguagem simples", () => {
     expect(
       resumoRegraLimite(dupla, { colaboradores: ["Hanna", "Sara"] }),
-    ).toBe("Hanna e Sara não folgam no mesmo dia (toda a empresa, todos os dias)");
+    ).toBe("Hanna e Sara não folgam no mesmo dia (unidade, todos os dias)");
   });
 });
 
