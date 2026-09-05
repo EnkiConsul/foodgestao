@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import type { RegraLimiteFolga, TipoRegraFolga } from "@/lib/dp/folga-limites";
+import type { RegraLimiteFolga, RegraLimiteFolgaBase, TipoRegraFolga } from "@/lib/dp/folga-limites";
+
 
 export type RegraLimiteInput = {
+  /** Identificador temporário usado no modo rascunho do formulário de unidade. */
+  clientId?: string;
   id?: string;
   tipo: TipoRegraFolga;
   nome: string | null;
@@ -16,6 +19,7 @@ export type RegraLimiteInput = {
   cargo_ids: string[];
   colaborador_ids: string[];
 };
+
 
 /**
  * Cadastro único das regras de folga (quantidade, cargo e quem não folga junto).
@@ -63,7 +67,26 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
     qc.invalidateQueries({ queryKey: ["dp_folga_limite_regras"] });
   };
 
+  /** Conta quantas regras de folga cada unidade da empresa possui. */
+  const contagem = useQuery({
+    queryKey: ["dp_folga_limite_regras_contagem", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data, error } = await supabase
+        .from("dp_folga_limite_regras")
+        .select("unidade_id")
+        .eq("company_id", selectedCompanyId!);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data ?? []).forEach((r: { unidade_id: string }) => {
+        map[r.unidade_id] = (map[r.unidade_id] ?? 0) + 1;
+      });
+      return map;
+    },
+  });
+
   /** Grava os cargos e as pessoas vinculadas a uma regra (substituindo os anteriores). */
+
   const gravarVinculos = async (
     regraId: string,
     cargos: string[],
@@ -138,7 +161,8 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
 
   /** Cria cópias independentes de uma regra nas unidades escolhidas. */
   const replicar = useMutation({
-    mutationFn: async (params: { regra: RegraLimiteFolga; unidadeIds: string[] }) => {
+    mutationFn: async (params: { regra: RegraLimiteFolgaBase; unidadeIds: string[] }) => {
+
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       const { regra, unidadeIds } = params;
       const alvos = unidadeIds.filter((id) => id && id !== regra.unidade_id);
@@ -174,6 +198,20 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
     onSuccess: invalidate,
   });
 
+  /** Remove todas as regras de folga de uma unidade (usado no "Limpar"). */
+  const excluirTodasDaUnidade = useMutation({
+    mutationFn: async (unidadeId: string) => {
+      if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
+      const { error } = await supabase
+        .from("dp_folga_limite_regras")
+        .delete()
+        .eq("company_id", selectedCompanyId)
+        .eq("unidade_id", unidadeId);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
   const alternarAtivo = useMutation({
     mutationFn: async (params: { id: string; ativo: boolean }) => {
       const { error } = await supabase
@@ -185,14 +223,28 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
     onSuccess: invalidate,
   });
 
+  /** Grava várias regras de uma vez, mantendo os vínculos de cada uma. */
+  const salvarMuitas = useMutation({
+    mutationFn: async (inputs: RegraLimiteInput[]) => {
+      for (const input of inputs) {
+        await salvar.mutateAsync(input);
+      }
+    },
+    onSuccess: invalidate,
+  });
+
   return {
     regras: query.data ?? [],
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: query.refetch,
     salvar,
+    salvarMuitas,
     replicar,
     excluir,
+    excluirTodasDaUnidade,
     alternarAtivo,
+    contagem: contagem.data ?? {},
+    contagemIsLoading: contagem.isLoading,
   };
 }

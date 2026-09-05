@@ -29,7 +29,13 @@ import {
 } from "@/lib/dp/folga-limites";
 import { DIA_SEMANA_LABEL, ORDEM_DIAS_SEG_DOM } from "@/lib/dp/dsr-rules";
 
+/** Regra vinda do banco ou em rascunho no formulário de unidade. */
+type RegraVisivel = RegraLimiteFolga | RegraLimiteInput;
+
+const chaveRegra = (r: RegraVisivel) => ("clientId" in r && r.clientId ? r.clientId : r.id);
+
 const ICONE: Record<TipoRegraFolga, typeof Users> = {
+
   quantidade: Users,
   cargo: Briefcase,
   colaboradores: UserX,
@@ -40,21 +46,50 @@ type Props = {
   unidadeId: string | null;
   /** Dias da semana em que existe folga (dias de descanso negociados). */
   diasPermitidos?: number[];
+  /**
+   * `direto` (padrão): grava no banco a cada operação.
+   * `rascunho`: mantém as regras em memória e avisa o pai via `onChangeRascunho`.
+   */
+  modo?: "direto" | "rascunho";
+  /** Regras em rascunho — obrigatório quando modo = "rascunho". */
+  regrasRascunho?: RegraLimiteInput[];
+  /** Chamado a cada alteração no modo rascunho. */
+  onChangeRascunho?: (regras: RegraLimiteInput[]) => void;
 };
 
+
 /** Cadastro único das regras de folga da unidade: quantidade, cargo e quem não folga junto. */
-export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
+export function FolgaRegrasPanel({
+  unidadeId,
+  diasPermitidos,
+  modo = "direto",
+  regrasRascunho = [],
+  onChangeRascunho,
+}: Props) {
   const { data: unidades = [] } = useDpUnidades();
   const { data: cargos = [] } = useDpCargos();
   const { data: colaboradores = [] } = useDpColaboradores();
-  const { regras, isLoading, salvar, replicar, excluir, alternarAtivo } =
-    useDpFolgaLimites(unidadeId);
+  const hook = useDpFolgaLimites(unidadeId);
+  const {
+    regras: regrasDoBanco,
+    isLoading: isLoadingDoBanco,
+    salvar,
+    replicar,
+    excluir,
+    alternarAtivo,
+  } = hook;
+
+  const rascunho = modo === "rascunho";
+  const regras = rascunho ? regrasRascunho : regrasDoBanco;
+  const isLoading = rascunho ? false : isLoadingDoBanco;
+
 
   const [form, setForm] = useState<RegraLimiteInput | null>(null);
   const [excluirId, setExcluirId] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"todas" | TipoRegraFolga>("todas");
-  const [replicando, setReplicando] = useState<RegraLimiteFolga | null>(null);
+  const [replicando, setReplicando] = useState<RegraVisivel | null>(null);
   const [alvos, setAlvos] = useState<string[]>([]);
+
 
   const diasDisponiveis = useMemo(() => {
     const dias = diasPermitidosParaLimite(diasPermitidos ?? ORDEM_DIAS_SEG_DOM);
@@ -111,8 +146,9 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
     });
   };
 
-  const abrirEdicao = (r: RegraLimiteFolga) =>
+  const abrirEdicao = (r: RegraVisivel) =>
     setForm({
+      clientId: "clientId" in r ? r.clientId : undefined,
       id: r.id,
       tipo: r.tipo,
       nome: r.nome,
@@ -125,6 +161,7 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
       cargo_ids: [...r.cargo_ids],
       colaborador_ids: [...r.colaborador_ids],
     });
+
 
   const confirmar = async () => {
     if (!form) return;
@@ -144,6 +181,17 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
       toast.error("A data final da vigência deve ser depois da inicial.");
       return;
     }
+    if (rascunho) {
+      if (!onChangeRascunho) return;
+      const chave = form.clientId ?? form.id;
+      const nova = chave
+        ? regrasRascunho.map((r) => (r.clientId === chave || r.id === chave ? form : r))
+        : [...regrasRascunho, { ...form, clientId: form.clientId ?? crypto.randomUUID() }];
+      onChangeRascunho(nova);
+      toast.success(form.id ? "Regra atualizada no rascunho" : "Regra incluída no rascunho");
+      setForm(null);
+      return;
+    }
     try {
       await salvar.mutateAsync(form);
       toast.success(form.id ? "Regra atualizada" : "Regra criada");
@@ -154,6 +202,7 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
       });
     }
   };
+
 
   const confirmarReplicacao = async () => {
     if (!replicando) return;
@@ -213,9 +262,10 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
         <ul className="space-y-2">
           {visiveis.map((r) => {
             const Icone = ICONE[r.tipo] ?? Users;
+            const chave = chaveRegra(r);
             return (
               <li
-                key={r.id}
+                key={chave}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"
               >
                 <div className="min-w-0 space-y-1">
@@ -253,12 +303,22 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
                   <Switch
                     checked={r.ativo}
                     aria-label="Regra ativa"
-                    onCheckedChange={(v) => alternarAtivo.mutate({ id: r.id, ativo: v })}
+                    onCheckedChange={(v) => {
+                      if (rascunho) {
+                        onChangeRascunho?.(
+                          regrasRascunho.map((item) =>
+                            (item.clientId ?? item.id) === chave ? { ...item, ativo: v } : item,
+                          ),
+                        );
+                      } else {
+                        alternarAtivo.mutate({ id: r.id, ativo: v });
+                      }
+                    }}
                   />
                   <Button variant="ghost" size="sm" onClick={() => abrirEdicao(r)}>
                     Editar
                   </Button>
-                  {outrasUnidades.length > 0 && (
+                  {!rascunho && outrasUnidades.length > 0 && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -275,10 +335,11 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
                     variant="ghost"
                     size="icon"
                     aria-label="Excluir regra"
-                    onClick={() => setExcluirId(r.id)}
+                    onClick={() => setExcluirId(chave)}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
                   </Button>
+
                 </div>
               </li>
             );
@@ -465,9 +526,14 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
               Cancelar
             </Button>
             <Button onClick={() => void confirmar()} disabled={salvar.isPending}>
-              {salvar.isPending ? "Salvando..." : "Salvar regra"}
+              {rascunho
+                ? "Salvar no rascunho"
+                : salvar.isPending
+                  ? "Salvando..."
+                  : "Salvar regra"}
             </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 
@@ -555,11 +621,21 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={excluir.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={rascunho ? false : excluir.isPending}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
                 if (!excluirId) return;
+                if (rascunho) {
+                  onChangeRascunho?.(
+                    regrasRascunho.filter((item) => (item.clientId ?? item.id) !== excluirId),
+                  );
+                  toast.success("Regra removida do rascunho");
+                  setExcluirId(null);
+                  return;
+                }
                 excluir.mutate(excluirId, {
                   onSuccess: () => {
                     toast.success("Regra excluída");
@@ -571,13 +647,14 @@ export function FolgaRegrasPanel({ unidadeId, diasPermitidos }: Props) {
                     }),
                 });
               }}
-              disabled={excluir.isPending}
+              disabled={rascunho ? false : excluir.isPending}
             >
-              {excluir.isPending ? "Excluindo..." : "Excluir"}
+              {rascunho ? "Excluir" : excluir.isPending ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }

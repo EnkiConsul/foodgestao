@@ -32,6 +32,10 @@ export type RegraLimiteFolga = {
   colaborador_ids: string[];
 };
 
+/** Regra sem identificador obrigatório — usada em formulários e rascunho. */
+export type RegraLimiteFolgaBase = Omit<RegraLimiteFolga, "id">;
+
+
 
 
 export type LimiteDiaConfig = {
@@ -121,9 +125,10 @@ export function resolverLimiteFolga(params: {
 
 /** Frase curta para exibir a regra na lista de cadastro. */
 export function resumoRegraLimite(
-  regra: RegraLimiteFolga,
+  regra: RegraLimiteFolgaBase,
   nomes: { unidade?: string | null; cargos?: string[]; colaboradores?: string[] } = {},
 ): string {
+
   const escopo = nomes.unidade ?? "Unidade";
   const dia =
     regra.dia_semana === null
