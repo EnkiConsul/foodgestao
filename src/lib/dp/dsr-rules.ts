@@ -16,6 +16,28 @@ export const MODO_FREQUENCIA_LABEL: Record<ModoFrequencia, string> = {
   por_mes: "X domingos por mês",
 };
 
+/** Perfil dos dias de descanso marcados, para adaptar os textos de frequência. */
+export type TipoDiasDescanso = "domingo" | "fim_de_semana" | "outros";
+
+export const MODO_FREQUENCIA_POR_MES_LABEL: Record<TipoDiasDescanso, string> = {
+  domingo: "X domingos por mês",
+  fim_de_semana: "X folgas de fim de semana por mês",
+  outros: "X folgas de descanso por mês",
+};
+
+/** Rótulo do modelo de frequência conforme os dias de descanso marcados. */
+export function modoFrequenciaLabel(modo: ModoFrequencia, tipoDias: TipoDiasDescanso): string {
+  return modo === "semanas" ? MODO_FREQUENCIA_LABEL.semanas : MODO_FREQUENCIA_POR_MES_LABEL[tipoDias];
+}
+
+/** Classifica os dias elegíveis: só domingo, sábado+domingo ou qualquer outra combinação. */
+export function tipoDiasDescanso(diasElegiveis: number[]): TipoDiasDescanso {
+  const extras = diasElegiveis.filter((d) => d !== 0);
+  if (extras.length === 0) return "domingo";
+  if (extras.length === 1 && extras[0] === 6) return "fim_de_semana";
+  return "outros";
+}
+
 export const REGRA_DSR_LABEL: Record<RegraDsr, string> = {
   clt: "CLT (padrão legal)",
   cct: "Acordo / convenção coletiva",
