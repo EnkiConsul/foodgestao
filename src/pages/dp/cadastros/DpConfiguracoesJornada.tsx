@@ -457,9 +457,6 @@ export default function DpConfiguracoesJornada() {
 
         <Separator />
 
-        <FolgaRegrasPanel diasPermitidos={diasDeFolga} />
-
-        <Separator />
 
         <SubSection
           title="Frequência Da Folga Dominical (DSR)"
