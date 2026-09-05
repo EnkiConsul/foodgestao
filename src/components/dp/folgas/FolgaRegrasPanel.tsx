@@ -181,6 +181,17 @@ export function FolgaRegrasPanel({
       toast.error("A data final da vigência deve ser depois da inicial.");
       return;
     }
+    if (rascunho) {
+      if (!onChangeRascunho) return;
+      const chave = form.clientId ?? form.id;
+      const nova = chave
+        ? regrasRascunho.map((r) => (r.clientId === chave || r.id === chave ? form : r))
+        : [...regrasRascunho, { ...form, clientId: form.clientId ?? crypto.randomUUID() }];
+      onChangeRascunho(nova);
+      toast.success(form.id ? "Regra atualizada no rascunho" : "Regra incluída no rascunho");
+      setForm(null);
+      return;
+    }
     try {
       await salvar.mutateAsync(form);
       toast.success(form.id ? "Regra atualizada" : "Regra criada");
@@ -191,6 +202,7 @@ export function FolgaRegrasPanel({
       });
     }
   };
+
 
   const confirmarReplicacao = async () => {
     if (!replicando) return;
