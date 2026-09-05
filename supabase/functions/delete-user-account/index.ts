@@ -124,10 +124,14 @@ Deno.serve(async (req) => {
     }
 
     const { error: delAuthErr } = await admin.auth.admin.deleteUser(userId);
-    if (delAuthErr) return json({ error: delAuthErr.message }, 500);
+    if (delAuthErr) {
+      console.error("[delete-user-account]", delAuthErr.message);
+      return json({ error: "Não foi possível concluir a operação." }, 500);
+    }
 
     return json({ ok: true, errors });
   } catch (e) {
-    return json({ error: e instanceof Error ? e.message : "Erro interno" }, 500);
+    console.error("[delete-user-account] fatal:", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });

@@ -9,9 +9,14 @@
 // Body: { company_id: string, ano: number, mes: number, regenerar_prioridades?: boolean, dias?: number[] (0=dom..6=sab, default [0,6]) }
 // Retorna: { inseridas: number, ignoradas: Array<{ data, colaborador_id, motivo }>, prioridades_geradas: number }
 
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
+import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
+import {
+  callerClient,
+  canAdminister,
+  requireCompanyAccess,
+  requireUser,
+} from "../_shared/authz.ts";
 
 const BodySchema = z.object({
   company_id: z.string().uuid(),
@@ -22,25 +27,22 @@ const BodySchema = z.object({
 });
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return json({ error: "Missing Authorization header" }, 401);
-    }
+    const user = await requireUser(req);
+    if (!user) return jsonError(req, "unauthorized");
 
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) {
-      return json({ error: parsed.error.flatten().fieldErrors }, 400);
+      return jsonError(req, "invalid_input", parsed.error.flatten().fieldErrors);
     }
     const { company_id, ano, mes, regenerar_prioridades, dias } = parsed.data;
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const access = await requireCompanyAccess(user.id, company_id);
+    if (!access || !canAdminister(access)) return jsonError(req, "forbidden");
+
+    const supabase = callerClient(user.token);
 
     // 1) (Re)gerar fila de prioridade do mês, se solicitado
     let prioridades_geradas = 0;
@@ -48,7 +50,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase.rpc("dp_gerar_prioridades_aniversario", {
         _company_id: company_id, _ano: ano, _mes: mes,
       });
-      if (error) return json({ error: error.message }, 400);
+      if (error) return jsonError(req, "invalid_input", error.message);
       prioridades_geradas = Number(data) || 0;
     }
 
@@ -59,9 +61,9 @@ Deno.serve(async (req) => {
       .eq("company_id", company_id)
       .eq("ano", ano).eq("mes", mes)
       .order("prioridade", { ascending: true });
-    if (prioErr) return json({ error: prioErr.message }, 400);
+    if (prioErr) return jsonError(req, "invalid_input", prioErr.message);
     if (!prios || prios.length === 0) {
-      return json({ inseridas: 0, ignoradas: [], prioridades_geradas, aviso: "Sem colaboradores para sortear" });
+      return jsonResponse(req, 200, { inseridas: 0, ignoradas: [], prioridades_geradas, aviso: "Sem colaboradores para sortear" });
     }
 
     // 3) Buscar unidades dos colaboradores + config de limite por dia
@@ -140,7 +142,8 @@ Deno.serve(async (req) => {
           observacao: "Sorteio automático",
         });
         if (error) {
-          ignoradas.push({ data, colaborador_id: colab_id, motivo: error.message });
+          console.error("[dp-sorteio-folgas] insert:", error.message);
+          ignoradas.push({ data, colaborador_id: colab_id, motivo: "nao_permitido" });
           continue;
         }
         inseridas.push({ data, colaborador_id: colab_id });
@@ -149,20 +152,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({
+    return jsonResponse(req, 200, {
       inseridas: inseridas.length,
       ignoradas,
       prioridades_geradas,
       detalhes: inseridas,
     });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    return jsonError(req, "internal", e);
   }
 });
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
+

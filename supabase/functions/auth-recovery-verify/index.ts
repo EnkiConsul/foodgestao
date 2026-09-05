@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { timingSafeEqualHex } from "../_shared/zapi.ts";
+import { ipRateLimited } from "../_shared/rate-limit.ts";
 
 const BodySchema = z.object({
   challenge_id: z.string().uuid(),
@@ -13,6 +14,7 @@ const BodySchema = z.object({
 
 const RESET_TTL_SECONDS = 600;
 const MAX_ATTEMPTS = 5;
+const MAX_VERIFY_PER_IP_PER_HOUR = 20;
 
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -48,6 +50,13 @@ Deno.serve(async (req) => {
     body = parsed.data;
   } catch {
     return json(400, { error: "JSON inválido" });
+  }
+
+  if (await ipRateLimited(admin, req, "recovery_verify", MAX_VERIFY_PER_IP_PER_HOUR)) {
+    return json(429, {
+      error: "Muitas tentativas. Aguarde e tente novamente.",
+      code: "rate_limited",
+    });
   }
 
   const { data: row } = await admin

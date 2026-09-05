@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
     return json({ ok: true });
   } catch (e) {
     console.error("cancel error:", e);
-    return json({ error: e instanceof Error ? e.message : "Unknown" }, 500);
+    console.error("[asaas-cancel-subscription] fatal:", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });

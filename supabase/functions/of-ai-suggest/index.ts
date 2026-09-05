@@ -47,7 +47,10 @@ Deno.serve(async (req) => {
       .eq("archived", false)
       .order("name");
 
-    if (catErr) return json({ error: catErr.message }, 500);
+    if (catErr) {
+      console.error("[of-ai-suggest]", catErr.message);
+      return json({ error: "Não foi possível concluir a operação." }, 500);
+    }
     if (!cats || cats.length === 0) {
       return json({ suggestions: [] });
     }
@@ -114,7 +117,8 @@ ${items.map(i => `${i.id}|${i.type ?? "saida"}|${i.amount}|${i.description}`).jo
     return json({ suggestions });
   } catch (err) {
     console.error("of-ai-suggest error", err);
-    return json({ error: String(err?.message ?? err) }, 500);
+    console.error("[of-ai-suggest] fatal:", err);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });
 

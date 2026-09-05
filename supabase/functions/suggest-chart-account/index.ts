@@ -136,7 +136,10 @@ Deno.serve(async (req) => {
     _user_id: userId,
     _role: "super_admin",
   });
-  if (roleErr) return json({ error: "authorization_check_failed", message: roleErr.message }, 403);
+  if (roleErr) {
+    console.error("[suggest-chart-account] role:", roleErr.message);
+    return json({ error: "authorization_check_failed" }, 403);
+  }
   if (!isAdmin) return json({ error: "forbidden" }, 403);
 
   const body = await req.json().catch(() => ({} as Record<string, unknown>));
@@ -155,7 +158,10 @@ Deno.serve(async (req) => {
   else catQuery = catQuery.is("chart_account_code", null);
 
   const { data: catRows, error: catErr } = await catQuery;
-  if (catErr) return json({ error: "categories_lookup_failed", message: catErr.message }, 500);
+  if (catErr) {
+    console.error("[suggest-chart-account] categories:", catErr.message);
+    return json({ error: "categories_lookup_failed" }, 500);
+  }
 
   const categories = ((catRows ?? []) as CategoryTemplate[]).slice(0, limit);
   if (categories.length === 0) return json({ suggestions: [], total: 0, pending: 0 });
@@ -166,7 +172,10 @@ Deno.serve(async (req) => {
       "code, name, template_key, is_synthetic, is_active, requires_review, usage_description, keywords, excluded_keywords, allowed_category_subtypes, allowed_transaction_types",
     )
     .order("sort_order");
-  if (accErr) return json({ error: "accounts_lookup_failed", message: accErr.message }, 500);
+  if (accErr) {
+    console.error("[suggest-chart-account] accounts:", accErr.message);
+    return json({ error: "accounts_lookup_failed" }, 500);
+  }
   const accounts = (accRows ?? []) as ChartTemplate[];
 
   const lovable = createOpenAI({

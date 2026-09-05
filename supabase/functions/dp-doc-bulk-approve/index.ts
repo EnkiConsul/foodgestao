@@ -6,6 +6,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireCompanyAccess, requireUser } from "../_shared/authz.ts";
 import { z } from "npm:zod@3";
 import { DOC_TIPO_EXIGE_ACEITE, DOC_TIPO_LABEL } from "../_shared/doc-tipos.ts";
 
@@ -23,8 +24,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
+    const user = await requireUser(req);
+    if (!user) return json({ error: "Não autenticado" }, 401);
+    const authHeader = `Bearer ${user.token}`;
 
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
@@ -36,16 +38,30 @@ Deno.serve(async (req) => {
     const userClient = createClient(url, anon, { global: { headers: { Authorization: authHeader } } });
     const svc = createClient(url, service);
 
-    const { data: userData } = await userClient.auth.getUser();
-    const uid = userData?.user?.id;
-    if (!uid) return json({ error: "Não autenticado" }, 401);
+    const uid = user.id;
 
     const { data: items, error: iErr } = await userClient
       .from("dp_bulk_import_items")
       .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name, source_file_path, deteccao_automatica, exigir_aceite, unidade_id)")
       .in("id", parsed.data.item_ids);
-    if (iErr) return json({ error: iErr.message }, 500);
+    if (iErr) {
+      console.error("[dp-doc-bulk-approve]", iErr.message);
+      return json({ error: "Não foi possível concluir a operação." }, 500);
+    }
     if (!items || items.length === 0) return json({ error: "Nenhum item encontrado" }, 404);
+
+    // Defesa em profundidade: confirma o vínculo com todas as empresas dos lotes.
+    const companyIds = [
+      ...new Set(
+        (items as any[])
+          .map((i) => i.dp_bulk_import_batches?.company_id)
+          .filter((v): v is string => !!v),
+      ),
+    ];
+    for (const cid of companyIds) {
+      const access = await requireCompanyAccess(uid, cid);
+      if (!access) return json({ error: "Sem permissão para esta operação." }, 403);
+    }
 
     const onDuplicate = parsed.data.on_duplicate;
     const results: Array<{ id: string; ok: boolean; documento_id?: string; error?: string; replaced?: boolean }> = [];
@@ -173,7 +189,8 @@ Deno.serve(async (req) => {
         await svc.from("dp_bulk_import_items").update({
           status: "failed", error_message: (e as Error).message,
         }).eq("id", it.id);
-        results.push({ id: it.id, ok: false, error: (e as Error).message });
+        console.error("[dp-doc-bulk-approve] item:", (e as Error).message);
+        results.push({ id: it.id, ok: false, error: "falha_ao_aprovar" });
       } finally {
         processedSoFar += 1;
         // Atualização incremental do progresso — permite ao frontend mostrar
@@ -204,7 +221,8 @@ Deno.serve(async (req) => {
 
     return json({ results });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    console.error("[dp-doc-bulk-approve] fatal:", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });
 

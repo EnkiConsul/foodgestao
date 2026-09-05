@@ -88,7 +88,10 @@ Deno.serve(async (req) => {
     const { error: updErr } = await admin.auth.admin.updateUserById(colab.user_id, {
       password: novaSenha,
     });
-    if (updErr) return json({ error: updErr.message }, 500);
+    if (updErr) {
+      console.error("[dp-alterar-senha-colaborador]", updErr.message);
+      return json({ error: "Não foi possível concluir a operação." }, 500);
+    }
 
     // Audit log (never store the password itself)
     await admin.from("audit_logs").insert({
@@ -105,7 +108,8 @@ Deno.serve(async (req) => {
 
     return json({ success: true });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
+    console.error("[dp-alterar-senha-colaborador] fatal:", e);
+    return new Response(JSON.stringify({ error: "Não foi possível concluir a operação." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

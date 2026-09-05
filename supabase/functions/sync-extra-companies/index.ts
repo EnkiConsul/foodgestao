@@ -136,6 +136,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, extra, included, total: totalCompanies, billed: true, asaasSynced });
   } catch (e) {
     console.error(e);
-    return json({ error: (e as Error).message ?? "Erro" }, 500);
+    console.error("[sync-extra-companies] fatal:", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });

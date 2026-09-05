@@ -27,7 +27,13 @@ export default defineTool({
       .limit(limit ?? 100);
     if (apenas_ativos !== false) query = query.eq("ativo", true);
     const { data, error } = await query;
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    if (error) {
+      console.error("[mcp] query error:", error.message);
+      return {
+        content: [{ type: "text", text: "Não foi possível consultar os dados agora." }],
+        isError: true,
+      };
+    }
     return {
       content: [{ type: "text", text: JSON.stringify({ count: data?.length ?? 0, colaboradores: data ?? [] }, null, 2) }],
       structuredContent: { count: data?.length ?? 0, colaboradores: data ?? [] },

@@ -107,7 +107,8 @@ Deno.serve(async (req) => {
       },
     });
     if (created.error || !created.data.user) {
-      return new Response(JSON.stringify({ error: created.error?.message ?? "Falha ao criar usuário" }), {
+      console.error("[dp-criar-acesso-colaborador]", created.error?.message);
+      return new Response(JSON.stringify({ error: "Falha ao criar o acesso." }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -119,7 +120,8 @@ Deno.serve(async (req) => {
       .update({ user_id: targetUserId, email_portal: email })
       .eq("id", colab.id);
     if (linkErr) {
-      return new Response(JSON.stringify({ error: linkErr.message }), {
+      console.error("[dp-criar-acesso-colaborador]", linkErr.message);
+      return new Response(JSON.stringify({ error: "Não foi possível concluir a operação." }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -137,7 +139,8 @@ Deno.serve(async (req) => {
       password,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
+    console.error("[dp-criar-acesso-colaborador] fatal:", e);
+    return new Response(JSON.stringify({ error: "Não foi possível concluir a operação." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

@@ -103,7 +103,8 @@ Deno.serve(async (req) => {
       const redirectTo = (req.headers.get("origin") ?? ALLOWED_ORIGINS[0]) + "/dp/meu";
       const invite = await admin.auth.admin.inviteUserByEmail(email, { redirectTo });
       if (invite.error || !invite.data.user) {
-        return new Response(JSON.stringify({ error: invite.error?.message ?? "Falha ao convidar" }), {
+        console.error("[dp-invite-colaborador]", invite.error?.message);
+        return new Response(JSON.stringify({ error: "Falha ao convidar." }), {
           status: 500, headers: { ...cors, "Content-Type": "application/json" },
         });
       }
@@ -116,7 +117,8 @@ Deno.serve(async (req) => {
       .update({ user_id: targetUserId, email_portal: email })
       .eq("id", colaboradorId);
     if (linkErr) {
-      return new Response(JSON.stringify({ error: linkErr.message }), {
+      console.error("[dp-invite-colaborador]", linkErr.message);
+      return new Response(JSON.stringify({ error: "Não foi possível concluir a operação." }), {
         status: 500, headers: { ...cors, "Content-Type": "application/json" },
       });
     }
@@ -132,7 +134,8 @@ Deno.serve(async (req) => {
       { headers: { ...cors, "Content-Type": "application/json" } },
     );
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
+    console.error("[dp-invite-colaborador] fatal:", e);
+    return new Response(JSON.stringify({ error: "Não foi possível concluir a operação." }), {
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
   }

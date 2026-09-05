@@ -9,6 +9,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireCompanyAccess, requireUser } from "../_shared/authz.ts";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { z } from "npm:zod@3";
 import { extractPeriodo, extractPeriodoFromFilename } from "../_shared/competencia.ts";
@@ -39,8 +40,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
+    const user = await requireUser(req);
+    if (!user) return json({ error: "Não autenticado" }, 401);
+    const authHeader = `Bearer ${user.token}`;
 
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
@@ -60,7 +62,13 @@ Deno.serve(async (req) => {
     // Carrega o batch respeitando RLS do usuário — garante que ele pode processá-lo
     const { data: batch, error: bErr } = await userClient
       .from("dp_bulk_import_batches").select("*").eq("id", batch_id).maybeSingle();
-    if (bErr || !batch) return json({ error: bErr?.message ?? "Lote não encontrado" }, 404);
+    if (bErr || !batch) {
+      if (bErr) console.error("[dp-doc-bulk-ingest] read batch:", bErr.message);
+      return json({ error: "Lote não encontrado" }, 404);
+    }
+    if (!(await requireCompanyAccess(user.id, String(batch.company_id)))) {
+      return json({ error: "Sem permissão para esta operação." }, 403);
+    }
 
     // Sinaliza processing imediatamente
     await svc.from("dp_bulk_import_batches")
@@ -78,7 +86,8 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, batch_id, status: "processing" }, 202);
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    console.error("[dp-doc-bulk-ingest] fatal:", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });
 

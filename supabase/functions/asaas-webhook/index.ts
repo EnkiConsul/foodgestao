@@ -5,6 +5,7 @@
 // O processamento é feito por `asaas-webhook-worker` (pg_cron a cada minuto),
 // com tentativas, backoff exponencial e dead letter.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { secretMatches } from "../_shared/secret.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,7 +25,7 @@ Deno.serve(async (req) => {
   try {
     const expectedToken = Deno.env.get("ASAAS_WEBHOOK_TOKEN") ?? "";
     const receivedToken = req.headers.get("asaas-access-token") ?? "";
-    if (!expectedToken || receivedToken !== expectedToken) {
+    if (!secretMatches(receivedToken, expectedToken)) {
       console.warn("asaas-webhook: invalid token");
       return new Response("Forbidden", { status: 403, headers: corsHeaders });
     }

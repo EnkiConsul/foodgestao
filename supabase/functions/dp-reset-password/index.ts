@@ -95,7 +95,8 @@ Deno.serve(async (req) => {
       password: newPassword,
     });
     if (updErr) {
-      return new Response(JSON.stringify({ error: updErr.message }), {
+      console.error("[dp-reset-password]", updErr.message);
+      return new Response(JSON.stringify({ error: "Não foi possível concluir a operação." }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -104,7 +105,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
+    console.error("[dp-reset-password] fatal:", e);
+    return new Response(JSON.stringify({ error: "Não foi possível concluir a operação." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

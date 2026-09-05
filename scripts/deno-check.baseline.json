@@ -1,13 +1,5 @@
 [
   "ai-categorize-transactions",
-  "ai-financial-agent",
-  "auth-email-hook",
-  "dp-doc-bulk-ingest",
-  "dp-generate-disciplinary-pdf",
-  "generate-category-ai-description",
   "mcp",
-  "of-ai-suggest",
-  "plin-ia-insights",
-  "preview-transactional-email",
   "suggest-chart-account"
 ]

@@ -2,12 +2,15 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
+import { ipRateLimited } from "../_shared/rate-limit.ts";
 
 const BodySchema = z.object({
   challenge_id: z.string().uuid(),
   reset_token: z.string().min(32).max(128),
   new_password: z.string().min(12).max(128),
 });
+
+const MAX_RESET_PER_IP_PER_HOUR = 10;
 
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -46,6 +49,13 @@ Deno.serve(async (req) => {
     body = parsed.data;
   } catch {
     return json(400, { error: "JSON inválido" });
+  }
+
+  if (await ipRateLimited(admin, req, "recovery_reset", MAX_RESET_PER_IP_PER_HOUR)) {
+    return json(429, {
+      error: "Muitas tentativas. Aguarde e tente novamente.",
+      code: "rate_limited",
+    });
   }
 
   if (!isStrongPassword(body.new_password)) {

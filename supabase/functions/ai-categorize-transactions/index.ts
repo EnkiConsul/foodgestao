@@ -62,7 +62,10 @@ Deno.serve(async (req) => {
     p_batch: batchSize,
     p_vt: 90,
   });
-  if (readErr) return json({ error: `read_queue: ${readErr.message}` }, 500);
+  if (readErr) {
+    console.error("[ai-categorize-transactions] read_queue:", readErr.message);
+    return json({ error: "read_queue_failed" }, 500);
+  }
 
   const msgs = (messages ?? []) as QueueMsg[];
   if (msgs.length === 0) return json({ processed: 0, applied: 0, empty: true });

@@ -23,7 +23,13 @@ export default defineTool({
     if (company_id) query = query.eq("company_id", company_id);
     if (context) query = query.eq("context", context);
     const { data, error } = await query;
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    if (error) {
+      console.error("[mcp] query error:", error.message);
+      return {
+        content: [{ type: "text", text: "Não foi possível consultar os dados agora." }],
+        isError: true,
+      };
+    }
     const rows = data ?? [];
     const total = rows.reduce((sum, r) => sum + Number(r.current_balance ?? 0), 0);
     return {
