@@ -659,6 +659,12 @@ export default function DpConfiguracoesJornada() {
           </div>
         </SubSection>
 
+        <Separator />
+
+        <FolgaLimitesPanel />
+
+
+
         <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
           <p className="text-xs text-muted-foreground">
             Ao salvar (botão no topo da tela) você pode aplicar a mesma regra em outras unidades.
