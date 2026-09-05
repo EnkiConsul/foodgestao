@@ -27,6 +27,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
 import { resolverLimiteFolga } from "@/lib/dp/folga-limites";
+import {
+  resolverJanela,
+  podeMarcarNormal,
+  mensagemJanela,
+  type JanelaResolvida,
+} from "@/lib/dp/folga-janela";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -136,6 +142,34 @@ export default function DpMeuCalendario() {
   const resumoFolgas = resumoEscolhaFolgas(regrasConfig, { sexo: (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null });
   /** No padrão CLT o sistema gera a folga dominical — o colaborador não marca nem remove. */
   const folgaCltAutomatica = folgaDominicalAutomatica(regrasConfig);
+
+  /** Período mensal de escolha das folgas (fonte da verdade no servidor). */
+  const janelaQuery = useQuery({
+    queryKey: ["dp_folga_janela", companyId, myUnidade],
+    enabled: !!companyId,
+    queryFn: async (): Promise<JanelaRemota | null> => {
+      const { data, error } = await supabase.rpc("dp_folgas_janela_efetiva", {
+        _company: companyId!,
+        _unidade: myUnidade ?? undefined,
+      });
+      if (error) throw error;
+      return (data ?? null) as JanelaRemota | null;
+    },
+  });
+
+  const janela = useMemo<JanelaResolvida>(() => {
+    const remota = janelaQuery.data;
+    return resolverJanela(
+      {
+        ativa: remota?.ativa === true,
+        abreDia: Number(remota?.abre_dia ?? 10),
+        fechaDia: Number(remota?.fecha_dia ?? 20),
+      },
+      remota?.hoje ? parseYMD(remota.hoje) : new Date(),
+    );
+  }, [janelaQuery.data]);
+
+  const avisoJanela = janela.estado === "inativa" ? "" : mensagemJanela(janela, formatBR);
 
 
 
