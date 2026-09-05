@@ -45,8 +45,10 @@ As particularidades fazem parte do mesmo fluxo, inclusive numa unidade nova: as 
 
 - `src/pages/dp/cadastros/DpConfiguracoesJornada.tsx` passa a ser a lista: usa `useDpConfigDp()` (já retorna `rows`, `configPadrao` e `unidadesConfiguradas`) para montar o resumo por unidade, sem seletor de unidade nem `localStorage`.
 - O corpo do formulário atual (base da regra, DSR, troca, janela mensal, `FolgaRegrasPanel`) sai para `src/components/dp/folgas/FolgaRegrasFormDialog.tsx`, com props `unidadeId`, `modo: "criar" | "editar"`, `configInicial` e a lista de unidades para replicar/copiar. Mantém `alertasDeCiencia`, `saveMany`, o diálogo de replicação ao salvar e `removerExcecao`.
-- Resumos da lista reaproveitam `resumoEscolhaFolgas`, `semanasDaConfig`, `MODO_FREQUENCIA_LABEL` e `DIA_SEMANA_LABEL` de `src/lib/dp/dsr-rules.ts`; a contagem de particularidades vem de `useDpFolgaLimites(unidadeId)` por linha (ou de uma contagem única por empresa para evitar uma consulta por unidade).
-- "Copiar as regras de" apenas preenche o formulário em memória com a config da unidade escolhida (`rows`), sem gravar nada até salvar.
+- Resumos da lista reaproveitam `resumoEscolhaFolgas`, `semanasDaConfig`, `MODO_FREQUENCIA_LABEL` e `DIA_SEMANA_LABEL` de `src/lib/dp/dsr-rules.ts`; a contagem de particularidades vem de uma consulta única a `dp_folga_limite_regras` por empresa, agrupada por unidade.
+- `FolgaRegrasPanel` ganha um modo controlado (rascunho em memória) para o cadastro de unidade nova: as regras ficam em estado local no diálogo e, ao salvar, são gravadas em `dp_folga_limite_regras` com o `unidade_id` logo depois de `saveMany` — se a gravação das particularidades falhar, o usuário vê o erro com as regras ainda no formulário. No modo edição o painel continua gravando direto, como hoje.
+- "Copiar as regras de" preenche o formulário em memória com a config da unidade escolhida (`rows`) e traz as particularidades dela como rascunho, sem gravar nada até salvar.
+
 - `DpFolgasHub` segue igual: painel de regras, datas bloqueadas e histórico.
 - Verificação: `bunx tsgo --noEmit -p tsconfig.app.json`, `bunx vitest run src/test/unit/folgaLimites.test.ts src/test/unit/folgaJanela.test.ts`, lint nos arquivos alterados e uma passada no navegador na aba Regras.
 
