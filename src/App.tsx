@@ -446,7 +446,7 @@ const AppRoutes = () => (
         <Route path="escalas" element={<DpEscalas />} />
         <Route path="escalas/mes" element={<DpOperacaoPanorama />} />
         <Route path="operacao" element={<Navigate to="/dp/escalas/mes" replace />} />
-        <Route path="convocacoes" element={<DpConvocacoes />} />
+        <Route path="ocorrencias" element={<DpOcorrencias />} />
         {/* Folha de pagamento e ponto desativados: gerados fora do sistema por ora. */}
         <Route path="ponto" element={<Navigate to="/dp" replace />} />
         <Route path="ponto/time" element={<Navigate to="/dp" replace />} />
