@@ -832,6 +832,7 @@ export default function DpOperacaoPanorama() {
               onVerSocios={() => setVerSocios(true)}
               onDispensar={dispensar}
               onReativar={reativar}
+              {...propsAvulsas}
             />
           )}
         </TabsContent>
@@ -1017,6 +1018,7 @@ export default function DpOperacaoPanorama() {
                 onVerSocios={() => setVerSocios(true)}
                 onDispensar={dispensar}
                 onReativar={reativar}
+                {...propsAvulsas}
               />
             ) : (
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
