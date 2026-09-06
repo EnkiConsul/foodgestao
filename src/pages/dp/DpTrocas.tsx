@@ -237,11 +237,23 @@ export default function DpTrocas() {
       <RecusaDialog
         open={!!recusa}
         onOpenChange={(v) => !v && setRecusa(null)}
-        title={recusa?.etapa === "colega" ? "Colega recusa" : "Gestor recusa"}
+        title="Recusar troca"
+        description="Informe o motivo da recusa. Ele fica registrado e visível aos dois colaboradores envolvidos."
         motivoObrigatorio
         loading={responder.isPending}
-        onConfirm={(motivo) => recusa && responder.mutate({ id: recusa.id, etapa: recusa.etapa, aceito: false, obs: motivo })}
+        onConfirm={(motivo) => recusa && responder.mutate({ id: recusa, aceito: false, obs: motivo })}
       />
+
+      <RecusaDialog
+        open={!!cancelamento}
+        onOpenChange={(v) => !v && setCancelamento(null)}
+        title="Cancelar troca aprovada"
+        description="Informe o motivo do cancelamento. As folgas voltam ao estado anterior e os dois colaboradores são avisados."
+        motivoObrigatorio
+        loading={cancelar.isPending}
+        onConfirm={(motivo) => cancelamento && cancelar.mutate({ id: cancelamento, motivo })}
+      />
+
     </DpPage>
   );
 }
