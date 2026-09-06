@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarDays, Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, Copy, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +11,7 @@ import {
   descricaoRegra, feriadosDoAno, type FeriadoRegra,
 } from "@/lib/dp/feriados";
 import { FeriadoFormDialog } from "@/components/dp/unidades/FeriadoFormDialog";
+import { ReplicarFeriadosDialog } from "@/components/dp/unidades/ReplicarFeriadosDialog";
 
 interface Props {
   /** Unidade em edição. Quando ausente, a unidade ainda não foi salva. */
@@ -24,9 +25,10 @@ const fmt = (iso: string) => {
 
 /** Calendário de feriados desta unidade, com a visão do ano resolvida. */
 export function UnidadeFeriadosPanel({ unidadeId }: Props) {
-  const { feriados, isLoading, salvar, alternar, excluir, incluirNacionais } =
+  const { feriados, isLoading, salvar, alternar, excluir, incluirNacionais, replicar } =
     useDpFeriados(unidadeId ?? null);
   const [open, setOpen] = useState(false);
+  const [replicarOpen, setReplicarOpen] = useState(false);
   const [editando, setEditando] = useState<FeriadoRegra | null>(null);
   const anoAtual = new Date().getFullYear();
   const [ano, setAno] = useState(String(anoAtual));
@@ -58,6 +60,14 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
             onClick={() => incluirNacionais.mutate()}
           >
             Incluir nacionais
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={feriados.length === 0 || replicar.isPending}
+            onClick={() => setReplicarOpen(true)}
+          >
+            <Copy className="mr-1 h-4 w-4" /> Replicar para outras unidades
           </Button>
           <Button size="sm" onClick={() => { setEditando(null); setOpen(true); }}>
             <Plus className="mr-1 h-4 w-4" /> Novo feriado
@@ -140,6 +150,18 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
         saving={salvar.isPending}
         onSubmit={(input) => salvar.mutate(input, { onSuccess: () => setOpen(false) })}
       />
+
+      <ReplicarFeriadosDialog
+        open={replicarOpen}
+        onOpenChange={setReplicarOpen}
+        unidadeId={unidadeId}
+        totalOrigem={feriados.length}
+        saving={replicar.isPending}
+        onConfirm={(input) =>
+          replicar.mutate(input, { onSuccess: () => setReplicarOpen(false) })
+        }
+      />
+
     </div>
   );
 }

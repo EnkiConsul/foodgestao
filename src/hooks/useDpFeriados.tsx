@@ -34,6 +34,17 @@ const textoErro = (msg?: string | null) => {
   return msg;
 };
 
+export type ReplicarModo = "completar" | "substituir";
+export type ReplicarResumo = { unidades: number; copiados: number; existentes: number };
+
+/** Chave de comparação de uma regra de feriado, para evitar duplicidade. */
+export const chaveFeriado = (f: FeriadoRegra) =>
+  f.tipo === "especifica"
+    ? `especifica:${f.data ?? ""}`
+    : f.tipo === "anual"
+      ? `anual:${f.dia ?? ""}-${f.mes ?? ""}`
+      : `relativa:${f.ordinal ?? ""}-${f.dia_semana ?? ""}-${f.mes ?? ""}`;
+
 /** Calendário de feriados de uma unidade: cadastro, edição e liga/desliga. */
 export function useDpFeriados(unidadeId?: string | null) {
   const { selectedCompanyId } = useCompanyContext();
@@ -155,6 +166,92 @@ export function useDpFeriados(unidadeId?: string | null) {
     onError: (e: any) => toast.error(textoErro(e?.message)),
   });
 
+  /** Copia o calendário desta unidade para outras unidades da empresa. */
+  const replicar = useMutation({
+    mutationFn: async ({
+      destinos,
+      modo,
+    }: {
+      destinos: string[];
+      modo: ReplicarModo;
+    }): Promise<ReplicarResumo> => {
+      if (!selectedCompanyId || !unidadeId) throw new Error("Salve a unidade primeiro.");
+      const origem = query.data ?? [];
+      if (origem.length === 0) throw new Error("Esta unidade não tem feriados para copiar.");
+      if (destinos.length === 0) throw new Error("Escolha ao menos uma unidade.");
+
+      const linha = (unidade: string, f: FeriadoRegra) => ({
+        company_id: selectedCompanyId,
+        unidade_id: unidade,
+        nome: f.nome,
+        tipo: f.tipo,
+        data: f.tipo === "especifica" ? f.data ?? null : null,
+        dia: f.tipo === "anual" ? f.dia ?? null : null,
+        mes: f.tipo === "especifica" ? null : f.mes ?? null,
+        ordinal: f.tipo === "relativa" ? f.ordinal ?? null : null,
+        dia_semana: f.tipo === "relativa" ? f.dia_semana ?? null : null,
+        ativo: f.ativo !== false,
+        observacao: f.observacao ?? null,
+      });
+
+      if (modo === "substituir") {
+        const { error: delErr } = await supabase
+          .from("dp_unidade_feriados")
+          .delete()
+          .in("unidade_id", destinos);
+        if (delErr) throw delErr;
+        const linhas = destinos.flatMap((u) => origem.map((f) => linha(u, f)));
+        const { error } = await supabase.from("dp_unidade_feriados").insert(linhas);
+        if (error) throw error;
+        return { unidades: destinos.length, copiados: linhas.length, existentes: 0 };
+      }
+
+      const { data: atuais, error: readErr } = await supabase
+        .from("dp_unidade_feriados")
+        .select("unidade_id, tipo, data, dia, mes, ordinal, dia_semana")
+        .in("unidade_id", destinos);
+      if (readErr) throw readErr;
+
+      const porUnidade = new Map<string, Set<string>>();
+      destinos.forEach((u) => porUnidade.set(u, new Set()));
+      (atuais ?? []).forEach((r: any) => {
+        porUnidade.get(r.unidade_id)?.add(chaveFeriado(r as FeriadoRegra));
+      });
+
+      const linhas: ReturnType<typeof linha>[] = [];
+      let existentes = 0;
+      let unidadesTocadas = 0;
+      for (const u of destinos) {
+        const set = porUnidade.get(u) ?? new Set<string>();
+        let novos = 0;
+        for (const f of origem) {
+          if (set.has(chaveFeriado(f))) {
+            existentes += 1;
+            continue;
+          }
+          linhas.push(linha(u, f));
+          novos += 1;
+        }
+        if (novos > 0) unidadesTocadas += 1;
+      }
+      if (linhas.length > 0) {
+        const { error } = await supabase.from("dp_unidade_feriados").insert(linhas);
+        if (error) throw error;
+      }
+      return { unidades: unidadesTocadas, copiados: linhas.length, existentes };
+    },
+    onSuccess: (r) => {
+      toast.success(
+        r.copiados === 0
+          ? "Nada a copiar: as unidades já tinham esses feriados"
+          : `${r.unidades} unidade(s) atualizada(s), ${r.copiados} feriado(s) copiado(s)` +
+              (r.existentes ? `, ${r.existentes} já existiam` : ""),
+      );
+      invalidate();
+    },
+    onError: (e: any) => toast.error(textoErro(e?.message)),
+  });
+
   return {
     feriados: query.data ?? [],
     isLoading: query.isLoading,
@@ -162,5 +259,6 @@ export function useDpFeriados(unidadeId?: string | null) {
     alternar,
     excluir,
     incluirNacionais,
+    replicar,
   };
 }
