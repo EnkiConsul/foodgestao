@@ -395,6 +395,60 @@ function DetalheDiaOperacao({
         </Secao>
       )}
 
+      <Secao
+        title="Pessoas Avulsas no Dia"
+        description="Quem trabalha hoje sem estar cadastrado como colaborador: em teste ou folguista"
+        action={
+          podeRegistrar ? (
+            <Button variant="outline" size="sm" onClick={() => onNovaAvulsa(data)}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Adicionar pessoa
+            </Button>
+          ) : undefined
+        }
+      >
+        {avulsosDoDia.length ? (
+          <ul className="divide-y">
+            {avulsosDoDia.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{a.nome}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {[
+                      a.cargo_nome,
+                      `${a.entrada ?? "--:--"} às ${a.saida ?? "--:--"}${a.termina_no_dia_seguinte ? " (+1)" : ""}`,
+                      a.cobre_nome ? `cobrindo ${a.cobre_nome}` : null,
+                      a.data_fim !== a.data_inicio ? `até ${a.data_fim}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                  {a.observacao && <p className="text-xs text-muted-foreground">{a.observacao}</p>}
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Badge variant="secondary">{a.tipo === "teste" ? "Em teste" : "Folguista"}</Badge>
+                  {podeRegistrar && (
+                    <>
+                      <Button variant="ghost" size="sm" onClick={() => onEditarAvulsa(a)}>
+                        Editar
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => onExcluirAvulsa(a)}>
+                        Remover
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Ninguém avulso registrado neste dia.
+          </p>
+        )}
+      </Secao>
+
+
       {foraDaOperacao.length > 0 && (
         <Secao title="Fora da Operação" description="Folgas, férias e afastamentos do dia">
           <ul className="divide-y">
