@@ -737,31 +737,18 @@ export default function DpFolgas() {
         description="Gestão centralizada de escalas e folgas da equipe."
         actions={
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => gerarFolgasClt.mutate()}
-              disabled={gerarFolgasClt.isPending || unidadeFilter === "todas"}
-              title={
-                unidadeFilter === "todas"
-                  ? "Selecione uma unidade para gerar as folgas dominicais da CLT"
-                  : "Gera as folgas dominicais do mês conforme a CLT"
-              }
-            >
-              <Scale className="h-4 w-4" />
-              {gerarFolgasClt.isPending ? "Gerando..." : "Gerar folgas CLT"}
-            </Button>
             {podeDistribuir && (
               <Button
                 variant="outline"
                 className="gap-2"
                 onClick={() => setAutoOpen(true)}
-                title="Distribui as folgas de fim de semana de quem ainda não marcou neste mês"
+                title="Gera as folgas de fim de semana de quem ainda não marcou neste mês, conforme a regra da unidade"
               >
                 <Wand2 className="h-4 w-4" />
-                Distribuir folgas automaticamente
+                Gerar Folgas
               </Button>
             )}
+
             <Button onClick={() => openNew()} className="gap-2">
               <Plus className="h-4 w-4" /> Nova solicitação
             </Button>
