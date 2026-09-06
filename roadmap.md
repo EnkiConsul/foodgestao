@@ -2,3 +2,7 @@
 - [x] Cabeçalho fixo na janela Editar Regras de Folgas
 - [x] Folgas: dias/ocupação por item no plano, preferência pelo fim do mês, sem contingência acima do limite (escolha manual com contagem), Registrar Ausência na Operação, remarcar/cancelar folga efetivada ou solicitada sem manter o dia cancelado no calendário
 - [x] Rotina do dia: cards de folguista/teste, dia destacado no calendário, horário sugerido no cadastro de pessoa avulsa, botão "Adicionar Pessoa" no topo e diálogo de listagem por tipo
+- [x] Férias etapa 1: direito por faltas, alertas de prazo e painel com abas
+- [x] Férias etapa 2: pedido do colaborador, aprovação/recusa, cancelamento com motivo, ciência e antecedência do aviso
+- [ ] Férias etapa 3: feriados por unidade, calendário de férias e resumo para contabilidade
+- [ ] Férias etapa 4: bloqueio de folga/convocação em férias, sugestão de cobertura e fracionamento
