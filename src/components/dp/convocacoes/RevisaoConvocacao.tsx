@@ -9,6 +9,8 @@ import {
   type PessoaPanorama,
 } from "@/lib/dp/operacao-panorama";
 import { resolverHorarioDestinatario, simularDia } from "@/lib/dp/convocacao-revisao";
+import { MOTIVOS_DE_HORARIO, textoDoMotivo } from "@/lib/dp/convocacoes-motivos";
+import type { PreAvaliacaoLinha } from "@/hooks/useDpConvocacaoPreAvaliacao";
 import type { JornadaDia } from "@/lib/dp/convocacoes-planejamento";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +57,13 @@ interface Props {
   jornadaDe: (colaboradorId: string, data: string) => JornadaDia | null;
   prazoRespostaDias: number | null;
   justificativa: string;
+  /** Verificação prévia feita pelo banco (mesma regra da publicação). */
+  preAvaliacao: PreAvaliacaoLinha[];
+  preAvaliacaoCarregando: boolean;
+  /** Passa a convocação a usar o horário informado para todos. */
+  onUsarHorarioParaTodos: (entrada: string, saida: string, vira: boolean) => void;
+  /** Encurta a necessidade do dia/cargo até o fim do horário habitual da pessoa. */
+  onAjustarNecessidade: (cargoId: string, data: string, saida: string) => void;
 }
 
 const rotuloData = (iso: string) =>
@@ -69,7 +78,15 @@ export function RevisaoConvocacao(props: Props) {
   const {
     unidadeId, unidadeNome, competencia, titulo, observacao, dias,
     destinatarios, overrides, horarioGeral, jornadaDe, prazoRespostaDias, justificativa,
+    preAvaliacao, preAvaliacaoCarregando, onUsarHorarioParaTodos, onAjustarNecessidade,
   } = props;
+
+  /** `cargoId|data|colaboradorId` → linha da verificação prévia. */
+  const aptidaoPorChave = useMemo(() => {
+    const m = new Map<string, PreAvaliacaoLinha>();
+    for (const l of preAvaliacao) m.set(`${l.cargo_id ?? ""}|${l.data}|${l.colaborador_id}`, l);
+    return m;
+  }, [preAvaliacao]);
 
   const ordenados = useMemo(
     () => [...dias].sort((a, b) => a.data.localeCompare(b.data) || a.cargo_nome.localeCompare(b.cargo_nome)),
@@ -223,6 +240,43 @@ export function RevisaoConvocacao(props: Props) {
             <p className="mt-1 text-[11px] text-muted-foreground">
               Janela da necessidade: {o.dia.entrada}–{o.dia.saida}{o.dia.vira ? " (+1)" : ""}
             </p>
+            {(() => {
+              const linhasDia = preAvaliacao.filter(
+                (l) => l.data === o.dia.data && (l.cargo_id ?? "") === o.dia.cargo_id,
+              );
+              if (preAvaliacaoCarregando || linhasDia.length === 0) return null;
+              if (linhasDia.some((l) => l.apto)) return null;
+              const soHorario = linhasDia.every((l) => MOTIVOS_DE_HORARIO.has(String(l.motivo)));
+              const fimHabitual = linhasDia
+                .map((l) => l.jornada?.saida?.slice(0, 5) ?? null)
+                .find((v): v is string => !!v) ?? null;
+              return (
+                <Alert variant="destructive" className="mt-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="space-y-2 text-xs">
+                    <p>Ninguém deste dia está apto a receber a convocação.</p>
+                    {soHorario && (
+                      <div className="flex flex-wrap gap-1.5">
+                        <Button
+                          type="button" size="sm" variant="outline" className="h-7 text-[11px]"
+                          onClick={() => onUsarHorarioParaTodos(o.dia.entrada, o.dia.saida, o.dia.vira)}
+                        >
+                          Usar o horário informado para todos
+                        </Button>
+                        {fimHabitual && fimHabitual !== o.dia.saida && (
+                          <Button
+                            type="button" size="sm" variant="outline" className="h-7 text-[11px]"
+                            onClick={() => onAjustarNecessidade(o.dia.cargo_id, o.dia.data, fimHabitual)}
+                          >
+                            Ajustar a necessidade para {o.dia.entrada}–{fimHabitual}
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              );
+            })()}
             <ul className="mt-2 space-y-1">
               {o.linhas.map((l) => (
                 <li
@@ -246,6 +300,22 @@ export function RevisaoConvocacao(props: Props) {
                           : "jornada cadastrada"
                       : "não será enviada"}
                   </span>
+                  {(() => {
+                    const av = aptidaoPorChave.get(`${o.dia.cargo_id}|${o.dia.data}|${l.pessoa.id}`);
+                    if (!av) return null;
+                    return av.apto ? (
+                      <Badge variant="secondary" className="text-[10px]">Apta</Badge>
+                    ) : (
+                      <span className="w-full text-[11px] text-destructive">
+                        {textoDoMotivo(av.motivo, {
+                          jornada: av.jornada?.entrada && av.jornada?.saida
+                            ? `${av.jornada.entrada.slice(0, 5)}–${av.jornada.saida.slice(0, 5)}`
+                            : null,
+                          necessidade: `${o.dia.entrada}–${o.dia.saida}`,
+                        })}
+                      </span>
+                    );
+                  })()}
                 </li>
               ))}
               {o.linhas.length === 0 && (
