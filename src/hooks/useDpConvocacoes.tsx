@@ -335,6 +335,7 @@ export function useMinhasConvocacoes(colaboradorId: string | null) {
     pendentes,
     isLoading: query.isLoading,
     responder,
+    proporParcial,
     registrarVisualizacao,
   };
 }
