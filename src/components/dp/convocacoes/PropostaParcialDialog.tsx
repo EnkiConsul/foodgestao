@@ -45,17 +45,9 @@ export function PropostaParcialDialog({
   }, [open, necessidade.entrada, necessidade.saida]);
 
   const { validacao, descoberto, viraODia } = useMemo(() => {
-    const n = janelaMinutos(necessidade);
-    const iniPedido = n?.inicio ?? 0;
-    const iniProposto = (() => {
-      const j = janelaMinutos({ entrada, saida: entrada });
-      return j?.inicio ?? 0;
-    })();
-    // A saída "vira o dia" quando fica depois da meia-noite dentro da janela pedida.
-    const fimProposto = janelaMinutos({ entrada, saida });
-    const vira = !!fimProposto && fimProposto.fim > 1440 - 0 && iniProposto >= iniPedido
-      ? fimProposto.fim > 1440
-      : false;
+    // A saída "vira o dia" sempre que for menor ou igual à entrada proposta.
+    const bruto = janelaMinutos({ entrada, saida });
+    const vira = !!bruto && bruto.fim > 1440;
     const parcial = { entrada, saida, termina_no_dia_seguinte: vira };
     return {
       validacao: validarHorarioParcial(necessidade, parcial),
@@ -63,8 +55,6 @@ export function PropostaParcialDialog({
       viraODia: vira,
     };
   }, [entrada, saida, necessidade]);
-
-  const ok = validacao.ok;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
