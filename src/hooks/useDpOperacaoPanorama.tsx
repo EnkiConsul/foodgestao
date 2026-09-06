@@ -17,6 +17,8 @@ import {
   type ConvocacaoPanorama,
   type FolgaPanorama,
   type ItemEscalaPanorama,
+  type PessoaAvulsaPanorama,
+  type PessoaAvulsaTipo,
   type ResultadoDia,
 } from "@/lib/dp/operacao-panorama";
 import { isSocio } from "@/lib/dp/contrato-policy";
