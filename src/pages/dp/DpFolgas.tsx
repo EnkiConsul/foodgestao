@@ -1488,7 +1488,7 @@ export default function DpFolgas() {
                   <div className="max-h-[45vh] space-y-2 overflow-y-auto pr-1">
                     {planoItens.map(({ item, data }) => {
                       const removido = autoRemovidos.includes(item.colaboradorId);
-                      const semDia = !data;
+                      
                       return (
                         <div
                           key={item.colaboradorId}
@@ -1567,9 +1567,11 @@ export default function DpFolgas() {
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  O sistema sugere os dias de descanso mais vazios, respeitando os limites por dia e
-                  cargo e as pessoas que não podem folgar juntas. Você pode trocar a data ou remover
-                  alguém da geração. Quem já tem folga no mês não aparece aqui.
+                  O sistema sugere primeiro os últimos dias possíveis do mês, preferindo os dias
+                  mais vazios e respeitando os limites por dia e cargo e as pessoas que não podem
+                  folgar juntas. Você pode trocar a data ou remover alguém da geração. Quando todos
+                  os dias de alguém já estão no limite, nenhuma folga é criada — escolha o dia
+                  manualmente. Quem já tem folga no mês não aparece aqui.
                 </p>
               </>
             )}
