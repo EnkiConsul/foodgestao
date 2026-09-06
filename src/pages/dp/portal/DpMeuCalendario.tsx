@@ -655,11 +655,16 @@ export default function DpMeuCalendario() {
     mutationFn: async () => {
       if (!meRef.data || !tradeOpen) throw new Error("Sem contexto");
       if (!tradeMyDate) throw new Error("Escolha uma folga sua para oferecer.");
+      if (tradeOpen.occupantId === meRef.data.id)
+        throw new Error("Não é possível trocar uma folga com você mesmo.");
+      if (tradeMyDate === tradeOpen.iso)
+        throw new Error("Escolha uma folga sua em outro dia: a troca precisa ser entre dias diferentes.");
       const motivo = tradeMotivo.trim() || "Solicitação de troca via calendário";
       // regra da unidade: modo e escopo da troca
       const tipoTroca = parseYMD(tradeMyDate).getDay() === 0 ? "dominical" : "semanal";
       const check = podeTrocarFolga(regrasConfig, tipoTroca);
       if (!check.permitida) throw new Error(check.motivo ?? "Troca de folga não permitida.");
+
 
       // duplicidade
       const { data: existing } = await supabase
