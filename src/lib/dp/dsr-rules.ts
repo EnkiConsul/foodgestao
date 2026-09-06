@@ -677,7 +677,10 @@ export function avaliarConformidade(
       ),
       esperado,
       folgasConsideradas,
-      folgasMarcadas: domingos + negociados,
+      // Total do que foi marcado em dias de descanso, mesmo acima do mínimo
+      // ou fora do modo acordo — serve para o gestor ver que existe folga.
+      folgasMarcadas: domingos + (l.diasNegociadosFolgados?.length ?? 0),
+
       negociadosAproveitados,
       conforme: folgasConsideradas >= esperado,
     };
