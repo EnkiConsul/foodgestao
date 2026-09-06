@@ -239,18 +239,22 @@ export function FolgaRegrasPanel({
       </div>
 
 
-      <div className="flex flex-wrap gap-2">
+      <ToggleGroup
+        type="single"
+        value={filtro}
+        onValueChange={(v) => v && setFiltro(v as "todas" | TipoRegraFolga)}
+        className="flex w-full flex-wrap justify-start gap-1 rounded-lg bg-muted/60 p-1"
+      >
         {(["todas", "quantidade", "cargo", "colaboradores"] as const).map((t) => (
-          <Button
+          <ToggleGroupItem
             key={t}
-            size="sm"
-            variant={filtro === t ? "secondary" : "ghost"}
-            onClick={() => setFiltro(t)}
+            value={t}
+            className="h-8 rounded-md px-3 text-xs data-[state=on]:bg-background data-[state=on]:shadow-sm"
           >
             {t === "todas" ? "Todas" : TIPO_REGRA_LABEL[t]}
-          </Button>
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando regras...</p>
@@ -259,87 +263,91 @@ export function FolgaRegrasPanel({
           Nenhuma regra cadastrada aqui: hoje não existe limite para as folgas deste tipo.
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {visiveis.map((r) => {
             const Icone = ICONE[r.tipo] ?? Users;
             const chave = chaveRegra(r);
+            const partes = partesRegraLimite(r, {
+              cargos: r.cargo_ids.map((c) => nomeCargo.get(c) ?? "Cargo"),
+              colaboradores: r.colaborador_ids.map((c) => nomeColab.get(c) ?? "Pessoa"),
+            });
             return (
-              <li
-                key={chave}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"
-              >
-                <div className="min-w-0 space-y-1">
-                  <p className="flex items-center gap-2 text-sm font-medium">
-                    <Icone className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    <span className="truncate">
-                      {r.nome ||
-                        resumoRegraLimite(r, {
-                          unidade: r.unidade_id ? nomeUnidade.get(r.unidade_id) : null,
-                          cargos: r.cargo_ids.map((c) => nomeCargo.get(c) ?? "Cargo"),
-                          colaboradores: r.colaborador_ids.map((c) => nomeColab.get(c) ?? "Pessoa"),
-                        })}
+              <li key={chave} className="rounded-xl border p-3 transition-colors hover:bg-muted/40">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                      <Icone className="h-4 w-4" aria-hidden="true" />
                     </span>
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <Badge variant="outline">{TIPO_REGRA_LABEL[r.tipo]}</Badge>
-                    {r.nome && (
-                      <span className="truncate">
-                        {resumoRegraLimite(r, {
-                          unidade: r.unidade_id ? nomeUnidade.get(r.unidade_id) : null,
-                          cargos: r.cargo_ids.map((c) => nomeCargo.get(c) ?? "Cargo"),
-                          colaboradores: r.colaborador_ids.map((c) => nomeColab.get(c) ?? "Pessoa"),
-                        })}
-                      </span>
-                    )}
-                    {(r.vigencia_inicio || r.vigencia_fim) && (
-                      <Badge variant="secondary">
-                        Vigência {r.vigencia_inicio ?? "—"} a {r.vigencia_fim ?? "sem fim"}
-                      </Badge>
-                    )}
+                    <Badge variant="secondary">{TIPO_REGRA_LABEL[r.tipo]}</Badge>
                     {!r.ativo && <Badge variant="outline">Desativada</Badge>}
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={r.ativo}
-                    aria-label="Regra ativa"
-                    onCheckedChange={(v) => {
-                      if (rascunho) {
-                        onChangeRascunho?.(
-                          regrasRascunho.map((item) =>
-                            (item.clientId ?? item.id) === chave ? { ...item, ativo: v } : item,
-                          ),
-                        );
-                      } else {
-                        alternarAtivo.mutate({ id: r.id, ativo: v });
-                      }
-                    }}
-                  />
-                  <Button variant="ghost" size="sm" onClick={() => abrirEdicao(r)}>
-                    Editar
-                  </Button>
-                  {!rascunho && outrasUnidades.length > 0 && (
+
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Switch
+                      checked={r.ativo}
+                      aria-label="Regra ativa"
+                      onCheckedChange={(v) => {
+                        if (rascunho) {
+                          onChangeRascunho?.(
+                            regrasRascunho.map((item) =>
+                              (item.clientId ?? item.id) === chave ? { ...item, ativo: v } : item,
+                            ),
+                          );
+                        } else {
+                          alternarAtivo.mutate({ id: r.id, ativo: v });
+                        }
+                      }}
+                    />
+                    <Button variant="ghost" size="sm" onClick={() => abrirEdicao(r)}>
+                      Editar
+                    </Button>
+                    {!rascunho && outrasUnidades.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setReplicando(r);
+                          setAlvos([]);
+                        }}
+                      >
+                        Replicar
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setReplicando(r);
-                        setAlvos([]);
-                      }}
+                      size="icon"
+                      aria-label="Excluir regra"
+                      onClick={() => setExcluirId(chave)}
                     >
-                      Replicar
+                      <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
                     </Button>
-                  )}
+                  </div>
+                </div>
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Excluir regra"
-                    onClick={() => setExcluirId(chave)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
-                  </Button>
-
+                <div className="mt-2 space-y-1.5 pl-9">
+                  {r.nome && <p className="text-sm font-medium">{r.nome}</p>}
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="font-medium capitalize text-foreground">{partes.dia}</span>
+                    <span aria-hidden="true">·</span>
+                    {partes.escopo.length === 0 ? (
+                      <span>{partes.escopoVazio}</span>
+                    ) : (
+                      partes.escopo.map((nome) => (
+                        <Badge key={nome} variant="outline" className="font-normal">
+                          {nome}
+                        </Badge>
+                      ))
+                    )}
+                    {(r.vigencia_inicio || r.vigencia_fim) && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>
+                          Vigência {r.vigencia_inicio ?? "—"} a {r.vigencia_fim ?? "sem fim"}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-sm font-semibold">{partes.limite}</p>
                 </div>
               </li>
             );
