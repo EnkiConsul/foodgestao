@@ -25,6 +25,8 @@ export type GozoInput = {
   observacao: string | null;
 };
 
+export type FaltasInput = { periodoId: string; faltas: number; motivo?: string | null };
+
 /** Dados e mutations de férias formais (períodos aquisitivos + gozos). */
 export function useDpFerias(colaboradorFilter: string) {
   const { selectedCompanyId } = useCompanyContext();
@@ -34,6 +36,7 @@ export function useDpFerias(colaboradorFilter: string) {
     qc.invalidateQueries({ queryKey: ["dp_ferias_periodos"] });
     qc.invalidateQueries({ queryKey: ["dp_ferias_gozos"] });
   };
+
 
   const periodosQ = useQuery({
     queryKey: ["dp_ferias_periodos", selectedCompanyId, colaboradorFilter],
