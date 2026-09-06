@@ -1504,7 +1504,7 @@ export default function DpFolgas() {
       />
 
       <Dialog open={autoOpen} onOpenChange={setAutoOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Distribuir folgas automaticamente</DialogTitle>
             <DialogDescription>
@@ -1516,20 +1516,85 @@ export default function DpFolgas() {
           </DialogHeader>
 
           <div className="space-y-3 text-sm">
-            {previaAutoQuery.isLoading && <p className="text-muted-foreground">Calculando...</p>}
-            {previaAutoQuery.isError && (
+            {planoAutoQuery.isLoading && <p className="text-muted-foreground">Calculando...</p>}
+            {planoAutoQuery.isError && (
               <p className="text-destructive">
                 Não foi possível calcular a prévia. Tente novamente.
               </p>
             )}
-            {previaAutoQuery.data && (
+            {planoAutoQuery.data && (
               <>
-                <p className="font-medium">{resumoPrevia(previaAutoQuery.data)}</p>
+                <p className="font-medium">{resumoPlano(planoAutoQuery.data)}</p>
+
+                {planoItens.length > 0 && (
+                  <div className="max-h-[45vh] space-y-2 overflow-y-auto pr-1">
+                    {planoItens.map(({ item, data }) => {
+                      const removido = autoRemovidos.includes(item.colaboradorId);
+                      const semDia = !data;
+                      return (
+                        <div
+                          key={item.colaboradorId}
+                          className={cn(
+                            "flex flex-wrap items-center gap-2 rounded-md border p-2",
+                            removido && "opacity-50",
+                          )}
+                        >
+                          <span className="min-w-[10rem] flex-1 font-medium">{item.nome}</span>
+
+                          {semDia ? (
+                            <Badge variant="outline" className="text-amber-600">
+                              Sem dia disponível
+                            </Badge>
+                          ) : (
+                            <Select
+                              value={data ?? undefined}
+                              disabled={removido}
+                              onValueChange={(v) =>
+                                setAutoEdits((prev) => ({ ...prev, [item.colaboradorId]: v }))
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-[11rem]">
+                                <SelectValue placeholder="Escolher dia" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {diasEscolhaAuto.map((d) => (
+                                  <SelectItem key={d} value={d}>
+                                    {format(parseISO(d), "dd/MM (EEE)", { locale: ptBR })}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+
+                          {item.excedeLimite && !removido && (
+                            <Badge variant="outline" className="text-destructive">
+                              Acima do limite
+                            </Badge>
+                          )}
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setAutoRemovidos((prev) =>
+                                removido
+                                  ? prev.filter((id) => id !== item.colaboradorId)
+                                  : [...prev, item.colaboradorId],
+                              )
+                            }
+                          >
+                            {removido ? "Incluir" : "Remover"}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <p className="text-xs text-muted-foreground">
-                  O sistema respeita os dias de descanso negociados, os limites por dia e cargo e as
-                  pessoas que não podem folgar juntas, começando pelos dias mais vazios. Se todos os
-                  dias estiverem no limite, começa pelos últimos dias do mês e avisa no calendário.
-                  Quem já tem folga no mês não é alterado.
+                  O sistema sugere os dias de descanso mais vazios, respeitando os limites por dia e
+                  cargo e as pessoas que não podem folgar juntas. Você pode trocar a data ou remover
+                  alguém da geração. Quem já tem folga no mês não aparece aqui.
                 </p>
               </>
             )}
@@ -1537,20 +1602,21 @@ export default function DpFolgas() {
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAutoOpen(false)} disabled={distribuirAuto.isPending}>
-              Cancelar
+              {itensConfirmados.length === 0 ? "Fechar" : "Cancelar"}
             </Button>
-            <Button
-              onClick={() => distribuirAuto.mutate()}
-              disabled={
-                distribuirAuto.isPending ||
-                previaAutoQuery.isLoading ||
-                !previaAutoQuery.data ||
-                previaAutoQuery.data.aCriar <= 0
-              }
-            >
-              {distribuirAuto.isPending ? "Distribuindo..." : "Distribuir folgas"}
-            </Button>
+            {itensConfirmados.length > 0 && (
+              <Button
+                onClick={() => distribuirAuto.mutate()}
+                disabled={distribuirAuto.isPending || planoAutoQuery.isLoading}
+              >
+                {distribuirAuto.isPending
+                  ? "Distribuindo..."
+                  : `Criar ${itensConfirmados.length} folga(s)`}
+              </Button>
+            )}
           </DialogFooter>
+        </DialogContent>
+
         </DialogContent>
       </Dialog>
     </DpPage>
