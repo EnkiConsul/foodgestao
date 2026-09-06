@@ -60,7 +60,12 @@ export interface PessoaAvulsaInput {
   saida?: string | null;
   termina_no_dia_seguinte?: boolean;
   observacao?: string | null;
+  /** Telefone de contato (folguista/teste). */
+  telefone?: string | null;
+  /** Vínculo com o cadastro reaproveitável de apoio. */
+  pessoa_apoio_id?: string | null;
 }
+
 
 
 const DISPENSA_SENTINELA = "00000000-0000-0000-0000-000000000000";
