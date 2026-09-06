@@ -97,29 +97,21 @@ function UnitCard({
   const dias = diasElegiveisDaConfig(regra);
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="flex flex-row items-start justify-between gap-3 pb-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <Store className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <h3 className="truncate text-base font-semibold">{unidade.nome}</h3>
+    <Card className="flex flex-col overflow-hidden">
+      <CardHeader className="gap-3 pb-3">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <Store className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="break-words text-lg font-bold leading-snug">{unidade.nome}</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {configurada ? "Regras configuradas para esta unidade" : "Segue o padrão legal (CLT)"}
+            </p>
           </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {configurada ? "Regras configuradas para esta unidade" : "Segue o padrão legal (CLT)"}
-          </p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={onEdit}>
-            <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Editar
-          </Button>
-          {configurada && (
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onLimpar} title="Limpar regras">
-              <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
-            </Button>
-          )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 pb-4 pt-0">
+      <CardContent className="flex flex-1 flex-col gap-3 pb-4 pt-0">
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary" className="text-xs">
             {resumoBase(regra)}
@@ -137,18 +129,18 @@ function UnitCard({
           )}
         </div>
 
-        <dl className="grid gap-2 text-xs">
-          <div className="flex justify-between gap-2">
+        <dl className="grid gap-2.5 text-xs">
+          <div>
             <dt className="text-muted-foreground">Dias de descanso</dt>
-            <dd className="text-right font-medium">{resumoDiasDescanso(regra)}</dd>
+            <dd className="font-medium">{resumoDiasDescanso(regra)}</dd>
           </div>
-          <div className="flex justify-between gap-2">
+          <div>
             <dt className="text-muted-foreground">Frequência</dt>
-            <dd className="text-right font-medium">{resumoFrequencia(regra)}</dd>
+            <dd className="font-medium">{resumoFrequencia(regra)}</dd>
           </div>
-          <div className="flex justify-between gap-2">
+          <div>
             <dt className="text-muted-foreground">Período de escolha</dt>
-            <dd className="text-right font-medium">{resumoJanela(regra)}</dd>
+            <dd className="font-medium">{resumoJanela(regra)}</dd>
           </div>
           {dias.length === 0 && (
             <div className="flex items-start gap-1.5 rounded-md bg-destructive/10 p-2 text-destructive">
@@ -157,6 +149,17 @@ function UnitCard({
             </div>
           )}
         </dl>
+
+        <div className="mt-auto flex items-center justify-end gap-2 border-t pt-3">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Editar
+          </Button>
+          {configurada && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onLimpar} title="Limpar regras">
+              <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
