@@ -4,7 +4,9 @@ import {
   baselinePorDow,
   contarDia,
   diasDaCompetencia,
+  blocosPorFuncionamento,
   type ColaboradorPanorama,
+  type PessoaPanorama,
 } from "@/lib/dp/operacao-panorama";
 import type { TurnoResolvido } from "@/lib/dp/config-trabalho";
 
@@ -194,5 +196,93 @@ describe("sócio na operação", () => {
     });
     expect(r.contagens.folga_extra).toBe(0);
     expect(r.pessoas[0].categoria).toBe("folga_extra");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Blocos por funcionamento: cada pessoa aparece em um único período do dia.
+// ---------------------------------------------------------------------------
+
+const pessoa = (
+  id: string,
+  entrada: string | null,
+  saida: string | null,
+  extra: Partial<PessoaPanorama> = {},
+): PessoaPanorama => ({
+  colaborador_id: id,
+  nome: `Pessoa ${id}`,
+  categoria: "fixo",
+  turno_id: null,
+  turno_nome: null,
+  entrada,
+  saida,
+  termina_no_dia_seguinte: false,
+  carga_prevista_horas: 8,
+  unidade_id: "u1",
+  cargo_id: "c1",
+  cargo_nome: "Garçom",
+  socio: false,
+  origem: "jornada",
+  ...extra,
+});
+
+// 2026-09-07 é uma segunda-feira (dow 1).
+const SEGUNDA = "2026-09-07";
+
+const funcionamentoDoisPeriodos = () =>
+  new Map([
+    [
+      "u1",
+      [
+        {
+          dia_semana: 1,
+          aberto: true,
+          periodos: [
+            { nome: "Dia", hora_abertura: "08:00", hora_fechamento: "17:00" },
+            { nome: "Noite", hora_abertura: "17:00", hora_fechamento: "23:00" },
+          ],
+        },
+      ],
+    ],
+  ]);
+
+describe("blocosPorFuncionamento", () => {
+  it("coloca a pessoa apenas no período em que a entrada dela cai", () => {
+    const blocos = blocosPorFuncionamento({
+      data: SEGUNDA,
+      pessoas: [pessoa("a", "10:00", "19:00")],
+      funcionamentoPorUnidade: funcionamentoDoisPeriodos(),
+      unidades: [{ id: "u1", nome: "Loja" }],
+      unidadeId: "u1",
+    });
+    const comA = blocos.filter((b) => b.pessoas.some((p) => p.colaborador_id === "a"));
+    expect(comA).toHaveLength(1);
+    expect(comA[0].titulo).toBe("Dia");
+  });
+
+  it("usa a maior sobreposição quando a entrada não cai em nenhum período", () => {
+    const blocos = blocosPorFuncionamento({
+      data: SEGUNDA,
+      pessoas: [pessoa("b", "06:00", "12:00")],
+      funcionamentoPorUnidade: funcionamentoDoisPeriodos(),
+      unidades: [{ id: "u1", nome: "Loja" }],
+      unidadeId: "u1",
+    });
+    const comB = blocos.filter((b) => b.pessoas.some((p) => p.colaborador_id === "b"));
+    expect(comB).toHaveLength(1);
+    expect(comB[0].titulo).toBe("Dia");
+  });
+
+  it("manda para 'Fora do Horário' quem não tem sobreposição alguma", () => {
+    const blocos = blocosPorFuncionamento({
+      data: SEGUNDA,
+      pessoas: [pessoa("c", "23:30", "23:50")],
+      funcionamentoPorUnidade: funcionamentoDoisPeriodos(),
+      unidades: [{ id: "u1", nome: "Loja" }],
+      unidadeId: "u1",
+    });
+    const comC = blocos.filter((b) => b.pessoas.some((p) => p.colaborador_id === "c"));
+    expect(comC).toHaveLength(1);
+    expect(comC[0].titulo).toBe("Fora do Horário de Funcionamento");
   });
 });
