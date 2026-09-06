@@ -10,6 +10,7 @@ import { FeriasDashboard } from "@/components/dp/ferias/FeriasDashboard";
 import { FeriasGozosPanel } from "@/components/dp/ferias/FeriasGozosPanel";
 import { FeriasSolicitacoesPanel } from "@/components/dp/ferias/FeriasSolicitacoesPanel";
 import { FeriasConfigCard } from "@/components/dp/ferias/FeriasConfigCard";
+import { FeriasContabilidadePanel } from "@/components/dp/ferias/FeriasContabilidadePanel";
 import { useDpFerias } from "@/hooks/useDpFerias";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 
