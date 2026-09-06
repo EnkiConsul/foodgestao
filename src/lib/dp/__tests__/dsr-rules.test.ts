@@ -510,6 +510,8 @@ describe("avaliarConformidade — intervalo entre domingos", () => {
     tipo_descanso_domingo: "legal" as const,
     setor_comercio: true,
     modo_frequencia_domingo: "por_mes" as const,
+    periodicidade_domingo: 3,
+    periodicidade_domingo_mulher: 2,
     domingos_por_mes: 2,
     modo_frequencia_domingo_mulher: "por_mes" as const,
     domingos_por_mes_mulher: 2,
