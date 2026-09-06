@@ -615,13 +615,19 @@ export function avaliarIntervaloDomingos(
     return { conforme: true, domingosComIntervaloRompido: [], maiorSequenciaTrabalhada: 0 };
   }
   const folgados = new Set(domingosFolgados);
+  const ordenados = [...domingosDoPeriodo].sort();
   const rompidos: string[] = [];
+  // Domingos trabalhados entre a última folga dominical conhecida e o início do
+  // período entram na sequência, para a virada de mês não zerar a contagem.
   let seq = 0;
-  let maior = 0;
-  // Sem folga anterior conhecida, o período começa "zerado": a sequência só
-  // conta os domingos do próprio período.
-  void ultimoDomingoFolgadoAnterior;
-  for (const dia of [...domingosDoPeriodo].sort()) {
+  if (ultimoDomingoFolgadoAnterior) {
+    const anterior = new Date(`${ultimoDomingoFolgadoAnterior}T00:00:00Z`);
+    const primeiro = new Date(`${ordenados[0]}T00:00:00Z`);
+    const dias = Math.round((primeiro.getTime() - anterior.getTime()) / 86_400_000);
+    seq = Math.max(0, Math.floor(dias / 7) - 1);
+  }
+  let maior = seq;
+  for (const dia of ordenados) {
     if (folgados.has(dia)) {
       seq = 0;
       continue;
@@ -630,6 +636,7 @@ export function avaliarIntervaloDomingos(
     maior = Math.max(maior, seq);
     if (seq > maxSeguidos) rompidos.push(dia);
   }
+
   return {
     conforme: rompidos.length === 0,
     domingosComIntervaloRompido: rompidos,
