@@ -289,7 +289,7 @@ export default function DpColaboradores() {
     const base = colOrder.filter((k) => k !== "setor");
     if (!mostrarSetor) return base;
     const idx = base.indexOf("unidade");
-    const arr = [...base];
+    const arr: ColabColKey[] = [...base];
     arr.splice(idx >= 0 ? idx + 1 : arr.length, 0, "setor");
     return arr;
   }, [colOrder, mostrarSetor]);
