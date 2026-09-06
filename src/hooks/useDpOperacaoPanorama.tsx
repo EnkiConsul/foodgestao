@@ -17,6 +17,8 @@ import {
   type ConvocacaoPanorama,
   type FolgaPanorama,
   type ItemEscalaPanorama,
+  type PessoaAvulsaPanorama,
+  type PessoaAvulsaTipo,
   type ResultadoDia,
 } from "@/lib/dp/operacao-panorama";
 import { isSocio } from "@/lib/dp/contrato-policy";
@@ -37,6 +39,22 @@ export interface AusenciaRegistrada {
   inicio: string;
   fim: string;
   motivo: string | null;
+}
+
+/** Dados do cadastro rápido de pessoa avulsa (teste/folguista). */
+export interface PessoaAvulsaInput {
+  id?: string;
+  nome: string;
+  tipo: PessoaAvulsaTipo;
+  unidade_id: string;
+  cargo_id: string;
+  cobre_colaborador_id?: string | null;
+  data_inicio: string;
+  data_fim: string;
+  entrada?: string | null;
+  saida?: string | null;
+  termina_no_dia_seguinte?: boolean;
+  observacao?: string | null;
 }
 
 const DISPENSA_SENTINELA = "00000000-0000-0000-0000-000000000000";
@@ -237,6 +255,29 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     },
   });
 
+  /** Pessoas avulsas (teste/folguista) que cruzam a competência exibida. */
+  const avulsasQuery = useQuery({
+    queryKey: ["dp_pessoas_avulsas", selectedCompanyId, competencia, unidadeId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      let q = supabase
+        .from("dp_pessoas_avulsas")
+        .select(
+          "id, nome, tipo, unidade_id, cargo_id, cobre_colaborador_id, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao",
+        )
+        .eq("company_id", selectedCompanyId!)
+        .lte("data_inicio", fim)
+        .gte("data_fim", inicio)
+        .order("data_inicio");
+      if (unidadeId) q = q.eq("unidade_id", unidadeId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+
+
   const turnos: TurnoResolvido[] = useMemo(
     () =>
       (base.data?.turnos ?? [])
@@ -371,6 +412,26 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     [base.data, unidadeId],
   );
 
+  const avulsos: PessoaAvulsaPanorama[] = useMemo(() => {
+    const cargos = new Map((base.data?.cargos ?? []).map((c) => [c.id, c.nome]));
+    const nomes = new Map((base.data?.colaboradores ?? []).map((c) => [c.id, c.nome]));
+    return (avulsasQuery.data ?? []).map((a) => ({
+      id: a.id,
+      nome: a.nome,
+      tipo: a.tipo as PessoaAvulsaTipo,
+      unidade_id: a.unidade_id,
+      cargo_id: a.cargo_id,
+      cargo_nome: cargos.get(a.cargo_id) ?? null,
+      cobre_nome: a.cobre_colaborador_id ? nomes.get(a.cobre_colaborador_id) ?? null : null,
+      data_inicio: a.data_inicio,
+      data_fim: a.data_fim,
+      entrada: a.entrada ? a.entrada.slice(0, 5) : null,
+      saida: a.saida ? a.saida.slice(0, 5) : null,
+      termina_no_dia_seguinte: !!a.termina_no_dia_seguinte,
+      observacao: a.observacao,
+    }));
+  }, [avulsasQuery.data, base.data]);
+
   /** Conta um dia respeitando admissão/desligamento do colaborador. */
   const contar = (data: string): ResultadoDia =>
     contarDia({
@@ -386,6 +447,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       folgas,
       ausencias,
       itensPublicados: base.data?.itens,
+      avulsos,
     });
 
   /** Histórico (janela anterior à competência) usado para aprender o padrão. */
@@ -418,7 +480,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       return { ...r, avaliacao, dispensado, alerta: desvio && !dispensado };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [base.data, dias, padrao, dispensadas, colaboradores, turnos, convocacoes, folgas, ausencias]);
+  }, [base.data, dias, padrao, dispensadas, colaboradores, turnos, convocacoes, folgas, ausencias, avulsos]);
 
   const dispensarAlerta = useMutation({
     mutationFn: async (input: { data: string; previsto: number; padrao: number; observacao?: string }) => {
@@ -453,6 +515,49 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_panorama_dispensas"] }),
   });
+
+  const salvarAvulsa = useMutation({
+    mutationFn: async (input: PessoaAvulsaInput) => {
+      const { data: userData } = await supabase.auth.getUser();
+      const payload = {
+        company_id: selectedCompanyId!,
+        unidade_id: input.unidade_id,
+        cargo_id: input.cargo_id,
+        nome: input.nome.trim(),
+        tipo: input.tipo,
+        cobre_colaborador_id: input.tipo === "folguista" ? input.cobre_colaborador_id ?? null : null,
+        data_inicio: input.data_inicio,
+        data_fim: input.data_fim,
+        entrada: input.entrada || null,
+        saida: input.saida || null,
+        termina_no_dia_seguinte: !!input.termina_no_dia_seguinte,
+        observacao: input.observacao?.trim() || null,
+      };
+      if (input.id) {
+        const { error } = await supabase
+          .from("dp_pessoas_avulsas")
+          .update(payload)
+          .eq("id", input.id);
+        if (error) throw error;
+        return;
+      }
+      const { error } = await supabase
+        .from("dp_pessoas_avulsas")
+        .insert({ ...payload, criado_por: userData.user?.id ?? null });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_pessoas_avulsas"] }),
+  });
+
+  const excluirAvulsa = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("dp_pessoas_avulsas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_pessoas_avulsas"] }),
+  });
+
+
 
   /** Funcionamento por unidade, no formato de períodos por dia da semana. */
   const funcionamentoPorUnidade = useMemo(() => {
@@ -491,6 +596,10 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     dias: diasPanorama,
     turnos,
     ausenciasRegistradas,
+    avulsos,
+    cargos: base.data?.cargos ?? [],
+    salvarAvulsa,
+    excluirAvulsa,
     funcionamentoPorUnidade,
     contagemPorUnidade,
     colaboradores,

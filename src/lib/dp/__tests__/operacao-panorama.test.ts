@@ -7,6 +7,7 @@ import {
   blocosPorFuncionamento,
   type ColaboradorPanorama,
   type PessoaPanorama,
+  type PessoaAvulsaPanorama,
 } from "@/lib/dp/operacao-panorama";
 import type { TurnoResolvido } from "@/lib/dp/config-trabalho";
 
@@ -312,5 +313,50 @@ describe("blocosPorFuncionamento", () => {
     const comC = blocos.filter((b) => b.pessoas.some((p) => p.colaborador_id === "c"));
     expect(comC).toHaveLength(1);
     expect(comC[0].titulo).toBe("Fora do Horário de Funcionamento");
+  });
+});
+
+describe("contarDia com pessoas avulsas", () => {
+  const vazio = { convocacoes: [], folgas: [], ausencias: [] };
+  const avulsa = (over: Partial<PessoaAvulsaPanorama> = {}): PessoaAvulsaPanorama => ({
+    id: "av1",
+    nome: "Maria Teste",
+    tipo: "teste",
+    unidade_id: "u1",
+    cargo_id: "c1",
+    cargo_nome: "Atendente",
+    cobre_nome: null,
+    data_inicio: SEGUNDA,
+    data_fim: SEGUNDA,
+    entrada: "17:00",
+    saida: "23:00",
+    termina_no_dia_seguinte: false,
+    observacao: null,
+    ...over,
+  });
+
+  it("soma a pessoa avulsa no quadro do dia como fixo", () => {
+    const r = contarDia({ data: SEGUNDA, colaboradores: [], turnos, ...vazio, avulsos: [avulsa()] });
+    expect(r.contagens.fixo).toBe(1);
+    expect(r.trabalhando).toBe(1);
+    const p = r.pessoas.find((x) => x.origem === "avulso");
+    expect(p?.nome).toBe("Maria Teste");
+    expect(p?.entrada).toBe("17:00");
+    expect(p?.avulso_id).toBe("av1");
+  });
+
+  it("ignora dias fora do período informado", () => {
+    const r = contarDia({ data: DOMINGO, colaboradores: [], turnos, ...vazio, avulsos: [avulsa()] });
+    expect(r.contagens.fixo).toBe(0);
+    expect(r.trabalhando).toBe(0);
+  });
+
+  it("mantém a pessoa avulsa em todo o período de vários dias", () => {
+    const periodo = [avulsa({ data_inicio: DOMINGO, data_fim: SEGUNDA, tipo: "folguista", cobre_nome: "Sara" })];
+    for (const d of [DOMINGO, SEGUNDA]) {
+      const r = contarDia({ data: d, colaboradores: [], turnos, ...vazio, avulsos: periodo });
+      expect(r.contagens.fixo).toBe(1);
+      expect(r.pessoas.find((x) => x.origem === "avulso")?.cobre_nome).toBe("Sara");
+    }
   });
 });

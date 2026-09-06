@@ -43,8 +43,11 @@ import {
   mensagemAlerta,
   somarDias,
   type CategoriaDia,
+  type PessoaAvulsaPanorama,
   type PessoaPanorama,
 } from "@/lib/dp/operacao-panorama";
+import { DpPessoaAvulsaDialog } from "@/components/dp/DpPessoaAvulsaDialog";
+import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
@@ -228,6 +231,12 @@ interface DetalheDiaProps {
   onVerSocios: () => void;
   onDispensar: (d: DiaPanorama) => void;
   onReativar: (d: DiaPanorama) => void;
+  /** Pessoas avulsas (teste/folguista) que cobrem este dia. */
+  avulsos: PessoaAvulsaPanorama[];
+  podeRegistrar: boolean;
+  onNovaAvulsa: (data: string) => void;
+  onEditarAvulsa: (registro: PessoaAvulsaPanorama) => void;
+  onExcluirAvulsa: (registro: PessoaAvulsaPanorama) => void;
 }
 
 /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
@@ -253,12 +262,18 @@ function DetalheDiaOperacao({
   onVerSocios,
   onDispensar,
   onReativar,
+  avulsos,
+  podeRegistrar,
+  onNovaAvulsa,
+  onEditarAvulsa,
+  onExcluirAvulsa,
 }: DetalheDiaProps) {
   const foraDaOperacao = dia.pessoas.filter((p) =>
     ["folga_padrao", "folga_extra", "ferias", "atestado"].includes(p.categoria),
   );
   const ausReg = ausenciasRegistradas.filter((a) => a.inicio <= data && a.fim >= data);
   const rotuloAus = (t: string) => (t === "adiantamento" ? "Adiantamento" : t === "outros" ? "Ausência" : t);
+  const avulsosDoDia = avulsos.filter((a) => a.data_inicio <= data && a.data_fim >= data);
 
   return (
     <div className="space-y-4">
@@ -380,6 +395,60 @@ function DetalheDiaOperacao({
         </Secao>
       )}
 
+      <Secao
+        title="Pessoas Avulsas no Dia"
+        description="Quem trabalha hoje sem estar cadastrado como colaborador: em teste ou folguista"
+        action={
+          podeRegistrar ? (
+            <Button variant="outline" size="sm" onClick={() => onNovaAvulsa(data)}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Adicionar pessoa
+            </Button>
+          ) : undefined
+        }
+      >
+        {avulsosDoDia.length ? (
+          <ul className="divide-y">
+            {avulsosDoDia.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{a.nome}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {[
+                      a.cargo_nome,
+                      `${a.entrada ?? "--:--"} às ${a.saida ?? "--:--"}${a.termina_no_dia_seguinte ? " (+1)" : ""}`,
+                      a.cobre_nome ? `cobrindo ${a.cobre_nome}` : null,
+                      a.data_fim !== a.data_inicio ? `até ${a.data_fim}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                  {a.observacao && <p className="text-xs text-muted-foreground">{a.observacao}</p>}
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Badge variant="secondary">{a.tipo === "teste" ? "Em teste" : "Folguista"}</Badge>
+                  {podeRegistrar && (
+                    <>
+                      <Button variant="ghost" size="sm" onClick={() => onEditarAvulsa(a)}>
+                        Editar
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => onExcluirAvulsa(a)}>
+                        Remover
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Ninguém avulso registrado neste dia.
+          </p>
+        )}
+      </Secao>
+
+
       {foraDaOperacao.length > 0 && (
         <Secao title="Fora da Operação" description="Folgas, férias e afastamentos do dia">
           <ul className="divide-y">
@@ -442,6 +511,9 @@ export default function DpOperacaoPanorama() {
   const podeRegistrar = role === "owner" || role === "admin";
   const [ausenciaOpen, setAusenciaOpen] = useState(false);
   const [ausenciaData, setAusenciaData] = useState<string | null>(null);
+  const [avulsaOpen, setAvulsaOpen] = useState(false);
+  const [avulsaData, setAvulsaData] = useState<string | null>(null);
+  const [avulsaEditando, setAvulsaEditando] = useState<PessoaAvulsaPanorama | null>(null);
 
   /** Vinda do calendário de folgas: /dp/operacao?ausencia=AAAA-MM-DD. */
   useEffect(() => {
@@ -571,7 +643,44 @@ export default function DpOperacaoPanorama() {
       onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível reativar o alerta."),
     });
 
+  const abrirNovaAvulsa = (iso: string) => {
+    setAvulsaEditando(null);
+    setAvulsaData(iso);
+    setAvulsaOpen(true);
+  };
+
+  const abrirEdicaoAvulsa = (registro: PessoaAvulsaPanorama) => {
+    setAvulsaEditando(registro);
+    setAvulsaData(registro.data_inicio);
+    setAvulsaOpen(true);
+  };
+
+  const salvarAvulsa = (input: PessoaAvulsaInput) =>
+    panorama.salvarAvulsa.mutate(input, {
+      onSuccess: () => {
+        toast.success(input.id ? "Pessoa avulsa atualizada." : "Pessoa avulsa registrada no dia.");
+        setAvulsaOpen(false);
+        setAvulsaEditando(null);
+      },
+      onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível salvar."),
+    });
+
+  const excluirAvulsa = (registro: PessoaAvulsaPanorama) =>
+    panorama.excluirAvulsa.mutate(registro.id, {
+      onSuccess: () => toast.success("Pessoa avulsa removida do dia."),
+      onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível remover."),
+    });
+
+  const propsAvulsas = {
+    avulsos: panorama.avulsos,
+    podeRegistrar,
+    onNovaAvulsa: abrirNovaAvulsa,
+    onEditarAvulsa: abrirEdicaoAvulsa,
+    onExcluirAvulsa: excluirAvulsa,
+  };
+
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
+
 
   // Os diálogos de detalhe seguem o dia aberto na janela, quando houver.
   const dataAtiva = dataPopout ?? data;
@@ -623,6 +732,22 @@ export default function DpOperacaoPanorama() {
         open={ausenciaOpen}
         onOpenChange={setAusenciaOpen}
         dataInicial={ausenciaData}
+      />
+
+      <DpPessoaAvulsaDialog
+        open={avulsaOpen}
+        onOpenChange={(o) => {
+          setAvulsaOpen(o);
+          if (!o) setAvulsaEditando(null);
+        }}
+        dataInicial={avulsaData ?? data}
+        unidadePadrao={unidadeId}
+        unidades={panorama.unidades}
+        cargos={panorama.cargos}
+        colaboradores={panorama.colaboradores}
+        registro={avulsaEditando}
+        salvando={panorama.salvarAvulsa.isPending}
+        onSalvar={salvarAvulsa}
       />
 
       <DpFilterCard>
@@ -723,6 +848,7 @@ export default function DpOperacaoPanorama() {
               onVerSocios={() => setVerSocios(true)}
               onDispensar={dispensar}
               onReativar={reativar}
+              {...propsAvulsas}
             />
           )}
         </TabsContent>
@@ -908,6 +1034,7 @@ export default function DpOperacaoPanorama() {
                 onVerSocios={() => setVerSocios(true)}
                 onDispensar={dispensar}
                 onReativar={reativar}
+                {...propsAvulsas}
               />
             ) : (
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>

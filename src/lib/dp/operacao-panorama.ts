@@ -93,6 +93,33 @@ export interface ItemEscalaPanorama {
   intervalo_minutos?: number | null;
 }
 
+export type PessoaAvulsaTipo = "teste" | "folguista";
+
+/**
+ * Pessoa registrada só para a rotina do dia (em teste na loja ou folguista
+ * cobrindo alguém). Não é colaborador cadastrado: não tem jornada, folga,
+ * ponto nem convocação — apenas ocupa o dia.
+ */
+export interface PessoaAvulsaPanorama {
+  id: string;
+  nome: string;
+  tipo: PessoaAvulsaTipo;
+  unidade_id: string | null;
+  cargo_id: string | null;
+  cargo_nome: string | null;
+  cobre_nome: string | null;
+  data_inicio: string;
+  data_fim: string;
+  entrada: string | null;
+  saida: string | null;
+  termina_no_dia_seguinte: boolean;
+  observacao: string | null;
+}
+
+/** Id sintético usado nas listas do painel (nunca é um colaborador real). */
+export const idPessoaAvulsa = (id: string) => `avulso:${id}`;
+
+
 export interface PessoaPanorama {
   colaborador_id: string;
   nome: string;
@@ -109,8 +136,14 @@ export interface PessoaPanorama {
   socio: boolean;
   /** Sócio vinculado a uma unidade e com jornada: conta como parte do quadro. */
   socio_integrado?: boolean;
-  /** Origem do horário: jornada habitual, escala publicada ou convocação. */
-  origem: "jornada" | "escala" | "convocacao";
+  /** Origem do horário: jornada habitual, escala publicada, convocação ou registro avulso. */
+  origem: "jornada" | "escala" | "convocacao" | "avulso";
+  /** Preenchido só para pessoas avulsas (teste/folguista). */
+  avulso_id?: string;
+  avulso_tipo?: PessoaAvulsaTipo;
+  /** Nome do colaborador coberto, quando folguista. */
+  cobre_nome?: string | null;
+  observacao?: string | null;
 }
 
 export type Contagens = Record<CategoriaDia, number>;
@@ -165,6 +198,8 @@ export interface ContarDiaInput {
   ausencias: AusenciaPanorama[];
   /** Itens de escala publicada, quando existirem, têm prioridade sobre a jornada. */
   itensPublicados?: ItemEscalaPanorama[];
+  /** Pessoas avulsas (teste/folguista) registradas para a rotina do dia. */
+  avulsos?: PessoaAvulsaPanorama[];
 }
 
 /**
@@ -327,6 +362,37 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       saida: turno?.saida ?? null,
       intervalo_minutos: turno?.intervalo_minutos ?? 0,
       origem: "jornada",
+    });
+  }
+
+  // Pessoas avulsas (teste/folguista) contam como quadro do dia, igual a um
+  // colaborador escalado: entram em "fixo" e, portanto, em "trabalhando".
+  for (const a of input.avulsos ?? []) {
+    if (data < a.data_inicio || data > a.data_fim) continue;
+    const entrada = hora(a.entrada);
+    const saida = hora(a.saida);
+    contagens.fixo += 1;
+    pessoas.push({
+      colaborador_id: idPessoaAvulsa(a.id),
+      nome: a.nome,
+      categoria: "fixo",
+      turno_id: null,
+      turno_nome: a.tipo === "teste" ? "Em teste" : "Folguista",
+      entrada,
+      saida,
+      termina_no_dia_seguinte:
+        a.termina_no_dia_seguinte || (!!entrada && !!saida && turnoViraODia(entrada, saida)),
+      carga_prevista_horas:
+        entrada && saida ? cargaLiquidaHoras({ entrada, saida, intervalo_minutos: 0 }) : 0,
+      unidade_id: a.unidade_id,
+      cargo_id: a.cargo_id,
+      cargo_nome: a.cargo_nome,
+      socio: false,
+      origem: "avulso",
+      avulso_id: a.id,
+      avulso_tipo: a.tipo,
+      cobre_nome: a.cobre_nome,
+      observacao: a.observacao,
     });
   }
 
