@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
+import { PropostaParcialDialog } from "@/components/dp/convocacoes/PropostaParcialDialog";
 import { useMinhasConvocacoes, type MinhaOferta } from "@/hooks/useDpConvocacoes";
 import { STATUS_META, podeResponder, statusEfetivo } from "@/lib/dp/convocacoes";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
