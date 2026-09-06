@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -22,6 +23,7 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpFolgaLimites, type RegraLimiteInput } from "@/hooks/useDpFolgaLimites";
 import {
   diasPermitidosParaLimite,
+  partesRegraLimite,
   resumoRegraLimite,
   TIPO_REGRA_LABEL,
   type RegraLimiteFolga,
