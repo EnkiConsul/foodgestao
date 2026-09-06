@@ -31,7 +31,7 @@ describe("resolverHorarioDestinatario", () => {
 
   it("devolve null sem nenhuma fonte válida", () => {
     expect(resolverHorarioDestinatario({ jornada: null })).toBeNull();
-    expect(resolverHorarioDestinatario({ geral: { entrada: "18:00", saida: "18:00" } })).toBeNull();
+    expect(resolverHorarioDestinatario({ geral: { entrada: "18:00" } })).toBeNull();
   });
 });
 
