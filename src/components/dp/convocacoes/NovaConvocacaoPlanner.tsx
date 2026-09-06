@@ -119,6 +119,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const [publicando, setPublicando] = useState(false);
   const [justificativa, setJustificativa] = useState("");
   const [revisando, setRevisando] = useState(false);
+  /** Cache das sugestões por cargo|data — remarcar um dia não reconsulta. */
+  const sugestoesRef = useRef<Map<string, SugestaoCache>>(new Map());
 
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
