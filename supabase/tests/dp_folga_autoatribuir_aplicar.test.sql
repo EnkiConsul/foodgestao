@@ -30,10 +30,11 @@ ON CONFLICT DO NOTHING;
 INSERT INTO public.dp_unidades (id, company_id, nome)
 VALUES ('d1111111-1111-1111-1111-111111111111', 'c1111111-1111-1111-1111-111111111111', 'Unidade Plano');
 
-INSERT INTO public.dp_config_dp (company_id, unidade_id, folga_janela_ativa,
-                                 folga_janela_abre_dia, folga_janela_fecha_dia,
-                                 folga_autoatribuir, folgas_fds_por_mes)
-VALUES ('c1111111-1111-1111-1111-111111111111', NULL, true, 10, 20, true, 1);
+-- A configuração padrão da empresa é criada por trigger; ajustamos os campos usados no teste
+UPDATE public.dp_config_dp
+   SET folga_janela_ativa = true, folga_janela_abre_dia = 10, folga_janela_fecha_dia = 20,
+       folga_autoatribuir = true, folgas_fds_por_mes = 1
+ WHERE company_id = 'c1111111-1111-1111-1111-111111111111' AND unidade_id IS NULL;
 
 INSERT INTO public.dp_colaboradores (id, company_id, unidade_id, nome, ativo)
 VALUES
