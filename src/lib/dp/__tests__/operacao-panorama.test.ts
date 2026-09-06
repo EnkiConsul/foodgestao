@@ -5,6 +5,7 @@ import {
   contarDia,
   diasDaCompetencia,
   blocosPorFuncionamento,
+  horarioMaisUsado,
   type ColaboradorPanorama,
   type PessoaPanorama,
   type PessoaAvulsaPanorama,
