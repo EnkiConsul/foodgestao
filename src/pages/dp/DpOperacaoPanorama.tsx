@@ -965,7 +965,7 @@ export default function DpOperacaoPanorama() {
                     <button
                       key={d.data}
                       type="button"
-                      onClick={() => irParaDia(d.data)}
+                      onClick={() => setDataPopout(d.data)}
                       className={`rounded-md border p-1.5 text-left transition-colors hover:bg-muted/50 ${
                         d.alerta
                           ? d.avaliacao.situacao === "abaixo"
@@ -1022,7 +1022,7 @@ export default function DpOperacaoPanorama() {
                         <button
                           type="button"
                           className="text-sm font-medium underline-offset-2 hover:underline"
-                          onClick={() => irParaDia(d.data)}
+                          onClick={() => setDataPopout(d.data)}
                         >
                           <span className="first-letter:uppercase">{dataExtenso(d.data)}</span>
                         </button>
