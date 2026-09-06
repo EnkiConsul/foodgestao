@@ -50,7 +50,7 @@ describe("avaliarFracionamento", () => {
 
   it("respeita regra personalizada da empresa", () => {
     const regra = { maxFracoes: 2, minDias: 10, maiorDias: 20 };
-    expect(avaliarFracionamento(10, [{ dias: 10 }], 10, regra).codigo).toBe(
+    expect(avaliarFracionamento(10, [{ dias: 20 }, { dias: 10 }], 0, regra).codigo).toBe(
       "FERIAS_FRACIONAMENTO_LIMITE",
     );
     expect(avaliarFracionamento(10, [], 20, regra).ok).toBe(true);
