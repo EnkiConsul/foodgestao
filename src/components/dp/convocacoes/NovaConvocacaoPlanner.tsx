@@ -51,6 +51,8 @@ import {
   viraNoDiaSeguinte,
 } from "@/lib/dp/convocacoes-planejamento";
 import { textoDoErroDePublicacao } from "@/lib/dp/convocacoes-motivos";
+import { comCarimboAtual } from "@/lib/dp/convocacao-versao";
+import { supabase } from "@/integrations/supabase/client";
 import { useDpConvocacaoPreAvaliacao } from "@/hooks/useDpConvocacaoPreAvaliacao";
 import { cn } from "@/lib/utils";
 
