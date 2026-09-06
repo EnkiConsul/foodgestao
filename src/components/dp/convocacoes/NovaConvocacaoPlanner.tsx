@@ -727,16 +727,26 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   preAvaliacao={linhasPreAvaliacao}
                   preAvaliacaoCarregando={preAvaliacao.isLoading || preAvaliacao.isFetching}
                   onUsarHorarioParaTodos={async (entrada, saida, vira) => {
+                    const novo: HorarioOverride = {
+                      ...horarioGeral,
+                      entrada, saida, vira: normalizarVira(entrada, saida, vira),
+                    };
                     setUsaHorarioGeral(true);
-                    setHorarioGeral((h) => ({
-                      ...h, entrada, saida, vira: normalizarVira(entrada, saida, vira),
-                    }));
-                    await persistir();
+                    setHorarioGeral(novo);
+                    await persistir({ horarioGeral: novo, usaHorarioGeral: true });
                     await preAvaliacao.refetch();
                   }}
                   onAjustarNecessidade={async (cargoId, data, saida) => {
-                    patchDia(chave(cargoId, data), { saida });
-                    await persistir();
+                    const k = chave(cargoId, data);
+                    const atual = dias[k];
+                    if (!atual) return;
+                    const fundido: DiaPlanejado = {
+                      ...atual, saida, origem: "manual", ambiguo: false,
+                      vira: normalizarVira(atual.entrada, saida, atual.vira),
+                    };
+                    const novoMapa = { ...dias, [k]: fundido };
+                    setDias(novoMapa);
+                    await persistir({ dias: novoMapa });
                     await preAvaliacao.refetch();
                   }}
                   horarioGeral={usaHorarioGeral ? horarioGeral : null}
