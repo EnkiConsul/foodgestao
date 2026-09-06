@@ -356,15 +356,19 @@ export default function DpConformidadeDsr() {
           <div className="space-y-1 text-xs text-muted-foreground">
             <p>{domingos.length} domingo(s) no período.</p>
             <p>
-              Regra padrão: 1 a cada {semanas.geral ? semanas.geral.toFixed(1) : "—"} semana(s) · Mulheres: 1 a cada{" "}
-              {semanas.mulher ? semanas.mulher.toFixed(1) : "—"} semana(s).
+              Regra padrão da empresa: {regraPadraoLabel} · Mulheres: {regraMulherLabel}.
             </p>
             <p>
               {porAcordo
                 ? `Modo acordo coletivo: dias negociados (${diasNegociadosLabel || "—"}) substituem o domingo.`
                 : "Modo legislação: apenas domingos folgados são considerados."}
             </p>
-            <p>Unidades com exceção própria são avaliadas pela regra da própria loja.</p>
+            <p>
+              {unidadesComExcecao > 0
+                ? `${unidadesComExcecao} unidade(s) têm regra própria — cada colaborador é avaliado pela regra da sua loja (coluna "Regra aplicada").`
+                : "Unidades com exceção própria são avaliadas pela regra da própria loja."}
+            </p>
+
           </div>
 
           {linhas.length > 0 && (
