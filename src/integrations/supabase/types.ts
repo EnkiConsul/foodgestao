@@ -4503,6 +4503,9 @@ export type Database = {
           exige_validacao_menor: boolean
           ferias_adiantamento_13: string
           ferias_aviso_antecedencia_dias: number
+          ferias_fracao_maior_dias: number | null
+          ferias_fracao_min_dias: number | null
+          ferias_fracionamento_max: number | null
           folga_autoatribuir: boolean
           folga_janela_abre_dia: number
           folga_janela_ativa: boolean
@@ -4558,6 +4561,9 @@ export type Database = {
           exige_validacao_menor?: boolean
           ferias_adiantamento_13?: string
           ferias_aviso_antecedencia_dias?: number
+          ferias_fracao_maior_dias?: number | null
+          ferias_fracao_min_dias?: number | null
+          ferias_fracionamento_max?: number | null
           folga_autoatribuir?: boolean
           folga_janela_abre_dia?: number
           folga_janela_ativa?: boolean
@@ -4613,6 +4619,9 @@ export type Database = {
           exige_validacao_menor?: boolean
           ferias_adiantamento_13?: string
           ferias_aviso_antecedencia_dias?: number
+          ferias_fracao_maior_dias?: number | null
+          ferias_fracao_min_dias?: number | null
+          ferias_fracionamento_max?: number | null
           folga_autoatribuir?: boolean
           folga_janela_abre_dia?: number
           folga_janela_ativa?: boolean
@@ -12910,6 +12919,9 @@ export type Database = {
           exige_validacao_menor: boolean
           ferias_adiantamento_13: string
           ferias_aviso_antecedencia_dias: number
+          ferias_fracao_maior_dias: number | null
+          ferias_fracao_min_dias: number | null
+          ferias_fracionamento_max: number | null
           folga_autoatribuir: boolean
           folga_janela_abre_dia: number
           folga_janela_ativa: boolean
@@ -13352,14 +13364,36 @@ export type Database = {
         Args: { _gozo_id: string; _motivo: string }
         Returns: undefined
       }
+      dp_ferias_cobertura_sugestao: {
+        Args: { _gozo_id: string }
+        Returns: {
+          cargo_id: string
+          data: string
+          faltam: number
+          minimo: number
+          previstos: number
+          turno_id: string
+        }[]
+      }
       dp_ferias_config: {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: {
           adiantamento_13: string
           aviso_antecedencia_dias: number
+          fracao_maior_dias: number
+          fracao_min_dias: number
+          fracionamento_max: number
         }[]
       }
       dp_ferias_dias_direito: { Args: { _faltas: number }; Returns: number }
+      dp_ferias_em_curso: {
+        Args: { _colaborador_id: string; _data: string }
+        Returns: {
+          data_fim: string
+          data_inicio: string
+          gozo_id: string
+        }[]
+      }
       dp_ferias_gerar_periodos: {
         Args: { _colaborador_id: string }
         Returns: number
@@ -13399,6 +13433,14 @@ export type Database = {
           limite_concessivo: string
           periodo_id: string
           periodo_status: string
+        }[]
+      }
+      dp_ferias_periodo_conflitos: {
+        Args: { _colaborador_id: string; _fim: string; _inicio: string }
+        Returns: {
+          data: string
+          detalhe: string
+          origem: string
         }[]
       }
       dp_ferias_programar: {
