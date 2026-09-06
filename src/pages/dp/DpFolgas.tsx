@@ -39,6 +39,7 @@ import {
   Globe2,
   ChevronDown,
   Scale,
+  Wand2,
 } from "lucide-react";
 
 import {
@@ -52,7 +53,14 @@ import {
 import { CalendarSkeleton } from "@/components/dp/DpSkeletons";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  parsePreviaAutoatribuicao,
+  parseResultadoAutoatribuicao,
+  resumoPrevia,
+  resumoResultado,
+} from "@/lib/dp/folga-autoatribuicao";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpFolgasQueries } from "@/hooks/useDpFolgasQueries";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
@@ -165,6 +173,9 @@ export default function DpFolgas() {
   const [quickColabId, setQuickColabId] = useState<string>("");
   const [editLimit, setEditLimit] = useState<number>(1);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [autoOpen, setAutoOpen] = useState(false);
+  const { role } = useCompanyPermissions();
+  const podeDistribuir = role === "owner" || role === "admin";
   const [form, setForm] = useState({
     colaborador_id: "",
     tipo: "folga" as Tipo,
@@ -369,6 +380,53 @@ export default function DpFolgas() {
     onError: (e) =>
       toast.error("Erro ao gerar folgas", { description: e instanceof Error ? e.message : String(e) }),
   });
+
+  const competenciaAtual = format(startOfMonth(cursor), "yyyy-MM-dd");
+  const unidadeAlvo = unidadeFilter === "todas" ? null : unidadeFilter;
+
+  /** Prévia da distribuição automática do mês em foco (somente administradores). */
+  const previaAutoQuery = useQuery({
+    queryKey: ["dp_folga_auto_previa", selectedCompanyId, unidadeAlvo, competenciaAtual],
+    enabled: !!selectedCompanyId && podeDistribuir && autoOpen,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("dp_folga_autoatribuicao_previa", {
+        _company: selectedCompanyId!,
+        _unidade: unidadeAlvo,
+        _competencia: competenciaAtual,
+      });
+      if (error) throw error;
+      return parsePreviaAutoatribuicao(data);
+    },
+  });
+
+  /** Roda a distribuição automática de folgas para o mês em foco. */
+  const distribuirAuto = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      const { data, error } = await supabase.rpc("dp_folga_autoatribuir_manual", {
+        _company: selectedCompanyId,
+        _unidade: unidadeAlvo,
+        _competencia: competenciaAtual,
+      });
+      if (error) throw error;
+      return parseResultadoAutoatribuicao(data);
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
+      qc.invalidateQueries({ queryKey: ["dp_folgas_efetivadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_folga_auto_exec"] });
+      qc.invalidateQueries({ queryKey: ["dp_folga_auto_previa"] });
+      setAutoOpen(false);
+      if (res.geradas > 0) toast.success("Folgas distribuídas", { description: resumoResultado(res) });
+      else toast.info("Nada a distribuir", { description: resumoResultado(res) });
+    },
+    onError: (e) =>
+      toast.error("Erro ao distribuir folgas", {
+        description: e instanceof Error ? e.message : String(e),
+      }),
+  });
+
+
 
 
 
@@ -681,10 +739,22 @@ export default function DpFolgas() {
               <Scale className="h-4 w-4" />
               {gerarFolgasClt.isPending ? "Gerando..." : "Gerar folgas CLT"}
             </Button>
+            {podeDistribuir && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setAutoOpen(true)}
+                title="Distribui as folgas de fim de semana de quem ainda não marcou neste mês"
+              >
+                <Wand2 className="h-4 w-4" />
+                Distribuir folgas automaticamente
+              </Button>
+            )}
             <Button onClick={() => openNew()} className="gap-2">
               <Plus className="h-4 w-4" /> Nova solicitação
             </Button>
           </div>
+
 
         }
       />
@@ -1394,6 +1464,58 @@ export default function DpFolgas() {
         }}
         onLiberarGlobal={() => liberarData.mutate({ unidadeId: null })}
       />
+
+      <Dialog open={autoOpen} onOpenChange={setAutoOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Distribuir folgas automaticamente</DialogTitle>
+            <DialogDescription>
+              {format(cursor, "MMMM 'de' yyyy", { locale: ptBR })}
+              {unidadeAlvo
+                ? ` — ${(unidadesQuery.data ?? []).find((u: { id: string; nome: string }) => u.id === unidadeAlvo)?.nome ?? "unidade selecionada"}`
+                : " — todas as unidades"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 text-sm">
+            {previaAutoQuery.isLoading && <p className="text-muted-foreground">Calculando...</p>}
+            {previaAutoQuery.isError && (
+              <p className="text-destructive">
+                Não foi possível calcular a prévia. Tente novamente.
+              </p>
+            )}
+            {previaAutoQuery.data && (
+              <>
+                <p className="font-medium">{resumoPrevia(previaAutoQuery.data)}</p>
+                <p className="text-xs text-muted-foreground">
+                  O sistema respeita os dias de descanso negociados, os limites por dia e cargo e as
+                  pessoas que não podem folgar juntas, começando pelos dias mais vazios. Se todos os
+                  dias estiverem no limite, começa pelos últimos dias do mês e avisa no calendário.
+                  Quem já tem folga no mês não é alterado.
+                </p>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAutoOpen(false)} disabled={distribuirAuto.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => distribuirAuto.mutate()}
+              disabled={
+                distribuirAuto.isPending ||
+                previaAutoQuery.isLoading ||
+                !previaAutoQuery.data ||
+                previaAutoQuery.data.aCriar <= 0
+              }
+            >
+              {distribuirAuto.isPending ? "Distribuindo..." : "Distribuir folgas"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DpPage>
+
   );
 }

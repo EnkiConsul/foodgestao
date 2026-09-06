@@ -6632,8 +6632,10 @@ export type Database = {
           created_at: string
           detalhes: Json
           erro: string | null
+          executada_por: string | null
           id: string
           iniciada_em: string | null
+          manual: boolean
           quantidade_excedida: number
           quantidade_gerada: number
           status: string
@@ -6647,8 +6649,10 @@ export type Database = {
           created_at?: string
           detalhes?: Json
           erro?: string | null
+          executada_por?: string | null
           id?: string
           iniciada_em?: string | null
+          manual?: boolean
           quantidade_excedida?: number
           quantidade_gerada?: number
           status?: string
@@ -6662,8 +6666,10 @@ export type Database = {
           created_at?: string
           detalhes?: Json
           erro?: string | null
+          executada_por?: string | null
           id?: string
           iniciada_em?: string | null
+          manual?: boolean
           quantidade_excedida?: number
           quantidade_gerada?: number
           status?: string
@@ -12640,7 +12646,15 @@ export type Database = {
         Args: { _periodo_id: string }
         Returns: undefined
       }
+      dp_folga_autoatribuicao_previa: {
+        Args: { _company: string; _competencia: string; _unidade: string }
+        Returns: Json
+      }
       dp_folga_autoatribuir_competencia: {
+        Args: { _company: string; _competencia: string; _unidade: string }
+        Returns: Json
+      }
+      dp_folga_autoatribuir_manual: {
         Args: { _company: string; _competencia: string; _unidade: string }
         Returns: Json
       }
