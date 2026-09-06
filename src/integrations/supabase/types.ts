@@ -12977,27 +12977,18 @@ export type Database = {
         Args: { _carga_prevista_horas: number; _colaborador_id: string }
         Returns: Json
       }
-      dp_convocacao_responder_oferta:
-        | {
-            Args: {
-              p_aceito: boolean
-              p_convocacao_id: string
-              p_motivo?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_aceito: boolean
-              p_convocacao_id: string
-              p_motivo?: string
-              p_parcial_entrada?: string
-              p_parcial_observacao?: string
-              p_parcial_saida?: string
-              p_parcial_termina_no_dia_seguinte?: boolean
-            }
-            Returns: Json
-          }
+      dp_convocacao_responder_oferta: {
+        Args: {
+          p_aceito: boolean
+          p_convocacao_id: string
+          p_motivo?: string
+          p_parcial_entrada?: string
+          p_parcial_observacao?: string
+          p_parcial_saida?: string
+          p_parcial_termina_no_dia_seguinte?: boolean
+        }
+        Returns: Json
+      }
       dp_convocacao_revisar_ocorrencia: {
         Args: {
           p_carga_prevista_horas?: number
