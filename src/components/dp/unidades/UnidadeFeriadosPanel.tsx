@@ -150,6 +150,18 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
         saving={salvar.isPending}
         onSubmit={(input) => salvar.mutate(input, { onSuccess: () => setOpen(false) })}
       />
+
+      <ReplicarFeriadosDialog
+        open={replicarOpen}
+        onOpenChange={setReplicarOpen}
+        unidadeId={unidadeId}
+        totalOrigem={feriados.length}
+        saving={replicar.isPending}
+        onConfirm={(input) =>
+          replicar.mutate(input, { onSuccess: () => setReplicarOpen(false) })
+        }
+      />
+
     </div>
   );
 }
