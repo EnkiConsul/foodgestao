@@ -11,8 +11,9 @@ Correção: a janela passa a montar as opções de dia por pessoa, usando os dia
 Hoje o sistema varre o mês do começo para o fim e fica no primeiro dia livre. Passa a escolher nesta ordem:
 
 1. dias sem ninguém em folga, começando pelos **últimos dias do mês**;
-2. se todos já têm alguém, o dia com **menos gente** em folga, também dando preferência ao fim do mês;
-3. se tudo estiver no limite, mantém a contingência atual (últimos dias do mês), já sinalizada como "Acima do limite".
+2. se todos já têm alguém, o dia com **menos gente** em folga, também dando preferência ao fim do mês.
+
+**Se tudo estiver no limite, o sistema não sugere nenhum dia**: a pessoa fica marcada como "Acima do limite" e o gestor escolhe o dia manualmente entre **todos os dias possíveis** para ela, vendo ao lado de cada data **quantas pessoas já folgam naquele dia** — e pode confirmar assim mesmo, assumindo o excesso.
 
 Continuam valendo os limites por dia e cargo, os bloqueios de data e as regras de quem não pode folgar junto.
 
