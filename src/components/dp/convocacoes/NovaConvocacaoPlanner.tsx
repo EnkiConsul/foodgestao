@@ -509,8 +509,21 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
 
   // ------------------------------------------------------------ gravação
-  const persistir = async (): Promise<string | null> => {
-    if (!podeSalvar || !unidadeId) {
+  /**
+   * `ajuste` permite gravar valores que acabaram de ser alterados na mesma
+   * interação (o estado do React só chega no render seguinte).
+   */
+  const persistir = async (ajuste?: {
+    dias?: Record<string, DiaPlanejado>;
+    horarioGeral?: HorarioOverride;
+    usaHorarioGeral?: boolean;
+  }): Promise<string | null> => {
+    const mapaDias = ajuste?.dias ?? dias;
+    const diasParaGravar = Object.values(mapaDias).filter(diaCompleto);
+    const hg = ajuste?.horarioGeral ?? horarioGeral;
+    const usaHg = ajuste?.usaHorarioGeral ?? usaHorarioGeral;
+
+    if (!unidadeId || cargoIds.length === 0 || destinatarios.length === 0 || diasParaGravar.length === 0) {
       toast.error("Informe unidade, cargos, destinatários e ao menos um dia completo.");
       return null;
     }
