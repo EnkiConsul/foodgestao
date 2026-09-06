@@ -105,6 +105,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const [salvando, setSalvando] = useState(false);
   const [publicando, setPublicando] = useState(false);
   const [justificativa, setJustificativa] = useState("");
+  const [revisando, setRevisando] = useState(false);
 
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
@@ -124,6 +125,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   useEffect(() => {
     if (!open) return;
     setDetalhe(null);
+    setRevisando(false);
     setRemovidas({});
     setJustificativa("");
     setOverrides({});
@@ -693,7 +695,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     Nenhum intermitente ou freelancer ativo nesta unidade com os cargos escolhidos.
                   </p>
                 ) : (
-                  <div className="grid max-h-56 grid-cols-1 gap-1.5 overflow-y-auto rounded-lg border border-border p-2 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-border p-2 md:grid-cols-2">
                     {convocaveis.map((c: any) => {
                       const marcado = destinatarios.includes(c.id);
                       return (
