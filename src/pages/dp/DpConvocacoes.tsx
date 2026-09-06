@@ -225,6 +225,14 @@ export default function DpConvocacoes() {
           <TabsTrigger value="aguardando" className="gap-1.5">
             <Clock className="h-4 w-4" /> Aguardando
           </TabsTrigger>
+          <TabsTrigger value="aprovacoes" className="gap-1.5">
+            <ClipboardCheck className="h-4 w-4" /> Aprovações
+            {parciais.rows.length > 0 ? (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[11px]">
+                {parciais.rows.length}
+              </Badge>
+            ) : null}
+          </TabsTrigger>
           <TabsTrigger value="confirmadas" className="gap-1.5">
             <CheckCircle2 className="h-4 w-4" /> Confirmadas
           </TabsTrigger>
