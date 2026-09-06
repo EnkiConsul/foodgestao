@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { pessoaAvulsaSchema, validateWithToast } from "@/lib/validations";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
-import type { PessoaAvulsaPanorama, PessoaAvulsaTipo } from "@/lib/dp/operacao-panorama";
+import type { HorarioSugerido, PessoaAvulsaPanorama, PessoaAvulsaTipo } from "@/lib/dp/operacao-panorama";
 
 interface Props {
   open: boolean;
@@ -30,6 +30,8 @@ interface Props {
   /** Registro em edição; ausente = novo cadastro. */
   registro?: PessoaAvulsaPanorama | null;
   salvando?: boolean;
+  /** Sugere horário de entrada/saída com base no histórico do cargo/unidade/dia da semana. */
+  sugerirHorario?: (unidadeId: string, cargoId: string, data: string) => HorarioSugerido | null;
   onSalvar: (input: PessoaAvulsaInput) => void;
 }
 
@@ -53,6 +55,7 @@ export function DpPessoaAvulsaDialog({
   colaboradores,
   registro,
   salvando,
+  sugerirHorario,
   onSalvar,
 }: Props) {
   const [form, setForm] = useState({
@@ -68,9 +71,11 @@ export function DpPessoaAvulsaDialog({
     termina_no_dia_seguinte: false,
     observacao: "",
   });
+  const [horarioTocado, setHorarioTocado] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    setHorarioTocado(false);
     setForm({
       nome: registro?.nome ?? "",
       tipo: registro?.tipo ?? "teste",
@@ -86,6 +91,19 @@ export function DpPessoaAvulsaDialog({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, registro, dataInicial, unidadePadrao]);
+
+  useEffect(() => {
+    if (!open || !sugerirHorario || horarioTocado || !form.unidade_id || !form.cargo_id || !form.data_inicio) return;
+    const sugerido = sugerirHorario(form.unidade_id, form.cargo_id, form.data_inicio);
+    if (!sugerido) return;
+    setForm((f) => ({
+      ...f,
+      entrada: sugerido.entrada,
+      saida: sugerido.saida,
+      termina_no_dia_seguinte: sugerido.termina_no_dia_seguinte,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, sugerirHorario, form.unidade_id, form.cargo_id, form.data_inicio]);
 
   const salvar = () => {
     const candidato: PessoaAvulsaInput = {
@@ -240,7 +258,10 @@ export function DpPessoaAvulsaDialog({
               <Input
                 type="time"
                 value={form.entrada}
-                onChange={(e) => setForm({ ...form, entrada: e.target.value })}
+                onChange={(e) => {
+                  setHorarioTocado(true);
+                  setForm({ ...form, entrada: e.target.value });
+                }}
               />
             </div>
             <div className="grid gap-1.5">
@@ -248,10 +269,18 @@ export function DpPessoaAvulsaDialog({
               <Input
                 type="time"
                 value={form.saida}
-                onChange={(e) => setForm({ ...form, saida: e.target.value })}
+                onChange={(e) => {
+                  setHorarioTocado(true);
+                  setForm({ ...form, saida: e.target.value });
+                }}
               />
             </div>
           </div>
+          {sugerirHorario && form.unidade_id && form.cargo_id && form.data_inicio && (
+            <p className="text-xs text-muted-foreground">
+              Sugerido pelo horário mais usado neste cargo/unidade.
+            </p>
+          )}
 
           <div className="flex items-center justify-between rounded-md border p-3">
             <div className="pr-3">

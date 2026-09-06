@@ -9,6 +9,7 @@ import {
   baselinePorDow,
   contarDia,
   diasDaCompetencia,
+  horarioMaisUsado,
   somarDias,
   SEMANAS_BASELINE,
   type AusenciaPanorama,
@@ -16,6 +17,7 @@ import {
   type ColaboradorPanorama,
   type ConvocacaoPanorama,
   type FolgaPanorama,
+  type HorarioSugerido,
   type ItemEscalaPanorama,
   type PessoaAvulsaPanorama,
   type PessoaAvulsaTipo,
@@ -592,6 +594,11 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     return out;
   }, [base.data]);
 
+  const sugerirHorario = (unidadeId: string, cargoId: string, data: string): HorarioSugerido | null => {
+    const dow = new Date(`${data}T12:00:00`).getDay();
+    return horarioMaisUsado({ dias: diasPanorama, unidadeId, cargoId, dow });
+  };
+
   return {
     dias: diasPanorama,
     turnos,
@@ -600,6 +607,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     cargos: base.data?.cargos ?? [],
     salvarAvulsa,
     excluirAvulsa,
+    sugerirHorario,
     funcionamentoPorUnidade,
     contagemPorUnidade,
     colaboradores,

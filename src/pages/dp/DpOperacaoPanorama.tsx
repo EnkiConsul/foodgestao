@@ -18,6 +18,8 @@ import {
   RotateCcw,
   Sun,
   UserCheck,
+  UserCog,
+  UserPlus,
   Users,
   UserX,
 } from "lucide-react";
@@ -111,9 +113,24 @@ const CATEGORIA_ICON: Record<CategoriaDia, typeof Users> = {
   atestado: HeartPulse,
 };
 
-type CardKey = CategoriaDia | "folga_socio";
+const AVULSO_LABEL: Record<"avulso_teste" | "avulso_folguista", string> = {
+  avulso_teste: "Em Teste",
+  avulso_folguista: "Folguista",
+};
 
-const CARDS_DIA: CardKey[] = [...CATEGORIA_ORDEM, "folga_socio"];
+const AVULSO_TONE: Record<"avulso_teste" | "avulso_folguista", "primary" | "muted" | "success" | "warning" | "danger"> = {
+  avulso_teste: "primary",
+  avulso_folguista: "warning",
+};
+
+const AVULSO_ICON: Record<"avulso_teste" | "avulso_folguista", typeof Users> = {
+  avulso_teste: UserPlus,
+  avulso_folguista: UserCog,
+};
+
+type CardKey = CategoriaDia | "folga_socio" | "avulso_teste" | "avulso_folguista";
+
+const CARDS_DIA: CardKey[] = [...CATEGORIA_ORDEM, "folga_socio", "avulso_teste", "avulso_folguista"];
 const CARDS_MES = ["dias_mes", "media_pessoas", "dias_fora_padrao", "dias_sem_ninguem"] as const;
 type CardMesKey = (typeof CARDS_MES)[number];
 
@@ -229,6 +246,7 @@ interface DetalheDiaProps {
   onReordenarCards: (next: string[]) => void;
   onVerCategoria: (cat: CategoriaDia) => void;
   onVerSocios: () => void;
+  onVerAvulso: (tipo: "avulso_teste" | "avulso_folguista") => void;
   onDispensar: (d: DiaPanorama) => void;
   onReativar: (d: DiaPanorama) => void;
   /** Pessoas avulsas (teste/folguista) que cobrem este dia. */
@@ -260,6 +278,7 @@ function DetalheDiaOperacao({
   onReordenarCards,
   onVerCategoria,
   onVerSocios,
+  onVerAvulso,
   onDispensar,
   onReativar,
   avulsos,
@@ -289,6 +308,18 @@ function DetalheDiaOperacao({
                 label="Folga Sócio"
                 value={sociosAusentes.length}
                 onClick={sociosAusentes.length ? onVerSocios : undefined}
+              />
+            );
+          }
+          if (k === "avulso_teste" || k === "avulso_folguista") {
+            const value = dia.contagens_avulsos[k === "avulso_teste" ? "teste" : "folguista"];
+            return (
+              <DpStatCard
+                icon={AVULSO_ICON[k]}
+                tone={AVULSO_TONE[k]}
+                label={AVULSO_LABEL[k]}
+                value={value}
+                onClick={value > 0 ? () => onVerAvulso(k) : undefined}
               />
             );
           }
@@ -398,14 +429,6 @@ function DetalheDiaOperacao({
       <Secao
         title="Pessoas Avulsas no Dia"
         description="Quem trabalha hoje sem estar cadastrado como colaborador: em teste ou folguista"
-        action={
-          podeRegistrar ? (
-            <Button variant="outline" size="sm" onClick={() => onNovaAvulsa(data)}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              Adicionar pessoa
-            </Button>
-          ) : undefined
-        }
       >
         {avulsosDoDia.length ? (
           <ul className="divide-y">
@@ -503,6 +526,7 @@ export default function DpOperacaoPanorama() {
   const [unidade, setUnidade] = useState<string>("");
   const [aba, setAba] = useState(params.get("aba") === "mes" ? "mes" : "dia");
   const [detalheCategoria, setDetalheCategoria] = useState<CategoriaDia | null>(null);
+  const [detalheAvulso, setDetalheAvulso] = useState<"avulso_teste" | "avulso_folguista" | null>(null);
   /** Dia aberto em janela a partir do calendário do mês. */
   const [dataPopout, setDataPopout] = useState<string | null>(null);
 
@@ -677,6 +701,7 @@ export default function DpOperacaoPanorama() {
     onNovaAvulsa: abrirNovaAvulsa,
     onEditarAvulsa: abrirEdicaoAvulsa,
     onExcluirAvulsa: excluirAvulsa,
+    onVerAvulso: setDetalheAvulso,
   };
 
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
@@ -692,6 +717,11 @@ export default function DpOperacaoPanorama() {
     ? (diaAtivo?.pessoas ?? []).filter((p) => p.categoria === detalheCategoria)
     : [];
   const sociosDoDialogo = sociosDe(diaAtivo);
+  const avulsosDoDiaAtivo = detalheAvulso
+    ? (diaAtivo?.pessoas ?? []).filter(
+        (p) => p.origem === "avulso" && p.avulso_tipo === (detalheAvulso === "avulso_teste" ? "teste" : "folguista"),
+      )
+    : [];
 
 
   /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
@@ -715,15 +745,28 @@ export default function DpOperacaoPanorama() {
         icon={CalendarClock}
         actions={
           podeRegistrar ? (
-            <Button
-              className="gap-2"
-              onClick={() => {
-                setAusenciaData(null);
-                setAusenciaOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4" /> Registrar Ausência
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  setAvulsaEditando(null);
+                  setAvulsaData(data);
+                  setAvulsaOpen(true);
+                }}
+              >
+                <UserPlus className="h-4 w-4" /> Adicionar Pessoa
+              </Button>
+              <Button
+                className="gap-2"
+                onClick={() => {
+                  setAusenciaData(null);
+                  setAusenciaOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4" /> Registrar Ausência
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -747,6 +790,7 @@ export default function DpOperacaoPanorama() {
         colaboradores={panorama.colaboradores}
         registro={avulsaEditando}
         salvando={panorama.salvarAvulsa.isPending}
+        sugerirHorario={panorama.sugerirHorario}
         onSalvar={salvarAvulsa}
       />
 
@@ -927,7 +971,7 @@ export default function DpOperacaoPanorama() {
                       key={d.data}
                       type="button"
                       onClick={() => setDataPopout(d.data)}
-                      className={`rounded-md border p-1.5 text-left transition-colors hover:bg-muted/50 ${
+                      className={`relative rounded-md border p-1.5 text-left transition-colors hover:bg-muted/50 ${
                         d.alerta
                           ? d.avaliacao.situacao === "abaixo"
                             ? "border-destructive/50 bg-destructive/5"
@@ -935,18 +979,30 @@ export default function DpOperacaoPanorama() {
                           : "border-border"
                       } ${d.data === data ? "ring-2 ring-primary" : ""}`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold">{Number(d.data.slice(-2))}</span>
-                        {d.dispensado && <Check className="h-3 w-3 text-muted-foreground" />}
-                        {d.alerta && <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />}
-                        {diasComSocioAusente.has(d.data) && (
-                          <span
-                            aria-label="Sócio em folga ou férias"
-                            className="h-1.5 w-1.5 rounded-full bg-amber-500"
-                          />
-                        )}
+                      <div className="mb-1 flex items-start justify-between">
+                        <span
+                          className={`inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1 text-[11px] font-bold ${
+                            d.data === data
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-foreground"
+                          }`}
+                        >
+                          {Number(d.data.slice(-2))}
+                        </span>
+                        <div className="flex items-center gap-0.5">
+                          {d.dispensado && <Check className="h-3 w-3 text-muted-foreground" />}
+                          {d.alerta && <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />}
+                          {diasComSocioAusente.has(d.data) && (
+                            <span
+                              aria-label="Sócio em folga ou férias"
+                              className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                            />
+                          )}
+                        </div>
                       </div>
-                      <p className="text-[11px] font-medium">{d.trabalhando} confirmado(s)</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        <span className="font-medium text-foreground">{d.trabalhando}</span> confirmado(s)
+                      </p>
                       {d.aguardando > 0 && (
                         <p className="text-[10px] leading-tight text-amber-600">
                           {d.aguardando} aguardando
@@ -1090,6 +1146,32 @@ export default function DpOperacaoPanorama() {
               </li>
             ))}
 
+          </ul>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!detalheAvulso} onOpenChange={(o) => !o && setDetalheAvulso(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{detalheAvulso ? AVULSO_LABEL[detalheAvulso] : ""}</DialogTitle>
+            <DialogDescription className="first-letter:uppercase">{dataExtenso(dataAtiva)}</DialogDescription>
+          </DialogHeader>
+          <ul className="max-h-[60vh] divide-y overflow-y-auto">
+            {avulsosDoDiaAtivo.map((p) => (
+              <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <span className="block truncate text-sm">{p.nome}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {p.entrada ? `${p.entrada} às ${p.saida ?? "--:--"}` : "—"}
+                    {p.cobre_nome ? ` · cobrindo ${p.cobre_nome}` : ""}
+                  </span>
+                </div>
+                <Badge variant="secondary">{p.avulso_tipo === "teste" ? "Em teste" : "Folguista"}</Badge>
+              </li>
+            ))}
+            {!avulsosDoDiaAtivo.length && (
+              <li className="py-2 text-sm text-muted-foreground">Nenhuma pessoa avulsa neste dia.</li>
+            )}
           </ul>
         </DialogContent>
       </Dialog>
