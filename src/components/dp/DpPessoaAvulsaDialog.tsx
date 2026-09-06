@@ -263,16 +263,53 @@ export function DpPessoaAvulsaDialog({
               </p>
             </div>
           ) : (
-            <div className="grid gap-1.5">
-              <Label>Nome da pessoa *</Label>
-              <Input
-                value={form.nome}
-                maxLength={120}
-                placeholder="Ex.: Maria Souza"
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              />
-            </div>
+            <>
+              {(apoio.data ?? []).length > 0 && (
+                <div className="grid gap-1.5">
+                  <Label>Já cadastrada antes?</Label>
+                  <Select value={form.pessoa_apoio_id || "novo"} onValueChange={escolherApoio}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Nova pessoa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="novo">Nova pessoa</SelectItem>
+                      {(apoio.data ?? []).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.nome}
+                          {p.telefone ? ` — ${p.telefone}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Escolha alguém do banco de folguistas e testes para preencher tudo.
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label>Nome da pessoa *</Label>
+                  <Input
+                    value={form.nome}
+                    maxLength={120}
+                    placeholder="Ex.: Maria Souza"
+                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Telefone</Label>
+                  <Input
+                    value={form.telefone}
+                    maxLength={20}
+                    inputMode="tel"
+                    placeholder="(62) 90000-0000"
+                    onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                  />
+                </div>
+              </div>
+            </>
           )}
+
 
 
           <div className="grid grid-cols-2 gap-3">
