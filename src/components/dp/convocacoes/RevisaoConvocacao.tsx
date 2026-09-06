@@ -3,6 +3,10 @@ import { AlertTriangle, CalendarDays, Clock, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
 import { useDpOperacaoPanorama } from "@/hooks/useDpOperacaoPanorama";
 import {
   blocosPorFuncionamento,
@@ -27,7 +31,10 @@ export interface RevisaoDia {
   aguardando: number;
   faltam: number | null;
   abaixoDaAntecedencia: boolean;
+  /** Dias corridos entre hoje e a data (pode ser 0 = hoje). */
+  antecedencia?: number;
 }
+
 
 export interface RevisaoPessoa {
   id: string;
@@ -57,6 +64,14 @@ interface Props {
   jornadaDe: (colaboradorId: string, data: string) => JornadaDia | null;
   prazoRespostaDias: number | null;
   justificativa: string;
+  /** Antecedência mínima configurada (só gera aviso, nunca bloqueia). */
+  antecedenciaMinima: number;
+  exigeJustificativa: boolean;
+  onJustificativaChange: (v: string) => void;
+  /** Ciência de que a convocação é em cima da hora. */
+  ciente: boolean;
+  onCienteChange: (v: boolean) => void;
+
   /** Verificação prévia feita pelo banco (mesma regra da publicação). */
   preAvaliacao: PreAvaliacaoLinha[];
   preAvaliacaoCarregando: boolean;
@@ -78,7 +93,9 @@ export function RevisaoConvocacao(props: Props) {
   const {
     unidadeId, unidadeNome, competencia, titulo, observacao, dias,
     destinatarios, overrides, horarioGeral, jornadaDe, prazoRespostaDias, justificativa,
+    antecedenciaMinima, exigeJustificativa, onJustificativaChange, ciente, onCienteChange,
     preAvaliacao, preAvaliacaoCarregando, onUsarHorarioParaTodos, onAjustarNecessidade,
+
   } = props;
 
   /** `cargoId|data|colaboradorId` → linha da verificação prévia. */
@@ -173,6 +190,8 @@ export function RevisaoConvocacao(props: Props) {
 
   const datasUnicas = useMemo(() => [...new Set(ordenados.map((d) => d.data))], [ordenados]);
 
+  const diasEmCimaDaHora = useMemo(() => ordenados.filter((d) => d.abaixoDaAntecedencia), [ordenados]);
+
   return (
     <div className="space-y-4">
       {/* -------------------------------------------------- resumo */}
@@ -210,7 +229,43 @@ export function RevisaoConvocacao(props: Props) {
         </Alert>
       )}
 
+      {diasEmCimaDaHora.length > 0 && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-300">
+            <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+            Convocação em cima da hora
+          </h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {diasEmCimaDaHora.length} dia(s) com menos de {antecedenciaMinima} dia(s) de
+            antecedência. Isso não impede a publicação — o colaborador pode aceitar normalmente.
+            Registramos a exceção para o histórico.
+          </p>
+          <p className="mt-1 text-xs">
+            {diasEmCimaDaHora
+              .map((d) => `${d.data.slice(8, 10)}/${d.data.slice(5, 7)}`)
+              .filter((v, i, arr) => arr.indexOf(v) === i)
+              .join(", ")}
+          </p>
+          <label className="mt-2 flex items-start gap-2 text-xs font-medium">
+            <Checkbox checked={ciente} onCheckedChange={(v) => onCienteChange(v === true)} />
+            <span>Estou ciente e quero publicar mesmo assim</span>
+          </label>
+          <div className="mt-2 space-y-1">
+            <Label className="text-xs">
+              Justificativa {exigeJustificativa ? "(obrigatória)" : "(opcional)"}
+            </Label>
+            <Textarea
+              rows={2}
+              value={justificativa}
+              onChange={(e) => onJustificativaChange(e.target.value)}
+              placeholder="Ex.: falta de última hora na equipe"
+            />
+          </div>
+        </div>
+      )}
+
       {/* -------------------------------------------------- como cada pessoa recebe */}
+
       <div className="space-y-2">
         <h3 className="flex items-center gap-1.5 text-sm font-semibold">
           <Users className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -233,8 +288,17 @@ export function RevisaoConvocacao(props: Props) {
                   <Badge variant="outline" className="text-[10px]">+{o.dia.aguardando} aguardando</Badge>
                 )}
                 {o.dia.abaixoDaAntecedencia && (
-                  <Badge variant="destructive" className="text-[10px]">Abaixo da antecedência</Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-amber-500/40 bg-amber-500/15 text-[10px] text-amber-700 dark:text-amber-300"
+                  >
+                    Em cima da hora
+                    {o.dia.antecedencia != null
+                      ? ` · ${o.dia.antecedencia === 0 ? "hoje" : `${o.dia.antecedencia} dia(s) de antecedência`}`
+                      : ""}
+                  </Badge>
                 )}
+
               </span>
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">
