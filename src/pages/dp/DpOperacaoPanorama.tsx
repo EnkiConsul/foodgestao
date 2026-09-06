@@ -926,16 +926,16 @@ export default function DpOperacaoPanorama() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Folga Sócio</DialogTitle>
-            <DialogDescription className="first-letter:uppercase">{dataExtenso(data)}</DialogDescription>
+            <DialogDescription className="first-letter:uppercase">{dataExtenso(dataAtiva)}</DialogDescription>
           </DialogHeader>
           <ul className="max-h-[60vh] divide-y overflow-y-auto">
-            {sociosAusentes.map((p) => (
+            {sociosDoDialogo.map((p) => (
               <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
                 <span className="truncate text-sm">{p.nome}</span>
                 <Badge variant="outline">{p.categoria === "ferias" ? "Férias" : "Folga"}</Badge>
               </li>
             ))}
-            {!sociosAusentes.length && (
+            {!sociosDoDialogo.length && (
               <li className="py-2 text-sm text-muted-foreground">Nenhum sócio ausente neste dia.</li>
             )}
           </ul>
@@ -946,7 +946,7 @@ export default function DpOperacaoPanorama() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{detalheCategoria ? CATEGORIA_LABEL[detalheCategoria] : ""}</DialogTitle>
-            <DialogDescription className="first-letter:uppercase">{dataExtenso(data)}</DialogDescription>
+            <DialogDescription className="first-letter:uppercase">{dataExtenso(dataAtiva)}</DialogDescription>
           </DialogHeader>
           <ul className="max-h-[60vh] divide-y overflow-y-auto">
             {pessoasDaCategoria.map((p) => (
