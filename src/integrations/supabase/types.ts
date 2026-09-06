@@ -13708,6 +13708,7 @@ export type Database = {
         | "aprovada"
         | "recusada"
         | "cancelada"
+        | "expirada"
       dp_turno: "matutino" | "vespertino" | "noturno" | "misto"
       invite_status: "pending" | "accepted" | "rejected" | "expired"
       invoice_cycle_status:
@@ -14151,6 +14152,7 @@ export const Constants = {
         "aprovada",
         "recusada",
         "cancelada",
+        "expirada",
       ],
       dp_turno: ["matutino", "vespertino", "noturno", "misto"],
       invite_status: ["pending", "accepted", "rejected", "expired"],
