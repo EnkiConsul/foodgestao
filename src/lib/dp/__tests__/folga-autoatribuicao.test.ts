@@ -109,7 +109,7 @@ describe("plano de autoatribuição", () => {
 
   it("avisa quando não há ninguém sem folga", () => {
     expect(resumoPlano(parsePlanoAutoatribuicao({ ...raw, itens: [] }))).toContain(
-      "já estão marcadas",
+      "já atendem à regra da unidade",
     );
   });
 
