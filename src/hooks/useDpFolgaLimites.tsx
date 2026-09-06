@@ -106,11 +106,7 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
       const { error } = await supabase
         .from("dp_folga_limite_regra_setores")
         .insert(
-          setores.map((setor_id) => ({
-            regra_id: regraId,
-            setor_id,
-            company_id: selectedCompanyId!,
-          })),
+          setores.map((setor_id) => ({ regra_id: regraId, setor_id })),
         );
       if (error) throw error;
     }

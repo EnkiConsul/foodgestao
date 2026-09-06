@@ -174,6 +174,7 @@ export function FolgaRegrasFormDialog({
           vigencia_fim: r.vigencia_fim,
           ativo: r.ativo,
           cargo_ids: [...r.cargo_ids],
+          setor_ids: [...(r.setor_ids ?? [])],
           colaborador_ids: [...r.colaborador_ids],
         })),
       );
@@ -189,6 +190,7 @@ export function FolgaRegrasFormDialog({
           vigencia_fim: r.vigencia_fim,
           ativo: r.ativo,
           cargo_ids: [...r.cargo_ids],
+          setor_ids: [...(r.setor_ids ?? [])],
           colaborador_ids: [...r.colaborador_ids],
         })),
       );
