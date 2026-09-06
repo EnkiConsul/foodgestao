@@ -46,11 +46,16 @@ export function useDpTrocas(filtro: string = "todos") {
     queryKey: ["dp_trocas", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async (): Promise<DpTrocaRow[]> => {
+      // Marca como expiradas as trocas sem resposta cuja data já terminou
+      // (o cron diário faz o mesmo; aqui é só para não haver atraso na tela).
+      await supabase.rpc("dp_expirar_trocas");
+
       const { data, error } = await supabase
         .from("dp_trocas")
         .select("*, solicitante:solicitante_id(nome), destino:destino_id(nome, unidade_id)")
         .eq("company_id", selectedCompanyId!)
         .order("created_at", { ascending: false });
+
       if (error) throw error;
       const rows = (data ?? []) as unknown as Omit<DpTrocaRow, "modo">[];
 
@@ -137,24 +142,12 @@ export function useDpTrocas(filtro: string = "todos") {
     onError: (e: unknown) => toast.error((e as Error)?.message ?? "Erro"),
   });
 
-  const remover = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_trocas").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      invalidate();
-      toast.success("Removido");
-    },
-    onError: (e: unknown) => toast.error((e as Error)?.message ?? "Erro"),
-  });
-
   return {
     rows: filtered,
     isLoading: list.isLoading,
     responder,
     cancelar,
-    remover,
   };
 }
+
 
