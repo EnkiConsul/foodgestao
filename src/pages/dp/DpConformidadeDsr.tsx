@@ -149,11 +149,12 @@ export default function DpConformidadeDsr() {
         .order("nome");
       if (cErr) throw cErr;
 
+      // Busca desde o mês anterior para medir o intervalo na virada do mês.
       const { data: folgas, error: fErr } = await supabase
         .from("dp_folgas")
         .select("colaborador_id, data, status")
         .eq("company_id", selectedCompanyId!)
-        .gte("data", inicio)
+        .gte("data", inicioAnterior)
         .lte("data", fim);
       if (fErr) throw fErr;
 
@@ -165,9 +166,10 @@ export default function DpConformidadeDsr() {
         .eq("tipo", "folga")
         .eq("status", "aprovada")
         .not("data_alvo", "is", null)
-        .gte("data_alvo", inicio)
+        .gte("data_alvo", inicioAnterior)
         .lte("data_alvo", fim);
       if (aErr) throw aErr;
+
 
       // Dias fixos de descanso semanal do cadastro de trabalho vigente.
       const { data: configDias, error: dErr } = await supabase
