@@ -413,15 +413,18 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
 
   // Pessoas avulsas (teste/folguista) contam como quadro do dia, igual a um
   // colaborador escalado: entram em "fixo" e, portanto, em "trabalhando".
+  // O registro manual já foi tratado junto do colaborador cadastrado.
   for (const a of input.avulsos ?? []) {
+    if (a.tipo === "registro_manual") continue;
     if (data < a.data_inicio || data > a.data_fim) continue;
     const entrada = hora(a.entrada);
     const saida = hora(a.saida);
     contagens.fixo += 1;
     pessoas.push({
       colaborador_id: idPessoaAvulsa(a.id),
-      nome: a.nome,
+      nome: a.nome ?? "Sem nome",
       categoria: "fixo",
+
       turno_id: null,
       turno_nome: a.tipo === "teste" ? "Em teste" : "Folguista",
       entrada,
