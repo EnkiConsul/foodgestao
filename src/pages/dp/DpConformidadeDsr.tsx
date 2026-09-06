@@ -686,13 +686,14 @@ export default function DpConformidadeDsr() {
                       <p className="font-semibold tabular-nums">{detalhe.domingosNoPeriodo}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Mínimo esperado</p>
-                      <p className="font-semibold tabular-nums">{detalhe.esperado}</p>
+                      <p className="text-muted-foreground">Mínimo exigido</p>
+                      <p className="font-semibold tabular-nums">{detalhe.esperadoClt}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Domingos folgados</p>
                       <p className="font-semibold tabular-nums">{detalhe.domingosFolgados.length}</p>
                     </div>
+
                     <div>
                       <p className="text-muted-foreground">Folgas consideradas</p>
                       <p className="font-semibold tabular-nums">{detalhe.folgasConsideradas}</p>
