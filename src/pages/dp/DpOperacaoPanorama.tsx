@@ -43,8 +43,11 @@ import {
   mensagemAlerta,
   somarDias,
   type CategoriaDia,
+  type PessoaAvulsaPanorama,
   type PessoaPanorama,
 } from "@/lib/dp/operacao-panorama";
+import { DpPessoaAvulsaDialog } from "@/components/dp/DpPessoaAvulsaDialog";
+import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
