@@ -18,6 +18,8 @@ import {
   RotateCcw,
   Sun,
   UserCheck,
+  UserCog,
+  UserPlus,
   Users,
   UserX,
 } from "lucide-react";
