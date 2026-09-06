@@ -67,6 +67,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         folgas,
         convocacoes,
         atestados,
+        folgasAprovadas,
+
         registradas,
         escalas,
         unidades,
@@ -117,6 +119,17 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .eq("company_id", selectedCompanyId!)
             .eq("tipo", "atestado")
             .eq("status", "aprovada"),
+          // Pedidos de folga já aprovados contam como folga do dia, mesmo antes
+          // de serem efetivados em dp_folgas (mesma regra do calendário de folgas).
+          supabase
+            .from("dp_solicitacoes")
+            .select("colaborador_id, data_alvo")
+            .eq("company_id", selectedCompanyId!)
+            .eq("tipo", "folga")
+            .eq("status", "aprovada")
+            .gte("data_alvo", janelaInicio)
+            .lte("data_alvo", fim),
+
           supabase
             .from("dp_solicitacoes")
             .select("colaborador_id, tipo, status, data_alvo, data_fim, motivo")
@@ -154,6 +167,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         folgas,
         convocacoes,
         atestados,
+        folgasAprovadas,
+
         registradas,
         escalas,
         unidades,
@@ -194,6 +209,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         folgas: folgas.data ?? [],
         convocacoes: convocacoes.data ?? [],
         atestados: atestados.data ?? [],
+        folgasAprovadas: folgasAprovadas.data ?? [],
+
         registradas: registradas.data ?? [],
         unidades: unidades.data ?? [],
         cargos: cargos.data ?? [],
@@ -317,16 +334,26 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     [base.data],
   );
 
-  const folgas: FolgaPanorama[] = useMemo(
-    () =>
-      (base.data?.folgas ?? []).map((f) => ({
-        colaborador_id: f.colaborador_id,
-        data: f.data,
-        tipo: f.tipo,
-        extra: f.extra,
-      })),
-    [base.data],
-  );
+  const folgas: FolgaPanorama[] = useMemo(() => {
+    const efetivadas: FolgaPanorama[] = (base.data?.folgas ?? []).map((f) => ({
+      colaborador_id: f.colaborador_id,
+      data: f.data,
+      tipo: f.tipo,
+      extra: f.extra,
+    }));
+    const jaTem = new Set(efetivadas.map((f) => `${f.colaborador_id}|${f.data}`));
+    // Pedido de folga aprovado ainda não efetivado também tira a pessoa da escala.
+    const aprovadas: FolgaPanorama[] = (base.data?.folgasAprovadas ?? [])
+      .filter((s) => !!s.data_alvo && !jaTem.has(`${s.colaborador_id}|${s.data_alvo}`))
+      .map((s) => ({
+        colaborador_id: s.colaborador_id,
+        data: s.data_alvo!,
+        tipo: "normal",
+        extra: false,
+      }));
+    return [...efetivadas, ...aprovadas];
+  }, [base.data]);
+
 
   const convocacoes: ConvocacaoPanorama[] = useMemo(
     () =>

@@ -458,14 +458,53 @@ function janelaPeriodo(p: HorarioFuncionamentoPeriodo): { abre: number; fecha: n
   return { abre, fecha: fecha0 <= abre ? fecha0 + 24 * 60 : fecha0 };
 }
 
-/** Sobreposição entre a jornada da pessoa e a janela do período. */
-function encaixa(p: PessoaPanorama, janela: { abre: number; fecha: number }): boolean {
+/** Janela da jornada da pessoa em minutos, esticando quando vira o dia. */
+function janelaPessoa(p: PessoaPanorama): { abre: number; fecha: number } | null {
   const entrada = paraMinutos(p.entrada ?? "");
-  if (entrada === null) return false;
+  if (entrada === null) return null;
   const saida0 = paraMinutos(p.saida ?? "");
   const saida = saida0 === null ? entrada : saida0 <= entrada ? saida0 + 24 * 60 : saida0;
-  return entrada < janela.fecha && saida > janela.abre;
+  return { abre: entrada, fecha: saida };
 }
+
+/** Minutos em comum entre a jornada e a janela do período. */
+
+function sobreposicao(p: PessoaPanorama, janela: { abre: number; fecha: number }): number {
+  const j = janelaPessoa(p);
+  if (!j) return 0;
+  return Math.max(0, Math.min(j.fecha, janela.fecha) - Math.max(j.abre, janela.abre));
+}
+
+/**
+ * Cada pessoa entra em UM único período do dia: o período em que a entrada dela
+ * cai; se a entrada não cair em nenhum, o de maior sobreposição com a jornada.
+ * Devolve o índice do período escolhido, ou null quando não há encaixe.
+ */
+export function melhorPeriodo(
+  p: PessoaPanorama,
+  janelas: ({ abre: number; fecha: number } | null)[],
+): number | null {
+  const j = janelaPessoa(p);
+  if (!j) return null;
+
+  const contemEntrada = janelas.findIndex(
+    (w) => !!w && j.abre >= w.abre && j.abre < w.fecha,
+  );
+  if (contemEntrada >= 0) return contemEntrada;
+
+  let melhor: number | null = null;
+  let maior = 0;
+  janelas.forEach((w, i) => {
+    if (!w) return;
+    const min = sobreposicao(p, w);
+    if (min > maior) {
+      maior = min;
+      melhor = i;
+    }
+  });
+  return melhor;
+}
+
 
 /**
  * Monta os blocos do dia a partir do funcionamento da loja (não do turno
@@ -496,11 +535,20 @@ export function blocosPorFuncionamento(input: {
     const dia = dias.find((d) => d.dia_semana === dow);
     const periodos = dia && dia.aberto ? periodosDoDia(dia).filter(periodoCompleto) : [];
     const alocadas = new Set<string>();
+    const janelas = periodos.map(janelaPeriodo);
+
+    // Cada pessoa entra em um único período: evita a mesma pessoa aparecer no
+    // "Dia" e na "Noite" só porque a jornada dela encosta nos dois.
+    const pessoasPorPeriodo: PessoaPanorama[][] = periodos.map(() => []);
+    for (const p of daUnidade) {
+      const idx = melhorPeriodo(p, janelas);
+      if (idx === null) continue;
+      pessoasPorPeriodo[idx].push(p);
+      alocadas.add(p.colaborador_id);
+    }
 
     periodos.forEach((per, i) => {
-      const janela = janelaPeriodo(per);
-      const pessoas = janela ? daUnidade.filter((p) => encaixa(p, janela)) : [];
-      pessoas.forEach((p) => alocadas.add(p.colaborador_id));
+      const pessoas = pessoasPorPeriodo[i];
       out.push({
         key: `${uid}-${i}`,
         titulo: per.nome?.trim() || `Período ${i + 1}`,
@@ -512,6 +560,7 @@ export function blocosPorFuncionamento(input: {
         grupos: agruparPorCargo(pessoas),
       });
     });
+
 
     const restantes = daUnidade.filter((p) => !alocadas.has(p.colaborador_id));
     if (restantes.length || (!periodos.length && daUnidade.length)) {
