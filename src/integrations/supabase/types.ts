@@ -6493,6 +6493,56 @@ export type Database = {
           },
         ]
       }
+      dp_ferias_faltas_historico: {
+        Row: {
+          ator: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          dias_direito_anterior: number | null
+          dias_direito_novo: number
+          id: string
+          motivo: string | null
+          periodo_id: string
+          valor_anterior: number | null
+          valor_novo: number
+        }
+        Insert: {
+          ator?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          dias_direito_anterior?: number | null
+          dias_direito_novo: number
+          id?: string
+          motivo?: string | null
+          periodo_id: string
+          valor_anterior?: number | null
+          valor_novo: number
+        }
+        Update: {
+          ator?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          dias_direito_anterior?: number | null
+          dias_direito_novo?: number
+          id?: string
+          motivo?: string | null
+          periodo_id?: string
+          valor_anterior?: number | null
+          valor_novo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ferias_faltas_historico_periodo_id_fkey"
+            columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_ferias_periodos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_ferias_gozos: {
         Row: {
           adiantar_13: boolean
@@ -6592,11 +6642,17 @@ export type Database = {
           dias_gozados: number
           dias_saldo: number | null
           dias_vendidos: number
+          faltas_confirmadas: boolean
+          faltas_informadas_em: string | null
+          faltas_informadas_por: string | null
+          faltas_injustificadas: number | null
           fim_aquisitivo: string
           id: string
           inicio_aquisitivo: string
           limite_concessivo: string
           observacao: string | null
+          origem_faltas: string
+          requer_revisao: boolean
           status: Database["public"]["Enums"]["dp_ferias_periodo_status"]
           updated_at: string
         }
@@ -6609,11 +6665,17 @@ export type Database = {
           dias_gozados?: number
           dias_saldo?: number | null
           dias_vendidos?: number
+          faltas_confirmadas?: boolean
+          faltas_informadas_em?: string | null
+          faltas_informadas_por?: string | null
+          faltas_injustificadas?: number | null
           fim_aquisitivo: string
           id?: string
           inicio_aquisitivo: string
           limite_concessivo: string
           observacao?: string | null
+          origem_faltas?: string
+          requer_revisao?: boolean
           status?: Database["public"]["Enums"]["dp_ferias_periodo_status"]
           updated_at?: string
         }
@@ -6626,11 +6688,17 @@ export type Database = {
           dias_gozados?: number
           dias_saldo?: number | null
           dias_vendidos?: number
+          faltas_confirmadas?: boolean
+          faltas_informadas_em?: string | null
+          faltas_informadas_por?: string | null
+          faltas_injustificadas?: number | null
           fim_aquisitivo?: string
           id?: string
           inicio_aquisitivo?: string
           limite_concessivo?: string
           observacao?: string | null
+          origem_faltas?: string
+          requer_revisao?: boolean
           status?: Database["public"]["Enums"]["dp_ferias_periodo_status"]
           updated_at?: string
         }
@@ -13080,8 +13148,22 @@ export type Database = {
         Returns: undefined
       }
       dp_expirar_trocas: { Args: never; Returns: number }
+      dp_ferias_dias_direito: { Args: { _faltas: number }; Returns: number }
       dp_ferias_gerar_periodos: {
         Args: { _colaborador_id: string }
+        Returns: number
+      }
+      dp_ferias_informar_faltas: {
+        Args: { _faltas: number; _motivo?: string; _periodo_id: string }
+        Returns: {
+          dias_direito: number
+          faltas_injustificadas: number
+          periodo_id: string
+          requer_revisao: boolean
+        }[]
+      }
+      dp_ferias_manter_periodos: {
+        Args: { _company_id: string }
         Returns: number
       }
       dp_ferias_recalc_periodo: {
