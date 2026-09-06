@@ -153,21 +153,19 @@ export default function DpTrocas() {
                         Solicitada em {new Date(r.created_at).toLocaleDateString("pt-BR")}
                       </div>
                     </div>
-                    <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setConfirmDel(r.id)} title="Excluir">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
 
                 {r.motivo && (
                   <div className="bg-muted/30 p-3 rounded-xl border border-border/50 flex items-start gap-2">
                     <MessageSquare className="size-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground min-w-0">
                       <span className="font-bold uppercase text-[9px] block mb-0.5">Motivo informado pelo colaborador:</span>
-                      "{r.motivo}"
+                      <TextoExpansivel texto={r.motivo} />
                     </div>
                   </div>
                 )}
+
 
                 {(r.colega_resposta || decisao) && (
                   <div className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -214,25 +212,6 @@ export default function DpTrocas() {
         )}
       </div>
 
-      <AlertDialog open={!!confirmDel} onOpenChange={(v) => !v && setConfirmDel(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir esta troca?</AlertDialogTitle>
-            <AlertDialogDescription>
-              A solicitação será removida permanentemente. Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => confirmDel && del.mutate(confirmDel)}
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <RecusaDialog
         open={!!recusa}
