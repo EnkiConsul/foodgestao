@@ -184,7 +184,7 @@ function GradeCards({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={ordem} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-2 items-stretch gap-2 sm:gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
           {ordem.map((k) => (
             <CardArrastavel key={k} id={k}>
               {render(k)}
