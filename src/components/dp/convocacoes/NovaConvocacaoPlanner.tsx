@@ -59,6 +59,8 @@ import { cn } from "@/lib/utils";
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Pré-preenchimento vindo de outra tela (ex.: cobertura de férias). */
+  inicial?: { unidadeId?: string | null; cargoId?: string | null; datas?: string[] } | null;
   onSalvo?: (grupoId: string) => void;
   /** Quando presente, edita o rascunho existente (nunca cria outro). */
   grupo?: GrupoComOcorrencias | null;
@@ -105,7 +107,7 @@ const rotuloData = (iso: string) =>
     weekday: "short", day: "2-digit", month: "2-digit",
   });
 
-export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = null }: Props) {
+export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = null, inicial = null }: Props) {
   const agora = new Date();
   const { selectedCompanyId } = useCompanyContext();
 
@@ -224,6 +226,40 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     setObservacao("");
     setUsaHorarioGeral(false);
     setDias({});
+
+    if (inicial) {
+      const datas = (inicial.datas ?? []).filter(Boolean).sort();
+      if (inicial.unidadeId) setUnidadeId(inicial.unidadeId);
+      if (inicial.cargoId) {
+        setCargoIds([inicial.cargoId]);
+        setCargoAtivo(inicial.cargoId);
+      }
+      if (datas.length) {
+        const [a, m] = datas[0].split("-").map(Number);
+        setAno(a);
+        setMes(m);
+        if (inicial.cargoId) {
+          setDias(
+            Object.fromEntries(
+              datas.map((d) => [
+                chave(inicial.cargoId!, d),
+                {
+                  cargo_id: inicial.cargoId!,
+                  data: d,
+                  entrada: "18:00",
+                  saida: "23:00",
+                  vira: false,
+                  vagas: 1,
+                  origem: "manual" as const,
+                  ambiguo: false,
+                  expected_updated_at: null,
+                } as DiaPlanejado,
+              ]),
+            ),
+          );
+        }
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, grupo?.id]);
 
