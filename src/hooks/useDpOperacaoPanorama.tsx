@@ -30,6 +30,15 @@ export interface DiaPanorama extends ResultadoDia {
   alerta: boolean;
 }
 
+/** Ausência registrada pelo gestor (adiantamento/outros), já aprovada. */
+export interface AusenciaRegistrada {
+  colaborador_id: string;
+  tipo: string;
+  inicio: string;
+  fim: string;
+  motivo: string | null;
+}
+
 const DISPENSA_SENTINELA = "00000000-0000-0000-0000-000000000000";
 
 /**
@@ -293,6 +302,21 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     return [...deFerias, ...deAtestado];
   }, [base.data]);
 
+  /** Ausências registradas pelo gestor (adiantamento/outros) que cruzam a competência. */
+  const ausenciasRegistradas: AusenciaRegistrada[] = useMemo(
+    () =>
+      (base.data?.registradas ?? [])
+        .filter((a) => !!a.data_alvo)
+        .map((a) => ({
+          colaborador_id: a.colaborador_id,
+          tipo: a.tipo,
+          inicio: a.data_alvo!,
+          fim: a.data_fim ?? a.data_alvo!,
+          motivo: a.motivo ?? null,
+        })),
+    [base.data],
+  );
+
   const folgas: FolgaPanorama[] = useMemo(
     () =>
       (base.data?.folgas ?? []).map((f) => ({
@@ -439,6 +463,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
   return {
     dias: diasPanorama,
     turnos,
+    ausenciasRegistradas,
     funcionamentoPorUnidade,
     contagemPorUnidade,
     colaboradores,
