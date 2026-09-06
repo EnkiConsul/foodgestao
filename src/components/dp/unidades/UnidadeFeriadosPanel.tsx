@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarDays, Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, Copy, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +11,7 @@ import {
   descricaoRegra, feriadosDoAno, type FeriadoRegra,
 } from "@/lib/dp/feriados";
 import { FeriadoFormDialog } from "@/components/dp/unidades/FeriadoFormDialog";
+import { ReplicarFeriadosDialog } from "@/components/dp/unidades/ReplicarFeriadosDialog";
 
 interface Props {
   /** Unidade em edição. Quando ausente, a unidade ainda não foi salva. */
