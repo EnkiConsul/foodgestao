@@ -55,7 +55,7 @@ export function DpStatCard({
           </span>
         )}
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-[11px] font-medium leading-tight text-muted-foreground sm:text-xs">
+          <p className="line-clamp-2 min-h-[2.4em] text-[11px] font-medium leading-tight text-muted-foreground sm:text-xs">
             {label}
           </p>
           <p className="mt-0.5 truncate text-xl font-bold leading-tight tabular-nums sm:text-2xl">
