@@ -113,9 +113,9 @@ const CATEGORIA_ICON: Record<CategoriaDia, typeof Users> = {
   atestado: HeartPulse,
 };
 
-type CardKey = CategoriaDia | "folga_socio";
+type CardKey = CategoriaDia | "folga_socio" | "avulso_teste" | "avulso_folguista";
 
-const CARDS_DIA: CardKey[] = [...CATEGORIA_ORDEM, "folga_socio"];
+const CARDS_DIA: CardKey[] = [...CATEGORIA_ORDEM, "folga_socio", "avulso_teste", "avulso_folguista"];
 const CARDS_MES = ["dias_mes", "media_pessoas", "dias_fora_padrao", "dias_sem_ninguem"] as const;
 type CardMesKey = (typeof CARDS_MES)[number];
 
