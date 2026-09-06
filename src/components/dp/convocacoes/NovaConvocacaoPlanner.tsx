@@ -16,6 +16,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MonthGridCalendar } from "@/components/dp/convocacoes/MonthGridCalendar";
+import {
+  DiasSelecionadosLista,
+  type OrigemHorario,
+} from "@/components/dp/convocacoes/DiasSelecionadosLista";
 import { RevisaoConvocacao } from "@/components/dp/convocacoes/RevisaoConvocacao";
 
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
