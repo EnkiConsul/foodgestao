@@ -166,33 +166,45 @@ export default function DpTrocas() {
                   </div>
                 )}
 
-                {(r.colega_resposta || r.gestor_resposta) && (
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                {(r.colega_resposta || decisao) && (
+                  <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                     {r.colega_resposta && <span><b>Colega:</b> {r.colega_resposta}</span>}
-                    {r.gestor_resposta && <span><b>Gestor:</b> {r.gestor_resposta}</span>}
+                    {decisao && (
+                      <span>
+                        <b>Justificativa do gestor:</b> "{decisao}"
+                        {r.gestor_respondido_em && (
+                          <> — {format(new Date(r.gestor_respondido_em), "dd/MM/yyyy HH:mm")}</>
+                        )}
+                      </span>
+                    )}
                   </div>
                 )}
 
-                {r.status === "pendente_colega" && (
-                  <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 pt-1">
-                    <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => responder.mutate({ id: r.id, etapa: "colega", aceito: true })}>
-                      <Check className="h-4 w-4 mr-1" /> Colega aceita
-                    </Button>
-                    <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setRecusa({ id: r.id, etapa: "colega" })}>
-                      <X className="h-4 w-4 mr-1" /> Colega recusa
-                    </Button>
+                {(acoes.aprovar || acoes.recusar || acoes.cancelar) && (
+                  <div className="grid grid-cols-1 sm:flex sm:flex-wrap sm:items-center gap-2 pt-1">
+                    {acoes.aprovar && (
+                      <Button size="sm" className="min-h-11 w-full sm:w-auto" onClick={() => responder.mutate({ id: r.id, aceito: true })}>
+                        <Check className="h-4 w-4 mr-1" /> Aprovar troca
+                      </Button>
+                    )}
+                    {acoes.recusar && (
+                      <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setRecusa(r.id)}>
+                        <X className="h-4 w-4 mr-1" /> Recusar troca
+                      </Button>
+                    )}
+                    {acoes.cancelar && (
+                      <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setCancelamento(r.id)}>
+                        <Ban className="h-4 w-4 mr-1" /> Cancelar troca
+                      </Button>
+                    )}
+                    {r.status === "pendente_gestor" && !acoes.aprovar && (
+                      <span className="text-xs text-muted-foreground">
+                        Nesta unidade a troca é direta: vale o aceite do colega.
+                      </span>
+                    )}
                   </div>
                 )}
-                {r.status === "pendente_gestor" && (
-                  <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 pt-1">
-                    <Button size="sm" className="min-h-11 w-full sm:w-auto" onClick={() => responder.mutate({ id: r.id, etapa: "gestor", aceito: true })}>
-                      <Check className="h-4 w-4 mr-1" /> Gestor aprova
-                    </Button>
-                    <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setRecusa({ id: r.id, etapa: "gestor" })}>
-                      <X className="h-4 w-4 mr-1" /> Gestor recusa
-                    </Button>
-                  </div>
-                )}
+
               </div>
             );
           })
