@@ -220,6 +220,9 @@ export function useDpFerias(colaboradorFilter: string) {
       gozosQ.refetch();
     },
     gerarPeriodos,
+    manterPeriodos,
+    informarFaltas,
+
     saveGozo,
     setGozoStatus,
     deleteGozo,
