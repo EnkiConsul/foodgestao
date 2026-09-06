@@ -21,7 +21,9 @@ type Props = {
   editing: FeriasGozo | null;
   defaultPeriodoId?: string | null;
   saving: boolean;
-  onSubmit: (input: GozoInput) => void;
+  /** Antecedência mínima do aviso definida pela empresa (dias). */
+  antecedenciaDias: number;
+  onSubmit: (input: GozoInput & { justificativa?: string | null }) => void;
 };
 
 const emptyForm: GozoInput = {
@@ -37,12 +39,14 @@ const emptyForm: GozoInput = {
 };
 
 export function FeriasGozoDialog({
-  open, onOpenChange, periodos, editing, defaultPeriodoId, saving, onSubmit,
+  open, onOpenChange, periodos, editing, defaultPeriodoId, saving, antecedenciaDias, onSubmit,
 }: Props) {
   const [form, setForm] = useState<GozoInput>(emptyForm);
+  const [justificativa, setJustificativa] = useState("");
 
   useEffect(() => {
     if (!open) return;
+    setJustificativa("");
     if (editing) {
       setForm({
         id: editing.id,
@@ -82,6 +86,14 @@ export function FeriasGozoDialog({
     ? (periodoSel.dias_saldo ?? 0) + (editing ? (editing.dias ?? 0) + (editing.dias_abono ?? 0) : 0)
     : 0;
   const excede = !!periodoSel && totalConsumido > saldoPeriodo;
+
+  const diasDeAviso = useMemo(() => {
+    if (!form.data_inicio) return null;
+    return differenceInCalendarDays(parseISO(form.data_inicio), new Date());
+  }, [form.data_inicio]);
+  const emCimaDaHora =
+    !editing && diasDeAviso !== null && diasDeAviso < antecedenciaDias;
+  const faltaJustificativa = emCimaDaHora && justificativa.trim().length < 3;
 
   const selectPeriodo = (id: string) => {
     const p = periodos.find((x) => x.id === id);
@@ -176,22 +188,20 @@ export function FeriasGozoDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Situação</Label>
-            <Select
-              value={form.status}
-              onValueChange={(v) => setForm((f) => ({ ...f, status: v as GozoInput["status"] }))}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="planejado">Planejado</SelectItem>
-                <SelectItem value="aprovado">Aprovado</SelectItem>
-                <SelectItem value="em_gozo">Em gozo</SelectItem>
-                <SelectItem value="concluido">Concluído</SelectItem>
-                <SelectItem value="cancelado">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {emCimaDaHora && (
+            <div className="space-y-2 rounded-xl border border-amber-400/60 bg-amber-500/10 p-3">
+              <p className="text-sm font-medium text-amber-700">
+                Aviso com {diasDeAviso} dia(s) de antecedência — a empresa pede {antecedenciaDias}.
+              </p>
+              <Label>Justificativa</Label>
+              <Textarea
+                rows={2}
+                value={justificativa}
+                placeholder="Explique por que estas férias estão sendo marcadas em cima da hora."
+                onChange={(e) => setJustificativa(e.target.value)}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Observação</Label>
@@ -215,10 +225,13 @@ export function FeriasGozoDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
-            disabled={saving || excede || !form.periodo_id || !form.data_inicio || !form.data_fim}
-            onClick={() => onSubmit(form)}
+            disabled={
+              saving || excede || faltaJustificativa ||
+              !form.periodo_id || !form.data_inicio || !form.data_fim
+            }
+            onClick={() => onSubmit({ ...form, justificativa: justificativa.trim() || null })}
           >
-            {saving ? "Salvando…" : editing ? "Salvar" : "Agendar"}
+            {saving ? "Salvando…" : editing ? "Salvar" : "Programar"}
           </Button>
         </DialogFooter>
       </DialogContent>

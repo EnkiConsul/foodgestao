@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 import { Palmtree, Loader2 } from "lucide-react";
@@ -6,10 +6,21 @@ import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { DpPage, DpPageHeader, DpEmbeddedProvider } from "@/components/dp/DpPage";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { FeriasRegrasSection } from "@/components/dp/ferias/FeriasRegrasSection";
+import { FeriasDashboard } from "@/components/dp/ferias/FeriasDashboard";
+import { FeriasGozosPanel } from "@/components/dp/ferias/FeriasGozosPanel";
+import { useDpFerias } from "@/hooks/useDpFerias";
+import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 
-const PeriodosPanel = lazy(() => import("./DpFerias"));
+const PlanejamentoPanel = lazy(() => import("./DpFerias"));
 
-const ABAS = ["periodos", "regras"] as const;
+const ABAS = [
+  "planejamento",
+  "solicitacoes",
+  "programadas",
+  "em-ferias",
+  "historico",
+  "regras",
+] as const;
 type Aba = (typeof ABAS)[number];
 
 function PanelFallback() {
@@ -23,11 +34,24 @@ function PanelFallback() {
 export default function DpFeriasHub() {
   const [params, setParams] = useSearchParams();
   const raw = params.get("aba");
-  const aba: Aba = (ABAS as readonly string[]).includes(raw ?? "") ? (raw as Aba) : "periodos";
+  const aba: Aba = (ABAS as readonly string[]).includes(raw ?? "") ? (raw as Aba) : "planejamento";
+
+  const { periodos, gozos } = useDpFerias("todos");
+  const { data: colaboradores = [] } = useDpColaboradores();
+
+  const detalhePorColaborador = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of colaboradores as any[]) {
+      const partes = [c.cargo_nome, c.setor_nome].filter(Boolean);
+      if (partes.length) map.set(c.id, partes.join(" · "));
+    }
+    return map;
+  }, [colaboradores]);
 
   const setAba = (value: string) => {
     const next = new URLSearchParams(params);
     next.set("aba", value);
+    next.delete("periodo");
     setParams(next, { replace: true });
   };
 
@@ -38,21 +62,69 @@ export default function DpFeriasHub() {
       <DpPageHeader
         icon={Palmtree}
         title="Férias"
-        description="Períodos aquisitivos, agendamento de férias e regras de concessão."
+        description="Planejamento, aprovação e acompanhamento das férias da equipe."
+      />
+
+      <FeriasDashboard
+        periodos={periodos}
+        gozos={gozos}
+        descricaoColaborador={(id) => detalhePorColaborador.get(id) ?? null}
       />
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <DpTabsBar>
-          <TabsTrigger value="periodos">Períodos</TabsTrigger>
+          <TabsTrigger value="planejamento">Planejamento</TabsTrigger>
+          <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
+          <TabsTrigger value="programadas">Programadas</TabsTrigger>
+          <TabsTrigger value="em-ferias">Em férias</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="regras">Regras</TabsTrigger>
         </DpTabsBar>
 
-        <TabsContent value="periodos" className="m-0">
-          {aba === "periodos" && (
+        <TabsContent value="planejamento" className="m-0">
+          {aba === "planejamento" && (
             <DpEmbeddedProvider>
               <Suspense fallback={<PanelFallback />}>
-                <PeriodosPanel />
+                <PlanejamentoPanel />
               </Suspense>
+            </DpEmbeddedProvider>
+          )}
+        </TabsContent>
+
+        <TabsContent value="solicitacoes" className="m-0">
+          {aba === "solicitacoes" && (
+            <DpEmbeddedProvider>
+              <FeriasGozosPanel
+                status={["planejado"]}
+                vazio="Nenhuma solicitação de férias aguardando aprovação."
+              />
+            </DpEmbeddedProvider>
+          )}
+        </TabsContent>
+
+        <TabsContent value="programadas" className="m-0">
+          {aba === "programadas" && (
+            <DpEmbeddedProvider>
+              <FeriasGozosPanel status={["aprovado"]} vazio="Nenhuma férias programada." />
+            </DpEmbeddedProvider>
+          )}
+        </TabsContent>
+
+        <TabsContent value="em-ferias" className="m-0">
+          {aba === "em-ferias" && (
+            <DpEmbeddedProvider>
+              <FeriasGozosPanel status={["em_gozo"]} vazio="Ninguém em férias hoje." />
+            </DpEmbeddedProvider>
+          )}
+        </TabsContent>
+
+        <TabsContent value="historico" className="m-0">
+          {aba === "historico" && (
+            <DpEmbeddedProvider>
+              <FeriasGozosPanel
+                status={["concluido", "cancelado"]}
+                vazio="Nenhum período de férias concluído ou cancelado."
+              />
             </DpEmbeddedProvider>
           )}
         </TabsContent>

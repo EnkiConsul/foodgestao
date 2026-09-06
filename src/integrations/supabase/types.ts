@@ -4501,6 +4501,8 @@ export type Database = {
           domingos_por_mes: number
           domingos_por_mes_mulher: number
           exige_validacao_menor: boolean
+          ferias_adiantamento_13: string
+          ferias_aviso_antecedencia_dias: number
           folga_autoatribuir: boolean
           folga_janela_abre_dia: number
           folga_janela_ativa: boolean
@@ -4554,6 +4556,8 @@ export type Database = {
           domingos_por_mes?: number
           domingos_por_mes_mulher?: number
           exige_validacao_menor?: boolean
+          ferias_adiantamento_13?: string
+          ferias_aviso_antecedencia_dias?: number
           folga_autoatribuir?: boolean
           folga_janela_abre_dia?: number
           folga_janela_ativa?: boolean
@@ -4607,6 +4611,8 @@ export type Database = {
           domingos_por_mes?: number
           domingos_por_mes_mulher?: number
           exige_validacao_menor?: boolean
+          ferias_adiantamento_13?: string
+          ferias_aviso_antecedencia_dias?: number
           folga_autoatribuir?: boolean
           folga_janela_abre_dia?: number
           folga_janela_ativa?: boolean
@@ -6493,14 +6499,70 @@ export type Database = {
           },
         ]
       }
+      dp_ferias_faltas_historico: {
+        Row: {
+          ator: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          dias_direito_anterior: number | null
+          dias_direito_novo: number
+          id: string
+          motivo: string | null
+          periodo_id: string
+          valor_anterior: number | null
+          valor_novo: number
+        }
+        Insert: {
+          ator?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          dias_direito_anterior?: number | null
+          dias_direito_novo: number
+          id?: string
+          motivo?: string | null
+          periodo_id: string
+          valor_anterior?: number | null
+          valor_novo: number
+        }
+        Update: {
+          ator?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          dias_direito_anterior?: number | null
+          dias_direito_novo?: number
+          id?: string
+          motivo?: string | null
+          periodo_id?: string
+          valor_anterior?: number | null
+          valor_novo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ferias_faltas_historico_periodo_id_fkey"
+            columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_ferias_periodos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_ferias_gozos: {
         Row: {
           adiantar_13: boolean
           aprovado_em: string | null
           aprovado_por: string | null
           aviso_em: string | null
+          aviso_justificativa: string | null
+          cancelado_em: string | null
+          cancelado_por: string | null
+          ciente_em: string | null
+          ciente_por: string | null
           colaborador_id: string
           company_id: string
+          contabilidade_status: string
           created_at: string
           criado_por: string | null
           data_fim: string
@@ -6508,8 +6570,13 @@ export type Database = {
           dias: number | null
           dias_abono: number
           id: string
+          informado_em: string | null
+          informado_por: string | null
+          motivo_cancelamento: string | null
           observacao: string | null
+          origem: string
           periodo_id: string
+          solicitacao_id: string | null
           status: Database["public"]["Enums"]["dp_ferias_gozo_status"]
           updated_at: string
         }
@@ -6518,8 +6585,14 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           aviso_em?: string | null
+          aviso_justificativa?: string | null
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          ciente_em?: string | null
+          ciente_por?: string | null
           colaborador_id: string
           company_id: string
+          contabilidade_status?: string
           created_at?: string
           criado_por?: string | null
           data_fim: string
@@ -6527,8 +6600,13 @@ export type Database = {
           dias?: number | null
           dias_abono?: number
           id?: string
+          informado_em?: string | null
+          informado_por?: string | null
+          motivo_cancelamento?: string | null
           observacao?: string | null
+          origem?: string
           periodo_id: string
+          solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["dp_ferias_gozo_status"]
           updated_at?: string
         }
@@ -6537,8 +6615,14 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           aviso_em?: string | null
+          aviso_justificativa?: string | null
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          ciente_em?: string | null
+          ciente_por?: string | null
           colaborador_id?: string
           company_id?: string
+          contabilidade_status?: string
           created_at?: string
           criado_por?: string | null
           data_fim?: string
@@ -6546,8 +6630,13 @@ export type Database = {
           dias?: number | null
           dias_abono?: number
           id?: string
+          informado_em?: string | null
+          informado_por?: string | null
+          motivo_cancelamento?: string | null
           observacao?: string | null
+          origem?: string
           periodo_id?: string
+          solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["dp_ferias_gozo_status"]
           updated_at?: string
         }
@@ -6580,6 +6669,13 @@ export type Database = {
             referencedRelation: "dp_ferias_periodos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "dp_ferias_gozos_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_solicitacoes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       dp_ferias_periodos: {
@@ -6592,11 +6688,17 @@ export type Database = {
           dias_gozados: number
           dias_saldo: number | null
           dias_vendidos: number
+          faltas_confirmadas: boolean
+          faltas_informadas_em: string | null
+          faltas_informadas_por: string | null
+          faltas_injustificadas: number | null
           fim_aquisitivo: string
           id: string
           inicio_aquisitivo: string
           limite_concessivo: string
           observacao: string | null
+          origem_faltas: string
+          requer_revisao: boolean
           status: Database["public"]["Enums"]["dp_ferias_periodo_status"]
           updated_at: string
         }
@@ -6609,11 +6711,17 @@ export type Database = {
           dias_gozados?: number
           dias_saldo?: number | null
           dias_vendidos?: number
+          faltas_confirmadas?: boolean
+          faltas_informadas_em?: string | null
+          faltas_informadas_por?: string | null
+          faltas_injustificadas?: number | null
           fim_aquisitivo: string
           id?: string
           inicio_aquisitivo: string
           limite_concessivo: string
           observacao?: string | null
+          origem_faltas?: string
+          requer_revisao?: boolean
           status?: Database["public"]["Enums"]["dp_ferias_periodo_status"]
           updated_at?: string
         }
@@ -6626,11 +6734,17 @@ export type Database = {
           dias_gozados?: number
           dias_saldo?: number | null
           dias_vendidos?: number
+          faltas_confirmadas?: boolean
+          faltas_informadas_em?: string | null
+          faltas_informadas_por?: string | null
+          faltas_injustificadas?: number | null
           fim_aquisitivo?: string
           id?: string
           inicio_aquisitivo?: string
           limite_concessivo?: string
           observacao?: string | null
+          origem_faltas?: string
+          requer_revisao?: boolean
           status?: Database["public"]["Enums"]["dp_ferias_periodo_status"]
           updated_at?: string
         }
@@ -6708,6 +6822,69 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_ferias_solicitacao_detalhes: {
+        Row: {
+          adiantar_13: boolean
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          data_fim: string
+          data_inicio: string
+          dias: number
+          dias_abono: number
+          id: string
+          observacao: string | null
+          periodo_id: string
+          solicitacao_id: string
+          updated_at: string
+        }
+        Insert: {
+          adiantar_13?: boolean
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          data_fim: string
+          data_inicio: string
+          dias: number
+          dias_abono?: number
+          id?: string
+          observacao?: string | null
+          periodo_id: string
+          solicitacao_id: string
+          updated_at?: string
+        }
+        Update: {
+          adiantar_13?: boolean
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          data_fim?: string
+          data_inicio?: string
+          dias?: number
+          dias_abono?: number
+          id?: string
+          observacao?: string | null
+          periodo_id?: string
+          solicitacao_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ferias_solicitacao_detalhes_periodo_id_fkey"
+            columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_ferias_periodos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ferias_solicitacao_detalhes_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: true
+            referencedRelation: "dp_solicitacoes"
             referencedColumns: ["id"]
           },
         ]
@@ -7755,6 +7932,7 @@ export type Database = {
       }
       dp_notificacoes: {
         Row: {
+          chave: string | null
           colaborador_id: string | null
           company_id: string
           created_at: string
@@ -7769,6 +7947,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          chave?: string | null
           colaborador_id?: string | null
           company_id: string
           created_at?: string
@@ -7783,6 +7962,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          chave?: string | null
           colaborador_id?: string | null
           company_id?: string
           created_at?: string
@@ -12659,6 +12839,8 @@ export type Database = {
           domingos_por_mes: number
           domingos_por_mes_mulher: number
           exige_validacao_menor: boolean
+          ferias_adiantamento_13: string
+          ferias_aviso_antecedencia_dias: number
           folga_autoatribuir: boolean
           folga_janela_abre_dia: number
           folga_janela_ativa: boolean
@@ -13080,12 +13262,110 @@ export type Database = {
         Returns: undefined
       }
       dp_expirar_trocas: { Args: never; Returns: number }
+      dp_ferias_aprovar: {
+        Args: {
+          _justificativa?: string
+          _resposta?: string
+          _solicitacao_id: string
+        }
+        Returns: string
+      }
+      dp_ferias_cancelar: {
+        Args: { _gozo_id: string; _motivo: string }
+        Returns: undefined
+      }
+      dp_ferias_config: {
+        Args: { _company_id: string; _unidade_id?: string }
+        Returns: {
+          adiantamento_13: string
+          aviso_antecedencia_dias: number
+        }[]
+      }
+      dp_ferias_dias_direito: { Args: { _faltas: number }; Returns: number }
       dp_ferias_gerar_periodos: {
         Args: { _colaborador_id: string }
         Returns: number
       }
+      dp_ferias_informar_faltas: {
+        Args: { _faltas: number; _motivo?: string; _periodo_id: string }
+        Returns: {
+          dias_direito: number
+          faltas_injustificadas: number
+          periodo_id: string
+          requer_revisao: boolean
+        }[]
+      }
+      dp_ferias_manter_periodos: {
+        Args: { _company_id: string }
+        Returns: number
+      }
+      dp_ferias_materializar_status: {
+        Args: { _company_id: string }
+        Returns: number
+      }
+      dp_ferias_minhas: {
+        Args: never
+        Returns: {
+          adiantamento_13: string
+          aviso_antecedencia_dias: number
+          dias_direito: number
+          dias_saldo: number
+          faltas_informadas: boolean
+          fim_aquisitivo: string
+          gozos: Json
+          inicio_aquisitivo: string
+          limite_concessivo: string
+          periodo_id: string
+          periodo_status: string
+        }[]
+      }
+      dp_ferias_programar: {
+        Args: {
+          _adiantar_13?: boolean
+          _data_fim: string
+          _data_inicio: string
+          _dias_abono?: number
+          _justificativa?: string
+          _observacao?: string
+          _origem?: string
+          _periodo_id: string
+          _solicitacao_id?: string
+        }
+        Returns: string
+      }
       dp_ferias_recalc_periodo: {
         Args: { _periodo_id: string }
+        Returns: undefined
+      }
+      dp_ferias_recusar: {
+        Args: { _motivo: string; _solicitacao_id: string }
+        Returns: undefined
+      }
+      dp_ferias_registrar_ciencia: {
+        Args: { _gozo_id: string }
+        Returns: undefined
+      }
+      dp_ferias_solicitar: {
+        Args: {
+          _adiantar_13?: boolean
+          _data_fim: string
+          _data_inicio: string
+          _dias_abono?: number
+          _observacao?: string
+          _periodo_id: string
+        }
+        Returns: string
+      }
+      dp_ferias_validar_programacao: {
+        Args: {
+          _colaborador_id: string
+          _data_fim: string
+          _data_inicio: string
+          _dias_abono: number
+          _ignorar_gozo_id?: string
+          _justificativa: string
+          _periodo_id: string
+        }
         Returns: undefined
       }
       dp_folga_autoatribuicao_plano: {
@@ -14244,6 +14524,14 @@ export type Database = {
         | "troca_resposta_gestor"
         | "disciplinar_novo"
         | "atestado_novo"
+        | "ferias_periodo_disponivel"
+        | "ferias_vencimento"
+        | "ferias_programadas"
+        | "ferias_recusadas"
+        | "ferias_alteradas"
+        | "ferias_canceladas"
+        | "ferias_proximas"
+        | "ferias_retorno"
       dp_perfil_acesso: "colaborador" | "gestor" | "admin"
       dp_pessoa_avulsa_tipo: "teste" | "folguista" | "registro_manual"
       dp_politica_feriado: "compensa" | "dobro"
@@ -14684,6 +14972,14 @@ export const Constants = {
         "troca_resposta_gestor",
         "disciplinar_novo",
         "atestado_novo",
+        "ferias_periodo_disponivel",
+        "ferias_vencimento",
+        "ferias_programadas",
+        "ferias_recusadas",
+        "ferias_alteradas",
+        "ferias_canceladas",
+        "ferias_proximas",
+        "ferias_retorno",
       ],
       dp_perfil_acesso: ["colaborador", "gestor", "admin"],
       dp_pessoa_avulsa_tipo: ["teste", "folguista", "registro_manual"],
