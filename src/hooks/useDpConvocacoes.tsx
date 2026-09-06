@@ -288,6 +288,30 @@ export function useMinhasConvocacoes(colaboradorId: string | null) {
     },
   });
 
+  /**
+   * Propõe cobrir apenas parte do horário pedido. O dia fica reservado e
+   * segue para aprovação do gestor — o servidor valida a janela.
+   */
+  const proporParcial = useMutation({
+    mutationFn: async (input: PropostaParcialInput) => {
+      const { data, error } = await (supabase.rpc as any)("dp_convocacao_responder_oferta", {
+        p_convocacao_id: input.id,
+        p_aceito: true,
+        p_parcial_entrada: input.entrada,
+        p_parcial_saida: input.saida,
+        p_parcial_termina_no_dia_seguinte: input.termina_no_dia_seguinte,
+        p_parcial_observacao: input.observacao ?? null,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_minhas_convocacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_convocacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_convocacoes_parciais"] });
+    },
+  });
+
   /** Registra a visualização da oferta (idempotente no servidor). */
   const registrarVisualizacao = useMutation({
     mutationFn: async (id: string) => {
