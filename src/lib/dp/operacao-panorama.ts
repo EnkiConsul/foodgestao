@@ -260,6 +260,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       intervalo_minutos?: number | null;
       origem: PessoaPanorama["origem"];
     },
+    extras?: { avulso_id?: string; avulso_tipo?: PessoaAvulsaTipo; observacao?: string | null },
   ) => {
     // Sócio com unidade definida e jornada cadastrada faz parte do quadro daquela
     // unidade: entra nas contagens normais (fixo e folga padrão da jornada).
@@ -294,9 +295,10 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       socio: !!colab.socio,
       socio_integrado: socioIntegrado,
       origem: horario?.origem ?? "jornada",
-
+      ...(extras ?? {}),
     });
   };
+
 
   for (const colab of colaboradores) {
     const convocacao = convocPor.get(colab.id);
