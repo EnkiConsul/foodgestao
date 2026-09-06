@@ -361,3 +361,85 @@ describe("contarDia com pessoas avulsas", () => {
     }
   });
 });
+
+describe("horarioMaisUsado", () => {
+  const dias = (trabalhaDows: number[]) =>
+    [0, 1, 2, 3, 4, 5, 6].map((dow) => ({ dow, trabalha: trabalhaDows.includes(dow), turno_id: null }));
+
+  const fixo = (id: string, turno_id: string | null): ColaboradorPanorama => ({
+    id,
+    nome: `Fixo ${id}`,
+    regime: "clt",
+    intermitente: false,
+    config: { turno_padrao_id: turno_id, folga_variavel: false, folga_fixa_dow: 0, dias: dias([1, 2, 3, 4, 5, 6]) },
+  });
+
+  const turnos: TurnoResolvido[] = [
+    { id: "t1", nome: "Manhã", entrada: "08:00", saida: "16:00", intervalo_minutos: 60 },
+    { id: "t2", nome: "Noite", entrada: "17:00", saida: "23:00", intervalo_minutos: 60 },
+  ];
+
+  it("retorna null quando não há histórico", () => {
+    const r = horarioMaisUsado({ dias: [], unidadeId: "u1", cargoId: "c1", dow: 1 });
+    expect(r).toBeNull();
+  });
+
+  it("escolhe o par entrada/saída mais frequente para cargo/unidade/dow", () => {
+    const diasHistoricos = [
+      contarDia({
+        data: "2026-09-07",
+        colaboradores: [fixo("a", "t2"), fixo("b", "t2"), fixo("c", "t1")],
+        turnos,
+        convocacoes: [],
+        folgas: [],
+        ausencias: [],
+      }),
+      contarDia({
+        data: "2026-09-14",
+        colaboradores: [fixo("a", "t2"), fixo("b", "t2"), fixo("c", "t1")],
+        turnos,
+        convocacoes: [],
+        folgas: [],
+        ausencias: [],
+      }),
+    ];
+    const r = horarioMaisUsado({ dias: diasHistoricos, unidadeId: "u1", cargoId: "c1", dow: 1 });
+    expect(r).toEqual({ entrada: "17:00", saida: "23:00", termina_no_dia_seguinte: false });
+  });
+
+  it("desempata pelo dia mais recente", () => {
+    const diasHistoricos = [
+      contarDia({
+        data: "2026-09-07",
+        colaboradores: [fixo("a", "t1")],
+        turnos,
+        convocacoes: [],
+        folgas: [],
+        ausencias: [],
+      }),
+      contarDia({
+        data: "2026-09-14",
+        colaboradores: [fixo("a", "t2")],
+        turnos,
+        convocacoes: [],
+        folgas: [],
+        ausencias: [],
+      }),
+    ];
+    const r = horarioMaisUsado({ dias: diasHistoricos, unidadeId: "u1", cargoId: "c1", dow: 1 });
+    expect(r).toEqual({ entrada: "17:00", saida: "23:00", termina_no_dia_seguinte: false });
+  });
+
+  it("ignora registros de outra unidade ou cargo", () => {
+    const dia = contarDia({
+      data: "2026-09-07",
+      colaboradores: [fixo("a", "t2")],
+      turnos,
+      convocacoes: [],
+      folgas: [],
+      ausencias: [],
+    });
+    expect(horarioMaisUsado({ dias: [dia], unidadeId: "u2", cargoId: "c1", dow: 1 })).toBeNull();
+    expect(horarioMaisUsado({ dias: [dia], unidadeId: "u1", cargoId: "c2", dow: 1 })).toBeNull();
+  });
+});
