@@ -12696,6 +12696,15 @@ export type Database = {
         Args: { _company: string; _unidade: string }
         Returns: number[]
       }
+      dp_folga_exige_descanso_fds: {
+        Args: {
+          _colab: string
+          _company: string
+          _competencia: string
+          _dias: number[]
+        }
+        Returns: boolean
+      }
       dp_folga_limite_dia: {
         Args: {
           p_cargo: string
