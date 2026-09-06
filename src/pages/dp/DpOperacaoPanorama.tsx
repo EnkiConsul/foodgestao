@@ -511,6 +511,9 @@ export default function DpOperacaoPanorama() {
   const podeRegistrar = role === "owner" || role === "admin";
   const [ausenciaOpen, setAusenciaOpen] = useState(false);
   const [ausenciaData, setAusenciaData] = useState<string | null>(null);
+  const [avulsaOpen, setAvulsaOpen] = useState(false);
+  const [avulsaData, setAvulsaData] = useState<string | null>(null);
+  const [avulsaEditando, setAvulsaEditando] = useState<PessoaAvulsaPanorama | null>(null);
 
   /** Vinda do calendário de folgas: /dp/operacao?ausencia=AAAA-MM-DD. */
   useEffect(() => {
