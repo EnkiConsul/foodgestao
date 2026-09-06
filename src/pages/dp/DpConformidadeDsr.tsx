@@ -63,24 +63,38 @@ function diaMesIso(iso: string): string {
 interface LinhaComUnidade extends ConformidadeInput {
   unidadeId: string | null;
   cargoId: string | null;
+  /** Dias da semana de descanso fixo do cadastro (0=dom). */
+  dowsDescanso: number[];
+  /** Origem de cada folga do mês: registro efetivado ou pedido aprovado. */
+  origemPorData: Map<string, "registrada" | "aprovada">;
 }
 
-type LinhaConformidade = ConformidadeLinha & { unidadeId: string | null; cargoId: string | null };
+type LinhaConformidade = ConformidadeLinha & Omit<LinhaComUnidade, keyof ConformidadeInput>;
 
 type ColKey = "colaborador" | "unidade" | "cargo" | "folgas" | "situacao";
 type SortKey = "padrao" | "nome" | "unidade" | "cargo" | "folgas" | "situacao";
 
-const SITUACAO_CONFORME = "Conforme";
-const SITUACAO_FORA = "Fora de conformidade";
+const SITUACAO_OK = "CLT e empresa em ordem";
+const SITUACAO_SO_CLT = "Só CLT em falta";
+const SITUACAO_SO_EMPRESA = "Só regra da empresa em falta";
+const SITUACAO_AMBAS = "CLT e empresa em falta";
+
+/** Rótulo único da situação, usado no filtro da coluna e no CSV. */
+function situacaoLabel(l: { conformeClt: boolean; conformeEmpresa: boolean }): string {
+  if (l.conformeClt && l.conformeEmpresa) return SITUACAO_OK;
+  if (!l.conformeClt && !l.conformeEmpresa) return SITUACAO_AMBAS;
+  return l.conformeClt ? SITUACAO_SO_EMPRESA : SITUACAO_SO_CLT;
+}
 
 const DEFAULT_ORDER: ColKey[] = ["colaborador", "unidade", "cargo", "folgas", "situacao"];
 const DEFAULT_WIDTHS: Record<ColKey, number> = {
-  colaborador: 280,
-  unidade: 200,
-  cargo: 180,
-  folgas: 150,
-  situacao: 170,
+  colaborador: 260,
+  unidade: 180,
+  cargo: 160,
+  folgas: 140,
+  situacao: 260,
 };
+
 
 export default function DpConformidadeDsr() {
   const embedded = useDpEmbedded();
@@ -135,39 +149,87 @@ export default function DpConformidadeDsr() {
         .lte("data", fim);
       if (fErr) throw fErr;
 
-      const porColab = new Map<string, string[]>();
-      const outrasFolgas = new Map<string, string[]>();
+      // Folgas aprovadas nos pedidos: é o que o gestor vê marcado no calendário.
+      const { data: aprovadas, error: aErr } = await supabase
+        .from("dp_solicitacoes")
+        .select("colaborador_id, data_alvo, status, tipo")
+        .eq("company_id", selectedCompanyId!)
+        .eq("tipo", "folga")
+        .eq("status", "aprovada")
+        .not("data_alvo", "is", null)
+        .gte("data_alvo", inicio)
+        .lte("data_alvo", fim);
+      if (aErr) throw aErr;
+
+      // Dias fixos de descanso semanal do cadastro de trabalho vigente.
+      const { data: configDias, error: dErr } = await supabase
+        .from("dp_colaborador_config_dias")
+        .select("dow, trabalha, dp_colaborador_config_trabalho!inner(colaborador_id, vigencia_fim)")
+        .eq("company_id", selectedCompanyId!)
+        .eq("trabalha", false)
+        .is("dp_colaborador_config_trabalho.vigencia_fim", null);
+      if (dErr) throw dErr;
+
+      const descansoSemanal = new Map<string, number[]>();
+      for (const d of configDias ?? []) {
+        const colabId = d.dp_colaborador_config_trabalho?.colaborador_id;
+        if (!colabId || d.dow === null || d.dow === undefined) continue;
+        const arr = descansoSemanal.get(colabId) ?? [];
+        arr.push(d.dow);
+        descansoSemanal.set(colabId, arr);
+      }
+
+      // Origem por colaborador+data, deduplicando registro e pedido aprovado.
+      const origens = new Map<string, Map<string, "registrada" | "aprovada">>();
+      const registrar = (colabId: string, data: string, origem: "registrada" | "aprovada") => {
+        const mapa = origens.get(colabId) ?? new Map<string, "registrada" | "aprovada">();
+        if (!mapa.has(data)) mapa.set(data, origem);
+        origens.set(colabId, mapa);
+      };
       for (const f of folgas ?? []) {
         if (f.status === "cancelada") continue;
-        const bucket = weekdayIso(f.data) === 0 ? porColab : outrasFolgas;
-        const arr = bucket.get(f.colaborador_id) ?? [];
-        arr.push(f.data);
-        bucket.set(f.colaborador_id, arr);
+        registrar(f.colaborador_id, f.data, "registrada");
+      }
+      for (const s of aprovadas ?? []) {
+        if (!s.data_alvo) continue;
+        registrar(s.colaborador_id, s.data_alvo, "aprovada");
       }
 
       // DSR só se aplica a contratos celetistas; intermitente/PJ ficam fora do relatório.
       return (colaboradores ?? [])
         .filter((c) => contratoPolicy(c.regime, c.vinculo_label).participaConformidadeDsr)
         .map((c) => {
-
-        const cfg = configDaUnidade(c.unidade_id ?? null);
-        const negociados = new Set(diasElegiveisDaConfig(cfg).filter((d) => d !== 0));
-        return {
-          colaboradorId: c.id,
-          nome: c.nome,
-          sexo: c.sexo,
-          domingosMesOverride: c.domingos_folga_mes ?? null,
-          unidadeId: c.unidade_id ?? null,
-          cargoId: c.cargo_id ?? null,
-          domingosFolgados: porColab.get(c.id) ?? [],
-          diasNegociadosFolgados: (outrasFolgas.get(c.id) ?? []).filter((d) =>
-            negociados.has(weekdayIso(d)),
-          ),
-          domingosNoPeriodo: domingos.length,
-        };
-      });
+          const cfg = configDaUnidade(c.unidade_id ?? null);
+          const negociados = new Set(diasElegiveisDaConfig(cfg).filter((d) => d !== 0));
+          const datas = Array.from(origens.get(c.id)?.keys() ?? []).sort();
+          const dowsDescanso = descansoSemanal.get(c.id) ?? [];
+          const descansoSemanalNoMes = dowsDescanso.reduce(
+            (acc, dow) => acc + diasDaSemanaDoMes(competencia, dow).length,
+            0,
+          );
+          return {
+            colaboradorId: c.id,
+            nome: c.nome,
+            sexo: c.sexo,
+            domingosMesOverride: c.domingos_folga_mes ?? null,
+            unidadeId: c.unidade_id ?? null,
+            cargoId: c.cargo_id ?? null,
+            domingosFolgados: datas.filter((d) => weekdayIso(d) === 0),
+            diasNegociadosFolgados: datas.filter(
+              (d) => weekdayIso(d) !== 0 && negociados.has(weekdayIso(d)),
+            ),
+            folgasOutrosDias: datas.filter(
+              (d) => weekdayIso(d) !== 0 && !negociados.has(weekdayIso(d)),
+            ),
+            descansoSemanalNoMes,
+            dowsDescanso,
+            origemPorData: origens.get(c.id) ?? new Map<string, "registrada" | "aprovada">(),
+            domingosNoPeriodo: domingos.length,
+          };
+        });
     },
   });
+
 
   /** Avalia por unidade, aplicando a regra vigente de cada loja. */
   const linhas: LinhaConformidade[] = useMemo(() => {
