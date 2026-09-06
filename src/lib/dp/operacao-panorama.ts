@@ -541,11 +541,20 @@ export function blocosPorFuncionamento(input: {
     const dia = dias.find((d) => d.dia_semana === dow);
     const periodos = dia && dia.aberto ? periodosDoDia(dia).filter(periodoCompleto) : [];
     const alocadas = new Set<string>();
+    const janelas = periodos.map(janelaPeriodo);
+
+    // Cada pessoa entra em um único período: evita a mesma pessoa aparecer no
+    // "Dia" e na "Noite" só porque a jornada dela encosta nos dois.
+    const pessoasPorPeriodo: PessoaPanorama[][] = periodos.map(() => []);
+    for (const p of daUnidade) {
+      const idx = melhorPeriodo(p, janelas);
+      if (idx === null) continue;
+      pessoasPorPeriodo[idx].push(p);
+      alocadas.add(p.colaborador_id);
+    }
 
     periodos.forEach((per, i) => {
-      const janela = janelaPeriodo(per);
-      const pessoas = janela ? daUnidade.filter((p) => encaixa(p, janela)) : [];
-      pessoas.forEach((p) => alocadas.add(p.colaborador_id));
+      const pessoas = pessoasPorPeriodo[i];
       out.push({
         key: `${uid}-${i}`,
         titulo: per.nome?.trim() || `Período ${i + 1}`,
@@ -557,6 +566,7 @@ export function blocosPorFuncionamento(input: {
         grupos: agruparPorCargo(pessoas),
       });
     });
+
 
     const restantes = daUnidade.filter((p) => !alocadas.has(p.colaborador_id));
     if (restantes.length || (!periodos.length && daUnidade.length)) {
