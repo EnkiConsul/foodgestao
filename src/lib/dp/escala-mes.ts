@@ -152,8 +152,22 @@ export function gerarEscalaMes(input: GerarEscalaMesInput): EscalaItem[] {
       .filter((i) => i.origem !== "gerado")
       .map((i) => [`${i.colaborador_id}|${i.data}`, i]),
   );
+  // O setor da data é uma decisão operacional e sobrevive à regeneração,
+  // inclusive em itens que nasceram gerados.
+  const setores = new Map(
+    (input.preservar ?? [])
+      .filter((i) => i.setor_id)
+      .map((i) => [
+        `${i.colaborador_id}|${i.data}`,
+        { setor_id: i.setor_id ?? null, setor_motivo: i.setor_motivo ?? null },
+      ]),
+  );
 
   const itens: EscalaItem[] = [];
+  const empurrar = (item: EscalaItem) => {
+    const setor = setores.get(`${item.colaborador_id}|${item.data}`);
+    itens.push(setor && !item.setor_id ? { ...item, ...setor } : item);
+  };
 
   for (const colab of input.colaboradores) {
     if (!colab.config) continue;
@@ -162,9 +176,10 @@ export function gerarEscalaMes(input: GerarEscalaMesInput): EscalaItem[] {
     for (const data of dias) {
       const manual = manuais.get(`${colab.id}|${data}`);
       if (manual) {
-        itens.push({ ...manual, data, colaborador_id: colab.id });
+        empurrar({ ...manual, data, colaborador_id: colab.id });
         continue;
       }
+
 
       const ausencia = ausencias.find((a) => dentro(a, data));
       if (ausencia) {
