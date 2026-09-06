@@ -44,6 +44,7 @@ const remuneracaoPrevista = (snap: any): { total: string; detalhe: string } | nu
 export default function DpMinhasConvocacoes() {
   const { user } = useAuth();
   const [recusa, setRecusa] = useState<string | null>(null);
+  const [parcial, setParcial] = useState<MinhaOferta | null>(null);
 
   const me = useQuery({
     queryKey: ["dp_colaborador_of", user?.id],
