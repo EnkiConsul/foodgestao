@@ -27,6 +27,7 @@ const statusLabel: Record<string, string> = {
   aprovada: "Aprovada",
   recusada: "Recusada",
   cancelada: "Cancelada",
+  expirada: "Expirada",
 };
 
 const statusTone: Record<string, string> = {
@@ -35,7 +36,9 @@ const statusTone: Record<string, string> = {
   aprovada: "bg-green-500/10 text-green-700 border-green-300",
   recusada: "bg-red-500/10 text-red-700 border-red-300",
   cancelada: "bg-muted text-muted-foreground border-transparent",
+  expirada: "bg-muted text-muted-foreground border-transparent",
 };
+
 
 function toIso(d: Date | undefined) {
   return d ? format(d, "yyyy-MM-dd") : "";
