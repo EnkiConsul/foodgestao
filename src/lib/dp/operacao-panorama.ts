@@ -407,7 +407,11 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
   // Convocação pendente NUNCA entra em "trabalhando": ela é apenas "Aguardando".
   const trabalhando = contagens.fixo + contagens.convocado_aceito;
   const aguardando = contagens.convocado_pendente;
-  return { data, dow, contagens, trabalhando, aguardando, pessoas };
+  const contagens_avulsos: ContagensAvulsos = {
+    teste: (input.avulsos ?? []).filter((a) => a.tipo === "teste" && data >= a.data_inicio && data <= a.data_fim).length,
+    folguista: (input.avulsos ?? []).filter((a) => a.tipo === "folguista" && data >= a.data_inicio && data <= a.data_fim).length,
+  };
+  return { data, dow, contagens, contagens_avulsos, trabalhando, aguardando, pessoas };
 }
 
 // ------------------------------------------------------------------
