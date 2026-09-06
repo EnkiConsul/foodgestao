@@ -247,7 +247,17 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     if (i.data === data) itemPor.set(i.colaborador_id, i);
   }
 
+  // Registro manual: o gestor confirma que um colaborador cadastrado trabalhou
+  // no dia (convocação esquecida, cobertura de última hora etc.).
+  const manualPor = new Map<string, PessoaAvulsaPanorama>();
+  for (const a of input.avulsos ?? []) {
+    if (a.tipo !== "registro_manual" || !a.colaborador_id) continue;
+    if (data < a.data_inicio || data > a.data_fim) continue;
+    manualPor.set(a.colaborador_id, a);
+  }
+
   const turnoPorId = new Map(turnos.map((t) => [t.id, t]));
+
 
   const registrar = (
     colab: ColaboradorPanorama,
