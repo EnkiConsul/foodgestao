@@ -134,7 +134,7 @@ export default function DpConformidadeDsr() {
         .map((c) => {
 
         const cfg = configDaUnidade(c.unidade_id ?? null);
-        const negociados = new Set((cfg.dias_descanso_negociados ?? []).filter((d) => d !== 0));
+        const negociados = new Set(diasElegiveisDaConfig(cfg).filter((d) => d !== 0));
         return {
           colaboradorId: c.id,
           nome: c.nome,
