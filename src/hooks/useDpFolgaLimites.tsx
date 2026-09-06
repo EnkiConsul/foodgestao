@@ -17,6 +17,7 @@ export type RegraLimiteInput = {
   vigencia_fim: string | null;
   ativo: boolean;
   cargo_ids: string[];
+  setor_ids: string[];
   colaborador_ids: string[];
 };
 
@@ -37,7 +38,8 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
         .from("dp_folga_limite_regras")
         .select(
           "id, tipo, nome, unidade_id, dia_semana, maximo, vigencia_inicio, vigencia_fim, ativo, " +
-            "dp_folga_limite_regra_cargos(cargo_id), dp_folga_limite_regra_colaboradores(colaborador_id)",
+            "dp_folga_limite_regra_cargos(cargo_id), dp_folga_limite_regra_setores(setor_id), " +
+            "dp_folga_limite_regra_colaboradores(colaborador_id)",
         )
         .eq("company_id", selectedCompanyId!);
       // Sem unidade = visão consolidada da empresa (todas as unidades).
@@ -56,6 +58,7 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
         vigencia_fim: r.vigencia_fim,
         ativo: r.ativo ?? true,
         cargo_ids: (r.dp_folga_limite_regra_cargos ?? []).map((c: any) => c.cargo_id),
+        setor_ids: (r.dp_folga_limite_regra_setores ?? []).map((s: any) => s.setor_id),
         colaborador_ids: (r.dp_folga_limite_regra_colaboradores ?? []).map(
           (c: any) => c.colaborador_id,
         ),
@@ -91,11 +94,24 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
     regraId: string,
     cargos: string[],
     pessoas: string[],
+    setores: string[] = [],
   ) => {
     if (cargos.length > 0) {
       const { error } = await supabase
         .from("dp_folga_limite_regra_cargos")
         .insert(cargos.map((cargo_id) => ({ regra_id: regraId, cargo_id })));
+      if (error) throw error;
+    }
+    if (setores.length > 0) {
+      const { error } = await supabase
+        .from("dp_folga_limite_regra_setores")
+        .insert(
+          setores.map((setor_id) => ({
+            regra_id: regraId,
+            setor_id,
+            company_id: selectedCompanyId!,
+          })),
+        );
       if (error) throw error;
     }
     if (pessoas.length > 0) {
@@ -139,6 +155,11 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
           .delete()
           .eq("regra_id", regraId);
         if (delColabErr) throw delColabErr;
+        const { error: delSetorErr } = await supabase
+          .from("dp_folga_limite_regra_setores")
+          .delete()
+          .eq("regra_id", regraId);
+        if (delSetorErr) throw delSetorErr;
       } else {
         const { data, error } = await supabase
           .from("dp_folga_limite_regras")
@@ -151,8 +172,9 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
 
       await gravarVinculos(
         regraId!,
-        input.tipo === "colaboradores" ? [] : input.cargo_ids,
+        input.tipo === "colaboradores" || input.tipo === "setor" ? [] : input.cargo_ids,
         input.tipo === "colaboradores" ? input.colaborador_ids : [],
+        input.tipo === "setor" ? input.setor_ids : [],
       );
       return regraId!;
     },
@@ -183,7 +205,7 @@ export function useDpFolgaLimites(unidadeId?: string | null) {
           .select("id")
           .single();
         if (error) throw error;
-        await gravarVinculos(data.id, regra.cargo_ids, regra.colaborador_ids);
+        await gravarVinculos(data.id, regra.cargo_ids, regra.colaborador_ids, regra.setor_ids);
       }
       return alvos.length;
     },
