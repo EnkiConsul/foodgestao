@@ -7812,6 +7812,99 @@ export type Database = {
           },
         ]
       }
+      dp_pessoas_avulsas: {
+        Row: {
+          cargo_id: string
+          cobre_colaborador_id: string | null
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data_fim: string
+          data_inicio: string
+          entrada: string | null
+          id: string
+          nome: string
+          observacao: string | null
+          saida: string | null
+          termina_no_dia_seguinte: boolean
+          tipo: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          cargo_id: string
+          cobre_colaborador_id?: string | null
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data_fim: string
+          data_inicio: string
+          entrada?: string | null
+          id?: string
+          nome: string
+          observacao?: string | null
+          saida?: string | null
+          termina_no_dia_seguinte?: boolean
+          tipo: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          cargo_id?: string
+          cobre_colaborador_id?: string | null
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data_fim?: string
+          data_inicio?: string
+          entrada?: string | null
+          id?: string
+          nome?: string
+          observacao?: string | null
+          saida?: string | null
+          termina_no_dia_seguinte?: boolean
+          tipo?: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_pessoas_avulsas_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_avulsas_cobre_colaborador_id_fkey"
+            columns: ["cobre_colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_avulsas_cobre_colaborador_id_fkey"
+            columns: ["cobre_colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_avulsas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_avulsas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_ponto_ajustes: {
         Row: {
           acao: Database["public"]["Enums"]["dp_ponto_ajuste_acao"]
@@ -13717,6 +13810,7 @@ export type Database = {
         | "disciplinar_novo"
         | "atestado_novo"
       dp_perfil_acesso: "colaborador" | "gestor" | "admin"
+      dp_pessoa_avulsa_tipo: "teste" | "folguista"
       dp_politica_feriado: "compensa" | "dobro"
       dp_politica_sabado: "trabalha" | "folga" | "alterna" | "especifica"
       dp_ponto_ajuste_acao: "incluir" | "alterar" | "excluir"
@@ -14157,6 +14251,7 @@ export const Constants = {
         "atestado_novo",
       ],
       dp_perfil_acesso: ["colaborador", "gestor", "admin"],
+      dp_pessoa_avulsa_tipo: ["teste", "folguista"],
       dp_politica_feriado: ["compensa", "dobro"],
       dp_politica_sabado: ["trabalha", "folga", "alterna", "especifica"],
       dp_ponto_ajuste_acao: ["incluir", "alterar", "excluir"],
