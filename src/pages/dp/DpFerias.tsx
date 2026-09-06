@@ -81,6 +81,15 @@ export default function DpFerias() {
     return map;
   }, [gozos]);
 
+  const fracoesPorPeriodo = useMemo(() => {
+    const map: Record<string, { id: string; dias: number }[]> = {};
+    for (const g of gozos) {
+      if (g.status === "cancelado") continue;
+      (map[g.periodo_id] ??= []).push({ id: g.id, dias: g.dias ?? 0 });
+    }
+    return map;
+  }, [gozos]);
+
   const abrirNovo = (periodoId?: string) => {
     setEditing(null);
     setDefaultPeriodoId(periodoId ?? null);
@@ -275,6 +284,12 @@ export default function DpFerias() {
         editing={editing}
         defaultPeriodoId={defaultPeriodoId}
         antecedenciaDias={feriasConfig.avisoAntecedenciaDias}
+        fracionamento={{
+          maxFracoes: feriasConfig.fracionamentoMax,
+          minDias: feriasConfig.fracaoMinDias,
+          maiorDias: feriasConfig.fracaoMaiorDias,
+        }}
+        fracoesPorPeriodo={fracoesPorPeriodo}
         saving={saveGozo.isPending || programar.isPending}
         onSubmit={(input) => {
           const fechar = { onSuccess: () => { setDialogOpen(false); setEditing(null); } };

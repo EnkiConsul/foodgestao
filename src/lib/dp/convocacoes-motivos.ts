@@ -38,6 +38,8 @@ export function textoDoMotivo(motivo: string | null | undefined, ctx: ContextoMo
       return "Ela já tem convocação nesse dia.";
     case "ALOCADO_EM_ESCALA":
       return "Ela já está escalada nesse dia.";
+    case "EM_FERIAS":
+      return "Ela está de férias nesse dia.";
     case "INDISPONIVEL_NA_DATA":
       return "Ela marcou indisponibilidade nesse dia.";
     case "CARGO_DIFERENTE":

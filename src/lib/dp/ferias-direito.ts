@@ -102,7 +102,15 @@ export const FERIAS_ERRO_TEXTO: Record<string, string> = {
   FERIAS_JA_CONCLUIDA: "Férias já concluídas não podem ser canceladas.",
   FERIAS_BLOQUEIO: "As datas caem em um período bloqueado para férias.",
   FERIAS_SIMULTANEOS: "O limite de pessoas em férias ao mesmo tempo foi atingido.",
+  FERIAS_FRACIONAMENTO_LIMITE:
+    "Isso passa do número de períodos que a empresa permite dividir as férias.",
+  FERIAS_FRACAO_CURTA: "Este período é menor do que o mínimo permitido pela empresa.",
+  FERIAS_FRACAO_MAIOR_AUSENTE:
+    "Ao dividir as férias, um dos períodos precisa alcançar o número mínimo de dias definido pela empresa.",
+  FERIAS_COLABORADOR_EM_FERIAS:
+    "Esta pessoa está de férias nessa data — não é possível escalar, convocar ou marcar folga.",
 };
+
 
 
 export function textoErroFerias(mensagem?: string | null): string {

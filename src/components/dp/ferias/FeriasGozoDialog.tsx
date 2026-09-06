@@ -13,6 +13,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import type { FeriasGozo, FeriasPeriodo, GozoInput } from "@/hooks/useDpFerias";
+import {
+  FRACIONAMENTO_PADRAO, avaliarFracionamento, descreverFracionamento,
+  type FracionamentoRegra,
+} from "@/lib/dp/ferias-fracionamento";
+import { FERIAS_ERRO_TEXTO } from "@/lib/dp/ferias-direito";
 
 type Props = {
   open: boolean;
@@ -23,6 +28,10 @@ type Props = {
   saving: boolean;
   /** Antecedência mínima do aviso definida pela empresa (dias). */
   antecedenciaDias: number;
+  /** Regra de divisão das férias em períodos. */
+  fracionamento?: FracionamentoRegra;
+  /** Férias já marcadas (não canceladas) por período aquisitivo. */
+  fracoesPorPeriodo?: Record<string, { id: string; dias: number }[]>;
   onSubmit: (input: GozoInput & { justificativa?: string | null }) => void;
 };
 
@@ -39,7 +48,8 @@ const emptyForm: GozoInput = {
 };
 
 export function FeriasGozoDialog({
-  open, onOpenChange, periodos, editing, defaultPeriodoId, saving, antecedenciaDias, onSubmit,
+  open, onOpenChange, periodos, editing, defaultPeriodoId, saving, antecedenciaDias,
+  fracionamento = FRACIONAMENTO_PADRAO, fracoesPorPeriodo = {}, onSubmit,
 }: Props) {
   const [form, setForm] = useState<GozoInput>(emptyForm);
   const [justificativa, setJustificativa] = useState("");
@@ -86,6 +96,25 @@ export function FeriasGozoDialog({
     ? (periodoSel.dias_saldo ?? 0) + (editing ? (editing.dias ?? 0) + (editing.dias_abono ?? 0) : 0)
     : 0;
   const excede = !!periodoSel && totalConsumido > saldoPeriodo;
+
+  const fracoesExistentes = useMemo(
+    () =>
+      (fracoesPorPeriodo[form.periodo_id] ?? []).filter((f) => !editing || f.id !== editing.id),
+    [fracoesPorPeriodo, form.periodo_id, editing],
+  );
+
+  const avaliacaoFracao = useMemo(
+    () =>
+      avaliarFracionamento(
+        dias,
+        fracoesExistentes,
+        Math.max(saldoPeriodo - totalConsumido, 0),
+        fracionamento,
+      ),
+    [dias, fracoesExistentes, saldoPeriodo, totalConsumido, fracionamento],
+  );
+  const erroFracao =
+    !excede && avaliacaoFracao.codigo ? FERIAS_ERRO_TEXTO[avaliacaoFracao.codigo] : null;
 
   const diasDeAviso = useMemo(() => {
     if (!form.data_inicio) return null;
@@ -219,6 +248,13 @@ export function FeriasGozoDialog({
             {excede && (
               <p className="mt-1 text-destructive">Excede o saldo disponível ({saldoPeriodo} dias).</p>
             )}
+            {periodoSel && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {avaliacaoFracao.totalFracoes}º período deste ano de férias ·{" "}
+                {descreverFracionamento(fracionamento)}
+              </p>
+            )}
+            {erroFracao && <p className="mt-1 text-destructive">{erroFracao}</p>}
           </div>
         </div>
 
@@ -226,7 +262,7 @@ export function FeriasGozoDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
             disabled={
-              saving || excede || faltaJustificativa ||
+              saving || excede || faltaJustificativa || !!erroFracao ||
               !form.periodo_id || !form.data_inicio || !form.data_fim
             }
             onClick={() => onSubmit({ ...form, justificativa: justificativa.trim() || null })}

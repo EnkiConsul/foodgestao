@@ -20,14 +20,30 @@ export function FeriasConfigCard() {
   const { data: unidades = [] } = useDpUnidades();
   const [dias, setDias] = useState(String(config.avisoAntecedenciaDias));
   const [politica, setPolitica] = useState<FeriasAdiantamento13>(config.adiantamento13);
+  const [fracMax, setFracMax] = useState(String(config.fracionamentoMax));
+  const [fracMin, setFracMin] = useState(String(config.fracaoMinDias));
+  const [fracMaior, setFracMaior] = useState(String(config.fracaoMaiorDias));
 
   useEffect(() => {
     setDias(String(config.avisoAntecedenciaDias));
     setPolitica(config.adiantamento13);
-  }, [config.avisoAntecedenciaDias, config.adiantamento13]);
+    setFracMax(String(config.fracionamentoMax));
+    setFracMin(String(config.fracaoMinDias));
+    setFracMaior(String(config.fracaoMaiorDias));
+  }, [
+    config.avisoAntecedenciaDias,
+    config.adiantamento13,
+    config.fracionamentoMax,
+    config.fracaoMinDias,
+    config.fracaoMaiorDias,
+  ]);
 
   const alterado =
-    Number(dias) !== config.avisoAntecedenciaDias || politica !== config.adiantamento13;
+    Number(dias) !== config.avisoAntecedenciaDias ||
+    politica !== config.adiantamento13 ||
+    Number(fracMax) !== config.fracionamentoMax ||
+    Number(fracMin) !== config.fracaoMinDias ||
+    Number(fracMaior) !== config.fracaoMaiorDias;
 
   return (
     <DpContentCard contentClassName="space-y-4 p-4">
@@ -65,6 +81,47 @@ export function FeriasConfigCard() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      <div className="space-y-3 rounded-xl border p-3">
+        <div>
+          <p className="text-sm font-medium">Divisão das férias em períodos</p>
+          <p className="text-xs text-muted-foreground">
+            Vale para quem quer tirar as férias em mais de uma vez.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase text-muted-foreground">
+              Máximo de períodos
+            </Label>
+            <Input
+              type="number" min={1} max={3}
+              value={fracMax}
+              onChange={(e) => setFracMax(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase text-muted-foreground">
+              Mínimo de dias por período
+            </Label>
+            <Input
+              type="number" min={1} max={30}
+              value={fracMin}
+              onChange={(e) => setFracMin(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase text-muted-foreground">
+              Um período com pelo menos
+            </Label>
+            <Input
+              type="number" min={1} max={30}
+              value={fracMaior}
+              onChange={(e) => setFracMaior(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -115,6 +172,9 @@ export function FeriasConfigCard() {
             save.mutate({
               avisoAntecedenciaDias: Math.max(0, Math.min(365, Number(dias) || 0)),
               adiantamento13: politica,
+              fracionamentoMax: Math.max(1, Math.min(3, Number(fracMax) || 1)),
+              fracaoMinDias: Math.max(1, Math.min(30, Number(fracMin) || 1)),
+              fracaoMaiorDias: Math.max(1, Math.min(30, Number(fracMaior) || 1)),
             })
           }
         >

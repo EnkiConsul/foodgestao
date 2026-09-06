@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Ban, CheckCircle2 } from "lucide-react";
+import { Ban, CheckCircle2, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DpContentCard } from "@/components/dp/DpPage";
 import { useDpFerias, type FeriasGozo } from "@/hooks/useDpFerias";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { FeriasCancelarDialog } from "@/components/dp/ferias/FeriasCancelarDialog";
+import { FeriasCoberturaDialog } from "@/components/dp/ferias/FeriasCoberturaDialog";
 
 const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
@@ -38,9 +39,16 @@ export function FeriasGozosPanel({ status, vazio }: Props) {
   const { gozos, gozosLoading, periodos, cancelarGozo } = useDpFerias("todos");
   const { data: colaboradores = [] } = useDpColaboradores();
   const [cancelando, setCancelando] = useState<(FeriasGozo & { colaborador_nome?: string | null }) | null>(null);
+  const [cobertura, setCobertura] = useState<
+    (FeriasGozo & { colaborador_nome?: string | null; unidade_id?: string | null; cargo_id?: string | null }) | null
+  >(null);
 
   const nomes = useMemo(
     () => new Map(colaboradores.map((c: any) => [c.id, c.nome as string])),
+    [colaboradores],
+  );
+  const porColaborador = useMemo(
+    () => new Map((colaboradores as any[]).map((c) => [c.id, c])),
     [colaboradores],
   );
   const periodoPorId = useMemo(() => new Map(periodos.map((p) => [p.id, p])), [periodos]);
@@ -94,6 +102,23 @@ export function FeriasGozosPanel({ status, vazio }: Props) {
                       </Badge>
                     )}
                     <Badge className={GOZO_TONE[g.status]}>{GOZO_LABEL[g.status] ?? g.status}</Badge>
+                    {(g.status === "aprovado" || g.status === "em_gozo") && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          const c = porColaborador.get(g.colaborador_id);
+                          setCobertura({
+                            ...g,
+                            colaborador_nome: nome,
+                            unidade_id: c?.unidade_id ?? null,
+                            cargo_id: c?.cargo_id ?? null,
+                          });
+                        }}
+                      >
+                        <ShieldAlert className="mr-1 size-3.5" /> Cobertura
+                      </Button>
+                    )}
                     {podeCancelar && (
                       <Button
                         size="sm"
@@ -110,6 +135,11 @@ export function FeriasGozosPanel({ status, vazio }: Props) {
           </div>
         )}
       </DpContentCard>
+
+      <FeriasCoberturaDialog
+        gozo={cobertura}
+        onOpenChange={(v) => { if (!v) setCobertura(null); }}
+      />
 
       <FeriasCancelarDialog
         gozo={cancelando}

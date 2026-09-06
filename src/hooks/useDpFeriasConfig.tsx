@@ -8,11 +8,20 @@ export type FeriasAdiantamento13 = "nao" | "legal" | "qualquer_epoca";
 export type FeriasConfig = {
   avisoAntecedenciaDias: number;
   adiantamento13: FeriasAdiantamento13;
+  /** Quantos períodos, no máximo, as férias podem ser divididas. */
+  fracionamentoMax: number;
+  /** Tamanho mínimo de cada período. */
+  fracaoMinDias: number;
+  /** Tamanho mínimo que ao menos um dos períodos precisa ter. */
+  fracaoMaiorDias: number;
 };
 
 export const FERIAS_CONFIG_DEFAULT: FeriasConfig = {
   avisoAntecedenciaDias: 60,
   adiantamento13: "legal",
+  fracionamentoMax: 3,
+  fracaoMinDias: 5,
+  fracaoMaiorDias: 14,
 };
 
 export const ADIANTAMENTO_13_LABEL: Record<FeriasAdiantamento13, string> = {
@@ -32,7 +41,9 @@ export function useDpFeriasConfig() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_config_dp")
-        .select("id, ferias_aviso_antecedencia_dias, ferias_adiantamento_13")
+        .select(
+          "id, ferias_aviso_antecedencia_dias, ferias_adiantamento_13, ferias_fracionamento_max, ferias_fracao_min_dias, ferias_fracao_maior_dias",
+        )
         .eq("company_id", selectedCompanyId!)
         .is("unidade_id", null)
         .maybeSingle();
@@ -45,6 +56,15 @@ export function useDpFeriasConfig() {
           ),
           adiantamento13: (data?.ferias_adiantamento_13 ??
             FERIAS_CONFIG_DEFAULT.adiantamento13) as FeriasAdiantamento13,
+          fracionamentoMax: Number(
+            data?.ferias_fracionamento_max ?? FERIAS_CONFIG_DEFAULT.fracionamentoMax,
+          ),
+          fracaoMinDias: Number(
+            data?.ferias_fracao_min_dias ?? FERIAS_CONFIG_DEFAULT.fracaoMinDias,
+          ),
+          fracaoMaiorDias: Number(
+            data?.ferias_fracao_maior_dias ?? FERIAS_CONFIG_DEFAULT.fracaoMaiorDias,
+          ),
         } satisfies FeriasConfig,
       };
     },
@@ -58,6 +78,9 @@ export function useDpFeriasConfig() {
         ferias_aviso_antecedencia_dias:
           patch.avisoAntecedenciaDias ?? atual.avisoAntecedenciaDias,
         ferias_adiantamento_13: patch.adiantamento13 ?? atual.adiantamento13,
+        ferias_fracionamento_max: patch.fracionamentoMax ?? atual.fracionamentoMax,
+        ferias_fracao_min_dias: patch.fracaoMinDias ?? atual.fracaoMinDias,
+        ferias_fracao_maior_dias: patch.fracaoMaiorDias ?? atual.fracaoMaiorDias,
       };
       if (query.data?.id) {
         const { error } = await supabase
