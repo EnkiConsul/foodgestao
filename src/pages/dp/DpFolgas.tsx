@@ -1360,15 +1360,6 @@ export default function DpFolgas() {
                     {quickAssign.isPending ? "Atribuindo..." : "Atribuir"}
                   </Button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(`/dp/operacao?ausencia=${format(selectedDay, "yyyy-MM-dd")}`)
-                  }
-                  className="text-xs font-medium text-primary hover:underline"
-                >
-                  Registrar ausência (férias, atestado, período)
-                </button>
               </div>
             </div>
           )}
