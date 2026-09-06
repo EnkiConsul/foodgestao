@@ -14,6 +14,7 @@ import {
   Handshake,
   HeartPulse,
   Plane,
+  Plus,
   RotateCcw,
   Sun,
   UserCheck,
@@ -22,6 +23,8 @@ import {
 } from "lucide-react";
 import { useDpOperacaoPanorama, type DiaPanorama } from "@/hooks/useDpOperacaoPanorama";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
+import { DpRegistrarAusenciaDialog } from "@/components/dp/DpRegistrarAusenciaDialog";
 import {
   DndContext,
   closestCenter,
@@ -217,6 +220,21 @@ export default function DpOperacaoPanorama() {
   const [aba, setAba] = useState(params.get("aba") === "mes" ? "mes" : "dia");
   const [detalheCategoria, setDetalheCategoria] = useState<CategoriaDia | null>(null);
   const [verSocios, setVerSocios] = useState(false);
+  const { role } = useCompanyPermissions();
+  const podeRegistrar = role === "owner" || role === "admin";
+  const [ausenciaOpen, setAusenciaOpen] = useState(false);
+  const [ausenciaData, setAusenciaData] = useState<string | null>(null);
+
+  /** Vinda do calendário de folgas: /dp/operacao?ausencia=AAAA-MM-DD. */
+  useEffect(() => {
+    const preset = params.get("ausencia");
+    if (preset && /^\d{4}-\d{2}-\d{2}$/.test(preset)) {
+      setAusenciaData(preset);
+      setAusenciaOpen(true);
+      params.delete("ausencia");
+      setParams(params, { replace: true });
+    }
+  }, [params, setParams]);
 
   const { prefs, save } = useDpUserPrefs();
   const unidadeId = !unidade || unidade === "todas" ? null : unidade;
@@ -356,6 +374,25 @@ export default function DpOperacaoPanorama() {
         title="Operação"
         description="Quantas pessoas a operação tem em cada dia — sem precisar gerar escala."
         icon={CalendarClock}
+        actions={
+          podeRegistrar ? (
+            <Button
+              className="gap-2"
+              onClick={() => {
+                setAusenciaData(null);
+                setAusenciaOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" /> Registrar Ausência
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <DpRegistrarAusenciaDialog
+        open={ausenciaOpen}
+        onOpenChange={setAusenciaOpen}
+        dataInicial={ausenciaData}
       />
 
       <DpFilterCard>
