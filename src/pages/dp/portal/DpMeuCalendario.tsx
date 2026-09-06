@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga } from "@/lib/dp/dsr-rules";
+import { folgasOfertaveis } from "@/lib/dp/troca-oferta";
 
 
 import {
@@ -452,7 +453,7 @@ export default function DpMeuCalendario() {
   };
 
   // Minhas folgas futuras (para oferecer troca)
-  const hojeIso = useMemo(() => toIsoDate(new Date()), []);
+  const hojeIso = useMemo(() => ymd(new Date()), []);
   const minhasFolgasFuturas = useMemo(
     () => folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso }),
     [folgas, meRef.data?.id, hojeIso],
