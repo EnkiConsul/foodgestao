@@ -117,6 +117,17 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .eq("company_id", selectedCompanyId!)
             .eq("tipo", "atestado")
             .eq("status", "aprovada"),
+          // Pedidos de folga já aprovados contam como folga do dia, mesmo antes
+          // de serem efetivados em dp_folgas (mesma regra do calendário de folgas).
+          supabase
+            .from("dp_solicitacoes")
+            .select("colaborador_id, data_alvo")
+            .eq("company_id", selectedCompanyId!)
+            .eq("tipo", "folga")
+            .eq("status", "aprovada")
+            .gte("data_alvo", janelaInicio)
+            .lte("data_alvo", fim),
+
           supabase
             .from("dp_solicitacoes")
             .select("colaborador_id, tipo, status, data_alvo, data_fim, motivo")
