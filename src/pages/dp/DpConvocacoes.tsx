@@ -116,8 +116,10 @@ function GrupoCard({
 export default function DpConvocacoes() {
   const [wizard, setWizard] = useState(false);
   const [emEdicao, setEmEdicao] = useState<GrupoComOcorrencias | null>(null);
+  const [parcialAberta, setParcialAberta] = useState<ParcialPendente | null>(null);
   const grupos = useDpConvocacaoGrupos();
   const legado = useDpConvocacoes(emDias(-180), emDias(180));
+  const parciais = useDpConvocacoesParciais();
 
   // Registros do fluxo antigo (sem ocorrência) continuam visíveis, marcados.
   const legadas = useMemo(
