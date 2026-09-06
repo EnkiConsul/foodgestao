@@ -1,15 +1,12 @@
 import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import { format } from "date-fns";
-import { ArrowLeftRight, Ban, Calendar, User, MessageSquare, Check, X, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Ban, Calendar, User, MessageSquare, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
+import { TextoExpansivel } from "@/components/dp/TextoExpansivel";
 import { useDpTrocas } from "@/hooks/useDpTrocas";
 import { acoesGestorTroca, textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
