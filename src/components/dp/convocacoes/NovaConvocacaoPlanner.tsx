@@ -512,6 +512,17 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
 
   // ------------------------------------------------------------ gravação
+  /** Versão atual do rascunho, lida do banco (evita carimbo defasado na tela). */
+  const lerCarimboGrupo = async (): Promise<string | null> => {
+    const { data, error } = await supabase
+      .from("dp_convocacao_grupos")
+      .select("updated_at")
+      .eq("id", grupoId)
+      .maybeSingle();
+    if (error) throw error;
+    return (data as { updated_at: string } | null)?.updated_at ?? null;
+  };
+
   /**
    * `ajuste` permite gravar valores que acabaram de ser alterados na mesma
    * interação (o estado do React só chega no render seguinte).
