@@ -89,7 +89,9 @@ export function RevisaoConvocacao(props: Props) {
   const {
     unidadeId, unidadeNome, competencia, titulo, observacao, dias,
     destinatarios, overrides, horarioGeral, jornadaDe, prazoRespostaDias, justificativa,
+    antecedenciaMinima, exigeJustificativa, onJustificativaChange, ciente, onCienteChange,
     preAvaliacao, preAvaliacaoCarregando, onUsarHorarioParaTodos, onAjustarNecessidade,
+
   } = props;
 
   /** `cargoId|data|colaboradorId` → linha da verificação prévia. */
