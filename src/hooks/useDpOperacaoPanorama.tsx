@@ -60,7 +60,12 @@ export interface PessoaAvulsaInput {
   saida?: string | null;
   termina_no_dia_seguinte?: boolean;
   observacao?: string | null;
+  /** Telefone de contato (folguista/teste). */
+  telefone?: string | null;
+  /** Vínculo com o cadastro reaproveitável de apoio. */
+  pessoa_apoio_id?: string | null;
 }
+
 
 
 const DISPENSA_SENTINELA = "00000000-0000-0000-0000-000000000000";
@@ -269,8 +274,9 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       let q = supabase
         .from("dp_pessoas_avulsas")
         .select(
-          "id, nome, tipo, colaborador_id, unidade_id, cargo_id, cobre_colaborador_id, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao",
+          "id, nome, tipo, colaborador_id, unidade_id, cargo_id, cobre_colaborador_id, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao, telefone, pessoa_apoio_id",
         )
+
 
         .eq("company_id", selectedCompanyId!)
         .lte("data_inicio", fim)
@@ -544,6 +550,9 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         saida: input.saida || null,
         termina_no_dia_seguinte: !!input.termina_no_dia_seguinte,
         observacao: input.observacao?.trim() || null,
+        telefone: manual ? null : input.telefone?.trim() || null,
+        pessoa_apoio_id: manual ? null : input.pessoa_apoio_id ?? null,
+
       };
       if (input.id) {
         const { error } = await supabase

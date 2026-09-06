@@ -16,7 +16,9 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { pessoaAvulsaSchema, validateWithToast } from "@/lib/validations";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
+import { useDpPessoasApoio, useSalvarDpPessoaApoio } from "@/hooks/useDpPessoasApoio";
 import type { HorarioSugerido, PessoaAvulsaPanorama, PessoaAvulsaTipo } from "@/lib/dp/operacao-panorama";
+
 
 interface Props {
   open: boolean;
@@ -68,6 +70,8 @@ export function DpPessoaAvulsaDialog({
 }: Props) {
   const [form, setForm] = useState({
     nome: "",
+    telefone: "",
+    pessoa_apoio_id: "",
     tipo: "folguista" as PessoaAvulsaTipo,
     colaborador_id: "",
     unidade_id: "",
@@ -81,6 +85,9 @@ export function DpPessoaAvulsaDialog({
     observacao: "",
   });
   const [horarioTocado, setHorarioTocado] = useState(false);
+  const apoio = useDpPessoasApoio({ apenasAtivos: true });
+  const salvarApoio = useSalvarDpPessoaApoio();
+
 
   const manual = form.tipo === "registro_manual";
   const hoje = hojeIso();
@@ -91,7 +98,10 @@ export function DpPessoaAvulsaDialog({
     const dataBase = registro?.data_inicio ?? (dataInicial > hojeIso() ? hojeIso() : dataInicial);
     setForm({
       nome: registro?.nome ?? "",
+      telefone: registro?.telefone ?? "",
+      pessoa_apoio_id: registro?.pessoa_apoio_id ?? "",
       tipo: registro?.tipo ?? "folguista",
+
       colaborador_id: registro?.colaborador_id ?? "",
       unidade_id: registro?.unidade_id ?? unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
       cargo_id: registro?.cargo_id ?? "",
@@ -130,7 +140,26 @@ export function DpPessoaAvulsaDialog({
     }));
   };
 
-  const salvar = () => {
+  /** Reaproveita alguém já cadastrado no banco de folguistas/testes. */
+  const escolherApoio = (id: string) => {
+    if (id === "novo") {
+      setForm((f) => ({ ...f, pessoa_apoio_id: "" }));
+      return;
+    }
+    const p = (apoio.data ?? []).find((x) => x.id === id);
+    if (!p) return;
+    setForm((f) => ({
+      ...f,
+      pessoa_apoio_id: p.id,
+      nome: p.nome,
+      telefone: p.telefone ?? "",
+      tipo: p.tipo,
+      cargo_id: p.cargo_id ?? f.cargo_id,
+      unidade_id: p.unidade_id ?? f.unidade_id,
+    }));
+  };
+
+  const salvar = async () => {
     if (manual && form.data_fim > hoje) {
       toast.error("Data futura não permitida", {
         description: "Para dias futuros use a convocação ou a escala.",
@@ -150,13 +179,38 @@ export function DpPessoaAvulsaDialog({
       saida: form.saida || null,
       termina_no_dia_seguinte: form.termina_no_dia_seguinte,
       observacao: form.observacao || null,
+      telefone: manual ? null : form.telefone || null,
+      pessoa_apoio_id: manual ? null : form.pessoa_apoio_id || null,
     };
     const parsed = validateWithToast(pessoaAvulsaSchema, candidato, (msg) =>
       toast.error("Verifique os dados", { description: msg }),
     );
     if (!parsed) return;
-    onSalvar({ ...candidato, id: registro?.id });
+
+    // Quem não é colaborador cadastrado fica salvo no banco de apoio para reuso.
+    let apoioId = candidato.pessoa_apoio_id ?? null;
+    if (!manual) {
+      try {
+        apoioId = await salvarApoio.mutateAsync({
+          id: apoioId ?? undefined,
+          nome: candidato.nome!,
+          telefone: candidato.telefone ?? null,
+          tipo: form.tipo === "teste" ? "teste" : "folguista",
+          cargo_id: form.cargo_id || null,
+          unidade_id: form.unidade_id || null,
+          cpf: null,
+          genero: null,
+          data_nascimento: null,
+          observacao: null,
+          colaborador_id: null,
+        });
+      } catch {
+        apoioId = candidato.pessoa_apoio_id ?? null;
+      }
+    }
+    onSalvar({ ...candidato, pessoa_apoio_id: apoioId, id: registro?.id });
   };
+
 
 
   return (
@@ -209,16 +263,53 @@ export function DpPessoaAvulsaDialog({
               </p>
             </div>
           ) : (
-            <div className="grid gap-1.5">
-              <Label>Nome da pessoa *</Label>
-              <Input
-                value={form.nome}
-                maxLength={120}
-                placeholder="Ex.: Maria Souza"
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              />
-            </div>
+            <>
+              {(apoio.data ?? []).length > 0 && (
+                <div className="grid gap-1.5">
+                  <Label>Já cadastrada antes?</Label>
+                  <Select value={form.pessoa_apoio_id || "novo"} onValueChange={escolherApoio}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Nova pessoa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="novo">Nova pessoa</SelectItem>
+                      {(apoio.data ?? []).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.nome}
+                          {p.telefone ? ` — ${p.telefone}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Escolha alguém do banco de folguistas e testes para preencher tudo.
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label>Nome da pessoa *</Label>
+                  <Input
+                    value={form.nome}
+                    maxLength={120}
+                    placeholder="Ex.: Maria Souza"
+                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Telefone</Label>
+                  <Input
+                    value={form.telefone}
+                    maxLength={20}
+                    inputMode="tel"
+                    placeholder="(62) 90000-0000"
+                    onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                  />
+                </div>
+              </div>
+            </>
           )}
+
 
 
           <div className="grid grid-cols-2 gap-3">

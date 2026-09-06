@@ -118,7 +118,12 @@ export interface PessoaAvulsaPanorama {
   saida: string | null;
   termina_no_dia_seguinte: boolean;
   observacao: string | null;
+  /** Telefone de contato (folguista/teste). */
+  telefone?: string | null;
+  /** Cadastro reaproveitável de apoio que originou o registro. */
+  pessoa_apoio_id?: string | null;
 }
+
 
 
 /** Id sintético usado nas listas do painel (nunca é um colaborador real). */

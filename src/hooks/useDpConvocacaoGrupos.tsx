@@ -117,9 +117,10 @@ export function useSalvarRascunhoConvocacao() {
 
   const salvarOcorrencia = useMutation({
     mutationFn: async (args: SalvarOcorrenciaArgs) => {
+      // Campos aceitos pelas DUAS RPCs. `p_grupo_id` só existe na criação:
+      // enviá-lo na atualização faz o PostgREST não achar a função (schema cache).
       const comum = {
         p_ocorrencia_id: args.ocorrencia_id,
-        p_grupo_id: args.grupo_id,
         p_cargo_id: args.cargo_id,
         p_data: args.data,
         p_necessidade_entrada: args.necessidade_entrada,
@@ -146,7 +147,10 @@ export function useSalvarRascunhoConvocacao() {
         return data;
       }
 
-      const { data, error } = await supabase.rpc("dp_convocacao_criar_ocorrencia", comum);
+      const { data, error } = await supabase.rpc("dp_convocacao_criar_ocorrencia", {
+        ...comum,
+        p_grupo_id: args.grupo_id,
+      });
       if (error) throw error;
       return data;
     },
@@ -237,10 +241,14 @@ export function useDpConvocacaoDestinatarios(grupoId?: string | null) {
         .is("removido_em", null);
       if (error) throw error;
       const rows = (data ?? []) as ConvDestinatario[];
+      const globaisRows = rows.filter((r) => !r.ocorrencia_id);
       return {
-        globais: rows.filter((r) => !r.ocorrencia_id).map((r) => r.colaborador_id),
+        globais: globaisRows.map((r) => r.colaborador_id),
+        /** colaborador_id → nível de prioridade salvo no rascunho. */
+        niveis: Object.fromEntries(globaisRows.map((r) => [r.colaborador_id, r.nivel ?? 1])),
         overrides: rows.filter((r) => !!r.ocorrencia_id),
       };
+
     },
   });
 }
@@ -257,15 +265,22 @@ export function useDefinirDestinatarios() {
       grupo_id: string;
       colaboradores: string[];
       expected_updated_at: string;
+      /** Nível de prioridade por pessoa (1 recebe primeiro). */
+      niveis?: { colaborador_id: string; nivel: number }[];
+      /** Horas de espera entre a liberação de um nível e a do seguinte. */
+      intervalo_niveis_horas?: number | null;
     }) => {
       const { data, error } = await supabase.rpc("dp_convocacao_definir_destinatarios", {
         p_grupo_id: args.grupo_id,
         p_colaboradores: args.colaboradores,
         p_expected_updated_at: args.expected_updated_at,
+        p_niveis: args.niveis && args.niveis.length ? args.niveis : null,
+        p_intervalo_niveis_horas: args.intervalo_niveis_horas ?? null,
       });
       if (error) throw error;
       return data as any;
     },
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_convocacao_destinatarios"] });
       qc.invalidateQueries({ queryKey: ["dp_convocacao_grupos"] });

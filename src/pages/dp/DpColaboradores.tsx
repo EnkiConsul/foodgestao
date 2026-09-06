@@ -322,11 +322,18 @@ export default function DpColaboradores() {
           <>
             <DpSalvarLargurasButton screenKey="dp_colaboradores" colOrder={colOrder} colWidths={colWidths} />
             <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
+              <Link to="/dp/colaboradores/apoio">
+                <UserPlus className="h-4 w-4 sm:mr-2" />{" "}
+                <span className="hidden sm:inline">Folguistas e testes</span>
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
 
               <Link to="/dp/colaboradores/lixeira">
                 <Trash2 className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Lixeira</span>
               </Link>
             </Button>
+
             <Button
               size="sm"
               className="h-10 rounded-full font-semibold sm:size-lg"

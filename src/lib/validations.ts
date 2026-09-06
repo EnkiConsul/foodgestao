@@ -116,6 +116,9 @@ export const pessoaAvulsaSchema = z
     saida: z.string().nullable().optional(),
     termina_no_dia_seguinte: z.boolean().optional(),
     observacao: z.string().trim().max(500, "Observação muito longa (máx. 500)").nullable().optional(),
+    telefone: z.string().trim().max(20, "Telefone inválido").nullable().optional(),
+    pessoa_apoio_id: z.string().uuid().nullable().optional(),
+
   })
   .refine((d) => d.data_fim >= d.data_inicio, {
     message: "A data final não pode ser anterior à data inicial",
@@ -129,4 +132,18 @@ export const pessoaAvulsaSchema = z
     message: "Informe o nome da pessoa",
     path: ["nome"],
   });
+
+/** Cadastro reaproveitável de folguistas e pessoas em teste. */
+export const pessoaApoioSchema = z.object({
+  nome: z.string().trim().min(2, "Informe o nome").max(120, "Nome muito longo"),
+  telefone: z.string().trim().max(20, "Telefone inválido").nullable().optional(),
+  tipo: z.enum(["teste", "folguista"]),
+  cargo_id: z.string().uuid().nullable().optional(),
+  unidade_id: z.string().uuid().nullable().optional(),
+  cpf: z.string().trim().max(14).nullable().optional(),
+  genero: z.string().trim().max(20).nullable().optional(),
+  data_nascimento: z.string().nullable().optional(),
+  observacao: z.string().trim().max(500, "Observação muito longa (máx. 500)").nullable().optional(),
+  colaborador_id: z.string().uuid().nullable().optional(),
+});
 
