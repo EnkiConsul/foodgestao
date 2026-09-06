@@ -702,196 +702,25 @@ export default function DpOperacaoPanorama() {
               <Skeleton className="h-40 w-full" />
             </div>
           ) : (
-            <>
-              <GradeCards
-                ordem={ordemDia}
-                onReordenar={(next) => salvarOrdem("dia", next)}
-                render={(k) => {
-                  if (k === "folga_socio") {
-                    return (
-                      <DpStatCard
-                        icon={Handshake}
-                        tone={sociosAusentes.length ? "warning" : "muted"}
-                        label="Folga Sócio"
-                        value={sociosAusentes.length}
-                        onClick={sociosAusentes.length ? () => setVerSocios(true) : undefined}
-                      />
-                    );
-                  }
-                  const cat = k as CategoriaDia;
-                  return (
-                    <DpStatCard
-                      icon={CATEGORIA_ICON[cat]}
-                      tone={CATEGORIA_TONE[cat]}
-                      label={CATEGORIA_LABEL[cat]}
-                      value={dia.contagens[cat]}
-                      onClick={dia.contagens[cat] > 0 ? () => setDetalheCategoria(cat) : undefined}
-                    />
-                  );
-                }}
-              />
-
-              {dia.avaliacao.situacao !== "sem_padrao" && dia.avaliacao.situacao !== "ok" && (
-                <Secao
-                  title="Fora do Padrão"
-                  description={mensagemAlerta(dia, dia.avaliacao, nomeUnidade)}
-                  action={
-                    dia.dispensado ? (
-                      <Button variant="ghost" size="sm" onClick={() => reativar(dia)}>
-                        <RotateCcw className="mr-1.5 h-4 w-4" />
-                        Reativar alerta
-                      </Button>
-                    ) : (
-                      <Button variant="outline" size="sm" onClick={() => dispensar(dia)}>
-                        <Check className="mr-1.5 h-4 w-4" />
-                        Está ok
-                      </Button>
-                    )
-                  }
-                >
-                  <p className="text-sm text-muted-foreground">
-                    O padrão vem da mediana das últimas 8 semanas para este dia da semana
-                    {unidadeId ? " nesta unidade" : ""}.
-                  </p>
-                </Secao>
-              )}
-
-              {blocos.length ? (
-                blocos.map((bloco) => (
-                  <Secao
-                    key={bloco.key}
-                    title={bloco.titulo}
-                    description={[
-                      bloco.horario,
-                      !unidadeId && bloco.unidade_nome ? bloco.unidade_nome : null,
-                      `${bloco.pessoas.length} pessoa(s)`,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                    action={
-                      bloco.fechado ? <Badge variant="outline">Fora do funcionamento</Badge> : undefined
-                    }
-                  >
-                    {bloco.pessoas.length ? (
-                      <div className="space-y-3">
-                        {bloco.grupos.map((g) => (
-                          <div key={g.cargo_id ?? "sem-cargo"}>
-                            <p className="mb-1 text-xs font-semibold text-muted-foreground">
-                              {g.cargo_nome} ({g.pessoas.length})
-                            </p>
-                            <ul className="divide-y">
-                              {g.pessoas.map((p) => (
-                                <li
-                                  key={p.colaborador_id}
-                                  className="flex items-center justify-between gap-3 py-2"
-                                >
-                                  <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium">{p.nome}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {p.entrada ?? "--:--"} às {p.saida ?? "--:--"}
-                                      {p.termina_no_dia_seguinte ? " (+1)" : ""} ·{" "}
-                                      {formatarHoras(p.carga_prevista_horas)}
-                                    </p>
-                                  </div>
-                                  <div className="flex shrink-0 items-center gap-1.5">
-                                    {p.socio && (
-                                      <Badge variant="outline" className="border-primary/40 text-primary">Sócio</Badge>
-                                    )}
-                                    <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
-                                      {CATEGORIA_LABEL[p.categoria]}
-                                    </Badge>
-                                  </div>
-
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        {bloco.fechado
-                          ? "A unidade está fechada neste dia e ninguém está previsto."
-                          : "Ninguém previsto neste período."}
-                      </p>
-                    )}
-                  </Secao>
-                ))
-              ) : (
-                <Secao title="Ninguém na Operação Neste Dia">
-                  <p className="text-sm text-muted-foreground">
-                    Nenhum fixo com jornada prevista e nenhuma convocação para {dataExtenso(data)}.
-                  </p>
-                </Secao>
-              )}
-
-              {dia.pessoas.some((p) =>
-                ["folga_padrao", "folga_extra", "ferias", "atestado"].includes(p.categoria),
-              ) && (
-                <Secao title="Fora da Operação" description="Folgas, férias e afastamentos do dia">
-                  <ul className="divide-y">
-                    {dia.pessoas
-                      .filter((p) =>
-                        ["folga_padrao", "folga_extra", "ferias", "atestado"].includes(p.categoria),
-                      )
-                      .map((p) => (
-                        <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
-                          <span className="truncate text-sm">{p.nome}</span>
-                          <div className="flex shrink-0 items-center gap-1.5">
-                            {tagSocio(p) && (
-                              <Badge variant="outline" className="border-primary/40 text-primary">Folga sócio</Badge>
-                            )}
-                            <Badge variant="outline">{CATEGORIA_LABEL[p.categoria]}</Badge>
-                          </div>
-                        </li>
-                      ))}
-                  </ul>
-                </Secao>
-              )}
-
-              {(() => {
-                const ausReg = (panorama.ausenciasRegistradas ?? []).filter(
-                  (a) => a.inicio <= data && a.fim >= data,
-                );
-                if (ausReg.length === 0) return null;
-                const nomeDe = new Map(panorama.colaboradores.map((c) => [c.id, c.nome]));
-                const rotulo = (t: string) =>
-                  t === "adiantamento" ? "Adiantamento" : t === "outros" ? "Ausência" : t;
-                return (
-                  <Secao
-                    title="Ausências Registradas"
-                    description="Afastamentos registrados pelo gestor que cobrem este dia"
-                  >
-                    <ul className="divide-y">
-                      {ausReg.map((a, i) => (
-                        <li
-                          key={`${a.colaborador_id}-${i}`}
-                          className="flex items-start justify-between gap-3 py-2"
-                        >
-                          <div className="min-w-0">
-                            <span className="block truncate text-sm">
-                              {nomeDe.get(a.colaborador_id) ?? "—"}
-                            </span>
-                            {a.motivo && (
-                              <span className="block text-xs text-muted-foreground">{a.motivo}</span>
-                            )}
-                          </div>
-                          <div className="flex shrink-0 items-center gap-1.5">
-                            <Badge variant="outline">{rotulo(a.tipo)}</Badge>
-                            {a.fim !== a.inicio && (
-                              <span className="text-xs text-muted-foreground">até {a.fim}</span>
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </Secao>
-                );
-              })()}
-
-            </>
+            <DetalheDiaOperacao
+              data={data}
+              dia={dia}
+              blocos={blocos}
+              sociosAusentes={sociosAusentes}
+              ausenciasRegistradas={panorama.ausenciasRegistradas ?? []}
+              nomesColaboradores={nomesColaboradores}
+              unidadeId={unidadeId}
+              nomeUnidade={nomeUnidade}
+              ordemCards={ordemDia}
+              onReordenarCards={(next) => salvarOrdem("dia", next)}
+              onVerCategoria={setDetalheCategoria}
+              onVerSocios={() => setVerSocios(true)}
+              onDispensar={dispensar}
+              onReativar={reativar}
+            />
           )}
         </TabsContent>
+
 
         <TabsContent value="mes" className="space-y-4">
           {panorama.isLoading ? (
