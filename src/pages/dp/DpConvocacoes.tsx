@@ -402,6 +402,11 @@ export default function DpConvocacoes() {
         }}
         grupo={emEdicao}
       />
+
+      <AprovacaoParcialDialog
+        parcial={parcialAberta}
+        onOpenChange={(v) => !v && setParcialAberta(null)}
+      />
     </DpPage>
   );
 }
