@@ -590,7 +590,13 @@ export interface ConformidadeLinha extends ConformidadeInput {
   modoAplicado: ModoFrequencia;
   /** Texto pronto da regra aplicada ("1 folga de fim de semana por mês"). */
   rotuloFrequencia: string;
+  /** Mínimo da regra configurada na unidade (base da leitura da empresa). */
   esperado: number;
+  /** Piso legal do período (Art. 386 CLT para mulheres; padrão do setor nos demais). */
+  esperadoLegal: number;
+  /** Mínimo usado na leitura CLT: o maior entre a regra e o piso legal. */
+  esperadoClt: number;
+
 
   /** Folgas consideradas na avaliação (domingos, ou dias negociados no modo acordo). */
   folgasConsideradas: number;
