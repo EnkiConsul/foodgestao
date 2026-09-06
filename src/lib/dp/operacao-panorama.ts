@@ -136,8 +136,14 @@ export interface PessoaPanorama {
   socio: boolean;
   /** Sócio vinculado a uma unidade e com jornada: conta como parte do quadro. */
   socio_integrado?: boolean;
-  /** Origem do horário: jornada habitual, escala publicada ou convocação. */
-  origem: "jornada" | "escala" | "convocacao";
+  /** Origem do horário: jornada habitual, escala publicada, convocação ou registro avulso. */
+  origem: "jornada" | "escala" | "convocacao" | "avulso";
+  /** Preenchido só para pessoas avulsas (teste/folguista). */
+  avulso_id?: string;
+  avulso_tipo?: PessoaAvulsaTipo;
+  /** Nome do colaborador coberto, quando folguista. */
+  cobre_nome?: string | null;
+  observacao?: string | null;
 }
 
 export type Contagens = Record<CategoriaDia, number>;
