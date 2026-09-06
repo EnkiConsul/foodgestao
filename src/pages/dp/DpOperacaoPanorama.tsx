@@ -113,6 +113,21 @@ const CATEGORIA_ICON: Record<CategoriaDia, typeof Users> = {
   atestado: HeartPulse,
 };
 
+const AVULSO_LABEL: Record<"avulso_teste" | "avulso_folguista", string> = {
+  avulso_teste: "Em Teste",
+  avulso_folguista: "Folguista",
+};
+
+const AVULSO_TONE: Record<"avulso_teste" | "avulso_folguista", "primary" | "muted" | "success" | "warning" | "danger"> = {
+  avulso_teste: "primary",
+  avulso_folguista: "warning",
+};
+
+const AVULSO_ICON: Record<"avulso_teste" | "avulso_folguista", typeof Users> = {
+  avulso_teste: UserPlus,
+  avulso_folguista: UserCog,
+};
+
 type CardKey = CategoriaDia | "folga_socio" | "avulso_teste" | "avulso_folguista";
 
 const CARDS_DIA: CardKey[] = [...CATEGORIA_ORDEM, "folga_socio", "avulso_teste", "avulso_folguista"];
