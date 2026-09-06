@@ -5276,13 +5276,26 @@ export type Database = {
           observacao: string | null
           ocorrencia_id: string | null
           origem_oferta: string | null
+          parcial_carga_horas: number | null
+          parcial_decidido_em: string | null
+          parcial_decidido_por: string | null
+          parcial_decisao_motivo: string | null
+          parcial_entrada: string | null
+          parcial_observacao: string | null
+          parcial_reoferta_prazo: string | null
+          parcial_reofertada_em: string | null
+          parcial_saida: string | null
+          parcial_status: string | null
+          parcial_termina_no_dia_seguinte: boolean | null
           prazo_resposta: string | null
           prazo_resposta_base: string | null
           regime_snapshot:
             | Database["public"]["Enums"]["dp_regime_trabalho"]
             | null
           remuneracao_snapshot: Json | null
+          reoferta_de_convocacao_id: string | null
           respondida_em: string | null
+          resposta_tipo: string | null
           saida: string
           status: Database["public"]["Enums"]["dp_convocacao_status"]
           substitui_convocacao_id: string | null
@@ -5322,13 +5335,26 @@ export type Database = {
           observacao?: string | null
           ocorrencia_id?: string | null
           origem_oferta?: string | null
+          parcial_carga_horas?: number | null
+          parcial_decidido_em?: string | null
+          parcial_decidido_por?: string | null
+          parcial_decisao_motivo?: string | null
+          parcial_entrada?: string | null
+          parcial_observacao?: string | null
+          parcial_reoferta_prazo?: string | null
+          parcial_reofertada_em?: string | null
+          parcial_saida?: string | null
+          parcial_status?: string | null
+          parcial_termina_no_dia_seguinte?: boolean | null
           prazo_resposta?: string | null
           prazo_resposta_base?: string | null
           regime_snapshot?:
             | Database["public"]["Enums"]["dp_regime_trabalho"]
             | null
           remuneracao_snapshot?: Json | null
+          reoferta_de_convocacao_id?: string | null
           respondida_em?: string | null
+          resposta_tipo?: string | null
           saida: string
           status?: Database["public"]["Enums"]["dp_convocacao_status"]
           substitui_convocacao_id?: string | null
@@ -5368,13 +5394,26 @@ export type Database = {
           observacao?: string | null
           ocorrencia_id?: string | null
           origem_oferta?: string | null
+          parcial_carga_horas?: number | null
+          parcial_decidido_em?: string | null
+          parcial_decidido_por?: string | null
+          parcial_decisao_motivo?: string | null
+          parcial_entrada?: string | null
+          parcial_observacao?: string | null
+          parcial_reoferta_prazo?: string | null
+          parcial_reofertada_em?: string | null
+          parcial_saida?: string | null
+          parcial_status?: string | null
+          parcial_termina_no_dia_seguinte?: boolean | null
           prazo_resposta?: string | null
           prazo_resposta_base?: string | null
           regime_snapshot?:
             | Database["public"]["Enums"]["dp_regime_trabalho"]
             | null
           remuneracao_snapshot?: Json | null
+          reoferta_de_convocacao_id?: string | null
           respondida_em?: string | null
+          resposta_tipo?: string | null
           saida?: string
           status?: Database["public"]["Enums"]["dp_convocacao_status"]
           substitui_convocacao_id?: string | null
@@ -5427,6 +5466,13 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dp_conv_reoferta_de"
+            columns: ["reoferta_de_convocacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacoes"
             referencedColumns: ["id"]
           },
           {
@@ -12712,6 +12758,10 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_convocacao_avaliar_parcial: {
+        Args: { p_convocacao_id: string }
+        Returns: Json
+      }
       dp_convocacao_cancelar_ocorrencia_rascunho: {
         Args: { p_expected_updated_at?: string; p_ocorrencia_id: string }
         Returns: Json
@@ -12774,6 +12824,17 @@ export type Database = {
           p_termina_no_dia_seguinte?: boolean
           p_turno_referencia_id?: string
           p_vagas?: number
+        }
+        Returns: Json
+      }
+      dp_convocacao_decidir_parcial: {
+        Args: {
+          p_acao: string
+          p_colaborador_ids?: string[]
+          p_confirmado?: boolean
+          p_convocacao_id: string
+          p_motivo?: string
+          p_prazo?: string
         }
         Returns: Json
       }
@@ -12861,10 +12922,18 @@ export type Database = {
           necessidade_saida: string
           necessidade_termina_no_dia_seguinte: boolean
           observacao: string
+          parcial_carga_horas: number
+          parcial_decisao_motivo: string
+          parcial_entrada: string
+          parcial_observacao: string
+          parcial_saida: string
+          parcial_status: string
+          parcial_termina_no_dia_seguinte: boolean
           prazo_resposta: string
           regime_snapshot: string
           remuneracao_snapshot: Json
           respondida_em: string
+          resposta_tipo: string
           saida: string
           status: string
           termina_no_dia_seguinte: boolean
@@ -12882,6 +12951,10 @@ export type Database = {
           _data: string
           _unidade_id: string
         }
+        Returns: Json
+      }
+      dp_convocacao_parciais_pendentes: {
+        Args: { p_company_id: string }
         Returns: Json
       }
       dp_convocacao_pre_avaliar_grupo: {
@@ -12905,7 +12978,15 @@ export type Database = {
         Returns: Json
       }
       dp_convocacao_responder_oferta: {
-        Args: { p_aceito: boolean; p_convocacao_id: string; p_motivo?: string }
+        Args: {
+          p_aceito: boolean
+          p_convocacao_id: string
+          p_motivo?: string
+          p_parcial_entrada?: string
+          p_parcial_observacao?: string
+          p_parcial_saida?: string
+          p_parcial_termina_no_dia_seguinte?: boolean
+        }
         Returns: Json
       }
       dp_convocacao_revisar_ocorrencia: {

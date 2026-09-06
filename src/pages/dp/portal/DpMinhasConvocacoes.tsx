@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
+import { PropostaParcialDialog } from "@/components/dp/convocacoes/PropostaParcialDialog";
 import { useMinhasConvocacoes, type MinhaOferta } from "@/hooks/useDpConvocacoes";
 import { STATUS_META, podeResponder, statusEfetivo } from "@/lib/dp/convocacoes";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
@@ -44,6 +45,7 @@ const remuneracaoPrevista = (snap: any): { total: string; detalhe: string } | nu
 export default function DpMinhasConvocacoes() {
   const { user } = useAuth();
   const [recusa, setRecusa] = useState<string | null>(null);
+  const [parcial, setParcial] = useState<MinhaOferta | null>(null);
 
   const me = useQuery({
     queryKey: ["dp_colaborador_of", user?.id],
@@ -54,7 +56,8 @@ export default function DpMinhasConvocacoes() {
     },
   });
 
-  const { rows, isLoading, responder, registrarVisualizacao } = useMinhasConvocacoes(me.data ?? null);
+  const { rows, isLoading, responder, proporParcial, registrarVisualizacao } =
+    useMinhasConvocacoes(me.data ?? null);
 
   // Visualização registrada uma única vez por oferta pendente ainda não vista.
   const vistas = useRef<Set<string>>(new Set());
@@ -185,20 +188,60 @@ export default function DpMinhasConvocacoes() {
             </Badge>
           </div>
 
+          {c.parcial_status === "aguardando_gestor" ? (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <p className="font-medium">
+                Você ofereceu {hhmm(c.parcial_entrada)} → {hhmm(c.parcial_saida)}
+                {c.parcial_termina_no_dia_seguinte ? " (+1)" : ""}
+              </p>
+              <p className="text-muted-foreground">
+                Aguardando a aprovação do gestor. O dia está reservado para você.
+              </p>
+            </div>
+          ) : null}
+
+          {c.parcial_status === "aprovada" ? (
+            <p className="text-sm text-muted-foreground">
+              Horário parcial aprovado: {hhmm(c.entrada)} → {hhmm(c.saida)}
+              {c.termina_no_dia_seguinte ? " (+1)" : ""}
+            </p>
+          ) : null}
+
+          {c.parcial_status === "recusada" || c.parcial_status === "superada" ? (
+            <p className="text-sm text-muted-foreground">
+              {c.parcial_status === "superada"
+                ? "Este dia foi coberto por outra pessoa."
+                : `Seu horário parcial não foi aprovado.${c.parcial_decisao_motivo ? ` Motivo: ${c.parcial_decisao_motivo}` : ""}`}
+            </p>
+          ) : null}
+
           {responderAgora ? (
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline" className="h-11 gap-2"
-                onClick={() => setRecusa(c.id)} disabled={responder.isPending}
-              >
-                <X className="h-4 w-4" /> Recusar
-              </Button>
-              <Button
-                className="h-11 gap-2"
-                onClick={() => responderConvocacao(c.id, true)} disabled={responder.isPending}
-              >
-                <Check className="h-4 w-4" /> Aceitar
-              </Button>
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline" className="h-11 gap-2"
+                  onClick={() => setRecusa(c.id)} disabled={responder.isPending}
+                >
+                  <X className="h-4 w-4" /> Recusar
+                </Button>
+                <Button
+                  className="h-11 gap-2"
+                  onClick={() => responderConvocacao(c.id, true)} disabled={responder.isPending}
+                >
+                  <Check className="h-4 w-4" /> Aceitar
+                </Button>
+              </div>
+              {c.necessidade_entrada && c.necessidade_saida ? (
+                <Button
+                  variant="ghost" className="h-10 w-full gap-2 text-primary"
+                  onClick={() => setParcial(c)} disabled={proporParcial.isPending}
+                >
+                  <Clock className="h-4 w-4" />
+                  {c.parcial_status === "aguardando_gestor"
+                    ? "Mudar o horário parcial"
+                    : "Posso vir parte do horário"}
+                </Button>
+              ) : null}
             </div>
           ) : null}
         </CardContent>
@@ -239,6 +282,41 @@ export default function DpMinhasConvocacoes() {
         onConfirm={(motivo) => recusa && responderConvocacao(recusa, false, motivo)}
         loading={responder.isPending}
       />
+
+      {parcial ? (
+        <PropostaParcialDialog
+          open={!!parcial}
+          onOpenChange={(v) => !v && setParcial(null)}
+          loading={proporParcial.isPending}
+          necessidade={{
+            entrada: parcial.necessidade_entrada ?? parcial.entrada,
+            saida: parcial.necessidade_saida ?? parcial.saida,
+            termina_no_dia_seguinte:
+              parcial.necessidade_termina_no_dia_seguinte ?? parcial.termina_no_dia_seguinte,
+          }}
+          onConfirm={(p) =>
+            proporParcial.mutate(
+              { id: parcial.id, ...p },
+              {
+                onSuccess: () => {
+                  toast.success("Horário parcial enviado para aprovação do gestor.");
+                  setParcial(null);
+                },
+                onError: (e: any) => {
+                  const msg = String(e?.message ?? "");
+                  toast.error(
+                    msg.includes("PARTIAL_OUT_OF_WINDOW")
+                      ? "O horário precisa ficar dentro do horário pedido."
+                      : msg.includes("PARTIAL_IS_FULL")
+                        ? "Esse é o horário completo — use “Aceitar”."
+                        : msg || "Não foi possível enviar o horário parcial.",
+                  );
+                },
+              },
+            )
+          }
+        />
+      ) : null}
     </div>
   );
 }

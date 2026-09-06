@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import {
-  BellRing, CalendarClock, CheckCircle2, Clock, History, Pencil, Plus, Settings2, Users,
+  BellRing, CalendarClock, CheckCircle2, ClipboardCheck, Clock, History, Pencil, Plus,
+  Settings2, Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,8 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpPage, DpPageHeader, DpContentCard, DpEmptyState } from "@/components/dp/DpPage";
 import { NovaConvocacaoPlanner } from "@/components/dp/convocacoes/NovaConvocacaoPlanner";
 import { ConvocacoesRegrasPanel } from "@/components/dp/convocacoes/ConvocacoesRegrasPanel";
+import { AprovacaoParcialDialog } from "@/components/dp/convocacoes/AprovacaoParcialDialog";
 import { useDpConvocacaoGrupos, type GrupoComOcorrencias } from "@/hooks/useDpConvocacaoGrupos";
-import { useDpConvocacoes } from "@/hooks/useDpConvocacoes";
+import {
+  useDpConvocacoes, useDpConvocacoesParciais, type ParcialPendente,
+} from "@/hooks/useDpConvocacoes";
 import { statusEfetivo, STATUS_META } from "@/lib/dp/convocacoes";
 import { antecedenciaDias } from "@/lib/dp/convocacoes-planejamento";
 import { cn } from "@/lib/utils";
@@ -116,8 +120,10 @@ function GrupoCard({
 export default function DpConvocacoes() {
   const [wizard, setWizard] = useState(false);
   const [emEdicao, setEmEdicao] = useState<GrupoComOcorrencias | null>(null);
+  const [parcialAberta, setParcialAberta] = useState<ParcialPendente | null>(null);
   const grupos = useDpConvocacaoGrupos();
   const legado = useDpConvocacoes(emDias(-180), emDias(180));
+  const parciais = useDpConvocacoesParciais();
 
   // Registros do fluxo antigo (sem ocorrência) continuam visíveis, marcados.
   const legadas = useMemo(
@@ -225,6 +231,14 @@ export default function DpConvocacoes() {
           <TabsTrigger value="aguardando" className="gap-1.5">
             <Clock className="h-4 w-4" /> Aguardando
           </TabsTrigger>
+          <TabsTrigger value="aprovacoes" className="gap-1.5">
+            <ClipboardCheck className="h-4 w-4" /> Aprovações
+            {parciais.rows.length > 0 ? (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[11px]">
+                {parciais.rows.length}
+              </Badge>
+            ) : null}
+          </TabsTrigger>
           <TabsTrigger value="confirmadas" className="gap-1.5">
             <CheckCircle2 className="h-4 w-4" /> Confirmadas
           </TabsTrigger>
@@ -257,6 +271,59 @@ export default function DpConvocacoes() {
               Clock,
               "Ninguém aguardando resposta",
               "Aparecem aqui as convocações já enviadas cujo aceite ainda não chegou. Pendentes nunca contam como confirmados.",
+            )}
+          </DpContentCard>
+        </TabsContent>
+
+        <TabsContent value="aprovacoes" className="mt-3">
+          <DpContentCard>
+            {parciais.isLoading ? (
+              <p className="text-sm text-muted-foreground">Carregando…</p>
+            ) : parciais.rows.length === 0 ? (
+              <DpEmptyState icon={ClipboardCheck} dashed>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Nenhum horário parcial na fila</p>
+                  <p>
+                    Quando alguém aceitar só parte do horário de um dia, o pedido aparece aqui para
+                    você aprovar, oferecer o dia a outras pessoas ou recusar.
+                  </p>
+                </div>
+              </DpEmptyState>
+            ) : (
+              <div className="space-y-2">
+                {parciais.rows.map((p) => (
+                  <button
+                    key={p.convocacao_id}
+                    type="button"
+                    onClick={() => setParcialAberta(p)}
+                    className="flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/50"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{p.colaborador_nome ?? "Colaborador"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {rotuloData(p.data)}
+                        {p.cargo_nome ? ` · ${p.cargo_nome}` : ""}
+                        {p.unidade_nome ? ` · ${p.unidade_nome}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground">
+                        pedido {String(p.necessidade_entrada ?? "").slice(0, 5)}–
+                        {String(p.necessidade_saida ?? "").slice(0, 5)}
+                      </span>
+                      <Badge variant="outline" className="border-amber-500/50 text-[11px]">
+                        oferece {String(p.parcial_entrada ?? "").slice(0, 5)}–
+                        {String(p.parcial_saida ?? "").slice(0, 5)}
+                      </Badge>
+                      {p.reofertas_pendentes > 0 ? (
+                        <Badge variant="secondary" className="text-[11px]">
+                          {p.reofertas_pendentes} oferta(s) em aberto
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </button>
+                ))}
+              </div>
             )}
           </DpContentCard>
         </TabsContent>
@@ -334,6 +401,11 @@ export default function DpConvocacoes() {
           if (!v) setEmEdicao(null);
         }}
         grupo={emEdicao}
+      />
+
+      <AprovacaoParcialDialog
+        parcial={parcialAberta}
+        onOpenChange={(v) => !v && setParcialAberta(null)}
       />
     </DpPage>
   );
