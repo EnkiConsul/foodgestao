@@ -102,7 +102,7 @@ export default function DpConformidadeDsr() {
     queryFn: async (): Promise<LinhaComUnidade[]> => {
       const { data: colaboradores, error: cErr } = await supabase
         .from("dp_colaboradores")
-        .select("id, nome, sexo, domingos_folga_mes, ativo, unidade_id, regime, vinculo_label")
+        .select("id, nome, sexo, domingos_folga_mes, ativo, unidade_id, cargo_id, regime, vinculo_label")
         .eq("company_id", selectedCompanyId!)
         .eq("ativo", true)
         .order("nome");
@@ -112,7 +112,7 @@ export default function DpConformidadeDsr() {
         .from("dp_folgas")
         .select("colaborador_id, data, status")
         .eq("company_id", selectedCompanyId!)
-        .gte("data", `${competencia}-01`)
+        .gte("data", inicio)
         .lte("data", fim);
       if (fErr) throw fErr;
 
@@ -139,6 +139,7 @@ export default function DpConformidadeDsr() {
           sexo: c.sexo,
           domingosMesOverride: c.domingos_folga_mes ?? null,
           unidadeId: c.unidade_id ?? null,
+          cargoId: c.cargo_id ?? null,
           domingosFolgados: porColab.get(c.id) ?? [],
           diasNegociadosFolgados: (outrasFolgas.get(c.id) ?? []).filter((d) =>
             negociados.has(weekdayIso(d)),
@@ -150,19 +151,49 @@ export default function DpConformidadeDsr() {
   });
 
   /** Avalia por unidade, aplicando a regra vigente de cada loja. */
-  const linhas: ConformidadeLinha[] = useMemo(() => {
+  const linhas: LinhaConformidade[] = useMemo(() => {
     const dados = query.data ?? [];
     const grupos = new Map<string, LinhaComUnidade[]>();
     for (const l of dados) {
       const k = l.unidadeId ?? "__padrao__";
       grupos.set(k, [...(grupos.get(k) ?? []), l]);
     }
-    const out: ConformidadeLinha[] = [];
+    const out: LinhaConformidade[] = [];
     for (const [k, itens] of grupos) {
-      out.push(...avaliarConformidade(itens, configDaUnidade(k === "__padrao__" ? null : k)));
+      out.push(
+        ...(avaliarConformidade(itens, configDaUnidade(k === "__padrao__" ? null : k)) as LinhaConformidade[]),
+      );
     }
     return out.sort((a, b) => a.nome.localeCompare(b.nome));
   }, [query.data, configDaUnidade]);
+
+  /** Aplica os filtros do gestor sobre as linhas avaliadas. */
+  const linhasFiltradas: LinhaConformidade[] = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return linhas.filter((l) => {
+      if (unidadeFiltro !== TODOS) {
+        const alvo = unidadeFiltro === SEM_VINCULO ? null : unidadeFiltro;
+        if ((l.unidadeId ?? null) !== alvo) return false;
+      }
+      if (cargoFiltro !== TODOS) {
+        const alvo = cargoFiltro === SEM_VINCULO ? null : cargoFiltro;
+        if ((l.cargoId ?? null) !== alvo) return false;
+      }
+      if (situacaoFiltro === "fora" && l.conforme) return false;
+      if (situacaoFiltro === "conforme" && !l.conforme) return false;
+      if (termo && !l.nome.toLowerCase().includes(termo)) return false;
+      return true;
+    });
+  }, [linhas, unidadeFiltro, cargoFiltro, situacaoFiltro, busca]);
+
+  const filtrosAtivos =
+    unidadeFiltro !== TODOS || cargoFiltro !== TODOS || situacaoFiltro !== "todos" || busca.trim() !== "";
+  const limparFiltros = () => {
+    setUnidadeFiltro(TODOS);
+    setCargoFiltro(TODOS);
+    setSituacaoFiltro("todos");
+    setBusca("");
+  };
 
   const porAcordo = configPadraoEmpresa.tipo_descanso_domingo === "acordo_coletivo";
   const semanas = semanasDaConfig(configPadraoEmpresa);
@@ -170,6 +201,8 @@ export default function DpConformidadeDsr() {
     .map((d) => DIA_SEMANA_CURTO[d])
     .join(", ");
   const foraDeConformidade = linhas.filter((l) => !l.conforme).length;
+  const foraFiltrado = linhasFiltradas.filter((l) => !l.conforme).length;
+
 
   const exportarCsv = () => {
     const headers = [
