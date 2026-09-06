@@ -185,20 +185,60 @@ export default function DpMinhasConvocacoes() {
             </Badge>
           </div>
 
+          {c.parcial_status === "aguardando_gestor" ? (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <p className="font-medium">
+                Você ofereceu {hhmm(c.parcial_entrada)} → {hhmm(c.parcial_saida)}
+                {c.parcial_termina_no_dia_seguinte ? " (+1)" : ""}
+              </p>
+              <p className="text-muted-foreground">
+                Aguardando a aprovação do gestor. O dia está reservado para você.
+              </p>
+            </div>
+          ) : null}
+
+          {c.parcial_status === "aprovada" ? (
+            <p className="text-sm text-muted-foreground">
+              Horário parcial aprovado: {hhmm(c.entrada)} → {hhmm(c.saida)}
+              {c.termina_no_dia_seguinte ? " (+1)" : ""}
+            </p>
+          ) : null}
+
+          {c.parcial_status === "recusada" || c.parcial_status === "superada" ? (
+            <p className="text-sm text-muted-foreground">
+              {c.parcial_status === "superada"
+                ? "Este dia foi coberto por outra pessoa."
+                : `Seu horário parcial não foi aprovado.${c.parcial_decisao_motivo ? ` Motivo: ${c.parcial_decisao_motivo}` : ""}`}
+            </p>
+          ) : null}
+
           {responderAgora ? (
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline" className="h-11 gap-2"
-                onClick={() => setRecusa(c.id)} disabled={responder.isPending}
-              >
-                <X className="h-4 w-4" /> Recusar
-              </Button>
-              <Button
-                className="h-11 gap-2"
-                onClick={() => responderConvocacao(c.id, true)} disabled={responder.isPending}
-              >
-                <Check className="h-4 w-4" /> Aceitar
-              </Button>
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline" className="h-11 gap-2"
+                  onClick={() => setRecusa(c.id)} disabled={responder.isPending}
+                >
+                  <X className="h-4 w-4" /> Recusar
+                </Button>
+                <Button
+                  className="h-11 gap-2"
+                  onClick={() => responderConvocacao(c.id, true)} disabled={responder.isPending}
+                >
+                  <Check className="h-4 w-4" /> Aceitar
+                </Button>
+              </div>
+              {c.necessidade_entrada && c.necessidade_saida ? (
+                <Button
+                  variant="ghost" className="h-10 w-full gap-2 text-primary"
+                  onClick={() => setParcial(c)} disabled={proporParcial.isPending}
+                >
+                  <Clock className="h-4 w-4" />
+                  {c.parcial_status === "aguardando_gestor"
+                    ? "Mudar o horário parcial"
+                    : "Posso vir parte do horário"}
+                </Button>
+              ) : null}
             </div>
           ) : null}
         </CardContent>
