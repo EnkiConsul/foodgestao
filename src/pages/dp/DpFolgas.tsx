@@ -738,10 +738,22 @@ export default function DpFolgas() {
               <Scale className="h-4 w-4" />
               {gerarFolgasClt.isPending ? "Gerando..." : "Gerar folgas CLT"}
             </Button>
+            {podeDistribuir && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setAutoOpen(true)}
+                title="Distribui as folgas de fim de semana de quem ainda não marcou neste mês"
+              >
+                <Wand2 className="h-4 w-4" />
+                Distribuir folgas automaticamente
+              </Button>
+            )}
             <Button onClick={() => openNew()} className="gap-2">
               <Plus className="h-4 w-4" /> Nova solicitação
             </Button>
           </div>
+
 
         }
       />
