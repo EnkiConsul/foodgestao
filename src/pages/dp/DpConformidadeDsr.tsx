@@ -1,14 +1,16 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
-import { ScaleIcon, Download, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ScaleIcon, Download, CheckCircle2, AlertTriangle, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
+import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import {
   avaliarConformidade, DIA_SEMANA_CURTO, semanasDaConfig,
   type ConformidadeInput, type ConformidadeLinha,
 } from "@/lib/dp/dsr-rules";
+import { primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/dp/competencia";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 
 import { cn } from "@/lib/utils";
@@ -20,8 +22,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+
 
 /** Lista os dias da semana informados (0=dom, 6=sáb) de um mês 'yyyy-mm', em ISO. */
 function diasDaSemanaDoMes(competencia: string, weekday: number): string[] {
