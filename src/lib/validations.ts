@@ -100,3 +100,23 @@ export function validateWithToast<T>(schema: z.ZodSchema<T>, data: unknown, toas
   toastFn(result.error.errors[0]?.message ?? "Dados inválidos");
   return null;
 }
+
+// ---- Pessoa avulsa na rotina do dia (teste/folguista) ----
+export const pessoaAvulsaSchema = z
+  .object({
+    nome: z.string().trim().min(2, "Informe o nome da pessoa").max(120),
+    tipo: z.enum(["teste", "folguista"]),
+    unidade_id: z.string().uuid("Selecione a unidade"),
+    cargo_id: z.string().uuid("Selecione o cargo"),
+    cobre_colaborador_id: z.string().uuid().nullable().optional(),
+    data_inicio: z.string().min(10, "Informe a data inicial"),
+    data_fim: z.string().min(10, "Informe a data final"),
+    entrada: z.string().nullable().optional(),
+    saida: z.string().nullable().optional(),
+    termina_no_dia_seguinte: z.boolean().optional(),
+    observacao: z.string().trim().max(500, "Observação muito longa (máx. 500)").nullable().optional(),
+  })
+  .refine((d) => d.data_fim >= d.data_inicio, {
+    message: "A data final não pode ser anterior à data inicial",
+    path: ["data_fim"],
+  });
