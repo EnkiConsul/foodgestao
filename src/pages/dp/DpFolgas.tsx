@@ -1467,7 +1467,7 @@ export default function DpFolgas() {
       <Dialog open={autoOpen} onOpenChange={setAutoOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Distribuir folgas automaticamente</DialogTitle>
+            <DialogTitle>Gerar Folgas</DialogTitle>
             <DialogDescription>
               {format(cursor, "MMMM 'de' yyyy", { locale: ptBR })}
               {unidadeAlvo
