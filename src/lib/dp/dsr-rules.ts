@@ -631,8 +631,10 @@ type CfgConformidade = Pick<DpConfigDp, "periodicidade_domingo" | "periodicidade
       | "domingos_por_mes"
       | "modo_frequencia_domingo_mulher"
       | "domingos_por_mes_mulher"
+      | "setor_comercio"
     >
   >;
+
 
 /**
  * Rótulo curto da regra de frequência aplicada a um colaborador.
