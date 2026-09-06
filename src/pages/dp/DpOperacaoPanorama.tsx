@@ -262,12 +262,18 @@ function DetalheDiaOperacao({
   onVerSocios,
   onDispensar,
   onReativar,
+  avulsos,
+  podeRegistrar,
+  onNovaAvulsa,
+  onEditarAvulsa,
+  onExcluirAvulsa,
 }: DetalheDiaProps) {
   const foraDaOperacao = dia.pessoas.filter((p) =>
     ["folga_padrao", "folga_extra", "ferias", "atestado"].includes(p.categoria),
   );
   const ausReg = ausenciasRegistradas.filter((a) => a.inicio <= data && a.fim >= data);
   const rotuloAus = (t: string) => (t === "adiantamento" ? "Adiantamento" : t === "outros" ? "Ausência" : t);
+  const avulsosDoDia = avulsos.filter((a) => a.data_inicio <= data && a.data_fim >= data);
 
   return (
     <div className="space-y-4">
