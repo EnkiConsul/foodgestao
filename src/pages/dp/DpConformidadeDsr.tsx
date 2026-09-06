@@ -321,7 +321,7 @@ export default function DpConformidadeDsr() {
     },
     situacao: {
       label: "Situação", sortKey: "situacao", center: true,
-      value: (l) => (l.conforme ? SITUACAO_CONFORME : SITUACAO_FORA),
+      value: (l) => situacaoLabel(l),
       render: (l) => badgeSituacao(l),
     },
   };
@@ -386,18 +386,19 @@ export default function DpConformidadeDsr() {
   const porAcordo =
     configPadraoEmpresa.tipo_descanso_domingo === "acordo_coletivo" ||
     rows.some((r) => r.unidade_id && r.tipo_descanso_domingo === "acordo_coletivo");
-  const foraDeConformidade = linhas.filter((l) => !l.conforme).length;
-  const foraFiltrado = linhasFiltradas.filter((l) => !l.conforme).length;
-  const filtroForaAtivo =
-    (colFilters.situacao ?? []).length === 1 && colFilters.situacao[0] === SITUACAO_FORA;
+  const foraClt = linhas.filter((l) => !l.conformeClt).length;
+  const foraEmpresa = linhas.filter((l) => !l.conformeEmpresa).length;
+  const filtroForaAtivo = (colFilters.situacao ?? []).some((v) => v !== SITUACAO_OK)
+    && !(colFilters.situacao ?? []).includes(SITUACAO_OK);
 
-  /** Selo clicável: alterna o filtro da coluna Situação para "Fora de conformidade". */
+  /** Selo clicável: alterna o filtro da coluna Situação para quem tem algo em falta. */
   const alternarFiltroFora = () => {
     setColFilters((p) => ({
       ...p,
-      situacao: filtroForaAtivo ? [] : [SITUACAO_FORA],
+      situacao: filtroForaAtivo ? [] : [SITUACAO_SO_CLT, SITUACAO_SO_EMPRESA, SITUACAO_AMBAS],
     }));
   };
+
 
   /** Textos auxiliares do diálogo de detalhes da linha selecionada. */
   const detalheInfo = useMemo(() => {
