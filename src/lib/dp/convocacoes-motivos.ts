@@ -103,7 +103,7 @@ export function textoDoErroDePublicacao(mensagem: string): string {
     return `A convocação${dia} é em cima da hora: marque \"Estou ciente e quero publicar mesmo assim\" para continuar.`;
   }
   if (msg.includes("CONCURRENT_MODIFICATION")) {
-    return "O rascunho foi alterado por outra pessoa. Reabra e tente novamente.";
+    return "O rascunho foi atualizado em outra aba ou por outra pessoa. Recarregue e tente novamente.";
   }
   if (msg.includes("OPEN_CALL_NOT_ALLOWED")) {
     return "As regras da unidade não permitem convocação aberta.";
