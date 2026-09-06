@@ -410,17 +410,33 @@ export default function DpConformidadeDsr() {
     const negociadosDias = diasElegiveisDaConfig(cfg).filter((d) => d !== 0);
     const negociadosLabel = negociadosDias.map((d) => DIA_SEMANA_CURTO[d]).join(", ");
     const acordo = cfg.tipo_descanso_domingo === "acordo_coletivo";
-    const datas = [...(detalhe.domingosFolgados ?? []), ...(detalhe.diasNegociadosFolgados ?? [])]
+    const datas = [
+      ...(detalhe.domingosFolgados ?? []),
+      ...(detalhe.diasNegociadosFolgados ?? []),
+      ...(detalhe.folgasOutrosDias ?? []),
+    ]
       .sort()
-      .map((iso) => ({ iso, dia: DIA_SEMANA_CURTO[weekdayIso(iso)] }));
-    return { origem, negociadosLabel, acordo, datas };
+      .map((iso) => ({
+        iso,
+        dia: DIA_SEMANA_CURTO[weekdayIso(iso)],
+        origem: detalhe.origemPorData.get(iso) === "aprovada" ? "aprovada" : "registrada",
+        contaClt: weekdayIso(iso) === 0 || (acordo && negociadosDias.includes(weekdayIso(iso))),
+      }));
+    const descansoLabel = (detalhe.dowsDescanso ?? [])
+      .slice()
+      .sort((a, b) => a - b)
+      .map((d) => DIA_SEMANA_CURTO[d])
+      .join(", ");
+    const foraDoDomingo = datas.filter((d) => !d.contaClt);
+    return { origem, negociadosLabel, acordo, datas, descansoLabel, foraDoDomingo };
   }, [detalhe, configDaUnidade, rows]);
 
   const exportarCsv = () => {
     const headers = [
       "Colaborador", "Unidade", "Cargo", "Sexo", "Domingos no mês", "Folgas no mês",
-      "Domingos folgados", "Folgas em dias de descanso negociados", "Folgas consideradas",
-      "Regra aplicada", "Mínimo esperado", "Situação",
+      "Domingos folgados", "Folgas em dias de descanso negociados", "Folgas consideradas (CLT)",
+      "Descansos considerados (empresa)", "Regra aplicada", "Mínimo esperado",
+      "Situação CLT", "Situação regra da empresa",
     ];
     const rowsCsv = linhasFiltradas.map((l) => [
       l.nome,
@@ -432,10 +448,13 @@ export default function DpConformidadeDsr() {
       String(l.domingosFolgados.length),
       String(l.negociadosAproveitados),
       String(l.folgasConsideradas),
+      String(l.folgasEmpresa),
       l.rotuloFrequencia,
       String(l.esperado),
-      l.conforme ? SITUACAO_CONFORME : SITUACAO_FORA,
+      l.conformeClt ? "Em ordem" : "Em falta",
+      l.conformeEmpresa ? "Em ordem" : "Em falta",
     ]);
+
 
 
 
@@ -483,13 +502,17 @@ export default function DpConformidadeDsr() {
             <button
               type="button"
               onClick={alternarFiltroFora}
-              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              title={filtroForaAtivo ? "Mostrar todos" : "Ver só quem está fora de conformidade"}
+              className="flex flex-wrap items-center gap-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              title={filtroForaAtivo ? "Mostrar todos" : "Ver só quem está com algo em falta"}
             >
-              <Badge variant={foraFiltrado > 0 || filtroForaAtivo ? "destructive" : "default"}>
-                {foraDeConformidade > 0 ? `${foraDeConformidade} fora de conformidade` : "Todos conformes"}
+              <Badge variant={foraClt > 0 ? "destructive" : "default"}>
+                {foraClt > 0 ? `${foraClt} sem folga em domingo (CLT)` : "CLT em ordem"}
+              </Badge>
+              <Badge variant={foraEmpresa > 0 ? "destructive" : "default"}>
+                {foraEmpresa > 0 ? `${foraEmpresa} fora da regra da empresa` : "Regra da empresa em ordem"}
               </Badge>
             </button>
+
             <p className="text-[11px] text-muted-foreground">
               {linhasFiltradas.length} de {linhas.length} colaborador(es)
             </p>
