@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -755,6 +755,7 @@ export default function DpOperacaoPanorama() {
       onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível remover."),
     });
 
+  const navigate = useNavigate();
   const [setorAlvo, setSetorAlvo] = useState<AlterarSetorAlvo | null>(null);
 
   const propsSetor = {
@@ -1194,7 +1195,7 @@ export default function DpOperacaoPanorama() {
         }}
         onEditarSetorHabitual={(id) => {
           setSetorAlvo(null);
-          navigate(`/dp/colaboradores?editar=${id}&aba=dados&voltar=${encodeURIComponent(location.pathname + location.search)}`);
+          navigate(`/dp/colaboradores?editar=${id}`);
         }}
       />
 
