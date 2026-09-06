@@ -81,6 +81,7 @@ export default function DpFeriasHub() {
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
           <TabsTrigger value="programadas">Programadas</TabsTrigger>
           <TabsTrigger value="em-ferias">Em férias</TabsTrigger>
+          <TabsTrigger value="contabilidade">Contabilidade</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="regras">Regras</TabsTrigger>
         </DpTabsBar>
