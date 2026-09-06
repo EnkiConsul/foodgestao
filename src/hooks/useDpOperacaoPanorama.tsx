@@ -43,11 +43,14 @@ export interface AusenciaRegistrada {
   motivo: string | null;
 }
 
-/** Dados do cadastro rápido de pessoa avulsa (teste/folguista). */
+/** Dados do cadastro rápido de pessoa avulsa (teste/folguista/registro manual). */
 export interface PessoaAvulsaInput {
   id?: string;
-  nome: string;
+  /** Nome livre; nulo no registro manual de colaborador cadastrado. */
+  nome?: string | null;
   tipo: PessoaAvulsaTipo;
+  /** Colaborador cadastrado, obrigatório no registro manual. */
+  colaborador_id?: string | null;
   unidade_id: string;
   cargo_id: string;
   cobre_colaborador_id?: string | null;
@@ -58,6 +61,7 @@ export interface PessoaAvulsaInput {
   termina_no_dia_seguinte?: boolean;
   observacao?: string | null;
 }
+
 
 const DISPENSA_SENTINELA = "00000000-0000-0000-0000-000000000000";
 
@@ -257,7 +261,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     },
   });
 
-  /** Pessoas avulsas (teste/folguista) que cruzam a competência exibida. */
+  /** Pessoas na rotina do dia (teste/folguista/registro manual) na competência. */
   const avulsasQuery = useQuery({
     queryKey: ["dp_pessoas_avulsas", selectedCompanyId, competencia, unidadeId],
     enabled: !!selectedCompanyId,
@@ -265,8 +269,9 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       let q = supabase
         .from("dp_pessoas_avulsas")
         .select(
-          "id, nome, tipo, unidade_id, cargo_id, cobre_colaborador_id, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao",
+          "id, nome, tipo, colaborador_id, unidade_id, cargo_id, cobre_colaborador_id, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao",
         )
+
         .eq("company_id", selectedCompanyId!)
         .lte("data_inicio", fim)
         .gte("data_fim", inicio)
@@ -421,6 +426,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       id: a.id,
       nome: a.nome,
       tipo: a.tipo as PessoaAvulsaTipo,
+      colaborador_id: a.colaborador_id ?? null,
+
       unidade_id: a.unidade_id,
       cargo_id: a.cargo_id,
       cargo_nome: cargos.get(a.cargo_id) ?? null,
@@ -521,13 +528,16 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
   const salvarAvulsa = useMutation({
     mutationFn: async (input: PessoaAvulsaInput) => {
       const { data: userData } = await supabase.auth.getUser();
+      const manual = input.tipo === "registro_manual";
       const payload = {
         company_id: selectedCompanyId!,
         unidade_id: input.unidade_id,
         cargo_id: input.cargo_id,
-        nome: input.nome.trim(),
+        nome: manual ? null : input.nome?.trim() ?? null,
+        colaborador_id: manual ? input.colaborador_id ?? null : null,
         tipo: input.tipo,
         cobre_colaborador_id: input.tipo === "folguista" ? input.cobre_colaborador_id ?? null : null,
+
         data_inicio: input.data_inicio,
         data_fim: input.data_fim,
         entrada: input.entrada || null,

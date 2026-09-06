@@ -26,7 +26,7 @@ interface Props {
   unidadePadrao?: string | null;
   unidades: { id: string; nome: string }[];
   cargos: { id: string; nome: string }[];
-  colaboradores: { id: string; nome: string }[];
+  colaboradores: { id: string; nome: string; cargo_id?: string | null; unidade_id?: string | null }[];
   /** Registro em edição; ausente = novo cadastro. */
   registro?: PessoaAvulsaPanorama | null;
   salvando?: boolean;
@@ -36,14 +36,22 @@ interface Props {
 }
 
 const TIPO_LABEL: Record<PessoaAvulsaTipo, string> = {
+  registro_manual: "Colaborador cadastrado que trabalhou",
   teste: "Em teste na loja",
   folguista: "Folguista (cobrindo alguém)",
 };
 
+const hojeIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+
 /**
- * Cadastro rápido de alguém que trabalha no dia sem ser colaborador
- * cadastrado: pessoa em teste ou folguista cobrindo um titular. Só entra na
- * rotina do dia — não gera folga, ponto, folha nem convocação.
+ * Cadastro rápido de quem trabalhou no dia: colaborador cadastrado registrado
+ * manualmente (convocação/escala esquecida) ou pessoa não cadastrada em teste /
+ * folguista. Só entra na rotina do dia — não gera folga, ponto, folha nem
+ * convocação.
  */
 export function DpPessoaAvulsaDialog({
   open,
@@ -60,7 +68,8 @@ export function DpPessoaAvulsaDialog({
 }: Props) {
   const [form, setForm] = useState({
     nome: "",
-    tipo: "teste" as PessoaAvulsaTipo,
+    tipo: "registro_manual" as PessoaAvulsaTipo,
+    colaborador_id: "",
     unidade_id: "",
     cargo_id: "",
     cobre_colaborador_id: "",
@@ -73,17 +82,22 @@ export function DpPessoaAvulsaDialog({
   });
   const [horarioTocado, setHorarioTocado] = useState(false);
 
+  const manual = form.tipo === "registro_manual";
+  const hoje = hojeIso();
+
   useEffect(() => {
     if (!open) return;
     setHorarioTocado(false);
+    const dataBase = registro?.data_inicio ?? (dataInicial > hojeIso() ? hojeIso() : dataInicial);
     setForm({
       nome: registro?.nome ?? "",
-      tipo: registro?.tipo ?? "teste",
+      tipo: registro?.tipo ?? "registro_manual",
+      colaborador_id: registro?.colaborador_id ?? "",
       unidade_id: registro?.unidade_id ?? unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
       cargo_id: registro?.cargo_id ?? "",
       cobre_colaborador_id: "",
-      data_inicio: registro?.data_inicio ?? dataInicial,
-      data_fim: registro?.data_fim ?? dataInicial,
+      data_inicio: dataBase,
+      data_fim: registro?.data_fim ?? dataBase,
       entrada: registro?.entrada ?? "",
       saida: registro?.saida ?? "",
       termina_no_dia_seguinte: registro?.termina_no_dia_seguinte ?? false,
@@ -105,10 +119,28 @@ export function DpPessoaAvulsaDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sugerirHorario, form.unidade_id, form.cargo_id, form.data_inicio]);
 
+  /** Ao escolher o colaborador, já traz o cargo e a unidade do cadastro dele. */
+  const escolherColaborador = (id: string) => {
+    const c = colaboradores.find((x) => x.id === id);
+    setForm((f) => ({
+      ...f,
+      colaborador_id: id,
+      cargo_id: c?.cargo_id ?? f.cargo_id,
+      unidade_id: c?.unidade_id ?? f.unidade_id,
+    }));
+  };
+
   const salvar = () => {
+    if (manual && form.data_fim > hoje) {
+      toast.error("Data futura não permitida", {
+        description: "Para dias futuros use a convocação ou a escala.",
+      });
+      return;
+    }
     const candidato: PessoaAvulsaInput = {
-      nome: form.nome.trim(),
+      nome: manual ? null : form.nome.trim(),
       tipo: form.tipo,
+      colaborador_id: manual ? form.colaborador_id || null : null,
       unidade_id: form.unidade_id,
       cargo_id: form.cargo_id,
       cobre_colaborador_id: form.cobre_colaborador_id || null,
@@ -126,29 +158,20 @@ export function DpPessoaAvulsaDialog({
     onSalvar({ ...candidato, id: registro?.id });
   };
 
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{registro ? "Editar Pessoa Avulsa" : "Registrar Pessoa Avulsa"}</DialogTitle>
+          <DialogTitle>{registro ? "Editar Pessoa no Dia" : "Adicionar Pessoa no Dia"}</DialogTitle>
           <DialogDescription>
-            Para quem trabalha no dia sem estar cadastrado como colaborador: pessoa em teste ou
-            folguista cobrindo alguém. Aparece na rotina do dia e conta no quadro.
+            Registre quem trabalhou no dia: um colaborador já cadastrado (quando a convocação ou a
+            escala não foi feita) ou alguém em teste / folguista. Aparece na rotina e conta no quadro.
           </DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[65vh] gap-3 overflow-y-auto py-2 pr-1">
           <div className="grid gap-1.5">
-            <Label>Nome da pessoa *</Label>
-            <Input
-              value={form.nome}
-              maxLength={120}
-              placeholder="Ex.: Maria Souza"
-              onChange={(e) => setForm({ ...form, nome: e.target.value })}
-            />
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label>Tipo *</Label>
+            <Label>Quem trabalhou *</Label>
             <Select
               value={form.tipo}
               onValueChange={(v) => setForm({ ...form, tipo: v as PessoaAvulsaTipo })}
@@ -165,6 +188,38 @@ export function DpPessoaAvulsaDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {manual ? (
+            <div className="grid gap-1.5">
+              <Label>Colaborador *</Label>
+              <Select value={form.colaborador_id} onValueChange={escolherColaborador}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {colaboradores.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Só para hoje ou dias que já passaram. Não gera convocação, ponto nem folha.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-1.5">
+              <Label>Nome da pessoa *</Label>
+              <Input
+                value={form.nome}
+                maxLength={120}
+                placeholder="Ex.: Maria Souza"
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              />
+            </div>
+          )}
+
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
@@ -231,6 +286,7 @@ export function DpPessoaAvulsaDialog({
               <Label>Data inicial *</Label>
               <Input
                 type="date"
+                max={manual ? hoje : undefined}
                 value={form.data_inicio}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -246,9 +302,11 @@ export function DpPessoaAvulsaDialog({
               <Input
                 type="date"
                 min={form.data_inicio || undefined}
+                max={manual ? hoje : undefined}
                 value={form.data_fim}
                 onChange={(e) => setForm({ ...form, data_fim: e.target.value })}
               />
+
             </div>
           </div>
 

@@ -36,7 +36,7 @@ export const CATEGORIA_LABEL: Record<CategoriaDia, string> = {
   folga_padrao: "Folga Padrão",
   folga_extra: "Folga Extra",
   ferias: "Férias",
-  atestado: "Atestado/Licença",
+  atestado: "Atestado / Licença",
 };
 
 export interface ColaboradorPanorama {
@@ -93,17 +93,21 @@ export interface ItemEscalaPanorama {
   intervalo_minutos?: number | null;
 }
 
-export type PessoaAvulsaTipo = "teste" | "folguista";
+export type PessoaAvulsaTipo = "teste" | "folguista" | "registro_manual";
 
 /**
- * Pessoa registrada só para a rotina do dia (em teste na loja ou folguista
- * cobrindo alguém). Não é colaborador cadastrado: não tem jornada, folga,
- * ponto nem convocação — apenas ocupa o dia.
+ * Pessoa registrada só para a rotina do dia. Pode ser alguém que não é
+ * colaborador cadastrado (em teste na loja ou folguista cobrindo alguém) ou o
+ * registro manual de um colaborador cadastrado que trabalhou sem convocação /
+ * escala. Em nenhum caso gera folga, ponto, folha ou convocação.
  */
 export interface PessoaAvulsaPanorama {
   id: string;
-  nome: string;
+  /** Nome livre; nulo quando o registro aponta para um colaborador cadastrado. */
+  nome: string | null;
   tipo: PessoaAvulsaTipo;
+  /** Preenchido só no registro manual de colaborador cadastrado. */
+  colaborador_id?: string | null;
   unidade_id: string | null;
   cargo_id: string | null;
   cargo_nome: string | null;
@@ -115,6 +119,7 @@ export interface PessoaAvulsaPanorama {
   termina_no_dia_seguinte: boolean;
   observacao: string | null;
 }
+
 
 /** Id sintético usado nas listas do painel (nunca é um colaborador real). */
 export const idPessoaAvulsa = (id: string) => `avulso:${id}`;
@@ -136,8 +141,9 @@ export interface PessoaPanorama {
   socio: boolean;
   /** Sócio vinculado a uma unidade e com jornada: conta como parte do quadro. */
   socio_integrado?: boolean;
-  /** Origem do horário: jornada habitual, escala publicada, convocação ou registro avulso. */
-  origem: "jornada" | "escala" | "convocacao" | "avulso";
+  /** Origem do horário: jornada habitual, escala, convocação, avulso ou registro manual. */
+  origem: "jornada" | "escala" | "convocacao" | "avulso" | "registro_manual";
+
   /** Preenchido só para pessoas avulsas (teste/folguista). */
   avulso_id?: string;
   avulso_tipo?: PessoaAvulsaTipo;
@@ -241,7 +247,17 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     if (i.data === data) itemPor.set(i.colaborador_id, i);
   }
 
+  // Registro manual: o gestor confirma que um colaborador cadastrado trabalhou
+  // no dia (convocação esquecida, cobertura de última hora etc.).
+  const manualPor = new Map<string, PessoaAvulsaPanorama>();
+  for (const a of input.avulsos ?? []) {
+    if (a.tipo !== "registro_manual" || !a.colaborador_id) continue;
+    if (data < a.data_inicio || data > a.data_fim) continue;
+    manualPor.set(a.colaborador_id, a);
+  }
+
   const turnoPorId = new Map(turnos.map((t) => [t.id, t]));
+
 
   const registrar = (
     colab: ColaboradorPanorama,
@@ -254,6 +270,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       intervalo_minutos?: number | null;
       origem: PessoaPanorama["origem"];
     },
+    extras?: { avulso_id?: string; avulso_tipo?: PessoaAvulsaTipo; observacao?: string | null },
   ) => {
     // Sócio com unidade definida e jornada cadastrada faz parte do quadro daquela
     // unidade: entra nas contagens normais (fixo e folga padrão da jornada).
@@ -288,9 +305,10 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       socio: !!colab.socio,
       socio_integrado: socioIntegrado,
       origem: horario?.origem ?? "jornada",
-
+      ...(extras ?? {}),
     });
   };
+
 
   for (const colab of colaboradores) {
     const convocacao = convocPor.get(colab.id);
@@ -329,8 +347,29 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       continue;
     }
 
+    // Registro manual de trabalho: vale mais que jornada/escala do dia, mas
+    // nunca duplica convocação, férias, atestado ou folga extra (tratados acima).
+    const manual = manualPor.get(colab.id);
+    if (manual) {
+      registrar(
+        colab,
+        colab.intermitente ? "convocado_aceito" : "fixo",
+        {
+          turno_id: null,
+          turno_nome: "Registro manual",
+          entrada: manual.entrada,
+          saida: manual.saida,
+          intervalo_minutos: 0,
+          origem: "registro_manual",
+        },
+        { avulso_id: manual.id, avulso_tipo: "registro_manual", observacao: manual.observacao },
+      );
+      continue;
+    }
+
     // Intermitente sem convocação e sem ausência simplesmente não está na operação.
     if (colab.intermitente) continue;
+
 
     const item = itemPor.get(colab.id);
     if (item) {
@@ -374,15 +413,18 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
 
   // Pessoas avulsas (teste/folguista) contam como quadro do dia, igual a um
   // colaborador escalado: entram em "fixo" e, portanto, em "trabalhando".
+  // O registro manual já foi tratado junto do colaborador cadastrado.
   for (const a of input.avulsos ?? []) {
+    if (a.tipo === "registro_manual") continue;
     if (data < a.data_inicio || data > a.data_fim) continue;
     const entrada = hora(a.entrada);
     const saida = hora(a.saida);
     contagens.fixo += 1;
     pessoas.push({
       colaborador_id: idPessoaAvulsa(a.id),
-      nome: a.nome,
+      nome: a.nome ?? "Sem nome",
       categoria: "fixo",
+
       turno_id: null,
       turno_nome: a.tipo === "teste" ? "Em teste" : "Folguista",
       entrada,

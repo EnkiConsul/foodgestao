@@ -144,7 +144,7 @@ function CardArrastavel({ id, children }: { id: string; children: React.ReactNod
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`relative ${isDragging ? "z-10 opacity-80" : ""}`}
+      className={`relative h-full ${isDragging ? "z-10 opacity-80" : ""}`}
     >
       {children}
       <button
@@ -184,7 +184,7 @@ function GradeCards({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={ordem} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 items-stretch gap-2 sm:gap-3 md:grid-cols-4">
           {ordem.map((k) => (
             <CardArrastavel key={k} id={k}>
               {render(k)}
@@ -427,15 +427,25 @@ function DetalheDiaOperacao({
       )}
 
       <Secao
-        title="Pessoas Avulsas no Dia"
-        description="Quem trabalha hoje sem estar cadastrado como colaborador: em teste ou folguista"
+        title="Pessoas Registradas no Dia"
+        description="Quem trabalhou no dia por registro manual, em teste ou como folguista"
+        action={
+          podeRegistrar ? (
+            <Button variant="outline" size="sm" onClick={() => onNovaAvulsa(data)}>
+              <UserPlus className="mr-1.5 h-4 w-4" /> Adicionar Pessoa
+            </Button>
+          ) : undefined
+        }
       >
         {avulsosDoDia.length ? (
           <ul className="divide-y">
             {avulsosDoDia.map((a) => (
               <li key={a.id} className="flex items-center justify-between gap-3 py-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{a.nome}</p>
+                  <p className="truncate text-sm font-medium">
+                    {a.nome ??
+                      (a.colaborador_id ? nomesColaboradores.get(a.colaborador_id) ?? "Colaborador" : "Sem nome")}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {[
                       a.cargo_nome,
@@ -449,7 +459,13 @@ function DetalheDiaOperacao({
                   {a.observacao && <p className="text-xs text-muted-foreground">{a.observacao}</p>}
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <Badge variant="secondary">{a.tipo === "teste" ? "Em teste" : "Folguista"}</Badge>
+                  <Badge variant="secondary">
+                    {a.tipo === "teste"
+                      ? "Em teste"
+                      : a.tipo === "folguista"
+                        ? "Folguista"
+                        : "Registro manual"}
+                  </Badge>
                   {podeRegistrar && (
                     <>
                       <Button variant="ghost" size="sm" onClick={() => onEditarAvulsa(a)}>
@@ -466,10 +482,12 @@ function DetalheDiaOperacao({
           </ul>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Ninguém avulso registrado neste dia.
+            Ninguém registrado manualmente neste dia.
           </p>
         )}
       </Secao>
+
+
 
 
       {foraDaOperacao.length > 0 && (
