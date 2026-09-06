@@ -177,6 +177,68 @@ describe("avaliarConformidade — dias negociados", () => {
   });
 });
 
+describe("avaliarConformidade — modelo X por mês", () => {
+  const cfgPorMes = {
+    periodicidade_domingo: 3,
+    periodicidade_domingo_mulher: 2,
+    tipo_descanso_domingo: "acordo_coletivo" as const,
+    dias_descanso_negociados: [0, 6],
+    modo_frequencia_domingo: "por_mes" as const,
+    domingos_por_mes: 1,
+    modo_frequencia_domingo_mulher: "por_mes" as const,
+    domingos_por_mes_mulher: 1,
+  };
+
+  it("exige 1 folga no mês em vez de arredondar o mínimo para zero", () => {
+    const [semFolga] = avaliarConformidade(
+      [{ colaboradorId: "1", nome: "Sara", sexo: "F", domingosFolgados: [], domingosNoPeriodo: 4 }],
+      cfgPorMes,
+    );
+    expect(semFolga.esperado).toBe(1);
+    expect(semFolga.folgasMarcadas).toBe(0);
+    expect(semFolga.conforme).toBe(false);
+    expect(semFolga.rotuloFrequencia).toBe("1 folga de fim de semana por mês");
+  });
+
+  it("conta a folga marcada em sábado no modo acordo", () => {
+    const [linha] = avaliarConformidade(
+      [{
+        colaboradorId: "2", nome: "Rosângela", sexo: "F",
+        domingosFolgados: [], diasNegociadosFolgados: ["2026-09-05"], domingosNoPeriodo: 4,
+      }],
+      cfgPorMes,
+    );
+    expect(linha.esperado).toBe(1);
+    expect(linha.folgasMarcadas).toBe(1);
+    expect(linha.negociadosAproveitados).toBe(1);
+    expect(linha.conforme).toBe(true);
+  });
+
+  it("mostra a folga marcada mesmo fora do modo acordo", () => {
+    const [linha] = avaliarConformidade(
+      [{
+        colaboradorId: "3", nome: "Hanna", sexo: "F",
+        domingosFolgados: [], diasNegociadosFolgados: ["2026-09-05"], domingosNoPeriodo: 4,
+      }],
+      { periodicidade_domingo: 3, periodicidade_domingo_mulher: 2 },
+    );
+    expect(linha.folgasMarcadas).toBe(1);
+    expect(linha.negociadosAproveitados).toBe(0);
+    expect(linha.conforme).toBe(false);
+    expect(linha.rotuloFrequencia).toBe("2.0 sem.");
+  });
+
+  it("limita o mínimo aos domingos existentes no período", () => {
+    const [linha] = avaliarConformidade(
+      [{ colaboradorId: "4", nome: "Zé", sexo: "M", domingosFolgados: [], domingosNoPeriodo: 0 }],
+      { ...cfgPorMes, domingos_por_mes: 3 },
+    );
+    expect(linha.esperado).toBe(0);
+    expect(linha.conforme).toBe(true);
+  });
+});
+
+
 describe("diasElegiveisDaConfig + tetoFolgasMes", () => {
   it("usa sábado e domingo no modo legislação", () => {
     expect(diasElegiveisDaConfig({ tipo_descanso_domingo: "legal", dias_descanso_negociados: [3] })).toEqual([0, 6]);

@@ -7,9 +7,11 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import {
-  avaliarConformidade, DIA_SEMANA_CURTO, semanasDaConfig,
+  avaliarConformidade, DIA_SEMANA_CURTO, semanasDaConfig, rotuloFrequencia,
+  tipoDiasDescanso, diasElegiveisDaConfig,
   type ConformidadeInput, type ConformidadeLinha,
 } from "@/lib/dp/dsr-rules";
+
 import { primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/dp/competencia";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 
@@ -132,7 +134,7 @@ export default function DpConformidadeDsr() {
         .map((c) => {
 
         const cfg = configDaUnidade(c.unidade_id ?? null);
-        const negociados = new Set((cfg.dias_descanso_negociados ?? []).filter((d) => d !== 0));
+        const negociados = new Set(diasElegiveisDaConfig(cfg).filter((d) => d !== 0));
         return {
           colaboradorId: c.id,
           nome: c.nome,
@@ -195,8 +197,25 @@ export default function DpConformidadeDsr() {
     setBusca("");
   };
 
-  const porAcordo = configPadraoEmpresa.tipo_descanso_domingo === "acordo_coletivo";
-  const semanas = semanasDaConfig(configPadraoEmpresa);
+  const porAcordo =
+    configPadraoEmpresa.tipo_descanso_domingo === "acordo_coletivo" ||
+    rows.some((r) => r.unidade_id && r.tipo_descanso_domingo === "acordo_coletivo");
+  const tipoDias = tipoDiasDescanso(diasElegiveisDaConfig(configPadraoEmpresa));
+  const regraPadraoLabel = rotuloFrequencia(
+    configPadraoEmpresa.modo_frequencia_domingo ?? "semanas",
+    (configPadraoEmpresa.modo_frequencia_domingo ?? "semanas") === "por_mes"
+      ? (configPadraoEmpresa.domingos_por_mes ?? 0)
+      : semanasDaConfig(configPadraoEmpresa).geral,
+    tipoDias,
+  );
+  const regraMulherLabel = rotuloFrequencia(
+    configPadraoEmpresa.modo_frequencia_domingo_mulher ?? "semanas",
+    (configPadraoEmpresa.modo_frequencia_domingo_mulher ?? "semanas") === "por_mes"
+      ? (configPadraoEmpresa.domingos_por_mes_mulher ?? 0)
+      : semanasDaConfig(configPadraoEmpresa).mulher,
+    tipoDias,
+  );
+  const unidadesComExcecao = rows.filter((r) => r.unidade_id).length;
   const diasNegociadosLabel = (configPadraoEmpresa.dias_descanso_negociados ?? [])
     .map((d) => DIA_SEMANA_CURTO[d])
     .join(", ");
@@ -204,11 +223,12 @@ export default function DpConformidadeDsr() {
   const foraFiltrado = linhasFiltradas.filter((l) => !l.conforme).length;
 
 
+
   const exportarCsv = () => {
     const headers = [
-      "Colaborador", "Unidade", "Cargo", "Sexo", "Domingos no mês", "Domingos folgados",
-      "Dias negociados aproveitados", "Folgas consideradas",
-      "Periodicidade aplicada (semanas)", "Mínimo esperado", "Situação",
+      "Colaborador", "Unidade", "Cargo", "Sexo", "Domingos no mês", "Folgas no mês",
+      "Domingos folgados", "Dias negociados aproveitados", "Folgas consideradas",
+      "Regra aplicada", "Mínimo esperado", "Situação",
     ];
     const rowsCsv = linhasFiltradas.map((l) => [
       l.nome,
@@ -216,13 +236,15 @@ export default function DpConformidadeDsr() {
       (l.cargoId && cargoNome.get(l.cargoId)) || "—",
       l.sexo === "F" ? "Feminino" : l.sexo === "M" ? "Masculino" : "—",
       String(l.domingosNoPeriodo),
+      String(l.folgasMarcadas),
       String(l.domingosFolgados.length),
       String(l.negociadosAproveitados),
       String(l.folgasConsideradas),
-      l.periodicidadeAplicada.toFixed(1),
+      l.rotuloFrequencia,
       String(l.esperado),
       l.conforme ? "Conforme" : "Fora de conformidade",
     ]);
+
 
 
     const csv = [headers.join(";"), ...rowsCsv.map((r) => r.join(";"))].join("\n");
@@ -334,15 +356,19 @@ export default function DpConformidadeDsr() {
           <div className="space-y-1 text-xs text-muted-foreground">
             <p>{domingos.length} domingo(s) no período.</p>
             <p>
-              Regra padrão: 1 a cada {semanas.geral ? semanas.geral.toFixed(1) : "—"} semana(s) · Mulheres: 1 a cada{" "}
-              {semanas.mulher ? semanas.mulher.toFixed(1) : "—"} semana(s).
+              Regra padrão da empresa: {regraPadraoLabel} · Mulheres: {regraMulherLabel}.
             </p>
             <p>
               {porAcordo
                 ? `Modo acordo coletivo: dias negociados (${diasNegociadosLabel || "—"}) substituem o domingo.`
                 : "Modo legislação: apenas domingos folgados são considerados."}
             </p>
-            <p>Unidades com exceção própria são avaliadas pela regra da própria loja.</p>
+            <p>
+              {unidadesComExcecao > 0
+                ? `${unidadesComExcecao} unidade(s) têm regra própria — cada colaborador é avaliado pela regra da sua loja (coluna "Regra aplicada").`
+                : "Unidades com exceção própria são avaliadas pela regra da própria loja."}
+            </p>
+
           </div>
 
           {linhas.length > 0 && (
@@ -418,11 +444,20 @@ export default function DpConformidadeDsr() {
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                   <div>
+                    <p className="text-muted-foreground">Folgas no mês</p>
+                    <p className="font-semibold tabular-nums">
+                      {l.folgasMarcadas}
+                      {l.folgasMarcadas === 0 && (
+                        <span className="ml-1 font-normal text-destructive">sem folga marcada</span>
+                      )}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-muted-foreground">Domingos no mês</p>
                     <p className="font-semibold tabular-nums">{l.domingosNoPeriodo}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Folgados</p>
+                    <p className="text-muted-foreground">Domingos folgados</p>
                     <p className="font-semibold tabular-nums">{l.domingosFolgados.length}</p>
                   </div>
                   {porAcordo && (
@@ -436,12 +471,11 @@ export default function DpConformidadeDsr() {
                     <p className="font-semibold tabular-nums">{l.esperado}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Periodicidade</p>
-                    <p className="font-semibold">
-                      {l.periodicidadeAplicada > 0 ? `${l.periodicidadeAplicada.toFixed(1)} sem.` : "sem exigência"}
-                    </p>
+                    <p className="text-muted-foreground">Regra aplicada</p>
+                    <p className="font-semibold">{l.rotuloFrequencia}</p>
                   </div>
                 </div>
+
               </li>
             ))}
           </ul>
@@ -452,18 +486,21 @@ export default function DpConformidadeDsr() {
                 <TableHead>Colaborador</TableHead>
                 <TableHead>Unidade</TableHead>
                 <TableHead>Cargo</TableHead>
+                <TableHead className="text-center">Folgas no mês</TableHead>
                 <TableHead className="text-center">Domingos no mês</TableHead>
-                <TableHead className="text-center">Folgados</TableHead>
+                <TableHead className="text-center">Domingos folgados</TableHead>
                 {porAcordo && <TableHead className="text-center">Dias negociados</TableHead>}
                 <TableHead className="text-center">Mínimo esperado</TableHead>
-                <TableHead className="text-center">Periodicidade</TableHead>
+                <TableHead className="text-center">Regra aplicada</TableHead>
+
                 <TableHead className="text-right">Situação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {linhasFiltradas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={porAcordo ? 9 : 8} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={porAcordo ? 10 : 9} className="py-8 text-center text-sm text-muted-foreground">
+
                     {linhas.length === 0
                       ? "Nenhum colaborador ativo no período."
                       : "Nenhum resultado para os filtros aplicados."}
@@ -484,16 +521,20 @@ export default function DpConformidadeDsr() {
                     <TableCell className="text-muted-foreground">
                       {(l.cargoId && cargoNome.get(l.cargoId)) || "—"}
                     </TableCell>
+                    <TableCell className="text-center font-semibold">
+                      {l.folgasMarcadas === 0 ? (
+                        <span className="text-destructive">0 · sem folga marcada</span>
+                      ) : (
+                        l.folgasMarcadas
+                      )}
+                    </TableCell>
                     <TableCell className="text-center">{l.domingosNoPeriodo}</TableCell>
-                    <TableCell className="text-center font-semibold">{l.domingosFolgados.length}</TableCell>
+                    <TableCell className="text-center">{l.domingosFolgados.length}</TableCell>
                     {porAcordo && <TableCell className="text-center">{l.negociadosAproveitados}</TableCell>}
 
                     <TableCell className="text-center">{l.esperado}</TableCell>
-                    <TableCell className="text-center">
-                      {l.periodicidadeAplicada > 0
-                        ? `${l.periodicidadeAplicada.toFixed(1)} sem.`
-                        : "sem exigência"}
-                    </TableCell>
+                    <TableCell className="text-center text-xs">{l.rotuloFrequencia}</TableCell>
+
 
                     <TableCell className="text-right">
                       {l.conforme ? (

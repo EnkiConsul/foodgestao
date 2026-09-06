@@ -563,9 +563,16 @@ export interface ConformidadeInput {
 
 export interface ConformidadeLinha extends ConformidadeInput {
   periodicidadeAplicada: number;
+  /** Modelo de frequência aplicado (usado apenas para rotular a regra). */
+  modoAplicado: ModoFrequencia;
+  /** Texto pronto da regra aplicada ("1 folga de fim de semana por mês"). */
+  rotuloFrequencia: string;
   esperado: number;
+
   /** Folgas consideradas na avaliação (domingos, ou dias negociados no modo acordo). */
   folgasConsideradas: number;
+  /** Total de folgas registradas em dias de descanso, sem teto. */
+  folgasMarcadas: number;
   /** Folgas em dias negociados aproveitadas por acordo coletivo. */
   negociadosAproveitados: number;
   conforme: boolean;
@@ -577,25 +584,51 @@ export function domingosEsperados(domingosNoPeriodo: number, periodicidadeSemana
   return Math.floor(domingosNoPeriodo / periodicidadeSemanas);
 }
 
+type CfgConformidade = Pick<DpConfigDp, "periodicidade_domingo" | "periodicidade_domingo_mulher"> &
+  Partial<
+    Pick<
+      DpConfigDp,
+      | "tipo_descanso_domingo"
+      | "dias_descanso_negociados"
+      | "modo_frequencia_domingo"
+      | "domingos_por_mes"
+      | "modo_frequencia_domingo_mulher"
+      | "domingos_por_mes_mulher"
+    >
+  >;
+
+/**
+ * Rótulo curto da regra de frequência aplicada a um colaborador.
+ * No modelo "por mês" mostra a quantidade; no modelo por semanas, o intervalo.
+ */
+export function rotuloFrequencia(
+  modo: ModoFrequencia,
+  valor: number,
+  tipoDias: TipoDiasDescanso,
+): string {
+  if (valor <= 0) return "sem exigência";
+  if (modo === "por_mes") {
+    const plural = valor === 1 ? "" : "s";
+    if (tipoDias === "domingo") return `${valor} domingo${plural} por mês`;
+    if (tipoDias === "fim_de_semana") return `${valor} folga${plural} de fim de semana por mês`;
+    return `${valor} folga${plural} de descanso por mês`;
+  }
+  return `${valor.toFixed(1)} sem.`;
+}
+
 export function avaliarConformidade(
   linhas: ConformidadeInput[],
-  cfg: Pick<DpConfigDp, "periodicidade_domingo" | "periodicidade_domingo_mulher"> &
-    Partial<
-      Pick<
-        DpConfigDp,
-        | "tipo_descanso_domingo"
-        | "modo_frequencia_domingo"
-        | "domingos_por_mes"
-        | "modo_frequencia_domingo_mulher"
-        | "domingos_por_mes_mulher"
-      >
-    >,
+  cfg: CfgConformidade,
 ): ConformidadeLinha[] {
   const porAcordo = cfg.tipo_descanso_domingo === "acordo_coletivo";
   const { geral, mulher } = semanasDaConfig({ setor_comercio: true, ...cfg });
+  const modoGeral: ModoFrequencia = cfg.modo_frequencia_domingo ?? "semanas";
+  const modoMulher: ModoFrequencia = cfg.modo_frequencia_domingo_mulher ?? "semanas";
   return linhas.map((l) => {
-    const periodicidade =
-      l.sexo === "F" ? Math.min(mulher || Infinity, geral || Infinity) : geral;
+    const usaMulher =
+      l.sexo === "F" && (mulher || Infinity) < (geral || Infinity);
+    const modoAplicado = usaMulher ? modoMulher : modoGeral;
+    const periodicidade = l.sexo === "F" ? Math.min(mulher || Infinity, geral || Infinity) : geral;
     const p = Number.isFinite(periodicidade) ? periodicidade : 0;
     // O override individual é mensal: 1 ou 2 domingos por mês vira uma
     // periodicidade equivalente (4 ou 2 semanas) para o período analisado.
@@ -603,7 +636,20 @@ export function avaliarConformidade(
       ? Math.min(p || Infinity, l.domingosMesOverride >= 2 ? 2 : 4)
       : p;
     const pFinal = Number.isFinite(pAplicada) ? pAplicada : 0;
-    const esperado = domingosEsperados(l.domingosNoPeriodo, pFinal);
+    // O mínimo esperado usa a regra original (respeita "X por mês" sem
+    // converter para semanas, o que arredondava o mínimo para zero).
+    const esperado = domingosFolgaNoPeriodo(
+      {
+        modo_frequencia_domingo: modoGeral,
+        periodicidade_domingo: cfg.periodicidade_domingo,
+        domingos_por_mes: cfg.domingos_por_mes ?? 0,
+        modo_frequencia_domingo_mulher: modoMulher,
+        periodicidade_domingo_mulher: cfg.periodicidade_domingo_mulher,
+        domingos_por_mes_mulher: cfg.domingos_por_mes_mulher ?? 0,
+      },
+      l.domingosNoPeriodo,
+      { sexo: l.sexo, domingosMes: l.domingosMesOverride },
+    );
     const domingos = l.domingosFolgados.length;
     const negociados = porAcordo ? (l.diasNegociadosFolgados?.length ?? 0) : 0;
     // No modo acordo, os dias negociados só complementam o que faltar de domingo.
@@ -611,16 +657,36 @@ export function avaliarConformidade(
       ? Math.max(0, Math.min(negociados, esperado - domingos))
       : 0;
     const folgasConsideradas = domingos + negociadosAproveitados;
+    const override = overrideDomingosMes({ domingosMes: l.domingosMesOverride });
+    const modoRotulo: ModoFrequencia = override !== null ? "por_mes" : modoAplicado;
+    const rotuloValor = modoRotulo === "por_mes"
+      ? (override ?? (usaMulher ? (cfg.domingos_por_mes_mulher ?? 0) : (cfg.domingos_por_mes ?? 0)))
+      : pFinal;
     return {
       ...l,
       periodicidadeAplicada: pFinal,
+      modoAplicado,
+      rotuloFrequencia: rotuloFrequencia(
+        modoRotulo,
+        rotuloValor,
+
+        tipoDiasDescanso(diasElegiveisDaConfig({
+          tipo_descanso_domingo: cfg.tipo_descanso_domingo ?? "legal",
+          dias_descanso_negociados: cfg.dias_descanso_negociados ?? [0],
+        })),
+      ),
       esperado,
       folgasConsideradas,
+      // Total do que foi marcado em dias de descanso, mesmo acima do mínimo
+      // ou fora do modo acordo — serve para o gestor ver que existe folga.
+      folgasMarcadas: domingos + (l.diasNegociadosFolgados?.length ?? 0),
+
       negociadosAproveitados,
       conforme: folgasConsideradas >= esperado,
     };
   });
 }
+
 
 
 
