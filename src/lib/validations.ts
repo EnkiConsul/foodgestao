@@ -116,6 +116,9 @@ export const pessoaAvulsaSchema = z
     saida: z.string().nullable().optional(),
     termina_no_dia_seguinte: z.boolean().optional(),
     observacao: z.string().trim().max(500, "Observação muito longa (máx. 500)").nullable().optional(),
+    telefone: z.string().trim().max(20, "Telefone inválido").nullable().optional(),
+    pessoa_apoio_id: z.string().uuid().nullable().optional(),
+
   })
   .refine((d) => d.data_fim >= d.data_inicio, {
     message: "A data final não pode ser anterior à data inicial",
