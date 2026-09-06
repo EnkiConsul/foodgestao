@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, Users, UserX, Briefcase } from "lucide-react";
+import { Plus, Trash2, Users, UserX, Briefcase, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+import { useDpSetores } from "@/hooks/useDpSetores";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpFolgaLimites, type RegraLimiteInput } from "@/hooks/useDpFolgaLimites";
 import {
@@ -40,6 +41,7 @@ const ICONE: Record<TipoRegraFolga, typeof Users> = {
 
   quantidade: Users,
   cargo: Briefcase,
+  setor: LayoutGrid,
   colaboradores: UserX,
 };
 
@@ -106,6 +108,12 @@ export function FolgaRegrasPanel({
     () => new Map(cargos.map((c: { id: string; nome: string }) => [c.id, c.nome])),
     [cargos],
   );
+  const { ativos: setoresAtivos, todos: setoresTodos } = useDpSetores(unidadeId ?? undefined);
+  const usaSetores = setoresAtivos.length > 0;
+  const nomeSetor = useMemo(
+    () => new Map(setoresTodos.map((s) => [s.id, s.nome])),
+    [setoresTodos],
+  );
   const nomeColab = useMemo(
     () => new Map(colaboradores.map((c) => [c.id, c.nome])),
     [colaboradores],
@@ -144,6 +152,7 @@ export function FolgaRegrasPanel({
       vigencia_fim: null,
       ativo: true,
       cargo_ids: [],
+      setor_ids: [],
       colaborador_ids: [],
     });
   };
@@ -161,6 +170,7 @@ export function FolgaRegrasPanel({
       vigencia_fim: r.vigencia_fim,
       ativo: r.ativo,
       cargo_ids: [...r.cargo_ids],
+      setor_ids: [...("setor_ids" in r ? (r.setor_ids ?? []) : [])],
       colaborador_ids: [...r.colaborador_ids],
     });
 
@@ -173,6 +183,10 @@ export function FolgaRegrasPanel({
     }
     if (form.tipo === "cargo" && form.cargo_ids.length === 0) {
       toast.error("Escolha pelo menos um cargo para esta regra.");
+      return;
+    }
+    if (form.tipo === "setor" && form.setor_ids.length === 0) {
+      toast.error("Escolha pelo menos um setor para esta regra.");
       return;
     }
     if (form.tipo === "colaboradores" && form.colaborador_ids.length < 2) {
@@ -271,6 +285,9 @@ export function FolgaRegrasPanel({
             const chave = chaveRegra(r);
             const partes = partesRegraLimite(r, {
               cargos: r.cargo_ids.map((c) => nomeCargo.get(c)).filter((n): n is string => !!n),
+              setores: ("setor_ids" in r ? (r.setor_ids ?? []) : [])
+                .map((id) => nomeSetor.get(id))
+                .filter((n): n is string => !!n),
               colaboradores: r.colaborador_ids
                 .map((c) => nomeColab.get(c))
                 .filter((n): n is string => !!n),
@@ -382,6 +399,9 @@ export function FolgaRegrasPanel({
                   <SelectContent>
                     <SelectItem value="quantidade">{TIPO_REGRA_LABEL.quantidade}</SelectItem>
                     <SelectItem value="cargo">{TIPO_REGRA_LABEL.cargo}</SelectItem>
+                    {usaSetores && (
+                      <SelectItem value="setor">{TIPO_REGRA_LABEL.setor}</SelectItem>
+                    )}
                     <SelectItem value="colaboradores">{TIPO_REGRA_LABEL.colaboradores}</SelectItem>
                   </SelectContent>
                 </Select>
@@ -390,6 +410,8 @@ export function FolgaRegrasPanel({
                     "Quantas pessoas podem folgar ao mesmo tempo neste dia — com a opção de contar só alguns cargos."}
                   {form.tipo === "cargo" &&
                     "Quantas pessoas de determinados cargos podem folgar ao mesmo tempo."}
+                  {form.tipo === "setor" &&
+                    "Quantas pessoas dos setores escolhidos podem folgar ao mesmo tempo. Vale o setor em que a pessoa realmente trabalha naquele dia."}
                   {form.tipo === "colaboradores" &&
                     "As pessoas escolhidas nunca folgam no mesmo dia."}
                 </p>
@@ -505,6 +527,39 @@ export function FolgaRegrasPanel({
                           }
                         />
                         {c.nome}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {form.tipo === "setor" && (
+                <div className="space-y-2">
+                  <Label>Setores</Label>
+                  <p className="text-xs text-muted-foreground">
+                    A contagem usa o setor em que a pessoa trabalha na data (rotina do dia ou setor
+                    habitual).
+                  </p>
+                  <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border p-3">
+                    {setoresAtivos.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Nenhum setor cadastrado nesta unidade.
+                      </p>
+                    )}
+                    {setoresAtivos.map((s) => (
+                      <label key={s.id} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={form.setor_ids.includes(s.id)}
+                          onCheckedChange={(v) =>
+                            set(
+                              "setor_ids",
+                              v === true
+                                ? [...form.setor_ids, s.id]
+                                : form.setor_ids.filter((id) => id !== s.id),
+                            )
+                          }
+                        />
+                        {s.nome}
                       </label>
                     ))}
                   </div>

@@ -35,6 +35,8 @@ export function linhaParaItem(row: EscalaItemRow): EscalaItem {
     carga_prevista_horas: Number(row.carga_prevista_horas ?? 0),
     origem: row.origem,
     observacao: row.observacao,
+    setor_id: row.setor_id ?? null,
+    setor_motivo: row.setor_motivo ?? null,
   };
 }
 
@@ -96,7 +98,7 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
           .eq("company_id", selectedCompanyId!),
         supabase
           .from("dp_colaborador_config_trabalho")
-          .select("*, dias:dp_colaborador_config_dias(dow, trabalha, turno_id)")
+          .select("*, dias:dp_colaborador_config_dias(dow, trabalha, turno_id, setor_id)")
           .eq("company_id", selectedCompanyId!)
           .lte("vigencia_inicio", fim)
           .order("vigencia_inicio", { ascending: false }),
@@ -229,6 +231,8 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
           carga_prevista_horas: i.carga_prevista_horas,
           origem: i.origem,
           observacao: i.observacao ?? null,
+          setor_id: i.setor_id ?? null,
+          setor_motivo: i.setor_motivo ?? null,
         }));
         for (let i = 0; i < linhas.length; i += 500) {
           const { error } = await supabase.from("dp_escala_itens").insert(linhas.slice(i, i + 500));
@@ -259,6 +263,8 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
           carga_prevista_horas: item.carga_prevista_horas,
           origem: "manual",
           observacao: item.observacao ?? null,
+          setor_id: item.setor_id ?? null,
+          setor_motivo: item.setor_motivo ?? null,
         },
         { onConflict: "escala_id,colaborador_id,data" },
       );

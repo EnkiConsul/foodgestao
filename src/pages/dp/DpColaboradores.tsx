@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal } from "lucide-react";
@@ -106,6 +107,26 @@ export default function DpColaboradores() {
     setDialogOpen(true);
   };
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
+
+  /**
+   * Atalho de outras telas (ex.: Rotina): /dp/colaboradores?editar=<id> abre o
+   * cadastro da pessoa direto, sem o gestor precisar procurar na lista.
+   */
+  const [params, setParams] = useSearchParams();
+  const abertoPorLink = useRef(false);
+  useEffect(() => {
+    const id = params.get("editar");
+    if (!id || abertoPorLink.current) return;
+    const alvo = (list.data ?? []).find((c) => c.id === id);
+    if (!alvo) return;
+    abertoPorLink.current = true;
+    abrirCadastro(alvo, "dados");
+    const next = new URLSearchParams(params);
+    next.delete("editar");
+    next.delete("aba");
+    setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, list.data]);
 
   const counts = useMemo(() => {
     const all = list.data ?? [];

@@ -49,6 +49,8 @@ export interface ColaboradorPanorama {
   config: ConfigTrabalho | null;
   cargo_id?: string | null;
   cargo_nome?: string | null;
+  /** Setor habitual do cadastro (opcional — só existe quando a unidade usa setores). */
+  setor_id?: string | null;
   /** Sócio: aparece na operação mas sem regras CLT. */
   socio?: boolean;
   ativo?: boolean;
@@ -91,6 +93,8 @@ export interface ItemEscalaPanorama {
   entrada: string | null;
   saida: string | null;
   intervalo_minutos?: number | null;
+  /** Setor definido só para esta data (exceção da escala publicada). */
+  setor_id?: string | null;
 }
 
 export type PessoaAvulsaTipo = "teste" | "folguista" | "registro_manual";
@@ -143,6 +147,14 @@ export interface PessoaPanorama {
   unidade_id: string | null;
   cargo_id: string | null;
   cargo_nome: string | null;
+  /** Setor efetivo da data (escala do dia → dia da semana → cadastro). */
+  setor_id?: string | null;
+  setor_nome?: string | null;
+  /** De onde veio o setor efetivo. */
+  setor_origem?: OrigemSetorDia;
+  /** Setor habitual do cadastro, para comparar com o setor da data. */
+  setor_habitual_id?: string | null;
+  setor_habitual_nome?: string | null;
   socio: boolean;
   /** Sócio vinculado a uma unidade e com jornada: conta como parte do quadro. */
   socio_integrado?: boolean;
@@ -207,6 +219,25 @@ const hora = (v: string | null | undefined): string | null => (v ? String(v).sli
 
 const dentro = (a: AusenciaPanorama, data: string) => data >= a.inicio && data <= a.fim;
 
+/** Origem do setor efetivo de uma data. */
+export type OrigemSetorDia = "escala" | "config_dia" | "cadastro" | "nenhum";
+
+/**
+ * Setor efetivo de um colaborador numa data. Espelha `public.dp_setor_previsto`:
+ * exceção da escala publicada → setor do dia da semana → setor habitual.
+ */
+export function setorEfetivoDoDia(input: {
+  colaborador: ColaboradorPanorama;
+  item?: ItemEscalaPanorama | null;
+  dow: number;
+}): { setor_id: string | null; origem: OrigemSetorDia } {
+  if (input.item?.setor_id) return { setor_id: input.item.setor_id, origem: "escala" };
+  const dia = input.colaborador.config?.dias.find((d) => d.dow === input.dow);
+  if (dia?.setor_id) return { setor_id: dia.setor_id, origem: "config_dia" };
+  if (input.colaborador.setor_id) return { setor_id: input.colaborador.setor_id, origem: "cadastro" };
+  return { setor_id: null, origem: "nenhum" };
+}
+
 export interface ContarDiaInput {
   data: string;
   colaboradores: ColaboradorPanorama[];
@@ -218,6 +249,8 @@ export interface ContarDiaInput {
   itensPublicados?: ItemEscalaPanorama[];
   /** Pessoas avulsas (teste/folguista) registradas para a rotina do dia. */
   avulsos?: PessoaAvulsaPanorama[];
+  /** Setores da unidade, só para nomear o setor efetivo. */
+  setores?: { id: string; nome: string }[];
 }
 
 /**
@@ -262,6 +295,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
   }
 
   const turnoPorId = new Map(turnos.map((t) => [t.id, t]));
+  const nomeSetor = new Map((input.setores ?? []).map((st) => [st.id, st.nome]));
 
 
   const registrar = (
@@ -291,6 +325,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
 
     const entrada = hora(horario?.entrada);
     const saida = hora(horario?.saida);
+    const setor = setorEfetivoDoDia({ colaborador: colab, item: itemPor.get(colab.id) ?? null, dow });
     pessoas.push({
       colaborador_id: colab.id,
       nome: colab.nome,
@@ -307,6 +342,11 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       unidade_id: colab.unidade_id ?? null,
       cargo_id: colab.cargo_id ?? null,
       cargo_nome: colab.cargo_nome ?? null,
+      setor_id: setor.setor_id,
+      setor_nome: setor.setor_id ? nomeSetor.get(setor.setor_id) ?? null : null,
+      setor_origem: setor.origem,
+      setor_habitual_id: colab.setor_id ?? null,
+      setor_habitual_nome: colab.setor_id ? nomeSetor.get(colab.setor_id) ?? null : null,
       socio: !!colab.socio,
       socio_integrado: socioIntegrado,
       origem: horario?.origem ?? "jornada",

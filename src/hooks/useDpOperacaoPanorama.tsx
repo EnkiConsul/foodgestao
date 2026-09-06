@@ -102,13 +102,14 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         escalas,
         unidades,
         cargos,
+        setoresRes,
         funcionamento,
       ] =
         await Promise.all([
           supabase
             .from("dp_colaboradores")
             .select(
-              "id, nome, regime, vinculo_label, unidade_id, cargo_id, ativo, data_admissao, data_desligamento",
+              "id, nome, regime, vinculo_label, unidade_id, cargo_id, setor_id, ativo, data_admissao, data_desligamento",
             )
             .eq("company_id", selectedCompanyId!)
             .order("nome"),
@@ -118,7 +119,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .eq("company_id", selectedCompanyId!),
           supabase
             .from("dp_colaborador_config_trabalho")
-            .select("*, dias:dp_colaborador_config_dias(dow, trabalha, turno_id)")
+            .select("*, dias:dp_colaborador_config_dias(dow, trabalha, turno_id, setor_id)")
             .eq("company_id", selectedCompanyId!)
             .lte("vigencia_inicio", fim)
             .order("vigencia_inicio", { ascending: false }),
@@ -181,6 +182,11 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .order("nome"),
           supabase.from("dp_cargos").select("id, nome").eq("company_id", selectedCompanyId!),
           supabase
+            .from("dp_setores")
+            .select("id, nome, ativo, unidade_id")
+            .eq("company_id", selectedCompanyId!)
+            .order("nome"),
+          supabase
             .from("dp_unidade_horarios_funcionamento")
             .select("unidade_id, dia_semana, aberto, hora_abertura, hora_fechamento, nome, ordem")
             .eq("company_id", selectedCompanyId!)
@@ -202,6 +208,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         escalas,
         unidades,
         cargos,
+        setoresRes,
         funcionamento,
       ].find((r) => r.error);
       if (err?.error) throw err.error;
@@ -214,7 +221,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       if (escalaIds.length) {
         const { data, error } = await supabase
           .from("dp_escala_itens")
-          .select("colaborador_id, data, tipo, turno_id, entrada, saida, intervalo_minutos")
+          .select("colaborador_id, data, tipo, turno_id, entrada, saida, intervalo_minutos, setor_id")
           .in("escala_id", escalaIds)
           .gte("data", janelaInicio)
           .lte("data", fim);
@@ -227,6 +234,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           entrada: i.entrada,
           saida: i.saida,
           intervalo_minutos: i.intervalo_minutos,
+          setor_id: i.setor_id ?? null,
         }));
       }
 
@@ -243,6 +251,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         registradas: registradas.data ?? [],
         unidades: unidades.data ?? [],
         cargos: cargos.data ?? [],
+        setores: setoresRes.data ?? [],
         funcionamento: funcionamento.data ?? [],
         itens,
       };
@@ -329,6 +338,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
                   dow: x.dow,
                   trabalha: x.trabalha,
                   turno_id: x.turno_id ?? null,
+                  setor_id: x.setor_id ?? null,
                 })),
                 vigente.folga_variavel ? null : vigente.folga_fixa_dow,
               ),
@@ -343,6 +353,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           config,
           cargo_id: c.cargo_id,
           cargo_nome: cargoNome,
+          setor_id: (c as { setor_id?: string | null }).setor_id ?? null,
           socio: isSocio((c as { vinculo_label?: string | null }).vinculo_label),
           ativo: c.ativo !== false,
           data_admissao: c.data_admissao,
@@ -463,6 +474,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       ausencias,
       itensPublicados: base.data?.itens,
       avulsos,
+      setores: base.data?.setores,
     });
 
   /** Histórico (janela anterior à competência) usado para aprender o padrão. */
@@ -580,6 +592,44 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
 
 
 
+  /** Setores ativos da unidade escolhida (a dimensão Setor só existe se houver algum). */
+  const setores = useMemo(
+    () =>
+      (base.data?.setores ?? []).filter(
+        (st) => st.ativo !== false && (!unidadeId || st.unidade_id === unidadeId),
+      ),
+    [base.data, unidadeId],
+  );
+
+  /**
+   * Altera o setor de um colaborador só naquela data (ou volta ao setor padrão).
+   * Todo o trabalho é do backend: ele deriva empresa/unidade, materializa o item
+   * da escala e preserva turno, horário, tipo, carga e observações.
+   */
+  const definirSetorDia = useMutation({
+    mutationFn: async (input: {
+      colaborador_id: string;
+      data: string;
+      acao: "USAR_PADRAO" | "DEFINIR_SETOR";
+      setor_id?: string | null;
+      motivo?: string | null;
+    }) => {
+      const { error } = await supabase.rpc("dp_escala_definir_setor_dia", {
+        p_colaborador_id: input.colaborador_id,
+        p_data: input.data,
+        p_acao: input.acao,
+        p_setor_id: input.acao === "DEFINIR_SETOR" ? input.setor_id ?? null : null,
+        p_motivo: input.motivo?.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+      qc.invalidateQueries({ queryKey: ["dp_escala_mes"] });
+      qc.invalidateQueries({ queryKey: ["dp_folga_limites"] });
+    },
+  });
+
   /** Funcionamento por unidade, no formato de períodos por dia da semana. */
   const funcionamentoPorUnidade = useMemo(() => {
     const out = new Map<string, HorarioFuncionamentoDia[]>();
@@ -624,6 +674,9 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     ausenciasRegistradas,
     avulsos,
     cargos: base.data?.cargos ?? [],
+    setores,
+    usaSetores: setores.length > 0,
+    definirSetorDia,
     salvarAvulsa,
     excluirAvulsa,
     sugerirHorario,

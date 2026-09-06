@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -38,6 +38,8 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { SETOR_NAO_DEFINIDO_LABEL, origemSetorSufixo } from "@/lib/dp/setor-previsto";
+import { AlterarSetorDiaDialog, type AlterarSetorAlvo } from "@/components/dp/setores/AlterarSetorDiaDialog";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import {
   blocosPorFuncionamento,
@@ -261,6 +263,9 @@ interface DetalheDiaProps {
   /** Pessoas avulsas (teste/folguista) que cobrem este dia. */
   avulsos: PessoaAvulsaPanorama[];
   podeRegistrar: boolean;
+  /** A dimensão Setor só aparece quando a unidade tem setor cadastrado. */
+  usaSetores?: boolean;
+  onAlterarSetor?: (pessoa: PessoaPanorama, data: string) => void;
   onNovaAvulsa: (data: string) => void;
   onEditarAvulsa: (registro: PessoaAvulsaPanorama) => void;
   onExcluirAvulsa: (registro: PessoaAvulsaPanorama) => void;
@@ -292,6 +297,8 @@ function DetalheDiaOperacao({
   onReativar,
   avulsos,
   podeRegistrar,
+  usaSetores,
+  onAlterarSetor,
   onNovaAvulsa,
   onEditarAvulsa,
   onExcluirAvulsa,
@@ -403,6 +410,32 @@ function DetalheDiaOperacao({
                             </p>
                           </div>
                           <div className="flex shrink-0 items-center gap-1.5">
+                            {usaSetores && (
+                              <Badge
+                                variant="outline"
+                                className={p.setor_id ? undefined : "text-muted-foreground"}
+                                title={
+                                  p.setor_habitual_nome
+                                    ? `Área habitual: ${p.setor_habitual_nome}`
+                                    : undefined
+                                }
+                              >
+                                {p.setor_nome ?? SETOR_NAO_DEFINIDO_LABEL}
+                                {origemSetorSufixo(p.setor_origem ?? "nenhum")
+                                  ? ` · ${origemSetorSufixo(p.setor_origem ?? "nenhum")}`
+                                  : ""}
+                              </Badge>
+                            )}
+                            {usaSetores && onAlterarSetor && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={() => onAlterarSetor(p, data)}
+                              >
+                                Alterar setor
+                              </Button>
+                            )}
                             {p.socio && (
                               <Badge variant="outline" className="border-primary/40 text-primary">
                                 Sócio
@@ -722,6 +755,23 @@ export default function DpOperacaoPanorama() {
       onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível remover."),
     });
 
+  const navigate = useNavigate();
+  const [setorAlvo, setSetorAlvo] = useState<AlterarSetorAlvo | null>(null);
+
+  const propsSetor = {
+    usaSetores: panorama.usaSetores,
+    onAlterarSetor: (p: PessoaPanorama, dataDoDia: string) =>
+      setSetorAlvo({
+        colaborador_id: p.colaborador_id,
+        nome: p.nome,
+        data: dataDoDia,
+        setor_id: p.setor_id ?? null,
+        setor_nome: p.setor_nome ?? null,
+        origem: p.setor_origem ?? "nenhum",
+        setor_habitual_nome: p.setor_habitual_nome ?? null,
+      }),
+  };
+
   const propsAvulsas = {
     avulsos: panorama.avulsos,
     podeRegistrar,
@@ -920,6 +970,7 @@ export default function DpOperacaoPanorama() {
               onDispensar={dispensar}
               onReativar={reativar}
               {...propsAvulsas}
+              {...propsSetor}
             />
           )}
         </TabsContent>
@@ -1118,6 +1169,7 @@ export default function DpOperacaoPanorama() {
                 onDispensar={dispensar}
                 onReativar={reativar}
                 {...propsAvulsas}
+              {...propsSetor}
               />
             ) : (
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
@@ -1131,6 +1183,21 @@ export default function DpOperacaoPanorama() {
         </DialogContent>
       </Dialog>
 
+
+      <AlterarSetorDiaDialog
+        open={!!setorAlvo}
+        onOpenChange={(o) => !o && setSetorAlvo(null)}
+        alvo={setorAlvo}
+        setores={panorama.setores ?? []}
+        salvando={panorama.definirSetorDia.isPending}
+        onConfirmar={async (input) => {
+          await panorama.definirSetorDia.mutateAsync(input);
+        }}
+        onEditarSetorHabitual={(id) => {
+          setSetorAlvo(null);
+          navigate(`/dp/colaboradores?editar=${id}`);
+        }}
+      />
 
       <Dialog open={verSocios} onOpenChange={setVerSocios}>
         <DialogContent>

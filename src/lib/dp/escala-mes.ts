@@ -29,6 +29,9 @@ export interface EscalaItem {
   carga_prevista_horas: number;
   origem: EscalaItemOrigem;
   observacao?: string | null;
+  /** Setor válido somente nesta data (exceção). null = herdar jornada/cadastro. */
+  setor_id?: string | null;
+  setor_motivo?: string | null;
 }
 
 export const TIPO_LABEL: Record<EscalaItemTipo, string> = {
@@ -149,8 +152,22 @@ export function gerarEscalaMes(input: GerarEscalaMesInput): EscalaItem[] {
       .filter((i) => i.origem !== "gerado")
       .map((i) => [`${i.colaborador_id}|${i.data}`, i]),
   );
+  // O setor da data é uma decisão operacional e sobrevive à regeneração,
+  // inclusive em itens que nasceram gerados.
+  const setores = new Map(
+    (input.preservar ?? [])
+      .filter((i) => i.setor_id)
+      .map((i) => [
+        `${i.colaborador_id}|${i.data}`,
+        { setor_id: i.setor_id ?? null, setor_motivo: i.setor_motivo ?? null },
+      ]),
+  );
 
   const itens: EscalaItem[] = [];
+  const empurrar = (item: EscalaItem) => {
+    const setor = setores.get(`${item.colaborador_id}|${item.data}`);
+    itens.push(setor && !item.setor_id ? { ...item, ...setor } : item);
+  };
 
   for (const colab of input.colaboradores) {
     if (!colab.config) continue;
@@ -159,29 +176,30 @@ export function gerarEscalaMes(input: GerarEscalaMesInput): EscalaItem[] {
     for (const data of dias) {
       const manual = manuais.get(`${colab.id}|${data}`);
       if (manual) {
-        itens.push({ ...manual, data, colaborador_id: colab.id });
+        empurrar({ ...manual, data, colaborador_id: colab.id });
         continue;
       }
 
+
       const ausencia = ausencias.find((a) => dentro(a, data));
       if (ausencia) {
-        itens.push(itemFolga(colab.id, data, ausencia.tipo));
+        empurrar(itemFolga(colab.id, data, ausencia.tipo));
         continue;
       }
 
       const dow = dowDaData(data);
       const dia = colab.config.dias.find((d) => d.dow === dow);
       if (!dia || !dia.trabalha) {
-        itens.push(itemFolga(colab.id, data, feriados.has(data) ? "feriado" : "folga"));
+        empurrar(itemFolga(colab.id, data, feriados.has(data) ? "feriado" : "folga"));
         continue;
       }
 
       const turno = turnoDoDia(dia, colab.config.turno_padrao_id, input.turnos);
       if (!turno) {
-        itens.push({ ...itemFolga(colab.id, data, "trabalho"), observacao: "Sem turno definido" });
+        empurrar({ ...itemFolga(colab.id, data, "trabalho"), observacao: "Sem turno definido" });
         continue;
       }
-      itens.push(itemDeTurno(colab.id, data, turno));
+      empurrar(itemDeTurno(colab.id, data, turno));
     }
   }
 
