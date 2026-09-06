@@ -52,6 +52,18 @@ export function janelaMinutos(args: {
   return { inicio, fim };
 }
 
+/**
+ * A saída é no dia seguinte sempre que ela é igual ou anterior à entrada
+ * (16:30 → 00:35). Nesses casos a marcação é obrigatória, não opcional.
+ */
+export function viraNoDiaSeguinte(entrada: string, saida: string): boolean {
+  const ini = minutosDoHorario(entrada);
+  const fim = minutosDoHorario(saida);
+  if (ini == null || fim == null) return false;
+  return fim <= ini;
+}
+
+
 /** Carga prevista em horas, descontando o intervalo. */
 export function cargaPrevistaHoras(args: {
   entrada: string;
