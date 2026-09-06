@@ -41,22 +41,36 @@ export default function DpTrocas() {
   const embedded = useDpEmbedded();
   const [filtro, setFiltro] = useState<string>("todos");
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
-  const [recusa, setRecusa] = useState<{ id: string; etapa: "colega" | "gestor" } | null>(null);
+  const [recusa, setRecusa] = useState<string | null>(null);
+  const [cancelamento, setCancelamento] = useState<string | null>(null);
 
-  const { rows, isLoading, responder: responderMut, remover } = useDpTrocas(filtro);
+  const {
+    rows,
+    isLoading,
+    responder: responderMut,
+    cancelar: cancelarMut,
+    remover,
+  } = useDpTrocas(filtro);
 
   const list = { isLoading };
   const filtered = rows;
 
   const responder = {
     isPending: responderMut.isPending,
-    mutate: (vars: { id: string; etapa: "colega" | "gestor"; aceito: boolean; obs?: string }) =>
+    mutate: (vars: { id: string; aceito: boolean; obs?: string }) =>
       responderMut.mutate(vars, { onSuccess: () => setRecusa(null) }),
+  };
+
+  const cancelar = {
+    isPending: cancelarMut.isPending,
+    mutate: (vars: { id: string; motivo: string }) =>
+      cancelarMut.mutate(vars, { onSuccess: () => setCancelamento(null) }),
   };
 
   const del = {
     mutate: (id: string) => remover.mutate(id, { onSuccess: () => setConfirmDel(null) }),
   };
+
 
 
   return (
