@@ -294,3 +294,87 @@ describe("resumoEscolhaFolgas", () => {
   });
 
 });
+
+describe("avaliarConformidade — leitura CLT x leitura da empresa", () => {
+  const cfgAcordo = {
+    periodicidade_domingo: 3,
+    periodicidade_domingo_mulher: 2,
+    tipo_descanso_domingo: "acordo_coletivo" as const,
+    dias_descanso_negociados: [0, 6],
+    modo_frequencia_domingo: "por_mes" as const,
+    domingos_por_mes: 1,
+    modo_frequencia_domingo_mulher: "por_mes" as const,
+    domingos_por_mes_mulher: 1,
+  };
+  const cfgLegal = { periodicidade_domingo: 3, periodicidade_domingo_mulher: 2 };
+
+  it("folga aprovada em domingo deixa as duas leituras em ordem", () => {
+    const [l] = avaliarConformidade(
+      [{ colaboradorId: "1", nome: "Sara", sexo: "F", domingosFolgados: ["2026-09-13"], domingosNoPeriodo: 4 }],
+      cfgAcordo,
+    );
+    expect(l.conformeClt).toBe(true);
+    expect(l.conformeEmpresa).toBe(true);
+    expect(l.conforme).toBe(true);
+  });
+
+  it("folga em sábado sem acordo fica em falta na CLT e em ordem na empresa", () => {
+    const [l] = avaliarConformidade(
+      [{
+        colaboradorId: "2",
+        nome: "Hanna",
+        sexo: "M",
+        domingosFolgados: [],
+        diasNegociadosFolgados: ["2026-09-12"],
+        domingosNoPeriodo: 4,
+      }],
+      cfgLegal,
+    );
+    expect(l.conformeClt).toBe(false);
+    expect(l.folgasEmpresa).toBe(1);
+    expect(l.conformeEmpresa).toBe(true);
+    expect(l.conforme).toBe(false);
+  });
+
+  it("com acordo sábado/domingo o sábado vale para as duas leituras", () => {
+    const [l] = avaliarConformidade(
+      [{
+        colaboradorId: "3",
+        nome: "Cristiane",
+        sexo: "F",
+        domingosFolgados: [],
+        diasNegociadosFolgados: ["2026-09-12"],
+        domingosNoPeriodo: 4,
+      }],
+      cfgAcordo,
+    );
+    expect(l.conformeClt).toBe(true);
+    expect(l.conformeEmpresa).toBe(true);
+  });
+
+  it("descanso fixo do cadastro sustenta só a leitura da empresa", () => {
+    const [l] = avaliarConformidade(
+      [{
+        colaboradorId: "4",
+        nome: "Rosângela",
+        sexo: "F",
+        domingosFolgados: [],
+        domingosNoPeriodo: 4,
+        descansoSemanalNoMes: 4,
+      }],
+      cfgAcordo,
+    );
+    expect(l.conformeClt).toBe(false);
+    expect(l.folgasEmpresa).toBe(4);
+    expect(l.conformeEmpresa).toBe(true);
+  });
+
+  it("sem folga nenhuma as duas leituras ficam em falta", () => {
+    const [l] = avaliarConformidade(
+      [{ colaboradorId: "5", nome: "Ana", sexo: "M", domingosFolgados: [], domingosNoPeriodo: 4 }],
+      cfgAcordo,
+    );
+    expect(l.conformeClt).toBe(false);
+    expect(l.conformeEmpresa).toBe(false);
+  });
+});

@@ -551,6 +551,10 @@ export interface ConformidadeInput {
   domingosFolgados: string[];
   /** Folgas em dias negociados (exceto domingo) — só contam no modo acordo coletivo. */
   diasNegociadosFolgados?: string[];
+  /** Folgas em dias que não são domingo nem dia negociado (contam só na regra da empresa). */
+  folgasOutrosDias?: string[];
+  /** Dias de descanso semanal fixos do cadastro ocorridos no mês (regra da empresa). */
+  descansoSemanalNoMes?: number;
   /** Total de domingos existentes no período analisado. */
   domingosNoPeriodo: number;
   /**
@@ -575,8 +579,16 @@ export interface ConformidadeLinha extends ConformidadeInput {
   folgasMarcadas: number;
   /** Folgas em dias negociados aproveitadas por acordo coletivo. */
   negociadosAproveitados: number;
+  /** Exigência legal (folga em domingo, ou dia negociado no acordo coletivo). */
+  conformeClt: boolean;
+  /** Regra configurada da unidade, considerando qualquer dia de descanso. */
+  conformeEmpresa: boolean;
+  /** Descansos considerados na leitura da empresa. */
+  folgasEmpresa: number;
+  /** Ambas as leituras em ordem. */
   conforme: boolean;
 }
+
 
 /** Quantos domingos de folga são esperados no período, dada a periodicidade. */
 export function domingosEsperados(domingosNoPeriodo: number, periodicidadeSemanas: number): number {
@@ -657,6 +669,14 @@ export function avaliarConformidade(
       ? Math.max(0, Math.min(negociados, esperado - domingos))
       : 0;
     const folgasConsideradas = domingos + negociadosAproveitados;
+    // Regra da empresa: vale qualquer dia de descanso do mês, inclusive o dia
+    // fixo do cadastro de trabalho (que não gera registro de folga).
+    const domingosEmpresa =
+      domingos
+      + (l.diasNegociadosFolgados?.length ?? 0)
+      + (l.folgasOutrosDias?.length ?? 0)
+      + Math.max(0, l.descansoSemanalNoMes ?? 0);
+
     const override = overrideDomingosMes({ domingosMes: l.domingosMesOverride });
     const modoRotulo: ModoFrequencia = override !== null ? "por_mes" : modoAplicado;
     const rotuloValor = modoRotulo === "por_mes"
@@ -679,11 +699,20 @@ export function avaliarConformidade(
       folgasConsideradas,
       // Total do que foi marcado em dias de descanso, mesmo acima do mínimo
       // ou fora do modo acordo — serve para o gestor ver que existe folga.
-      folgasMarcadas: domingos + (l.diasNegociadosFolgados?.length ?? 0),
+      folgasMarcadas:
+        domingos
+        + (l.diasNegociadosFolgados?.length ?? 0)
+        + (l.folgasOutrosDias?.length ?? 0),
 
       negociadosAproveitados,
-      conforme: folgasConsideradas >= esperado,
+      // Leitura legal: só domingo (ou dia negociado, quando há acordo coletivo).
+      conformeClt: folgasConsideradas >= esperado,
+      // Leitura da empresa: qualquer descanso do mês, incluindo o dia fixo do cadastro.
+      folgasEmpresa: domingosEmpresa,
+      conformeEmpresa: domingosEmpresa >= esperado,
+      conforme: folgasConsideradas >= esperado && domingosEmpresa >= esperado,
     };
+
   });
 }
 

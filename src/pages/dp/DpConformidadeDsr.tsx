@@ -63,24 +63,38 @@ function diaMesIso(iso: string): string {
 interface LinhaComUnidade extends ConformidadeInput {
   unidadeId: string | null;
   cargoId: string | null;
+  /** Dias da semana de descanso fixo do cadastro (0=dom). */
+  dowsDescanso: number[];
+  /** Origem de cada folga do mês: registro efetivado ou pedido aprovado. */
+  origemPorData: Map<string, "registrada" | "aprovada">;
 }
 
-type LinhaConformidade = ConformidadeLinha & { unidadeId: string | null; cargoId: string | null };
+type LinhaConformidade = ConformidadeLinha & Omit<LinhaComUnidade, keyof ConformidadeInput>;
 
 type ColKey = "colaborador" | "unidade" | "cargo" | "folgas" | "situacao";
 type SortKey = "padrao" | "nome" | "unidade" | "cargo" | "folgas" | "situacao";
 
-const SITUACAO_CONFORME = "Conforme";
-const SITUACAO_FORA = "Fora de conformidade";
+const SITUACAO_OK = "CLT e empresa em ordem";
+const SITUACAO_SO_CLT = "Só CLT em falta";
+const SITUACAO_SO_EMPRESA = "Só regra da empresa em falta";
+const SITUACAO_AMBAS = "CLT e empresa em falta";
+
+/** Rótulo único da situação, usado no filtro da coluna e no CSV. */
+function situacaoLabel(l: { conformeClt: boolean; conformeEmpresa: boolean }): string {
+  if (l.conformeClt && l.conformeEmpresa) return SITUACAO_OK;
+  if (!l.conformeClt && !l.conformeEmpresa) return SITUACAO_AMBAS;
+  return l.conformeClt ? SITUACAO_SO_EMPRESA : SITUACAO_SO_CLT;
+}
 
 const DEFAULT_ORDER: ColKey[] = ["colaborador", "unidade", "cargo", "folgas", "situacao"];
 const DEFAULT_WIDTHS: Record<ColKey, number> = {
-  colaborador: 280,
-  unidade: 200,
-  cargo: 180,
-  folgas: 150,
-  situacao: 170,
+  colaborador: 260,
+  unidade: 180,
+  cargo: 160,
+  folgas: 140,
+  situacao: 260,
 };
+
 
 export default function DpConformidadeDsr() {
   const embedded = useDpEmbedded();
@@ -135,39 +149,87 @@ export default function DpConformidadeDsr() {
         .lte("data", fim);
       if (fErr) throw fErr;
 
-      const porColab = new Map<string, string[]>();
-      const outrasFolgas = new Map<string, string[]>();
+      // Folgas aprovadas nos pedidos: é o que o gestor vê marcado no calendário.
+      const { data: aprovadas, error: aErr } = await supabase
+        .from("dp_solicitacoes")
+        .select("colaborador_id, data_alvo, status, tipo")
+        .eq("company_id", selectedCompanyId!)
+        .eq("tipo", "folga")
+        .eq("status", "aprovada")
+        .not("data_alvo", "is", null)
+        .gte("data_alvo", inicio)
+        .lte("data_alvo", fim);
+      if (aErr) throw aErr;
+
+      // Dias fixos de descanso semanal do cadastro de trabalho vigente.
+      const { data: configDias, error: dErr } = await supabase
+        .from("dp_colaborador_config_dias")
+        .select("dow, trabalha, dp_colaborador_config_trabalho!inner(colaborador_id, vigencia_fim)")
+        .eq("company_id", selectedCompanyId!)
+        .eq("trabalha", false)
+        .is("dp_colaborador_config_trabalho.vigencia_fim", null);
+      if (dErr) throw dErr;
+
+      const descansoSemanal = new Map<string, number[]>();
+      for (const d of configDias ?? []) {
+        const colabId = d.dp_colaborador_config_trabalho?.colaborador_id;
+        if (!colabId || d.dow === null || d.dow === undefined) continue;
+        const arr = descansoSemanal.get(colabId) ?? [];
+        arr.push(d.dow);
+        descansoSemanal.set(colabId, arr);
+      }
+
+      // Origem por colaborador+data, deduplicando registro e pedido aprovado.
+      const origens = new Map<string, Map<string, "registrada" | "aprovada">>();
+      const registrar = (colabId: string, data: string, origem: "registrada" | "aprovada") => {
+        const mapa = origens.get(colabId) ?? new Map<string, "registrada" | "aprovada">();
+        if (!mapa.has(data)) mapa.set(data, origem);
+        origens.set(colabId, mapa);
+      };
       for (const f of folgas ?? []) {
         if (f.status === "cancelada") continue;
-        const bucket = weekdayIso(f.data) === 0 ? porColab : outrasFolgas;
-        const arr = bucket.get(f.colaborador_id) ?? [];
-        arr.push(f.data);
-        bucket.set(f.colaborador_id, arr);
+        registrar(f.colaborador_id, f.data, "registrada");
+      }
+      for (const s of aprovadas ?? []) {
+        if (!s.data_alvo) continue;
+        registrar(s.colaborador_id, s.data_alvo, "aprovada");
       }
 
       // DSR só se aplica a contratos celetistas; intermitente/PJ ficam fora do relatório.
       return (colaboradores ?? [])
         .filter((c) => contratoPolicy(c.regime, c.vinculo_label).participaConformidadeDsr)
         .map((c) => {
-
-        const cfg = configDaUnidade(c.unidade_id ?? null);
-        const negociados = new Set(diasElegiveisDaConfig(cfg).filter((d) => d !== 0));
-        return {
-          colaboradorId: c.id,
-          nome: c.nome,
-          sexo: c.sexo,
-          domingosMesOverride: c.domingos_folga_mes ?? null,
-          unidadeId: c.unidade_id ?? null,
-          cargoId: c.cargo_id ?? null,
-          domingosFolgados: porColab.get(c.id) ?? [],
-          diasNegociadosFolgados: (outrasFolgas.get(c.id) ?? []).filter((d) =>
-            negociados.has(weekdayIso(d)),
-          ),
-          domingosNoPeriodo: domingos.length,
-        };
-      });
+          const cfg = configDaUnidade(c.unidade_id ?? null);
+          const negociados = new Set(diasElegiveisDaConfig(cfg).filter((d) => d !== 0));
+          const datas = Array.from(origens.get(c.id)?.keys() ?? []).sort();
+          const dowsDescanso = descansoSemanal.get(c.id) ?? [];
+          const descansoSemanalNoMes = dowsDescanso.reduce(
+            (acc, dow) => acc + diasDaSemanaDoMes(competencia, dow).length,
+            0,
+          );
+          return {
+            colaboradorId: c.id,
+            nome: c.nome,
+            sexo: c.sexo,
+            domingosMesOverride: c.domingos_folga_mes ?? null,
+            unidadeId: c.unidade_id ?? null,
+            cargoId: c.cargo_id ?? null,
+            domingosFolgados: datas.filter((d) => weekdayIso(d) === 0),
+            diasNegociadosFolgados: datas.filter(
+              (d) => weekdayIso(d) !== 0 && negociados.has(weekdayIso(d)),
+            ),
+            folgasOutrosDias: datas.filter(
+              (d) => weekdayIso(d) !== 0 && !negociados.has(weekdayIso(d)),
+            ),
+            descansoSemanalNoMes,
+            dowsDescanso,
+            origemPorData: origens.get(c.id) ?? new Map<string, "registrada" | "aprovada">(),
+            domingosNoPeriodo: domingos.length,
+          };
+        });
     },
   });
+
 
   /** Avalia por unidade, aplicando a regra vigente de cada loja. */
   const linhas: LinhaConformidade[] = useMemo(() => {
@@ -186,17 +248,26 @@ export default function DpConformidadeDsr() {
     return out.sort((a, b) => a.nome.localeCompare(b.nome));
   }, [query.data, configDaUnidade]);
 
-  /** Selo de situação da linha, reutilizado na tabela, nos cartões e no detalhe. */
-  const badgeSituacao = (l: LinhaConformidade) =>
-    l.conforme ? (
+  /** Selo de uma leitura (CLT ou empresa), reutilizado na tabela, cartões e detalhe. */
+  const badgeLeitura = (ok: boolean, rotulo: string) =>
+    ok ? (
       <Badge variant="outline" className="gap-1 border-emerald-500/30 text-emerald-700 dark:text-emerald-400">
-        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> {SITUACAO_CONFORME}
+        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> {rotulo}
       </Badge>
     ) : (
       <Badge variant="destructive" className="gap-1">
-        <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> Fora
+        <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> {rotulo}
       </Badge>
     );
+
+  /** Os dois selos juntos: exigência legal e regra da empresa. */
+  const badgeSituacao = (l: LinhaConformidade) => (
+    <span className="flex flex-wrap items-center justify-center gap-1">
+      {badgeLeitura(l.conformeClt, "CLT")}
+      {badgeLeitura(l.conformeEmpresa, "Empresa")}
+    </span>
+  );
+
 
   const COLS: Record<ColKey, {
     label: string;
@@ -250,7 +321,7 @@ export default function DpConformidadeDsr() {
     },
     situacao: {
       label: "Situação", sortKey: "situacao", center: true,
-      value: (l) => (l.conforme ? SITUACAO_CONFORME : SITUACAO_FORA),
+      value: (l) => situacaoLabel(l),
       render: (l) => badgeSituacao(l),
     },
   };
@@ -315,18 +386,19 @@ export default function DpConformidadeDsr() {
   const porAcordo =
     configPadraoEmpresa.tipo_descanso_domingo === "acordo_coletivo" ||
     rows.some((r) => r.unidade_id && r.tipo_descanso_domingo === "acordo_coletivo");
-  const foraDeConformidade = linhas.filter((l) => !l.conforme).length;
-  const foraFiltrado = linhasFiltradas.filter((l) => !l.conforme).length;
-  const filtroForaAtivo =
-    (colFilters.situacao ?? []).length === 1 && colFilters.situacao[0] === SITUACAO_FORA;
+  const foraClt = linhas.filter((l) => !l.conformeClt).length;
+  const foraEmpresa = linhas.filter((l) => !l.conformeEmpresa).length;
+  const filtroForaAtivo = (colFilters.situacao ?? []).some((v) => v !== SITUACAO_OK)
+    && !(colFilters.situacao ?? []).includes(SITUACAO_OK);
 
-  /** Selo clicável: alterna o filtro da coluna Situação para "Fora de conformidade". */
+  /** Selo clicável: alterna o filtro da coluna Situação para quem tem algo em falta. */
   const alternarFiltroFora = () => {
     setColFilters((p) => ({
       ...p,
-      situacao: filtroForaAtivo ? [] : [SITUACAO_FORA],
+      situacao: filtroForaAtivo ? [] : [SITUACAO_SO_CLT, SITUACAO_SO_EMPRESA, SITUACAO_AMBAS],
     }));
   };
+
 
   /** Textos auxiliares do diálogo de detalhes da linha selecionada. */
   const detalheInfo = useMemo(() => {
@@ -338,17 +410,33 @@ export default function DpConformidadeDsr() {
     const negociadosDias = diasElegiveisDaConfig(cfg).filter((d) => d !== 0);
     const negociadosLabel = negociadosDias.map((d) => DIA_SEMANA_CURTO[d]).join(", ");
     const acordo = cfg.tipo_descanso_domingo === "acordo_coletivo";
-    const datas = [...(detalhe.domingosFolgados ?? []), ...(detalhe.diasNegociadosFolgados ?? [])]
+    const datas = [
+      ...(detalhe.domingosFolgados ?? []),
+      ...(detalhe.diasNegociadosFolgados ?? []),
+      ...(detalhe.folgasOutrosDias ?? []),
+    ]
       .sort()
-      .map((iso) => ({ iso, dia: DIA_SEMANA_CURTO[weekdayIso(iso)] }));
-    return { origem, negociadosLabel, acordo, datas };
+      .map((iso) => ({
+        iso,
+        dia: DIA_SEMANA_CURTO[weekdayIso(iso)],
+        origem: detalhe.origemPorData.get(iso) === "aprovada" ? "aprovada" : "registrada",
+        contaClt: weekdayIso(iso) === 0 || (acordo && negociadosDias.includes(weekdayIso(iso))),
+      }));
+    const descansoLabel = (detalhe.dowsDescanso ?? [])
+      .slice()
+      .sort((a, b) => a - b)
+      .map((d) => DIA_SEMANA_CURTO[d])
+      .join(", ");
+    const foraDoDomingo = datas.filter((d) => !d.contaClt);
+    return { origem, negociadosLabel, acordo, datas, descansoLabel, foraDoDomingo };
   }, [detalhe, configDaUnidade, rows]);
 
   const exportarCsv = () => {
     const headers = [
       "Colaborador", "Unidade", "Cargo", "Sexo", "Domingos no mês", "Folgas no mês",
-      "Domingos folgados", "Folgas em dias de descanso negociados", "Folgas consideradas",
-      "Regra aplicada", "Mínimo esperado", "Situação",
+      "Domingos folgados", "Folgas em dias de descanso negociados", "Folgas consideradas (CLT)",
+      "Descansos considerados (empresa)", "Regra aplicada", "Mínimo esperado",
+      "Situação CLT", "Situação regra da empresa",
     ];
     const rowsCsv = linhasFiltradas.map((l) => [
       l.nome,
@@ -360,10 +448,13 @@ export default function DpConformidadeDsr() {
       String(l.domingosFolgados.length),
       String(l.negociadosAproveitados),
       String(l.folgasConsideradas),
+      String(l.folgasEmpresa),
       l.rotuloFrequencia,
       String(l.esperado),
-      l.conforme ? SITUACAO_CONFORME : SITUACAO_FORA,
+      l.conformeClt ? "Em ordem" : "Em falta",
+      l.conformeEmpresa ? "Em ordem" : "Em falta",
     ]);
+
 
 
 
@@ -411,13 +502,17 @@ export default function DpConformidadeDsr() {
             <button
               type="button"
               onClick={alternarFiltroFora}
-              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              title={filtroForaAtivo ? "Mostrar todos" : "Ver só quem está fora de conformidade"}
+              className="flex flex-wrap items-center gap-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              title={filtroForaAtivo ? "Mostrar todos" : "Ver só quem está com algo em falta"}
             >
-              <Badge variant={foraFiltrado > 0 || filtroForaAtivo ? "destructive" : "default"}>
-                {foraDeConformidade > 0 ? `${foraDeConformidade} fora de conformidade` : "Todos conformes"}
+              <Badge variant={foraClt > 0 ? "destructive" : "default"}>
+                {foraClt > 0 ? `${foraClt} sem folga em domingo (CLT)` : "CLT em ordem"}
+              </Badge>
+              <Badge variant={foraEmpresa > 0 ? "destructive" : "default"}>
+                {foraEmpresa > 0 ? `${foraEmpresa} fora da regra da empresa` : "Regra da empresa em ordem"}
               </Badge>
             </button>
+
             <p className="text-[11px] text-muted-foreground">
               {linhasFiltradas.length} de {linhas.length} colaborador(es)
             </p>
@@ -570,42 +665,66 @@ export default function DpConformidadeDsr() {
                   {badgeSituacao(detalhe)}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-muted-foreground">Folgas no mês</p>
-                    <p className="font-semibold tabular-nums">{detalhe.folgasMarcadas}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Mínimo esperado</p>
-                    <p className="font-semibold tabular-nums">{detalhe.esperado}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Domingos no mês</p>
-                    <p className="font-semibold tabular-nums">{detalhe.domingosNoPeriodo}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Domingos folgados</p>
-                    <p className="font-semibold tabular-nums">{detalhe.domingosFolgados.length}</p>
-                  </div>
-                </div>
-
                 <div>
                   <p className="text-muted-foreground">Regra aplicada</p>
                   <p className="font-semibold">{detalhe.rotuloFrequencia}</p>
                   <p className="text-xs text-muted-foreground">{detalheInfo.origem}.</p>
                 </div>
 
-                {detalheInfo.acordo && (
-                  <div className="rounded-xl border border-border bg-muted/40 p-3">
-                    <p className="font-medium">Folgas em dias de descanso negociados: {detalhe.negociadosAproveitados}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                <div className="rounded-xl border border-border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium">Exigência legal (CLT)</p>
+                    {badgeLeitura(detalhe.conformeClt, detalhe.conformeClt ? "Em ordem" : "Em falta")}
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-muted-foreground">Domingos no mês</p>
+                      <p className="font-semibold tabular-nums">{detalhe.domingosNoPeriodo}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Mínimo esperado</p>
+                      <p className="font-semibold tabular-nums">{detalhe.esperado}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Domingos folgados</p>
+                      <p className="font-semibold tabular-nums">{detalhe.domingosFolgados.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Folgas consideradas</p>
+                      <p className="font-semibold tabular-nums">{detalhe.folgasConsideradas}</p>
+                    </div>
+                  </div>
+                  {detalheInfo.acordo && (
+                    <p className="mt-2 text-xs text-muted-foreground">
                       Por acordo coletivo, os dias de descanso combinados
                       {detalheInfo.negociadosLabel ? ` (${detalheInfo.negociadosLabel})` : ""} substituem
-                      o domingo na contagem da folga semanal obrigatória. Cada folga nesses dias conta
-                      como se fosse um domingo folgado.
+                      o domingo na contagem da folga semanal obrigatória
+                      ({detalhe.negociadosAproveitados} no mês).
                     </p>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium">Regra da empresa</p>
+                    {badgeLeitura(detalhe.conformeEmpresa, detalhe.conformeEmpresa ? "Em ordem" : "Em falta")}
                   </div>
-                )}
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-muted-foreground">Descansos considerados</p>
+                      <p className="font-semibold tabular-nums">{detalhe.folgasEmpresa}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Folgas marcadas</p>
+                      <p className="font-semibold tabular-nums">{detalhe.folgasMarcadas}</p>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {detalheInfo.descansoLabel
+                      ? `Inclui o descanso fixo do cadastro de trabalho (${detalheInfo.descansoLabel}), que não gera registro de folga.`
+                      : "Sem descanso fixo no cadastro de trabalho; conta só as folgas marcadas."}
+                  </p>
+                </div>
 
                 <div>
                   <p className="text-muted-foreground">Folgas marcadas no mês</p>
@@ -617,8 +736,15 @@ export default function DpConformidadeDsr() {
                         <li
                           key={d.iso}
                           className="rounded-full border border-border px-2.5 py-0.5 text-xs tabular-nums"
+                          title={
+                            d.origem === "aprovada"
+                              ? "Pedido de folga aprovado"
+                              : "Folga registrada na escala"
+                          }
                         >
                           {d.dia} {diaMesIso(d.iso)}
+                          {d.origem === "aprovada" ? " · aprovada" : ""}
+                          {d.contaClt ? "" : " · não conta para a CLT"}
                         </li>
                       ))}
                     </ul>
