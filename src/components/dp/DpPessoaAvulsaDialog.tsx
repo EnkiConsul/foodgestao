@@ -48,9 +48,10 @@ const hojeIso = () => {
 
 
 /**
- * Cadastro rápido de alguém que trabalha no dia sem ser colaborador
- * cadastrado: pessoa em teste ou folguista cobrindo um titular. Só entra na
- * rotina do dia — não gera folga, ponto, folha nem convocação.
+ * Cadastro rápido de quem trabalhou no dia: colaborador cadastrado registrado
+ * manualmente (convocação/escala esquecida) ou pessoa não cadastrada em teste /
+ * folguista. Só entra na rotina do dia — não gera folga, ponto, folha nem
+ * convocação.
  */
 export function DpPessoaAvulsaDialog({
   open,
@@ -67,7 +68,8 @@ export function DpPessoaAvulsaDialog({
 }: Props) {
   const [form, setForm] = useState({
     nome: "",
-    tipo: "teste" as PessoaAvulsaTipo,
+    tipo: "registro_manual" as PessoaAvulsaTipo,
+    colaborador_id: "",
     unidade_id: "",
     cargo_id: "",
     cobre_colaborador_id: "",
@@ -80,17 +82,22 @@ export function DpPessoaAvulsaDialog({
   });
   const [horarioTocado, setHorarioTocado] = useState(false);
 
+  const manual = form.tipo === "registro_manual";
+  const hoje = hojeIso();
+
   useEffect(() => {
     if (!open) return;
     setHorarioTocado(false);
+    const dataBase = registro?.data_inicio ?? (dataInicial > hojeIso() ? hojeIso() : dataInicial);
     setForm({
       nome: registro?.nome ?? "",
-      tipo: registro?.tipo ?? "teste",
+      tipo: registro?.tipo ?? "registro_manual",
+      colaborador_id: registro?.colaborador_id ?? "",
       unidade_id: registro?.unidade_id ?? unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
       cargo_id: registro?.cargo_id ?? "",
       cobre_colaborador_id: "",
-      data_inicio: registro?.data_inicio ?? dataInicial,
-      data_fim: registro?.data_fim ?? dataInicial,
+      data_inicio: dataBase,
+      data_fim: registro?.data_fim ?? dataBase,
       entrada: registro?.entrada ?? "",
       saida: registro?.saida ?? "",
       termina_no_dia_seguinte: registro?.termina_no_dia_seguinte ?? false,
@@ -112,10 +119,28 @@ export function DpPessoaAvulsaDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sugerirHorario, form.unidade_id, form.cargo_id, form.data_inicio]);
 
+  /** Ao escolher o colaborador, já traz o cargo e a unidade do cadastro dele. */
+  const escolherColaborador = (id: string) => {
+    const c = colaboradores.find((x) => x.id === id);
+    setForm((f) => ({
+      ...f,
+      colaborador_id: id,
+      cargo_id: c?.cargo_id ?? f.cargo_id,
+      unidade_id: c?.unidade_id ?? f.unidade_id,
+    }));
+  };
+
   const salvar = () => {
+    if (manual && form.data_fim > hoje) {
+      toast.error("Data futura não permitida", {
+        description: "Para dias futuros use a convocação ou a escala.",
+      });
+      return;
+    }
     const candidato: PessoaAvulsaInput = {
-      nome: form.nome.trim(),
+      nome: manual ? null : form.nome.trim(),
       tipo: form.tipo,
+      colaborador_id: manual ? form.colaborador_id || null : null,
       unidade_id: form.unidade_id,
       cargo_id: form.cargo_id,
       cobre_colaborador_id: form.cobre_colaborador_id || null,
@@ -132,6 +157,7 @@ export function DpPessoaAvulsaDialog({
     if (!parsed) return;
     onSalvar({ ...candidato, id: registro?.id });
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
