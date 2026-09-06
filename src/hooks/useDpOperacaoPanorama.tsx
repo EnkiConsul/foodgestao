@@ -239,6 +239,29 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     },
   });
 
+  /** Pessoas avulsas (teste/folguista) que cruzam a competência exibida. */
+  const avulsasQuery = useQuery({
+    queryKey: ["dp_pessoas_avulsas", selectedCompanyId, competencia, unidadeId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      let q = supabase
+        .from("dp_pessoas_avulsas")
+        .select(
+          "id, nome, tipo, unidade_id, cargo_id, cobre_colaborador_id, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao",
+        )
+        .eq("company_id", selectedCompanyId!)
+        .lte("data_inicio", fim)
+        .gte("data_fim", inicio)
+        .order("data_inicio");
+      if (unidadeId) q = q.eq("unidade_id", unidadeId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+
+
   const turnos: TurnoResolvido[] = useMemo(
     () =>
       (base.data?.turnos ?? [])
