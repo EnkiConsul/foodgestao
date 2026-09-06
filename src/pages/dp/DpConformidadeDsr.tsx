@@ -751,8 +751,6 @@ export default function DpConformidadeDsr() {
                   )}
                 </div>
               </div>
-
-              </div>
             </>
           )}
         </DialogContent>
