@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga } from "@/lib/dp/dsr-rules";
+import { folgasOfertaveis } from "@/lib/dp/troca-oferta";
 
 
 import {
@@ -452,14 +453,18 @@ export default function DpMeuCalendario() {
   };
 
   // Minhas folgas futuras (para oferecer troca)
-  const minhasFolgasFuturas = useMemo(() => {
-    if (!meRef.data?.id) return [];
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    return folgas
-      .filter((f) => f.colaborador_id === meRef.data!.id && f.status !== "cancelada" && parseYMD(f.data) >= hoje)
-      .sort((a, b) => a.data.localeCompare(b.data));
-  }, [folgas, meRef.data?.id]);
+  const hojeIso = useMemo(() => ymd(new Date()), []);
+  const minhasFolgasFuturas = useMemo(
+    () => folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso }),
+    [folgas, meRef.data?.id, hojeIso],
+  );
+
+  /** Folgas ofertáveis para o dia aberto no diálogo (sem o próprio dia pedido). */
+  const folgasParaOferecer = useMemo(
+    () => folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso, diaPedidoIso: tradeOpen?.iso }),
+    [folgas, meRef.data?.id, hojeIso, tradeOpen?.iso],
+  );
+
 
   // -------- Mutations --------
   const marcarFolga = useMutation({
@@ -655,11 +660,16 @@ export default function DpMeuCalendario() {
     mutationFn: async () => {
       if (!meRef.data || !tradeOpen) throw new Error("Sem contexto");
       if (!tradeMyDate) throw new Error("Escolha uma folga sua para oferecer.");
+      if (tradeOpen.occupantId === meRef.data.id)
+        throw new Error("Não é possível trocar uma folga com você mesmo.");
+      if (tradeMyDate === tradeOpen.iso)
+        throw new Error("Escolha uma folga sua em outro dia: a troca precisa ser entre dias diferentes.");
       const motivo = tradeMotivo.trim() || "Solicitação de troca via calendário";
       // regra da unidade: modo e escopo da troca
       const tipoTroca = parseYMD(tradeMyDate).getDay() === 0 ? "dominical" : "semanal";
       const check = podeTrocarFolga(regrasConfig, tipoTroca);
       if (!check.permitida) throw new Error(check.motivo ?? "Troca de folga não permitida.");
+
 
       // duplicidade
       const { data: existing } = await supabase
@@ -703,8 +713,10 @@ export default function DpMeuCalendario() {
     const occupants = occupantsByDate.get(selectedDay.iso) ?? [];
     const isMine = occupants.some((o) => o.colaboradorId === meRef.data?.id);
 
-    // canTrade — só se eu tenho folga futura para oferecer e o dia está em outra ocupação (não meu, não passado)
-    const canTrade = minhasFolgasFuturas.length > 0 && !isMine && selectedDay.status !== "past";
+    // canTrade — só se eu tenho folga em OUTRO dia para oferecer e o dia está em
+    // outra ocupação (não meu, não passado)
+    const ofertaveis = minhasFolgasFuturas.filter((f) => f.data !== selectedDay.iso);
+    const canTrade = ofertaveis.length > 0 && !isMine && selectedDay.status !== "past";
     return { date, isWeekend, occupants, isMine, canTrade };
   }, [selectedDay, occupantsByDate, meRef.data?.id, minhasFolgasFuturas]);
 
@@ -1055,18 +1067,19 @@ export default function DpMeuCalendario() {
                   <SelectValue placeholder="Escolha uma folga sua" />
                 </SelectTrigger>
                 <SelectContent>
-                  {minhasFolgasFuturas.map((f) => (
+                  {folgasParaOferecer.map((f) => (
                     <SelectItem key={f.id} value={f.data}>
                       {formatBR(parseYMD(f.data))}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {minhasFolgasFuturas.length === 0 && (
+              {folgasParaOferecer.length === 0 && (
                 <p className="text-xs text-destructive mt-1">
-                  Você não tem folgas futuras para oferecer em troca.
+                  Você não tem folga em outro dia para oferecer nesta troca.
                 </p>
               )}
+
             </div>
             <div>
               <Label className="flex items-center gap-2">
