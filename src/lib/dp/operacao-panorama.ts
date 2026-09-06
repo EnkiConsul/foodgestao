@@ -365,6 +365,37 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     });
   }
 
+  // Pessoas avulsas (teste/folguista) contam como quadro do dia, igual a um
+  // colaborador escalado: entram em "fixo" e, portanto, em "trabalhando".
+  for (const a of input.avulsos ?? []) {
+    if (data < a.data_inicio || data > a.data_fim) continue;
+    const entrada = hora(a.entrada);
+    const saida = hora(a.saida);
+    contagens.fixo += 1;
+    pessoas.push({
+      colaborador_id: idPessoaAvulsa(a.id),
+      nome: a.nome,
+      categoria: "fixo",
+      turno_id: null,
+      turno_nome: a.tipo === "teste" ? "Em teste" : "Folguista",
+      entrada,
+      saida,
+      termina_no_dia_seguinte:
+        a.termina_no_dia_seguinte || (!!entrada && !!saida && turnoViraODia(entrada, saida)),
+      carga_prevista_horas:
+        entrada && saida ? cargaLiquidaHoras({ entrada, saida, intervalo_minutos: 0 }) : 0,
+      unidade_id: a.unidade_id,
+      cargo_id: a.cargo_id,
+      cargo_nome: a.cargo_nome,
+      socio: false,
+      origem: "avulso",
+      avulso_id: a.id,
+      avulso_tipo: a.tipo,
+      cobre_nome: a.cobre_nome,
+      observacao: a.observacao,
+    });
+  }
+
   // Confirmados = fixos escalados + convocações aceitas.
   // Convocação pendente NUNCA entra em "trabalhando": ela é apenas "Aguardando".
   const trabalhando = contagens.fixo + contagens.convocado_aceito;
