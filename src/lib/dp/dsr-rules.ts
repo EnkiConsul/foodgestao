@@ -551,6 +551,10 @@ export interface ConformidadeInput {
   domingosFolgados: string[];
   /** Folgas em dias negociados (exceto domingo) — só contam no modo acordo coletivo. */
   diasNegociadosFolgados?: string[];
+  /** Folgas em dias que não são domingo nem dia negociado (contam só na regra da empresa). */
+  folgasOutrosDias?: string[];
+  /** Dias de descanso semanal fixos do cadastro ocorridos no mês (regra da empresa). */
+  descansoSemanalNoMes?: number;
   /** Total de domingos existentes no período analisado. */
   domingosNoPeriodo: number;
   /**
@@ -575,8 +579,16 @@ export interface ConformidadeLinha extends ConformidadeInput {
   folgasMarcadas: number;
   /** Folgas em dias negociados aproveitadas por acordo coletivo. */
   negociadosAproveitados: number;
+  /** Exigência legal (folga em domingo, ou dia negociado no acordo coletivo). */
+  conformeClt: boolean;
+  /** Regra configurada da unidade, considerando qualquer dia de descanso. */
+  conformeEmpresa: boolean;
+  /** Descansos considerados na leitura da empresa. */
+  folgasEmpresa: number;
+  /** Ambas as leituras em ordem. */
   conforme: boolean;
 }
+
 
 /** Quantos domingos de folga são esperados no período, dada a periodicidade. */
 export function domingosEsperados(domingosNoPeriodo: number, periodicidadeSemanas: number): number {
