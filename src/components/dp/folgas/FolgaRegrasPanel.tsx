@@ -331,7 +331,9 @@ export function FolgaRegrasPanel({
                 <div className="mt-2 space-y-1.5 pl-9">
                   {r.nome && <p className="text-sm font-medium">{r.nome}</p>}
                   <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className="font-medium capitalize text-foreground">{partes.dia}</span>
+                    <span className="font-medium text-foreground first-letter:uppercase">
+                      {partes.dia}
+                    </span>
                     <span aria-hidden="true">·</span>
                     {partes.escopo.length === 0 ? (
                       <span>{partes.escopoVazio}</span>
