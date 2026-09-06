@@ -464,7 +464,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       return { ...r, avaliacao, dispensado, alerta: desvio && !dispensado };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [base.data, dias, padrao, dispensadas, colaboradores, turnos, convocacoes, folgas, ausencias]);
+  }, [base.data, dias, padrao, dispensadas, colaboradores, turnos, convocacoes, folgas, ausencias, avulsos]);
 
   const dispensarAlerta = useMutation({
     mutationFn: async (input: { data: string; previsto: number; padrao: number; observacao?: string }) => {
