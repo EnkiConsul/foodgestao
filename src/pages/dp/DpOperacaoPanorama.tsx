@@ -213,7 +213,222 @@ function SituacaoBadge({ dia }: { dia: DiaPanorama }) {
   return null;
 }
 
+interface DetalheDiaProps {
+  data: string;
+  dia: DiaPanorama;
+  blocos: ReturnType<typeof blocosPorFuncionamento>;
+  sociosAusentes: PessoaPanorama[];
+  ausenciasRegistradas: { colaborador_id: string; tipo: string; inicio: string; fim: string; motivo: string | null }[];
+  nomesColaboradores: Map<string, string>;
+  unidadeId: string | null;
+  nomeUnidade: string | null;
+  ordemCards: string[];
+  onReordenarCards: (next: string[]) => void;
+  onVerCategoria: (cat: CategoriaDia) => void;
+  onVerSocios: () => void;
+  onDispensar: (d: DiaPanorama) => void;
+  onReativar: (d: DiaPanorama) => void;
+}
+
+/** Sócio ausente sem obrigação CLT: exibido com tag própria. */
+const tagSocio = (p: PessoaPanorama) =>
+  p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria) && !p.socio_integrado;
+
+/**
+ * Detalhamento de um dia da operação. Usado tanto na aba "Rotina do Dia"
+ * quanto na janela que abre ao clicar num dia do calendário do mês.
+ */
+function DetalheDiaOperacao({
+  data,
+  dia,
+  blocos,
+  sociosAusentes,
+  ausenciasRegistradas,
+  nomesColaboradores,
+  unidadeId,
+  nomeUnidade,
+  ordemCards,
+  onReordenarCards,
+  onVerCategoria,
+  onVerSocios,
+  onDispensar,
+  onReativar,
+}: DetalheDiaProps) {
+  const foraDaOperacao = dia.pessoas.filter((p) =>
+    ["folga_padrao", "folga_extra", "ferias", "atestado"].includes(p.categoria),
+  );
+  const ausReg = ausenciasRegistradas.filter((a) => a.inicio <= data && a.fim >= data);
+  const rotuloAus = (t: string) => (t === "adiantamento" ? "Adiantamento" : t === "outros" ? "Ausência" : t);
+
+  return (
+    <div className="space-y-4">
+      <GradeCards
+        ordem={ordemCards}
+        onReordenar={onReordenarCards}
+        render={(k) => {
+          if (k === "folga_socio") {
+            return (
+              <DpStatCard
+                icon={Handshake}
+                tone={sociosAusentes.length ? "warning" : "muted"}
+                label="Folga Sócio"
+                value={sociosAusentes.length}
+                onClick={sociosAusentes.length ? onVerSocios : undefined}
+              />
+            );
+          }
+          const cat = k as CategoriaDia;
+          return (
+            <DpStatCard
+              icon={CATEGORIA_ICON[cat]}
+              tone={CATEGORIA_TONE[cat]}
+              label={CATEGORIA_LABEL[cat]}
+              value={dia.contagens[cat]}
+              onClick={dia.contagens[cat] > 0 ? () => onVerCategoria(cat) : undefined}
+            />
+          );
+        }}
+      />
+
+      {dia.avaliacao.situacao !== "sem_padrao" && dia.avaliacao.situacao !== "ok" && (
+        <Secao
+          title="Fora do Padrão"
+          description={mensagemAlerta(dia, dia.avaliacao, nomeUnidade)}
+          action={
+            dia.dispensado ? (
+              <Button variant="ghost" size="sm" onClick={() => onReativar(dia)}>
+                <RotateCcw className="mr-1.5 h-4 w-4" />
+                Reativar alerta
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => onDispensar(dia)}>
+                <Check className="mr-1.5 h-4 w-4" />
+                Está ok
+              </Button>
+            )
+          }
+        >
+          <p className="text-sm text-muted-foreground">
+            O padrão vem da mediana das últimas 8 semanas para este dia da semana
+            {unidadeId ? " nesta unidade" : ""}.
+          </p>
+        </Secao>
+      )}
+
+      {blocos.length ? (
+        blocos.map((bloco) => (
+          <Secao
+            key={bloco.key}
+            title={bloco.titulo}
+            description={[
+              bloco.horario,
+              !unidadeId && bloco.unidade_nome ? bloco.unidade_nome : null,
+              `${bloco.pessoas.length} pessoa(s)`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+            action={bloco.fechado ? <Badge variant="outline">Fora do funcionamento</Badge> : undefined}
+          >
+            {bloco.pessoas.length ? (
+              <div className="space-y-3">
+                {bloco.grupos.map((g) => (
+                  <div key={g.cargo_id ?? "sem-cargo"}>
+                    <p className="mb-1 text-xs font-semibold text-muted-foreground">
+                      {g.cargo_nome} ({g.pessoas.length})
+                    </p>
+                    <ul className="divide-y">
+                      {g.pessoas.map((p) => (
+                        <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{p.nome}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {p.entrada ?? "--:--"} às {p.saida ?? "--:--"}
+                              {p.termina_no_dia_seguinte ? " (+1)" : ""} ·{" "}
+                              {formatarHoras(p.carga_prevista_horas)}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            {p.socio && (
+                              <Badge variant="outline" className="border-primary/40 text-primary">
+                                Sócio
+                              </Badge>
+                            )}
+                            <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
+                              {CATEGORIA_LABEL[p.categoria]}
+                            </Badge>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {bloco.fechado
+                  ? "A unidade está fechada neste dia e ninguém está previsto."
+                  : "Ninguém previsto neste período."}
+              </p>
+            )}
+          </Secao>
+        ))
+      ) : (
+        <Secao title="Ninguém na Operação Neste Dia">
+          <p className="text-sm text-muted-foreground">
+            Nenhum fixo com jornada prevista e nenhuma convocação para {dataExtenso(data)}.
+          </p>
+        </Secao>
+      )}
+
+      {foraDaOperacao.length > 0 && (
+        <Secao title="Fora da Operação" description="Folgas, férias e afastamentos do dia">
+          <ul className="divide-y">
+            {foraDaOperacao.map((p) => (
+              <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+                <span className="truncate text-sm">{p.nome}</span>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {tagSocio(p) && (
+                    <Badge variant="outline" className="border-primary/40 text-primary">
+                      Folga sócio
+                    </Badge>
+                  )}
+                  <Badge variant="outline">{CATEGORIA_LABEL[p.categoria]}</Badge>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Secao>
+      )}
+
+      {ausReg.length > 0 && (
+        <Secao
+          title="Ausências Registradas"
+          description="Afastamentos registrados pelo gestor que cobrem este dia"
+        >
+          <ul className="divide-y">
+            {ausReg.map((a, i) => (
+              <li key={`${a.colaborador_id}-${i}`} className="flex items-start justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <span className="block truncate text-sm">
+                    {nomesColaboradores.get(a.colaborador_id) ?? "—"}
+                  </span>
+                  {a.motivo && <span className="block text-xs text-muted-foreground">{a.motivo}</span>}
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Badge variant="outline">{rotuloAus(a.tipo)}</Badge>
+                  {a.fim !== a.inicio && <span className="text-xs text-muted-foreground">até {a.fim}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Secao>
+      )}
+    </div>
+  );
+}
+
 export default function DpOperacaoPanorama() {
+
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState(() => params.get("data") || hojeIso());
   const [unidade, setUnidade] = useState<string>("");
