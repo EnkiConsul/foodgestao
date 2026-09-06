@@ -1,10 +1,10 @@
-import { ArrowLeftRight, Ban, Building2, Check, MessageSquare, X } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, Ban, Building2, Check, MessageSquare, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TextoExpansivel } from "@/components/dp/TextoExpansivel";
 import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import { acoesGestorTroca } from "@/lib/dp/troca-acoes";
-import { dataComDiaSemana, metaStatusTroca } from "@/lib/dp/troca-apresentacao";
+import { dataComDiaSemana, metaStatusTroca, trocaInconsistente } from "@/lib/dp/troca-apresentacao";
 import { cn } from "@/lib/utils";
 
 
