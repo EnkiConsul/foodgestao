@@ -371,6 +371,9 @@ describe("horarioMaisUsado", () => {
     nome: `Fixo ${id}`,
     regime: "clt",
     intermitente: false,
+    unidade_id: "u1",
+    cargo_id: "c1",
+    cargo_nome: "Atendente",
     config: { turno_padrao_id: turno_id, folga_variavel: false, folga_fixa_dow: 0, dias: dias([1, 2, 3, 4, 5, 6]) },
   });
 
