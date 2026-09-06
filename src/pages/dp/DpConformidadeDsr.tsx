@@ -206,12 +206,14 @@ export default function DpConformidadeDsr() {
 
   const exportarCsv = () => {
     const headers = [
-      "Colaborador", "Sexo", "Domingos no mês", "Domingos folgados",
+      "Colaborador", "Unidade", "Cargo", "Sexo", "Domingos no mês", "Domingos folgados",
       "Dias negociados aproveitados", "Folgas consideradas",
       "Periodicidade aplicada (semanas)", "Mínimo esperado", "Situação",
     ];
-    const rowsCsv = linhas.map((l) => [
+    const rowsCsv = linhasFiltradas.map((l) => [
       l.nome,
+      (l.unidadeId && unidadeNome.get(l.unidadeId)) || "—",
+      (l.cargoId && cargoNome.get(l.cargoId)) || "—",
       l.sexo === "F" ? "Feminino" : l.sexo === "M" ? "Masculino" : "—",
       String(l.domingosNoPeriodo),
       String(l.domingosFolgados.length),
@@ -221,6 +223,7 @@ export default function DpConformidadeDsr() {
       String(l.esperado),
       l.conforme ? "Conforme" : "Fora de conformidade",
     ]);
+
 
     const csv = [headers.join(";"), ...rowsCsv.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
