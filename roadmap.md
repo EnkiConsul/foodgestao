@@ -1,3 +1,4 @@
 - [x] Quantidade por dia com escolha de cargos
 - [x] Cabeçalho fixo na janela Editar Regras de Folgas
 - [x] Folgas: dias/ocupação por item no plano, preferência pelo fim do mês, sem contingência acima do limite (escolha manual com contagem), Registrar Ausência na Operação, remarcar/cancelar folga efetivada ou solicitada sem manter o dia cancelado no calendário
+- [x] Rotina do dia: cards de folguista/teste, dia destacado no calendário, horário sugerido no cadastro de pessoa avulsa, botão "Adicionar Pessoa" no topo e diálogo de listagem por tipo
