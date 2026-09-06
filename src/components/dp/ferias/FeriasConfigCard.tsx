@@ -10,10 +10,14 @@ import {
 import {
   ADIANTAMENTO_13_LABEL, useDpFeriasConfig, type FeriasAdiantamento13,
 } from "@/hooks/useDpFeriasConfig";
+import { useDpFeriasConfigUnidades } from "@/hooks/useDpFeriasConfigUnidades";
+import { useDpUnidades } from "@/hooks/useDpCadastros";
 
 /** Antecedência do aviso de férias e política de adiantamento do 13º. */
 export function FeriasConfigCard() {
   const { config, isLoading, save } = useDpFeriasConfig();
+  const { overrides, save: saveUnidade } = useDpFeriasConfigUnidades();
+  const { data: unidades = [] } = useDpUnidades();
   const [dias, setDias] = useState(String(config.avisoAntecedenciaDias));
   const [politica, setPolitica] = useState<FeriasAdiantamento13>(config.adiantamento13);
 
