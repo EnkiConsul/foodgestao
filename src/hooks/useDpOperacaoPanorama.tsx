@@ -592,6 +592,44 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
 
 
 
+  /** Setores ativos da unidade escolhida (a dimensão Setor só existe se houver algum). */
+  const setores = useMemo(
+    () =>
+      (base.data?.setores ?? []).filter(
+        (st) => st.ativo !== false && (!unidadeId || st.unidade_id === unidadeId),
+      ),
+    [base.data, unidadeId],
+  );
+
+  /**
+   * Altera o setor de um colaborador só naquela data (ou volta ao setor padrão).
+   * Todo o trabalho é do backend: ele deriva empresa/unidade, materializa o item
+   * da escala e preserva turno, horário, tipo, carga e observações.
+   */
+  const definirSetorDia = useMutation({
+    mutationFn: async (input: {
+      colaborador_id: string;
+      data: string;
+      acao: "USAR_PADRAO" | "DEFINIR_SETOR";
+      setor_id?: string | null;
+      motivo?: string | null;
+    }) => {
+      const { error } = await supabase.rpc("dp_escala_definir_setor_dia", {
+        p_colaborador_id: input.colaborador_id,
+        p_data: input.data,
+        p_acao: input.acao,
+        p_setor_id: input.acao === "DEFINIR_SETOR" ? input.setor_id ?? null : null,
+        p_motivo: input.motivo?.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+      qc.invalidateQueries({ queryKey: ["dp_escala_mes"] });
+      qc.invalidateQueries({ queryKey: ["dp_folga_limites"] });
+    },
+  });
+
   /** Funcionamento por unidade, no formato de períodos por dia da semana. */
   const funcionamentoPorUnidade = useMemo(() => {
     const out = new Map<string, HorarioFuncionamentoDia[]>();
@@ -636,6 +674,9 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     ausenciasRegistradas,
     avulsos,
     cargos: base.data?.cargos ?? [],
+    setores,
+    usaSetores: setores.length > 0,
+    definirSetorDia,
     salvarAvulsa,
     excluirAvulsa,
     sugerirHorario,
