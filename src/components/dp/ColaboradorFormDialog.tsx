@@ -50,6 +50,7 @@ import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { PadraoDivergenciaAviso } from "@/components/dp/PadraoDivergenciaAviso";
 import { ColaboradorJornadaPanel, type SalvarJornadaResultado } from "@/components/dp/ColaboradorJornadaPanel";
 import { CargoQuickCreateDialog } from "@/components/dp/CargoQuickCreateDialog";
+import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { UnidadeFormDialog } from "@/components/dp/UnidadeFormDialog";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 
@@ -178,6 +179,7 @@ const blank = {
   whatsapp: "",
   cargo_id: "",
   unidade_id: "",
+  setor_id: "",
   sindicato_id: "",
 
   data_admissao: "",
@@ -600,6 +602,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
       whatsapp: c.whatsapp ?? "",
       cargo_id: c.cargo_id ?? "",
       unidade_id: c.unidade_id ?? "",
+      setor_id: c.setor_id ?? "",
       sindicato_id: (c as any).sindicato_id ?? "",
 
       data_admissao: c.data_admissao ?? "",
@@ -1296,6 +1299,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
         cargo: cargoNome,
         cargo_id: form.cargo_id,
         unidade_id: form.unidade_id || null,
+        setor_id: form.setor_id || null,
         sindicato_id: form.sindicato_id || null,
 
         regime: regimeSelecionado,
@@ -1691,7 +1695,11 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             </p>
           </div>
 
-
+          <ColaboradorSetorField
+            unidadeId={form.unidade_id || null}
+            value={form.setor_id || null}
+            onChange={(id) => setForm((f) => ({ ...f, setor_id: id ?? "" }))}
+          />
 
           {/* Sócio não é representado por convenção coletiva: sem enquadramento. */}
           {!socioSelecionado && (
