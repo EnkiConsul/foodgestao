@@ -18,7 +18,7 @@ No formulário de adicionar pessoa, a lista de motivos passa para esta ordem, co
 
 ## 3. Título da seção
 
-"Pessoas Registradas no Dia" passa a se chamar **"Pessoas Adicionais no Dia"**, com a descrição ajustada para dizer que ali ficam as pessoas incluídas manualmente naquele dia (para editar ou remover).
+"Pessoas Registradas no Dia" passa a se chamar **"Mão de Obra Extra"**, com a descrição ajustada para dizer que ali ficam as pessoas incluídas manualmente naquele dia (para editar ou remover).
 
 ## 4. Pessoas adicionadas aparecem dentro do turno
 
@@ -28,11 +28,11 @@ As pessoas em teste e folguistas já entram no quadro do turno junto com os dema
 - **Em teste**
 - **Registro manual**, para o colaborador cadastrado lançado à mão
 
-Assim o gestor lê o turno inteiro numa lista só e distingue quem é do quadro fixo e quem foi incluído no dia. A seção "Pessoas Adicionais no Dia" continua abaixo, servindo para incluir, editar e remover esses registros.
+Assim o gestor lê o turno inteiro numa lista só e distingue quem é do quadro fixo e quem foi incluído no dia. A seção "Mão de Obra Extra" continua abaixo, servindo para incluir, editar e remover esses registros.
 
 ## Detalhes técnicos
 
-- `src/pages/dp/DpOperacaoPanorama.tsx`: grade em `GradeCards` de `grid-cols-2 sm:grid-cols-3 md:grid-cols-5`; etiqueta da pessoa nos blocos de turno passa a considerar `p.origem === "avulso" | "registro_manual"` e `p.avulso_tipo` (dados já presentes em `PessoaPanorama`) antes de cair em `CATEGORIA_LABEL`; textos da seção `Pessoas Registradas no Dia`.
+- `src/pages/dp/DpOperacaoPanorama.tsx`: grade em `GradeCards` de `grid-cols-2 sm:grid-cols-3 md:grid-cols-5`; etiqueta da pessoa nos blocos de turno passa a considerar `p.origem === "avulso" | "registro_manual"` e `p.avulso_tipo` (dados já presentes em `PessoaPanorama`) antes de cair em `CATEGORIA_LABEL`; textos da seção `Mão de Obra Extra` e botão "Mão de Obra Extra" no dia e no mês.
 - `src/components/dp/DpStatCard.tsx`: rótulo com altura mínima de duas linhas para padronizar a altura dos cards entre linhas.
 - `src/components/dp/DpPessoaAvulsaDialog.tsx`: ordem de `TIPO_LABEL` (folguista → teste → registro manual) e valor inicial do formulário como `folguista`; edição continua respeitando o tipo salvo.
 - Nada muda no banco nem nas regras de contagem: teste e folguista continuam somando em "Fixos Escalados" e registro manual segue somando no card do tipo do colaborador.
