@@ -728,7 +728,19 @@ export default function DpConformidadeDsr() {
                       <p className="text-muted-foreground">Folgas consideradas</p>
                       <p className="font-semibold tabular-nums">{detalhe.folgasConsideradas}</p>
                     </div>
+                    <div>
+                      <p className="text-muted-foreground">Intervalo entre domingos</p>
+                      <p className="font-semibold tabular-nums">
+                        1 a cada {detalhe.intervaloDomingoExigido} semanas
+                      </p>
+                    </div>
                   </div>
+                  {detalhe.domingosComIntervaloRompido.length > 0 && (
+                    <p className="mt-2 text-xs text-destructive">
+                      Ficou mais de {detalhe.intervaloDomingoExigido - 1} domingo(s) seguidos
+                      trabalhando: {detalhe.domingosComIntervaloRompido.map(diaMesIso).join(", ")}.
+                    </p>
+                  )}
                   {detalhe.esperadoClt > detalhe.esperado && (
                     <p className="mt-2 text-xs text-muted-foreground">
                       A regra cadastrada pede {detalhe.esperado}, mas o mínimo legal do mês é{" "}
@@ -738,6 +750,7 @@ export default function DpConformidadeDsr() {
                         : " pelo padrão legal do setor."}
                     </p>
                   )}
+
                   {detalheInfo.acordo && (
                     <p className="mt-2 text-xs text-muted-foreground">
                       Por acordo coletivo, os dias de descanso combinados
