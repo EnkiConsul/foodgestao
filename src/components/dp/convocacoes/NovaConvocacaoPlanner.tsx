@@ -847,31 +847,29 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   />
                   <p className="text-[11px] text-muted-foreground">
                     Cada selo mostra confirmados/mínimo do cargo e quem ainda está aguardando —
-                    pendente nunca conta como confirmado. Clique num dia escolhido na lista abaixo
-                    para ajustar janela, vagas e horários individuais.
+                    pendente nunca conta como confirmado. Marque os dias e ajuste o horário
+                    direto na lista abaixo, já preenchida com o horário padrão do cargo.
                   </p>
 
-                  {diasDoCargo.length > 0 && (
-                    <div className="space-y-1.5">
-                      {[...diasDoCargo].sort((a, b) => a.data.localeCompare(b.data)).map((d) => {
-                        const cob = cobertura(d.data, d.cargo_id);
-                        const k = chave(d.cargo_id, d.data);
-                        return (
-                          <button
-                            key={k} type="button" onClick={() => setDetalhe(k)}
-                            className="flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-2 py-1.5 text-xs hover:bg-muted/50"
-                          >
-                            <span className="font-medium">{rotuloData(d.data)}</span>
-                            <span className="text-muted-foreground">
-                              {d.entrada && d.saida ? `${d.entrada}–${d.saida}${d.vira ? " +1" : ""}` : "sem horário"}
-                              {" · "}{d.vagas} vaga(s)
-                              {cob.faltam ? ` · faltam ${cob.faltam}` : ""}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <DiasSelecionadosLista
+                    itens={[...diasDoCargo]
+                      .sort((a, b) => a.data.localeCompare(b.data))
+                      .map((d) => ({
+                        chave: chave(d.cargo_id, d.data),
+                        data: d.data,
+                        entrada: d.entrada,
+                        saida: d.saida,
+                        vira: d.vira,
+                        vagas: d.vagas,
+                        origem: d.origem,
+                        ambiguo: d.ambiguo,
+                        faltam: cobertura(d.data, d.cargo_id).faltam ?? null,
+                      }))}
+                    onPatch={patchDia}
+                    onRemover={removerDia}
+                    onAbrirIndividuais={setDetalhe}
+                    onAplicarATodos={aplicarATodos}
+                  />
                 </div>
               )}
 
