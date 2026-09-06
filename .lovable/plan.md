@@ -1,4 +1,4 @@
-# Folgas automáticas: um único botão, sem intermitentes e respeitando o sábado
+# Folgas automáticas: um único botão, só quem precisa folgar, respeitando o sábado
 
 ## O que está errado hoje
 
