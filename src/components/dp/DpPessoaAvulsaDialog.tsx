@@ -36,9 +36,9 @@ interface Props {
 }
 
 const TIPO_LABEL: Record<PessoaAvulsaTipo, string> = {
-  registro_manual: "Colaborador cadastrado que trabalhou",
-  teste: "Em teste na loja",
   folguista: "Folguista (cobrindo alguém)",
+  teste: "Em teste na loja",
+  registro_manual: "Colaborador cadastrado que trabalhou",
 };
 
 const hojeIso = () => {
