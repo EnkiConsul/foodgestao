@@ -198,6 +198,8 @@ export interface ContarDiaInput {
   ausencias: AusenciaPanorama[];
   /** Itens de escala publicada, quando existirem, têm prioridade sobre a jornada. */
   itensPublicados?: ItemEscalaPanorama[];
+  /** Pessoas avulsas (teste/folguista) registradas para a rotina do dia. */
+  avulsos?: PessoaAvulsaPanorama[];
 }
 
 /**
