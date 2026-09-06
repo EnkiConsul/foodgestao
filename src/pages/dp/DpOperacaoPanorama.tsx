@@ -974,7 +974,7 @@ export default function DpOperacaoPanorama() {
                       key={d.data}
                       type="button"
                       onClick={() => setDataPopout(d.data)}
-                      className={`rounded-md border p-1.5 text-left transition-colors hover:bg-muted/50 ${
+                      className={`relative rounded-md border p-1.5 text-left transition-colors hover:bg-muted/50 ${
                         d.alerta
                           ? d.avaliacao.situacao === "abaixo"
                             ? "border-destructive/50 bg-destructive/5"
@@ -982,18 +982,30 @@ export default function DpOperacaoPanorama() {
                           : "border-border"
                       } ${d.data === data ? "ring-2 ring-primary" : ""}`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold">{Number(d.data.slice(-2))}</span>
-                        {d.dispensado && <Check className="h-3 w-3 text-muted-foreground" />}
-                        {d.alerta && <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />}
-                        {diasComSocioAusente.has(d.data) && (
-                          <span
-                            aria-label="Sócio em folga ou férias"
-                            className="h-1.5 w-1.5 rounded-full bg-amber-500"
-                          />
-                        )}
+                      <div className="mb-1 flex items-start justify-between">
+                        <span
+                          className={`inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1 text-[11px] font-bold ${
+                            d.data === data
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-foreground"
+                          }`}
+                        >
+                          {Number(d.data.slice(-2))}
+                        </span>
+                        <div className="flex items-center gap-0.5">
+                          {d.dispensado && <Check className="h-3 w-3 text-muted-foreground" />}
+                          {d.alerta && <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />}
+                          {diasComSocioAusente.has(d.data) && (
+                            <span
+                              aria-label="Sócio em folga ou férias"
+                              className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                            />
+                          )}
+                        </div>
                       </div>
-                      <p className="text-[11px] font-medium">{d.trabalhando} confirmado(s)</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        <span className="font-medium text-foreground">{d.trabalhando}</span> confirmado(s)
+                      </p>
                       {d.aguardando > 0 && (
                         <p className="text-[10px] leading-tight text-amber-600">
                           {d.aguardando} aguardando
