@@ -6,6 +6,8 @@
 --  3. Aplicar apenas parte da lista cria só as folgas confirmadas.
 --  4. Reaplicar o mesmo item não duplica (idempotente).
 --  5. Membro comum (viewer) não pode ver o plano nem aplicar.
+--  6. Intermitente, PJ, freelancer e quem não trabalha no domingo ficam fora do plano.
+--  7. Folga de sábado conta quando a unidade negocia sábado e a empresa não.
 --
 -- Roda em transação com ROLLBACK: nada é persistido.
 
