@@ -12631,6 +12631,7 @@ export type Database = {
         Args: { p_colaborador_id: string; p_motivo: string }
         Returns: undefined
       }
+      dp_expirar_trocas: { Args: never; Returns: number }
       dp_ferias_gerar_periodos: {
         Args: { _colaborador_id: string }
         Returns: number
@@ -13708,6 +13709,7 @@ export type Database = {
         | "aprovada"
         | "recusada"
         | "cancelada"
+        | "expirada"
       dp_turno: "matutino" | "vespertino" | "noturno" | "misto"
       invite_status: "pending" | "accepted" | "rejected" | "expired"
       invoice_cycle_status:
@@ -14151,6 +14153,7 @@ export const Constants = {
         "aprovada",
         "recusada",
         "cancelada",
+        "expirada",
       ],
       dp_turno: ["matutino", "vespertino", "noturno", "misto"],
       invite_status: ["pending", "accepted", "rejected", "expired"],

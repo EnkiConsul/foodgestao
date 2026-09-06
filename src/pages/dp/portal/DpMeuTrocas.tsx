@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { TextoExpansivel } from "@/components/dp/TextoExpansivel";
 import { textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ const statusLabel: Record<string, string> = {
   aprovada: "Aprovada",
   recusada: "Recusada",
   cancelada: "Cancelada",
+  expirada: "Expirada",
 };
 
 const statusTone: Record<string, string> = {
@@ -35,7 +37,9 @@ const statusTone: Record<string, string> = {
   aprovada: "bg-green-500/10 text-green-700 border-green-300",
   recusada: "bg-red-500/10 text-red-700 border-red-300",
   cancelada: "bg-muted text-muted-foreground border-transparent",
+  expirada: "bg-muted text-muted-foreground border-transparent",
 };
+
 
 function toIso(d: Date | undefined) {
   return d ? format(d, "yyyy-MM-dd") : "";
@@ -287,19 +291,22 @@ export default function DpMeuTrocas() {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <p className="text-sm">{t.motivo}</p>
+                  {t.motivo && <TextoExpansivel texto={t.motivo} className="text-sm" />}
                   {textoDecisaoGestor(t.gestor_resposta) && (
                     <div className="rounded-lg border border-border/60 bg-muted/40 p-2.5 text-xs">
                       <span className="mb-0.5 block font-semibold uppercase tracking-wide text-[10px] text-muted-foreground">
-                        {t.status === "cancelada"
-                          ? "Cancelada pelo gestor"
-                          : t.status === "recusada"
-                            ? "Recusada pelo gestor"
-                            : "Observação do gestor"}
+                        {t.status === "expirada"
+                          ? "Solicitação expirada"
+                          : t.status === "cancelada"
+                            ? "Cancelada pelo gestor"
+                            : t.status === "recusada"
+                              ? "Recusada pelo gestor"
+                              : "Observação do gestor"}
                       </span>
                       "{textoDecisaoGestor(t.gestor_resposta)}"
                     </div>
                   )}
+
                   {(podeResponderColega || podeCancelar) && (
                     <div className="flex gap-2 pt-1 flex-wrap">
                       {podeResponderColega && (

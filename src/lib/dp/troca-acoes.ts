@@ -30,8 +30,9 @@ export function acoesGestorTroca(status: string, modo: TrocaModo): AcoesGestorTr
 /** Texto da decisão do gestor, sem o prefixo técnico do status. */
 export function textoDecisaoGestor(resposta: string | null | undefined): string | null {
   if (!resposta) return null;
-  const limpo = resposta.replace(/^(recusada|cancelada|aprovada):\s*/i, "").trim();
-  return limpo.length > 0 && limpo.toLowerCase() !== "aprovada" && limpo.toLowerCase() !== "recusada"
+  const limpo = resposta.replace(/^(recusada|cancelada|aprovada|expirada):\s*/i, "").trim();
+  return limpo.length > 0 && !["aprovada", "recusada", "expirada"].includes(limpo.toLowerCase())
     ? limpo
     : null;
 }
+

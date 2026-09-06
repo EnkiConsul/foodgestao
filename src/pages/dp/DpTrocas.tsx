@@ -1,15 +1,12 @@
 import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import { format } from "date-fns";
-import { ArrowLeftRight, Ban, Calendar, User, MessageSquare, Check, X, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Ban, Calendar, User, MessageSquare, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
+import { TextoExpansivel } from "@/components/dp/TextoExpansivel";
 import { useDpTrocas } from "@/hooks/useDpTrocas";
 import { acoesGestorTroca, textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
@@ -36,12 +33,15 @@ const statusMeta: Record<string, { label: string; className: string }> = {
     label: "Cancelada",
     className: "bg-muted text-muted-foreground border-border",
   },
+  expirada: {
+    label: "Expirada",
+    className: "bg-muted text-muted-foreground border-border",
+  },
 };
 
 export default function DpTrocas() {
   const embedded = useDpEmbedded();
   const [filtro, setFiltro] = useState<string>("todos");
-  const [confirmDel, setConfirmDel] = useState<string | null>(null);
   const [recusa, setRecusa] = useState<string | null>(null);
   const [cancelamento, setCancelamento] = useState<string | null>(null);
 
@@ -50,7 +50,6 @@ export default function DpTrocas() {
     isLoading,
     responder: responderMut,
     cancelar: cancelarMut,
-    remover,
   } = useDpTrocas(filtro);
 
   const list = { isLoading };
@@ -68,9 +67,6 @@ export default function DpTrocas() {
       cancelarMut.mutate(vars, { onSuccess: () => setCancelamento(null) }),
   };
 
-  const del = {
-    mutate: (id: string) => remover.mutate(id, { onSuccess: () => setConfirmDel(null) }),
-  };
 
 
 
@@ -96,6 +92,7 @@ export default function DpTrocas() {
               <option value="aprovada">Aprovadas</option>
               <option value="recusada">Recusadas</option>
               <option value="cancelada">Canceladas</option>
+              <option value="expirada">Expiradas</option>
             </select>
           </div>
         }
@@ -153,21 +150,19 @@ export default function DpTrocas() {
                         Solicitada em {new Date(r.created_at).toLocaleDateString("pt-BR")}
                       </div>
                     </div>
-                    <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setConfirmDel(r.id)} title="Excluir">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
 
                 {r.motivo && (
                   <div className="bg-muted/30 p-3 rounded-xl border border-border/50 flex items-start gap-2">
                     <MessageSquare className="size-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground min-w-0">
                       <span className="font-bold uppercase text-[9px] block mb-0.5">Motivo informado pelo colaborador:</span>
-                      "{r.motivo}"
+                      <TextoExpansivel texto={r.motivo} />
                     </div>
                   </div>
                 )}
+
 
                 {(r.colega_resposta || decisao) && (
                   <div className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -214,25 +209,6 @@ export default function DpTrocas() {
         )}
       </div>
 
-      <AlertDialog open={!!confirmDel} onOpenChange={(v) => !v && setConfirmDel(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir esta troca?</AlertDialogTitle>
-            <AlertDialogDescription>
-              A solicitação será removida permanentemente. Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => confirmDel && del.mutate(confirmDel)}
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <RecusaDialog
         open={!!recusa}
