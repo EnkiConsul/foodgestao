@@ -467,14 +467,8 @@ function janelaPessoa(p: PessoaPanorama): { abre: number; fecha: number } | null
   return { abre: entrada, fecha: saida };
 }
 
-/** Sobreposição entre a jornada da pessoa e a janela do período. */
-function encaixa(p: PessoaPanorama, janela: { abre: number; fecha: number }): boolean {
-  const j = janelaPessoa(p);
-  if (!j) return false;
-  return j.abre < janela.fecha && j.fecha > janela.abre;
-}
-
 /** Minutos em comum entre a jornada e a janela do período. */
+
 function sobreposicao(p: PessoaPanorama, janela: { abre: number; fecha: number }): number {
   const j = janelaPessoa(p);
   if (!j) return 0;
