@@ -16,6 +16,7 @@ import {
   useDpFerias, type FeriasGozo, type FeriasPeriodo, type FeriasPeriodoStatus,
 } from "@/hooks/useDpFerias";
 import { FeriasGozoDialog } from "@/components/dp/ferias/FeriasGozoDialog";
+import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
 import { FeriasFaltasDialog } from "@/components/dp/ferias/FeriasFaltasDialog";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { FeriasRestricoesAviso } from "@/components/dp/ferias/FeriasRestricoesAviso";
@@ -61,8 +62,9 @@ export default function DpFerias() {
 
   const {
     periodos, periodosLoading, periodosError, refetchAll,
-    gozos, saveGozo, informarFaltas,
+    gozos, programar, saveGozo, informarFaltas,
   } = useDpFerias(colabFilter);
+  const { config: feriasConfig } = useDpFeriasConfig();
 
   const periodosFiltrados = useMemo(
     () => (statusFilter === "todos" ? periodos : periodos.filter((p) => p.status === statusFilter)),
@@ -272,12 +274,13 @@ export default function DpFerias() {
         periodos={periodos}
         editing={editing}
         defaultPeriodoId={defaultPeriodoId}
-        saving={saveGozo.isPending}
-        onSubmit={(input) =>
-          saveGozo.mutate(input, {
-            onSuccess: () => { setDialogOpen(false); setEditing(null); },
-          })
-        }
+        antecedenciaDias={feriasConfig.avisoAntecedenciaDias}
+        saving={saveGozo.isPending || programar.isPending}
+        onSubmit={(input) => {
+          const fechar = { onSuccess: () => { setDialogOpen(false); setEditing(null); } };
+          if (input.id) saveGozo.mutate(input, fechar);
+          else programar.mutate(input, fechar);
+        }}
       />
 
       <FeriasFaltasDialog
