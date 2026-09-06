@@ -347,8 +347,29 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       continue;
     }
 
+    // Registro manual de trabalho: vale mais que jornada/escala do dia, mas
+    // nunca duplica convocação, férias, atestado ou folga extra (tratados acima).
+    const manual = manualPor.get(colab.id);
+    if (manual) {
+      registrar(
+        colab,
+        colab.intermitente ? "convocado_aceito" : "fixo",
+        {
+          turno_id: null,
+          turno_nome: "Registro manual",
+          entrada: manual.entrada,
+          saida: manual.saida,
+          intervalo_minutos: 0,
+          origem: "registro_manual",
+        },
+        { avulso_id: manual.id, avulso_tipo: "registro_manual", observacao: manual.observacao },
+      );
+      continue;
+    }
+
     // Intermitente sem convocação e sem ausência simplesmente não está na operação.
     if (colab.intermitente) continue;
+
 
     const item = itemPor.get(colab.id);
     if (item) {
