@@ -250,6 +250,10 @@ export function RevisaoConvocacao(props: Props) {
               const fimHabitual = linhasDia
                 .map((l) => l.jornada?.saida?.slice(0, 5) ?? null)
                 .find((v): v is string => !!v) ?? null;
+              // Janela que o banco realmente avaliou (pode diferir da tela).
+              const fimAvaliado = linhasDia
+                .map((l) => l.necessidade_saida?.slice(0, 5) ?? null)
+                .find((v): v is string => !!v) ?? o.dia.saida;
               return (
                 <Alert variant="destructive" className="mt-2">
                   <AlertTriangle className="h-4 w-4" />
@@ -263,7 +267,7 @@ export function RevisaoConvocacao(props: Props) {
                         >
                           Usar o horário informado para todos
                         </Button>
-                        {fimHabitual && fimHabitual !== o.dia.saida && (
+                        {fimHabitual && fimHabitual !== fimAvaliado && (
                           <Button
                             type="button" size="sm" variant="outline" className="h-7 text-[11px]"
                             onClick={() => onAjustarNecessidade(o.dia.cargo_id, o.dia.data, fimHabitual)}
@@ -311,7 +315,10 @@ export function RevisaoConvocacao(props: Props) {
                           jornada: av.jornada?.entrada && av.jornada?.saida
                             ? `${av.jornada.entrada.slice(0, 5)}–${av.jornada.saida.slice(0, 5)}`
                             : null,
-                          necessidade: `${o.dia.entrada}–${o.dia.saida}`,
+                          necessidade:
+                            av.necessidade_entrada && av.necessidade_saida
+                              ? `${av.necessidade_entrada.slice(0, 5)}–${av.necessidade_saida.slice(0, 5)}`
+                              : `${o.dia.entrada}–${o.dia.saida}`,
                         })}
                       </span>
                     );

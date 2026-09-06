@@ -463,14 +463,11 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     toast.success("Horário aplicado aos dias deste cargo.");
   };
 
-  const diasCompletos = useMemo(
-    () =>
-      listaDias.filter(
-        (d) => !!d.entrada && !!d.saida && d.vagas >= 1 &&
-          !!janelaMinutos({ entrada: d.entrada, saida: d.saida, termina_no_dia_seguinte: d.vira }),
-      ),
-    [listaDias],
-  );
+  const diaCompleto = (d: DiaPlanejado) =>
+    !!d.entrada && !!d.saida && d.vagas >= 1 &&
+    !!janelaMinutos({ entrada: d.entrada, saida: d.saida, termina_no_dia_seguinte: d.vira });
+
+  const diasCompletos = useMemo(() => listaDias.filter(diaCompleto), [listaDias]);
   const diasIncompletos = listaDias.length - diasCompletos.length;
   const foraDaAntecedencia = diasCompletos.filter((d) => antecedenciaDias(d.data) < antecedenciaMinima);
 
@@ -512,8 +509,21 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
 
   // ------------------------------------------------------------ gravação
-  const persistir = async (): Promise<string | null> => {
-    if (!podeSalvar || !unidadeId) {
+  /**
+   * `ajuste` permite gravar valores que acabaram de ser alterados na mesma
+   * interação (o estado do React só chega no render seguinte).
+   */
+  const persistir = async (ajuste?: {
+    dias?: Record<string, DiaPlanejado>;
+    horarioGeral?: HorarioOverride;
+    usaHorarioGeral?: boolean;
+  }): Promise<string | null> => {
+    const mapaDias = ajuste?.dias ?? dias;
+    const diasParaGravar = Object.values(mapaDias).filter(diaCompleto);
+    const hg = ajuste?.horarioGeral ?? horarioGeral;
+    const usaHg = ajuste?.usaHorarioGeral ?? usaHorarioGeral;
+
+    if (!unidadeId || cargoIds.length === 0 || destinatarios.length === 0 || diasParaGravar.length === 0) {
       toast.error("Informe unidade, cargos, destinatários e ao menos um dia completo.");
       return null;
     }
@@ -535,7 +545,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     }
     setRemovidas({});
 
-    for (const d of diasCompletos) {
+    for (const d of diasParaGravar) {
       const res: any = await salvarOcorrencia.mutateAsync({
         ocorrencia_id: d.id,
         grupo_id: grupoId,
@@ -547,18 +557,18 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
         vagas: d.vagas,
         colaborador_alvo_id: null,
         expected_updated_at: d.expected_updated_at,
-        ...(usaHorarioGeral
+        ...(usaHg
           ? {
               horario_modo: "horario_unico" as const,
-              entrada: horarioGeral.entrada,
-              saida: horarioGeral.saida,
-              intervalo_minutos: horarioGeral.intervalo_minutos,
-              termina_no_dia_seguinte: horarioGeral.vira,
+              entrada: hg.entrada,
+              saida: hg.saida,
+              intervalo_minutos: hg.intervalo_minutos,
+              termina_no_dia_seguinte: hg.vira,
               carga_prevista_horas: cargaPrevistaHoras({
-                entrada: horarioGeral.entrada,
-                saida: horarioGeral.saida,
-                intervalo_minutos: horarioGeral.intervalo_minutos,
-                termina_no_dia_seguinte: horarioGeral.vira,
+                entrada: hg.entrada,
+                saida: hg.saida,
+                intervalo_minutos: hg.intervalo_minutos,
+                termina_no_dia_seguinte: hg.vira,
               }),
             }
           : {
@@ -595,7 +605,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     // Override de horário por pessoa/dia (precedência máxima).
     for (const [k, h] of Object.entries(overrides)) {
       const [cargoId, data, colaboradorId] = k.split("|");
-      const dia = dias[chave(cargoId, data)];
+      const dia = mapaDias[chave(cargoId, data)];
       if (!dia) continue;
       const res: any = await definirOverride.mutateAsync({
         ocorrencia_id: dia.id,
@@ -717,16 +727,26 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   preAvaliacao={linhasPreAvaliacao}
                   preAvaliacaoCarregando={preAvaliacao.isLoading || preAvaliacao.isFetching}
                   onUsarHorarioParaTodos={async (entrada, saida, vira) => {
+                    const novo: HorarioOverride = {
+                      ...horarioGeral,
+                      entrada, saida, vira: normalizarVira(entrada, saida, vira),
+                    };
                     setUsaHorarioGeral(true);
-                    setHorarioGeral((h) => ({
-                      ...h, entrada, saida, vira: normalizarVira(entrada, saida, vira),
-                    }));
-                    await persistir();
+                    setHorarioGeral(novo);
+                    await persistir({ horarioGeral: novo, usaHorarioGeral: true });
                     await preAvaliacao.refetch();
                   }}
                   onAjustarNecessidade={async (cargoId, data, saida) => {
-                    patchDia(chave(cargoId, data), { saida });
-                    await persistir();
+                    const k = chave(cargoId, data);
+                    const atual = dias[k];
+                    if (!atual) return;
+                    const fundido: DiaPlanejado = {
+                      ...atual, saida, origem: "manual", ambiguo: false,
+                      vira: normalizarVira(atual.entrada, saida, atual.vira),
+                    };
+                    const novoMapa = { ...dias, [k]: fundido };
+                    setDias(novoMapa);
+                    await persistir({ dias: novoMapa });
                     await preAvaliacao.refetch();
                   }}
                   horarioGeral={usaHorarioGeral ? horarioGeral : null}
