@@ -528,13 +528,16 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
   const salvarAvulsa = useMutation({
     mutationFn: async (input: PessoaAvulsaInput) => {
       const { data: userData } = await supabase.auth.getUser();
+      const manual = input.tipo === "registro_manual";
       const payload = {
         company_id: selectedCompanyId!,
         unidade_id: input.unidade_id,
         cargo_id: input.cargo_id,
-        nome: input.nome.trim(),
+        nome: manual ? null : input.nome?.trim() ?? null,
+        colaborador_id: manual ? input.colaborador_id ?? null : null,
         tipo: input.tipo,
         cobre_colaborador_id: input.tipo === "folguista" ? input.cobre_colaborador_id ?? null : null,
+
         data_inicio: input.data_inicio,
         data_fim: input.data_fim,
         entrada: input.entrada || null,
