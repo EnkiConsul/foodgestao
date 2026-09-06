@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { pessoaAvulsaSchema, validateWithToast } from "@/lib/validations";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
-import type { PessoaAvulsaPanorama, PessoaAvulsaTipo } from "@/lib/dp/operacao-panorama";
+import type { HorarioSugerido, PessoaAvulsaPanorama, PessoaAvulsaTipo } from "@/lib/dp/operacao-panorama";
 
 interface Props {
   open: boolean;
@@ -30,6 +30,8 @@ interface Props {
   /** Registro em edição; ausente = novo cadastro. */
   registro?: PessoaAvulsaPanorama | null;
   salvando?: boolean;
+  /** Sugere horário de entrada/saída com base no histórico do cargo/unidade/dia da semana. */
+  sugerirHorario?: (unidadeId: string, cargoId: string, data: string) => HorarioSugerido | null;
   onSalvar: (input: PessoaAvulsaInput) => void;
 }
 
