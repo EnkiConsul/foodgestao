@@ -450,6 +450,8 @@ export default function DpConformidadeDsr() {
             <TableHeader>
               <TableRow>
                 <TableHead>Colaborador</TableHead>
+                <TableHead>Unidade</TableHead>
+                <TableHead>Cargo</TableHead>
                 <TableHead className="text-center">Domingos no mês</TableHead>
                 <TableHead className="text-center">Folgados</TableHead>
                 {porAcordo && <TableHead className="text-center">Dias negociados</TableHead>}
@@ -459,14 +461,16 @@ export default function DpConformidadeDsr() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {linhas.length === 0 ? (
+              {linhasFiltradas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={porAcordo ? 7 : 6} className="py-8 text-center text-sm text-muted-foreground">
-                    Nenhum colaborador ativo no período.
+                  <TableCell colSpan={porAcordo ? 9 : 8} className="py-8 text-center text-sm text-muted-foreground">
+                    {linhas.length === 0
+                      ? "Nenhum colaborador ativo no período."
+                      : "Nenhum resultado para os filtros aplicados."}
                   </TableCell>
                 </TableRow>
               ) : (
-                linhas.map((l) => (
+                linhasFiltradas.map((l) => (
                   <TableRow key={l.colaboradorId} className={l.conforme ? undefined : "bg-destructive/5"}>
                     <TableCell className="font-medium">
                       {l.nome}
@@ -474,9 +478,16 @@ export default function DpConformidadeDsr() {
                         <span className="ml-2 text-xs text-muted-foreground">(Art. 386 CLT)</span>
                       )}
                     </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {(l.unidadeId && unidadeNome.get(l.unidadeId)) || "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {(l.cargoId && cargoNome.get(l.cargoId)) || "—"}
+                    </TableCell>
                     <TableCell className="text-center">{l.domingosNoPeriodo}</TableCell>
                     <TableCell className="text-center font-semibold">{l.domingosFolgados.length}</TableCell>
                     {porAcordo && <TableCell className="text-center">{l.negociadosAproveitados}</TableCell>}
+
                     <TableCell className="text-center">{l.esperado}</TableCell>
                     <TableCell className="text-center">
                       {l.periodicidadeAplicada > 0
