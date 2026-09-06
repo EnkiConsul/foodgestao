@@ -463,6 +463,7 @@ export default function DpConformidadeDsr() {
       "Domingos folgados", "Folgas em dias de descanso negociados", "Folgas consideradas (CLT)",
       "Descansos considerados (empresa)", "Regra aplicada", "Mínimo da regra",
       "Mínimo legal", "Mínimo exigido (CLT)",
+      "Intervalo exigido entre domingos (semanas)", "Domingos fora do intervalo",
       "Situação CLT", "Situação regra da empresa",
     ];
     const rowsCsv = linhasFiltradas.map((l) => [
@@ -480,9 +481,12 @@ export default function DpConformidadeDsr() {
       String(l.esperado),
       String(l.esperadoLegal),
       String(l.esperadoClt),
+      String(l.intervaloDomingoExigido),
+      l.domingosComIntervaloRompido.map(diaMesIso).join(" ") || "—",
       l.conformeClt ? "Em ordem" : "Em falta",
       l.conformeEmpresa ? "Em ordem" : "Em falta",
     ]);
+
 
 
 
