@@ -97,10 +97,10 @@ export function textoDoErroDePublicacao(mensagem: string): string {
     return `O horário${dia} já começou e não pode mais ser publicado.`;
   }
   if (msg.includes("ANTECEDENCE_JUSTIFICATION_REQUIRED")) {
-    return "As regras exigem justificativa para publicar abaixo da antecedência mínima.";
+    return "Escreva a justificativa da exceção para publicar em cima da hora.";
   }
   if (msg.includes("ANTECEDENCE_CONFIRMATION_REQUIRED")) {
-    return `A convocação${dia} está abaixo da antecedência mínima e precisa de confirmação.`;
+    return `A convocação${dia} é em cima da hora: marque \"Estou ciente e quero publicar mesmo assim\" para continuar.`;
   }
   if (msg.includes("CONCURRENT_MODIFICATION")) {
     return "O rascunho foi alterado por outra pessoa. Reabra e tente novamente.";
