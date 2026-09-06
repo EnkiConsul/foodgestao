@@ -699,6 +699,15 @@ export default function DpConformidadeDsr() {
                       <p className="font-semibold tabular-nums">{detalhe.folgasConsideradas}</p>
                     </div>
                   </div>
+                  {detalhe.esperadoClt > detalhe.esperado && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      A regra cadastrada pede {detalhe.esperado}, mas o mínimo legal do mês é{" "}
+                      {detalhe.esperadoLegal}
+                      {detalhe.sexo === "F"
+                        ? " — Art. 386 da CLT: 1 domingo de folga a cada 2 semanas para mulheres."
+                        : " pelo padrão legal do setor."}
+                    </p>
+                  )}
                   {detalheInfo.acordo && (
                     <p className="mt-2 text-xs text-muted-foreground">
                       Por acordo coletivo, os dias de descanso combinados
@@ -707,6 +716,7 @@ export default function DpConformidadeDsr() {
                       ({detalhe.negociadosAproveitados} no mês).
                     </p>
                   )}
+
                 </div>
 
                 <div className="rounded-xl border border-border p-3">
