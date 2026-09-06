@@ -68,7 +68,7 @@ export function DpPessoaAvulsaDialog({
 }: Props) {
   const [form, setForm] = useState({
     nome: "",
-    tipo: "registro_manual" as PessoaAvulsaTipo,
+    tipo: "folguista" as PessoaAvulsaTipo,
     colaborador_id: "",
     unidade_id: "",
     cargo_id: "",
