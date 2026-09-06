@@ -281,6 +281,41 @@ export default function DpMinhasConvocacoes() {
         onConfirm={(motivo) => recusa && responderConvocacao(recusa, false, motivo)}
         loading={responder.isPending}
       />
+
+      {parcial ? (
+        <PropostaParcialDialog
+          open={!!parcial}
+          onOpenChange={(v) => !v && setParcial(null)}
+          loading={proporParcial.isPending}
+          necessidade={{
+            entrada: parcial.necessidade_entrada ?? parcial.entrada,
+            saida: parcial.necessidade_saida ?? parcial.saida,
+            termina_no_dia_seguinte:
+              parcial.necessidade_termina_no_dia_seguinte ?? parcial.termina_no_dia_seguinte,
+          }}
+          onConfirm={(p) =>
+            proporParcial.mutate(
+              { id: parcial.id, ...p },
+              {
+                onSuccess: () => {
+                  toast.success("Horário parcial enviado para aprovação do gestor.");
+                  setParcial(null);
+                },
+                onError: (e: any) => {
+                  const msg = String(e?.message ?? "");
+                  toast.error(
+                    msg.includes("PARTIAL_OUT_OF_WINDOW")
+                      ? "O horário precisa ficar dentro do horário pedido."
+                      : msg.includes("PARTIAL_IS_FULL")
+                        ? "Esse é o horário completo — use “Aceitar”."
+                        : msg || "Não foi possível enviar o horário parcial.",
+                  );
+                },
+              },
+            )
+          }
+        />
+      ) : null}
     </div>
   );
 }
