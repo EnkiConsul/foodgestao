@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -34,7 +35,7 @@ import {
   Unlock,
   Settings2,
   Save,
-  Trash2,
+  
   MapPin,
   Globe2,
   ChevronDown,
@@ -56,7 +57,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  diasValidosDoMes,
+  diasValidosDoItem,
   parsePlanoAutoatribuicao,
   parseResultadoAutoatribuicao,
   resumoPlano,
@@ -144,6 +145,7 @@ export default function DpFolgas() {
   const { selectedCompanyId } = useCompanyContext();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const colabs = useDpColaboradores();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
   const initialPrefs = loadPrefs(selectedCompanyId);
@@ -175,62 +177,18 @@ export default function DpFolgas() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [quickColabId, setQuickColabId] = useState<string>("");
   const [editLimit, setEditLimit] = useState<number>(1);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  
   const [autoOpen, setAutoOpen] = useState(false);
   const { role } = useCompanyPermissions();
   const podeDistribuir = role === "owner" || role === "admin";
-  const [form, setForm] = useState({
-    colaborador_id: "",
-    tipo: "folga" as Tipo,
-    data_alvo: "",
-    data_fim: "",
-    motivo: "",
-  });
-
-  const openNew = (preset?: { data_alvo?: string; data_fim?: string; tipo?: Tipo }) => {
-    setForm({
-      colaborador_id: "",
-      tipo: preset?.tipo ?? "folga",
-      data_alvo: preset?.data_alvo ?? "",
-      data_fim: preset?.data_fim ?? "",
-      motivo: "",
-    });
-    setDialogOpen(true);
-  };
-
-  useEffect(() => {
-    if (!dialogOpen) return;
-    if (!form.data_fim || !form.data_alvo) return;
-    if (form.data_fim < form.data_alvo) setForm((f) => ({ ...f, data_fim: f.data_alvo }));
-  }, [dialogOpen, form.data_alvo, form.data_fim]);
-
-  const create = useMutation({
-    mutationFn: async () => {
-      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      if (!form.colaborador_id) throw new Error("Selecione um colaborador");
-      if (!form.data_alvo) throw new Error("Informe a data inicial");
-      if (form.motivo.length > 500) throw new Error("Observações muito longas (máx. 500)");
-      const { error } = await supabase.from("dp_solicitacoes").insert({
-        company_id: selectedCompanyId,
-        colaborador_id: form.colaborador_id,
-        tipo: form.tipo,
-        data_alvo: form.data_alvo,
-        data_fim: form.data_fim || null,
-        motivo: form.motivo.trim() || null,
-        criado_por: user?.id,
-        status: "pendente",
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Solicitação criada", { description: "Ficará como pendente até aprovação." });
-      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
-      qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
-      setDialogOpen(false);
-    },
-    onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
-  });
+  /** Folga efetivada em gestão (remarcar/cancelar) pelo diálogo do dia. */
+  const [folgaGerenciar, setFolgaGerenciar] = useState<{
+    id: string;
+    nome: string;
+    data: string;
+  } | null>(null);
+  const [remarcarData, setRemarcarData] = useState("");
+  const [cancelMotivo, setCancelMotivo] = useState("");
 
   const quickAssign = useMutation({
     mutationFn: async () => {
@@ -332,18 +290,55 @@ export default function DpFolgas() {
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
 
-  const removerFolga = useMutation({
-    mutationFn: async (folgaId: string) => {
-      const cleanId = folgaId.startsWith("folga:") ? folgaId.slice("folga:".length) : folgaId;
-      const { error } = await supabase.from("dp_folgas").delete().eq("id", cleanId);
+  const cleanFolgaId = (id: string) =>
+    id.startsWith("folga:") ? id.slice("folga:".length) : id;
+
+  /** Cancela a folga (mantém o histórico); o dia volta a ficar livre. */
+  const cancelarFolga = useMutation({
+    mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
+      const { error } = await supabase
+        .from("dp_folgas")
+        .update({
+          status: "cancelada",
+          observacao: motivo
+            ? `Cancelada pelo gestor: ${motivo}`
+            : "Cancelada pelo gestor.",
+        })
+        .eq("id", cleanFolgaId(id));
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Folga removida");
+      toast.success("Folga cancelada", {
+        description: "O dia voltou a ficar livre no calendário.",
+      });
       qc.invalidateQueries({ queryKey: ["dp_folgas"] });
       qc.invalidateQueries({ queryKey: ["dp_folgas_efetivadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+      setFolgaGerenciar(null);
     },
-    onError: (e) => toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) }),
+    onError: (e) =>
+      toast.error("Erro ao cancelar", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+  /** Remarca a folga para outro dia, no mesmo registro. */
+  const remarcarFolga = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: string }) => {
+      if (!data) throw new Error("Escolha a nova data");
+      const { error } = await supabase
+        .from("dp_folgas")
+        .update({ data })
+        .eq("id", cleanFolgaId(id));
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folga remarcada");
+      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
+      qc.invalidateQueries({ queryKey: ["dp_folgas_efetivadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+      setFolgaGerenciar(null);
+    },
+    onError: (e) =>
+      toast.error("Erro ao remarcar", { description: e instanceof Error ? e.message : String(e) }),
   });
 
 
@@ -396,10 +391,6 @@ export default function DpFolgas() {
     }));
   }, [planoAutoQuery.data, autoEdits]);
 
-  const diasEscolhaAuto = useMemo(
-    () => diasValidosDoMes(planoAutoQuery.data?.competencia ?? competenciaAtual, planoAutoQuery.data?.dias ?? []),
-    [planoAutoQuery.data, competenciaAtual],
-  );
 
   const itensConfirmados = useMemo(
     () =>
@@ -749,9 +740,6 @@ export default function DpFolgas() {
               </Button>
             )}
 
-            <Button onClick={() => openNew()} className="gap-2">
-              <Plus className="h-4 w-4" /> Nova solicitação
-            </Button>
           </div>
 
 
@@ -1283,15 +1271,22 @@ export default function DpFolgas() {
                             <DpStatusBadge tone={isWeekly ? "info" : statusToneFor(ev.status)}>
                               {isWeekly ? "Semanal" : STATUS_LABEL[ev.status]}
                             </DpStatusBadge>
-                            {isEfetivada && (
+                            {isEfetivada && podeDistribuir && (
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                className="h-9 w-9 rounded-xl text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                                onClick={() => removerFolga.mutate(ev.id)}
-                                disabled={removerFolga.isPending}
+                                size="sm"
+                                className="rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground"
+                                onClick={() => {
+                                  setFolgaGerenciar({
+                                    id: ev.id,
+                                    nome: ev.dp_colaboradores?.nome ?? "",
+                                    data: ev.data_alvo,
+                                  });
+                                  setRemarcarData(ev.data_alvo);
+                                  setCancelMotivo("");
+                                }}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                Gerenciar
                               </Button>
                             )}
                           </div>
@@ -1336,11 +1331,11 @@ export default function DpFolgas() {
                 <button
                   type="button"
                   onClick={() =>
-                    openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") })
+                    navigate(`/dp/operacao?ausencia=${format(selectedDay, "yyyy-MM-dd")}`)
                   }
                   className="text-xs font-medium text-primary hover:underline"
                 >
-                  Solicitar ausência avançada (férias, atestado, período)
+                  Registrar ausência (férias, atestado, período)
                 </button>
               </div>
             </div>
@@ -1363,84 +1358,86 @@ export default function DpFolgas() {
 
 
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog
+        open={!!folgaGerenciar}
+        onOpenChange={(o) => {
+          if (!o) {
+            setFolgaGerenciar(null);
+            setRemarcarData("");
+            setCancelMotivo("");
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Nova solicitação de ausência</DialogTitle>
+            <DialogTitle>Gerenciar folga</DialogTitle>
             <DialogDescription>
-              Selecione o colaborador, o tipo e o intervalo de datas. A solicitação ficará pendente até aprovação.
+              {folgaGerenciar
+                ? `${folgaGerenciar.nome} — ${format(parseISO(folgaGerenciar.data), "dd/MM/yyyy")}`
+                : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3 py-2">
-            <div className="grid gap-1.5">
-              <Label>Colaborador *</Label>
-              <Select
-                value={form.colaborador_id}
-                onValueChange={(v) => setForm({ ...form, colaborador_id: v })}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {(colabs.data ?? []).filter((c) => c.ativo).map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                  {(colabs.data ?? []).filter((c) => c.ativo).length === 0 && (
-                    <div className="px-3 py-2 text-xs text-muted-foreground">
-                      Nenhum colaborador ativo. Cadastre em Colaboradores.
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Tipo *</Label>
-              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(TIPO_LABEL) as Tipo[]).map((t) => (
-                    <SelectItem key={t} value={t}>{TIPO_LABEL[t]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Data inicial *</Label>
+
+          <div className="space-y-5 py-2">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Remarcar para outro dia
+              </Label>
+              <div className="flex gap-2">
                 <Input
                   type="date"
-                  value={form.data_alvo}
-                  onChange={(e) => setForm({ ...form, data_alvo: e.target.value })}
+                  value={remarcarData}
+                  onChange={(e) => setRemarcarData(e.target.value)}
+                  className="h-11"
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Data final</Label>
-                <Input
-                  type="date"
-                  min={form.data_alvo || undefined}
-                  value={form.data_fim}
-                  onChange={(e) => setForm({ ...form, data_fim: e.target.value })}
-                />
+                <Button
+                  onClick={() =>
+                    folgaGerenciar &&
+                    remarcarFolga.mutate({ id: folgaGerenciar.id, data: remarcarData })
+                  }
+                  disabled={
+                    !folgaGerenciar ||
+                    !remarcarData ||
+                    remarcarData === folgaGerenciar.data ||
+                    remarcarFolga.isPending
+                  }
+                >
+                  {remarcarFolga.isPending ? "Salvando..." : "Remarcar"}
+                </Button>
               </div>
             </div>
-            <div className="grid gap-1.5">
-              <Label>Observações</Label>
+
+            <div className="space-y-2 border-t pt-4">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Cancelar esta folga
+              </Label>
               <Textarea
-                rows={3}
+                rows={2}
                 maxLength={500}
-                placeholder="Motivo, contexto ou observação (opcional)"
-                value={form.motivo}
-                onChange={(e) => setForm({ ...form, motivo: e.target.value })}
+                placeholder="Motivo do cancelamento (fica visível no histórico)"
+                value={cancelMotivo}
+                onChange={(e) => setCancelMotivo(e.target.value)}
               />
-              <div className="text-[10px] text-muted-foreground text-right">
-                {form.motivo.length}/500
-              </div>
+              <Button
+                variant="destructive"
+                onClick={() =>
+                  folgaGerenciar &&
+                  cancelarFolga.mutate({ id: folgaGerenciar.id, motivo: cancelMotivo.trim() })
+                }
+                disabled={!folgaGerenciar || cancelarFolga.isPending}
+              >
+                {cancelarFolga.isPending ? "Cancelando..." : "Cancelar folga"}
+              </Button>
             </div>
           </div>
+
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={create.isPending}>
-              Cancelar
-            </Button>
-            <Button onClick={() => create.mutate()} disabled={create.isPending}>
-              {create.isPending ? "Salvando..." : "Criar solicitação"}
+            <Button
+              variant="ghost"
+              onClick={() => setFolgaGerenciar(null)}
+              disabled={cancelarFolga.isPending || remarcarFolga.isPending}
+            >
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1491,7 +1488,7 @@ export default function DpFolgas() {
                   <div className="max-h-[45vh] space-y-2 overflow-y-auto pr-1">
                     {planoItens.map(({ item, data }) => {
                       const removido = autoRemovidos.includes(item.colaboradorId);
-                      const semDia = !data;
+                      
                       return (
                         <div
                           key={item.colaboradorId}
@@ -1502,30 +1499,47 @@ export default function DpFolgas() {
                         >
                           <span className="min-w-[10rem] flex-1 font-medium">{item.nome}</span>
 
-                          {semDia ? (
-                            <Badge variant="outline" className="text-amber-600">
-                              Sem dia disponível
-                            </Badge>
-                          ) : (
-                            <Select
-                              value={data ?? undefined}
-                              disabled={removido}
-                              onValueChange={(v) =>
-                                setAutoEdits((prev) => ({ ...prev, [item.colaboradorId]: v }))
+                          {!item.data && !removido && (
+                            <Badge
+                              variant="outline"
+                              className={
+                                item.motivo === "ACIMA_DO_LIMITE"
+                                  ? "text-destructive"
+                                  : "text-amber-600"
                               }
                             >
-                              <SelectTrigger className="h-8 w-[11rem]">
-                                <SelectValue placeholder="Escolher dia" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {diasEscolhaAuto.map((d) => (
+                              {item.motivo === "ACIMA_DO_LIMITE"
+                                ? "Acima do limite — escolha o dia"
+                                : item.motivo === "SEM_DIA_SEM_CONFLITO"
+                                  ? "Todos os dias têm conflito"
+                                  : "Sem dia disponível"}
+                            </Badge>
+                          )}
+                          <Select
+                            value={data ?? undefined}
+                            disabled={removido}
+                            onValueChange={(v) =>
+                              setAutoEdits((prev) => ({ ...prev, [item.colaboradorId]: v }))
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-[13rem]">
+                              <SelectValue placeholder="Escolher dia" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {diasValidosDoItem(
+                                planoAutoQuery.data?.competencia ?? competenciaAtual,
+                                item,
+                              ).map((d) => {
+                                const emFolga = item.ocupacao[d] ?? 0;
+                                return (
                                   <SelectItem key={d} value={d}>
                                     {format(parseISO(d), "dd/MM (EEE)", { locale: ptBR })}
+                                    {emFolga > 0 ? ` — ${emFolga} em folga` : ""}
                                   </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
 
                           {item.excedeLimite && !removido && (
                             <Badge variant="outline" className="text-destructive">
@@ -1553,9 +1567,11 @@ export default function DpFolgas() {
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  O sistema sugere os dias de descanso mais vazios, respeitando os limites por dia e
-                  cargo e as pessoas que não podem folgar juntas. Você pode trocar a data ou remover
-                  alguém da geração. Quem já tem folga no mês não aparece aqui.
+                  O sistema sugere primeiro os últimos dias possíveis do mês, preferindo os dias
+                  mais vazios e respeitando os limites por dia e cargo e as pessoas que não podem
+                  folgar juntas. Você pode trocar a data ou remover alguém da geração. Quando todos
+                  os dias de alguém já estão no limite, nenhuma folga é criada — escolha o dia
+                  manualmente. Quem já tem folga no mês não aparece aqui.
                 </p>
               </>
             )}
