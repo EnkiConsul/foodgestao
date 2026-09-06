@@ -9,7 +9,7 @@ Nova regra: se a troca ainda estiver aguardando resposta (do colega ou do gestor
 - No próprio dia a troca continua valendo: dá para aceitar em cima da hora. A expiração só acontece na virada do dia (meia-noite, horário de Brasília).
 - Data de corte: a mais próxima entre a folga original e a folga proposta. Passado esse dia, não faz mais sentido responder.
 
-- A verificação roda todo dia de madrugada (horário de Brasília) e também no momento em que a tela é aberta, para não haver atraso visual.
+- A verificação roda logo depois da virada do dia (horário de Brasília) e também quando a tela é aberta, para não haver atraso visual.
 - Troca expirada não altera nenhuma folga: cada um fica com o dia que já tinha.
 - Solicitante e destinatário recebem o aviso "Solicitação de troca expirada" com as datas.
 - Novo estado "Expirada" no filtro de status, na etiqueta do cartão (cinza) e no portal do colaborador.
