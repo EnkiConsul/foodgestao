@@ -748,15 +748,28 @@ export default function DpOperacaoPanorama() {
         icon={CalendarClock}
         actions={
           podeRegistrar ? (
-            <Button
-              className="gap-2"
-              onClick={() => {
-                setAusenciaData(null);
-                setAusenciaOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4" /> Registrar Ausência
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  setAvulsaEditando(null);
+                  setAvulsaData(data);
+                  setAvulsaOpen(true);
+                }}
+              >
+                <UserPlus className="h-4 w-4" /> Adicionar Pessoa
+              </Button>
+              <Button
+                className="gap-2"
+                onClick={() => {
+                  setAusenciaData(null);
+                  setAusenciaOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4" /> Registrar Ausência
+              </Button>
+            </div>
           ) : undefined
         }
       />
