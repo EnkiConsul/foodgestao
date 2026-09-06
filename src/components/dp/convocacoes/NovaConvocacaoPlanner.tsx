@@ -51,6 +51,8 @@ import {
   viraNoDiaSeguinte,
 } from "@/lib/dp/convocacoes-planejamento";
 import { textoDoErroDePublicacao } from "@/lib/dp/convocacoes-motivos";
+import { comCarimboAtual } from "@/lib/dp/convocacao-versao";
+import { supabase } from "@/integrations/supabase/client";
 import { useDpConvocacaoPreAvaliacao } from "@/hooks/useDpConvocacaoPreAvaliacao";
 import { cn } from "@/lib/utils";
 
@@ -510,6 +512,17 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
 
   // ------------------------------------------------------------ gravação
+  /** Versão atual do rascunho, lida do banco (evita carimbo defasado na tela). */
+  const lerCarimboGrupo = async (): Promise<string | null> => {
+    const { data, error } = await supabase
+      .from("dp_convocacao_grupos")
+      .select("updated_at")
+      .eq("id", grupoId)
+      .maybeSingle();
+    if (error) throw error;
+    return (data as { updated_at: string } | null)?.updated_at ?? null;
+  };
+
   /**
    * `ajuste` permite gravar valores que acabaram de ser alterados na mesma
    * interação (o estado do React só chega no render seguinte).
@@ -593,13 +606,17 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     }
 
     // Público restrito: o backend só envia para estas pessoas.
-    const dest: any = await definirDestinatarios.mutateAsync({
-      grupo_id: grupoId,
-      colaboradores: destinatarios,
-      expected_updated_at: expected!,
-      niveis: destinatarios.map((id) => ({ colaborador_id: id, nivel: niveis[id] ?? 1 })),
-      intervalo_niveis_horas: destinatarios.length > 1 ? intervaloNiveisHoras : null,
-    });
+    // O carimbo é relido do banco: gravar as necessidades pode ter avançado a
+    // versão do grupo, e um carimbo antigo seria recusado como "conflito".
+    const dest: any = await comCarimboAtual(lerCarimboGrupo, (carimbo) =>
+      definirDestinatarios.mutateAsync({
+        grupo_id: grupoId,
+        colaboradores: destinatarios,
+        expected_updated_at: carimbo!,
+        niveis: destinatarios.map((id) => ({ colaborador_id: id, nivel: niveis[id] ?? 1 })),
+        intervalo_niveis_horas: destinatarios.length > 1 ? intervaloNiveisHoras : null,
+      }),
+    );
 
     expected = dest?.updated_at ?? expected;
 
@@ -608,15 +625,17 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       const [cargoId, data, colaboradorId] = k.split("|");
       const dia = mapaDias[chave(cargoId, data)];
       if (!dia) continue;
-      const res: any = await definirOverride.mutateAsync({
-        ocorrencia_id: dia.id,
-        colaborador_id: colaboradorId,
-        entrada: h.entrada || null,
-        saida: h.saida || null,
-        intervalo_minutos: h.intervalo_minutos,
-        termina_no_dia_seguinte: h.vira,
-        expected_updated_at: expected!,
-      });
+      const res: any = await comCarimboAtual(lerCarimboGrupo, (carimbo) =>
+          definirOverride.mutateAsync({
+            ocorrencia_id: dia.id,
+            colaborador_id: colaboradorId,
+            entrada: h.entrada || null,
+            saida: h.saida || null,
+            intervalo_minutos: h.intervalo_minutos,
+            termina_no_dia_seguinte: h.vira,
+            expected_updated_at: carimbo!,
+        }),
+      );
       expected = res?.grupo_updated_at ?? expected;
     }
 
@@ -646,15 +665,18 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     try {
       const expected = await persistir();
       if (!expected) return;
-      const res = await publicar.mutateAsync({
-        grupo_id: grupoId,
-        expected_updated_at: expected,
-        confirmacoes: foraDaAntecedencia.map((d) => ({
-          ocorrencia_id: d.id,
-          confirmado: true,
-          justificativa: justificativa.trim() || null,
-        })),
-      });
+      // Relê a versão do rascunho imediatamente antes de publicar.
+      const res: any = await comCarimboAtual(lerCarimboGrupo, (carimbo) =>
+        publicar.mutateAsync({
+          grupo_id: grupoId,
+          expected_updated_at: carimbo!,
+          confirmacoes: foraDaAntecedencia.map((d) => ({
+            ocorrencia_id: d.id,
+            confirmado: true,
+            justificativa: justificativa.trim() || null,
+          })),
+        }),
+      );
       const diag = Array.isArray(res?.diagnostico) ? res.diagnostico : [];
       const faltando = diag.filter((x: any) => Number(x?.faltam_pessoas ?? 0) > 0).length;
       toast.success(
