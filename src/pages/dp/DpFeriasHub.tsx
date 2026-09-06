@@ -123,6 +123,14 @@ export default function DpFeriasHub() {
           )}
         </TabsContent>
 
+        <TabsContent value="contabilidade" className="m-0">
+          {aba === "contabilidade" && (
+            <DpEmbeddedProvider>
+              <FeriasContabilidadePanel />
+            </DpEmbeddedProvider>
+          )}
+        </TabsContent>
+
         <TabsContent value="historico" className="m-0">
           {aba === "historico" && (
             <DpEmbeddedProvider>
