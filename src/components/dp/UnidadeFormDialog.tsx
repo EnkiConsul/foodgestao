@@ -60,7 +60,7 @@ export interface UnidadeEdicao {
 }
 
 /** Abas do cadastro de unidade. */
-export type UnidadeAba = "dados" | "setores" | "funcionamento" | "sindicato";
+export type UnidadeAba = "dados" | "setores" | "funcionamento" | "feriados" | "sindicato";
 
 interface Props {
   open: boolean;
