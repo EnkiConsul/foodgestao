@@ -18,8 +18,15 @@ Ajustes que proponho:
 2. **Campos que o cadastro ainda não tem.** Hoje o cadastro do colaborador guarda nome, CPF, matrícula, nascimento, sexo, estado civil, telefone, e-mail, endereço, cargo, unidade, setor, admissão, salário, PIS e CNH. Não existem campos para RG, CTPS, título de eleitor, reservista, filiação (pai/mãe), naturalidade, nacionalidade, raça/cor, grau de instrução e deficiência. Sem criar esses campos, esses dados seriam lidos e jogados fora. Proponho criá-los junto (etapa 2) e, na etapa 1, guardá-los na ficha lida para não perder nada.
 3. **Endereço.** O endereço já é guardado em bloco estruturado, então dá para separar rua/número/bairro/cidade/UF/CEP; quando a separação não for segura, o texto original fica visível para conferência.
 4. **Uma tabela em vez de duas + itens.** Mantenho as duas entidades sugeridas (a importação e cada ficha identificada), porque a revisão parcial e o histórico precisam disso. O que não faço é criar tabela de "colaborador importado".
-5. **Custo e limite.** Ler cada ficha com IA custa crédito e tempo. Vou limitar o arquivo (até ~40 fichas por envio) e processar em lotes, mostrando o andamento.
+5. **Custo e limite.** Ler cada ficha com IA custa crédito e tempo. O arquivo com todos os funcionários que você mandou tem 44 fichas, então o processamento vai em lotes com andamento visível e retomada, sem travar a tela.
 6. **Dependentes e históricos** ficam fora desta primeira versão, como você pediu — mas o arquivo original fica guardado para uma leitura futura.
+
+O que confirmei nos seus dois arquivos:
+- Os dois têm texto de verdade (não são imagem), então não é preciso leitura de imagem agora.
+- Modelo 1 (Domínio): uma ficha, título "REGISTRO DE EMPREGADO", segunda página com a tabela de horário por dia da semana (Dom trabalhado 16:30 · 18:00 · 18:30 · 00:35; Seg folga…) — é exatamente o caso da jornada detalhada.
+- Modelo 2 (Praianos): 44 fichas no mesmo arquivo, título "Ficha de Registro de Empregado" repetido por pessoa, jornada em linha única ("Escala: 08:00/12:00-14:00/18:00 44:00"), além de blocos de salários e ficha familiar que serão ignorados nesta versão.
+- Os títulos repetidos servem como marca de início de cada ficha, e ambos traem RG, CTPS, PIS, filiação, naturalidade, raça/cor e instrução — o que reforça a necessidade dos campos novos do item 2.
+
 
 ## Etapas
 
