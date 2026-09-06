@@ -80,7 +80,27 @@ export const FERIAS_ERRO_TEXTO: Record<string, string> = {
   FERIAS_FALTAS_MOTIVO_OBRIGATORIO: "Explique o motivo da alteração das faltas.",
   FERIAS_FALTAS_CONFLITO_SALDO:
     "Com essas faltas o direito fica menor do que os dias de férias já marcados. Ajuste as férias primeiro.",
+  FERIAS_DATAS_INVALIDAS: "Confira as datas: o fim não pode ser antes do início.",
+  FERIAS_DATA_PASSADA: "Escolha uma data futura para o início das férias.",
+  FERIAS_SALDO_INSUFICIENTE: "O saldo deste período não cobre os dias pedidos.",
+  FERIAS_SOBREPOSICAO: "Já existem férias marcadas nessas datas para esta pessoa.",
+  FERIAS_CONVOCACAO_ACEITA:
+    "Há convocação aceita dentro desse período. Cancele a convocação antes de marcar as férias.",
+  FERIAS_AVISO_ANTECEDENCIA:
+    "O aviso está abaixo da antecedência definida pela empresa. Escreva uma justificativa para seguir.",
+  FERIAS_PERIODO_EM_REVISAO: "Este período exige revisão administrativa antes de marcar férias.",
+  FERIAS_COLABORADOR_NAO_ENCONTRADO: "Colaborador não encontrado.",
+  FERIAS_SOLICITACAO_NAO_ENCONTRADA: "Pedido de férias não encontrado.",
+  FERIAS_SOLICITACAO_JA_RESPONDIDA: "Este pedido já foi respondido.",
+  FERIAS_SOLICITACAO_SEM_DETALHES: "Este pedido está incompleto e não pode ser aprovado.",
+  FERIAS_SOLICITACAO_DUPLICADA: "Você já tem um pedido em análise para essas datas.",
+  FERIAS_MOTIVO_OBRIGATORIO: "Escreva o motivo para continuar.",
+  FERIAS_NAO_ENCONTRADA: "Estas férias não foram encontradas.",
+  FERIAS_JA_CONCLUIDA: "Férias já concluídas não podem ser canceladas.",
+  FERIAS_BLOQUEIO: "As datas caem em um período bloqueado para férias.",
+  FERIAS_SIMULTANEOS: "O limite de pessoas em férias ao mesmo tempo foi atingido.",
 };
+
 
 export function textoErroFerias(mensagem?: string | null): string {
   if (!mensagem) return "Não foi possível concluir a operação.";
