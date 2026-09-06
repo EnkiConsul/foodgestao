@@ -74,11 +74,22 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar }: T
         <Pessoa papel="Colega" pessoa={troca.destino} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm">
-        <span className="font-semibold text-primary">{dataComDiaSemana(troca.data_original)}</span>
-        <ArrowLeftRight className="size-3.5 text-muted-foreground" />
-        <span className="font-semibold text-primary">{dataComDiaSemana(troca.data_proposta)}</span>
-      </div>
+      {inconsistente ? (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+          <span>
+            Registro inconsistente: este pedido ficou salvo com a mesma data (ou a mesma pessoa)
+            nos dois lados e não representa uma troca real.
+          </span>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm">
+          <span className="font-semibold text-primary">{dataComDiaSemana(troca.data_original)}</span>
+          <ArrowLeftRight className="size-3.5 text-muted-foreground" />
+          <span className="font-semibold text-primary">{dataComDiaSemana(troca.data_proposta)}</span>
+        </div>
+      )}
+
 
       {troca.motivo && (
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
