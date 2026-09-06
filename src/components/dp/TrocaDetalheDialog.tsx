@@ -107,21 +107,34 @@ export function TrocaDetalheDialog({
           <PessoaBloco papel="Colega" pessoa={troca.destino} />
         </div>
 
-        <div className="space-y-2 rounded-xl border border-border/60 p-3">
-          <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            Folgas envolvidas
+        {trocaInconsistente(troca) ? (
+          <div className="space-y-1 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+            <div className="text-[10px] font-black uppercase tracking-widest">
+              Registro inconsistente
+            </div>
+            <p>
+              Este pedido ficou salvo com a mesma data (ou a mesma pessoa) nos dois lados, então não
+              representa uma troca real. Novos pedidos assim já não são aceitos.
+            </p>
           </div>
-          <div className="text-sm">
-            <b>{dataComDiaSemana(troca.data_original, true)}</b> — hoje é folga de{" "}
-            {troca.solicitante?.nome ?? "—"}; depois da troca passa para{" "}
-            {troca.destino?.nome ?? "—"}.
+        ) : (
+          <div className="space-y-2 rounded-xl border border-border/60 p-3">
+            <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              Folgas envolvidas
+            </div>
+            <div className="text-sm">
+              <b>{dataComDiaSemana(troca.data_original, true)}</b> — hoje é folga de{" "}
+              {troca.solicitante?.nome ?? "—"}; depois da troca passa para{" "}
+              {troca.destino?.nome ?? "—"}.
+            </div>
+            <div className="text-sm">
+              <b>{dataComDiaSemana(troca.data_proposta, true)}</b> — hoje é folga de{" "}
+              {troca.destino?.nome ?? "—"}; depois da troca passa para{" "}
+              {troca.solicitante?.nome ?? "—"}.
+            </div>
           </div>
-          <div className="text-sm">
-            <b>{dataComDiaSemana(troca.data_proposta, true)}</b> — hoje é folga de{" "}
-            {troca.destino?.nome ?? "—"}; depois da troca passa para{" "}
-            {troca.solicitante?.nome ?? "—"}.
-          </div>
-        </div>
+        )}
+
 
         {troca.motivo && (
           <div className="space-y-1 rounded-xl border border-border/60 p-3">
