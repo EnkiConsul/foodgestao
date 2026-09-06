@@ -93,7 +93,52 @@ export function useDpFerias(colaboradorFilter: string) {
     onError: (e: any) => toast.error(e?.message ?? "Erro ao gerar períodos"),
   });
 
+  /**
+   * Manutenção automática dos períodos aquisitivos da empresa: idempotente,
+   * roda em segundo plano ao abrir a rotina — o gestor não precisa clicar nada.
+   */
+  const manterPeriodos = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId) return 0;
+      const { data, error } = await supabase.rpc("dp_ferias_manter_periodos", {
+        _company_id: selectedCompanyId,
+      });
+      if (error) throw error;
+      return (data ?? 0) as number;
+    },
+    onSuccess: (criados) => {
+      if (criados > 0) invalidate();
+    },
+  });
+
+  const manutencaoFeita = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selectedCompanyId) return;
+    if (manutencaoFeita.current === selectedCompanyId) return;
+    manutencaoFeita.current = selectedCompanyId;
+    manterPeriodos.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompanyId]);
+
+  /** Faltas injustificadas computáveis para férias, informadas pelo gestor. */
+  const informarFaltas = useMutation({
+    mutationFn: async ({ periodoId, faltas, motivo }: FaltasInput) => {
+      const { error } = await supabase.rpc("dp_ferias_informar_faltas", {
+        _periodo_id: periodoId,
+        _faltas: faltas,
+        _motivo: motivo?.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Faltas registradas e direito recalculado");
+      invalidate();
+    },
+    onError: (e: any) => toast.error(textoErroFerias(e?.message)),
+  });
+
   const saveGozo = useMutation({
+
     mutationFn: async (input: GozoInput) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
       if (!input.periodo_id) throw new Error("Selecione o período aquisitivo");
