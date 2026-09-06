@@ -275,6 +275,59 @@ export default function DpConvocacoes() {
           </DpContentCard>
         </TabsContent>
 
+        <TabsContent value="aprovacoes" className="mt-3">
+          <DpContentCard>
+            {parciais.isLoading ? (
+              <p className="text-sm text-muted-foreground">Carregando…</p>
+            ) : parciais.rows.length === 0 ? (
+              <DpEmptyState icon={ClipboardCheck} dashed>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Nenhum horário parcial na fila</p>
+                  <p>
+                    Quando alguém aceitar só parte do horário de um dia, o pedido aparece aqui para
+                    você aprovar, oferecer o dia a outras pessoas ou recusar.
+                  </p>
+                </div>
+              </DpEmptyState>
+            ) : (
+              <div className="space-y-2">
+                {parciais.rows.map((p) => (
+                  <button
+                    key={p.convocacao_id}
+                    type="button"
+                    onClick={() => setParcialAberta(p)}
+                    className="flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/50"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{p.colaborador_nome ?? "Colaborador"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {rotuloData(p.data)}
+                        {p.cargo_nome ? ` · ${p.cargo_nome}` : ""}
+                        {p.unidade_nome ? ` · ${p.unidade_nome}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground">
+                        pedido {String(p.necessidade_entrada ?? "").slice(0, 5)}–
+                        {String(p.necessidade_saida ?? "").slice(0, 5)}
+                      </span>
+                      <Badge variant="outline" className="border-amber-500/50 text-[11px]">
+                        oferece {String(p.parcial_entrada ?? "").slice(0, 5)}–
+                        {String(p.parcial_saida ?? "").slice(0, 5)}
+                      </Badge>
+                      {p.reofertas_pendentes > 0 ? (
+                        <Badge variant="secondary" className="text-[11px]">
+                          {p.reofertas_pendentes} oferta(s) em aberto
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </DpContentCard>
+        </TabsContent>
+
         <TabsContent value="confirmadas" className="mt-3">
           <DpContentCard>
             {listaOuVazio(
