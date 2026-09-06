@@ -133,3 +133,17 @@ export const pessoaAvulsaSchema = z
     path: ["nome"],
   });
 
+/** Cadastro reaproveitável de folguistas e pessoas em teste. */
+export const pessoaApoioSchema = z.object({
+  nome: z.string().trim().min(2, "Informe o nome").max(120, "Nome muito longo"),
+  telefone: z.string().trim().max(20, "Telefone inválido").nullable().optional(),
+  tipo: z.enum(["teste", "folguista"]),
+  cargo_id: z.string().uuid().nullable().optional(),
+  unidade_id: z.string().uuid().nullable().optional(),
+  cpf: z.string().trim().max(14).nullable().optional(),
+  genero: z.string().trim().max(20).nullable().optional(),
+  data_nascimento: z.string().nullable().optional(),
+  observacao: z.string().trim().max(500, "Observação muito longa (máx. 500)").nullable().optional(),
+  colaborador_id: z.string().uuid().nullable().optional(),
+});
+
