@@ -33,12 +33,15 @@ const statusMeta: Record<string, { label: string; className: string }> = {
     label: "Cancelada",
     className: "bg-muted text-muted-foreground border-border",
   },
+  expirada: {
+    label: "Expirada",
+    className: "bg-muted text-muted-foreground border-border",
+  },
 };
 
 export default function DpTrocas() {
   const embedded = useDpEmbedded();
   const [filtro, setFiltro] = useState<string>("todos");
-  const [confirmDel, setConfirmDel] = useState<string | null>(null);
   const [recusa, setRecusa] = useState<string | null>(null);
   const [cancelamento, setCancelamento] = useState<string | null>(null);
 
@@ -47,7 +50,6 @@ export default function DpTrocas() {
     isLoading,
     responder: responderMut,
     cancelar: cancelarMut,
-    remover,
   } = useDpTrocas(filtro);
 
   const list = { isLoading };
@@ -65,9 +67,6 @@ export default function DpTrocas() {
       cancelarMut.mutate(vars, { onSuccess: () => setCancelamento(null) }),
   };
 
-  const del = {
-    mutate: (id: string) => remover.mutate(id, { onSuccess: () => setConfirmDel(null) }),
-  };
 
 
 
