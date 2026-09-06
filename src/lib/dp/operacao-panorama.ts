@@ -148,10 +148,17 @@ export interface PessoaPanorama {
 
 export type Contagens = Record<CategoriaDia, number>;
 
+export interface ContagensAvulsos {
+  teste: number;
+  folguista: number;
+}
+
 export interface ResultadoDia {
   data: string;
   dow: number;
   contagens: Contagens;
+  /** Contagem de pessoas avulsas por tipo no dia. */
+  contagens_avulsos: ContagensAvulsos;
   /** Confirmados: fixos escalados + convocações aceitas. Pendentes não entram. */
   trabalhando: number;
   /** Convocações aguardando resposta (nunca somadas em `trabalhando`). */
