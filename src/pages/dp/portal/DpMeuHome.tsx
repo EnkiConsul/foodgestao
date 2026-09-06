@@ -14,6 +14,8 @@ import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
 import { MinhasPendenciasCard } from "@/components/dp/home/MinhasPendenciasCard";
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { DpPage } from "@/components/dp/DpPage";
+import { MinhaJornadaAcoesCard } from "@/components/dp/ocorrencias/MinhaJornadaAcoesCard";
+
 
 export default function DpMeuHome() {
   const { user } = useAuth();
@@ -180,7 +182,10 @@ export default function DpMeuHome() {
         />
       </div>
 
+      <MinhaJornadaAcoesCard />
+
       <div className="grid gap-5 lg:grid-cols-2">
+
         <section className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-5 flex flex-col">
           <div className="flex items-center gap-2 mb-4">
             <ClipboardList className="h-5 w-5 text-primary" />

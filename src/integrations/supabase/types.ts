@@ -4516,6 +4516,8 @@ export type Database = {
           modo_frequencia_domingo: string
           modo_frequencia_domingo_mulher: string
           negociacao_id: string | null
+          ocorrencia_cobertura_aprovacao: string
+          ocorrencia_prazo_retroativo_dias: number
           periodicidade_domingo: number
           periodicidade_domingo_mulher: number
           politica_feriado: Database["public"]["Enums"]["dp_politica_feriado"]
@@ -4574,6 +4576,8 @@ export type Database = {
           modo_frequencia_domingo?: string
           modo_frequencia_domingo_mulher?: string
           negociacao_id?: string | null
+          ocorrencia_cobertura_aprovacao?: string
+          ocorrencia_prazo_retroativo_dias?: number
           periodicidade_domingo?: number
           periodicidade_domingo_mulher?: number
           politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
@@ -4632,6 +4636,8 @@ export type Database = {
           modo_frequencia_domingo?: string
           modo_frequencia_domingo_mulher?: string
           negociacao_id?: string | null
+          ocorrencia_cobertura_aprovacao?: string
+          ocorrencia_prazo_retroativo_dias?: number
           periodicidade_domingo?: number
           periodicidade_domingo_mulher?: number
           politica_feriado?: Database["public"]["Enums"]["dp_politica_feriado"]
@@ -8005,6 +8011,379 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_ocorrencia_coberturas: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          company_id: string
+          created_at: string
+          entrada: string | null
+          execucao_status: Database["public"]["Enums"]["dp_ocorrencia_cobertura_execucao"]
+          id: string
+          mao_de_obra_extra_id: string | null
+          motivo_recusa: string | null
+          ocorrencia_id: string
+          proposto_por: string | null
+          realizado_confirmado_em: string | null
+          realizado_confirmado_por: string | null
+          saida: string | null
+          status: Database["public"]["Enums"]["dp_ocorrencia_cobertura_status"]
+          substituto_colaborador_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          company_id: string
+          created_at?: string
+          entrada?: string | null
+          execucao_status?: Database["public"]["Enums"]["dp_ocorrencia_cobertura_execucao"]
+          id?: string
+          mao_de_obra_extra_id?: string | null
+          motivo_recusa?: string | null
+          ocorrencia_id: string
+          proposto_por?: string | null
+          realizado_confirmado_em?: string | null
+          realizado_confirmado_por?: string | null
+          saida?: string | null
+          status?: Database["public"]["Enums"]["dp_ocorrencia_cobertura_status"]
+          substituto_colaborador_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          company_id?: string
+          created_at?: string
+          entrada?: string | null
+          execucao_status?: Database["public"]["Enums"]["dp_ocorrencia_cobertura_execucao"]
+          id?: string
+          mao_de_obra_extra_id?: string | null
+          motivo_recusa?: string | null
+          ocorrencia_id?: string
+          proposto_por?: string | null
+          realizado_confirmado_em?: string | null
+          realizado_confirmado_por?: string | null
+          saida?: string | null
+          status?: Database["public"]["Enums"]["dp_ocorrencia_cobertura_status"]
+          substituto_colaborador_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ocorrencia_coberturas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencia_coberturas_mao_de_obra_extra_id_fkey"
+            columns: ["mao_de_obra_extra_id"]
+            isOneToOne: false
+            referencedRelation: "dp_pessoas_apoio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencia_coberturas_ocorrencia_id_fkey"
+            columns: ["ocorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "dp_ocorrencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencia_coberturas_substituto_colaborador_id_fkey"
+            columns: ["substituto_colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencia_coberturas_substituto_colaborador_id_fkey"
+            columns: ["substituto_colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_ocorrencia_eventos: {
+        Row: {
+          autor_id: string | null
+          campo: string | null
+          company_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          ocorrencia_id: string
+          tipo_evento: string
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          autor_id?: string | null
+          campo?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          ocorrencia_id: string
+          tipo_evento: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          autor_id?: string | null
+          campo?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          ocorrencia_id?: string
+          tipo_evento?: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ocorrencia_eventos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencia_eventos_ocorrencia_id_fkey"
+            columns: ["ocorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "dp_ocorrencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_ocorrencia_tipo_config: {
+        Row: {
+          company_id: string
+          created_at: string
+          exige_tratativa_ponto: boolean
+          id: string
+          impacta_assiduidade: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          impacta_ferias: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          relevancia_operacional: boolean
+          tipo: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          exige_tratativa_ponto?: boolean
+          id?: string
+          impacta_assiduidade?: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          impacta_ferias?: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          relevancia_operacional?: boolean
+          tipo: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          exige_tratativa_ponto?: boolean
+          id?: string
+          impacta_assiduidade?: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          impacta_ferias?: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          relevancia_operacional?: boolean
+          tipo?: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ocorrencia_tipo_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_ocorrencias: {
+        Row: {
+          analisado_em: string | null
+          analisado_por: string | null
+          analise_status: Database["public"]["Enums"]["dp_ocorrencia_analise_status"]
+          antecedencia_minutos: number | null
+          cancelado_em: string | null
+          cancelado_por: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data_operacional: string
+          documento_id: string | null
+          estado: Database["public"]["Enums"]["dp_ocorrencia_estado"]
+          horario_estimado: string | null
+          horario_previsto: string | null
+          horario_real: string | null
+          id: string
+          impacta_assiduidade: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          impacta_ferias: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          informada_em: string
+          justificativa_final: string | null
+          justificativa_inicial: string | null
+          marcacao_alvo:
+            | Database["public"]["Enums"]["dp_ocorrencia_marcacao"]
+            | null
+          minutos: number | null
+          motivo_cancelamento: string | null
+          origem: Database["public"]["Enums"]["dp_ocorrencia_origem"]
+          previsto_entrada: string | null
+          previsto_saida: string | null
+          relevancia_operacional: boolean
+          setor_id: string | null
+          solicitacao_id: string | null
+          tipo: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
+          tratativa_decisao: string | null
+          tratativa_observacao: string | null
+          tratativa_ponto: boolean
+          tratativa_status: Database["public"]["Enums"]["dp_ocorrencia_tratativa_status"]
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          analise_status?: Database["public"]["Enums"]["dp_ocorrencia_analise_status"]
+          antecedencia_minutos?: number | null
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data_operacional: string
+          documento_id?: string | null
+          estado?: Database["public"]["Enums"]["dp_ocorrencia_estado"]
+          horario_estimado?: string | null
+          horario_previsto?: string | null
+          horario_real?: string | null
+          id?: string
+          impacta_assiduidade?: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          impacta_ferias?: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          informada_em?: string
+          justificativa_final?: string | null
+          justificativa_inicial?: string | null
+          marcacao_alvo?:
+            | Database["public"]["Enums"]["dp_ocorrencia_marcacao"]
+            | null
+          minutos?: number | null
+          motivo_cancelamento?: string | null
+          origem?: Database["public"]["Enums"]["dp_ocorrencia_origem"]
+          previsto_entrada?: string | null
+          previsto_saida?: string | null
+          relevancia_operacional?: boolean
+          setor_id?: string | null
+          solicitacao_id?: string | null
+          tipo: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
+          tratativa_decisao?: string | null
+          tratativa_observacao?: string | null
+          tratativa_ponto?: boolean
+          tratativa_status?: Database["public"]["Enums"]["dp_ocorrencia_tratativa_status"]
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          analise_status?: Database["public"]["Enums"]["dp_ocorrencia_analise_status"]
+          antecedencia_minutos?: number | null
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data_operacional?: string
+          documento_id?: string | null
+          estado?: Database["public"]["Enums"]["dp_ocorrencia_estado"]
+          horario_estimado?: string | null
+          horario_previsto?: string | null
+          horario_real?: string | null
+          id?: string
+          impacta_assiduidade?: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          impacta_ferias?: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          informada_em?: string
+          justificativa_final?: string | null
+          justificativa_inicial?: string | null
+          marcacao_alvo?:
+            | Database["public"]["Enums"]["dp_ocorrencia_marcacao"]
+            | null
+          minutos?: number | null
+          motivo_cancelamento?: string | null
+          origem?: Database["public"]["Enums"]["dp_ocorrencia_origem"]
+          previsto_entrada?: string | null
+          previsto_saida?: string | null
+          relevancia_operacional?: boolean
+          setor_id?: string | null
+          solicitacao_id?: string | null
+          tipo?: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
+          tratativa_decisao?: string | null
+          tratativa_observacao?: string | null
+          tratativa_ponto?: boolean
+          tratativa_status?: Database["public"]["Enums"]["dp_ocorrencia_tratativa_status"]
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ocorrencias_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencias_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencias_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencias_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencias_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "dp_setores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencias_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_solicitacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencias_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -12932,6 +13311,8 @@ export type Database = {
           modo_frequencia_domingo: string
           modo_frequencia_domingo_mulher: string
           negociacao_id: string | null
+          ocorrencia_cobertura_aprovacao: string
+          ocorrencia_prazo_retroativo_dias: number
           periodicidade_domingo: number
           periodicidade_domingo_mulher: number
           politica_feriado: Database["public"]["Enums"]["dp_politica_feriado"]
@@ -13656,6 +14037,77 @@ export type Database = {
         Returns: Json
       }
       dp_nome_normalizado: { Args: { p_nome: string }; Returns: string }
+      dp_ocorrencia_analisar: {
+        Args: {
+          _observacao?: string
+          _ocorrencia_id: string
+          _status: Database["public"]["Enums"]["dp_ocorrencia_analise_status"]
+        }
+        Returns: undefined
+      }
+      dp_ocorrencia_cancelar: {
+        Args: { _motivo: string; _ocorrencia_id: string }
+        Returns: undefined
+      }
+      dp_ocorrencia_classificar: {
+        Args: {
+          _impacta_assiduidade?: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          _impacta_ferias?: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
+          _ocorrencia_id: string
+        }
+        Returns: undefined
+      }
+      dp_ocorrencia_complementar: {
+        Args: { _ocorrencia_id: string; _texto: string }
+        Returns: undefined
+      }
+      dp_ocorrencia_config: {
+        Args: { _company_id: string }
+        Returns: {
+          cobertura_aprovacao: string
+          prazo_retroativo_dias: number
+        }[]
+      }
+      dp_ocorrencia_confirmar: {
+        Args: {
+          _confirmar_falta?: boolean
+          _horario_real?: string
+          _justificativa_final?: string
+          _ocorrencia_id: string
+        }
+        Returns: undefined
+      }
+      dp_ocorrencia_previsto: {
+        Args: { _colaborador_id: string; _data: string }
+        Returns: {
+          entrada: string
+          saida: string
+          setor_id: string
+          unidade_id: string
+        }[]
+      }
+      dp_ocorrencia_registrar: {
+        Args: {
+          _colaborador_id: string
+          _data: string
+          _documento_id?: string
+          _estado?: Database["public"]["Enums"]["dp_ocorrencia_estado"]
+          _horario_estimado?: string
+          _horario_real?: string
+          _justificativa?: string
+          _marcacao_alvo?: Database["public"]["Enums"]["dp_ocorrencia_marcacao"]
+          _tipo: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
+        }
+        Returns: string
+      }
+      dp_ocorrencia_tipos_seed: {
+        Args: { _company_id: string }
+        Returns: undefined
+      }
+      dp_ocorrencia_tratar: {
+        Args: { _decisao: string; _observacao?: string; _ocorrencia_id: string }
+        Returns: undefined
+      }
       dp_pascoa: { Args: { _ano: number }; Returns: string }
       dp_pessoa_apoio_upsert: {
         Args: {
@@ -14656,6 +15108,38 @@ export type Database = {
         | "ferias_canceladas"
         | "ferias_proximas"
         | "ferias_retorno"
+      dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
+      dp_ocorrencia_cobertura_execucao:
+        | "prevista"
+        | "realizada"
+        | "nao_realizada"
+      dp_ocorrencia_cobertura_status: "proposta" | "aprovada" | "recusada"
+      dp_ocorrencia_estado:
+        | "informada"
+        | "aguardando_confirmacao"
+        | "confirmada"
+        | "cancelada"
+      dp_ocorrencia_impacto: "sim" | "nao" | "aguardando" | "nao_se_aplica"
+      dp_ocorrencia_marcacao:
+        | "entrada"
+        | "saida"
+        | "intervalo_inicio"
+        | "intervalo_retorno"
+      dp_ocorrencia_origem: "colaborador" | "gestor" | "sistema"
+      dp_ocorrencia_tipo:
+        | "falta"
+        | "previsao_falta"
+        | "atraso"
+        | "previsao_atraso"
+        | "atestado"
+        | "ausencia_justificada"
+        | "saida_antecipada"
+        | "previsao_saida_antecipada"
+        | "esquecimento_marcacao"
+        | "atraso_intervalo"
+        | "previsao_atraso_intervalo"
+        | "divergencia_jornada"
+      dp_ocorrencia_tratativa_status: "pendente" | "concluida" | "nao_se_aplica"
       dp_perfil_acesso: "colaborador" | "gestor" | "admin"
       dp_pessoa_avulsa_tipo: "teste" | "folguista" | "registro_manual"
       dp_politica_feriado: "compensa" | "dobro"
@@ -15104,6 +15588,46 @@ export const Constants = {
         "ferias_canceladas",
         "ferias_proximas",
         "ferias_retorno",
+      ],
+      dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
+      dp_ocorrencia_cobertura_execucao: [
+        "prevista",
+        "realizada",
+        "nao_realizada",
+      ],
+      dp_ocorrencia_cobertura_status: ["proposta", "aprovada", "recusada"],
+      dp_ocorrencia_estado: [
+        "informada",
+        "aguardando_confirmacao",
+        "confirmada",
+        "cancelada",
+      ],
+      dp_ocorrencia_impacto: ["sim", "nao", "aguardando", "nao_se_aplica"],
+      dp_ocorrencia_marcacao: [
+        "entrada",
+        "saida",
+        "intervalo_inicio",
+        "intervalo_retorno",
+      ],
+      dp_ocorrencia_origem: ["colaborador", "gestor", "sistema"],
+      dp_ocorrencia_tipo: [
+        "falta",
+        "previsao_falta",
+        "atraso",
+        "previsao_atraso",
+        "atestado",
+        "ausencia_justificada",
+        "saida_antecipada",
+        "previsao_saida_antecipada",
+        "esquecimento_marcacao",
+        "atraso_intervalo",
+        "previsao_atraso_intervalo",
+        "divergencia_jornada",
+      ],
+      dp_ocorrencia_tratativa_status: [
+        "pendente",
+        "concluida",
+        "nao_se_aplica",
       ],
       dp_perfil_acesso: ["colaborador", "gestor", "admin"],
       dp_pessoa_avulsa_tipo: ["teste", "folguista", "registro_manual"],

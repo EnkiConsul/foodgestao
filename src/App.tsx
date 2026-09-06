@@ -84,6 +84,8 @@ const DpCadastroPendencias = lazyWithRetry(() => import("./pages/dp/cadastros/Dp
 const DpEscalas = lazyWithRetry(() => import("./pages/dp/DpEscalas"));
 const DpOperacaoPanorama = lazyWithRetry(() => import("./pages/dp/DpOperacaoPanorama"));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
+const DpOcorrencias = lazyWithRetry(() => import("./pages/dp/DpOcorrencias"));
+
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
 const DpAvisos = lazyWithRetry(() => import("./pages/dp/DpAvisos"));
@@ -445,6 +447,8 @@ const AppRoutes = () => (
         <Route path="escalas/mes" element={<DpOperacaoPanorama />} />
         <Route path="operacao" element={<Navigate to="/dp/escalas/mes" replace />} />
         <Route path="convocacoes" element={<DpConvocacoes />} />
+        <Route path="ocorrencias" element={<DpOcorrencias />} />
+
         {/* Folha de pagamento e ponto desativados: gerados fora do sistema por ora. */}
         <Route path="ponto" element={<Navigate to="/dp" replace />} />
         <Route path="ponto/time" element={<Navigate to="/dp" replace />} />

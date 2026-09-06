@@ -97,6 +97,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       "/dp/escalas",
       "/dp/operacao",
       "/dp/convocacoes",
+      "/dp/ocorrencias",
       "/dp/folgas",
       "/dp/solicitacoes",
       "/dp/trocas",
@@ -107,9 +108,11 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     items: [
       { label: "Operação", to: "/dp/escalas/mes", icon: CalendarClock, shortcut: true },
 
+      { label: "Ocorrências", to: "/dp/ocorrencias", icon: ClipboardList, shortcut: true },
       { label: "Convocações", to: "/dp/convocacoes", icon: BellRing },
       { label: "Folgas", to: "/dp/folgas", icon: Calendar, shortcut: true },
       { label: "Férias", to: "/dp/ferias", icon: Palmtree, shortcut: true },
+
     ],
   },
 
