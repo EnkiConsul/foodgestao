@@ -29,6 +29,9 @@ export interface EscalaItem {
   carga_prevista_horas: number;
   origem: EscalaItemOrigem;
   observacao?: string | null;
+  /** Setor válido somente nesta data (exceção). null = herdar jornada/cadastro. */
+  setor_id?: string | null;
+  setor_motivo?: string | null;
 }
 
 export const TIPO_LABEL: Record<EscalaItemTipo, string> = {
