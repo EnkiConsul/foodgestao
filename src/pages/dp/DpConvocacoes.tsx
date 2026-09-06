@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   BellRing, CalendarClock, CheckCircle2, ClipboardCheck, Clock, History, Pencil, Plus,
@@ -119,6 +120,25 @@ function GrupoCard({
 
 export default function DpConvocacoes() {
   const [wizard, setWizard] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const [inicial, setInicial] = useState<
+    { unidadeId?: string | null; cargoId?: string | null; datas?: string[] } | null
+  >(null);
+
+  /** Link vindo da cobertura de férias: abre o planejador já pré-preenchido. */
+  useEffect(() => {
+    if (params.get("nova") !== "1") return;
+    setInicial({
+      unidadeId: params.get("unidade"),
+      cargoId: params.get("cargo"),
+      datas: (params.get("datas") ?? "").split(",").filter(Boolean),
+    });
+    setWizard(true);
+    const next = new URLSearchParams(params);
+    ["nova", "unidade", "cargo", "datas"].forEach((k) => next.delete(k));
+    setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
   const [emEdicao, setEmEdicao] = useState<GrupoComOcorrencias | null>(null);
   const [parcialAberta, setParcialAberta] = useState<ParcialPendente | null>(null);
   const grupos = useDpConvocacaoGrupos();
@@ -398,9 +418,13 @@ export default function DpConvocacoes() {
         open={wizard}
         onOpenChange={(v) => {
           setWizard(v);
-          if (!v) setEmEdicao(null);
+          if (!v) {
+            setEmEdicao(null);
+            setInicial(null);
+          }
         }}
         grupo={emEdicao}
+        inicial={inicial}
       />
 
       <AprovacaoParcialDialog
