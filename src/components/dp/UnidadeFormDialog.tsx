@@ -399,6 +399,11 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
           <HorarioFuncionamentoEditor unidadeId={unidadeId} semRodape onRegistrarSalvar={registrarSalvar} />
         </TabsContent>
 
+        <TabsContent value="feriados" className="mt-0 flex-1 space-y-2 overflow-y-auto p-4">
+          <UnidadeFeriadosPanel unidadeId={unidadeId} />
+        </TabsContent>
+
+
         <TabsContent value="sindicato" className="mt-0 flex-1 space-y-6 overflow-y-auto p-4">
           <UnidadeSindicatoPanel unidadeId={unidadeId} unidadeNome={form.nome} />
           <div className="border-t pt-4">
