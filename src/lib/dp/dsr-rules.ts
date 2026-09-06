@@ -764,19 +764,33 @@ export function avaliarConformidade(
     const esperadoClt = Math.max(esperado, esperadoLegal);
     const domingos = l.domingosFolgados.length;
     const negociados = porAcordo ? (l.diasNegociadosFolgados?.length ?? 0) : 0;
-    // No modo acordo, os dias negociados só complementam o que faltar de domingo.
+    // Os dias negociados só completam o que a regra da unidade pede ACIMA do
+    // piso legal — o piso do domingo tem de ser cumprido com domingo.
     const negociadosAproveitados = porAcordo
-      ? Math.max(0, Math.min(negociados, esperadoClt - domingos))
+      ? Math.max(0, Math.min(negociados, esperadoClt - Math.max(domingos, esperadoLegal)))
       : 0;
     const folgasConsideradas = domingos + negociadosAproveitados;
 
-    // Regra da empresa: vale qualquer dia de descanso do mês, inclusive o dia
-    // fixo do cadastro de trabalho (que não gera registro de folga).
+    // Intervalo exigido entre domingos de folga: o mais protetivo entre a regra
+    // configurada e o padrão legal (quinzenal para mulheres).
+    const intervaloLegal = l.sexo === "F"
+      ? PADRAO_LEGAL_DOMINGO_MULHER
+      : padraoLegalDomingo(cfg.setor_comercio !== false);
+    const intervaloDomingoExigido = pFinal > 0 ? Math.min(pFinal, intervaloLegal) : intervaloLegal;
+    const intervalo = avaliarIntervaloDomingos(
+      l.domingosFolgados,
+      l.domingosDoPeriodo ?? [],
+      intervaloDomingoExigido,
+      l.ultimoDomingoFolgadoAnterior ?? null,
+    );
+
+    // Regra da empresa: só descansos que valem pela regra — domingo, dias
+    // negociados e o descanso fixo do cadastro quando cai num dia elegível.
     const domingosEmpresa =
       domingos
       + (l.diasNegociadosFolgados?.length ?? 0)
-      + (l.folgasOutrosDias?.length ?? 0)
-      + Math.max(0, l.descansoSemanalNoMes ?? 0);
+      + Math.max(0, l.descansoSemanalElegivelNoMes ?? 0);
+
 
     const override = overrideDomingosMes({ domingosMes: l.domingosMesOverride });
     const modoRotulo: ModoFrequencia = override !== null ? "por_mes" : modoAplicado;
