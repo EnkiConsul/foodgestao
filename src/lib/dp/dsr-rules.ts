@@ -565,7 +565,10 @@ export interface ConformidadeLinha extends ConformidadeInput {
   periodicidadeAplicada: number;
   /** Modelo de frequência aplicado (usado apenas para rotular a regra). */
   modoAplicado: ModoFrequencia;
+  /** Texto pronto da regra aplicada ("1 folga de fim de semana por mês"). */
+  rotuloFrequencia: string;
   esperado: number;
+
   /** Folgas consideradas na avaliação (domingos, ou dias negociados no modo acordo). */
   folgasConsideradas: number;
   /** Total de folgas registradas em dias de descanso, sem teto. */
