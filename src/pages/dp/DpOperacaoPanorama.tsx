@@ -625,6 +625,46 @@ export default function DpOperacaoPanorama() {
                 </Secao>
               )}
 
+              {(() => {
+                const ausReg = (panorama.ausenciasRegistradas ?? []).filter(
+                  (a) => a.inicio <= data && a.fim >= data,
+                );
+                if (ausReg.length === 0) return null;
+                const nomeDe = new Map(panorama.colaboradores.map((c) => [c.id, c.nome]));
+                const rotulo = (t: string) =>
+                  t === "adiantamento" ? "Adiantamento" : t === "outros" ? "Ausência" : t;
+                return (
+                  <Secao
+                    title="Ausências Registradas"
+                    description="Afastamentos registrados pelo gestor que cobrem este dia"
+                  >
+                    <ul className="divide-y">
+                      {ausReg.map((a, i) => (
+                        <li
+                          key={`${a.colaborador_id}-${i}`}
+                          className="flex items-start justify-between gap-3 py-2"
+                        >
+                          <div className="min-w-0">
+                            <span className="block truncate text-sm">
+                              {nomeDe.get(a.colaborador_id) ?? "—"}
+                            </span>
+                            {a.motivo && (
+                              <span className="block text-xs text-muted-foreground">{a.motivo}</span>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <Badge variant="outline">{rotulo(a.tipo)}</Badge>
+                            {a.fim !== a.inicio && (
+                              <span className="text-xs text-muted-foreground">até {a.fim}</span>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </Secao>
+                );
+              })()}
+
             </>
           )}
         </TabsContent>
