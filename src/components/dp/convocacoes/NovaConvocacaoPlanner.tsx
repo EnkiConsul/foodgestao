@@ -44,7 +44,10 @@ import {
   janelaMinutos,
   minimoDoCargoNaData,
   regimeConvocavel,
+  viraNoDiaSeguinte,
 } from "@/lib/dp/convocacoes-planejamento";
+import { textoDoErroDePublicacao } from "@/lib/dp/convocacoes-motivos";
+import { useDpConvocacaoPreAvaliacao } from "@/hooks/useDpConvocacaoPreAvaliacao";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -88,6 +91,9 @@ interface HorarioOverride {
 const novoId = () => crypto.randomUUID();
 const hhmm = (v: string | null | undefined) => (v ? v.slice(0, 5) : "");
 const chave = (cargoId: string, data: string) => `${cargoId}|${data}`;
+/** Virada de dia é obrigatória quando a saída é igual ou anterior à entrada. */
+const normalizarVira = (entrada: string, saida: string, atual: boolean) =>
+  viraNoDiaSeguinte(entrada, saida) ? true : atual;
 const rotuloData = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", {
     weekday: "short", day: "2-digit", month: "2-digit",
@@ -295,6 +301,35 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargoAtivo, limites, dias, preview.regrasCobertura, preview.contagemPorDataCargo, unidadeId, antecedenciaMinima]);
 
+  const preAvaliacao = useDpConvocacaoPreAvaliacao(grupoId, revisando);
+  const linhasPreAvaliacao = useMemo(
+    () => preAvaliacao.data?.linhas ?? [],
+    [preAvaliacao.data],
+  );
+
+  /** Dias em rascunho sem nenhuma pessoa apta — publicação fica bloqueada. */
+  const diasSemApto = useMemo(() => {
+    const porDia = new Map<string, boolean>();
+    for (const l of linhasPreAvaliacao) {
+      const k = `${l.cargo_id ?? ""}|${l.data}`;
+      porDia.set(k, (porDia.get(k) ?? false) || l.apto);
+    }
+    return [...porDia.entries()].filter(([, temApto]) => !temApto).map(([k]) => k);
+  }, [linhasPreAvaliacao]);
+
+  const patchOverride = (k: string, p: Partial<HorarioOverride>) =>
+    setOverrides((prev) => {
+      const base = prev[k] ?? { entrada: "", saida: "", intervalo_minutos: 0, vira: false };
+      const f = { ...base, ...p };
+      return { ...prev, [k]: { ...f, vira: normalizarVira(f.entrada, f.saida, f.vira) } };
+    });
+
+  const patchHorarioGeral = (p: Partial<HorarioOverride>) =>
+    setHorarioGeral((h) => {
+      const f = { ...h, ...p };
+      return { ...f, vira: normalizarVira(f.entrada, f.saida, f.vira) };
+    });
+
   /**
    * Marcar o dia: sem horário geral, a janela vem dos fixos do mesmo cargo na
    * data (nunca inventada). Sem base cadastrada, o gestor informa manualmente.
@@ -315,7 +350,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
         ...prev,
         [k]: {
           id: novoId(), cargo_id: cargoAtivo, data: iso,
-          entrada: horarioGeral.entrada, saida: horarioGeral.saida, vira: horarioGeral.vira,
+          entrada: horarioGeral.entrada, saida: horarioGeral.saida,
+          vira: normalizarVira(horarioGeral.entrada, horarioGeral.saida, horarioGeral.vira),
           vagas, origem: "geral", ambiguo: false, expected_updated_at: null,
         },
       }));
@@ -330,7 +366,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
         id: novoId(), cargo_id: cargoAtivo, data: iso,
         entrada: sug?.entrada ?? "",
         saida: sug?.saida ?? "",
-        vira: sug?.vira ?? false,
+        vira: normalizarVira(sug?.entrada ?? "", sug?.saida ?? "", sug?.vira ?? false),
         vagas,
         origem: sug?.origem ?? "manual",
         ambiguo: sug?.ambiguo ?? false,
@@ -359,7 +395,11 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       const resolvida: SugestaoCache = {
         entrada: hhmm(sug.sugerido.entrada),
         saida: hhmm(sug.sugerido.saida),
-        vira: !!sug.sugerido.termina_no_dia_seguinte,
+        vira: normalizarVira(
+          hhmm(sug.sugerido.entrada),
+          hhmm(sug.sugerido.saida),
+          !!sug.sugerido.termina_no_dia_seguinte,
+        ),
         origem: sug.fonte === "historico_convocacoes" ? "historico" : "sugerida",
         ambiguo: !!sug.ambiguo,
       };
@@ -385,9 +425,11 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   };
 
   const patchDia = (k: string, p: Partial<DiaPlanejado>) =>
-    setDias((prev) =>
-      prev[k] ? { ...prev, [k]: { ...prev[k], ...p, origem: "manual", ambiguo: false } } : prev,
-    );
+    setDias((prev) => {
+      if (!prev[k]) return prev;
+      const fundido = { ...prev[k], ...p, origem: "manual" as const, ambiguo: false };
+      return { ...prev, [k]: { ...fundido, vira: normalizarVira(fundido.entrada, fundido.saida, fundido.vira) } };
+    });
 
   /** Copia a janela de um dia para os demais dias do mesmo cargo. */
   const aplicarATodos = (k: string) => {
@@ -397,7 +439,9 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       Object.fromEntries(
         Object.entries(prev).map(([key, d]) =>
           d.cargo_id === base.cargo_id
-            ? [key, { ...d, entrada: base.entrada, saida: base.saida, vira: base.vira, origem: "manual" as const, ambiguo: false }]
+            ? [key, { ...d, entrada: base.entrada, saida: base.saida,
+                vira: normalizarVira(base.entrada, base.saida, base.vira),
+                origem: "manual" as const, ambiguo: false }]
             : [key, d],
         ),
       ),
@@ -558,18 +602,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       onSalvo?.(grupoId);
       onOpenChange(false);
     } catch (e: any) {
-      const msg = String(e?.message ?? "");
-      toast.error(
-        msg.includes("PUBLICATION_NO_RECIPIENTS")
-          ? "Nenhum destinatário selecionado — a convocação não foi enviada a ninguém."
-          : msg.includes("PUBLICATION_NO_ELIGIBLE")
-            ? "Nenhum destinatário elegível para um dos dias. Revise horários, unidade e conflitos."
-            : msg.includes("ANTECEDENCE_JUSTIFICATION_REQUIRED")
-              ? "As regras exigem justificativa para publicar abaixo da antecedência mínima."
-              : msg.includes("CONCURRENT_MODIFICATION")
-                ? "O rascunho foi alterado por outra pessoa. Reabra e tente novamente."
-                : msg || "Não foi possível publicar a convocação.",
-      );
+      toast.error(textoDoErroDePublicacao(String(e?.message ?? "")));
     } finally {
       setPublicando(false);
     }
@@ -629,6 +662,21 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     };
                   })}
                   overrides={overrides}
+                  preAvaliacao={linhasPreAvaliacao}
+                  preAvaliacaoCarregando={preAvaliacao.isLoading || preAvaliacao.isFetching}
+                  onUsarHorarioParaTodos={async (entrada, saida, vira) => {
+                    setUsaHorarioGeral(true);
+                    setHorarioGeral((h) => ({
+                      ...h, entrada, saida, vira: normalizarVira(entrada, saida, vira),
+                    }));
+                    await persistir();
+                    await preAvaliacao.refetch();
+                  }}
+                  onAjustarNecessidade={async (cargoId, data, saida) => {
+                    patchDia(chave(cargoId, data), { saida });
+                    await persistir();
+                    await preAvaliacao.refetch();
+                  }}
                   horarioGeral={usaHorarioGeral ? horarioGeral : null}
                   jornadaDe={preview.jornadaDe}
                   prazoRespostaDias={config.data?.prazo_resposta_dias_uteis ?? null}
@@ -784,12 +832,12 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     <div className="space-y-1">
                       <Label className="text-[11px]">Entrada</Label>
                       <Input type="time" value={horarioGeral.entrada}
-                        onChange={(e) => setHorarioGeral((h) => ({ ...h, entrada: e.target.value }))} />
+                        onChange={(e) => patchHorarioGeral({ entrada: e.target.value })} />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[11px]">Saída</Label>
                       <Input type="time" value={horarioGeral.saida}
-                        onChange={(e) => setHorarioGeral((h) => ({ ...h, saida: e.target.value }))} />
+                        onChange={(e) => patchHorarioGeral({ saida: e.target.value })} />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[11px]">Intervalo (min)</Label>
@@ -803,9 +851,13 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     <label className="flex items-end gap-2 pb-2 text-xs">
                       <Checkbox
                         checked={horarioGeral.vira}
-                        onCheckedChange={(v) => setHorarioGeral((h) => ({ ...h, vira: v === true }))}
+                        disabled={viraNoDiaSeguinte(horarioGeral.entrada, horarioGeral.saida)}
+                        onCheckedChange={(v) => patchHorarioGeral({ vira: v === true })}
                       />
                       Termina no dia seguinte
+                      {viraNoDiaSeguinte(horarioGeral.entrada, horarioGeral.saida) && (
+                        <span className="text-muted-foreground">(a saída é no dia seguinte)</span>
+                      )}
                     </label>
                   </div>
                 )}
@@ -924,6 +976,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     size="sm"
                     onClick={publicarGrupo}
                     disabled={!podeSalvar || publicando || salvando ||
+                      preAvaliacao.isLoading || diasSemApto.length > 0 ||
                       (exigeJustificativa && foraDaAntecedencia.length > 0 && !justificativa.trim())}
                   >
                     {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
@@ -938,12 +991,20 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => {
+                    onClick={async () => {
                       if (!podeSalvar) {
                         toast.error("Informe unidade, cargos, destinatários e ao menos um dia completo.");
                         return;
                       }
-                      setRevisando(true);
+                      setSalvando(true);
+                      try {
+                        await persistir();
+                        setRevisando(true);
+                      } catch (e: any) {
+                        toast.error(e?.message ?? "Não foi possível preparar a revisão.");
+                      } finally {
+                        setSalvando(false);
+                      }
                     }}
                     disabled={salvando || publicando}
                   >
@@ -995,49 +1056,22 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                           <div className="mb-1 truncate text-xs font-medium">{nomePessoa(id)}</div>
                           <div className="grid grid-cols-3 gap-1.5">
                             <Input type="time" value={ov?.entrada ?? ""}
-                              onChange={(e) =>
-                                setOverrides((prev) => ({
-                                  ...prev,
-                                  [k]: {
-                                    entrada: e.target.value,
-                                    saida: prev[k]?.saida ?? "",
-                                    intervalo_minutos: prev[k]?.intervalo_minutos ?? 0,
-                                    vira: prev[k]?.vira ?? false,
-                                  },
-                                }))
-                              } />
+                              onChange={(e) => patchOverride(k, { entrada: e.target.value })} />
                             <Input type="time" value={ov?.saida ?? ""}
-                              onChange={(e) =>
-                                setOverrides((prev) => ({
-                                  ...prev,
-                                  [k]: {
-                                    entrada: prev[k]?.entrada ?? "",
-                                    saida: e.target.value,
-                                    intervalo_minutos: prev[k]?.intervalo_minutos ?? 0,
-                                    vira: prev[k]?.vira ?? false,
-                                  },
-                                }))
-                              } />
+                              onChange={(e) => patchOverride(k, { saida: e.target.value })} />
                             <Input inputMode="numeric" placeholder="int." value={ov ? String(ov.intervalo_minutos) : ""}
                               onChange={(e) =>
-                                setOverrides((prev) => ({
-                                  ...prev,
-                                  [k]: {
-                                    entrada: prev[k]?.entrada ?? "",
-                                    saida: prev[k]?.saida ?? "",
-                                    intervalo_minutos: Number(e.target.value.replace(/\D/g, "") || 0),
-                                    vira: prev[k]?.vira ?? false,
-                                  },
-                                }))
+                                patchOverride(k, {
+                                  intervalo_minutos: Number(e.target.value.replace(/\D/g, "") || 0),
+                                })
                               } />
                           </div>
                           {ov && (ov.entrada || ov.saida) && (
                             <div className="mt-1 flex items-center justify-between">
                               <label className="flex items-center gap-1.5 text-[11px]">
                                 <Checkbox checked={ov.vira}
-                                  onCheckedChange={(v) =>
-                                    setOverrides((prev) => ({ ...prev, [k]: { ...prev[k], vira: v === true } }))
-                                  } />
+                                  disabled={viraNoDiaSeguinte(ov.entrada, ov.saida)}
+                                  onCheckedChange={(v) => patchOverride(k, { vira: v === true })} />
                                 +1 dia
                               </label>
                               <Button size="sm" variant="ghost" className="h-6 text-[11px]"
