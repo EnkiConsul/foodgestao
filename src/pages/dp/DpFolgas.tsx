@@ -56,11 +56,14 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  parsePreviaAutoatribuicao,
+  diasValidosDoMes,
+  parsePlanoAutoatribuicao,
   parseResultadoAutoatribuicao,
-  resumoPrevia,
+  resumoPlano,
   resumoResultado,
+  type PlanoItem,
 } from "@/lib/dp/folga-autoatribuicao";
+
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpFolgasQueries } from "@/hooks/useDpFolgasQueries";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
@@ -384,29 +387,63 @@ export default function DpFolgas() {
   const competenciaAtual = format(startOfMonth(cursor), "yyyy-MM-dd");
   const unidadeAlvo = unidadeFilter === "todas" ? null : unidadeFilter;
 
-  /** Prévia da distribuição automática do mês em foco (somente administradores). */
-  const previaAutoQuery = useQuery({
-    queryKey: ["dp_folga_auto_previa", selectedCompanyId, unidadeAlvo, competenciaAtual],
+  /** Plano da distribuição automática do mês em foco (somente administradores). */
+  const planoAutoQuery = useQuery({
+    queryKey: ["dp_folga_auto_plano", selectedCompanyId, unidadeAlvo, competenciaAtual],
     enabled: !!selectedCompanyId && podeDistribuir && autoOpen,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("dp_folga_autoatribuicao_previa", {
+      const { data, error } = await supabase.rpc("dp_folga_autoatribuicao_plano", {
         _company: selectedCompanyId!,
         _unidade: unidadeAlvo,
         _competencia: competenciaAtual,
       });
       if (error) throw error;
-      return parsePreviaAutoatribuicao(data);
+      return parsePlanoAutoatribuicao(data);
     },
   });
 
-  /** Roda a distribuição automática de folgas para o mês em foco. */
+  /** Datas editadas/removidas pelo gestor antes de confirmar. */
+  const [autoEdits, setAutoEdits] = useState<Record<string, string>>({});
+  const [autoRemovidos, setAutoRemovidos] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!autoOpen) {
+      setAutoEdits({});
+      setAutoRemovidos([]);
+    }
+  }, [autoOpen]);
+
+  const planoItens = useMemo(() => {
+    const plano = planoAutoQuery.data;
+    if (!plano) return [] as { item: PlanoItem; data: string | null }[];
+    return plano.itens.map((item) => ({
+      item,
+      data: autoEdits[item.colaboradorId] ?? item.data,
+    }));
+  }, [planoAutoQuery.data, autoEdits]);
+
+  const diasEscolhaAuto = useMemo(
+    () => diasValidosDoMes(planoAutoQuery.data?.competencia ?? competenciaAtual, planoAutoQuery.data?.dias ?? []),
+    [planoAutoQuery.data, competenciaAtual],
+  );
+
+  const itensConfirmados = useMemo(
+    () =>
+      planoItens
+        .filter((p) => !autoRemovidos.includes(p.item.colaboradorId) && !!p.data)
+        .map((p) => ({ colaborador_id: p.item.colaboradorId, data: p.data as string })),
+    [planoItens, autoRemovidos],
+  );
+
+  /** Cria apenas as folgas confirmadas pelo gestor. */
   const distribuirAuto = useMutation({
     mutationFn: async () => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const { data, error } = await supabase.rpc("dp_folga_autoatribuir_manual", {
+      const { data, error } = await supabase.rpc("dp_folga_autoatribuir_aplicar", {
         _company: selectedCompanyId,
         _unidade: unidadeAlvo,
         _competencia: competenciaAtual,
+        _itens: itensConfirmados,
       });
       if (error) throw error;
       return parseResultadoAutoatribuicao(data);
@@ -415,7 +452,7 @@ export default function DpFolgas() {
       qc.invalidateQueries({ queryKey: ["dp_folgas"] });
       qc.invalidateQueries({ queryKey: ["dp_folgas_efetivadas"] });
       qc.invalidateQueries({ queryKey: ["dp_folga_auto_exec"] });
-      qc.invalidateQueries({ queryKey: ["dp_folga_auto_previa"] });
+      qc.invalidateQueries({ queryKey: ["dp_folga_auto_plano"] });
       setAutoOpen(false);
       if (res.geradas > 0) toast.success("Folgas distribuídas", { description: resumoResultado(res) });
       else toast.info("Nada a distribuir", { description: resumoResultado(res) });
@@ -425,6 +462,7 @@ export default function DpFolgas() {
         description: e instanceof Error ? e.message : String(e),
       }),
   });
+
 
 
 
@@ -1466,7 +1504,7 @@ export default function DpFolgas() {
       />
 
       <Dialog open={autoOpen} onOpenChange={setAutoOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Distribuir folgas automaticamente</DialogTitle>
             <DialogDescription>
@@ -1478,20 +1516,85 @@ export default function DpFolgas() {
           </DialogHeader>
 
           <div className="space-y-3 text-sm">
-            {previaAutoQuery.isLoading && <p className="text-muted-foreground">Calculando...</p>}
-            {previaAutoQuery.isError && (
+            {planoAutoQuery.isLoading && <p className="text-muted-foreground">Calculando...</p>}
+            {planoAutoQuery.isError && (
               <p className="text-destructive">
                 Não foi possível calcular a prévia. Tente novamente.
               </p>
             )}
-            {previaAutoQuery.data && (
+            {planoAutoQuery.data && (
               <>
-                <p className="font-medium">{resumoPrevia(previaAutoQuery.data)}</p>
+                <p className="font-medium">{resumoPlano(planoAutoQuery.data)}</p>
+
+                {planoItens.length > 0 && (
+                  <div className="max-h-[45vh] space-y-2 overflow-y-auto pr-1">
+                    {planoItens.map(({ item, data }) => {
+                      const removido = autoRemovidos.includes(item.colaboradorId);
+                      const semDia = !data;
+                      return (
+                        <div
+                          key={item.colaboradorId}
+                          className={cn(
+                            "flex flex-wrap items-center gap-2 rounded-md border p-2",
+                            removido && "opacity-50",
+                          )}
+                        >
+                          <span className="min-w-[10rem] flex-1 font-medium">{item.nome}</span>
+
+                          {semDia ? (
+                            <Badge variant="outline" className="text-amber-600">
+                              Sem dia disponível
+                            </Badge>
+                          ) : (
+                            <Select
+                              value={data ?? undefined}
+                              disabled={removido}
+                              onValueChange={(v) =>
+                                setAutoEdits((prev) => ({ ...prev, [item.colaboradorId]: v }))
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-[11rem]">
+                                <SelectValue placeholder="Escolher dia" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {diasEscolhaAuto.map((d) => (
+                                  <SelectItem key={d} value={d}>
+                                    {format(parseISO(d), "dd/MM (EEE)", { locale: ptBR })}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+
+                          {item.excedeLimite && !removido && (
+                            <Badge variant="outline" className="text-destructive">
+                              Acima do limite
+                            </Badge>
+                          )}
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setAutoRemovidos((prev) =>
+                                removido
+                                  ? prev.filter((id) => id !== item.colaboradorId)
+                                  : [...prev, item.colaboradorId],
+                              )
+                            }
+                          >
+                            {removido ? "Incluir" : "Remover"}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <p className="text-xs text-muted-foreground">
-                  O sistema respeita os dias de descanso negociados, os limites por dia e cargo e as
-                  pessoas que não podem folgar juntas, começando pelos dias mais vazios. Se todos os
-                  dias estiverem no limite, começa pelos últimos dias do mês e avisa no calendário.
-                  Quem já tem folga no mês não é alterado.
+                  O sistema sugere os dias de descanso mais vazios, respeitando os limites por dia e
+                  cargo e as pessoas que não podem folgar juntas. Você pode trocar a data ou remover
+                  alguém da geração. Quem já tem folga no mês não aparece aqui.
                 </p>
               </>
             )}
@@ -1499,19 +1602,18 @@ export default function DpFolgas() {
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAutoOpen(false)} disabled={distribuirAuto.isPending}>
-              Cancelar
+              {itensConfirmados.length === 0 ? "Fechar" : "Cancelar"}
             </Button>
-            <Button
-              onClick={() => distribuirAuto.mutate()}
-              disabled={
-                distribuirAuto.isPending ||
-                previaAutoQuery.isLoading ||
-                !previaAutoQuery.data ||
-                previaAutoQuery.data.aCriar <= 0
-              }
-            >
-              {distribuirAuto.isPending ? "Distribuindo..." : "Distribuir folgas"}
-            </Button>
+            {itensConfirmados.length > 0 && (
+              <Button
+                onClick={() => distribuirAuto.mutate()}
+                disabled={distribuirAuto.isPending || planoAutoQuery.isLoading}
+              >
+                {distribuirAuto.isPending
+                  ? "Distribuindo..."
+                  : `Criar ${itensConfirmados.length} folga(s)`}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
