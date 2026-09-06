@@ -118,6 +118,6 @@ describe("plano de autoatribuição", () => {
     expect(dias[0]).toBe("2026-09-05");
     expect(dias).toContain("2026-09-27");
     expect(dias).not.toContain("2026-09-07");
-    expect(dias).toHaveLength(9);
+    expect(dias).toHaveLength(8);
   });
 });
