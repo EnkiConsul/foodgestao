@@ -26,7 +26,7 @@ interface Props {
   unidadePadrao?: string | null;
   unidades: { id: string; nome: string }[];
   cargos: { id: string; nome: string }[];
-  colaboradores: { id: string; nome: string }[];
+  colaboradores: { id: string; nome: string; cargo_id?: string | null; unidade_id?: string | null }[];
   /** Registro em edição; ausente = novo cadastro. */
   registro?: PessoaAvulsaPanorama | null;
   salvando?: boolean;
@@ -36,9 +36,16 @@ interface Props {
 }
 
 const TIPO_LABEL: Record<PessoaAvulsaTipo, string> = {
+  registro_manual: "Colaborador cadastrado que trabalhou",
   teste: "Em teste na loja",
   folguista: "Folguista (cobrindo alguém)",
 };
+
+const hojeIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 
 /**
  * Cadastro rápido de alguém que trabalha no dia sem ser colaborador
