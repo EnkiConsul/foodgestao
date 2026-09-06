@@ -20,6 +20,7 @@ const ABAS = [
   "solicitacoes",
   "programadas",
   "em-ferias",
+  "contabilidade",
   "historico",
   "regras",
 ] as const;
