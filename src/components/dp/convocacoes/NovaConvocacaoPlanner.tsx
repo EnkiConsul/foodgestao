@@ -302,7 +302,10 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   }, [cargoAtivo, limites, dias, preview.regrasCobertura, preview.contagemPorDataCargo, unidadeId, antecedenciaMinima]);
 
   const preAvaliacao = useDpConvocacaoPreAvaliacao(grupoId, revisando);
-  const linhasPreAvaliacao = preAvaliacao.data?.linhas ?? [];
+  const linhasPreAvaliacao = useMemo(
+    () => preAvaliacao.data?.linhas ?? [],
+    [preAvaliacao.data],
+  );
 
   /** Dias em rascunho sem nenhuma pessoa apta — publicação fica bloqueada. */
   const diasSemApto = useMemo(() => {
