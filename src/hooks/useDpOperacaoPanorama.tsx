@@ -426,6 +426,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       id: a.id,
       nome: a.nome,
       tipo: a.tipo as PessoaAvulsaTipo,
+      colaborador_id: a.colaborador_id ?? null,
+
       unidade_id: a.unidade_id,
       cargo_id: a.cargo_id,
       cargo_nome: cargos.get(a.cargo_id) ?? null,
