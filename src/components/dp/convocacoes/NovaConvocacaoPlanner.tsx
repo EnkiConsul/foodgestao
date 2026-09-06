@@ -531,7 +531,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] max-w-5xl grid-cols-none grid-rows-none flex-col gap-0 overflow-hidden p-0 sm:h-[94dvh] sm:max-h-[94dvh]">
-          <DialogHeader className="border-b border-border p-4">
+          <DialogHeader className="shrink-0 border-b border-border p-4">
             <DialogTitle className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />
               {grupo ? "Editar rascunho de convocação" : "Nova convocação"}
@@ -862,7 +862,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
             )}
           </div>
 
-          <DialogFooter className="flex-row items-center justify-between gap-2 border-t border-border p-3">
+          <DialogFooter className="shrink-0 flex-row items-center justify-between gap-2 border-t border-border p-3">
             <span className="text-[11px] text-muted-foreground">
               {diasCompletos.length} dia(s) · {destinatarios.length} destinatário(s)
             </span>
