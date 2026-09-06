@@ -131,10 +131,15 @@ export function DiasSelecionadosLista({
                 <label className="flex items-end gap-2 pb-1.5 text-[11px]">
                   <Checkbox
                     checked={d.vira}
+                    disabled={viraNoDiaSeguinte(d.entrada, d.saida)}
                     onCheckedChange={(v) => onPatch(d.chave, { vira: v === true })}
                   />
                   Termina no dia seguinte
+                  {viraNoDiaSeguinte(d.entrada, d.saida) && (
+                    <span className="text-muted-foreground">(a saída é no dia seguinte)</span>
+                  )}
                 </label>
+
               </div>
 
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
