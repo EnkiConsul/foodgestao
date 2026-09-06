@@ -1149,6 +1149,32 @@ export default function DpOperacaoPanorama() {
           </ul>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!detalheAvulso} onOpenChange={(o) => !o && setDetalheAvulso(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{detalheAvulso ? AVULSO_LABEL[detalheAvulso] : ""}</DialogTitle>
+            <DialogDescription className="first-letter:uppercase">{dataExtenso(dataAtiva)}</DialogDescription>
+          </DialogHeader>
+          <ul className="max-h-[60vh] divide-y overflow-y-auto">
+            {avulsosDoDiaAtivo.map((p) => (
+              <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <span className="block truncate text-sm">{p.nome}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {p.entrada ? `${p.entrada} às ${p.saida ?? "--:--"}` : "—"}
+                    {p.cobre_nome ? ` · cobrindo ${p.cobre_nome}` : ""}
+                  </span>
+                </div>
+                <Badge variant="secondary">{p.avulso_tipo === "teste" ? "Em teste" : "Folguista"}</Badge>
+              </li>
+            ))}
+            {!avulsosDoDiaAtivo.length && (
+              <li className="py-2 text-sm text-muted-foreground">Nenhuma pessoa avulsa neste dia.</li>
+            )}
+          </ul>
+        </DialogContent>
+      </Dialog>
     </DpPage>
   );
 }
