@@ -87,7 +87,7 @@ export function PropostaParcialDialog({
           </div>
         </div>
 
-        {ok ? (
+        {validacao.ok ? (
           <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm space-y-1">
             <p>
               Você cobre {formatarMinutos(validacao.minutos)}
