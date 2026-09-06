@@ -384,29 +384,63 @@ export default function DpFolgas() {
   const competenciaAtual = format(startOfMonth(cursor), "yyyy-MM-dd");
   const unidadeAlvo = unidadeFilter === "todas" ? null : unidadeFilter;
 
-  /** Prévia da distribuição automática do mês em foco (somente administradores). */
-  const previaAutoQuery = useQuery({
-    queryKey: ["dp_folga_auto_previa", selectedCompanyId, unidadeAlvo, competenciaAtual],
+  /** Plano da distribuição automática do mês em foco (somente administradores). */
+  const planoAutoQuery = useQuery({
+    queryKey: ["dp_folga_auto_plano", selectedCompanyId, unidadeAlvo, competenciaAtual],
     enabled: !!selectedCompanyId && podeDistribuir && autoOpen,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("dp_folga_autoatribuicao_previa", {
+      const { data, error } = await supabase.rpc("dp_folga_autoatribuicao_plano", {
         _company: selectedCompanyId!,
         _unidade: unidadeAlvo,
         _competencia: competenciaAtual,
       });
       if (error) throw error;
-      return parsePreviaAutoatribuicao(data);
+      return parsePlanoAutoatribuicao(data);
     },
   });
 
-  /** Roda a distribuição automática de folgas para o mês em foco. */
+  /** Datas editadas/removidas pelo gestor antes de confirmar. */
+  const [autoEdits, setAutoEdits] = useState<Record<string, string>>({});
+  const [autoRemovidos, setAutoRemovidos] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!autoOpen) {
+      setAutoEdits({});
+      setAutoRemovidos([]);
+    }
+  }, [autoOpen]);
+
+  const planoItens = useMemo(() => {
+    const plano = planoAutoQuery.data;
+    if (!plano) return [] as { item: PlanoItem; data: string | null }[];
+    return plano.itens.map((item) => ({
+      item,
+      data: autoEdits[item.colaboradorId] ?? item.data,
+    }));
+  }, [planoAutoQuery.data, autoEdits]);
+
+  const diasEscolhaAuto = useMemo(
+    () => diasValidosDoMes(planoAutoQuery.data?.competencia ?? competenciaAtual, planoAutoQuery.data?.dias ?? []),
+    [planoAutoQuery.data, competenciaAtual],
+  );
+
+  const itensConfirmados = useMemo(
+    () =>
+      planoItens
+        .filter((p) => !autoRemovidos.includes(p.item.colaboradorId) && !!p.data)
+        .map((p) => ({ colaborador_id: p.item.colaboradorId, data: p.data as string })),
+    [planoItens, autoRemovidos],
+  );
+
+  /** Cria apenas as folgas confirmadas pelo gestor. */
   const distribuirAuto = useMutation({
     mutationFn: async () => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const { data, error } = await supabase.rpc("dp_folga_autoatribuir_manual", {
+      const { data, error } = await supabase.rpc("dp_folga_autoatribuir_aplicar", {
         _company: selectedCompanyId,
         _unidade: unidadeAlvo,
         _competencia: competenciaAtual,
+        _itens: itensConfirmados,
       });
       if (error) throw error;
       return parseResultadoAutoatribuicao(data);
@@ -415,7 +449,7 @@ export default function DpFolgas() {
       qc.invalidateQueries({ queryKey: ["dp_folgas"] });
       qc.invalidateQueries({ queryKey: ["dp_folgas_efetivadas"] });
       qc.invalidateQueries({ queryKey: ["dp_folga_auto_exec"] });
-      qc.invalidateQueries({ queryKey: ["dp_folga_auto_previa"] });
+      qc.invalidateQueries({ queryKey: ["dp_folga_auto_plano"] });
       setAutoOpen(false);
       if (res.geradas > 0) toast.success("Folgas distribuídas", { description: resumoResultado(res) });
       else toast.info("Nada a distribuir", { description: resumoResultado(res) });
@@ -425,6 +459,7 @@ export default function DpFolgas() {
         description: e instanceof Error ? e.message : String(e),
       }),
   });
+
 
 
 
