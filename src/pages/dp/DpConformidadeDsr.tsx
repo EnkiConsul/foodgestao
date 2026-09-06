@@ -435,7 +435,8 @@ export default function DpConformidadeDsr() {
     const headers = [
       "Colaborador", "Unidade", "Cargo", "Sexo", "Domingos no mês", "Folgas no mês",
       "Domingos folgados", "Folgas em dias de descanso negociados", "Folgas consideradas (CLT)",
-      "Descansos considerados (empresa)", "Regra aplicada", "Mínimo esperado",
+      "Descansos considerados (empresa)", "Regra aplicada", "Mínimo da regra",
+      "Mínimo legal", "Mínimo exigido (CLT)",
       "Situação CLT", "Situação regra da empresa",
     ];
     const rowsCsv = linhasFiltradas.map((l) => [
@@ -451,9 +452,12 @@ export default function DpConformidadeDsr() {
       String(l.folgasEmpresa),
       l.rotuloFrequencia,
       String(l.esperado),
+      String(l.esperadoLegal),
+      String(l.esperadoClt),
       l.conformeClt ? "Em ordem" : "Em falta",
       l.conformeEmpresa ? "Em ordem" : "Em falta",
     ]);
+
 
 
 
@@ -682,18 +686,28 @@ export default function DpConformidadeDsr() {
                       <p className="font-semibold tabular-nums">{detalhe.domingosNoPeriodo}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Mínimo esperado</p>
-                      <p className="font-semibold tabular-nums">{detalhe.esperado}</p>
+                      <p className="text-muted-foreground">Mínimo exigido</p>
+                      <p className="font-semibold tabular-nums">{detalhe.esperadoClt}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Domingos folgados</p>
                       <p className="font-semibold tabular-nums">{detalhe.domingosFolgados.length}</p>
                     </div>
+
                     <div>
                       <p className="text-muted-foreground">Folgas consideradas</p>
                       <p className="font-semibold tabular-nums">{detalhe.folgasConsideradas}</p>
                     </div>
                   </div>
+                  {detalhe.esperadoClt > detalhe.esperado && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      A regra cadastrada pede {detalhe.esperado}, mas o mínimo legal do mês é{" "}
+                      {detalhe.esperadoLegal}
+                      {detalhe.sexo === "F"
+                        ? " — Art. 386 da CLT: 1 domingo de folga a cada 2 semanas para mulheres."
+                        : " pelo padrão legal do setor."}
+                    </p>
+                  )}
                   {detalheInfo.acordo && (
                     <p className="mt-2 text-xs text-muted-foreground">
                       Por acordo coletivo, os dias de descanso combinados
@@ -702,6 +716,7 @@ export default function DpConformidadeDsr() {
                       ({detalhe.negociadosAproveitados} no mês).
                     </p>
                   )}
+
                 </div>
 
                 <div className="rounded-xl border border-border p-3">
@@ -711,6 +726,10 @@ export default function DpConformidadeDsr() {
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-3">
                     <div>
+                      <p className="text-muted-foreground">Mínimo da regra</p>
+                      <p className="font-semibold tabular-nums">{detalhe.esperado}</p>
+                    </div>
+                    <div>
                       <p className="text-muted-foreground">Descansos considerados</p>
                       <p className="font-semibold tabular-nums">{detalhe.folgasEmpresa}</p>
                     </div>
@@ -719,6 +738,7 @@ export default function DpConformidadeDsr() {
                       <p className="font-semibold tabular-nums">{detalhe.folgasMarcadas}</p>
                     </div>
                   </div>
+
                   <p className="mt-2 text-xs text-muted-foreground">
                     {detalheInfo.descansoLabel
                       ? `Inclui o descanso fixo do cadastro de trabalho (${detalheInfo.descansoLabel}), que não gera registro de folga.`

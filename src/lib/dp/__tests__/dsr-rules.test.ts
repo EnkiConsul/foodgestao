@@ -105,7 +105,73 @@ describe("avaliarConformidade", () => {
     expect(linha.esperado).toBe(1);
     expect(linha.conforme).toBe(true);
   });
+
+  const cfgPorMes = {
+    periodicidade_domingo: 3,
+    periodicidade_domingo_mulher: PADRAO_LEGAL_DOMINGO_MULHER,
+    modo_frequencia_domingo: "por_mes" as const,
+    modo_frequencia_domingo_mulher: "por_mes" as const,
+    domingos_por_mes: 1,
+    domingos_por_mes_mulher: 1,
+    setor_comercio: true,
+  };
+
+  it("mulher com 1 domingo fica em falta quando a regra pede menos que o piso legal", () => {
+    const [linha] = avaliarConformidade(
+      [{ colaboradorId: "1", nome: "Ana", sexo: "F", domingosFolgados: ["2026-09-06"], domingosNoPeriodo: 4 }],
+      cfgPorMes,
+    );
+    expect(linha.esperado).toBe(1);
+    expect(linha.esperadoLegal).toBe(2);
+    expect(linha.esperadoClt).toBe(2);
+    expect(linha.conformeClt).toBe(false);
+  });
+
+  it("mulher com 2 domingos atende o piso quinzenal", () => {
+    const [linha] = avaliarConformidade(
+      [{
+        colaboradorId: "1", nome: "Ana", sexo: "F",
+        domingosFolgados: ["2026-09-06", "2026-09-20"], domingosNoPeriodo: 4,
+      }],
+      cfgPorMes,
+    );
+    expect(linha.conformeClt).toBe(true);
+  });
+
+  it("mês com 5 domingos mantém 2 como piso da mulher", () => {
+    const [linha] = avaliarConformidade(
+      [{ colaboradorId: "1", nome: "Ana", sexo: "F", domingosFolgados: [], domingosNoPeriodo: 5 }],
+      cfgPorMes,
+    );
+    expect(linha.esperadoClt).toBe(2);
+  });
+
+  it("homem com 1 domingo continua em ordem na mesma regra", () => {
+    const [linha] = avaliarConformidade(
+      [{ colaboradorId: "2", nome: "Bruno", sexo: "M", domingosFolgados: ["2026-09-06"], domingosNoPeriodo: 4 }],
+      cfgPorMes,
+    );
+    expect(linha.esperadoLegal).toBe(1);
+    expect(linha.esperadoClt).toBe(1);
+    expect(linha.conformeClt).toBe(true);
+  });
+
+  it("no acordo coletivo os dias negociados completam o piso legal da mulher", () => {
+    const [linha] = avaliarConformidade(
+      [{
+        colaboradorId: "1", nome: "Ana", sexo: "F",
+        domingosFolgados: ["2026-09-06"],
+        diasNegociadosFolgados: ["2026-09-19"],
+        domingosNoPeriodo: 4,
+      }],
+      { ...cfgPorMes, tipo_descanso_domingo: "acordo_coletivo" as const, dias_descanso_negociados: [0, 6] },
+    );
+    expect(linha.esperadoClt).toBe(2);
+    expect(linha.negociadosAproveitados).toBe(1);
+    expect(linha.conformeClt).toBe(true);
+  });
 });
+
 
 describe("frequenciaParaSemanas", () => {
   it("mantém o valor no modo semanas", () => {
@@ -200,19 +266,24 @@ describe("avaliarConformidade — modelo X por mês", () => {
     expect(semFolga.rotuloFrequencia).toBe("1 folga de fim de semana por mês");
   });
 
-  it("conta a folga marcada em sábado no modo acordo", () => {
+  it("conta as folgas marcadas em sábado no modo acordo", () => {
     const [linha] = avaliarConformidade(
       [{
         colaboradorId: "2", nome: "Rosângela", sexo: "F",
-        domingosFolgados: [], diasNegociadosFolgados: ["2026-09-05"], domingosNoPeriodo: 4,
+        domingosFolgados: [],
+        // Mulher: o piso legal quinzenal pede 2 descansos em mês de 4 domingos.
+        diasNegociadosFolgados: ["2026-09-05", "2026-09-19"],
+        domingosNoPeriodo: 4,
       }],
       cfgPorMes,
     );
     expect(linha.esperado).toBe(1);
-    expect(linha.folgasMarcadas).toBe(1);
-    expect(linha.negociadosAproveitados).toBe(1);
+    expect(linha.esperadoClt).toBe(2);
+    expect(linha.folgasMarcadas).toBe(2);
+    expect(linha.negociadosAproveitados).toBe(2);
     expect(linha.conforme).toBe(true);
   });
+
 
   it("mostra a folga marcada mesmo fora do modo acordo", () => {
     const [linha] = avaliarConformidade(
@@ -310,12 +381,28 @@ describe("avaliarConformidade — leitura CLT x leitura da empresa", () => {
 
   it("folga aprovada em domingo deixa as duas leituras em ordem", () => {
     const [l] = avaliarConformidade(
-      [{ colaboradorId: "1", nome: "Sara", sexo: "F", domingosFolgados: ["2026-09-13"], domingosNoPeriodo: 4 }],
+      [{
+        colaboradorId: "1",
+        nome: "Sara",
+        sexo: "F",
+        // Mulher: piso legal quinzenal (2 domingos em mês de 4 domingos).
+        domingosFolgados: ["2026-09-13", "2026-09-27"],
+        domingosNoPeriodo: 4,
+      }],
       cfgAcordo,
     );
     expect(l.conformeClt).toBe(true);
     expect(l.conformeEmpresa).toBe(true);
     expect(l.conforme).toBe(true);
+  });
+
+  it("mulher com um só domingo fica em falta pelo piso legal quinzenal", () => {
+    const [l] = avaliarConformidade(
+      [{ colaboradorId: "1", nome: "Sara", sexo: "F", domingosFolgados: ["2026-09-13"], domingosNoPeriodo: 4 }],
+      cfgAcordo,
+    );
+    expect(l.esperadoClt).toBe(2);
+    expect(l.conformeClt).toBe(false);
   });
 
   it("folga em sábado sem acordo fica em falta na CLT e em ordem na empresa", () => {
@@ -343,7 +430,7 @@ describe("avaliarConformidade — leitura CLT x leitura da empresa", () => {
         nome: "Cristiane",
         sexo: "F",
         domingosFolgados: [],
-        diasNegociadosFolgados: ["2026-09-12"],
+        diasNegociadosFolgados: ["2026-09-12", "2026-09-19"],
         domingosNoPeriodo: 4,
       }],
       cfgAcordo,
@@ -351,6 +438,7 @@ describe("avaliarConformidade — leitura CLT x leitura da empresa", () => {
     expect(l.conformeClt).toBe(true);
     expect(l.conformeEmpresa).toBe(true);
   });
+
 
   it("descanso fixo do cadastro sustenta só a leitura da empresa", () => {
     const [l] = avaliarConformidade(

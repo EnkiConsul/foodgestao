@@ -332,6 +332,25 @@ export function padraoLegalDomingo(setorComercio: boolean): number {
 /** Padrão legal para colaboradoras mulheres: domingo quinzenal (Art. 386 CLT). */
 export const PADRAO_LEGAL_DOMINGO_MULHER = 2;
 
+/**
+ * Piso legal de domingos de folga no período, independente do que a unidade
+ * configurou. Mulheres: 1 domingo a cada 2 semanas (Art. 386 CLT). Demais:
+ * padrão do setor (comércio 1/3 semanas, outros 1/7).
+ */
+export function minimoLegalDomingos(
+  domingosNoPeriodo: number,
+  opts?: { sexo?: string | null; setorComercio?: boolean },
+): number {
+  const domingos = Math.max(0, Math.floor(Number(domingosNoPeriodo) || 0));
+  if (domingos === 0) return 0;
+  const intervalo =
+    opts?.sexo === "F"
+      ? PADRAO_LEGAL_DOMINGO_MULHER
+      : padraoLegalDomingo(opts?.setorComercio !== false);
+  return Math.min(domingos, Math.floor(domingos / intervalo));
+}
+
+
 /** Valores que a base "CLT" fixa para a frequência de folga dominical. */
 export function padroesCltDe(setorComercio: boolean): Pick<
   DpConfigDp,
@@ -571,7 +590,13 @@ export interface ConformidadeLinha extends ConformidadeInput {
   modoAplicado: ModoFrequencia;
   /** Texto pronto da regra aplicada ("1 folga de fim de semana por mês"). */
   rotuloFrequencia: string;
+  /** Mínimo da regra configurada na unidade (base da leitura da empresa). */
   esperado: number;
+  /** Piso legal do período (Art. 386 CLT para mulheres; padrão do setor nos demais). */
+  esperadoLegal: number;
+  /** Mínimo usado na leitura CLT: o maior entre a regra e o piso legal. */
+  esperadoClt: number;
+
 
   /** Folgas consideradas na avaliação (domingos, ou dias negociados no modo acordo). */
   folgasConsideradas: number;
@@ -606,8 +631,10 @@ type CfgConformidade = Pick<DpConfigDp, "periodicidade_domingo" | "periodicidade
       | "domingos_por_mes"
       | "modo_frequencia_domingo_mulher"
       | "domingos_por_mes_mulher"
+      | "setor_comercio"
     >
   >;
+
 
 /**
  * Rótulo curto da regra de frequência aplicada a um colaborador.
@@ -662,13 +689,21 @@ export function avaliarConformidade(
       l.domingosNoPeriodo,
       { sexo: l.sexo, domingosMes: l.domingosMesOverride },
     );
+    // Piso legal do período: quinzenal para mulheres (Art. 386 CLT), padrão do
+    // setor para os demais. A regra da unidade não pode ficar abaixo dele.
+    const esperadoLegal = minimoLegalDomingos(l.domingosNoPeriodo, {
+      sexo: l.sexo,
+      setorComercio: cfg.setor_comercio !== false,
+    });
+    const esperadoClt = Math.max(esperado, esperadoLegal);
     const domingos = l.domingosFolgados.length;
     const negociados = porAcordo ? (l.diasNegociadosFolgados?.length ?? 0) : 0;
     // No modo acordo, os dias negociados só complementam o que faltar de domingo.
     const negociadosAproveitados = porAcordo
-      ? Math.max(0, Math.min(negociados, esperado - domingos))
+      ? Math.max(0, Math.min(negociados, esperadoClt - domingos))
       : 0;
     const folgasConsideradas = domingos + negociadosAproveitados;
+
     // Regra da empresa: vale qualquer dia de descanso do mês, inclusive o dia
     // fixo do cadastro de trabalho (que não gera registro de folga).
     const domingosEmpresa =
@@ -696,6 +731,8 @@ export function avaliarConformidade(
         })),
       ),
       esperado,
+      esperadoLegal,
+      esperadoClt,
       folgasConsideradas,
       // Total do que foi marcado em dias de descanso, mesmo acima do mínimo
       // ou fora do modo acordo — serve para o gestor ver que existe folga.
@@ -705,12 +742,14 @@ export function avaliarConformidade(
         + (l.folgasOutrosDias?.length ?? 0),
 
       negociadosAproveitados,
-      // Leitura legal: só domingo (ou dia negociado, quando há acordo coletivo).
-      conformeClt: folgasConsideradas >= esperado,
+      // Leitura legal: só domingo (ou dia negociado, quando há acordo coletivo),
+      // com o piso legal do período.
+      conformeClt: folgasConsideradas >= esperadoClt,
       // Leitura da empresa: qualquer descanso do mês, incluindo o dia fixo do cadastro.
       folgasEmpresa: domingosEmpresa,
       conformeEmpresa: domingosEmpresa >= esperado,
-      conforme: folgasConsideradas >= esperado && domingosEmpresa >= esperado,
+      conforme: folgasConsideradas >= esperadoClt && domingosEmpresa >= esperado,
+
     };
 
   });
