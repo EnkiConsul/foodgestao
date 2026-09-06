@@ -25,9 +25,10 @@ const fmt = (iso: string) => {
 
 /** Calendário de feriados desta unidade, com a visão do ano resolvida. */
 export function UnidadeFeriadosPanel({ unidadeId }: Props) {
-  const { feriados, isLoading, salvar, alternar, excluir, incluirNacionais } =
+  const { feriados, isLoading, salvar, alternar, excluir, incluirNacionais, replicar } =
     useDpFeriados(unidadeId ?? null);
   const [open, setOpen] = useState(false);
+  const [replicarOpen, setReplicarOpen] = useState(false);
   const [editando, setEditando] = useState<FeriadoRegra | null>(null);
   const anoAtual = new Date().getFullYear();
   const [ano, setAno] = useState(String(anoAtual));
