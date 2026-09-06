@@ -665,42 +665,66 @@ export default function DpConformidadeDsr() {
                   {badgeSituacao(detalhe)}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-muted-foreground">Folgas no mês</p>
-                    <p className="font-semibold tabular-nums">{detalhe.folgasMarcadas}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Mínimo esperado</p>
-                    <p className="font-semibold tabular-nums">{detalhe.esperado}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Domingos no mês</p>
-                    <p className="font-semibold tabular-nums">{detalhe.domingosNoPeriodo}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Domingos folgados</p>
-                    <p className="font-semibold tabular-nums">{detalhe.domingosFolgados.length}</p>
-                  </div>
-                </div>
-
                 <div>
                   <p className="text-muted-foreground">Regra aplicada</p>
                   <p className="font-semibold">{detalhe.rotuloFrequencia}</p>
                   <p className="text-xs text-muted-foreground">{detalheInfo.origem}.</p>
                 </div>
 
-                {detalheInfo.acordo && (
-                  <div className="rounded-xl border border-border bg-muted/40 p-3">
-                    <p className="font-medium">Folgas em dias de descanso negociados: {detalhe.negociadosAproveitados}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                <div className="rounded-xl border border-border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium">Exigência legal (CLT)</p>
+                    {badgeLeitura(detalhe.conformeClt, detalhe.conformeClt ? "Em ordem" : "Em falta")}
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-muted-foreground">Domingos no mês</p>
+                      <p className="font-semibold tabular-nums">{detalhe.domingosNoPeriodo}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Mínimo esperado</p>
+                      <p className="font-semibold tabular-nums">{detalhe.esperado}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Domingos folgados</p>
+                      <p className="font-semibold tabular-nums">{detalhe.domingosFolgados.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Folgas consideradas</p>
+                      <p className="font-semibold tabular-nums">{detalhe.folgasConsideradas}</p>
+                    </div>
+                  </div>
+                  {detalheInfo.acordo && (
+                    <p className="mt-2 text-xs text-muted-foreground">
                       Por acordo coletivo, os dias de descanso combinados
                       {detalheInfo.negociadosLabel ? ` (${detalheInfo.negociadosLabel})` : ""} substituem
-                      o domingo na contagem da folga semanal obrigatória. Cada folga nesses dias conta
-                      como se fosse um domingo folgado.
+                      o domingo na contagem da folga semanal obrigatória
+                      ({detalhe.negociadosAproveitados} no mês).
                     </p>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium">Regra da empresa</p>
+                    {badgeLeitura(detalhe.conformeEmpresa, detalhe.conformeEmpresa ? "Em ordem" : "Em falta")}
                   </div>
-                )}
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-muted-foreground">Descansos considerados</p>
+                      <p className="font-semibold tabular-nums">{detalhe.folgasEmpresa}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Folgas marcadas</p>
+                      <p className="font-semibold tabular-nums">{detalhe.folgasMarcadas}</p>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {detalheInfo.descansoLabel
+                      ? `Inclui o descanso fixo do cadastro de trabalho (${detalheInfo.descansoLabel}), que não gera registro de folga.`
+                      : "Sem descanso fixo no cadastro de trabalho; conta só as folgas marcadas."}
+                  </p>
+                </div>
 
                 <div>
                   <p className="text-muted-foreground">Folgas marcadas no mês</p>
@@ -712,13 +736,22 @@ export default function DpConformidadeDsr() {
                         <li
                           key={d.iso}
                           className="rounded-full border border-border px-2.5 py-0.5 text-xs tabular-nums"
+                          title={
+                            d.origem === "aprovada"
+                              ? "Pedido de folga aprovado"
+                              : "Folga registrada na escala"
+                          }
                         >
                           {d.dia} {diaMesIso(d.iso)}
+                          {d.origem === "aprovada" ? " · aprovada" : ""}
+                          {d.contaClt ? "" : " · não conta para a CLT"}
                         </li>
                       ))}
                     </ul>
                   )}
                 </div>
+              </div>
+
               </div>
             </>
           )}
