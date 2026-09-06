@@ -250,6 +250,10 @@ export function RevisaoConvocacao(props: Props) {
               const fimHabitual = linhasDia
                 .map((l) => l.jornada?.saida?.slice(0, 5) ?? null)
                 .find((v): v is string => !!v) ?? null;
+              // Janela que o banco realmente avaliou (pode diferir da tela).
+              const fimAvaliado = linhasDia
+                .map((l) => l.necessidade_saida?.slice(0, 5) ?? null)
+                .find((v): v is string => !!v) ?? o.dia.saida;
               return (
                 <Alert variant="destructive" className="mt-2">
                   <AlertTriangle className="h-4 w-4" />
