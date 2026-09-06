@@ -296,15 +296,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     if (!cargoAtivo || !selectedCompanyId) return;
     const k = chave(cargoAtivo, iso);
     if (dias[k]) {
-      const alvo = dias[k];
-      if (alvo.expected_updated_at !== null || grupo?.ocorrencias.some((o) => o.id === alvo.id)) {
-        setRemovidas((r) => ({ ...r, [alvo.id]: alvo.expected_updated_at }));
-      }
-      setDias((prev) => {
-        const next = { ...prev };
-        delete next[k];
-        return next;
-      });
+      removerDia(k);
       return;
     }
 
@@ -317,53 +309,94 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
         [k]: {
           id: novoId(), cargo_id: cargoAtivo, data: iso,
           entrada: horarioGeral.entrada, saida: horarioGeral.saida, vira: horarioGeral.vira,
-          vagas, origem: "geral", expected_updated_at: null,
+          vagas, origem: "geral", ambiguo: false, expected_updated_at: null,
         },
       }));
       return;
     }
 
-    let entrada = "";
-    let saida = "";
-    let vira = false;
-    let origem: DiaPlanejado["origem"] = "manual";
-    try {
-      const sug = await buscarNecessidadeSugerida({
-        company_id: selectedCompanyId, unidade_id: unidadeId, cargo_id: cargoAtivo, data: iso,
-      });
-      if (sug?.sugerido) {
-        entrada = hhmm(sug.sugerido.entrada);
-        saida = hhmm(sug.sugerido.saida);
-        vira = !!sug.sugerido.termina_no_dia_seguinte;
-        origem = "sugerida";
-        if (sug.ambiguo) {
-          toast.info(
-            `Há mais de um horário praticado em ${rotuloData(iso)}. Confira a janela do dia.`,
-          );
-        }
-      }
-    } catch {
-      /* prévia apenas: falha na sugestão não bloqueia o planejamento */
-    }
+    const sug = await resolverSugestao(cargoAtivo, iso);
 
     setDias((prev) => ({
       ...prev,
       [k]: {
         id: novoId(), cargo_id: cargoAtivo, data: iso,
-        entrada, saida, vira, vagas, origem, expected_updated_at: null,
+        entrada: sug?.entrada ?? "",
+        saida: sug?.saida ?? "",
+        vira: sug?.vira ?? false,
+        vagas,
+        origem: sug?.origem ?? "manual",
+        ambiguo: sug?.ambiguo ?? false,
+        expected_updated_at: null,
       },
     }));
 
-    if (!entrada) {
+    if (!sug?.entrada) {
       toast.warning(
-        `Sem horário de referência dos fixos em ${rotuloData(iso)}. Informe a janela no detalhe do dia.`,
+        `Sem horário de referência em ${rotuloData(iso)}. Informe a janela na lista de datas.`,
       );
-      setDetalhe(k);
     }
   };
 
+  /** Sugestão do horário padrão: histórico de convocações e, em seguida, equipe fixa. */
+  const resolverSugestao = async (cargoId: string, iso: string): Promise<SugestaoCache | null> => {
+    if (!selectedCompanyId) return null;
+    const k = chave(cargoId, iso);
+    const cache = sugestoesRef.current.get(k);
+    if (cache) return cache;
+    try {
+      const sug = await buscarNecessidadeSugerida({
+        company_id: selectedCompanyId, unidade_id: unidadeId, cargo_id: cargoId, data: iso,
+      });
+      if (!sug?.sugerido) return null;
+      const resolvida: SugestaoCache = {
+        entrada: hhmm(sug.sugerido.entrada),
+        saida: hhmm(sug.sugerido.saida),
+        vira: !!sug.sugerido.termina_no_dia_seguinte,
+        origem: sug.fonte === "historico_convocacoes" ? "historico" : "sugerida",
+        ambiguo: !!sug.ambiguo,
+      };
+      sugestoesRef.current.set(k, resolvida);
+      return resolvida;
+    } catch {
+      /* prévia apenas: falha na sugestão não bloqueia o planejamento */
+      return null;
+    }
+  };
+
+  const removerDia = (k: string) => {
+    const alvo = dias[k];
+    if (!alvo) return;
+    if (alvo.expected_updated_at !== null || grupo?.ocorrencias.some((o) => o.id === alvo.id)) {
+      setRemovidas((r) => ({ ...r, [alvo.id]: alvo.expected_updated_at }));
+    }
+    setDias((prev) => {
+      const next = { ...prev };
+      delete next[k];
+      return next;
+    });
+  };
+
   const patchDia = (k: string, p: Partial<DiaPlanejado>) =>
-    setDias((prev) => (prev[k] ? { ...prev, [k]: { ...prev[k], ...p, origem: "manual" } } : prev));
+    setDias((prev) =>
+      prev[k] ? { ...prev, [k]: { ...prev[k], ...p, origem: "manual", ambiguo: false } } : prev,
+    );
+
+  /** Copia a janela de um dia para os demais dias do mesmo cargo. */
+  const aplicarATodos = (k: string) => {
+    const base = dias[k];
+    if (!base?.entrada || !base?.saida) return;
+    setDias((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([key, d]) =>
+          d.cargo_id === base.cargo_id
+            ? [key, { ...d, entrada: base.entrada, saida: base.saida, vira: base.vira, origem: "manual" as const, ambiguo: false }]
+            : [key, d],
+        ),
+      ),
+    );
+    toast.success("Horário aplicado aos dias deste cargo.");
+  };
 
   const diasCompletos = useMemo(
     () =>
