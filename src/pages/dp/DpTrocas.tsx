@@ -110,8 +110,10 @@ export default function DpTrocas() {
             Nenhuma troca encontrada com este filtro.
           </div>
         ) : (
-          filtered.map((r: any) => {
+          filtered.map((r) => {
             const meta = statusMeta[r.status] ?? { label: r.status, className: "bg-muted text-muted-foreground border-border" };
+            const acoes = acoesGestorTroca(r.status, r.modo);
+            const decisao = textoDecisaoGestor(r.gestor_resposta);
             return (
               <div key={r.id} className="bg-card border border-border rounded-2xl p-4 sm:p-5 space-y-4 hover:shadow-md transition-shadow">
                 <div className="flex flex-col md:flex-row md:flex-wrap md:items-center md:justify-between gap-4">
