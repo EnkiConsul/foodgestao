@@ -433,7 +433,7 @@ describe("horarioMaisUsado", () => {
     expect(r).toEqual({ entrada: "17:00", saida: "23:00", termina_no_dia_seguinte: false });
   });
 
-  it("ignora registros de outra unidade ou cargo", () => {
+  it("ignora registros de outra unidade e faz fallback por cargo dentro da mesma unidade", () => {
     const dia = contarDia({
       data: "2026-09-07",
       colaboradores: [fixo("a", "t2")],
@@ -443,6 +443,11 @@ describe("horarioMaisUsado", () => {
       ausencias: [],
     });
     expect(horarioMaisUsado({ dias: [dia], unidadeId: "u2", cargoId: "c1", dow: 1 })).toBeNull();
-    expect(horarioMaisUsado({ dias: [dia], unidadeId: "u1", cargoId: "c2", dow: 1 })).toBeNull();
+    // Mesma unidade, cargo diferente: ainda encontra via fallback de unidade.
+    expect(horarioMaisUsado({ dias: [dia], unidadeId: "u1", cargoId: "c2", dow: 1 })).toEqual({
+      entrada: "17:00",
+      saida: "23:00",
+      termina_no_dia_seguinte: false,
+    });
   });
 });
