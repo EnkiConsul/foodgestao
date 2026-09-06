@@ -827,18 +827,20 @@ export function avaliarConformidade(
       negociadosAproveitados,
       intervaloDomingoExigido,
       domingosComIntervaloRompido: intervalo.domingosComIntervaloRompido,
-      // Leitura legal: intervalo entre domingos respeitado, piso legal cumprido
-      // com domingos reais e mínimo do período atingido.
+      // Leitura legal: espaçamento entre domingos respeitado e mínimo do
+      // período atingido (no acordo coletivo, o dia negociado vale por domingo).
       conformeClt:
-        intervalo.conforme && domingos >= esperadoLegal && folgasConsideradas >= esperadoClt,
+        intervalo.conforme
+        && folgasConsideradas >= esperadoLegal
+        && folgasConsideradas >= esperadoClt,
       // Leitura da empresa: descansos em dias que valem pela regra da unidade.
       folgasEmpresa: domingosEmpresa,
       conformeEmpresa: domingosEmpresa >= esperado,
       conforme:
         intervalo.conforme
-        && domingos >= esperadoLegal
         && folgasConsideradas >= esperadoClt
         && domingosEmpresa >= esperado,
+
 
 
     };
