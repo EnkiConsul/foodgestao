@@ -141,8 +141,9 @@ export interface PessoaPanorama {
   socio: boolean;
   /** Sócio vinculado a uma unidade e com jornada: conta como parte do quadro. */
   socio_integrado?: boolean;
-  /** Origem do horário: jornada habitual, escala publicada, convocação ou registro avulso. */
-  origem: "jornada" | "escala" | "convocacao" | "avulso";
+  /** Origem do horário: jornada habitual, escala, convocação, avulso ou registro manual. */
+  origem: "jornada" | "escala" | "convocacao" | "avulso" | "registro_manual";
+
   /** Preenchido só para pessoas avulsas (teste/folguista). */
   avulso_id?: string;
   avulso_tipo?: PessoaAvulsaTipo;
