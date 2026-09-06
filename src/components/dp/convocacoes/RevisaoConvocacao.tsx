@@ -27,7 +27,10 @@ export interface RevisaoDia {
   aguardando: number;
   faltam: number | null;
   abaixoDaAntecedencia: boolean;
+  /** Dias corridos entre hoje e a data (pode ser 0 = hoje). */
+  antecedencia?: number;
 }
+
 
 export interface RevisaoPessoa {
   id: string;
