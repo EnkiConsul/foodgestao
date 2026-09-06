@@ -7816,6 +7816,7 @@ export type Database = {
         Row: {
           cargo_id: string
           cobre_colaborador_id: string | null
+          colaborador_id: string | null
           company_id: string
           created_at: string
           criado_por: string | null
@@ -7823,7 +7824,7 @@ export type Database = {
           data_inicio: string
           entrada: string | null
           id: string
-          nome: string
+          nome: string | null
           observacao: string | null
           saida: string | null
           termina_no_dia_seguinte: boolean
@@ -7834,6 +7835,7 @@ export type Database = {
         Insert: {
           cargo_id: string
           cobre_colaborador_id?: string | null
+          colaborador_id?: string | null
           company_id: string
           created_at?: string
           criado_por?: string | null
@@ -7841,7 +7843,7 @@ export type Database = {
           data_inicio: string
           entrada?: string | null
           id?: string
-          nome: string
+          nome?: string | null
           observacao?: string | null
           saida?: string | null
           termina_no_dia_seguinte?: boolean
@@ -7852,6 +7854,7 @@ export type Database = {
         Update: {
           cargo_id?: string
           cobre_colaborador_id?: string | null
+          colaborador_id?: string | null
           company_id?: string
           created_at?: string
           criado_por?: string | null
@@ -7859,7 +7862,7 @@ export type Database = {
           data_inicio?: string
           entrada?: string | null
           id?: string
-          nome?: string
+          nome?: string | null
           observacao?: string | null
           saida?: string | null
           termina_no_dia_seguinte?: boolean
@@ -7885,6 +7888,20 @@ export type Database = {
           {
             foreignKeyName: "dp_pessoas_avulsas_cobre_colaborador_id_fkey"
             columns: ["cobre_colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_avulsas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_avulsas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
             isOneToOne: false
             referencedRelation: "dp_colaboradores_public"
             referencedColumns: ["id"]
@@ -13810,7 +13827,7 @@ export type Database = {
         | "disciplinar_novo"
         | "atestado_novo"
       dp_perfil_acesso: "colaborador" | "gestor" | "admin"
-      dp_pessoa_avulsa_tipo: "teste" | "folguista"
+      dp_pessoa_avulsa_tipo: "teste" | "folguista" | "registro_manual"
       dp_politica_feriado: "compensa" | "dobro"
       dp_politica_sabado: "trabalha" | "folga" | "alterna" | "especifica"
       dp_ponto_ajuste_acao: "incluir" | "alterar" | "excluir"
@@ -14251,7 +14268,7 @@ export const Constants = {
         "atestado_novo",
       ],
       dp_perfil_acesso: ["colaborador", "gestor", "admin"],
-      dp_pessoa_avulsa_tipo: ["teste", "folguista"],
+      dp_pessoa_avulsa_tipo: ["teste", "folguista", "registro_manual"],
       dp_politica_feriado: ["compensa", "dobro"],
       dp_politica_sabado: ["trabalha", "folga", "alterna", "especifica"],
       dp_ponto_ajuste_acao: ["incluir", "alterar", "excluir"],
