@@ -173,6 +173,8 @@ export default function DpFolgas() {
   const [editLimit, setEditLimit] = useState<number>(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [autoOpen, setAutoOpen] = useState(false);
+  const { role } = useCompanyPermissions();
+  const podeDistribuir = role === "owner" || role === "admin";
   const [form, setForm] = useState({
     colaborador_id: "",
     tipo: "folga" as Tipo,
