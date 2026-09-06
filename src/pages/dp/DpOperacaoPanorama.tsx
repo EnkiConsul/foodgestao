@@ -734,6 +734,22 @@ export default function DpOperacaoPanorama() {
         dataInicial={ausenciaData}
       />
 
+      <DpPessoaAvulsaDialog
+        open={avulsaOpen}
+        onOpenChange={(o) => {
+          setAvulsaOpen(o);
+          if (!o) setAvulsaEditando(null);
+        }}
+        dataInicial={avulsaData ?? data}
+        unidadePadrao={unidadeId}
+        unidades={panorama.unidades}
+        cargos={panorama.cargos}
+        colaboradores={panorama.colaboradores}
+        registro={avulsaEditando}
+        salvando={panorama.salvarAvulsa.isPending}
+        onSalvar={salvarAvulsa}
+      />
+
       <DpFilterCard>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
