@@ -665,14 +665,19 @@ export interface ConformidadeLinha extends ConformidadeInput {
   folgasMarcadas: number;
   /** Folgas em dias negociados aproveitadas por acordo coletivo. */
   negociadosAproveitados: number;
-  /** Exigência legal (folga em domingo, ou dia negociado no acordo coletivo). */
+  /** Intervalo máximo, em semanas, entre domingos de folga. */
+  intervaloDomingoExigido: number;
+  /** Domingos trabalhados que romperam esse intervalo. */
+  domingosComIntervaloRompido: string[];
+  /** Exigência legal: intervalo entre domingos + mínimo do período. */
   conformeClt: boolean;
-  /** Regra configurada da unidade, considerando qualquer dia de descanso. */
+  /** Regra configurada da unidade, considerando os dias de descanso elegíveis. */
   conformeEmpresa: boolean;
   /** Descansos considerados na leitura da empresa. */
   folgasEmpresa: number;
   /** Ambas as leituras em ordem. */
   conforme: boolean;
+
 }
 
 
