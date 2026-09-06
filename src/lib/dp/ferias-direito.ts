@@ -82,6 +82,9 @@ export const FERIAS_ERRO_TEXTO: Record<string, string> = {
     "Com essas faltas o direito fica menor do que os dias de férias já marcados. Ajuste as férias primeiro.",
   FERIAS_DATAS_INVALIDAS: "Confira as datas: o fim não pode ser antes do início.",
   FERIAS_DATA_PASSADA: "Escolha uma data futura para o início das férias.",
+  FERIAS_INICIO_VESPERA:
+    "As férias não podem começar nos dois dias que antecedem feriado ou descanso semanal. Escolha outro dia de início.",
+  FERIAS_CONTABILIDADE_STATUS_INVALIDO: "Situação da contabilidade inválida.",
   FERIAS_SALDO_INSUFICIENTE: "O saldo deste período não cobre os dias pedidos.",
   FERIAS_SOBREPOSICAO: "Já existem férias marcadas nessas datas para esta pessoa.",
   FERIAS_CONVOCACAO_ACEITA:
