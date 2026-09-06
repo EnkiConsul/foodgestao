@@ -7,9 +7,11 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import {
-  avaliarConformidade, DIA_SEMANA_CURTO, semanasDaConfig,
+  avaliarConformidade, DIA_SEMANA_CURTO, semanasDaConfig, rotuloFrequencia,
+  tipoDiasDescanso, diasElegiveisDaConfig,
   type ConformidadeInput, type ConformidadeLinha,
 } from "@/lib/dp/dsr-rules";
+
 import { primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/dp/competencia";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 
