@@ -58,6 +58,15 @@ import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+
+function rotuloCategoriaPessoa(p: PessoaPanorama): string {
+  if (p.origem === "avulso" || p.origem === "registro_manual") {
+    if (p.avulso_tipo === "folguista") return p.cobre_nome ? `Folguista (cobrindo ${p.cobre_nome})` : "Folguista";
+    if (p.avulso_tipo === "teste") return "Em teste";
+    if (p.origem === "registro_manual") return "Registro manual";
+  }
+  return CATEGORIA_LABEL[p.categoria];
+}
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
