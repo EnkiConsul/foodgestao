@@ -435,7 +435,8 @@ export default function DpConformidadeDsr() {
     const headers = [
       "Colaborador", "Unidade", "Cargo", "Sexo", "Domingos no mês", "Folgas no mês",
       "Domingos folgados", "Folgas em dias de descanso negociados", "Folgas consideradas (CLT)",
-      "Descansos considerados (empresa)", "Regra aplicada", "Mínimo esperado",
+      "Descansos considerados (empresa)", "Regra aplicada", "Mínimo da regra",
+      "Mínimo legal", "Mínimo exigido (CLT)",
       "Situação CLT", "Situação regra da empresa",
     ];
     const rowsCsv = linhasFiltradas.map((l) => [
@@ -451,9 +452,12 @@ export default function DpConformidadeDsr() {
       String(l.folgasEmpresa),
       l.rotuloFrequencia,
       String(l.esperado),
+      String(l.esperadoLegal),
+      String(l.esperadoClt),
       l.conformeClt ? "Em ordem" : "Em falta",
       l.conformeEmpresa ? "Em ordem" : "Em falta",
     ]);
+
 
 
 
