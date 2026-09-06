@@ -877,6 +877,45 @@ export default function DpOperacaoPanorama() {
         </TabsContent>
       </Tabs>
 
+      <Dialog open={!!dataPopout} onOpenChange={(o) => !o && setDataPopout(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="first-letter:uppercase">
+              {dataPopout ? dataExtenso(dataPopout) : ""}
+            </DialogTitle>
+            <DialogDescription>Rotina prevista para o dia</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[70vh] overflow-y-auto pr-1">
+            {dataPopout && diaPopout ? (
+              <DetalheDiaOperacao
+                data={dataPopout}
+                dia={diaPopout}
+                blocos={blocosDe(dataPopout, diaPopout)}
+                sociosAusentes={sociosDe(diaPopout)}
+                ausenciasRegistradas={panorama.ausenciasRegistradas ?? []}
+                nomesColaboradores={nomesColaboradores}
+                unidadeId={unidadeId}
+                nomeUnidade={nomeUnidade}
+                ordemCards={ordemDia}
+                onReordenarCards={(next) => salvarOrdem("dia", next)}
+                onVerCategoria={setDetalheCategoria}
+                onVerSocios={() => setVerSocios(true)}
+                onDispensar={dispensar}
+                onReativar={reativar}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDataPopout(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       <Dialog open={verSocios} onOpenChange={setVerSocios}>
         <DialogContent>
           <DialogHeader>
