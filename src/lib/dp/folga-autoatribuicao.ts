@@ -16,6 +16,10 @@ export type PlanoItem = {
   data: string | null;
   excedeLimite: boolean;
   motivo: string | null;
+  /** Dias da semana válidos para esta pessoa (0 = domingo), conforme a unidade dela. */
+  dias: number[];
+  /** Pessoas já em folga por data (AAAA-MM-DD) dentro do mês. */
+  ocupacao: Record<string, number>;
 };
 
 export type PlanoAutoatribuicao = {
@@ -69,12 +73,20 @@ export function parsePlanoAutoatribuicao(raw: unknown): PlanoAutoatribuicao {
     const o = asRecord(it);
     const id = str(o.colaborador_id);
     if (!id) continue;
+    const diasItem = Array.isArray(o.dias)
+      ? o.dias.map((d) => num(d)).filter((d) => d >= 0 && d <= 6)
+      : [];
+    const ocupRaw = asRecord(o.ocupacao);
+    const ocupacao: Record<string, number> = {};
+    for (const [k, v] of Object.entries(ocupRaw)) ocupacao[k] = num(v);
     itens.push({
       colaboradorId: id,
       nome: str(o.colaborador_nome) ?? "Sem nome",
       data: str(o.data_sugerida),
       excedeLimite: o.excede_limite === true,
       motivo: str(o.motivo),
+      dias: diasItem,
+      ocupacao,
     });
   }
   const dias = Array.isArray(obj.dias)
@@ -125,6 +137,11 @@ export function diasValidosDoMes(competencia: string | null, dias: number[]): st
   return out;
 }
 
+/** Datas válidas (ISO) para escolher o dia de uma pessoa do plano. */
+export function diasValidosDoItem(competencia: string | null, item: PlanoItem): string[] {
+  return diasValidosDoMes(competencia, item.dias);
+}
+
 /** Itens do plano que podem ser criados (têm data definida). */
 export function itensAplicaveis(itens: PlanoItem[]): PlanoItem[] {
   return itens.filter((i) => !!i.data);
@@ -137,11 +154,19 @@ export function resumoPlano(plano: PlanoAutoatribuicao): string {
     return "Todas as folgas deste mês já atendem à regra da unidade. Nada a criar.";
   }
 
+  const acimaLimite = plano.itens.filter(
+    (i) => !i.data && i.motivo === "ACIMA_DO_LIMITE",
+  ).length;
+  const sufixo =
+    acimaLimite > 0
+      ? ` ${acimaLimite === 1 ? "Uma pessoa está" : `${acimaLimite} pessoas estão`} acima do limite em todos os dias possíveis — escolha o dia manualmente.`
+      : "";
+
   if (aplicaveis === 0) {
-    return "Nenhuma das pessoas sem folga tem dia disponível neste mês.";
+    return `Nenhuma das pessoas sem folga tem dia disponível neste mês.${sufixo}`;
   }
   const pessoas = aplicaveis === 1 ? "1 pessoa está" : `${aplicaveis} pessoas estão`;
-  return `${pessoas} sem folga neste mês. Revise as datas antes de confirmar.`;
+  return `${pessoas} sem folga neste mês. Revise as datas antes de confirmar.${sufixo}`;
 }
 
 /** Texto de confirmação para o gestor antes de rodar a distribuição. */
