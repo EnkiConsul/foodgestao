@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { viraNoDiaSeguinte } from "@/lib/dp/convocacoes-planejamento";
+
 
 export type OrigemHorario = "historico" | "sugerida" | "geral" | "manual";
 
