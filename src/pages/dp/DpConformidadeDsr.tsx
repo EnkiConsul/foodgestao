@@ -311,14 +311,8 @@ export default function DpConformidadeDsr() {
     colaborador: {
       label: "Colaborador", sortKey: "nome",
       value: (l) => l.nome,
-      render: (l) => (
-        <span className="font-medium">
-          {l.nome}
-          {l.sexo === "F" && (
-            <span className="ml-2 text-xs text-muted-foreground">(Art. 386 CLT)</span>
-          )}
-        </span>
-      ),
+      render: (l) => <span className="font-medium">{l.nome}</span>,
+
     },
     unidade: {
       label: "Unidade", sortKey: "unidade", center: true,
