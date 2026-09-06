@@ -85,6 +85,7 @@ describe("regeneração da escala preserva o ajuste manual de setor", () => {
       entrada: "17:00",
       saida: "23:00",
       intervalo_minutos: 0,
+      termina_no_dia_seguinte: false,
       carga_prevista_horas: 6,
       origem: "manual",
       observacao: null,
@@ -98,7 +99,6 @@ describe("regeneração da escala preserva o ajuste manual de setor", () => {
         {
           id: "c1",
           nome: "Sara",
-          intermitente: false,
           config: {
             turno_padrao_id: "t1",
             folga_variavel: false,
@@ -108,9 +108,8 @@ describe("regeneração da escala preserva o ajuste manual de setor", () => {
         },
       ],
       turnos: [{ id: "t1", nome: "Noite", entrada: "17:00", saida: "23:00", intervalo_minutos: 0 }],
-      folgas: [],
       ausencias: [],
-      manuais: [manual],
+      preservar: [manual],
     });
 
     const dia = itens.find((i) => i.colaborador_id === "c1" && i.data === "2026-09-17");
