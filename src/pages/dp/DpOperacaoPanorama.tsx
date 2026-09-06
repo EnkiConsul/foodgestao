@@ -773,7 +773,7 @@ export default function DpOperacaoPanorama() {
                   setAvulsaOpen(true);
                 }}
               >
-                <UserPlus className="h-4 w-4" /> Adicionar Pessoa
+                <UserPlus className="h-4 w-4" /> Mão de Obra Extra
               </Button>
               <Button
                 className="gap-2"
