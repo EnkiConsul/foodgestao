@@ -266,19 +266,24 @@ describe("avaliarConformidade — modelo X por mês", () => {
     expect(semFolga.rotuloFrequencia).toBe("1 folga de fim de semana por mês");
   });
 
-  it("conta a folga marcada em sábado no modo acordo", () => {
+  it("conta as folgas marcadas em sábado no modo acordo", () => {
     const [linha] = avaliarConformidade(
       [{
         colaboradorId: "2", nome: "Rosângela", sexo: "F",
-        domingosFolgados: [], diasNegociadosFolgados: ["2026-09-05"], domingosNoPeriodo: 4,
+        domingosFolgados: [],
+        // Mulher: o piso legal quinzenal pede 2 descansos em mês de 4 domingos.
+        diasNegociadosFolgados: ["2026-09-05", "2026-09-19"],
+        domingosNoPeriodo: 4,
       }],
       cfgPorMes,
     );
     expect(linha.esperado).toBe(1);
-    expect(linha.folgasMarcadas).toBe(1);
-    expect(linha.negociadosAproveitados).toBe(1);
+    expect(linha.esperadoClt).toBe(2);
+    expect(linha.folgasMarcadas).toBe(2);
+    expect(linha.negociadosAproveitados).toBe(2);
     expect(linha.conforme).toBe(true);
   });
+
 
   it("mostra a folga marcada mesmo fora do modo acordo", () => {
     const [linha] = avaliarConformidade(
