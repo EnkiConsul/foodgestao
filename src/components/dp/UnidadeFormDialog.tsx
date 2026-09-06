@@ -238,10 +238,11 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
           className="flex min-h-0 flex-1 flex-col gap-0"
         >
           <div className="border-b px-4 pt-3">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="dados" className="h-10">Dados</TabsTrigger>
               <TabsTrigger value="setores" className="h-10">Setores</TabsTrigger>
               <TabsTrigger value="funcionamento" className="h-10">Funcionamento</TabsTrigger>
+              <TabsTrigger value="feriados" className="h-10">Feriados</TabsTrigger>
               <TabsTrigger value="sindicato" className="h-10">Sindicato</TabsTrigger>
             </TabsList>
           </div>
