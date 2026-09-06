@@ -499,7 +499,8 @@ export default function DpConformidadeDsr() {
             <TableBody>
               {linhasFiltradas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={porAcordo ? 9 : 8} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={porAcordo ? 10 : 9} className="py-8 text-center text-sm text-muted-foreground">
+
                     {linhas.length === 0
                       ? "Nenhum colaborador ativo no período."
                       : "Nenhum resultado para os filtros aplicados."}
