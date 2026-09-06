@@ -144,7 +144,7 @@ function CardArrastavel({ id, children }: { id: string; children: React.ReactNod
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`relative ${isDragging ? "z-10 opacity-80" : ""}`}
+      className={`relative h-full ${isDragging ? "z-10 opacity-80" : ""}`}
     >
       {children}
       <button
