@@ -311,6 +311,18 @@ function DetalheDiaOperacao({
               />
             );
           }
+          if (k === "avulso_teste" || k === "avulso_folguista") {
+            const value = dia.contagens_avulsos[k === "avulso_teste" ? "teste" : "folguista"];
+            return (
+              <DpStatCard
+                icon={AVULSO_ICON[k]}
+                tone={AVULSO_TONE[k]}
+                label={AVULSO_LABEL[k]}
+                value={value}
+                onClick={value > 0 ? () => onVerAvulso(k) : undefined}
+              />
+            );
+          }
           const cat = k as CategoriaDia;
           return (
             <DpStatCard
