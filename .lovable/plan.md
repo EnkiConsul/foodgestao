@@ -1,38 +1,39 @@
-# Conformidade de descanso: duas leituras (CLT e regra da empresa)
+# Conformidade de descanso: contar as folgas aprovadas e separar CLT da regra da empresa
 
-## O que foi verificado
+## Causa encontrada
 
-- Em setembro/2026 existe **um único** registro de folga na base: Rosângela, 05/09 (sábado).
-- Cristiane, Hanna e Sara **não têm folga registrada** em setembro — nem no calendário de folgas, nem na escala do mês.
-- O que aparece para elas é o **dia fixo de descanso do cadastro de trabalho** (Sara não trabalha terça, Cristiane não trabalha quarta). Esse dia não gera registro de folga e hoje não entra na conta da conformidade.
-- A unidade Pakerê Garavelo usa a regra legal com domingo; a Pakerê T-63 usa acordo coletivo com sábado e domingo.
+As folgas que aparecem no calendário vêm dos **pedidos aprovados** (Sara 12/09, Hanna 19/09, Cristiane 20/09 — todas aprovadas em 05/09). A tela de Conformidade, porém, lê **outra fonte**: só as folgas já efetivadas (sorteio, lançamento manual do gestor, trocas). Como essas três folgas ainda não foram efetivadas, a conformidade conta zero folgas e marca as três como "Fora".
 
-Resultado: a tela está correta na conta, mas engana o gestor, porque mistura duas coisas diferentes num único selo "Conforme / Fora".
+Confirmado também que o cancelamento funciona: a folga de 13/09 da Sara está cancelada e corretamente não é contada.
+
+Além disso, os chips repetidos por dia da semana no calendário (Sara nas terças, Cristiane nas quartas, Hanna nas quintas) são o **dia fixo de descanso do cadastro de trabalho**, não folgas registradas.
 
 ## O que muda
 
-A tela de Conformidade passa a mostrar **duas situações separadas** por colaborador:
+**1. A conformidade passa a contar as folgas aprovadas**
 
-1. **CLT (folga em domingo)** — a exigência legal: quantos domingos de folga a pessoa precisa ter no mês e quantos realmente tem.
-2. **Regra da empresa** — a regra configurada da unidade: dias de descanso negociados, frequência definida e o dia fixo de descanso semanal do cadastro.
+Além das folgas efetivadas, entram na conta os pedidos de folga **aprovados** do mês (pedidos pendentes, recusados e cancelados continuam de fora). Com isso, Cristiane (20/09, domingo), Sara (12/09) e Hanna (19/09) passam a aparecer com folga no mês.
 
-Cada colaborador ganha dois selos, e a coluna "Situação" passa a ser filtrável pelas duas leituras (só CLT em falta, só regra da empresa em falta, ambas, tudo em ordem).
+Cada folga no detalhe mostra a origem: "aprovada" ou "registrada".
 
-O dia fixo de descanso semanal passa a ser considerado **na leitura da empresa** (é descanso de fato, previsto no cadastro), mas **nunca** na leitura CLT — ali só vale folga em domingo (ou dia negociado, quando a unidade tem acordo coletivo).
+**2. Duas situações separadas por colaborador**
 
-No detalhe do colaborador, dois blocos claros:
+- **CLT (folga em domingo)** — a exigência legal: quantos domingos de folga a pessoa precisa no mês e quantos tem. Só domingo conta (ou sábado/domingo, quando a unidade tem acordo coletivo com esses dias negociados).
+- **Regra da empresa** — a regra configurada da unidade: dias de descanso negociados, frequência definida e o dia fixo de descanso semanal do cadastro.
+
+Dois selos por linha e a coluna Situação passa a filtrar pelas quatro combinações (só CLT em falta, só regra da empresa em falta, ambas em falta, tudo em ordem). Os contadores do topo mostram as duas leituras e o CSV ganha as colunas das duas.
+
+**3. Detalhe do colaborador em dois blocos**
 
 - "Exigência legal": domingos do mês, domingos folgados, mínimo esperado, origem da regra.
-- "Regra da empresa": dias de descanso previstos, dia fixo do cadastro, folgas registradas com data e dia da semana, mínimo esperado.
+- "Regra da empresa": dias de descanso previstos, dia fixo do cadastro, folgas do mês com data, dia da semana e origem, mínimo esperado.
 
-E uma frase explícita quando for o caso: "Sem folga registrada em setembro — o dia de descanso semanal do cadastro (terça) não substitui a folga em domingo."
-
-Os contadores do topo passam a mostrar as duas contagens em vez de uma só, e o CSV ganha as colunas das duas leituras.
+Com uma frase explícita quando faltar: por exemplo "Folga em 12/09 (sábado) — não substitui a folga em domingo exigida pela CLT."
 
 ## Detalhes técnicos
 
-- `src/lib/dp/dsr-rules.ts`: `avaliarConformidade` passa a devolver `conformeClt` e `conformeEmpresa` (mantendo `conforme` como "ambas em ordem", para não quebrar outros consumidores), com `esperadoClt`/`folgasClt` e `esperadoEmpresa`/`folgasEmpresa` e rótulo de regra por leitura. O dia fixo do cadastro entra só na leitura da empresa.
-- `src/pages/dp/DpConformidadeDsr.tsx`: busca também os dias de descanso semanais em `dp_colaborador_config_dias` via `dp_colaborador_config_trabalho`, duas colunas de selo, filtro de situação com as quatro opções, detalhe em dois blocos, contadores e CSV atualizados.
-- Testes novos em `src/lib/dp/__tests__/dsr-rules.test.ts` cobrindo: dia fixo no meio da semana (empresa ok, CLT em falta), folga em domingo (ambas ok), unidade com acordo sábado/domingo, e nenhum descanso (ambas em falta).
+- `src/pages/dp/DpConformidadeDsr.tsx`: a busca passa a somar `dp_folgas` (status ≠ cancelada) com `dp_solicitacoes` de tipo folga e status aprovada no intervalo do mês, deduplicando por colaborador+data; passa a ler também os dias de descanso semanais em `dp_colaborador_config_dias` via `dp_colaborador_config_trabalho`; dois selos, filtro de situação com quatro opções, detalhe em dois blocos, contadores e CSV atualizados.
+- `src/lib/dp/dsr-rules.ts`: `avaliarConformidade` devolve `conformeClt` e `conformeEmpresa` (mantendo `conforme` como "ambas em ordem"), com esperado/realizado por leitura e rótulo da regra aplicada. O dia fixo do cadastro entra só na leitura da empresa.
+- Testes novos em `src/lib/dp/__tests__/dsr-rules.test.ts`: folga aprovada em domingo (CLT ok), folga aprovada em sábado sem acordo (CLT em falta, empresa ok), unidade com acordo sábado/domingo, folga cancelada ignorada, dia fixo no meio da semana.
 - Sem mudança de banco.
-- Rodar typecheck, lint e vitest, e conferir a tela no navegador.
+- Rodar typecheck, lint e vitest, e conferir a tela no navegador com setembro/2026.
