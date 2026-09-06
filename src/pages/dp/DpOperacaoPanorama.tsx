@@ -793,6 +793,7 @@ export default function DpOperacaoPanorama() {
         colaboradores={panorama.colaboradores}
         registro={avulsaEditando}
         salvando={panorama.salvarAvulsa.isPending}
+        sugerirHorario={panorama.sugerirHorario}
         onSalvar={salvarAvulsa}
       />
 
