@@ -11,6 +11,7 @@ import { FeriasGozosPanel } from "@/components/dp/ferias/FeriasGozosPanel";
 import { FeriasSolicitacoesPanel } from "@/components/dp/ferias/FeriasSolicitacoesPanel";
 import { FeriasConfigCard } from "@/components/dp/ferias/FeriasConfigCard";
 import { FeriasContabilidadePanel } from "@/components/dp/ferias/FeriasContabilidadePanel";
+import { FeriasCalendarioPanel } from "@/components/dp/ferias/FeriasCalendarioPanel";
 import { useDpFerias } from "@/hooks/useDpFerias";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 
@@ -21,6 +22,7 @@ const ABAS = [
   "solicitacoes",
   "programadas",
   "em-ferias",
+  "calendario",
   "contabilidade",
   "historico",
   "regras",
@@ -81,6 +83,7 @@ export default function DpFeriasHub() {
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
           <TabsTrigger value="programadas">Programadas</TabsTrigger>
           <TabsTrigger value="em-ferias">Em férias</TabsTrigger>
+          <TabsTrigger value="calendario">Calendário</TabsTrigger>
           <TabsTrigger value="contabilidade">Contabilidade</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="regras">Regras</TabsTrigger>
@@ -119,6 +122,14 @@ export default function DpFeriasHub() {
           {aba === "em-ferias" && (
             <DpEmbeddedProvider>
               <FeriasGozosPanel status={["em_gozo"]} vazio="Ninguém em férias hoje." />
+            </DpEmbeddedProvider>
+          )}
+        </TabsContent>
+
+        <TabsContent value="calendario" className="m-0">
+          {aba === "calendario" && (
+            <DpEmbeddedProvider>
+              <FeriasCalendarioPanel />
             </DpEmbeddedProvider>
           )}
         </TabsContent>
