@@ -764,32 +764,35 @@ export function avaliarConformidade(
     const esperadoClt = Math.max(esperado, esperadoLegal);
     const domingos = l.domingosFolgados.length;
     const negociados = porAcordo ? (l.diasNegociadosFolgados?.length ?? 0) : 0;
-    // Os dias negociados só completam o que a regra da unidade pede ACIMA do
-    // piso legal — o piso do domingo tem de ser cumprido com domingo.
+    // No modo acordo, os dias negociados substituem o domingo na contagem.
     const negociadosAproveitados = porAcordo
-      ? Math.max(0, Math.min(negociados, esperadoClt - Math.max(domingos, esperadoLegal)))
+      ? Math.max(0, Math.min(negociados, esperadoClt - domingos))
       : 0;
     const folgasConsideradas = domingos + negociadosAproveitados;
 
     // Intervalo exigido entre domingos de folga: o mais protetivo entre a regra
-    // configurada e o padrão legal (quinzenal para mulheres).
+    // configurada e o padrão legal (quinzenal para mulheres). No acordo coletivo
+    // o dia negociado substitui o domingo, então o espaçamento não se aplica.
     const intervaloLegal = l.sexo === "F"
       ? PADRAO_LEGAL_DOMINGO_MULHER
       : padraoLegalDomingo(cfg.setor_comercio !== false);
     const intervaloDomingoExigido = pFinal > 0 ? Math.min(pFinal, intervaloLegal) : intervaloLegal;
-    const intervalo = avaliarIntervaloDomingos(
-      l.domingosFolgados,
-      l.domingosDoPeriodo ?? [],
-      intervaloDomingoExigido,
-      l.ultimoDomingoFolgadoAnterior ?? null,
-    );
+    const intervalo = porAcordo
+      ? { conforme: true, domingosComIntervaloRompido: [], maiorSequenciaTrabalhada: 0 }
+      : avaliarIntervaloDomingos(
+        l.domingosFolgados,
+        l.domingosDoPeriodo ?? [],
+        intervaloDomingoExigido,
+        l.ultimoDomingoFolgadoAnterior ?? null,
+      );
 
     // Regra da empresa: só descansos que valem pela regra — domingo, dias
     // negociados e o descanso fixo do cadastro quando cai num dia elegível.
     const domingosEmpresa =
       domingos
       + (l.diasNegociadosFolgados?.length ?? 0)
-      + Math.max(0, l.descansoSemanalElegivelNoMes ?? 0);
+      + Math.max(0, l.descansoSemanalElegivelNoMes ?? l.descansoSemanalNoMes ?? 0);
+
 
 
     const override = overrideDomingosMes({ domingosMes: l.domingosMesOverride });
