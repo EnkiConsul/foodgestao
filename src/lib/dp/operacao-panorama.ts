@@ -148,13 +148,13 @@ export interface PessoaPanorama {
   cargo_id: string | null;
   cargo_nome: string | null;
   /** Setor efetivo da data (escala do dia → dia da semana → cadastro). */
-  setor_id: string | null;
-  setor_nome: string | null;
+  setor_id?: string | null;
+  setor_nome?: string | null;
   /** De onde veio o setor efetivo. */
-  setor_origem: OrigemSetorDia;
+  setor_origem?: OrigemSetorDia;
   /** Setor habitual do cadastro, para comparar com o setor da data. */
-  setor_habitual_id: string | null;
-  setor_habitual_nome: string | null;
+  setor_habitual_id?: string | null;
+  setor_habitual_nome?: string | null;
   socio: boolean;
   /** Sócio vinculado a uma unidade e com jornada: conta como parte do quadro. */
   socio_integrado?: boolean;
