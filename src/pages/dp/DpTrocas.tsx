@@ -92,6 +92,7 @@ export default function DpTrocas() {
               <option value="aprovada">Aprovadas</option>
               <option value="recusada">Recusadas</option>
               <option value="cancelada">Canceladas</option>
+              <option value="expirada">Expiradas</option>
             </select>
           </div>
         }
