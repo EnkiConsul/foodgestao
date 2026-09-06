@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
-import { ScaleIcon, Download, CheckCircle2, AlertTriangle, Search, X } from "lucide-react";
+import { ScaleIcon, Download, CheckCircle2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpConfigDp, type DpConfigDpForm } from "@/hooks/useDpConfigDp";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import {
-  avaliarConformidade, DIA_SEMANA_CURTO, semanasDaConfig, rotuloFrequencia,
+  avaliarConformidade, DIA_SEMANA_CURTO, rotuloFrequencia,
   tipoDiasDescanso, diasElegiveisDaConfig,
   type ConformidadeInput, type ConformidadeLinha,
 } from "@/lib/dp/dsr-rules";
@@ -16,16 +16,18 @@ import { primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/dp/competencia";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 
 import { cn } from "@/lib/utils";
-import { DpPage, DpPageHeader, DpContentCard, DpFilterCard, useDpEmbedded } from "@/components/dp/DpPage";
+import { DpPage, DpPageHeader, DpContentCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
+import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
+import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -52,6 +54,12 @@ function weekdayIso(iso: string): number {
   return new Date(y, (m ?? 1) - 1, d ?? 1).getDay();
 }
 
+/** Formata data ISO para dd/mm sem criar Date com fuso. */
+function diaMesIso(iso: string): string {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
 interface LinhaComUnidade extends ConformidadeInput {
   unidadeId: string | null;
   cargoId: string | null;
@@ -59,18 +67,27 @@ interface LinhaComUnidade extends ConformidadeInput {
 
 type LinhaConformidade = ConformidadeLinha & { unidadeId: string | null; cargoId: string | null };
 
-const TODOS = "__todos__";
-const SEM_VINCULO = "__sem__";
+type ColKey = "colaborador" | "unidade" | "cargo" | "folgas" | "situacao";
+type SortKey = "padrao" | "nome" | "unidade" | "cargo" | "folgas" | "situacao";
+
+const SITUACAO_CONFORME = "Conforme";
+const SITUACAO_FORA = "Fora de conformidade";
+
+const DEFAULT_ORDER: ColKey[] = ["colaborador", "unidade", "cargo", "folgas", "situacao"];
+const DEFAULT_WIDTHS: Record<ColKey, number> = {
+  colaborador: 280,
+  unidade: 200,
+  cargo: 180,
+  folgas: 150,
+  situacao: 170,
+};
 
 export default function DpConformidadeDsr() {
   const embedded = useDpEmbedded();
   const { selectedCompanyId } = useCompanyContext();
   const { config: configPadraoEmpresa, rows } = useDpConfigDp();
   const [competencia, setCompetencia] = useState(competenciaAtual);
-  const [unidadeFiltro, setUnidadeFiltro] = useState<string>(TODOS);
-  const [cargoFiltro, setCargoFiltro] = useState<string>(TODOS);
-  const [situacaoFiltro, setSituacaoFiltro] = useState<"todos" | "fora" | "conforme">("todos");
-  const [busca, setBusca] = useState("");
+  const [detalhe, setDetalhe] = useState<LinhaConformidade | null>(null);
 
   const unidadesQuery = useDpUnidades();
   const cargosQuery = useDpCargos();
@@ -169,65 +186,168 @@ export default function DpConformidadeDsr() {
     return out.sort((a, b) => a.nome.localeCompare(b.nome));
   }, [query.data, configDaUnidade]);
 
-  /** Aplica os filtros do gestor sobre as linhas avaliadas. */
-  const linhasFiltradas: LinhaConformidade[] = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-    return linhas.filter((l) => {
-      if (unidadeFiltro !== TODOS) {
-        const alvo = unidadeFiltro === SEM_VINCULO ? null : unidadeFiltro;
-        if ((l.unidadeId ?? null) !== alvo) return false;
-      }
-      if (cargoFiltro !== TODOS) {
-        const alvo = cargoFiltro === SEM_VINCULO ? null : cargoFiltro;
-        if ((l.cargoId ?? null) !== alvo) return false;
-      }
-      if (situacaoFiltro === "fora" && l.conforme) return false;
-      if (situacaoFiltro === "conforme" && !l.conforme) return false;
-      if (termo && !l.nome.toLowerCase().includes(termo)) return false;
-      return true;
-    });
-  }, [linhas, unidadeFiltro, cargoFiltro, situacaoFiltro, busca]);
+  /** Selo de situação da linha, reutilizado na tabela, nos cartões e no detalhe. */
+  const badgeSituacao = (l: LinhaConformidade) =>
+    l.conforme ? (
+      <Badge variant="outline" className="gap-1 border-emerald-500/30 text-emerald-700 dark:text-emerald-400">
+        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> {SITUACAO_CONFORME}
+      </Badge>
+    ) : (
+      <Badge variant="destructive" className="gap-1">
+        <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> Fora
+      </Badge>
+    );
 
-  const filtrosAtivos =
-    unidadeFiltro !== TODOS || cargoFiltro !== TODOS || situacaoFiltro !== "todos" || busca.trim() !== "";
-  const limparFiltros = () => {
-    setUnidadeFiltro(TODOS);
-    setCargoFiltro(TODOS);
-    setSituacaoFiltro("todos");
-    setBusca("");
+  const COLS: Record<ColKey, {
+    label: string;
+    sortKey: SortKey;
+    center?: boolean;
+    value: (l: LinhaConformidade) => string;
+    render: (l: LinhaConformidade) => JSX.Element;
+  }> = {
+    colaborador: {
+      label: "Colaborador", sortKey: "nome",
+      value: (l) => l.nome,
+      render: (l) => (
+        <span className="font-medium">
+          {l.nome}
+          {l.sexo === "F" && (
+            <span className="ml-2 text-xs text-muted-foreground">(Art. 386 CLT)</span>
+          )}
+        </span>
+      ),
+    },
+    unidade: {
+      label: "Unidade", sortKey: "unidade", center: true,
+      value: (l) => (l.unidadeId && unidadeNome.get(l.unidadeId)) || "Sem unidade",
+      render: (l) => (
+        <span className="text-muted-foreground">
+          {(l.unidadeId && unidadeNome.get(l.unidadeId)) || "—"}
+        </span>
+      ),
+    },
+    cargo: {
+      label: "Cargo", sortKey: "cargo", center: true,
+      value: (l) => (l.cargoId && cargoNome.get(l.cargoId)) || "Sem cargo",
+      render: (l) => (
+        <span className="text-muted-foreground">
+          {(l.cargoId && cargoNome.get(l.cargoId)) || "—"}
+        </span>
+      ),
+    },
+    folgas: {
+      label: "Folgas no mês", sortKey: "folgas", center: true,
+      value: (l) => String(l.folgasMarcadas),
+      render: (l) => (
+        <span className="font-semibold tabular-nums">
+          {l.folgasMarcadas === 0 ? (
+            <span className="text-destructive">0 · sem folga marcada</span>
+          ) : (
+            l.folgasMarcadas
+          )}
+        </span>
+      ),
+    },
+    situacao: {
+      label: "Situação", sortKey: "situacao", center: true,
+      value: (l) => (l.conforme ? SITUACAO_CONFORME : SITUACAO_FORA),
+      render: (l) => badgeSituacao(l),
+    },
   };
+
+  const {
+    colOrder, colWidths, resize, resetWidth,
+    dragCol, setDragCol, soltarSobre,
+    colFilters, setColFilters, toggleColValue,
+    sortKey, sortDir, aplicarSort,
+    larguraTotal,
+  } = useDpTableColumns<ColKey, SortKey>({
+    storageKey: "dp_conformidade_col",
+    screenKey: "dp_conformidade_dsr",
+    defaultOrder: DEFAULT_ORDER,
+    defaultWidths: DEFAULT_WIDTHS,
+    defaultSortKey: "padrao",
+  });
+
+  /** Aplica os filtros por valor de cada coluna sobre as linhas avaliadas. */
+  const filtradoPorColuna = useMemo(() => {
+    return linhas.filter((l) =>
+      (Object.keys(colFilters) as ColKey[]).every((k) => {
+        const sel = colFilters[k] ?? [];
+        if (!sel.length) return true;
+        return sel.includes(COLS[k].value(l));
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linhas, colFilters, unidadeNome, cargoNome]);
+
+  /** Opções de filtro de uma coluna considerando os filtros das demais. */
+  const opcoesColuna = (k: ColKey) => {
+    const outros = linhas.filter((l) =>
+      (Object.keys(colFilters) as ColKey[]).every((other) => {
+        if (other === k) return true;
+        const sel = colFilters[other] ?? [];
+        if (!sel.length) return true;
+        return sel.includes(COLS[other].value(l));
+      }),
+    );
+    const set = new Set<string>();
+    outros.forEach((l) => set.add(COLS[k].value(l)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  };
+
+  /** Ordenação escolhida no cabeçalho; "padrao" mantém a ordem por nome. */
+  const linhasFiltradas = useMemo(() => {
+    if (sortKey === "padrao") return filtradoPorColuna;
+    const col = (Object.keys(COLS) as ColKey[]).find((k) => COLS[k].sortKey === sortKey);
+    if (!col) return filtradoPorColuna;
+    const arr = [...filtradoPorColuna];
+    arr.sort((a, b) => {
+      const cmp = sortKey === "folgas"
+        ? a.folgasMarcadas - b.folgasMarcadas
+        : COLS[col].value(a).localeCompare(COLS[col].value(b), "pt-BR", { sensitivity: "base" });
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtradoPorColuna, sortKey, sortDir]);
 
   const porAcordo =
     configPadraoEmpresa.tipo_descanso_domingo === "acordo_coletivo" ||
     rows.some((r) => r.unidade_id && r.tipo_descanso_domingo === "acordo_coletivo");
-  const tipoDias = tipoDiasDescanso(diasElegiveisDaConfig(configPadraoEmpresa));
-  const regraPadraoLabel = rotuloFrequencia(
-    configPadraoEmpresa.modo_frequencia_domingo ?? "semanas",
-    (configPadraoEmpresa.modo_frequencia_domingo ?? "semanas") === "por_mes"
-      ? (configPadraoEmpresa.domingos_por_mes ?? 0)
-      : semanasDaConfig(configPadraoEmpresa).geral,
-    tipoDias,
-  );
-  const regraMulherLabel = rotuloFrequencia(
-    configPadraoEmpresa.modo_frequencia_domingo_mulher ?? "semanas",
-    (configPadraoEmpresa.modo_frequencia_domingo_mulher ?? "semanas") === "por_mes"
-      ? (configPadraoEmpresa.domingos_por_mes_mulher ?? 0)
-      : semanasDaConfig(configPadraoEmpresa).mulher,
-    tipoDias,
-  );
-  const unidadesComExcecao = rows.filter((r) => r.unidade_id).length;
-  const diasNegociadosLabel = (configPadraoEmpresa.dias_descanso_negociados ?? [])
-    .map((d) => DIA_SEMANA_CURTO[d])
-    .join(", ");
   const foraDeConformidade = linhas.filter((l) => !l.conforme).length;
   const foraFiltrado = linhasFiltradas.filter((l) => !l.conforme).length;
+  const filtroForaAtivo =
+    (colFilters.situacao ?? []).length === 1 && colFilters.situacao[0] === SITUACAO_FORA;
 
+  /** Selo clicável: alterna o filtro da coluna Situação para "Fora de conformidade". */
+  const alternarFiltroFora = () => {
+    setColFilters((p) => ({
+      ...p,
+      situacao: filtroForaAtivo ? [] : [SITUACAO_FORA],
+    }));
+  };
 
+  /** Textos auxiliares do diálogo de detalhes da linha selecionada. */
+  const detalheInfo = useMemo(() => {
+    if (!detalhe) return null;
+    const cfg = configDaUnidade(detalhe.unidadeId);
+    const temRegraPropria =
+      !!detalhe.unidadeId && rows.some((r) => r.unidade_id === detalhe.unidadeId);
+    const origem = temRegraPropria ? "Regra própria da loja" : "Regra padrão da empresa";
+    const negociadosDias = diasElegiveisDaConfig(cfg).filter((d) => d !== 0);
+    const negociadosLabel = negociadosDias.map((d) => DIA_SEMANA_CURTO[d]).join(", ");
+    const acordo = cfg.tipo_descanso_domingo === "acordo_coletivo";
+    const datas = [...(detalhe.domingosFolgados ?? []), ...(detalhe.diasNegociadosFolgados ?? [])]
+      .sort()
+      .map((iso) => ({ iso, dia: DIA_SEMANA_CURTO[weekdayIso(iso)] }));
+    return { origem, negociadosLabel, acordo, datas };
+  }, [detalhe, configDaUnidade, rows]);
 
   const exportarCsv = () => {
     const headers = [
       "Colaborador", "Unidade", "Cargo", "Sexo", "Domingos no mês", "Folgas no mês",
-      "Domingos folgados", "Dias negociados aproveitados", "Folgas consideradas",
+      "Domingos folgados", "Folgas em dias de descanso negociados", "Folgas consideradas",
       "Regra aplicada", "Mínimo esperado", "Situação",
     ];
     const rowsCsv = linhasFiltradas.map((l) => [
@@ -242,7 +362,7 @@ export default function DpConformidadeDsr() {
       String(l.folgasConsideradas),
       l.rotuloFrequencia,
       String(l.esperado),
-      l.conforme ? "Conforme" : "Fora de conformidade",
+      l.conforme ? SITUACAO_CONFORME : SITUACAO_FORA,
     ]);
 
 
@@ -277,122 +397,33 @@ export default function DpConformidadeDsr() {
         }
       />
 
-      <DpFilterCard>
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="cd-comp">Competência</Label>
-            <Input
-              id="cd-comp" type="month" className="w-44"
-              value={competencia} onChange={(e) => setCompetencia(e.target.value || competenciaAtual())}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="cd-unidade">Unidade</Label>
-            <Select value={unidadeFiltro} onValueChange={setUnidadeFiltro}>
-              <SelectTrigger id="cd-unidade" className="w-48">
-                <SelectValue placeholder="Todas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TODOS}>Todas as unidades</SelectItem>
-                {(unidadesQuery.data ?? []).map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                ))}
-                <SelectItem value={SEM_VINCULO}>Sem unidade</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="cd-cargo">Cargo</Label>
-            <Select value={cargoFiltro} onValueChange={setCargoFiltro}>
-              <SelectTrigger id="cd-cargo" className="w-44">
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TODOS}>Todos os cargos</SelectItem>
-                {(cargosQuery.data ?? []).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-                <SelectItem value={SEM_VINCULO}>Sem cargo</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="cd-situacao">Situação</Label>
-            <Select
-              value={situacaoFiltro}
-              onValueChange={(v) => setSituacaoFiltro(v as typeof situacaoFiltro)}
-            >
-              <SelectTrigger id="cd-situacao" className="w-44">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas as situações</SelectItem>
-                <SelectItem value="fora">Só fora de conformidade</SelectItem>
-                <SelectItem value="conforme">Só conformes</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="cd-busca">Colaborador</Label>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-              <Input
-                id="cd-busca" className="w-52 pl-8" placeholder="Buscar por nome"
-                value={busca} onChange={(e) => setBusca(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {filtrosAtivos && (
-            <Button variant="ghost" size="sm" onClick={limparFiltros} className="gap-1">
-              <X className="h-4 w-4" aria-hidden="true" /> Limpar filtros
-            </Button>
-          )}
-
-          <div className="space-y-1 text-xs text-muted-foreground">
-            <p>{domingos.length} domingo(s) no período.</p>
-            <p>
-              Regra padrão da empresa: {regraPadraoLabel} · Mulheres: {regraMulherLabel}.
-            </p>
-            <p>
-              {porAcordo
-                ? `Modo acordo coletivo: dias negociados (${diasNegociadosLabel || "—"}) substituem o domingo.`
-                : "Modo legislação: apenas domingos folgados são considerados."}
-            </p>
-            <p>
-              {unidadesComExcecao > 0
-                ? `${unidadesComExcecao} unidade(s) têm regra própria — cada colaborador é avaliado pela regra da sua loja (coluna "Regra aplicada").`
-                : "Unidades com exceção própria são avaliadas pela regra da própria loja."}
-            </p>
-
-          </div>
-
-          {linhas.length > 0 && (
-            <div className="ml-auto flex flex-col items-end gap-1">
-              <button
-                type="button"
-                onClick={() => setSituacaoFiltro(situacaoFiltro === "fora" ? "todos" : "fora")}
-                className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                title={situacaoFiltro === "fora" ? "Mostrar todos" : "Ver só quem está fora de conformidade"}
-              >
-                <Badge variant={foraFiltrado > 0 ? "destructive" : "default"}>
-                  {foraFiltrado > 0 ? `${foraFiltrado} fora de conformidade` : "Todos conformes"}
-                </Badge>
-              </button>
-              <p className="text-[11px] text-muted-foreground">
-                {linhasFiltradas.length} de {linhas.length} colaborador(es)
-                {filtrosAtivos && foraDeConformidade !== foraFiltrado
-                  ? ` · ${foraDeConformidade} fora no total`
-                  : ""}
-              </p>
-            </div>
-          )}
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="cd-comp">Competência</Label>
+          <Input
+            id="cd-comp" type="month" className="w-44"
+            value={competencia} onChange={(e) => setCompetencia(e.target.value || competenciaAtual())}
+          />
         </div>
-      </DpFilterCard>
+
+        {linhas.length > 0 && (
+          <div className="ml-auto flex flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={alternarFiltroFora}
+              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              title={filtroForaAtivo ? "Mostrar todos" : "Ver só quem está fora de conformidade"}
+            >
+              <Badge variant={foraFiltrado > 0 || filtroForaAtivo ? "destructive" : "default"}>
+                {foraDeConformidade > 0 ? `${foraDeConformidade} fora de conformidade` : "Todos conformes"}
+              </Badge>
+            </button>
+            <p className="text-[11px] text-muted-foreground">
+              {linhasFiltradas.length} de {linhas.length} colaborador(es)
+            </p>
+          </div>
+        )}
+      </div>
 
 
       {query.isError ? (
@@ -400,7 +431,7 @@ export default function DpConformidadeDsr() {
       ) : query.isLoading ? (
         <Skeleton className="h-64 w-full" />
       ) : (
-        <DpContentCard contentClassName="p-3 md:p-0 md:overflow-x-auto">
+        <DpContentCard contentClassName="p-3 md:p-0">
           {/* Mobile: cartões por colaborador */}
           <ul className="space-y-3 md:hidden">
             {linhasFiltradas.length === 0 && (
@@ -411,95 +442,74 @@ export default function DpConformidadeDsr() {
               </li>
             )}
             {linhasFiltradas.map((l) => (
-              <li
-                key={l.colaboradorId}
-                className={cn(
-                  "rounded-2xl border border-border bg-card p-3",
-                  !l.conforme && "border-destructive/40 bg-destructive/5",
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">{l.nome}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">
-                      {[
-                        (l.unidadeId && unidadeNome.get(l.unidadeId)) || null,
-                        (l.cargoId && cargoNome.get(l.cargoId)) || null,
-                      ].filter(Boolean).join(" · ") || "—"}
-                    </p>
-                    {l.sexo === "F" && (
-                      <p className="text-[11px] text-muted-foreground">Art. 386 CLT</p>
-                    )}
-                  </div>
-
-                  {l.conforme ? (
-                    <Badge variant="outline" className="shrink-0 gap-1 border-emerald-500/30 text-emerald-700 dark:text-emerald-400">
-                      <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> Conforme
-                    </Badge>
-                  ) : (
-                    <Badge variant="destructive" className="shrink-0 gap-1">
-                      <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> Fora
-                    </Badge>
+              <li key={l.colaboradorId}>
+                <button
+                  type="button"
+                  onClick={() => setDetalhe(l)}
+                  className={cn(
+                    "w-full rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    !l.conforme && "border-destructive/40 bg-destructive/5",
                   )}
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <p className="text-muted-foreground">Folgas no mês</p>
-                    <p className="font-semibold tabular-nums">
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{l.nome}</p>
+                      <p className="truncate text-[11px] text-muted-foreground">
+                        {[
+                          (l.unidadeId && unidadeNome.get(l.unidadeId)) || null,
+                          (l.cargoId && cargoNome.get(l.cargoId)) || null,
+                        ].filter(Boolean).join(" · ") || "—"}
+                      </p>
+                    </div>
+
+                    <span className="shrink-0">{badgeSituacao(l)}</span>
+                  </div>
+                  <p className="mt-2 text-xs">
+                    <span className="text-muted-foreground">Folgas no mês: </span>
+                    <span className="font-semibold tabular-nums">
                       {l.folgasMarcadas}
                       {l.folgasMarcadas === 0 && (
                         <span className="ml-1 font-normal text-destructive">sem folga marcada</span>
                       )}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Domingos no mês</p>
-                    <p className="font-semibold tabular-nums">{l.domingosNoPeriodo}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Domingos folgados</p>
-                    <p className="font-semibold tabular-nums">{l.domingosFolgados.length}</p>
-                  </div>
-                  {porAcordo && (
-                    <div>
-                      <p className="text-muted-foreground">Dias negociados</p>
-                      <p className="font-semibold tabular-nums">{l.negociadosAproveitados}</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-muted-foreground">Mínimo esperado</p>
-                    <p className="font-semibold tabular-nums">{l.esperado}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Regra aplicada</p>
-                    <p className="font-semibold">{l.rotuloFrequencia}</p>
-                  </div>
-                </div>
-
+                    </span>
+                  </p>
+                </button>
               </li>
             ))}
           </ul>
 
-          <Table className="hidden md:table">
+          <div className="hidden w-full overflow-x-auto md:block">
+          <Table className="table-fixed" style={{ width: "100%", minWidth: larguraTotal }}>
             <TableHeader>
               <TableRow>
-                <TableHead>Colaborador</TableHead>
-                <TableHead>Unidade</TableHead>
-                <TableHead>Cargo</TableHead>
-                <TableHead className="text-center">Folgas no mês</TableHead>
-                <TableHead className="text-center">Domingos no mês</TableHead>
-                <TableHead className="text-center">Domingos folgados</TableHead>
-                {porAcordo && <TableHead className="text-center">Dias negociados</TableHead>}
-                <TableHead className="text-center">Mínimo esperado</TableHead>
-                <TableHead className="text-center">Regra aplicada</TableHead>
-
-                <TableHead className="text-right">Situação</TableHead>
+                {colOrder.map((k) => (
+                  <DpTableColumnHeader
+                    key={k}
+                    label={COLS[k].label}
+                    width={colWidths[k]}
+                    center={COLS[k].center}
+                    sortAtivo={sortKey === COLS[k].sortKey}
+                    sortDir={sortDir}
+                    onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
+                    ativos={colFilters[k]}
+                    getOpcoes={() => opcoesColuna(k)}
+                    onToggle={(v) => toggleColValue(k, v)}
+                    onSelecionarTodos={() => setColFilters((p) => ({ ...p, [k]: opcoesColuna(k) }))}
+                    onLimpar={() => setColFilters((p) => ({ ...p, [k]: [] }))}
+                    arrastando={dragCol === k}
+                    onDragStart={() => setDragCol(k)}
+                    onDrop={() => soltarSobre(k)}
+                    onDragEnd={() => setDragCol(null)}
+                    onResize={(largura) => resize(k, largura)}
+                    onResetWidth={() => resetWidth(k)}
+                  />
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {linhasFiltradas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={porAcordo ? 10 : 9} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={colOrder.length} className="py-8 text-center text-sm text-muted-foreground">
 
                     {linhas.length === 0
                       ? "Nenhum colaborador ativo no período."
@@ -508,52 +518,117 @@ export default function DpConformidadeDsr() {
                 </TableRow>
               ) : (
                 linhasFiltradas.map((l) => (
-                  <TableRow key={l.colaboradorId} className={l.conforme ? undefined : "bg-destructive/5"}>
-                    <TableCell className="font-medium">
-                      {l.nome}
-                      {l.sexo === "F" && (
-                        <span className="ml-2 text-xs text-muted-foreground">(Art. 386 CLT)</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {(l.unidadeId && unidadeNome.get(l.unidadeId)) || "—"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {(l.cargoId && cargoNome.get(l.cargoId)) || "—"}
-                    </TableCell>
-                    <TableCell className="text-center font-semibold">
-                      {l.folgasMarcadas === 0 ? (
-                        <span className="text-destructive">0 · sem folga marcada</span>
-                      ) : (
-                        l.folgasMarcadas
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">{l.domingosNoPeriodo}</TableCell>
-                    <TableCell className="text-center">{l.domingosFolgados.length}</TableCell>
-                    {porAcordo && <TableCell className="text-center">{l.negociadosAproveitados}</TableCell>}
-
-                    <TableCell className="text-center">{l.esperado}</TableCell>
-                    <TableCell className="text-center text-xs">{l.rotuloFrequencia}</TableCell>
-
-
-                    <TableCell className="text-right">
-                      {l.conforme ? (
-                        <Badge variant="outline" className="gap-1 border-emerald-500/30 text-emerald-700 dark:text-emerald-400">
-                          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> Conforme
-                        </Badge>
-                      ) : (
-                        <Badge variant="destructive" className="gap-1">
-                          <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> Fora
-                        </Badge>
-                      )}
-                    </TableCell>
+                  <TableRow
+                    key={l.colaboradorId}
+                    className={cn(
+                      "cursor-pointer transition-colors hover:bg-muted/50",
+                      !l.conforme && "bg-destructive/5",
+                    )}
+                    onClick={() => setDetalhe(l)}
+                  >
+                    {colOrder.map((k) => (
+                      <TableCell
+                        key={k}
+                        className={cn("overflow-hidden", COLS[k].center && "text-center")}
+                        style={{ width: colWidths[k], maxWidth: colWidths[k] }}
+                      >
+                        {COLS[k].render(l)}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
+          </div>
         </DpContentCard>
       )}
+
+      {/* Detalhes do colaborador no mês */}
+      <Dialog open={!!detalhe} onOpenChange={(aberto) => !aberto && setDetalhe(null)}>
+        <DialogContent className="max-w-lg">
+          {detalhe && detalheInfo && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {detalhe.nome}
+                  {detalhe.sexo === "F" && (
+                    <span className="text-xs font-normal text-muted-foreground">(Art. 386 CLT)</span>
+                  )}
+                </DialogTitle>
+                <DialogDescription>
+                  {[
+                    (detalhe.unidadeId && unidadeNome.get(detalhe.unidadeId)) || null,
+                    (detalhe.cargoId && cargoNome.get(detalhe.cargoId)) || null,
+                  ].filter(Boolean).join(" · ") || "—"}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">Situação no mês</span>
+                  {badgeSituacao(detalhe)}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-muted-foreground">Folgas no mês</p>
+                    <p className="font-semibold tabular-nums">{detalhe.folgasMarcadas}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Mínimo esperado</p>
+                    <p className="font-semibold tabular-nums">{detalhe.esperado}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Domingos no mês</p>
+                    <p className="font-semibold tabular-nums">{detalhe.domingosNoPeriodo}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Domingos folgados</p>
+                    <p className="font-semibold tabular-nums">{detalhe.domingosFolgados.length}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-muted-foreground">Regra aplicada</p>
+                  <p className="font-semibold">{detalhe.rotuloFrequencia}</p>
+                  <p className="text-xs text-muted-foreground">{detalheInfo.origem}.</p>
+                </div>
+
+                {detalheInfo.acordo && (
+                  <div className="rounded-xl border border-border bg-muted/40 p-3">
+                    <p className="font-medium">Folgas em dias de descanso negociados: {detalhe.negociadosAproveitados}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Por acordo coletivo, os dias de descanso combinados
+                      {detalheInfo.negociadosLabel ? ` (${detalheInfo.negociadosLabel})` : ""} substituem
+                      o domingo na contagem da folga semanal obrigatória. Cada folga nesses dias conta
+                      como se fosse um domingo folgado.
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-muted-foreground">Folgas marcadas no mês</p>
+                  {detalheInfo.datas.length === 0 ? (
+                    <p className="text-destructive">Nenhuma folga marcada no período.</p>
+                  ) : (
+                    <ul className="mt-1 flex flex-wrap gap-1.5">
+                      {detalheInfo.datas.map((d) => (
+                        <li
+                          key={d.iso}
+                          className="rounded-full border border-border px-2.5 py-0.5 text-xs tabular-nums"
+                        >
+                          {d.dia} {diaMesIso(d.iso)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </DpPage>
   );
 }
