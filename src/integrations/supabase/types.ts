@@ -12646,8 +12646,21 @@ export type Database = {
         Args: { _periodo_id: string }
         Returns: undefined
       }
+      dp_folga_autoatribuicao_plano: {
+        Args: { _company: string; _competencia: string; _unidade: string }
+        Returns: Json
+      }
       dp_folga_autoatribuicao_previa: {
         Args: { _company: string; _competencia: string; _unidade: string }
+        Returns: Json
+      }
+      dp_folga_autoatribuir_aplicar: {
+        Args: {
+          _company: string
+          _competencia: string
+          _itens: Json
+          _unidade: string
+        }
         Returns: Json
       }
       dp_folga_autoatribuir_competencia: {
@@ -12692,6 +12705,19 @@ export type Database = {
           p_unidade: string
         }
         Returns: Json
+      }
+      dp_folga_marcadas_no_mes: {
+        Args: {
+          _colab: string
+          _company: string
+          _competencia: string
+          _dias: number[]
+        }
+        Returns: number
+      }
+      dp_folga_ocupado_no_dia: {
+        Args: { _colab: string; _company: string; _data: string }
+        Returns: boolean
       }
       dp_folga_solicitar: {
         Args: { p_data: string; p_fora_da_janela?: boolean; p_motivo?: string }
