@@ -21,6 +21,7 @@ import { useDpTurnos, TURNO_FORM_DEFAULT } from "@/hooks/useDpTurnos";
 import { CopiarConfigColaboradorDialog, type ConfigCopiada } from "@/components/dp/CopiarConfigColaboradorDialog";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpSetores } from "@/hooks/useDpSetores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
@@ -41,6 +42,8 @@ import {
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
 
+
+const SEM_SETOR_DIA = "__setor_habitual__";
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : null);
@@ -190,6 +193,9 @@ export function ColaboradorJornadaPanel({
 
 
   const { turnos: turnosUnidade, criar: criarTurno } = useDpTurnos(unidadeId === "none" ? null : unidadeId);
+  const { ativos: setoresAtivos } = useDpSetores(unidadeId === "none" ? null : unidadeId);
+  /** A dimensão Setor só aparece quando a unidade já tem setor cadastrado. */
+  const usaSetores = setoresAtivos.length > 0;
   const turnosAtivos = useMemo(() => turnosUnidade.filter((t) => t.ativo), [turnosUnidade]);
 
   const turnosResolvidos: TurnoResolvido[] = useMemo(
@@ -475,6 +481,12 @@ export function ColaboradorJornadaPanel({
       if (!dia) return prev;
       return definirHorarioNoDia(prev, dow, { ...horarioEfetivoDia(dia, horario), ...patch });
     });
+  };
+
+  /** Setor em que a pessoa atua neste dia da semana (em branco = setor habitual). */
+  const definirSetorDia = (dow: number, setorId: string | null) => {
+    marcarAlterado();
+    setDias((prev) => prev.map((d) => (d.dow === dow ? { ...d, setor_id: setorId } : d)));
   };
 
   /** Repete o horário de um dia nos dias escolhidos. */
@@ -968,6 +980,28 @@ export function ColaboradorJornadaPanel({
                         onChange={(e) => definirHorarioDia(dia.dow, { intervalo_minutos: Number(e.target.value || 0) })}
                       />
                     </div>
+                    {usaSetores && (
+                      <div className="space-y-1 sm:col-span-3">
+                        <Label className="text-[11px]" htmlFor={`h-set-${dia.dow}`}>Setor neste dia</Label>
+                        <Select
+                          value={dia.setor_id ?? SEM_SETOR_DIA}
+                          onValueChange={(v) => definirSetorDia(dia.dow, v === SEM_SETOR_DIA ? null : v)}
+                        >
+                          <SelectTrigger id={`h-set-${dia.dow}`} className="h-9">
+                            <SelectValue placeholder="Setor habitual" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={SEM_SETOR_DIA}>Setor habitual</SelectItem>
+                            {setoresAtivos.map((st) => (
+                              <SelectItem key={st.id} value={st.id}>{st.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[11px] text-muted-foreground">
+                          Em branco, será usado o setor habitual do colaborador.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </li>
