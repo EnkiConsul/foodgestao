@@ -249,7 +249,7 @@ export default function DpConformidadeDsr() {
         description="Folgas de descanso semanal por colaborador no mês, comparadas à regra vigente da unidade e à regra quinzenal feminina."
         icon={ScaleIcon}
         actions={
-          <Button variant="outline" onClick={exportarCsv} disabled={linhas.length === 0} className="gap-2">
+          <Button variant="outline" onClick={exportarCsv} disabled={linhasFiltradas.length === 0} className="gap-2">
             <Download className="h-4 w-4" aria-hidden="true" /> Exportar CSV
           </Button>
         }
@@ -264,6 +264,73 @@ export default function DpConformidadeDsr() {
               value={competencia} onChange={(e) => setCompetencia(e.target.value || competenciaAtual())}
             />
           </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="cd-unidade">Unidade</Label>
+            <Select value={unidadeFiltro} onValueChange={setUnidadeFiltro}>
+              <SelectTrigger id="cd-unidade" className="w-48">
+                <SelectValue placeholder="Todas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODOS}>Todas as unidades</SelectItem>
+                {(unidadesQuery.data ?? []).map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                ))}
+                <SelectItem value={SEM_VINCULO}>Sem unidade</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="cd-cargo">Cargo</Label>
+            <Select value={cargoFiltro} onValueChange={setCargoFiltro}>
+              <SelectTrigger id="cd-cargo" className="w-44">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODOS}>Todos os cargos</SelectItem>
+                {(cargosQuery.data ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+                <SelectItem value={SEM_VINCULO}>Sem cargo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="cd-situacao">Situação</Label>
+            <Select
+              value={situacaoFiltro}
+              onValueChange={(v) => setSituacaoFiltro(v as typeof situacaoFiltro)}
+            >
+              <SelectTrigger id="cd-situacao" className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas as situações</SelectItem>
+                <SelectItem value="fora">Só fora de conformidade</SelectItem>
+                <SelectItem value="conforme">Só conformes</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="cd-busca">Colaborador</Label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Input
+                id="cd-busca" className="w-52 pl-8" placeholder="Buscar por nome"
+                value={busca} onChange={(e) => setBusca(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {filtrosAtivos && (
+            <Button variant="ghost" size="sm" onClick={limparFiltros} className="gap-1">
+              <X className="h-4 w-4" aria-hidden="true" /> Limpar filtros
+            </Button>
+          )}
+
           <div className="space-y-1 text-xs text-muted-foreground">
             <p>{domingos.length} domingo(s) no período.</p>
             <p>
@@ -279,14 +346,28 @@ export default function DpConformidadeDsr() {
           </div>
 
           {linhas.length > 0 && (
-            <Badge variant={foraDeConformidade > 0 ? "destructive" : "default"} className="ml-auto">
-              {foraDeConformidade > 0
-                ? `${foraDeConformidade} fora de conformidade`
-                : "Todos conformes"}
-            </Badge>
+            <div className="ml-auto flex flex-col items-end gap-1">
+              <button
+                type="button"
+                onClick={() => setSituacaoFiltro(situacaoFiltro === "fora" ? "todos" : "fora")}
+                className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                title={situacaoFiltro === "fora" ? "Mostrar todos" : "Ver só quem está fora de conformidade"}
+              >
+                <Badge variant={foraFiltrado > 0 ? "destructive" : "default"}>
+                  {foraFiltrado > 0 ? `${foraFiltrado} fora de conformidade` : "Todos conformes"}
+                </Badge>
+              </button>
+              <p className="text-[11px] text-muted-foreground">
+                {linhasFiltradas.length} de {linhas.length} colaborador(es)
+                {filtrosAtivos && foraDeConformidade !== foraFiltrado
+                  ? ` · ${foraDeConformidade} fora no total`
+                  : ""}
+              </p>
+            </div>
           )}
         </div>
       </DpFilterCard>
+
 
       {query.isError ? (
         <DpErrorState onRetry={() => void query.refetch()} />
