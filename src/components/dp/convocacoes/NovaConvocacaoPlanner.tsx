@@ -132,6 +132,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const [salvando, setSalvando] = useState(false);
   const [publicando, setPublicando] = useState(false);
   const [justificativa, setJustificativa] = useState("");
+  const [cienteAntecedencia, setCienteAntecedencia] = useState(false);
   const [revisando, setRevisando] = useState(false);
   /** Cache das sugestões por cargo|data — remarcar um dia não reconsulta. */
   const sugestoesRef = useRef<Map<string, SugestaoCache>>(new Map());
@@ -650,6 +651,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
         expected_updated_at: expected,
         confirmacoes: foraDaAntecedencia.map((d) => ({
           ocorrencia_id: d.id,
+          confirmado: true,
           justificativa: justificativa.trim() || null,
         })),
       });
@@ -712,6 +714,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                       aguardando: cob.aguardando,
                       faltam: cob.faltam ?? null,
                       abaixoDaAntecedencia: antecedenciaDias(d.data) < antecedenciaMinima,
+                      antecedencia: antecedenciaDias(d.data),
                     };
                   })}
                   destinatarios={destinatarios.map((id) => {
@@ -752,7 +755,12 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   horarioGeral={usaHorarioGeral ? horarioGeral : null}
                   jornadaDe={preview.jornadaDe}
                   prazoRespostaDias={config.data?.prazo_resposta_dias_uteis ?? null}
-                  justificativa={justificativa.trim()}
+                  justificativa={justificativa}
+                  antecedenciaMinima={antecedenciaMinima}
+                  exigeJustificativa={exigeJustificativa}
+                  onJustificativaChange={setJustificativa}
+                  ciente={cienteAntecedencia}
+                  onCienteChange={setCienteAntecedencia}
                 />
               </div>
             ) : (
@@ -1105,7 +1113,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     onClick={publicarGrupo}
                     disabled={!podeSalvar || publicando || salvando ||
                       preAvaliacao.isLoading || diasSemApto.length > 0 ||
-                      (exigeJustificativa && foraDaAntecedencia.length > 0 && !justificativa.trim())}
+                      (foraDaAntecedencia.length > 0 &&
+                        (!cienteAntecedencia || (exigeJustificativa && !justificativa.trim())))}
                   >
                     {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
                     Confirmar e publicar
