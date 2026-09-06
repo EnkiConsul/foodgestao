@@ -1499,30 +1499,47 @@ export default function DpFolgas() {
                         >
                           <span className="min-w-[10rem] flex-1 font-medium">{item.nome}</span>
 
-                          {semDia ? (
-                            <Badge variant="outline" className="text-amber-600">
-                              Sem dia disponível
-                            </Badge>
-                          ) : (
-                            <Select
-                              value={data ?? undefined}
-                              disabled={removido}
-                              onValueChange={(v) =>
-                                setAutoEdits((prev) => ({ ...prev, [item.colaboradorId]: v }))
+                          {!item.data && !removido && (
+                            <Badge
+                              variant="outline"
+                              className={
+                                item.motivo === "ACIMA_DO_LIMITE"
+                                  ? "text-destructive"
+                                  : "text-amber-600"
                               }
                             >
-                              <SelectTrigger className="h-8 w-[11rem]">
-                                <SelectValue placeholder="Escolher dia" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {diasEscolhaAuto.map((d) => (
+                              {item.motivo === "ACIMA_DO_LIMITE"
+                                ? "Acima do limite — escolha o dia"
+                                : item.motivo === "SEM_DIA_SEM_CONFLITO"
+                                  ? "Todos os dias têm conflito"
+                                  : "Sem dia disponível"}
+                            </Badge>
+                          )}
+                          <Select
+                            value={data ?? undefined}
+                            disabled={removido}
+                            onValueChange={(v) =>
+                              setAutoEdits((prev) => ({ ...prev, [item.colaboradorId]: v }))
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-[13rem]">
+                              <SelectValue placeholder="Escolher dia" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {diasValidosDoItem(
+                                planoAutoQuery.data?.competencia ?? competenciaAtual,
+                                item,
+                              ).map((d) => {
+                                const emFolga = item.ocupacao[d] ?? 0;
+                                return (
                                   <SelectItem key={d} value={d}>
                                     {format(parseISO(d), "dd/MM (EEE)", { locale: ptBR })}
+                                    {emFolga > 0 ? ` — ${emFolga} em folga` : ""}
                                   </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
 
                           {item.excedeLimite && !removido && (
                             <Badge variant="outline" className="text-destructive">
