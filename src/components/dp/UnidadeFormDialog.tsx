@@ -16,6 +16,7 @@ import { HorarioFuncionamentoEditor } from "@/components/dp/HorarioFuncionamento
 import { UnidadeSindicatoPanel } from "@/components/dp/unidades/UnidadeSindicatoPanel";
 import { UnidadeNegociacoesPanel } from "@/components/dp/unidades/UnidadeNegociacoesPanel";
 import { UnidadeSetoresPanel } from "@/components/dp/unidades/UnidadeSetoresPanel";
+import { UnidadeFeriadosPanel } from "@/components/dp/unidades/UnidadeFeriadosPanel";
 
 
 export const onlyNumbers = (v: string) => v.replace(/\D/g, "");
