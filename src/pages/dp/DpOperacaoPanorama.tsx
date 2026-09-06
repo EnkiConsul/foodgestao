@@ -429,14 +429,6 @@ function DetalheDiaOperacao({
       <Secao
         title="Pessoas Avulsas no Dia"
         description="Quem trabalha hoje sem estar cadastrado como colaborador: em teste ou folguista"
-        action={
-          podeRegistrar ? (
-            <Button variant="outline" size="sm" onClick={() => onNovaAvulsa(data)}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              Adicionar pessoa
-            </Button>
-          ) : undefined
-        }
       >
         {avulsosDoDia.length ? (
           <ul className="divide-y">
