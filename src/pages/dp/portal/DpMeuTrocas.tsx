@@ -290,19 +290,22 @@ export default function DpMeuTrocas() {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <p className="text-sm">{t.motivo}</p>
+                  {t.motivo && <TextoExpansivel texto={t.motivo} className="text-sm" />}
                   {textoDecisaoGestor(t.gestor_resposta) && (
                     <div className="rounded-lg border border-border/60 bg-muted/40 p-2.5 text-xs">
                       <span className="mb-0.5 block font-semibold uppercase tracking-wide text-[10px] text-muted-foreground">
-                        {t.status === "cancelada"
-                          ? "Cancelada pelo gestor"
-                          : t.status === "recusada"
-                            ? "Recusada pelo gestor"
-                            : "Observação do gestor"}
+                        {t.status === "expirada"
+                          ? "Solicitação expirada"
+                          : t.status === "cancelada"
+                            ? "Cancelada pelo gestor"
+                            : t.status === "recusada"
+                              ? "Recusada pelo gestor"
+                              : "Observação do gestor"}
                       </span>
                       "{textoDecisaoGestor(t.gestor_resposta)}"
                     </div>
                   )}
+
                   {(podeResponderColega || podeCancelar) && (
                     <div className="flex gap-2 pt-1 flex-wrap">
                       {podeResponderColega && (
