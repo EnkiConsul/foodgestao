@@ -230,6 +230,25 @@ export function useDpFerias(colaboradorFilter: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompanyId]);
 
+  /** Fluxo da contabilidade: aprovada → a informar → informada. */
+  const marcarInformado = useMutation({
+    mutationFn: async ({
+      id,
+      status,
+    }: { id: string; status: "aprovada" | "a_informar" | "informada" }) => {
+      const { error } = await supabase.rpc("dp_ferias_marcar_informado", {
+        _gozo_id: id,
+        _status: status,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Situação da contabilidade atualizada");
+      invalidate();
+    },
+    onError: (e: any) => toast.error(textoErroFerias(e?.message)),
+  });
+
   return {
     periodos: periodosQ.data ?? [],
     periodosLoading: periodosQ.isLoading,
@@ -247,6 +266,8 @@ export function useDpFerias(colaboradorFilter: string) {
     programar,
     saveGozo,
     cancelarGozo,
+    marcarInformado,
   };
 }
+
 

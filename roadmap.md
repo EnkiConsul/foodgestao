@@ -4,5 +4,5 @@
 - [x] Rotina do dia: cards de folguista/teste, dia destacado no calendário, horário sugerido no cadastro de pessoa avulsa, botão "Adicionar Pessoa" no topo e diálogo de listagem por tipo
 - [x] Férias etapa 1: direito por faltas, alertas de prazo e painel com abas
 - [x] Férias etapa 2: pedido do colaborador, aprovação/recusa, cancelamento com motivo, ciência e antecedência do aviso
-- [ ] Férias etapa 3: feriados por unidade, calendário de férias e resumo para contabilidade
+- [x] Férias etapa 3: feriados por unidade, 13º por unidade e resumo para contabilidade
 - [ ] Férias etapa 4: bloqueio de folga/convocação em férias, sugestão de cobertura e fracionamento

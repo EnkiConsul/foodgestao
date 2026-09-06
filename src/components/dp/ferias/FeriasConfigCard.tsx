@@ -10,10 +10,14 @@ import {
 import {
   ADIANTAMENTO_13_LABEL, useDpFeriasConfig, type FeriasAdiantamento13,
 } from "@/hooks/useDpFeriasConfig";
+import { useDpFeriasConfigUnidades } from "@/hooks/useDpFeriasConfigUnidades";
+import { useDpUnidades } from "@/hooks/useDpCadastros";
 
 /** Antecedência do aviso de férias e política de adiantamento do 13º. */
 export function FeriasConfigCard() {
   const { config, isLoading, save } = useDpFeriasConfig();
+  const { overrides, save: saveUnidade } = useDpFeriasConfigUnidades();
+  const { data: unidades = [] } = useDpUnidades();
   const [dias, setDias] = useState(String(config.avisoAntecedenciaDias));
   const [politica, setPolitica] = useState<FeriasAdiantamento13>(config.adiantamento13);
 
@@ -64,6 +68,45 @@ export function FeriasConfigCard() {
         </div>
       </div>
 
+      <div className="space-y-2 rounded-xl border p-3">
+        <p className="text-sm font-medium">Exceção por unidade (13º)</p>
+        <p className="text-xs text-muted-foreground">
+          Deixe em “Seguir a empresa” para a unidade usar a regra acima.
+        </p>
+        {(unidades as any[]).length === 0 ? (
+          <p className="text-xs text-muted-foreground">Nenhuma unidade cadastrada.</p>
+        ) : (
+          <div className="space-y-2">
+            {(unidades as any[]).map((u) => {
+              const atual =
+                overrides.find((o) => o.unidadeId === u.id)?.adiantamento13 ?? "empresa";
+              return (
+                <div key={u.id} className="flex flex-wrap items-center gap-2">
+                  <span className="min-w-32 flex-1 truncate text-sm">{u.nome}</span>
+                  <Select
+                    value={atual}
+                    onValueChange={(v) =>
+                      saveUnidade.mutate({
+                        unidadeId: u.id,
+                        adiantamento13: v === "empresa" ? null : (v as FeriasAdiantamento13),
+                      })
+                    }
+                  >
+                    <SelectTrigger className="h-9 w-full sm:w-80"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="empresa">Seguir a empresa</SelectItem>
+                      {(Object.keys(ADIANTAMENTO_13_LABEL) as FeriasAdiantamento13[]).map((k) => (
+                        <SelectItem key={k} value={k}>{ADIANTAMENTO_13_LABEL[k]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="flex justify-end">
         <Button
           className="rounded-full px-6"
@@ -81,3 +124,4 @@ export function FeriasConfigCard() {
     </DpContentCard>
   );
 }
+

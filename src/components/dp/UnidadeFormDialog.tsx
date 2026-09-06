@@ -16,6 +16,7 @@ import { HorarioFuncionamentoEditor } from "@/components/dp/HorarioFuncionamento
 import { UnidadeSindicatoPanel } from "@/components/dp/unidades/UnidadeSindicatoPanel";
 import { UnidadeNegociacoesPanel } from "@/components/dp/unidades/UnidadeNegociacoesPanel";
 import { UnidadeSetoresPanel } from "@/components/dp/unidades/UnidadeSetoresPanel";
+import { UnidadeFeriadosPanel } from "@/components/dp/unidades/UnidadeFeriadosPanel";
 
 
 export const onlyNumbers = (v: string) => v.replace(/\D/g, "");
@@ -60,7 +61,7 @@ export interface UnidadeEdicao {
 }
 
 /** Abas do cadastro de unidade. */
-export type UnidadeAba = "dados" | "setores" | "funcionamento" | "sindicato";
+export type UnidadeAba = "dados" | "setores" | "funcionamento" | "feriados" | "sindicato";
 
 interface Props {
   open: boolean;
@@ -237,10 +238,11 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
           className="flex min-h-0 flex-1 flex-col gap-0"
         >
           <div className="border-b px-4 pt-3">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="dados" className="h-10">Dados</TabsTrigger>
               <TabsTrigger value="setores" className="h-10">Setores</TabsTrigger>
               <TabsTrigger value="funcionamento" className="h-10">Funcionamento</TabsTrigger>
+              <TabsTrigger value="feriados" className="h-10">Feriados</TabsTrigger>
               <TabsTrigger value="sindicato" className="h-10">Sindicato</TabsTrigger>
             </TabsList>
           </div>
@@ -396,6 +398,11 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
           </Label>
           <HorarioFuncionamentoEditor unidadeId={unidadeId} semRodape onRegistrarSalvar={registrarSalvar} />
         </TabsContent>
+
+        <TabsContent value="feriados" className="mt-0 flex-1 space-y-2 overflow-y-auto p-4">
+          <UnidadeFeriadosPanel unidadeId={unidadeId} />
+        </TabsContent>
+
 
         <TabsContent value="sindicato" className="mt-0 flex-1 space-y-6 overflow-y-auto p-4">
           <UnidadeSindicatoPanel unidadeId={unidadeId} unidadeNome={form.nome} />

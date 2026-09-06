@@ -9421,6 +9421,75 @@ export type Database = {
           },
         ]
       }
+      dp_unidade_feriados: {
+        Row: {
+          ativo: boolean
+          company_id: string
+          created_at: string
+          created_by: string | null
+          data: string | null
+          dia: number | null
+          dia_semana: number | null
+          id: string
+          mes: number | null
+          nome: string
+          observacao: string | null
+          ordinal: number | null
+          tipo: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          data?: string | null
+          dia?: number | null
+          dia_semana?: number | null
+          id?: string
+          mes?: number | null
+          nome: string
+          observacao?: string | null
+          ordinal?: number | null
+          tipo: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string | null
+          dia?: number | null
+          dia_semana?: number | null
+          id?: string
+          mes?: number | null
+          nome?: string
+          observacao?: string | null
+          ordinal?: number | null
+          tipo?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_unidade_feriados_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_unidade_feriados_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_unidade_horarios_funcionamento: {
         Row: {
           aberto: boolean
@@ -13262,6 +13331,15 @@ export type Database = {
         Returns: undefined
       }
       dp_expirar_trocas: { Args: never; Returns: number }
+      dp_feriados_resolver: {
+        Args: { _fim: string; _inicio: string; _unidade_id: string }
+        Returns: {
+          data: string
+          feriado_id: string
+          nome: string
+          tipo: string
+        }[]
+      }
       dp_ferias_aprovar: {
         Args: {
           _justificativa?: string
@@ -13298,6 +13376,10 @@ export type Database = {
       dp_ferias_manter_periodos: {
         Args: { _company_id: string }
         Returns: number
+      }
+      dp_ferias_marcar_informado: {
+        Args: { _gozo_id: string; _status?: string }
+        Returns: undefined
       }
       dp_ferias_materializar_status: {
         Args: { _company_id: string }
