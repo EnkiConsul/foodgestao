@@ -267,7 +267,7 @@ export function RevisaoConvocacao(props: Props) {
                         >
                           Usar o horário informado para todos
                         </Button>
-                        {fimHabitual && fimHabitual !== o.dia.saida && (
+                        {fimHabitual && fimHabitual !== fimAvaliado && (
                           <Button
                             type="button" size="sm" variant="outline" className="h-7 text-[11px]"
                             onClick={() => onAjustarNecessidade(o.dia.cargo_id, o.dia.data, fimHabitual)}
