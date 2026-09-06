@@ -116,7 +116,142 @@ export interface MinhaOferta {
   necessidade_termina_no_dia_seguinte: boolean | null;
   cargo_nome: string | null;
   unidade_nome: string | null;
+  resposta_tipo: string | null;
+  parcial_status: string | null;
+  parcial_entrada: string | null;
+  parcial_saida: string | null;
+  parcial_termina_no_dia_seguinte: boolean | null;
+  parcial_carga_horas: number | null;
+  parcial_observacao: string | null;
+  parcial_decisao_motivo: string | null;
 }
+
+/** Proposta de horário parcial de um dia (Portal do colaborador). */
+export interface PropostaParcialInput {
+  id: string;
+  entrada: string;
+  saida: string;
+  termina_no_dia_seguinte: boolean;
+  observacao?: string | null;
+}
+
+/** Uma proposta parcial aguardando a decisão do gestor. */
+export interface ParcialPendente {
+  convocacao_id: string;
+  ocorrencia_id: string | null;
+  data: string;
+  colaborador_id: string;
+  colaborador_nome: string | null;
+  cargo_nome: string | null;
+  unidade_nome: string | null;
+  necessidade_entrada: string | null;
+  necessidade_saida: string | null;
+  necessidade_termina_no_dia_seguinte: boolean | null;
+  parcial_entrada: string | null;
+  parcial_saida: string | null;
+  parcial_termina_no_dia_seguinte: boolean | null;
+  parcial_carga_horas: number | null;
+  parcial_observacao: string | null;
+  proposta_em: string | null;
+  prazo_resposta: string | null;
+  inicio_previsto: string | null;
+  reoferta_prazo: string | null;
+  reofertas_pendentes: number;
+}
+
+export interface AptoParcial {
+  colaborador_id: string;
+  colaborador_nome: string | null;
+  entrada: string | null;
+  saida: string | null;
+  termina_no_dia_seguinte: boolean;
+  carga_prevista_horas: number | null;
+}
+
+export interface AvaliacaoParcial {
+  convocacao_id: string;
+  data: string;
+  necessidade_entrada: string;
+  necessidade_saida: string;
+  necessidade_termina_no_dia_seguinte: boolean;
+  parcial_entrada: string | null;
+  parcial_saida: string | null;
+  parcial_termina_no_dia_seguinte: boolean;
+  descoberto_inicio_minutos: number | null;
+  descoberto_fim_minutos: number | null;
+  reofertas_pendentes: number;
+  reoferta_prazo: string | null;
+  aptos: AptoParcial[];
+}
+
+/**
+ * Propostas de horário parcial aguardando o gestor + avaliação e decisão.
+ * Toda a regra (quem está apto, reoferta, recusa) é decidida no servidor.
+ */
+export function useDpConvocacoesParciais() {
+  const { selectedCompanyId } = useCompanyContext();
+  const qc = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["dp_convocacoes_parciais", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async (): Promise<ParcialPendente[]> => {
+      const { data, error } = await (supabase.rpc as any)("dp_convocacao_parciais_pendentes", {
+        p_company_id: selectedCompanyId,
+      });
+      if (error) throw error;
+      return ((data ?? []) as ParcialPendente[]) ?? [];
+    },
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["dp_convocacoes_parciais"] });
+    qc.invalidateQueries({ queryKey: ["dp_convocacoes"] });
+    qc.invalidateQueries({ queryKey: ["dp_minhas_convocacoes"] });
+  };
+
+  const avaliar = useMutation({
+    mutationFn: async (id: string): Promise<AvaliacaoParcial> => {
+      const { data, error } = await (supabase.rpc as any)("dp_convocacao_avaliar_parcial", {
+        p_convocacao_id: id,
+      });
+      if (error) throw error;
+      return data as AvaliacaoParcial;
+    },
+  });
+
+  const decidir = useMutation({
+    mutationFn: async (args: {
+      id: string;
+      acao: "APROVAR" | "RECUSAR" | "REOFERTAR";
+      motivo?: string | null;
+      prazo?: string | null;
+      colaboradorIds?: string[] | null;
+      confirmado?: boolean;
+    }) => {
+      const { data, error } = await (supabase.rpc as any)("dp_convocacao_decidir_parcial", {
+        p_convocacao_id: args.id,
+        p_acao: args.acao,
+        p_motivo: args.motivo ?? null,
+        p_prazo: args.prazo ?? null,
+        p_colaborador_ids: args.colaboradorIds ?? null,
+        p_confirmado: args.confirmado ?? false,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: invalidate,
+  });
+
+  return {
+    rows: query.data ?? [],
+    isLoading: query.isLoading,
+    refetch: query.refetch,
+    avaliar,
+    decidir,
+  };
+}
+
 
 /** Convocações do colaborador logado (Portal), lidas pela RPC autoritativa. */
 export function useMinhasConvocacoes(colaboradorId: string | null) {
