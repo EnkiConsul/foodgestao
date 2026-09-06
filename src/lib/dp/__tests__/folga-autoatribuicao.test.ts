@@ -64,13 +64,13 @@ describe("resumos", () => {
   });
 
   it("descreve o resultado com excedentes", () => {
-    expect(resumoResultado({ geradas: 5, excedidas: 1, semDia: 2 })).toBe(
+    expect(resumoResultado({ geradas: 5, excedidas: 1, semDia: 2, ignoradas: 0 })).toBe(
       "5 folga(s) definida(s) pelo sistema — 1 em dias acima do limite (revise no calendário) — 2 pessoa(s) sem dia disponível.",
     );
   });
 
   it("descreve resultado vazio", () => {
-    expect(resumoResultado({ geradas: 0, excedidas: 0, semDia: 0 })).toBe(
+    expect(resumoResultado({ geradas: 0, excedidas: 0, semDia: 0, ignoradas: 0 })).toBe(
       "Nenhuma folga nova foi criada.",
     );
   });
