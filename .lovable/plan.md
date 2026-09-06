@@ -11,8 +11,9 @@ Correção: a janela passa a montar as opções de dia por pessoa, usando os dia
 Hoje o sistema varre o mês do começo para o fim e fica no primeiro dia livre. Passa a escolher nesta ordem:
 
 1. dias sem ninguém em folga, começando pelos **últimos dias do mês**;
-2. se todos já têm alguém, o dia com **menos gente** em folga, também dando preferência ao fim do mês;
-3. se tudo estiver no limite, mantém a contingência atual (últimos dias do mês), já sinalizada como "Acima do limite".
+2. se todos já têm alguém, o dia com **menos gente** em folga, também dando preferência ao fim do mês.
+
+**Se tudo estiver no limite, o sistema não sugere nenhum dia**: a pessoa fica marcada como "Acima do limite" e o gestor escolhe o dia manualmente entre **todos os dias possíveis** para ela, vendo ao lado de cada data **quantas pessoas já folgam naquele dia** — e pode confirmar assim mesmo, assumindo o excesso.
 
 Continuam valendo os limites por dia e cargo, os bloqueios de data e as regras de quem não pode folgar junto.
 
@@ -35,13 +36,15 @@ O botão de lixeira (que apagava o registro) sai de cena.
 
 - Nova migration (a partir da última existente) para `dp_folga_autoatribuicao_plano`, `dp_folga_autoatribuir_competencia` e `dp_folga_autoatribuicao_previa`:
   - varredura de candidatos com `ORDER BY d DESC` e escolha do dia de menor ocupação com desempate pela data mais tarde;
-  - cada item do JSON de retorno passa a trazer `dias` (os dias de descanso resolvidos pela unidade do colaborador) junto de `data_sugerida`; a chave `dias` do topo continua para compatibilidade.
-- `src/lib/dp/folga-autoatribuicao.ts`: `PlanoItem` ganha `dias: number[]`; `parsePlanoAutoatribuicao` lê o campo com fallback para o `dias` do topo; novo helper `diasEscolhaDoItem(competencia, item, diasTopo)`.
+  - **sem contingência acima do limite**: quando todos os dias possíveis já estão no limite, o item sai com `data_sugerida = null`, `excede_limite = true` e motivo `ACIMA_DO_LIMITE` (a criação automática não insere nada nesses casos);
+  - cada item do JSON passa a trazer `dias` (dias de descanso resolvidos pela unidade do colaborador) e `ocupacao` (mapa data → quantidade de folgantes), junto de `data_sugerida`; a chave `dias` do topo continua para compatibilidade.
+- `src/lib/dp/folga-autoatribuicao.ts`: `PlanoItem` ganha `dias: number[]` e `ocupacao: Record<string, number>`; novo helper `diasEscolhaDoItem(competencia, item, diasTopo)`; texto do resumo para o caso "só acima do limite" orientando a escolha manual.
+- `src/pages/dp/DpFolgas.tsx`: nas linhas "Acima do limite", o `Select` de data lista **todas** as datas válidas da pessoa com o rótulo `DD/MM · N folgando`; a confirmação da geração inclui os itens acima do limite **somente quando o gestor escolheu uma data** (a RPC de aplicação já recebe data por item).
 - `src/pages/dp/DpFolgas.tsx`:
   - opções do `Select` de cada linha vindas de `diasEscolhaDoItem` (fim de `diasEscolhaAuto` global);
   - remoção do botão "Nova solicitação", do diálogo `dialogOpen`, do estado `form` e da mutation `create` (o atalho no dia navega para `/dp/operacao?ausencia=<data>`);
   - troca do `removerFolga` (delete) por `cancelarFolga` (`UPDATE dp_folgas SET status='cancelada', observacao=<justificativa>`) e `remarcarFolga` (`UPDATE dp_folgas SET data=<nova>`), ambas com invalidação de `dp_folgas`/`dp_folgas_efetivadas`; para eventos vindos de `dp_solicitacoes` aprovadas, cancelar grava `status='cancelada'` na solicitação (a consulta já exclui canceladas).
 - `src/pages/dp/DpOperacaoPanorama.tsx` + novo `src/components/dp/DpRegistrarAusenciaDialog.tsx`: botão em `DpPageHeader`, abertura automática via `?ausencia=<data>`; grava folga em `dp_folgas` (`origem='admin_manual'`, `status='agendada'`) e demais tipos em `dp_solicitacoes` com `status='aprovada'`; invalida as chaves do panorama.
 - `useDpOperacaoPanorama` passa a ler `dp_solicitacoes` de tipos `atestado` e `outros` aprovados (hoje só `atestado`).
-- Testes: casos novos em `supabase/tests/dp_folga_autoatribuir_aplicar.test.sql` (preferência pelo fim do mês e `dias` por item), unitários de `diasEscolhaDoItem` em `src/lib/dp/__tests__/folga-autoatribuicao.test.ts`, e teste de componente do diálogo de ausência em `src/test/unit`.
+- Testes: casos novos em `supabase/tests/dp_folga_autoatribuir_aplicar.test.sql` (preferência pelo fim do mês, `dias`/`ocupacao` por item e item `ACIMA_DO_LIMITE` sem criação automática), unitários de `diasEscolhaDoItem` e do resumo em `src/lib/dp/__tests__/folga-autoatribuicao.test.ts`, e teste de componente do diálogo de ausência em `src/test/unit`.
 - Verificação: typecheck, lint, vitest, teste de banco em transação com rollback e conferência no navegador (janela "Gerar Folgas" com a data preenchida; cancelar uma folga e confirmar que o nome sai do calendário).
