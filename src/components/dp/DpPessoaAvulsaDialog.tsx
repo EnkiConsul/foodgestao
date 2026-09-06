@@ -91,7 +91,7 @@ export function DpPessoaAvulsaDialog({
     const dataBase = registro?.data_inicio ?? (dataInicial > hojeIso() ? hojeIso() : dataInicial);
     setForm({
       nome: registro?.nome ?? "",
-      tipo: registro?.tipo ?? "registro_manual",
+      tipo: registro?.tipo ?? "folguista",
       colaborador_id: registro?.colaborador_id ?? "",
       unidade_id: registro?.unidade_id ?? unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
       cargo_id: registro?.cargo_id ?? "",
