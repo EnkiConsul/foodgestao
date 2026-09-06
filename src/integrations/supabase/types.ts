@@ -3822,6 +3822,7 @@ export type Database = {
           id: string
           intervalo_minutos: number | null
           saida: string | null
+          setor_id: string | null
           trabalha: boolean
           turno_id: string | null
           updated_at: string
@@ -3835,6 +3836,7 @@ export type Database = {
           id?: string
           intervalo_minutos?: number | null
           saida?: string | null
+          setor_id?: string | null
           trabalha?: boolean
           turno_id?: string | null
           updated_at?: string
@@ -3848,6 +3850,7 @@ export type Database = {
           id?: string
           intervalo_minutos?: number | null
           saida?: string | null
+          setor_id?: string | null
           trabalha?: boolean
           turno_id?: string | null
           updated_at?: string
@@ -3865,6 +3868,13 @@ export type Database = {
             columns: ["config_id"]
             isOneToOne: false
             referencedRelation: "dp_colaborador_config_trabalho"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_config_dias_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "dp_setores"
             referencedColumns: ["id"]
           },
           {
@@ -6159,6 +6169,8 @@ export type Database = {
           observacao: string | null
           origem: Database["public"]["Enums"]["dp_escala_item_origem"]
           saida: string | null
+          setor_id: string | null
+          setor_motivo: string | null
           termina_no_dia_seguinte: boolean
           tipo: Database["public"]["Enums"]["dp_escala_item_tipo"]
           turno_id: string | null
@@ -6177,6 +6189,8 @@ export type Database = {
           observacao?: string | null
           origem?: Database["public"]["Enums"]["dp_escala_item_origem"]
           saida?: string | null
+          setor_id?: string | null
+          setor_motivo?: string | null
           termina_no_dia_seguinte?: boolean
           tipo?: Database["public"]["Enums"]["dp_escala_item_tipo"]
           turno_id?: string | null
@@ -6195,6 +6209,8 @@ export type Database = {
           observacao?: string | null
           origem?: Database["public"]["Enums"]["dp_escala_item_origem"]
           saida?: string | null
+          setor_id?: string | null
+          setor_motivo?: string | null
           termina_no_dia_seguinte?: boolean
           tipo?: Database["public"]["Enums"]["dp_escala_item_tipo"]
           turno_id?: string | null
@@ -6227,6 +6243,13 @@ export type Database = {
             columns: ["escala_id"]
             isOneToOne: false
             referencedRelation: "dp_escalas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_escala_itens_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "dp_setores"
             referencedColumns: ["id"]
           },
           {
@@ -12961,6 +12984,16 @@ export type Database = {
         Returns: number
       }
       dp_escala_auto_gerar_todas: { Args: never; Returns: number }
+      dp_escala_definir_setor_dia: {
+        Args: {
+          p_acao: string
+          p_colaborador_id: string
+          p_data: string
+          p_motivo?: string
+          p_setor_id?: string
+        }
+        Returns: Json
+      }
       dp_excluir_colaborador: {
         Args: { p_colaborador_id: string; p_motivo: string }
         Returns: undefined
@@ -13203,6 +13236,34 @@ export type Database = {
       dp_restaurar_colaborador: {
         Args: { p_colaborador_id: string }
         Returns: undefined
+      }
+      dp_setor_previsto: {
+        Args: { p_colaborador_id: string; p_data: string }
+        Returns: {
+          origem: string
+          referencia_id: string
+          setor_id: string
+          setor_nome: string
+          status: string
+          unidade_id: string
+        }[]
+      }
+      dp_setor_previsto_id: {
+        Args: { p_colaborador_id: string; p_data: string }
+        Returns: string
+      }
+      dp_setor_previsto_periodo: {
+        Args: { p_fim: string; p_inicio: string; p_unidade_id: string }
+        Returns: {
+          colaborador_id: string
+          data: string
+          origem: string
+          referencia_id: string
+          setor_id: string
+          setor_nome: string
+          status: string
+          unidade_id: string
+        }[]
       }
       dp_sindicato_conflitos: {
         Args: {
