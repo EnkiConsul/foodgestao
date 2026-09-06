@@ -45,6 +45,7 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar }: T
   const meta = metaStatusTroca(troca.status);
   const acoes = acoesGestorTroca(troca.status, troca.modo);
   const unidade = troca.destino?.unidade?.nome ?? troca.solicitante?.unidade?.nome ?? null;
+  const inconsistente = trocaInconsistente(troca);
 
   return (
     <div
