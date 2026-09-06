@@ -3,8 +3,23 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
+import {
+  FILTROS_TROCA_PADRAO,
+  filtrarTrocas,
+  type TrocaFiltros,
+} from "@/lib/dp/trocas-filtros";
 
 export type DpTrocaModo = "direta" | "aprovacao_admin" | "proibida";
+
+/** Colaborador envolvido na troca, com cargo e unidade já resolvidos. */
+export type DpTrocaPessoa = {
+  nome: string | null;
+  matricula: string | null;
+  cargo_id: string | null;
+  unidade_id: string | null;
+  cargo: { nome: string | null } | null;
+  unidade: { nome: string | null } | null;
+} | null;
 
 export type DpTrocaRow = {
   id: string;
@@ -20,8 +35,8 @@ export type DpTrocaRow = {
   gestor_resposta: string | null;
   gestor_respondido_em: string | null;
   created_at: string;
-  solicitante: { nome: string | null } | null;
-  destino: { nome: string | null; unidade_id: string | null } | null;
+  solicitante: DpTrocaPessoa;
+  destino: DpTrocaPessoa;
   /** Modo de troca resolvido pelas regras de folga da unidade do destinatário. */
   modo: DpTrocaModo;
 };
@@ -32,13 +47,16 @@ export type ResponderTrocaInput = {
   obs?: string;
 };
 
+const PESSOA_SELECT =
+  "nome, matricula, cargo_id, unidade_id, cargo:cargo_id(nome), unidade:unidade_id(nome)";
+
 /**
  * Dados e mutations da tela de Trocas (DP, visão do gestor).
  * O gestor nunca responde em nome do colega: aprova (quando a unidade exige
  * aprovação), recusa ou cancela uma troca já aprovada.
- * `filtro` = "todos" ou um status de dp_trocas.
+ * `filtros` controla busca, unidade, cargo, situação, período e ordenação.
  */
-export function useDpTrocas(filtro: string = "todos") {
+export function useDpTrocas(filtros: TrocaFiltros = FILTROS_TROCA_PADRAO) {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
 
@@ -52,7 +70,9 @@ export function useDpTrocas(filtro: string = "todos") {
 
       const { data, error } = await supabase
         .from("dp_trocas")
-        .select("*, solicitante:solicitante_id(nome), destino:destino_id(nome, unidade_id)")
+        .select(
+          `*, solicitante:solicitante_id(${PESSOA_SELECT}), destino:destino_id(${PESSOA_SELECT})`,
+        )
         .eq("company_id", selectedCompanyId!)
         .order("created_at", { ascending: false });
 
@@ -80,11 +100,11 @@ export function useDpTrocas(filtro: string = "todos") {
     },
   });
 
-  const filtered = useMemo(() => {
-    const rows = list.data ?? [];
-    if (filtro === "todos") return rows;
-    return rows.filter((r) => r.status === filtro);
-  }, [list.data, filtro]);
+  const filtered = useMemo(
+    () => filtrarTrocas(list.data ?? [], filtros),
+    [list.data, filtros],
+  );
+
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["dp_trocas"] });
