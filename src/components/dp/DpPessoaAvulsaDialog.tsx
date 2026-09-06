@@ -16,7 +16,9 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { pessoaAvulsaSchema, validateWithToast } from "@/lib/validations";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
+import { useDpPessoasApoio, useSalvarDpPessoaApoio } from "@/hooks/useDpPessoasApoio";
 import type { HorarioSugerido, PessoaAvulsaPanorama, PessoaAvulsaTipo } from "@/lib/dp/operacao-panorama";
+
 
 interface Props {
   open: boolean;
