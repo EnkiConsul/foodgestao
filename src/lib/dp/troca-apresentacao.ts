@@ -46,3 +46,18 @@ export function dataComDiaSemana(iso: string | null, completo = false): string {
   const label = dia.charAt(0).toUpperCase() + dia.slice(1);
   return `${label}, ${format(d, completo ? "dd/MM/yyyy" : "dd/MM")}`;
 }
+
+/**
+ * Registro antigo inválido: mesma data nos dois lados ou a mesma pessoa como
+ * solicitante e colega. Não é troca real — só existe no histórico legado.
+ */
+export function trocaInconsistente(troca: {
+  data_original: string | null;
+  data_proposta: string | null;
+  solicitante_id?: string | null;
+  destino_id?: string | null;
+}): boolean {
+  if (troca.data_original && troca.data_original === troca.data_proposta) return true;
+  return !!troca.solicitante_id && troca.solicitante_id === troca.destino_id;
+}
+
