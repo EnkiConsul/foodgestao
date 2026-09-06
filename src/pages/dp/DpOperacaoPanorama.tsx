@@ -709,6 +709,7 @@ export default function DpOperacaoPanorama() {
     onNovaAvulsa: abrirNovaAvulsa,
     onEditarAvulsa: abrirEdicaoAvulsa,
     onExcluirAvulsa: excluirAvulsa,
+    onVerAvulso: setDetalheAvulso,
   };
 
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
