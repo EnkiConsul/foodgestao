@@ -90,7 +90,7 @@ export function PropostaParcialDialog({
         {validacao.ok ? (
           <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm space-y-1">
             <p>
-              Você cobre {formatarMinutos(validacao.minutos)}
+              Você cobre {formatarMinutos("minutos" in validacao ? validacao.minutos : null)}
               {viraODia ? " (saída no dia seguinte)" : ""}.
             </p>
             {descoberto && descoberto.total > 0 ? (
@@ -106,7 +106,7 @@ export function PropostaParcialDialog({
             </p>
           </div>
         ) : (
-          <p className="text-sm text-destructive">{MOTIVO_PARCIAL_TEXTO[validacao.motivo]}</p>
+          <p className="text-sm text-destructive">{"motivo" in validacao ? MOTIVO_PARCIAL_TEXTO[validacao.motivo] : ""}</p>
         )}
 
         <div className="space-y-1.5">
@@ -123,7 +123,7 @@ export function PropostaParcialDialog({
             Voltar
           </Button>
           <Button
-            disabled={!ok || loading}
+            disabled={!validacao.ok || loading}
             onClick={() =>
               onConfirm({
                 entrada,
