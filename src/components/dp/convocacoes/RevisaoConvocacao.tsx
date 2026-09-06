@@ -246,8 +246,17 @@ export function RevisaoConvocacao(props: Props) {
                   <Badge variant="outline" className="text-[10px]">+{o.dia.aguardando} aguardando</Badge>
                 )}
                 {o.dia.abaixoDaAntecedencia && (
-                  <Badge variant="destructive" className="text-[10px]">Abaixo da antecedência</Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-amber-500/40 bg-amber-500/15 text-[10px] text-amber-700 dark:text-amber-300"
+                  >
+                    Em cima da hora
+                    {o.dia.antecedencia != null
+                      ? ` · ${o.dia.antecedencia === 0 ? "hoje" : `${o.dia.antecedencia} dia(s) de antecedência`}`
+                      : ""}
+                  </Badge>
                 )}
+
               </span>
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">
