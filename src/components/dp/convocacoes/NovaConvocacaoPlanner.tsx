@@ -545,7 +545,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     }
     setRemovidas({});
 
-    for (const d of diasCompletos) {
+    for (const d of diasParaGravar) {
       const res: any = await salvarOcorrencia.mutateAsync({
         ocorrencia_id: d.id,
         grupo_id: grupoId,
@@ -557,18 +557,18 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
         vagas: d.vagas,
         colaborador_alvo_id: null,
         expected_updated_at: d.expected_updated_at,
-        ...(usaHorarioGeral
+        ...(usaHg
           ? {
               horario_modo: "horario_unico" as const,
-              entrada: horarioGeral.entrada,
-              saida: horarioGeral.saida,
-              intervalo_minutos: horarioGeral.intervalo_minutos,
-              termina_no_dia_seguinte: horarioGeral.vira,
+              entrada: hg.entrada,
+              saida: hg.saida,
+              intervalo_minutos: hg.intervalo_minutos,
+              termina_no_dia_seguinte: hg.vira,
               carga_prevista_horas: cargaPrevistaHoras({
-                entrada: horarioGeral.entrada,
-                saida: horarioGeral.saida,
-                intervalo_minutos: horarioGeral.intervalo_minutos,
-                termina_no_dia_seguinte: horarioGeral.vira,
+                entrada: hg.entrada,
+                saida: hg.saida,
+                intervalo_minutos: hg.intervalo_minutos,
+                termina_no_dia_seguinte: hg.vira,
               }),
             }
           : {
