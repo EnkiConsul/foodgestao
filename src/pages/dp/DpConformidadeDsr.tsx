@@ -195,13 +195,31 @@ export default function DpConformidadeDsr() {
     setBusca("");
   };
 
-  const porAcordo = configPadraoEmpresa.tipo_descanso_domingo === "acordo_coletivo";
-  const semanas = semanasDaConfig(configPadraoEmpresa);
+  const porAcordo =
+    configPadraoEmpresa.tipo_descanso_domingo === "acordo_coletivo" ||
+    rows.some((r) => r.unidade_id && r.tipo_descanso_domingo === "acordo_coletivo");
+  const tipoDias = tipoDiasDescanso(diasElegiveisDaConfig(configPadraoEmpresa));
+  const regraPadraoLabel = rotuloFrequencia(
+    configPadraoEmpresa.modo_frequencia_domingo ?? "semanas",
+    (configPadraoEmpresa.modo_frequencia_domingo ?? "semanas") === "por_mes"
+      ? (configPadraoEmpresa.domingos_por_mes ?? 0)
+      : semanasDaConfig(configPadraoEmpresa).geral,
+    tipoDias,
+  );
+  const regraMulherLabel = rotuloFrequencia(
+    configPadraoEmpresa.modo_frequencia_domingo_mulher ?? "semanas",
+    (configPadraoEmpresa.modo_frequencia_domingo_mulher ?? "semanas") === "por_mes"
+      ? (configPadraoEmpresa.domingos_por_mes_mulher ?? 0)
+      : semanasDaConfig(configPadraoEmpresa).mulher,
+    tipoDias,
+  );
+  const unidadesComExcecao = rows.filter((r) => r.unidade_id).length;
   const diasNegociadosLabel = (configPadraoEmpresa.dias_descanso_negociados ?? [])
     .map((d) => DIA_SEMANA_CURTO[d])
     .join(", ");
   const foraDeConformidade = linhas.filter((l) => !l.conforme).length;
   const foraFiltrado = linhasFiltradas.filter((l) => !l.conforme).length;
+
 
 
   const exportarCsv = () => {
