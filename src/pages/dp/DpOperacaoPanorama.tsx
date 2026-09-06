@@ -409,7 +409,7 @@ function DetalheDiaOperacao({
                               </Badge>
                             )}
                             <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
-                              {CATEGORIA_LABEL[p.categoria]}
+                              {rotuloCategoriaPessoa(p)}
                             </Badge>
                           </div>
                         </li>
