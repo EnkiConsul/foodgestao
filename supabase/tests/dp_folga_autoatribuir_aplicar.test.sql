@@ -165,7 +165,7 @@ VALUES ('e7777777-7777-7777-7777-777777777777', 'c1111111-1111-1111-1111-1111111
 
 INSERT INTO public.dp_folgas (company_id, colaborador_id, data, tipo, origem, status, extra)
 SELECT 'c1111111-1111-1111-1111-111111111111',
-       'e7777777-7777-7777-7777-777777777777', d::date, 'normal', 'gestor', 'agendada', false
+       'e7777777-7777-7777-7777-777777777777', d::date, 'normal', 'admin_manual', 'agendada', false
   FROM generate_series(date_trunc('month', now())::date,
                        (date_trunc('month', now()) + interval '1 month - 1 day')::date,
                        interval '1 day') AS d
