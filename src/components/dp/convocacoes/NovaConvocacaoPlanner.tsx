@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, CalendarDays, Clock, Loader2, Save, Send, Users } from "lucide-react";
+import { AlertTriangle, CalendarDays, Clock, Eye, Loader2, Save, Send, Users } from "lucide-react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -17,6 +17,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MonthGridCalendar } from "@/components/dp/convocacoes/MonthGridCalendar";
+import { RevisaoConvocacao } from "@/components/dp/convocacoes/RevisaoConvocacao";
+
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -103,6 +105,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const [salvando, setSalvando] = useState(false);
   const [publicando, setPublicando] = useState(false);
   const [justificativa, setJustificativa] = useState("");
+  const [revisando, setRevisando] = useState(false);
 
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
@@ -122,6 +125,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   useEffect(() => {
     if (!open) return;
     setDetalhe(null);
+    setRevisando(false);
     setRemovidas({});
     setJustificativa("");
     setOverrides({});
@@ -540,8 +544,51 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="min-h-0 flex-1">
+            {revisando ? (
+              <div className="p-4">
+                <RevisaoConvocacao
+                  unidadeId={unidadeId}
+                  unidadeNome={(unidades.data ?? []).find((u: any) => u.id === unidadeId)?.nome ?? "—"}
+                  competencia={competencia}
+                  titulo={titulo.trim()}
+                  observacao={observacao.trim()}
+                  dias={diasCompletos.map((d) => {
+                    const cob = cobertura(d.data, d.cargo_id);
+                    return {
+                      cargo_id: d.cargo_id,
+                      cargo_nome: nomeCargo(d.cargo_id),
+                      data: d.data,
+                      entrada: d.entrada,
+                      saida: d.saida,
+                      vira: d.vira,
+                      vagas: d.vagas,
+                      minimo: cob.minimo ?? null,
+                      confirmados: cob.confirmados,
+                      aguardando: cob.aguardando,
+                      faltam: cob.faltam ?? null,
+                      abaixoDaAntecedencia: antecedenciaDias(d.data) < antecedenciaMinima,
+                    };
+                  })}
+                  destinatarios={destinatarios.map((id) => {
+                    const c = (colaboradores.data ?? []).find((x: any) => x.id === id);
+                    return {
+                      id,
+                      nome: c?.nome ?? "—",
+                      cargo_id: c?.cargo_id ?? null,
+                      cargo_nome: nomeCargo(c?.cargo_id ?? null),
+                    };
+                  })}
+                  overrides={overrides}
+                  horarioGeral={usaHorarioGeral ? horarioGeral : null}
+                  jornadaDe={preview.jornadaDe}
+                  prazoRespostaDias={config.data?.prazo_resposta_dias_uteis ?? null}
+                  justificativa={justificativa.trim()}
+                />
+              </div>
+            ) : (
             <div className="space-y-4 p-4">
+
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label>Unidade *</Label>
@@ -648,7 +695,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     Nenhum intermitente ou freelancer ativo nesta unidade com os cargos escolhidos.
                   </p>
                 ) : (
-                  <div className="grid max-h-56 grid-cols-1 gap-1.5 overflow-y-auto rounded-lg border border-border p-2 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-border p-2 md:grid-cols-2">
                     {convocaveis.map((c: any) => {
                       const marcado = destinatarios.includes(c.id);
                       return (
@@ -813,6 +860,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                 </Alert>
               )}
             </div>
+            )}
           </ScrollArea>
 
           <DialogFooter className="flex-row items-center justify-between gap-2 border-t border-border p-3">
@@ -820,21 +868,46 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
               {diasCompletos.length} dia(s) · {destinatarios.length} destinatário(s)
             </span>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={salvarRascunho} disabled={!podeSalvar || salvando || publicando}>
-                {salvando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
-                Salvar rascunho
-              </Button>
-              <Button
-                size="sm"
-                onClick={publicarGrupo}
-                disabled={!podeSalvar || publicando || salvando ||
-                  (exigeJustificativa && foraDaAntecedencia.length > 0 && !justificativa.trim())}
-              >
-                {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
-                Publicar
-              </Button>
+              {revisando ? (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => setRevisando(false)} disabled={publicando}>
+                    Voltar e ajustar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={publicarGrupo}
+                    disabled={!podeSalvar || publicando || salvando ||
+                      (exigeJustificativa && foraDaAntecedencia.length > 0 && !justificativa.trim())}
+                  >
+                    {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
+                    Confirmar e publicar
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" size="sm" onClick={salvarRascunho} disabled={!podeSalvar || salvando || publicando}>
+                    {salvando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
+                    Salvar rascunho
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!podeSalvar) {
+                        toast.error("Informe unidade, cargos, destinatários e ao menos um dia completo.");
+                        return;
+                      }
+                      setRevisando(true);
+                    }}
+                    disabled={salvando || publicando}
+                  >
+                    <Eye className="mr-1 h-4 w-4" />
+                    Revisar e publicar
+                  </Button>
+                </>
+              )}
             </div>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 
