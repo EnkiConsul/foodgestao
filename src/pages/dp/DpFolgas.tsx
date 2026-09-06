@@ -52,7 +52,14 @@ import {
 import { CalendarSkeleton } from "@/components/dp/DpSkeletons";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  parsePreviaAutoatribuicao,
+  parseResultadoAutoatribuicao,
+  resumoPrevia,
+  resumoResultado,
+} from "@/lib/dp/folga-autoatribuicao";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpFolgasQueries } from "@/hooks/useDpFolgasQueries";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
@@ -165,6 +172,7 @@ export default function DpFolgas() {
   const [quickColabId, setQuickColabId] = useState<string>("");
   const [editLimit, setEditLimit] = useState<number>(1);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [autoOpen, setAutoOpen] = useState(false);
   const [form, setForm] = useState({
     colaborador_id: "",
     tipo: "folga" as Tipo,
