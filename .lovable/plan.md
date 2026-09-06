@@ -2,6 +2,8 @@
 
 ## 1. Cards de "Em teste" e "Folguista" no dia
 
+Além dos novos cards, mover o botão "Adicionar pessoa" do final da seção "Pessoas Avulsas no Dia" para o topo da tela da Rotina do Dia, ao lado do botão "Registrar Ausência", para ficar visível assim que o gestor abre o dia.
+
 Na aba Rotina do Dia (e na janela que abre ao clicar num dia do calendário), incluir dois novos cards ao lado dos existentes:
 
 - **Em teste** — quantas pessoas avulsas do tipo teste estão no dia selecionado.
