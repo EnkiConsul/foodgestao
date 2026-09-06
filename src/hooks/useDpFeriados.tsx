@@ -34,6 +34,17 @@ const textoErro = (msg?: string | null) => {
   return msg;
 };
 
+export type ReplicarModo = "completar" | "substituir";
+export type ReplicarResumo = { unidades: number; copiados: number; existentes: number };
+
+/** Chave de comparação de uma regra de feriado, para evitar duplicidade. */
+export const chaveFeriado = (f: FeriadoRegra) =>
+  f.tipo === "especifica"
+    ? `especifica:${f.data ?? ""}`
+    : f.tipo === "anual"
+      ? `anual:${f.dia ?? ""}-${f.mes ?? ""}`
+      : `relativa:${f.ordinal ?? ""}-${f.dia_semana ?? ""}-${f.mes ?? ""}`;
+
 /** Calendário de feriados de uma unidade: cadastro, edição e liga/desliga. */
 export function useDpFeriados(unidadeId?: string | null) {
   const { selectedCompanyId } = useCompanyContext();
