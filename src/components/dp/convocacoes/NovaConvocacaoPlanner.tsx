@@ -595,13 +595,17 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     }
 
     // Público restrito: o backend só envia para estas pessoas.
-    const dest: any = await definirDestinatarios.mutateAsync({
-      grupo_id: grupoId,
-      colaboradores: destinatarios,
-      expected_updated_at: expected!,
-      niveis: destinatarios.map((id) => ({ colaborador_id: id, nivel: niveis[id] ?? 1 })),
-      intervalo_niveis_horas: destinatarios.length > 1 ? intervaloNiveisHoras : null,
-    });
+    // O carimbo é relido do banco: gravar as necessidades pode ter avançado a
+    // versão do grupo, e um carimbo antigo seria recusado como "conflito".
+    const dest: any = await comCarimboAtual(lerCarimboGrupo, (carimbo) =>
+      definirDestinatarios.mutateAsync({
+        grupo_id: grupoId,
+        colaboradores: destinatarios,
+        expected_updated_at: carimbo!,
+        niveis: destinatarios.map((id) => ({ colaborador_id: id, nivel: niveis[id] ?? 1 })),
+        intervalo_niveis_horas: destinatarios.length > 1 ? intervaloNiveisHoras : null,
+      }),
+    );
 
     expected = dest?.updated_at ?? expected;
 
@@ -610,15 +614,19 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       const [cargoId, data, colaboradorId] = k.split("|");
       const dia = mapaDias[chave(cargoId, data)];
       if (!dia) continue;
-      const res: any = await definirOverride.mutateAsync({
-        ocorrencia_id: dia.id,
-        colaborador_id: colaboradorId,
-        entrada: h.entrada || null,
-        saida: h.saida || null,
-        intervalo_minutos: h.intervalo_minutos,
-        termina_no_dia_seguinte: h.vira,
-        expected_updated_at: expected!,
-      });
+      const res: any = await comCarimboAtual(
+        async () => expected ?? (await lerCarimboGrupo()),
+        (carimbo) =>
+          definirOverride.mutateAsync({
+            ocorrencia_id: dia.id,
+            colaborador_id: colaboradorId,
+            entrada: h.entrada || null,
+            saida: h.saida || null,
+            intervalo_minutos: h.intervalo_minutos,
+            termina_no_dia_seguinte: h.vira,
+            expected_updated_at: carimbo!,
+          }),
+      );
       expected = res?.grupo_updated_at ?? expected;
     }
 
