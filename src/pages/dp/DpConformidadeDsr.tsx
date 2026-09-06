@@ -52,16 +52,41 @@ function weekdayIso(iso: string): number {
 
 interface LinhaComUnidade extends ConformidadeInput {
   unidadeId: string | null;
+  cargoId: string | null;
 }
+
+type LinhaConformidade = ConformidadeLinha & { unidadeId: string | null; cargoId: string | null };
+
+const TODOS = "__todos__";
+const SEM_VINCULO = "__sem__";
 
 export default function DpConformidadeDsr() {
   const embedded = useDpEmbedded();
   const { selectedCompanyId } = useCompanyContext();
   const { config: configPadraoEmpresa, rows } = useDpConfigDp();
   const [competencia, setCompetencia] = useState(competenciaAtual);
+  const [unidadeFiltro, setUnidadeFiltro] = useState<string>(TODOS);
+  const [cargoFiltro, setCargoFiltro] = useState<string>(TODOS);
+  const [situacaoFiltro, setSituacaoFiltro] = useState<"todos" | "fora" | "conforme">("todos");
+  const [busca, setBusca] = useState("");
+
+  const unidadesQuery = useDpUnidades();
+  const cargosQuery = useDpCargos();
+  const unidadeNome = useMemo(() => {
+    const map = new Map<string, string>();
+    (unidadesQuery.data ?? []).forEach((u) => map.set(u.id, u.nome));
+    return map;
+  }, [unidadesQuery.data]);
+  const cargoNome = useMemo(() => {
+    const map = new Map<string, string>();
+    (cargosQuery.data ?? []).forEach((c) => map.set(c.id, c.nome));
+    return map;
+  }, [cargosQuery.data]);
 
   const domingos = useMemo(() => diasDaSemanaDoMes(competencia, 0), [competencia]);
-  const fim = `${competencia}-31`;
+  const inicio = primeiroDiaDoMes(competencia);
+  const fim = ultimoDiaDoMes(competencia);
+
 
   /** Regra efetiva da unidade (exceção quando existir, senão padrão da empresa). */
   const configDaUnidade = useMemo(() => {
