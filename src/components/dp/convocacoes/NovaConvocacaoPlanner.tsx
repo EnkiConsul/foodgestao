@@ -540,8 +540,51 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="min-h-0 flex-1">
+            {revisando ? (
+              <div className="p-4">
+                <RevisaoConvocacao
+                  unidadeId={unidadeId}
+                  unidadeNome={(unidades.data ?? []).find((u: any) => u.id === unidadeId)?.nome ?? "—"}
+                  competencia={competencia}
+                  titulo={titulo.trim()}
+                  observacao={observacao.trim()}
+                  dias={diasCompletos.map((d) => {
+                    const cob = cobertura(d.data, d.cargo_id);
+                    return {
+                      cargo_id: d.cargo_id,
+                      cargo_nome: nomeCargo(d.cargo_id),
+                      data: d.data,
+                      entrada: d.entrada,
+                      saida: d.saida,
+                      vira: d.vira,
+                      vagas: d.vagas,
+                      minimo: cob.minimo ?? null,
+                      confirmados: cob.confirmados,
+                      aguardando: cob.aguardando,
+                      faltam: cob.faltam ?? null,
+                      abaixoDaAntecedencia: antecedenciaDias(d.data) < antecedenciaMinima,
+                    };
+                  })}
+                  destinatarios={destinatarios.map((id) => {
+                    const c = (colaboradores.data ?? []).find((x: any) => x.id === id);
+                    return {
+                      id,
+                      nome: c?.nome ?? "—",
+                      cargo_id: c?.cargo_id ?? null,
+                      cargo_nome: nomeCargo(c?.cargo_id ?? null),
+                    };
+                  })}
+                  overrides={overrides}
+                  horarioGeral={usaHorarioGeral ? horarioGeral : null}
+                  jornadaDe={preview.jornadaDe}
+                  prazoRespostaDias={config.data?.prazo_resposta_dias_uteis ?? null}
+                  justificativa={justificativa.trim()}
+                />
+              </div>
+            ) : (
             <div className="space-y-4 p-4">
+
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label>Unidade *</Label>
