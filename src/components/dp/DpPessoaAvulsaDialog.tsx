@@ -55,6 +55,7 @@ export function DpPessoaAvulsaDialog({
   colaboradores,
   registro,
   salvando,
+  sugerirHorario,
   onSalvar,
 }: Props) {
   const [form, setForm] = useState({
@@ -70,6 +71,7 @@ export function DpPessoaAvulsaDialog({
     termina_no_dia_seguinte: false,
     observacao: "",
   });
+  const [horarioTocado, setHorarioTocado] = useState(false);
 
   useEffect(() => {
     if (!open) return;
