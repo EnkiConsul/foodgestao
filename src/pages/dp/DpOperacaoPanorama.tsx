@@ -717,6 +717,9 @@ export default function DpOperacaoPanorama() {
     ? (diaAtivo?.pessoas ?? []).filter((p) => p.categoria === detalheCategoria)
     : [];
   const sociosDoDialogo = sociosDe(diaAtivo);
+  const avulsosDoDiaAtivo = (diaAtivo?.pessoas ?? []).filter(
+    (p) => p.origem === "avulso" && (detalheAvulso == null || p.avulso_tipo === (detalheAvulso === "avulso_teste" ? "teste" : "folguista")),
+  );
 
 
   /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
