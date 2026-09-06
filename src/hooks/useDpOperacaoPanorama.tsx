@@ -43,11 +43,14 @@ export interface AusenciaRegistrada {
   motivo: string | null;
 }
 
-/** Dados do cadastro rápido de pessoa avulsa (teste/folguista). */
+/** Dados do cadastro rápido de pessoa avulsa (teste/folguista/registro manual). */
 export interface PessoaAvulsaInput {
   id?: string;
-  nome: string;
+  /** Nome livre; nulo no registro manual de colaborador cadastrado. */
+  nome?: string | null;
   tipo: PessoaAvulsaTipo;
+  /** Colaborador cadastrado, obrigatório no registro manual. */
+  colaborador_id?: string | null;
   unidade_id: string;
   cargo_id: string;
   cobre_colaborador_id?: string | null;
@@ -58,6 +61,7 @@ export interface PessoaAvulsaInput {
   termina_no_dia_seguinte?: boolean;
   observacao?: string | null;
 }
+
 
 const DISPENSA_SENTINELA = "00000000-0000-0000-0000-000000000000";
 
