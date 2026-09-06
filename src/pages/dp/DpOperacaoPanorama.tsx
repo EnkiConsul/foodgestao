@@ -246,6 +246,7 @@ interface DetalheDiaProps {
   onReordenarCards: (next: string[]) => void;
   onVerCategoria: (cat: CategoriaDia) => void;
   onVerSocios: () => void;
+  onVerAvulso: (tipo: "avulso_teste" | "avulso_folguista") => void;
   onDispensar: (d: DiaPanorama) => void;
   onReativar: (d: DiaPanorama) => void;
   /** Pessoas avulsas (teste/folguista) que cobrem este dia. */
