@@ -56,11 +56,14 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  parsePreviaAutoatribuicao,
+  diasValidosDoMes,
+  parsePlanoAutoatribuicao,
   parseResultadoAutoatribuicao,
-  resumoPrevia,
+  resumoPlano,
   resumoResultado,
+  type PlanoItem,
 } from "@/lib/dp/folga-autoatribuicao";
+
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpFolgasQueries } from "@/hooks/useDpFolgasQueries";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
