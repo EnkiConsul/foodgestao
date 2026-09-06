@@ -24,7 +24,7 @@ import { useDpFolgaLimites, type RegraLimiteInput } from "@/hooks/useDpFolgaLimi
 import {
   diasPermitidosParaLimite,
   partesRegraLimite,
-  resumoRegraLimite,
+  
   TIPO_REGRA_LABEL,
   type RegraLimiteFolga,
   type TipoRegraFolga,
