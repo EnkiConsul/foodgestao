@@ -285,7 +285,7 @@ function DetalheDiaOperacao({
   podeRegistrar,
   onNovaAvulsa,
   onEditarAvulsa,
-  onExcluirAvulso,
+  onExcluirAvulsa,
 }: DetalheDiaProps) {
   const foraDaOperacao = dia.pessoas.filter((p) =>
     ["folga_padrao", "folga_extra", "ferias", "atestado"].includes(p.categoria),
