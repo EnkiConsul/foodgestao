@@ -93,6 +93,33 @@ export interface ItemEscalaPanorama {
   intervalo_minutos?: number | null;
 }
 
+export type PessoaAvulsaTipo = "teste" | "folguista";
+
+/**
+ * Pessoa registrada só para a rotina do dia (em teste na loja ou folguista
+ * cobrindo alguém). Não é colaborador cadastrado: não tem jornada, folga,
+ * ponto nem convocação — apenas ocupa o dia.
+ */
+export interface PessoaAvulsaPanorama {
+  id: string;
+  nome: string;
+  tipo: PessoaAvulsaTipo;
+  unidade_id: string | null;
+  cargo_id: string | null;
+  cargo_nome: string | null;
+  cobre_nome: string | null;
+  data_inicio: string;
+  data_fim: string;
+  entrada: string | null;
+  saida: string | null;
+  termina_no_dia_seguinte: boolean;
+  observacao: string | null;
+}
+
+/** Id sintético usado nas listas do painel (nunca é um colaborador real). */
+export const idPessoaAvulsa = (id: string) => `avulso:${id}`;
+
+
 export interface PessoaPanorama {
   colaborador_id: string;
   nome: string;
