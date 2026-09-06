@@ -500,6 +500,49 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_panorama_dispensas"] }),
   });
 
+  const salvarAvulsa = useMutation({
+    mutationFn: async (input: PessoaAvulsaInput) => {
+      const { data: userData } = await supabase.auth.getUser();
+      const payload = {
+        company_id: selectedCompanyId!,
+        unidade_id: input.unidade_id,
+        cargo_id: input.cargo_id,
+        nome: input.nome.trim(),
+        tipo: input.tipo,
+        cobre_colaborador_id: input.tipo === "folguista" ? input.cobre_colaborador_id ?? null : null,
+        data_inicio: input.data_inicio,
+        data_fim: input.data_fim,
+        entrada: input.entrada || null,
+        saida: input.saida || null,
+        termina_no_dia_seguinte: !!input.termina_no_dia_seguinte,
+        observacao: input.observacao?.trim() || null,
+      };
+      if (input.id) {
+        const { error } = await supabase
+          .from("dp_pessoas_avulsas")
+          .update(payload)
+          .eq("id", input.id);
+        if (error) throw error;
+        return;
+      }
+      const { error } = await supabase
+        .from("dp_pessoas_avulsas")
+        .insert({ ...payload, criado_por: userData.user?.id ?? null });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_pessoas_avulsas"] }),
+  });
+
+  const excluirAvulsa = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("dp_pessoas_avulsas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_pessoas_avulsas"] }),
+  });
+
+
+
   /** Funcionamento por unidade, no formato de períodos por dia da semana. */
   const funcionamentoPorUnidade = useMemo(() => {
     const out = new Map<string, HorarioFuncionamentoDia[]>();
