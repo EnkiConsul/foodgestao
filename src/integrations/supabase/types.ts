@@ -12218,6 +12218,10 @@ export type Database = {
         Args: { _ano: number; _regra_id: string }
         Returns: string
       }
+      dp_cancelar_troca: {
+        Args: { _motivo: string; _troca_id: string }
+        Returns: Json
+      }
       dp_capacidade_habitual_dia_cargo: {
         Args: {
           p_cargo: string
