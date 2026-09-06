@@ -377,12 +377,14 @@ export default function DpConformidadeDsr() {
         <DpContentCard contentClassName="p-3 md:p-0 md:overflow-x-auto">
           {/* Mobile: cartões por colaborador */}
           <ul className="space-y-3 md:hidden">
-            {linhas.length === 0 && (
+            {linhasFiltradas.length === 0 && (
               <li className="py-8 text-center text-sm text-muted-foreground">
-                Nenhum colaborador ativo no período.
+                {linhas.length === 0
+                  ? "Nenhum colaborador ativo no período."
+                  : "Nenhum resultado para os filtros aplicados."}
               </li>
             )}
-            {linhas.map((l) => (
+            {linhasFiltradas.map((l) => (
               <li
                 key={l.colaboradorId}
                 className={cn(
@@ -393,10 +395,17 @@ export default function DpConformidadeDsr() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{l.nome}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {[
+                        (l.unidadeId && unidadeNome.get(l.unidadeId)) || null,
+                        (l.cargoId && cargoNome.get(l.cargoId)) || null,
+                      ].filter(Boolean).join(" · ") || "—"}
+                    </p>
                     {l.sexo === "F" && (
                       <p className="text-[11px] text-muted-foreground">Art. 386 CLT</p>
                     )}
                   </div>
+
                   {l.conforme ? (
                     <Badge variant="outline" className="shrink-0 gap-1 border-emerald-500/30 text-emerald-700 dark:text-emerald-400">
                       <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> Conforme
