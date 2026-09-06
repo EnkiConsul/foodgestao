@@ -573,11 +573,17 @@ export default function DpOperacaoPanorama() {
 
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
 
+  // Os diálogos de detalhe seguem o dia aberto na janela, quando houver.
+  const dataAtiva = dataPopout ?? data;
+  const diaAtivo = diaPopout ?? dia;
+
   // Sócios ausentes seguem visíveis nas listas (com a tag "Folga sócio"),
   // mesmo não somando nos números dos cards de folga/férias.
   const pessoasDaCategoria = detalheCategoria
-    ? (dia?.pessoas ?? []).filter((p) => p.categoria === detalheCategoria)
+    ? (diaAtivo?.pessoas ?? []).filter((p) => p.categoria === detalheCategoria)
     : [];
+  const sociosDoDialogo = sociosDe(diaAtivo);
+
 
   /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
   const tagSocio = (p: PessoaPanorama) =>
