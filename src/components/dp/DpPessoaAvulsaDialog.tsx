@@ -258,7 +258,10 @@ export function DpPessoaAvulsaDialog({
               <Input
                 type="time"
                 value={form.entrada}
-                onChange={(e) => setForm({ ...form, entrada: e.target.value })}
+                onChange={(e) => {
+                  setHorarioTocado(true);
+                  setForm({ ...form, entrada: e.target.value });
+                }}
               />
             </div>
             <div className="grid gap-1.5">
@@ -266,10 +269,18 @@ export function DpPessoaAvulsaDialog({
               <Input
                 type="time"
                 value={form.saida}
-                onChange={(e) => setForm({ ...form, saida: e.target.value })}
+                onChange={(e) => {
+                  setHorarioTocado(true);
+                  setForm({ ...form, saida: e.target.value });
+                }}
               />
             </div>
           </div>
+          {sugerirHorario && form.unidade_id && form.cargo_id && form.data_inicio && (
+            <p className="text-xs text-muted-foreground">
+              Sugerido pelo horário mais usado neste cargo/unidade.
+            </p>
+          )}
 
           <div className="flex items-center justify-between rounded-md border p-3">
             <div className="pr-3">
