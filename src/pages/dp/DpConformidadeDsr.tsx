@@ -444,11 +444,20 @@ export default function DpConformidadeDsr() {
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                   <div>
+                    <p className="text-muted-foreground">Folgas no mês</p>
+                    <p className="font-semibold tabular-nums">
+                      {l.folgasMarcadas}
+                      {l.folgasMarcadas === 0 && (
+                        <span className="ml-1 font-normal text-destructive">sem folga marcada</span>
+                      )}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-muted-foreground">Domingos no mês</p>
                     <p className="font-semibold tabular-nums">{l.domingosNoPeriodo}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Folgados</p>
+                    <p className="text-muted-foreground">Domingos folgados</p>
                     <p className="font-semibold tabular-nums">{l.domingosFolgados.length}</p>
                   </div>
                   {porAcordo && (
@@ -462,12 +471,11 @@ export default function DpConformidadeDsr() {
                     <p className="font-semibold tabular-nums">{l.esperado}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Periodicidade</p>
-                    <p className="font-semibold">
-                      {l.periodicidadeAplicada > 0 ? `${l.periodicidadeAplicada.toFixed(1)} sem.` : "sem exigência"}
-                    </p>
+                    <p className="text-muted-foreground">Regra aplicada</p>
+                    <p className="font-semibold">{l.rotuloFrequencia}</p>
                   </div>
                 </div>
+
               </li>
             ))}
           </ul>
