@@ -12631,6 +12631,7 @@ export type Database = {
         Args: { p_colaborador_id: string; p_motivo: string }
         Returns: undefined
       }
+      dp_expirar_trocas: { Args: never; Returns: number }
       dp_ferias_gerar_periodos: {
         Args: { _colaborador_id: string }
         Returns: number
