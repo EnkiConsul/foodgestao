@@ -18,7 +18,7 @@ No formulário de adicionar pessoa, a lista de motivos passa para esta ordem, co
 
 ## 3. Título da seção
 
-"Pessoas Registradas no Dia" passa a se chamar **"Adicionar Pessoa no Dia"**, com a descrição ajustada para dizer que ali ficam as pessoas incluídas manualmente naquele dia (para editar ou remover).
+"Pessoas Registradas no Dia" passa a se chamar **"Pessoas Adicionais no Dia"**, com a descrição ajustada para dizer que ali ficam as pessoas incluídas manualmente naquele dia (para editar ou remover).
 
 ## 4. Pessoas adicionadas aparecem dentro do turno
 
@@ -28,7 +28,7 @@ As pessoas em teste e folguistas já entram no quadro do turno junto com os dema
 - **Em teste**
 - **Registro manual**, para o colaborador cadastrado lançado à mão
 
-Assim o gestor lê o turno inteiro numa lista só e distingue quem é do quadro fixo e quem foi incluído no dia. A seção "Adicionar Pessoa no Dia" continua abaixo, servindo para incluir, editar e remover esses registros.
+Assim o gestor lê o turno inteiro numa lista só e distingue quem é do quadro fixo e quem foi incluído no dia. A seção "Pessoas Adicionais no Dia" continua abaixo, servindo para incluir, editar e remover esses registros.
 
 ## Detalhes técnicos
 
