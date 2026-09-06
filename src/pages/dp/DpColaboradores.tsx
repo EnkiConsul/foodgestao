@@ -65,15 +65,16 @@ const PERFIL_LABEL: Record<string, string> = {
   admin: "Admin",
 };
 
-type ColabColKey = "colaborador" | "cargo" | "unidade" | "status" | "perfil";
-type ColabSortKey = "padrao" | "nome" | "cargo" | "unidade" | "status" | "perfil";
+type ColabColKey = "colaborador" | "cargo" | "unidade" | "setor" | "status" | "perfil";
+type ColabSortKey = "padrao" | "nome" | "cargo" | "unidade" | "setor" | "status" | "perfil";
 
-const DEFAULT_COLAB_COL_ORDER: ColabColKey[] = ["colaborador", "cargo", "unidade", "status", "perfil"];
+const DEFAULT_COLAB_COL_ORDER: ColabColKey[] = ["colaborador", "cargo", "unidade", "setor", "status", "perfil"];
 /** Larguras padrão em px (somam ~980 + 96 de ações). */
 const DEFAULT_COLAB_COL_WIDTHS: Record<ColabColKey, number> = {
   colaborador: 280,
   cargo: 170,
   unidade: 170,
+  setor: 150,
   status: 240,
   perfil: 120,
 };
@@ -92,6 +93,7 @@ export default function DpColaboradores() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [cargoFilter, setCargoFilter] = useState<string>("all");
   const [perfilFilter, setPerfilFilter] = useState<string>("all");
+  const [setorFilter, setSetorFilter] = useState<string>("all");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewing, setViewing] = useState<DpColaborador | null>(null);
@@ -128,6 +130,8 @@ export default function DpColaboradores() {
         if (unidadeFilter !== "all" && c.unidade_id !== unidadeFilter) return false;
         if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
         if (perfilFilter !== "all" && (c as any).perfil_acesso !== perfilFilter) return false;
+        if (setorFilter === "__sem__" && (c as any).setor_id) return false;
+        if (setorFilter !== "all" && setorFilter !== "__sem__" && (c as any).setor_id !== setorFilter) return false;
         if (statusFilter === "ativos" && !c.ativo) return false;
         if (statusFilter === "desligados" && c.ativo) return false;
         return true;
@@ -144,7 +148,19 @@ export default function DpColaboradores() {
         }
         return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
       });
-  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, statusFilter]);
+  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter]);
+
+  /** Setor só aparece quando a empresa já usa setores. */
+  const setoresEmUso = useMemo(() => {
+    const map = new Map<string, string>();
+    (list.data ?? []).forEach((c) => {
+      const id = (c as any).setor_id as string | null;
+      if (id && c.setor_nome) map.set(id, c.setor_nome);
+    });
+    return Array.from(map, ([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [list.data]);
+  const mostrarSetor = setoresEmUso.length > 0;
 
   // ---------- Colunas em formato de planilha (ordem, largura, ordenação e filtros) ----------
   const {
@@ -209,6 +225,18 @@ export default function DpColaboradores() {
         </span>
       ),
     },
+    setor: {
+      label: "Setor", sortKey: "setor", center: true,
+      value: (c) => c.setor_nome ?? "Sem setor",
+      render: (c) => (
+        <span
+          className={`block whitespace-normal break-words text-center ${c.setor_nome ? "" : "text-muted-foreground"}`}
+          title={c.setor_nome ?? ""}
+        >
+          {c.setor_nome ?? "Sem setor"}
+        </span>
+      ),
+    },
     status: {
       label: "Status", sortKey: "status", center: true,
       value: (c) => (c.ativo ? "Ativo" : "Desligado"),
@@ -255,6 +283,16 @@ export default function DpColaboradores() {
 
     },
   };
+
+  /** Ordem exibida: injeta "Setor" após "Unidade" quando a empresa usa setores. */
+  const colunas = useMemo(() => {
+    const base = colOrder.filter((k) => k !== "setor");
+    if (!mostrarSetor) return base;
+    const idx = base.indexOf("unidade");
+    const arr = [...base];
+    arr.splice(idx >= 0 ? idx + 1 : arr.length, 0, "setor");
+    return arr;
+  }, [colOrder, mostrarSetor]);
 
   /** Aplica os filtros por valor de cada coluna sobre a lista já filtrada no topo. */
   const filtradoPorColuna = useMemo(() => {
@@ -357,9 +395,9 @@ export default function DpColaboradores() {
       <DpFilters
         search={{ value: search, onChange: setSearch, placeholder: "Nome ou CPF..." }}
         activeCount={
-          (unidadeFilter !== "all" ? 1 : 0) + (cargoFilter !== "all" ? 1 : 0) + (perfilFilter !== "all" ? 1 : 0)
+          (unidadeFilter !== "all" ? 1 : 0) + (cargoFilter !== "all" ? 1 : 0) + (perfilFilter !== "all" ? 1 : 0) + (setorFilter !== "all" ? 1 : 0)
         }
-        onClear={() => { setUnidadeFilter("all"); setCargoFilter("all"); setPerfilFilter("all"); }}
+        onClear={() => { setUnidadeFilter("all"); setCargoFilter("all"); setPerfilFilter("all"); setSetorFilter("all"); }}
       >
         <DpFilterField label="Unidade">
           <Select value={unidadeFilter} onValueChange={setUnidadeFilter}>
@@ -383,6 +421,20 @@ export default function DpColaboradores() {
             </SelectContent>
           </Select>
         </DpFilterField>
+        {mostrarSetor && (
+          <DpFilterField label="Setor">
+            <Select value={setorFilter} onValueChange={setSetorFilter}>
+              <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="__sem__">Sem setor</SelectItem>
+                {setoresEmUso.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </DpFilterField>
+        )}
         <DpFilterField label="Perfil">
           <Select value={perfilFilter} onValueChange={setPerfilFilter}>
             <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
@@ -407,7 +459,7 @@ export default function DpColaboradores() {
             <Table className="table-fixed" style={{ width: "100%", minWidth: larguraTotal }}>
               <TableHeader>
                 <TableRow>
-                  {colOrder.map((k) => (
+                  {colunas.map((k) => (
                     <DpTableColumnHeader
                       key={k}
                       label={COLS[k].label}
@@ -445,7 +497,7 @@ export default function DpColaboradores() {
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => setViewing(c)}
                   >
-                    {colOrder.map((k) => (
+                    {colunas.map((k) => (
                       <TableCell
                         key={k}
                         className="align-top overflow-hidden"
@@ -489,7 +541,7 @@ export default function DpColaboradores() {
                 ))}
                 {visiveis.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={colOrder.length + 1} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={colunas.length + 1} className="text-center text-muted-foreground py-8">
                       Nenhum colaborador encontrado.
                     </TableCell>
                   </TableRow>
