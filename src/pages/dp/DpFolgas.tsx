@@ -378,6 +378,53 @@ export default function DpFolgas() {
       toast.error("Erro ao gerar folgas", { description: e instanceof Error ? e.message : String(e) }),
   });
 
+  const competenciaAtual = format(startOfMonth(cursor), "yyyy-MM-dd");
+  const unidadeAlvo = unidadeFilter === "todas" ? null : unidadeFilter;
+
+  /** Prévia da distribuição automática do mês em foco (somente administradores). */
+  const previaAutoQuery = useQuery({
+    queryKey: ["dp_folga_auto_previa", selectedCompanyId, unidadeAlvo, competenciaAtual],
+    enabled: !!selectedCompanyId && podeDistribuir && autoOpen,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("dp_folga_autoatribuicao_previa", {
+        _company: selectedCompanyId!,
+        _unidade: unidadeAlvo,
+        _competencia: competenciaAtual,
+      });
+      if (error) throw error;
+      return parsePreviaAutoatribuicao(data);
+    },
+  });
+
+  /** Roda a distribuição automática de folgas para o mês em foco. */
+  const distribuirAuto = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+      const { data, error } = await supabase.rpc("dp_folga_autoatribuir_manual", {
+        _company: selectedCompanyId,
+        _unidade: unidadeAlvo,
+        _competencia: competenciaAtual,
+      });
+      if (error) throw error;
+      return parseResultadoAutoatribuicao(data);
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
+      qc.invalidateQueries({ queryKey: ["dp_folgas_efetivadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_folga_auto_exec"] });
+      qc.invalidateQueries({ queryKey: ["dp_folga_auto_previa"] });
+      setAutoOpen(false);
+      if (res.geradas > 0) toast.success("Folgas distribuídas", { description: resumoResultado(res) });
+      else toast.info("Nada a distribuir", { description: resumoResultado(res) });
+    },
+    onError: (e) =>
+      toast.error("Erro ao distribuir folgas", {
+        description: e instanceof Error ? e.message : String(e),
+      }),
+  });
+
+
+
 
 
   const {
