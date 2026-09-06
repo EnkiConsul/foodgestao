@@ -1464,6 +1464,58 @@ export default function DpFolgas() {
         }}
         onLiberarGlobal={() => liberarData.mutate({ unidadeId: null })}
       />
+
+      <Dialog open={autoOpen} onOpenChange={setAutoOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Distribuir folgas automaticamente</DialogTitle>
+            <DialogDescription>
+              {format(cursor, "MMMM 'de' yyyy", { locale: ptBR })}
+              {unidadeAlvo
+                ? ` — ${(unidadesQuery.data ?? []).find((u: { id: string; nome: string }) => u.id === unidadeAlvo)?.nome ?? "unidade selecionada"}`
+                : " — todas as unidades"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 text-sm">
+            {previaAutoQuery.isLoading && <p className="text-muted-foreground">Calculando...</p>}
+            {previaAutoQuery.isError && (
+              <p className="text-destructive">
+                Não foi possível calcular a prévia. Tente novamente.
+              </p>
+            )}
+            {previaAutoQuery.data && (
+              <>
+                <p className="font-medium">{resumoPrevia(previaAutoQuery.data)}</p>
+                <p className="text-xs text-muted-foreground">
+                  O sistema respeita os dias de descanso negociados, os limites por dia e cargo e as
+                  pessoas que não podem folgar juntas, começando pelos dias mais vazios. Se todos os
+                  dias estiverem no limite, começa pelos últimos dias do mês e avisa no calendário.
+                  Quem já tem folga no mês não é alterado.
+                </p>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAutoOpen(false)} disabled={distribuirAuto.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => distribuirAuto.mutate()}
+              disabled={
+                distribuirAuto.isPending ||
+                previaAutoQuery.isLoading ||
+                !previaAutoQuery.data ||
+                previaAutoQuery.data.aCriar <= 0
+              }
+            >
+              {distribuirAuto.isPending ? "Distribuindo..." : "Distribuir folgas"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DpPage>
+
   );
 }
