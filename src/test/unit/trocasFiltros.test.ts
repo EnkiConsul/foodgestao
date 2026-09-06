@@ -69,9 +69,7 @@ describe("filtrarTrocas", () => {
 
   it("período personalizado aceita apenas um dos lados", () => {
     const r = filtrarTrocas(
-      { ...FILTROS_TROCA_PADRAO, periodo: "personalizado", de: "2026-10-01", ate: "" }
-        ? rows
-        : rows,
+      rows,
       { ...FILTROS_TROCA_PADRAO, periodo: "personalizado", de: "2026-10-01", ate: "" },
       hoje,
     );
