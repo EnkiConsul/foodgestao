@@ -3,7 +3,7 @@ import { ArrowLeftRight, Ban, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DpDialogShell } from "@/components/dp/DpDialogShell";
-import { dataComDiaSemana, metaStatusTroca } from "@/components/dp/TrocaCard";
+import { dataComDiaSemana, metaStatusTroca } from "@/lib/dp/troca-apresentacao";
 import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import { acoesGestorTroca, textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
