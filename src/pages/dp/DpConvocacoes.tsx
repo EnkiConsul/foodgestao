@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import {
-  BellRing, CalendarClock, CheckCircle2, Clock, History, Pencil, Plus, Settings2, Users,
+  BellRing, CalendarClock, CheckCircle2, ClipboardCheck, Clock, History, Pencil, Plus,
+  Settings2, Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,8 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpPage, DpPageHeader, DpContentCard, DpEmptyState } from "@/components/dp/DpPage";
 import { NovaConvocacaoPlanner } from "@/components/dp/convocacoes/NovaConvocacaoPlanner";
 import { ConvocacoesRegrasPanel } from "@/components/dp/convocacoes/ConvocacoesRegrasPanel";
+import { AprovacaoParcialDialog } from "@/components/dp/convocacoes/AprovacaoParcialDialog";
 import { useDpConvocacaoGrupos, type GrupoComOcorrencias } from "@/hooks/useDpConvocacaoGrupos";
-import { useDpConvocacoes } from "@/hooks/useDpConvocacoes";
+import {
+  useDpConvocacoes, useDpConvocacoesParciais, type ParcialPendente,
+} from "@/hooks/useDpConvocacoes";
 import { statusEfetivo, STATUS_META } from "@/lib/dp/convocacoes";
 import { antecedenciaDias } from "@/lib/dp/convocacoes-planejamento";
 import { cn } from "@/lib/utils";
