@@ -227,7 +227,7 @@ const pessoa = (
 });
 
 // 2026-09-07 é uma segunda-feira (dow 1).
-const SEGUNDA = "2026-09-07";
+const SEGUNDA_BLOCOS = "2026-09-07";
 
 const funcionamentoDoisPeriodos = () =>
   new Map([
@@ -249,7 +249,7 @@ const funcionamentoDoisPeriodos = () =>
 describe("blocosPorFuncionamento", () => {
   it("coloca a pessoa apenas no período em que a entrada dela cai", () => {
     const blocos = blocosPorFuncionamento({
-      data: SEGUNDA,
+      data: SEGUNDA_BLOCOS,
       pessoas: [pessoa("a", "10:00", "19:00")],
       funcionamentoPorUnidade: funcionamentoDoisPeriodos(),
       unidades: [{ id: "u1", nome: "Loja" }],
@@ -262,7 +262,7 @@ describe("blocosPorFuncionamento", () => {
 
   it("usa a maior sobreposição quando a entrada não cai em nenhum período", () => {
     const blocos = blocosPorFuncionamento({
-      data: SEGUNDA,
+      data: SEGUNDA_BLOCOS,
       pessoas: [pessoa("b", "06:00", "12:00")],
       funcionamentoPorUnidade: funcionamentoDoisPeriodos(),
       unidades: [{ id: "u1", nome: "Loja" }],
@@ -275,7 +275,7 @@ describe("blocosPorFuncionamento", () => {
 
   it("manda para 'Fora do Horário' quem não tem sobreposição alguma", () => {
     const blocos = blocosPorFuncionamento({
-      data: SEGUNDA,
+      data: SEGUNDA_BLOCOS,
       pessoas: [pessoa("c", "23:30", "23:50")],
       funcionamentoPorUnidade: funcionamentoDoisPeriodos(),
       unidades: [{ id: "u1", nome: "Loja" }],
