@@ -625,9 +625,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       const [cargoId, data, colaboradorId] = k.split("|");
       const dia = mapaDias[chave(cargoId, data)];
       if (!dia) continue;
-      const res: any = await comCarimboAtual(
-        async () => expected ?? (await lerCarimboGrupo()),
-        (carimbo) =>
+      const res: any = await comCarimboAtual(lerCarimboGrupo, (carimbo) =>
           definirOverride.mutateAsync({
             ocorrencia_id: dia.id,
             colaborador_id: colaboradorId,
@@ -636,7 +634,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
             intervalo_minutos: h.intervalo_minutos,
             termina_no_dia_seguinte: h.vira,
             expected_updated_at: carimbo!,
-          }),
+        }),
       );
       expected = res?.grupo_updated_at ?? expected;
     }
@@ -667,15 +665,18 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     try {
       const expected = await persistir();
       if (!expected) return;
-      const res = await publicar.mutateAsync({
-        grupo_id: grupoId,
-        expected_updated_at: expected,
-        confirmacoes: foraDaAntecedencia.map((d) => ({
-          ocorrencia_id: d.id,
-          confirmado: true,
-          justificativa: justificativa.trim() || null,
-        })),
-      });
+      // Relê a versão do rascunho imediatamente antes de publicar.
+      const res: any = await comCarimboAtual(lerCarimboGrupo, (carimbo) =>
+        publicar.mutateAsync({
+          grupo_id: grupoId,
+          expected_updated_at: carimbo!,
+          confirmacoes: foraDaAntecedencia.map((d) => ({
+            ocorrencia_id: d.id,
+            confirmado: true,
+            justificativa: justificativa.trim() || null,
+          })),
+        }),
+      );
       const diag = Array.isArray(res?.diagnostico) ? res.diagnostico : [];
       const faltando = diag.filter((x: any) => Number(x?.faltam_pessoas ?? 0) > 0).length;
       toast.success(
