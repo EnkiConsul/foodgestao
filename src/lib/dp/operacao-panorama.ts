@@ -414,6 +414,96 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
   return { data, dow, contagens, contagens_avulsos, trabalhando, aguardando, pessoas };
 }
 
+export interface HorarioSugerido {
+  entrada: string;
+  saida: string;
+  termina_no_dia_seguinte: boolean;
+}
+
+/**
+ * Sugere o horário mais usado para um cargo/unidade em determinado dia da
+ * semana, olhando as pessoas previstas no mês carregado. Fallback para o
+ * horário mais usado da unidade (qualquer cargo) e, por fim, nulo.
+ * Empate: escolhe o par que aparece no dia mais recente.
+ */
+export function horarioMaisUsado({
+  dias,
+  unidadeId,
+  cargoId,
+  dow,
+}: {
+  dias: ResultadoDia[];
+  unidadeId: string;
+  cargoId: string;
+  dow: number;
+}): HorarioSugerido | null {
+  const candidatos = new Map<
+    string,
+    { entrada: string; saida: string; termina_no_dia_seguinte: boolean; data: string }
+  >();
+
+  const porCargo = (p: PessoaPanorama) => p.unidade_id === unidadeId && p.cargo_id === cargoId;
+  const porUnidade = (p: PessoaPanorama) => p.unidade_id === unidadeId;
+
+  function coletar(filtro: (p: PessoaPanorama) => boolean) {
+    for (const d of dias) {
+      if (d.dow !== dow) continue;
+      for (const p of d.pessoas) {
+        if (!filtro(p) || !p.entrada || !p.saida) continue;
+        const chave = `${p.entrada}|${p.saida}|${p.termina_no_dia_seguinte}`;
+        const atual = candidatos.get(chave);
+        if (!atual || d.data > atual.data) {
+          candidatos.set(chave, {
+            entrada: p.entrada,
+            saida: p.saida,
+            termina_no_dia_seguinte: p.termina_no_dia_seguinte,
+            data: d.data,
+          });
+        }
+      }
+    }
+  }
+
+  coletar(porCargo);
+  if (candidatos.size === 0) coletar(porUnidade);
+  if (candidatos.size === 0) return null;
+
+  const contagens = new Map<string, number>();
+  for (const d of dias) {
+    if (d.dow !== dow) continue;
+    for (const p of d.pessoas) {
+      if (!porCargo(p) && !porUnidade(p)) continue;
+      if (!p.entrada || !p.saida) continue;
+      const chave = `${p.entrada}|${p.saida}|${p.termina_no_dia_seguinte}`;
+      if (!candidatos.has(chave)) continue;
+      contagens.set(chave, (contagens.get(chave) ?? 0) + 1);
+    }
+  }
+
+  let melhorChave: string | null = null;
+  let melhorContagem = 0;
+  let melhorData = "";
+  for (const [chave, info] of candidatos) {
+    const contagem = contagens.get(chave) ?? 0;
+    const vence =
+      contagem > melhorContagem ||
+      (contagem === melhorContagem && (melhorChave == null || info.data > melhorData));
+    if (vence) {
+      melhorChave = chave;
+      melhorContagem = contagem;
+      melhorData = info.data;
+    }
+  }
+
+  if (!melhorChave) return null;
+  const escolhido = candidatos.get(melhorChave)!;
+  return {
+    entrada: escolhido.entrada,
+    saida: escolhido.saida,
+    termina_no_dia_seguinte: escolhido.termina_no_dia_seguinte,
+  };
+}
+
 // ------------------------------------------------------------------
 // Padrão histórico por dia da semana
 // ------------------------------------------------------------------
