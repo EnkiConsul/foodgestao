@@ -61,6 +61,14 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
           >
             Incluir nacionais
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={feriados.length === 0 || replicar.isPending}
+            onClick={() => setReplicarOpen(true)}
+          >
+            <Copy className="mr-1 h-4 w-4" /> Replicar para outras unidades
+          </Button>
           <Button size="sm" onClick={() => { setEditando(null); setOpen(true); }}>
             <Plus className="mr-1 h-4 w-4" /> Novo feriado
           </Button>
