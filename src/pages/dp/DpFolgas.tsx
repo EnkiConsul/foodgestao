@@ -145,7 +145,7 @@ export default function DpFolgas() {
   const { selectedCompanyId } = useCompanyContext();
   const { user } = useAuth();
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  
   const colabs = useDpColaboradores();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
   const initialPrefs = loadPrefs(selectedCompanyId);
