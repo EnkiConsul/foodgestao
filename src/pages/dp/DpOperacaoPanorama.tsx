@@ -503,34 +503,40 @@ export default function DpOperacaoPanorama() {
     setParams(next, { replace: true });
   };
 
-  const irParaDia = (iso: string) => {
-    setData(iso);
-    trocarAba("dia");
-  };
-
-  /** Blocos do dia pelos períodos de funcionamento da loja, agrupados por cargo. */
-  const blocos = useMemo(() => {
-    if (!dia) return [];
-    const trabalhando = dia.pessoas.filter(
+  /** Blocos de um dia pelos períodos de funcionamento da loja, agrupados por cargo. */
+  const blocosDe = (iso: string, d: DiaPanorama | undefined) => {
+    if (!d) return [];
+    const trabalhando = d.pessoas.filter(
       (p) => p.categoria === "fixo" || p.categoria === "convocado_aceito" || p.categoria === "convocado_pendente",
     );
     return blocosPorFuncionamento({
-      data,
+      data: iso,
       pessoas: trabalhando,
       funcionamentoPorUnidade: panorama.funcionamentoPorUnidade,
       unidades: panorama.unidades,
       unidadeId,
     });
-  }, [dia, data, unidadeId, panorama.funcionamentoPorUnidade, panorama.unidades]);
+  };
 
   /** Sócios em folga ou férias no dia — substitui o antigo card de carga. */
-  const sociosAusentes = useMemo(
-    () =>
-      (dia?.pessoas ?? []).filter(
-        (p) => p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria),
-      ),
-    [dia],
+  const sociosDe = (d: DiaPanorama | undefined) =>
+    (d?.pessoas ?? []).filter(
+      (p) => p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria),
+    );
+
+  const blocos = useMemo(
+    () => blocosDe(data, dia),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dia, data, unidadeId, panorama.funcionamentoPorUnidade, panorama.unidades],
   );
+  const sociosAusentes = useMemo(() => sociosDe(dia), [dia]);
+
+  const diaPopout = dataPopout ? panorama.diaDe(dataPopout) : undefined;
+  const nomesColaboradores = useMemo(
+    () => new Map(panorama.colaboradores.map((c) => [c.id, c.nome])),
+    [panorama.colaboradores],
+  );
+
 
   const diasComSocioAusente = useMemo(
     () =>
