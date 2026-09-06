@@ -18,7 +18,7 @@ No formulário de adicionar pessoa, a lista de motivos passa para esta ordem, co
 
 ## 3. Título da seção
 
-"Pessoas Registradas no Dia" passa a se chamar **"Pessoas Adicionais no Dia"**, com a descrição ajustada para dizer que ali ficam as pessoas incluídas manualmente naquele dia (para editar ou remover).
+"Pessoas Registradas no Dia" passa a se chamar **"Mão de Obra Extra"**, com a descrição ajustada para dizer que ali ficam as pessoas incluídas manualmente naquele dia (para editar ou remover).
 
 ## 4. Pessoas adicionadas aparecem dentro do turno
 
