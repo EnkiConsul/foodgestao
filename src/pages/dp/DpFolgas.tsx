@@ -184,6 +184,7 @@ export default function DpFolgas() {
   /** Folga efetivada em gestão (remarcar/cancelar) pelo diálogo do dia. */
   const [folgaGerenciar, setFolgaGerenciar] = useState<{
     id: string;
+    colaboradorId: string;
     nome: string;
     data: string;
   } | null>(null);
@@ -290,22 +291,37 @@ export default function DpFolgas() {
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
 
-  const cleanFolgaId = (id: string) =>
-    id.startsWith("folga:") ? id.slice("folga:".length) : id;
-
   /** Cancela a folga (mantém o histórico); o dia volta a ficar livre. */
   const cancelarFolga = useMutation({
-    mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
-      const { error } = await supabase
-        .from("dp_folgas")
+    mutationFn: async ({ id, colaboradorId, data, motivo }: { id: string; colaboradorId: string; data: string; motivo: string }) => {
+      const resposta = motivo
+        ? `Cancelada pelo gestor: ${motivo}`
+        : "Cancelada pelo gestor.";
+
+      if (id.startsWith("folga:")) {
+        const { error } = await supabase
+          .from("dp_folgas")
+          .update({ status: "cancelada", observacao: resposta })
+          .eq("id", id.slice("folga:".length));
+        if (error) throw error;
+      }
+
+      const solicitacao = supabase
+        .from("dp_solicitacoes")
         .update({
           status: "cancelada",
-          observacao: motivo
-            ? `Cancelada pelo gestor: ${motivo}`
-            : "Cancelada pelo gestor.",
+          resposta_admin: resposta,
+          respondido_por: user?.id ?? null,
+          respondido_em: new Date().toISOString(),
         })
-        .eq("id", cleanFolgaId(id));
-      if (error) throw error;
+        .eq("company_id", selectedCompanyId ?? "")
+        .eq("colaborador_id", colaboradorId)
+        .eq("tipo", "folga")
+        .eq("status", "aprovada")
+        .eq("data_alvo", data);
+      if (!id.startsWith("folga:")) solicitacao.eq("id", id);
+      const { error: solicitacaoError } = await solicitacao;
+      if (solicitacaoError) throw solicitacaoError;
     },
     onSuccess: () => {
       toast.success("Folga cancelada", {
@@ -322,13 +338,28 @@ export default function DpFolgas() {
 
   /** Remarca a folga para outro dia, no mesmo registro. */
   const remarcarFolga = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: string }) => {
-      if (!data) throw new Error("Escolha a nova data");
-      const { error } = await supabase
-        .from("dp_folgas")
-        .update({ data })
-        .eq("id", cleanFolgaId(id));
-      if (error) throw error;
+    mutationFn: async ({ id, colaboradorId, dataAtual, novaData }: { id: string; colaboradorId: string; dataAtual: string; novaData: string }) => {
+      if (!novaData) throw new Error("Escolha a nova data");
+
+      if (id.startsWith("folga:")) {
+        const { error } = await supabase
+          .from("dp_folgas")
+          .update({ data: novaData })
+          .eq("id", id.slice("folga:".length));
+        if (error) throw error;
+      }
+
+      const solicitacao = supabase
+        .from("dp_solicitacoes")
+        .update({ data_alvo: novaData })
+        .eq("company_id", selectedCompanyId ?? "")
+        .eq("colaborador_id", colaboradorId)
+        .eq("tipo", "folga")
+        .eq("status", "aprovada")
+        .eq("data_alvo", dataAtual);
+      if (!id.startsWith("folga:")) solicitacao.eq("id", id);
+      const { error: solicitacaoError } = await solicitacao;
+      if (solicitacaoError) throw solicitacaoError;
     },
     onSuccess: () => {
       toast.success("Folga remarcada");
@@ -1243,7 +1274,7 @@ export default function DpFolgas() {
                   ) : (
                     selectedEvents.map((ev) => {
                       const isWeekly = ev.id.startsWith(WEEKLY_FOLGA_ID_PREFIX);
-                      const isEfetivada = ev.id.startsWith("folga:");
+                      const podeGerenciar = !isWeekly && ev.tipo === "folga" && ev.status === "aprovada";
                       return (
                         <div
                           key={ev.id}
@@ -1271,7 +1302,7 @@ export default function DpFolgas() {
                             <DpStatusBadge tone={isWeekly ? "info" : statusToneFor(ev.status)}>
                               {isWeekly ? "Semanal" : STATUS_LABEL[ev.status]}
                             </DpStatusBadge>
-                            {isEfetivada && podeDistribuir && (
+                            {podeGerenciar && podeDistribuir && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -1279,6 +1310,7 @@ export default function DpFolgas() {
                                 onClick={() => {
                                   setFolgaGerenciar({
                                     id: ev.id,
+                                     colaboradorId: ev.colaborador_id,
                                     nome: ev.dp_colaboradores?.nome ?? "",
                                     data: ev.data_alvo,
                                   });
@@ -1393,7 +1425,12 @@ export default function DpFolgas() {
                 <Button
                   onClick={() =>
                     folgaGerenciar &&
-                    remarcarFolga.mutate({ id: folgaGerenciar.id, data: remarcarData })
+                    remarcarFolga.mutate({
+                      id: folgaGerenciar.id,
+                      colaboradorId: folgaGerenciar.colaboradorId,
+                      dataAtual: folgaGerenciar.data,
+                      novaData: remarcarData,
+                    })
                   }
                   disabled={
                     !folgaGerenciar ||
@@ -1422,7 +1459,12 @@ export default function DpFolgas() {
                 variant="destructive"
                 onClick={() =>
                   folgaGerenciar &&
-                  cancelarFolga.mutate({ id: folgaGerenciar.id, motivo: cancelMotivo.trim() })
+                  cancelarFolga.mutate({
+                    id: folgaGerenciar.id,
+                    colaboradorId: folgaGerenciar.colaboradorId,
+                    data: folgaGerenciar.data,
+                    motivo: cancelMotivo.trim(),
+                  })
                 }
                 disabled={!folgaGerenciar || cancelarFolga.isPending}
               >

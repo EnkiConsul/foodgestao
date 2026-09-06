@@ -1,3 +1,3 @@
 - [x] Quantidade por dia com escolha de cargos
 - [x] Cabeçalho fixo na janela Editar Regras de Folgas
-- [ ] Folgas: dias/ocupação por item no plano, preferência pelo fim do mês, sem contingência acima do limite (escolha manual com contagem), Registrar Ausência na Operação, remarcar/cancelar folga no calendário
+- [x] Folgas: dias/ocupação por item no plano, preferência pelo fim do mês, sem contingência acima do limite (escolha manual com contagem), Registrar Ausência na Operação, remarcar/cancelar folga efetivada ou solicitada sem manter o dia cancelado no calendário
