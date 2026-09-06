@@ -1616,8 +1616,6 @@ export default function DpFolgas() {
             )}
           </DialogFooter>
         </DialogContent>
-
-        </DialogContent>
       </Dialog>
     </DpPage>
 
