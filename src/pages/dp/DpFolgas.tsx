@@ -39,6 +39,7 @@ import {
   Globe2,
   ChevronDown,
   Scale,
+  Wand2,
 } from "lucide-react";
 
 import {
