@@ -396,6 +396,26 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     [base.data, unidadeId],
   );
 
+  const avulsos: PessoaAvulsaPanorama[] = useMemo(() => {
+    const cargos = new Map((base.data?.cargos ?? []).map((c) => [c.id, c.nome]));
+    const nomes = new Map((base.data?.colaboradores ?? []).map((c) => [c.id, c.nome]));
+    return (avulsasQuery.data ?? []).map((a) => ({
+      id: a.id,
+      nome: a.nome,
+      tipo: a.tipo as PessoaAvulsaTipo,
+      unidade_id: a.unidade_id,
+      cargo_id: a.cargo_id,
+      cargo_nome: cargos.get(a.cargo_id) ?? null,
+      cobre_nome: a.cobre_colaborador_id ? nomes.get(a.cobre_colaborador_id) ?? null : null,
+      data_inicio: a.data_inicio,
+      data_fim: a.data_fim,
+      entrada: a.entrada ? a.entrada.slice(0, 5) : null,
+      saida: a.saida ? a.saida.slice(0, 5) : null,
+      termina_no_dia_seguinte: !!a.termina_no_dia_seguinte,
+      observacao: a.observacao,
+    }));
+  }, [avulsasQuery.data, base.data]);
+
   /** Conta um dia respeitando admissão/desligamento do colaborador. */
   const contar = (data: string): ResultadoDia =>
     contarDia({
@@ -411,6 +431,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       folgas,
       ausencias,
       itensPublicados: base.data?.itens,
+      avulsos,
     });
 
   /** Histórico (janela anterior à competência) usado para aprender o padrão. */
