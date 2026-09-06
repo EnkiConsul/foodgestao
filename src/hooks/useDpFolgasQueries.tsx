@@ -108,9 +108,11 @@ export function useDpFolgasQueries({
         .from("dp_solicitacoes")
         .select("*, dp_colaboradores(nome, unidade_id)")
         .eq("company_id", selectedCompanyId!)
+        .not("status", "in", "(cancelada,recusada)")
         .not("data_alvo", "is", null)
         .lte("data_alvo", toISO)
         .or(`data_fim.gte.${fromISO},and(data_fim.is.null,data_alvo.gte.${fromISO})`);
+
       if (tipoFilter !== "todos") q = q.eq("tipo", tipoFilter);
       if (colabFilter !== "todos") q = q.eq("colaborador_id", colabFilter);
       const { data, error } = await q;
