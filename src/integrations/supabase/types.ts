@@ -12647,6 +12647,10 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_convocacao_pre_avaliar_grupo: {
+        Args: { p_grupo_id: string }
+        Returns: Json
+      }
       dp_convocacao_publicar_grupo: {
         Args: {
           p_confirmacoes?: Json
