@@ -154,7 +154,7 @@ INSERT INTO public.dp_config_dp (company_id, unidade_id, tipo_descanso_domingo,
                                  dias_descanso_negociados, folgas_fds_por_mes)
 VALUES ('c1111111-1111-1111-1111-111111111111', 'd1111111-1111-1111-1111-111111111111',
         'acordo_coletivo', ARRAY[0, 6], 1)
-ON CONFLICT (company_id, unidade_id) DO UPDATE
+ON CONFLICT (company_id, unidade_id) WHERE unidade_id IS NOT NULL DO UPDATE
    SET tipo_descanso_domingo = 'acordo_coletivo',
        dias_descanso_negociados = ARRAY[0, 6],
        folgas_fds_por_mes = 1;
