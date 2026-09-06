@@ -288,7 +288,7 @@ export default function DpOcorrencias() {
 
       <DpContentCard>
         {acoes.loading ? (
-          <TableSkeleton rows={5} />
+          <TableSkeleton rows={5} columns={4} />
         ) : acoes.ocorrencias.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             Nenhuma ocorrência nesse período com os filtros escolhidos.
