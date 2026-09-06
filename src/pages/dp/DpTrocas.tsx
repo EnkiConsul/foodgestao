@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import { format } from "date-fns";
-import { ArrowLeftRight, Calendar, User, MessageSquare, Check, X, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Ban, Calendar, User, MessageSquare, Check, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,6 +11,7 @@ import {
 import { DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import { useDpTrocas } from "@/hooks/useDpTrocas";
+import { acoesGestorTroca, textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
 
 
