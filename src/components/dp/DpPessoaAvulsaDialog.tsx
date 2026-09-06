@@ -163,25 +163,15 @@ export function DpPessoaAvulsaDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{registro ? "Editar Pessoa Avulsa" : "Registrar Pessoa Avulsa"}</DialogTitle>
+          <DialogTitle>{registro ? "Editar Pessoa no Dia" : "Adicionar Pessoa no Dia"}</DialogTitle>
           <DialogDescription>
-            Para quem trabalha no dia sem estar cadastrado como colaborador: pessoa em teste ou
-            folguista cobrindo alguém. Aparece na rotina do dia e conta no quadro.
+            Registre quem trabalhou no dia: um colaborador já cadastrado (quando a convocação ou a
+            escala não foi feita) ou alguém em teste / folguista. Aparece na rotina e conta no quadro.
           </DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[65vh] gap-3 overflow-y-auto py-2 pr-1">
           <div className="grid gap-1.5">
-            <Label>Nome da pessoa *</Label>
-            <Input
-              value={form.nome}
-              maxLength={120}
-              placeholder="Ex.: Maria Souza"
-              onChange={(e) => setForm({ ...form, nome: e.target.value })}
-            />
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label>Tipo *</Label>
+            <Label>Quem trabalhou *</Label>
             <Select
               value={form.tipo}
               onValueChange={(v) => setForm({ ...form, tipo: v as PessoaAvulsaTipo })}
@@ -198,6 +188,38 @@ export function DpPessoaAvulsaDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {manual ? (
+            <div className="grid gap-1.5">
+              <Label>Colaborador *</Label>
+              <Select value={form.colaborador_id} onValueChange={escolherColaborador}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {colaboradores.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Só para hoje ou dias que já passaram. Não gera convocação, ponto nem folha.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-1.5">
+              <Label>Nome da pessoa *</Label>
+              <Input
+                value={form.nome}
+                maxLength={120}
+                placeholder="Ex.: Maria Souza"
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              />
+            </div>
+          )}
+
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
