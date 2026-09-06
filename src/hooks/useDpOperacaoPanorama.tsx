@@ -209,6 +209,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         folgas: folgas.data ?? [],
         convocacoes: convocacoes.data ?? [],
         atestados: atestados.data ?? [],
+        folgasAprovadas: folgasAprovadas.data ?? [],
+
         registradas: registradas.data ?? [],
         unidades: unidades.data ?? [],
         cargos: cargos.data ?? [],
