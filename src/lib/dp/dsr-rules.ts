@@ -691,11 +691,20 @@ export function avaliarConformidade(
       folgasConsideradas,
       // Total do que foi marcado em dias de descanso, mesmo acima do mínimo
       // ou fora do modo acordo — serve para o gestor ver que existe folga.
-      folgasMarcadas: domingos + (l.diasNegociadosFolgados?.length ?? 0),
+      folgasMarcadas:
+        domingos
+        + (l.diasNegociadosFolgados?.length ?? 0)
+        + (l.folgasOutrosDias?.length ?? 0),
 
       negociadosAproveitados,
-      conforme: folgasConsideradas >= esperado,
+      // Leitura legal: só domingo (ou dia negociado, quando há acordo coletivo).
+      conformeClt: folgasConsideradas >= esperado,
+      // Leitura da empresa: qualquer descanso do mês, incluindo o dia fixo do cadastro.
+      folgasEmpresa: domingosEmpresa,
+      conformeEmpresa: domingosEmpresa >= esperado,
+      conforme: folgasConsideradas >= esperado && domingosEmpresa >= esperado,
     };
+
   });
 }
 
