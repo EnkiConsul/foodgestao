@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  diasValidosDoMes,
+  itensAplicaveis,
+  parsePlanoAutoatribuicao,
   parsePreviaAutoatribuicao,
   parseResultadoAutoatribuicao,
+  resumoPlano,
   resumoPrevia,
   resumoResultado,
 } from "../folga-autoatribuicao";
+
 
 describe("parsePreviaAutoatribuicao", () => {
   it("normaliza o retorno do banco", () => {
