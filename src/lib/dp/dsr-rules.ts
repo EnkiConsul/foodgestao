@@ -332,6 +332,25 @@ export function padraoLegalDomingo(setorComercio: boolean): number {
 /** Padrão legal para colaboradoras mulheres: domingo quinzenal (Art. 386 CLT). */
 export const PADRAO_LEGAL_DOMINGO_MULHER = 2;
 
+/**
+ * Piso legal de domingos de folga no período, independente do que a unidade
+ * configurou. Mulheres: 1 domingo a cada 2 semanas (Art. 386 CLT). Demais:
+ * padrão do setor (comércio 1/3 semanas, outros 1/7).
+ */
+export function minimoLegalDomingos(
+  domingosNoPeriodo: number,
+  opts?: { sexo?: string | null; setorComercio?: boolean },
+): number {
+  const domingos = Math.max(0, Math.floor(Number(domingosNoPeriodo) || 0));
+  if (domingos === 0) return 0;
+  const intervalo =
+    opts?.sexo === "F"
+      ? PADRAO_LEGAL_DOMINGO_MULHER
+      : padraoLegalDomingo(opts?.setorComercio !== false);
+  return Math.min(domingos, Math.floor(domingos / intervalo));
+}
+
+
 /** Valores que a base "CLT" fixa para a frequência de folga dominical. */
 export function padroesCltDe(setorComercio: boolean): Pick<
   DpConfigDp,
