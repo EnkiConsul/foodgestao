@@ -643,7 +643,44 @@ export default function DpOperacaoPanorama() {
       onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível reativar o alerta."),
     });
 
+  const abrirNovaAvulsa = (iso: string) => {
+    setAvulsaEditando(null);
+    setAvulsaData(iso);
+    setAvulsaOpen(true);
+  };
+
+  const abrirEdicaoAvulsa = (registro: PessoaAvulsaPanorama) => {
+    setAvulsaEditando(registro);
+    setAvulsaData(registro.data_inicio);
+    setAvulsaOpen(true);
+  };
+
+  const salvarAvulsa = (input: PessoaAvulsaInput) =>
+    panorama.salvarAvulsa.mutate(input, {
+      onSuccess: () => {
+        toast.success(input.id ? "Pessoa avulsa atualizada." : "Pessoa avulsa registrada no dia.");
+        setAvulsaOpen(false);
+        setAvulsaEditando(null);
+      },
+      onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível salvar."),
+    });
+
+  const excluirAvulsa = (registro: PessoaAvulsaPanorama) =>
+    panorama.excluirAvulsa.mutate(registro.id, {
+      onSuccess: () => toast.success("Pessoa avulsa removida do dia."),
+      onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível remover."),
+    });
+
+  const propsAvulsas = {
+    avulsos: panorama.avulsos,
+    podeRegistrar,
+    onNovaAvulsa: abrirNovaAvulsa,
+    onEditarAvulsa: abrirEdicaoAvulsa,
+    onExcluirAvulsa: excluirAvulsa,
+  };
+
   if (panorama.error) return <DpErrorState message="Não foi possível carregar a operação." />;
+
 
   // Os diálogos de detalhe seguem o dia aberto na janela, quando houver.
   const dataAtiva = dataPopout ?? data;
