@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import { format } from "date-fns";
-import { ArrowLeftRight, Calendar, User, MessageSquare, Check, X, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Ban, Calendar, User, MessageSquare, Check, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,6 +11,7 @@ import {
 import { DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import { useDpTrocas } from "@/hooks/useDpTrocas";
+import { acoesGestorTroca, textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
 
 
@@ -41,22 +42,36 @@ export default function DpTrocas() {
   const embedded = useDpEmbedded();
   const [filtro, setFiltro] = useState<string>("todos");
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
-  const [recusa, setRecusa] = useState<{ id: string; etapa: "colega" | "gestor" } | null>(null);
+  const [recusa, setRecusa] = useState<string | null>(null);
+  const [cancelamento, setCancelamento] = useState<string | null>(null);
 
-  const { rows, isLoading, responder: responderMut, remover } = useDpTrocas(filtro);
+  const {
+    rows,
+    isLoading,
+    responder: responderMut,
+    cancelar: cancelarMut,
+    remover,
+  } = useDpTrocas(filtro);
 
   const list = { isLoading };
   const filtered = rows;
 
   const responder = {
     isPending: responderMut.isPending,
-    mutate: (vars: { id: string; etapa: "colega" | "gestor"; aceito: boolean; obs?: string }) =>
+    mutate: (vars: { id: string; aceito: boolean; obs?: string }) =>
       responderMut.mutate(vars, { onSuccess: () => setRecusa(null) }),
+  };
+
+  const cancelar = {
+    isPending: cancelarMut.isPending,
+    mutate: (vars: { id: string; motivo: string }) =>
+      cancelarMut.mutate(vars, { onSuccess: () => setCancelamento(null) }),
   };
 
   const del = {
     mutate: (id: string) => remover.mutate(id, { onSuccess: () => setConfirmDel(null) }),
   };
+
 
 
   return (
@@ -96,8 +111,10 @@ export default function DpTrocas() {
             Nenhuma troca encontrada com este filtro.
           </div>
         ) : (
-          filtered.map((r: any) => {
+          filtered.map((r) => {
             const meta = statusMeta[r.status] ?? { label: r.status, className: "bg-muted text-muted-foreground border-border" };
+            const acoes = acoesGestorTroca(r.status, r.modo);
+            const decisao = textoDecisaoGestor(r.gestor_resposta);
             return (
               <div key={r.id} className="bg-card border border-border rounded-2xl p-4 sm:p-5 space-y-4 hover:shadow-md transition-shadow">
                 <div className="flex flex-col md:flex-row md:flex-wrap md:items-center md:justify-between gap-4">
@@ -152,33 +169,45 @@ export default function DpTrocas() {
                   </div>
                 )}
 
-                {(r.colega_resposta || r.gestor_resposta) && (
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                {(r.colega_resposta || decisao) && (
+                  <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                     {r.colega_resposta && <span><b>Colega:</b> {r.colega_resposta}</span>}
-                    {r.gestor_resposta && <span><b>Gestor:</b> {r.gestor_resposta}</span>}
+                    {decisao && (
+                      <span>
+                        <b>Justificativa do gestor:</b> "{decisao}"
+                        {r.gestor_respondido_em && (
+                          <> — {format(new Date(r.gestor_respondido_em), "dd/MM/yyyy HH:mm")}</>
+                        )}
+                      </span>
+                    )}
                   </div>
                 )}
 
-                {r.status === "pendente_colega" && (
-                  <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 pt-1">
-                    <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => responder.mutate({ id: r.id, etapa: "colega", aceito: true })}>
-                      <Check className="h-4 w-4 mr-1" /> Colega aceita
-                    </Button>
-                    <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setRecusa({ id: r.id, etapa: "colega" })}>
-                      <X className="h-4 w-4 mr-1" /> Colega recusa
-                    </Button>
+                {(acoes.aprovar || acoes.recusar || acoes.cancelar) && (
+                  <div className="grid grid-cols-1 sm:flex sm:flex-wrap sm:items-center gap-2 pt-1">
+                    {acoes.aprovar && (
+                      <Button size="sm" className="min-h-11 w-full sm:w-auto" onClick={() => responder.mutate({ id: r.id, aceito: true })}>
+                        <Check className="h-4 w-4 mr-1" /> Aprovar troca
+                      </Button>
+                    )}
+                    {acoes.recusar && (
+                      <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setRecusa(r.id)}>
+                        <X className="h-4 w-4 mr-1" /> Recusar troca
+                      </Button>
+                    )}
+                    {acoes.cancelar && (
+                      <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setCancelamento(r.id)}>
+                        <Ban className="h-4 w-4 mr-1" /> Cancelar troca
+                      </Button>
+                    )}
+                    {r.status === "pendente_gestor" && !acoes.aprovar && (
+                      <span className="text-xs text-muted-foreground">
+                        Nesta unidade a troca é direta: vale o aceite do colega.
+                      </span>
+                    )}
                   </div>
                 )}
-                {r.status === "pendente_gestor" && (
-                  <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 pt-1">
-                    <Button size="sm" className="min-h-11 w-full sm:w-auto" onClick={() => responder.mutate({ id: r.id, etapa: "gestor", aceito: true })}>
-                      <Check className="h-4 w-4 mr-1" /> Gestor aprova
-                    </Button>
-                    <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setRecusa({ id: r.id, etapa: "gestor" })}>
-                      <X className="h-4 w-4 mr-1" /> Gestor recusa
-                    </Button>
-                  </div>
-                )}
+
               </div>
             );
           })
@@ -208,11 +237,23 @@ export default function DpTrocas() {
       <RecusaDialog
         open={!!recusa}
         onOpenChange={(v) => !v && setRecusa(null)}
-        title={recusa?.etapa === "colega" ? "Colega recusa" : "Gestor recusa"}
+        title="Recusar troca"
+        description="Informe o motivo da recusa. Ele fica registrado e visível aos dois colaboradores envolvidos."
         motivoObrigatorio
         loading={responder.isPending}
-        onConfirm={(motivo) => recusa && responder.mutate({ id: recusa.id, etapa: recusa.etapa, aceito: false, obs: motivo })}
+        onConfirm={(motivo) => recusa && responder.mutate({ id: recusa, aceito: false, obs: motivo })}
       />
+
+      <RecusaDialog
+        open={!!cancelamento}
+        onOpenChange={(v) => !v && setCancelamento(null)}
+        title="Cancelar troca aprovada"
+        description="Informe o motivo do cancelamento. As folgas voltam ao estado anterior e os dois colaboradores são avisados."
+        motivoObrigatorio
+        loading={cancelar.isPending}
+        onConfirm={(motivo) => cancelamento && cancelar.mutate({ id: cancelamento, motivo })}
+      />
+
     </DpPage>
   );
 }

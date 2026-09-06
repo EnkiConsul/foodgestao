@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
 
 const statusLabel: Record<string, string> = {
@@ -287,6 +288,18 @@ export default function DpMeuTrocas() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <p className="text-sm">{t.motivo}</p>
+                  {textoDecisaoGestor(t.gestor_resposta) && (
+                    <div className="rounded-lg border border-border/60 bg-muted/40 p-2.5 text-xs">
+                      <span className="mb-0.5 block font-semibold uppercase tracking-wide text-[10px] text-muted-foreground">
+                        {t.status === "cancelada"
+                          ? "Cancelada pelo gestor"
+                          : t.status === "recusada"
+                            ? "Recusada pelo gestor"
+                            : "Observação do gestor"}
+                      </span>
+                      "{textoDecisaoGestor(t.gestor_resposta)}"
+                    </div>
+                  )}
                   {(podeResponderColega || podeCancelar) && (
                     <div className="flex gap-2 pt-1 flex-wrap">
                       {podeResponderColega && (
