@@ -91,6 +91,9 @@ interface HorarioOverride {
 const novoId = () => crypto.randomUUID();
 const hhmm = (v: string | null | undefined) => (v ? v.slice(0, 5) : "");
 const chave = (cargoId: string, data: string) => `${cargoId}|${data}`;
+/** Virada de dia é obrigatória quando a saída é igual ou anterior à entrada. */
+const normalizarVira = (entrada: string, saida: string, atual: boolean) =>
+  viraNoDiaSeguinte(entrada, saida) ? true : atual;
 const rotuloData = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", {
     weekday: "short", day: "2-digit", month: "2-digit",
@@ -297,6 +300,12 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargoAtivo, limites, dias, preview.regrasCobertura, preview.contagemPorDataCargo, unidadeId, antecedenciaMinima]);
+
+  const patchHorarioGeral = (p: Partial<HorarioOverride>) =>
+    setHorarioGeral((h) => {
+      const f = { ...h, ...p };
+      return { ...f, vira: normalizarVira(f.entrada, f.saida, f.vira) };
+    });
 
   /**
    * Marcar o dia: sem horário geral, a janela vem dos fixos do mesmo cargo na
