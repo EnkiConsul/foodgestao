@@ -17,6 +17,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MonthGridCalendar } from "@/components/dp/convocacoes/MonthGridCalendar";
+import { RevisaoConvocacao } from "@/components/dp/convocacoes/RevisaoConvocacao";
+
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
