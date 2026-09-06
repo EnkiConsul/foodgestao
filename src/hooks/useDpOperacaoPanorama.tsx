@@ -334,16 +334,26 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     [base.data],
   );
 
-  const folgas: FolgaPanorama[] = useMemo(
-    () =>
-      (base.data?.folgas ?? []).map((f) => ({
-        colaborador_id: f.colaborador_id,
-        data: f.data,
-        tipo: f.tipo,
-        extra: f.extra,
-      })),
-    [base.data],
-  );
+  const folgas: FolgaPanorama[] = useMemo(() => {
+    const efetivadas: FolgaPanorama[] = (base.data?.folgas ?? []).map((f) => ({
+      colaborador_id: f.colaborador_id,
+      data: f.data,
+      tipo: f.tipo,
+      extra: f.extra,
+    }));
+    const jaTem = new Set(efetivadas.map((f) => `${f.colaborador_id}|${f.data}`));
+    // Pedido de folga aprovado ainda não efetivado também tira a pessoa da escala.
+    const aprovadas: FolgaPanorama[] = (base.data?.folgasAprovadas ?? [])
+      .filter((s) => !!s.data_alvo && !jaTem.has(`${s.colaborador_id}|${s.data_alvo}`))
+      .map((s) => ({
+        colaborador_id: s.colaborador_id,
+        data: s.data_alvo!,
+        tipo: "normal",
+        extra: false,
+      }));
+    return [...efetivadas, ...aprovadas];
+  }, [base.data]);
+
 
   const convocacoes: ConvocacaoPanorama[] = useMemo(
     () =>
