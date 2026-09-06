@@ -36,7 +36,7 @@ export const CATEGORIA_LABEL: Record<CategoriaDia, string> = {
   folga_padrao: "Folga Padrão",
   folga_extra: "Folga Extra",
   ferias: "Férias",
-  atestado: "Atestado/Licença",
+  atestado: "Atestado / Licença",
 };
 
 export interface ColaboradorPanorama {
