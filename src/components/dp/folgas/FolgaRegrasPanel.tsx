@@ -270,8 +270,10 @@ export function FolgaRegrasPanel({
             const Icone = ICONE[r.tipo] ?? Users;
             const chave = chaveRegra(r);
             const partes = partesRegraLimite(r, {
-              cargos: r.cargo_ids.map((c) => nomeCargo.get(c) ?? "Cargo"),
-              colaboradores: r.colaborador_ids.map((c) => nomeColab.get(c) ?? "Pessoa"),
+              cargos: r.cargo_ids.map((c) => nomeCargo.get(c)).filter((n): n is string => !!n),
+              colaboradores: r.colaborador_ids
+                .map((c) => nomeColab.get(c))
+                .filter((n): n is string => !!n),
             });
             return (
               <li key={chave} className="rounded-xl border p-3 transition-colors hover:bg-muted/40">
