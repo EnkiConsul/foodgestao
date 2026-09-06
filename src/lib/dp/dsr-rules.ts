@@ -657,16 +657,19 @@ export function avaliarConformidade(
       ? Math.max(0, Math.min(negociados, esperado - domingos))
       : 0;
     const folgasConsideradas = domingos + negociadosAproveitados;
-    const rotuloValor = modoAplicado === "por_mes"
-      ? (usaMulher ? (cfg.domingos_por_mes_mulher ?? 0) : (cfg.domingos_por_mes ?? 0))
+    const override = overrideDomingosMes({ domingosMes: l.domingosMesOverride });
+    const modoRotulo: ModoFrequencia = override !== null ? "por_mes" : modoAplicado;
+    const rotuloValor = modoRotulo === "por_mes"
+      ? (override ?? (usaMulher ? (cfg.domingos_por_mes_mulher ?? 0) : (cfg.domingos_por_mes ?? 0)))
       : pFinal;
     return {
       ...l,
       periodicidadeAplicada: pFinal,
       modoAplicado,
       rotuloFrequencia: rotuloFrequencia(
-        modoAplicado,
+        modoRotulo,
         rotuloValor,
+
         tipoDiasDescanso(diasElegiveisDaConfig({
           tipo_descanso_domingo: cfg.tipo_descanso_domingo ?? "legal",
           dias_descanso_negociados: cfg.dias_descanso_negociados ?? [0],
