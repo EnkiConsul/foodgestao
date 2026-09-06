@@ -248,17 +248,26 @@ export default function DpConformidadeDsr() {
     return out.sort((a, b) => a.nome.localeCompare(b.nome));
   }, [query.data, configDaUnidade]);
 
-  /** Selo de situação da linha, reutilizado na tabela, nos cartões e no detalhe. */
-  const badgeSituacao = (l: LinhaConformidade) =>
-    l.conforme ? (
+  /** Selo de uma leitura (CLT ou empresa), reutilizado na tabela, cartões e detalhe. */
+  const badgeLeitura = (ok: boolean, rotulo: string) =>
+    ok ? (
       <Badge variant="outline" className="gap-1 border-emerald-500/30 text-emerald-700 dark:text-emerald-400">
-        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> {SITUACAO_CONFORME}
+        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> {rotulo}
       </Badge>
     ) : (
       <Badge variant="destructive" className="gap-1">
-        <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> Fora
+        <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> {rotulo}
       </Badge>
     );
+
+  /** Os dois selos juntos: exigência legal e regra da empresa. */
+  const badgeSituacao = (l: LinhaConformidade) => (
+    <span className="flex flex-wrap items-center justify-center gap-1">
+      {badgeLeitura(l.conformeClt, "CLT")}
+      {badgeLeitura(l.conformeEmpresa, "Empresa")}
+    </span>
+  );
+
 
   const COLS: Record<ColKey, {
     label: string;
