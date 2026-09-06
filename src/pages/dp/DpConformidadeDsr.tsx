@@ -119,6 +119,14 @@ export default function DpConformidadeDsr() {
   const domingos = useMemo(() => diasDaSemanaDoMes(competencia, 0), [competencia]);
   const inicio = primeiroDiaDoMes(competencia);
   const fim = ultimoDiaDoMes(competencia);
+  /** Mês anterior, usado só para achar o último domingo folgado antes do período. */
+  const competenciaAnterior = useMemo(() => {
+    const [y, m] = competencia.split("-").map(Number);
+    const d = new Date(y, (m ?? 1) - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }, [competencia]);
+  const inicioAnterior = primeiroDiaDoMes(competenciaAnterior);
+
 
 
   /** Regra efetiva da unidade (exceção quando existir, senão padrão da empresa). */
