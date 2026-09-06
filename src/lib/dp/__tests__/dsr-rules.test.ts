@@ -323,7 +323,7 @@ describe("avaliarConformidade — leitura CLT x leitura da empresa", () => {
       [{
         colaboradorId: "2",
         nome: "Hanna",
-        sexo: "F",
+        sexo: "M",
         domingosFolgados: [],
         diasNegociadosFolgados: ["2026-09-12"],
         domingosNoPeriodo: 4,
