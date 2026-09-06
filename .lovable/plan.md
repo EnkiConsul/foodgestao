@@ -13,17 +13,20 @@
 - Nova tabela de setores, sempre ligada a uma unidade e à empresa, com nome, descrição, ativo e datas.
 - Nome único por unidade ignorando maiúsculas/acentos ("Salão" = "salão" = "SALÃO"). Unidades diferentes podem ter os mesmos nomes.
 - Nova aba **Setores** no cadastro da unidade: lista com nome, quantidade de colaboradores e situação, com criar, editar e ativar/desativar.
+- Ao criar um setor, o sistema sugere os nomes de setores já cadastrados nas outras unidades da empresa (um clique aproveita o nome), criando sempre um registro próprio da unidade atual.
 - Exclusão: se houver colaborador vinculado, não apaga — mensagem "Este setor possui colaboradores vinculados. Você pode desativá-lo."
 
 ### 2. Setor no colaborador (opcional)
 - Novo campo "Setor / Área" no cadastro do colaborador, abaixo de Cargo, com texto de apoio "Opcional. Use para identificar a área da unidade onde o colaborador atua normalmente."
-- Lista somente setores ativos da unidade escolhida; botão "+ Novo setor" abre criação rápida (nome e descrição) usando o mesmo cadastro, já vinculado à unidade selecionada, e seleciona o setor criado.
+- Lista somente setores ativos da unidade escolhida; botão "+ Novo setor" abre criação rápida (nome e descrição, com as mesmas sugestões de nomes de outras unidades) usando o mesmo cadastro, já vinculado à unidade selecionada, e seleciona o setor criado.
 - Ao trocar a unidade, o setor incompatível é limpo com aviso: "O setor foi removido porque pertence à unidade anterior. Selecione um setor da nova unidade."
 - Setor desativado num colaborador antigo continua vinculado e aparece como "Salão — inativo".
 - Colaboradores existentes seguem válidos sem setor.
 
 ### 3. Listagem e busca de colaboradores
-- Coluna "Setor" (configurável, como as demais) e filtro "Setor" ao lado de Unidade/Cargo/Status/Perfil, carregado junto dos colaboradores (sem consultas extras por linha).
+- Coluna "Setor" e filtro "Setor" só aparecem quando existir ao menos um colaborador da empresa com setor informado; sem isso, a lista fica igual à de hoje.
+- Os dados de setor são carregados junto dos colaboradores (sem consultas extras por linha).
+
 
 ### 4. Rotina / operação
 - Filtro "Setor" (só os setores da unidade escolhida) e agrupamento Unidade → Setor → Cargo, mantendo o cargo como dimensão.
