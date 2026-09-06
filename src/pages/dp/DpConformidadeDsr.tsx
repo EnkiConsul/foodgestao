@@ -784,9 +784,10 @@ export default function DpConformidadeDsr() {
 
                   <p className="mt-2 text-xs text-muted-foreground">
                     {detalheInfo.descansoLabel
-                      ? `Inclui o descanso fixo do cadastro de trabalho (${detalheInfo.descansoLabel}), que não gera registro de folga.`
-                      : "Sem descanso fixo no cadastro de trabalho; conta só as folgas marcadas."}
+                      ? `Inclui o descanso fixo do cadastro de trabalho (${detalheInfo.descansoLabel}) quando cai num dia de descanso da regra; folgas em outros dias não contam.`
+                      : "Sem descanso fixo no cadastro de trabalho; conta só as folgas em dias de descanso da regra."}
                   </p>
+
                 </div>
 
                 <div>
