@@ -44,7 +44,10 @@ import {
   janelaMinutos,
   minimoDoCargoNaData,
   regimeConvocavel,
+  viraNoDiaSeguinte,
 } from "@/lib/dp/convocacoes-planejamento";
+import { textoDoErroDePublicacao } from "@/lib/dp/convocacoes-motivos";
+import { useDpConvocacaoPreAvaliacao } from "@/hooks/useDpConvocacaoPreAvaliacao";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -315,7 +318,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
         ...prev,
         [k]: {
           id: novoId(), cargo_id: cargoAtivo, data: iso,
-          entrada: horarioGeral.entrada, saida: horarioGeral.saida, vira: horarioGeral.vira,
+          entrada: horarioGeral.entrada, saida: horarioGeral.saida,
+          vira: normalizarVira(horarioGeral.entrada, horarioGeral.saida, horarioGeral.vira),
           vagas, origem: "geral", ambiguo: false, expected_updated_at: null,
         },
       }));
@@ -330,7 +334,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
         id: novoId(), cargo_id: cargoAtivo, data: iso,
         entrada: sug?.entrada ?? "",
         saida: sug?.saida ?? "",
-        vira: sug?.vira ?? false,
+        vira: normalizarVira(sug?.entrada ?? "", sug?.saida ?? "", sug?.vira ?? false),
         vagas,
         origem: sug?.origem ?? "manual",
         ambiguo: sug?.ambiguo ?? false,
@@ -359,7 +363,11 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       const resolvida: SugestaoCache = {
         entrada: hhmm(sug.sugerido.entrada),
         saida: hhmm(sug.sugerido.saida),
-        vira: !!sug.sugerido.termina_no_dia_seguinte,
+        vira: normalizarVira(
+          hhmm(sug.sugerido.entrada),
+          hhmm(sug.sugerido.saida),
+          !!sug.sugerido.termina_no_dia_seguinte,
+        ),
         origem: sug.fonte === "historico_convocacoes" ? "historico" : "sugerida",
         ambiguo: !!sug.ambiguo,
       };
@@ -385,9 +393,11 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   };
 
   const patchDia = (k: string, p: Partial<DiaPlanejado>) =>
-    setDias((prev) =>
-      prev[k] ? { ...prev, [k]: { ...prev[k], ...p, origem: "manual", ambiguo: false } } : prev,
-    );
+    setDias((prev) => {
+      if (!prev[k]) return prev;
+      const fundido = { ...prev[k], ...p, origem: "manual" as const, ambiguo: false };
+      return { ...prev, [k]: { ...fundido, vira: normalizarVira(fundido.entrada, fundido.saida, fundido.vira) } };
+    });
 
   /** Copia a janela de um dia para os demais dias do mesmo cargo. */
   const aplicarATodos = (k: string) => {
@@ -397,7 +407,9 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       Object.fromEntries(
         Object.entries(prev).map(([key, d]) =>
           d.cargo_id === base.cargo_id
-            ? [key, { ...d, entrada: base.entrada, saida: base.saida, vira: base.vira, origem: "manual" as const, ambiguo: false }]
+            ? [key, { ...d, entrada: base.entrada, saida: base.saida,
+                vira: normalizarVira(base.entrada, base.saida, base.vira),
+                origem: "manual" as const, ambiguo: false }]
             : [key, d],
         ),
       ),
@@ -558,18 +570,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       onSalvo?.(grupoId);
       onOpenChange(false);
     } catch (e: any) {
-      const msg = String(e?.message ?? "");
-      toast.error(
-        msg.includes("PUBLICATION_NO_RECIPIENTS")
-          ? "Nenhum destinatário selecionado — a convocação não foi enviada a ninguém."
-          : msg.includes("PUBLICATION_NO_ELIGIBLE")
-            ? "Nenhum destinatário elegível para um dos dias. Revise horários, unidade e conflitos."
-            : msg.includes("ANTECEDENCE_JUSTIFICATION_REQUIRED")
-              ? "As regras exigem justificativa para publicar abaixo da antecedência mínima."
-              : msg.includes("CONCURRENT_MODIFICATION")
-                ? "O rascunho foi alterado por outra pessoa. Reabra e tente novamente."
-                : msg || "Não foi possível publicar a convocação.",
-      );
+      toast.error(textoDoErroDePublicacao(String(e?.message ?? "")));
     } finally {
       setPublicando(false);
     }
@@ -784,12 +785,12 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     <div className="space-y-1">
                       <Label className="text-[11px]">Entrada</Label>
                       <Input type="time" value={horarioGeral.entrada}
-                        onChange={(e) => setHorarioGeral((h) => ({ ...h, entrada: e.target.value }))} />
+                        onChange={(e) => patchHorarioGeral({ entrada: e.target.value })} />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[11px]">Saída</Label>
                       <Input type="time" value={horarioGeral.saida}
-                        onChange={(e) => setHorarioGeral((h) => ({ ...h, saida: e.target.value }))} />
+                        onChange={(e) => patchHorarioGeral({ saida: e.target.value })} />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[11px]">Intervalo (min)</Label>
@@ -803,9 +804,13 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     <label className="flex items-end gap-2 pb-2 text-xs">
                       <Checkbox
                         checked={horarioGeral.vira}
-                        onCheckedChange={(v) => setHorarioGeral((h) => ({ ...h, vira: v === true }))}
+                        disabled={viraNoDiaSeguinte(horarioGeral.entrada, horarioGeral.saida)}
+                        onCheckedChange={(v) => patchHorarioGeral({ vira: v === true })}
                       />
                       Termina no dia seguinte
+                      {viraNoDiaSeguinte(horarioGeral.entrada, horarioGeral.saida) && (
+                        <span className="text-muted-foreground">(a saída é no dia seguinte)</span>
+                      )}
                     </label>
                   </div>
                 )}
