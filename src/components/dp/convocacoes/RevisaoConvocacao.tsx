@@ -60,6 +60,14 @@ interface Props {
   jornadaDe: (colaboradorId: string, data: string) => JornadaDia | null;
   prazoRespostaDias: number | null;
   justificativa: string;
+  /** Antecedência mínima configurada (só gera aviso, nunca bloqueia). */
+  antecedenciaMinima: number;
+  exigeJustificativa: boolean;
+  onJustificativaChange: (v: string) => void;
+  /** Ciência de que a convocação é em cima da hora. */
+  ciente: boolean;
+  onCienteChange: (v: boolean) => void;
+
   /** Verificação prévia feita pelo banco (mesma regra da publicação). */
   preAvaliacao: PreAvaliacaoLinha[];
   preAvaliacaoCarregando: boolean;
