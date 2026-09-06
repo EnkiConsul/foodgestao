@@ -19,6 +19,7 @@ const base: RegraLimiteFolga = {
   vigencia_fim: null,
   ativo: true,
   cargo_ids: [],
+  setor_ids: [],
   colaborador_ids: [],
 };
 
@@ -243,5 +244,36 @@ describe("ocupacaoNoEscopo", () => {
     expect(ocupacaoNoEscopo(folgas, ["garcom"])).toBe(1);
     expect(ocupacaoNoEscopo(folgas, ["cozinheiro", "garcom"])).toBe(3);
     expect(ocupacaoNoEscopo(folgas, ["chapeiro"])).toBe(0);
+  });
+});
+
+describe("limite de folga por setor", () => {
+  it("aplica a regra só a quem está no setor da regra naquele dia", () => {
+    const regra: RegraLimiteFolga = { ...base, id: "r-setor", tipo: "setor", maximo: 1, setor_ids: ["cozinha"] };
+    expect(resolverLimiteFolga({ data: "2026-09-12", unidadeId: "u1", setorId: "cozinha", regras: [regra] }).limite).toBe(1);
+    expect(resolverLimiteFolga({ data: "2026-09-12", unidadeId: "u1", setorId: "salao", regras: [regra] }).origem).toBe("sem_limite");
+  });
+
+  it("conta na ocupação apenas quem está no setor efetivo da data", () => {
+    const pessoas = [
+      { cargoId: "c1", setorId: "cozinha" },
+      { cargoId: "c2", setorId: "salao" },
+      { cargoId: "c3", setorId: null },
+    ];
+    expect(ocupacaoNoEscopo(pessoas, [], ["cozinha"])).toBe(1);
+    expect(ocupacaoNoEscopo(pessoas, [], [])).toBe(3);
+  });
+
+  it("a regra de cargo é mais específica que a de setor", () => {
+    const porSetor: RegraLimiteFolga = { ...base, id: "s", tipo: "setor", maximo: 3, setor_ids: ["cozinha"] };
+    const porCargo: RegraLimiteFolga = { ...base, id: "c", tipo: "cargo", maximo: 1, cargo_ids: ["cargo1"] };
+    const r = resolverLimiteFolga({
+      data: "2026-09-12",
+      unidadeId: "u1",
+      cargoId: "cargo1",
+      setorId: "cozinha",
+      regras: [porSetor, porCargo],
+    });
+    expect(r.limite).toBe(1);
   });
 });
