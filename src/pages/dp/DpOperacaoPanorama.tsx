@@ -427,12 +427,12 @@ function DetalheDiaOperacao({
       )}
 
       <Secao
-        title="Pessoas Registradas no Dia"
+        title="Mão de Obra Extra"
         description="Quem trabalhou no dia por registro manual, em teste ou como folguista"
         action={
           podeRegistrar ? (
             <Button variant="outline" size="sm" onClick={() => onNovaAvulsa(data)}>
-              <UserPlus className="mr-1.5 h-4 w-4" /> Adicionar Pessoa
+              <UserPlus className="mr-1.5 h-4 w-4" /> Mão de Obra Extra
             </Button>
           ) : undefined
         }
