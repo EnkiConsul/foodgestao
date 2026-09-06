@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -34,7 +35,7 @@ import {
   Unlock,
   Settings2,
   Save,
-  Trash2,
+  
   MapPin,
   Globe2,
   ChevronDown,
@@ -56,7 +57,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  diasValidosDoMes,
+  diasValidosDoItem,
   parsePlanoAutoatribuicao,
   parseResultadoAutoatribuicao,
   resumoPlano,
@@ -144,6 +145,7 @@ export default function DpFolgas() {
   const { selectedCompanyId } = useCompanyContext();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const colabs = useDpColaboradores();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
   const initialPrefs = loadPrefs(selectedCompanyId);
@@ -175,62 +177,18 @@ export default function DpFolgas() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [quickColabId, setQuickColabId] = useState<string>("");
   const [editLimit, setEditLimit] = useState<number>(1);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  
   const [autoOpen, setAutoOpen] = useState(false);
   const { role } = useCompanyPermissions();
   const podeDistribuir = role === "owner" || role === "admin";
-  const [form, setForm] = useState({
-    colaborador_id: "",
-    tipo: "folga" as Tipo,
-    data_alvo: "",
-    data_fim: "",
-    motivo: "",
-  });
-
-  const openNew = (preset?: { data_alvo?: string; data_fim?: string; tipo?: Tipo }) => {
-    setForm({
-      colaborador_id: "",
-      tipo: preset?.tipo ?? "folga",
-      data_alvo: preset?.data_alvo ?? "",
-      data_fim: preset?.data_fim ?? "",
-      motivo: "",
-    });
-    setDialogOpen(true);
-  };
-
-  useEffect(() => {
-    if (!dialogOpen) return;
-    if (!form.data_fim || !form.data_alvo) return;
-    if (form.data_fim < form.data_alvo) setForm((f) => ({ ...f, data_fim: f.data_alvo }));
-  }, [dialogOpen, form.data_alvo, form.data_fim]);
-
-  const create = useMutation({
-    mutationFn: async () => {
-      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      if (!form.colaborador_id) throw new Error("Selecione um colaborador");
-      if (!form.data_alvo) throw new Error("Informe a data inicial");
-      if (form.motivo.length > 500) throw new Error("Observações muito longas (máx. 500)");
-      const { error } = await supabase.from("dp_solicitacoes").insert({
-        company_id: selectedCompanyId,
-        colaborador_id: form.colaborador_id,
-        tipo: form.tipo,
-        data_alvo: form.data_alvo,
-        data_fim: form.data_fim || null,
-        motivo: form.motivo.trim() || null,
-        criado_por: user?.id,
-        status: "pendente",
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Solicitação criada", { description: "Ficará como pendente até aprovação." });
-      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
-      qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
-      setDialogOpen(false);
-    },
-    onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
-  });
+  /** Folga efetivada em gestão (remarcar/cancelar) pelo diálogo do dia. */
+  const [folgaGerenciar, setFolgaGerenciar] = useState<{
+    id: string;
+    nome: string;
+    data: string;
+  } | null>(null);
+  const [remarcarData, setRemarcarData] = useState("");
+  const [cancelMotivo, setCancelMotivo] = useState("");
 
   const quickAssign = useMutation({
     mutationFn: async () => {
@@ -332,18 +290,55 @@ export default function DpFolgas() {
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
 
-  const removerFolga = useMutation({
-    mutationFn: async (folgaId: string) => {
-      const cleanId = folgaId.startsWith("folga:") ? folgaId.slice("folga:".length) : folgaId;
-      const { error } = await supabase.from("dp_folgas").delete().eq("id", cleanId);
+  const cleanFolgaId = (id: string) =>
+    id.startsWith("folga:") ? id.slice("folga:".length) : id;
+
+  /** Cancela a folga (mantém o histórico); o dia volta a ficar livre. */
+  const cancelarFolga = useMutation({
+    mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
+      const { error } = await supabase
+        .from("dp_folgas")
+        .update({
+          status: "cancelada",
+          observacao: motivo
+            ? `Cancelada pelo gestor: ${motivo}`
+            : "Cancelada pelo gestor.",
+        })
+        .eq("id", cleanFolgaId(id));
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Folga removida");
+      toast.success("Folga cancelada", {
+        description: "O dia voltou a ficar livre no calendário.",
+      });
       qc.invalidateQueries({ queryKey: ["dp_folgas"] });
       qc.invalidateQueries({ queryKey: ["dp_folgas_efetivadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+      setFolgaGerenciar(null);
     },
-    onError: (e) => toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) }),
+    onError: (e) =>
+      toast.error("Erro ao cancelar", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
+  /** Remarca a folga para outro dia, no mesmo registro. */
+  const remarcarFolga = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: string }) => {
+      if (!data) throw new Error("Escolha a nova data");
+      const { error } = await supabase
+        .from("dp_folgas")
+        .update({ data })
+        .eq("id", cleanFolgaId(id));
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folga remarcada");
+      qc.invalidateQueries({ queryKey: ["dp_folgas"] });
+      qc.invalidateQueries({ queryKey: ["dp_folgas_efetivadas"] });
+      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+      setFolgaGerenciar(null);
+    },
+    onError: (e) =>
+      toast.error("Erro ao remarcar", { description: e instanceof Error ? e.message : String(e) }),
   });
 
 
@@ -396,10 +391,6 @@ export default function DpFolgas() {
     }));
   }, [planoAutoQuery.data, autoEdits]);
 
-  const diasEscolhaAuto = useMemo(
-    () => diasValidosDoMes(planoAutoQuery.data?.competencia ?? competenciaAtual, planoAutoQuery.data?.dias ?? []),
-    [planoAutoQuery.data, competenciaAtual],
-  );
 
   const itensConfirmados = useMemo(
     () =>
@@ -749,9 +740,6 @@ export default function DpFolgas() {
               </Button>
             )}
 
-            <Button onClick={() => openNew()} className="gap-2">
-              <Plus className="h-4 w-4" /> Nova solicitação
-            </Button>
           </div>
 
 
@@ -1283,15 +1271,22 @@ export default function DpFolgas() {
                             <DpStatusBadge tone={isWeekly ? "info" : statusToneFor(ev.status)}>
                               {isWeekly ? "Semanal" : STATUS_LABEL[ev.status]}
                             </DpStatusBadge>
-                            {isEfetivada && (
+                            {isEfetivada && podeDistribuir && (
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                className="h-9 w-9 rounded-xl text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                                onClick={() => removerFolga.mutate(ev.id)}
-                                disabled={removerFolga.isPending}
+                                size="sm"
+                                className="rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground"
+                                onClick={() => {
+                                  setFolgaGerenciar({
+                                    id: ev.id,
+                                    nome: ev.dp_colaboradores?.nome ?? "",
+                                    data: ev.data_alvo,
+                                  });
+                                  setRemarcarData(ev.data_alvo);
+                                  setCancelMotivo("");
+                                }}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                Gerenciar
                               </Button>
                             )}
                           </div>
@@ -1336,11 +1331,11 @@ export default function DpFolgas() {
                 <button
                   type="button"
                   onClick={() =>
-                    openNew({ data_alvo: format(selectedDay, "yyyy-MM-dd") })
+                    navigate(`/dp/operacao?ausencia=${format(selectedDay, "yyyy-MM-dd")}`)
                   }
                   className="text-xs font-medium text-primary hover:underline"
                 >
-                  Solicitar ausência avançada (férias, atestado, período)
+                  Registrar ausência (férias, atestado, período)
                 </button>
               </div>
             </div>
