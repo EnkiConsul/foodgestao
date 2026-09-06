@@ -36,8 +36,10 @@ O botão de lixeira (que apagava o registro) sai de cena.
 
 - Nova migration (a partir da última existente) para `dp_folga_autoatribuicao_plano`, `dp_folga_autoatribuir_competencia` e `dp_folga_autoatribuicao_previa`:
   - varredura de candidatos com `ORDER BY d DESC` e escolha do dia de menor ocupação com desempate pela data mais tarde;
-  - cada item do JSON de retorno passa a trazer `dias` (os dias de descanso resolvidos pela unidade do colaborador) junto de `data_sugerida`; a chave `dias` do topo continua para compatibilidade.
-- `src/lib/dp/folga-autoatribuicao.ts`: `PlanoItem` ganha `dias: number[]`; `parsePlanoAutoatribuicao` lê o campo com fallback para o `dias` do topo; novo helper `diasEscolhaDoItem(competencia, item, diasTopo)`.
+  - **sem contingência acima do limite**: quando todos os dias possíveis já estão no limite, o item sai com `data_sugerida = null`, `excede_limite = true` e motivo `ACIMA_DO_LIMITE` (a criação automática não insere nada nesses casos);
+  - cada item do JSON passa a trazer `dias` (dias de descanso resolvidos pela unidade do colaborador) e `ocupacao` (mapa data → quantidade de folgantes), junto de `data_sugerida`; a chave `dias` do topo continua para compatibilidade.
+- `src/lib/dp/folga-autoatribuicao.ts`: `PlanoItem` ganha `dias: number[]` e `ocupacao: Record<string, number>`; novo helper `diasEscolhaDoItem(competencia, item, diasTopo)`; texto do resumo para o caso "só acima do limite" orientando a escolha manual.
+- `src/pages/dp/DpFolgas.tsx`: nas linhas "Acima do limite", o `Select` de data lista **todas** as datas válidas da pessoa com o rótulo `DD/MM · N folgando`; a confirmação da geração inclui os itens acima do limite **somente quando o gestor escolheu uma data** (a RPC de aplicação já recebe data por item).
 - `src/pages/dp/DpFolgas.tsx`:
   - opções do `Select` de cada linha vindas de `diasEscolhaDoItem` (fim de `diasEscolhaAuto` global);
   - remoção do botão "Nova solicitação", do diálogo `dialogOpen`, do estado `form` e da mutation `create` (o atalho no dia navega para `/dp/operacao?ausencia=<data>`);
