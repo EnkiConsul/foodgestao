@@ -6,7 +6,8 @@ Confirmei os três pontos no sistema:
 
 1. **Dois botões para a mesma coisa.** "Gerar folgas CLT" só funciona com uma unidade selecionada e cria folgas de domingo pela leitura legal, ignorando o acordo coletivo da empresa. É um caminho paralelo ao "Distribuir folgas automaticamente".
 
-2. **Intermitentes entram na distribuição.** A geração hoje só exclui sócios. Alessandra, Erildson e Herick são intermitentes e apareceram na lista de sugestões.
+2. **Entra gente que não precisa folgar.** A geração hoje só exclui sócios pelo rótulo do vínculo. Alessandra, Erildson e Herick são intermitentes e apareceram na lista de sugestões.
+
 
 3. **A folga da Sara no sábado 12/09 não é contada.** As duas unidades (Pakerê Garavelo e Pakerê T-63) têm acordo coletivo com sábado e domingo como dias de descanso, mas a configuração geral da empresa (usada quando o calendário está em "todas as unidades") está como legal, só domingo. Quando o gestor abre a distribuição sem escolher unidade, o sistema lê a regra da empresa, enxerga só domingo e conclui que a Sara ainda não folgou — por isso sugere um domingo para ela. Escolhendo a unidade, a Sara sai da lista.
 
