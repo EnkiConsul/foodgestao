@@ -278,13 +278,14 @@ function DetalheDiaOperacao({
   onReordenarCards,
   onVerCategoria,
   onVerSocios,
+  onVerAvulso,
   onDispensar,
   onReativar,
   avulsos,
   podeRegistrar,
   onNovaAvulsa,
   onEditarAvulsa,
-  onExcluirAvulsa,
+  onExcluirAvulso,
 }: DetalheDiaProps) {
   const foraDaOperacao = dia.pessoas.filter((p) =>
     ["folga_padrao", "folga_extra", "ferias", "atestado"].includes(p.categoria),
