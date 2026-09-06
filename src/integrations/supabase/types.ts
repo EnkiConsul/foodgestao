@@ -4205,6 +4205,7 @@ export type Database = {
           premio_assiduidade_valor: number | null
           regime: Database["public"]["Enums"]["dp_regime_trabalho"]
           salario_base: number | null
+          setor_id: string | null
           sexo: string | null
           sindicato_id: string | null
           socio_remuneracao: string | null
@@ -4304,6 +4305,7 @@ export type Database = {
           premio_assiduidade_valor?: number | null
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
           salario_base?: number | null
+          setor_id?: string | null
           sexo?: string | null
           sindicato_id?: string | null
           socio_remuneracao?: string | null
@@ -4403,6 +4405,7 @@ export type Database = {
           premio_assiduidade_valor?: number | null
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
           salario_base?: number | null
+          setor_id?: string | null
           sexo?: string | null
           sindicato_id?: string | null
           socio_remuneracao?: string | null
@@ -4451,6 +4454,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaboradores_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "dp_setores"
             referencedColumns: ["id"]
           },
           {
@@ -6775,6 +6785,39 @@ export type Database = {
           },
         ]
       }
+      dp_folga_limite_regra_setores: {
+        Row: {
+          created_at: string
+          regra_id: string
+          setor_id: string
+        }
+        Insert: {
+          created_at?: string
+          regra_id: string
+          setor_id: string
+        }
+        Update: {
+          created_at?: string
+          regra_id?: string
+          setor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_folga_limite_regra_setores_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "dp_folga_limite_regras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folga_limite_regra_setores_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "dp_setores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_folga_limite_regras: {
         Row: {
           ativo: boolean
@@ -8440,6 +8483,60 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_setores: {
+        Row: {
+          ativo: boolean
+          company_id: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          unidade_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          unidade_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          unidade_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_setores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_setores_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -12936,16 +13033,28 @@ export type Database = {
         }
         Returns: boolean
       }
-      dp_folga_limite_dia: {
-        Args: {
-          p_cargo: string
-          p_company: string
-          p_data: string
-          p_ignorar_colaborador?: string
-          p_unidade: string
-        }
-        Returns: Json
-      }
+      dp_folga_limite_dia:
+        | {
+            Args: {
+              p_cargo: string
+              p_company: string
+              p_data: string
+              p_ignorar_colaborador?: string
+              p_unidade: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_cargo: string
+              p_company: string
+              p_data: string
+              p_ignorar_colaborador?: string
+              p_setor?: string
+              p_unidade: string
+            }
+            Returns: Json
+          }
       dp_folga_marcadas_no_mes: {
         Args: {
           _colab: string
@@ -12959,10 +13068,16 @@ export type Database = {
         Args: { _colab: string; _company: string; _data: string }
         Returns: boolean
       }
-      dp_folga_solicitar: {
-        Args: { p_data: string; p_fora_da_janela?: boolean; p_motivo?: string }
-        Returns: Json
-      }
+      dp_folga_solicitar:
+        | { Args: { p_data: string; p_motivo?: string }; Returns: Json }
+        | {
+            Args: {
+              p_data: string
+              p_fora_da_janela?: boolean
+              p_motivo?: string
+            }
+            Returns: Json
+          }
       dp_folgas_janela_efetiva: {
         Args: { _company: string; _data_ref?: string; _unidade?: string }
         Returns: Json
@@ -13022,6 +13137,7 @@ export type Database = {
         Args: { p_colaborador: string; p_data: string }
         Returns: Json
       }
+      dp_nome_normalizado: { Args: { p_nome: string }; Returns: string }
       dp_pascoa: { Args: { _ano: number }; Returns: string }
       dp_pessoa_apoio_upsert: {
         Args: {

@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { HorarioFuncionamentoEditor } from "@/components/dp/HorarioFuncionamentoEditor";
 import { UnidadeSindicatoPanel } from "@/components/dp/unidades/UnidadeSindicatoPanel";
 import { UnidadeNegociacoesPanel } from "@/components/dp/unidades/UnidadeNegociacoesPanel";
+import { UnidadeSetoresPanel } from "@/components/dp/unidades/UnidadeSetoresPanel";
 
 
 export const onlyNumbers = (v: string) => v.replace(/\D/g, "");
@@ -59,7 +60,7 @@ export interface UnidadeEdicao {
 }
 
 /** Abas do cadastro de unidade. */
-export type UnidadeAba = "dados" | "funcionamento" | "sindicato";
+export type UnidadeAba = "dados" | "setores" | "funcionamento" | "sindicato";
 
 interface Props {
   open: boolean;
@@ -236,8 +237,9 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
           className="flex min-h-0 flex-1 flex-col gap-0"
         >
           <div className="border-b px-4 pt-3">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="dados" className="h-10">Dados</TabsTrigger>
+              <TabsTrigger value="setores" className="h-10">Setores</TabsTrigger>
               <TabsTrigger value="funcionamento" className="h-10">Funcionamento</TabsTrigger>
               <TabsTrigger value="sindicato" className="h-10">Sindicato</TabsTrigger>
             </TabsList>
@@ -381,6 +383,10 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
               </Select>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="setores" className="mt-0 flex-1 space-y-2 overflow-y-auto p-4">
+          <UnidadeSetoresPanel unidadeId={unidadeId} unidadeNome={form.nome} />
         </TabsContent>
 
         <TabsContent value="funcionamento" className="mt-0 flex-1 space-y-2 overflow-y-auto p-4">

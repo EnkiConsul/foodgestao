@@ -6,6 +6,8 @@ import type { Database } from "@/integrations/supabase/types";
 export type DpColaborador = Database["public"]["Tables"]["dp_colaboradores"]["Row"] & {
   cargo_nome?: string | null;
   unidade_nome?: string | null;
+  setor_nome?: string | null;
+  setor_ativo?: boolean | null;
 };
 export type DpColaboradorInsert = Database["public"]["Tables"]["dp_colaboradores"]["Insert"];
 
@@ -17,7 +19,7 @@ export function useDpColaboradores() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("*, dp_cargos(nome), dp_unidades(nome)")
+        .select("*, dp_cargos(nome), dp_unidades(nome), dp_setores(nome, ativo)")
         .eq("company_id", selectedCompanyId!)
         .order("nome");
       if (error) throw error;
@@ -25,6 +27,8 @@ export function useDpColaboradores() {
         ...r,
         cargo_nome: r.dp_cargos?.nome ?? r.cargo ?? null,
         unidade_nome: r.dp_unidades?.nome ?? null,
+        setor_nome: r.dp_setores?.nome ?? null,
+        setor_ativo: r.dp_setores?.ativo ?? null,
       })) as DpColaborador[];
     },
   });
