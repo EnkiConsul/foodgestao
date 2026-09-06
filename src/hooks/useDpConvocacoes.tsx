@@ -200,7 +200,7 @@ export function useDpConvocacoesParciais() {
         p_company_id: selectedCompanyId,
       });
       if (error) throw error;
-      return ((data ?? []) as ParcialPendente[]) ?? [];
+      return (data ?? []) as ParcialPendente[];
     },
   });
 
