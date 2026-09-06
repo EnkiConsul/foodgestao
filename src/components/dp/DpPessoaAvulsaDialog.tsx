@@ -75,6 +75,7 @@ export function DpPessoaAvulsaDialog({
 
   useEffect(() => {
     if (!open) return;
+    setHorarioTocado(false);
     setForm({
       nome: registro?.nome ?? "",
       tipo: registro?.tipo ?? "teste",
@@ -90,6 +91,19 @@ export function DpPessoaAvulsaDialog({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, registro, dataInicial, unidadePadrao]);
+
+  useEffect(() => {
+    if (!open || !sugerirHorario || horarioTocado || !form.unidade_id || !form.cargo_id || !form.data_inicio) return;
+    const sugerido = sugerirHorario(form.unidade_id, form.cargo_id, form.data_inicio);
+    if (!sugerido) return;
+    setForm((f) => ({
+      ...f,
+      entrada: sugerido.entrada,
+      saida: sugerido.saida,
+      termina_no_dia_seguinte: sugerido.termina_no_dia_seguinte,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, sugerirHorario, form.unidade_id, form.cargo_id, form.data_inicio]);
 
   const salvar = () => {
     const candidato: PessoaAvulsaInput = {
