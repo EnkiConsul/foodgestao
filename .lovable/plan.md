@@ -1,45 +1,61 @@
 # Ocorrências — presença, atrasos, faltas, cobertura e tratativas de ponto
 
-Nova área dentro de Rotina para registrar tudo que afeta a presença e o horário previsto do dia: faltas, previsões, atrasos, saídas antecipadas, atestados, coberturas por substituto e problemas de marcação de ponto. Ocorrências não altera ponto nem folha — apenas guarda o que aconteceu, a justificativa e a decisão do gestor, para uso posterior na conferência.
+Nova área dentro de Rotina, a camada entre o que estava planejado na jornada e o que realmente aconteceu: faltas, previsões, atrasos, saídas antecipadas, atrasos no retorno do intervalo, atestados, esquecimentos de marcação, divergências de jornada, cobertura da ausência e a decisão do gestor.
+
+Ocorrências não é módulo de ponto: nada de marcação, correção, banco de horas, espelho ou folha. Registra o que aconteceu, quando, o que o colaborador informou, a justificativa e o que o gestor decidiu — para facilitar o tratamento do ponto depois, mesmo que esse tratamento siga fora do sistema.
+
+Dimensões sempre separadas: **ocorrência** (o que aconteceu), **estado** (informado/previsto ou realmente aconteceu), **análise** (o gestor avaliou?), **cobertura** (ficou descoberto ou alguém assumiu?), **impactos** (assiduidade e férias) e **tratativa de ponto** (o que precisa ser considerado depois).
 
 Entrega em 3 etapas.
 
 ## Etapa 1 — Registro e tela de Ocorrências
 
-- Nova rota **Rotina → Ocorrências** (`/dp/ocorrencias`), com filtros de Hoje / Semana / Mês / Todas, e por colaborador, unidade, setor, tipo, status, impacto na assiduidade, impacto administrativo e tratativa de ponto. Abre por padrão no período recente com o que ainda precisa de ação.
-- Cartões coloridos conforme a relevância: vermelho (afeta a operação agora), amarelo (atenção), verde (resolvido operacionalmente), neutro (administrativo).
-- Tipos iniciais: falta, previsão de falta, atraso, previsão de atraso, atestado, ausência justificada, saída antecipada (prevista e realizada), esquecimento de marcação (entrada, saída, início e retorno do intervalo), atraso no retorno do intervalo, outra divergência de jornada. A estrutura aceita novos tipos sem refazer a tela.
-- Cada ocorrência guarda: colaborador, data, unidade, setor efetivo do dia, horário previsto (vindo do horário previsto já existente), horário informado, horário real, duração calculada, justificativa inicial e final, quem registrou, quando informou, antecedência em relação ao início da jornada, status e vínculos.
-- Ações rápidas do colaborador no portal, na jornada do dia: "Vou me atrasar", "Não poderei comparecer", "Preciso sair mais cedo", "Informar problema com ponto" — cada uma abre um passo a passo curto (quanto de atraso, qual marcação esqueceu, qual o horário correto, motivo). Prazo para registrar dias anteriores é configurável nas regras da empresa.
-- Gestor pode criar e editar ocorrências manualmente pela mesma tela.
-- Fluxo de virada: previsão de falta → falta confirmada ou cancelada; previsão de atraso → atraso confirmado com horário real, mantendo a justificativa inicial no histórico.
-- Impacto na assiduidade e impacto administrativo nascem com o **padrão do tipo** (configurável nas regras) e o gestor pode alterar caso a caso; o sistema grava quem alterou e quando.
-- Status: informada, aguardando análise, aguardando confirmação, confirmada, tratada, resolvida, cancelada; para ponto também pendente de tratamento e tratativa concluída.
+- Nova rota **Rotina → Ocorrências** (`/dp/ocorrencias`): central de consulta, registro e tratamento. Filtros de Hoje / Semana / Mês / Todas e por colaborador, unidade, setor, tipo, estado, análise, impacto na assiduidade, impacto nas férias, tratativa de ponto e pendências. Abre no período recente priorizando o que precisa de ação.
+- Tipos iniciais: falta, previsão de falta, atraso, previsão de atraso, atestado, ausência justificada, saída antecipada, previsão de saída antecipada, esquecimento de marcação, atraso no retorno do intervalo, previsão de atraso no retorno do intervalo, outra divergência de jornada. Novos tipos entram depois sem refazer a tela.
+- Esquecimento de marcação é um tipo único com `marcacao_alvo` (entrada, saída, início do intervalo, retorno do intervalo); na tela o colaborador vê as opções amigáveis.
+- Horários padronizados: previsto, estimado (informado antes) e real. Minutos e antecedência são calculados no backend; a tela só faz prévia.
+- **Data operacional**: a ocorrência pertence à data da rotina, não à data civil — uma saída às 00:10 de 07/09 pertence à rotina de 06/09.
+- Ações rápidas do colaborador na jornada do dia: "Vou me atrasar" (10/20/30/45/60 min ou horário), "Não poderei comparecer", "Preciso sair mais cedo", "Informar problema com ponto". Ele não precisa conhecer a área administrativa.
+- **Previsão e confirmação são a mesma ocorrência**: previsão de atraso em `aguardando_confirmacao` vira atraso `confirmada` com horário real; nada de dois registros. A virada fica na auditoria.
+- Justificativa inicial nunca é sobrescrita: a final é gravada em separado e as duas ficam visíveis.
+- Comunicar ausência não é pedir autorização: a rotina é atualizada na hora; ficam pendentes justificativa, cobertura, impactos e tratativa.
+- Prazo retroativo configurável por empresa (`ocorrencia_prazo_retroativo_dias`) vale para o colaborador; gestor autorizado registra períodos anteriores.
+- Edição pelo colaborador só enquanto pendente e dentro do prazo; depois de analisada, ele envia complemento/correção, que entra na auditoria sem sobrescrever.
+- Gestor cria, complementa e corrige ocorrências manualmente.
+- Estados: informada, aguardando_confirmacao, confirmada, cancelada. Análise: pendente, analisada, nao_se_aplica. Impactos em assiduidade e em férias: sim, nao, aguardando, nao_se_aplica, com padrão por tipo configurável e alteração pelo gestor registrando valor anterior, novo, quem e quando.
 
-## Etapa 2 — Rotina do dia, substituições e pendências
+## Etapa 2 — Rotina do dia, coberturas e pendências
 
-- Na Operação do dia, contadores no topo (equipe prevista, atrasos previstos, ausências, coberturas, saídas antecipadas) e selo na linha de cada pessoa com a ocorrência do dia. Ocorrências sem impacto operacional (ex.: esquecimento já ocorrido) não aparecem ali, ficam nas pendências.
-- Comunicação atualiza a rotina na hora, sem depender de aprovação; o que aguarda análise é justificativa, impacto, substituto e tratativa.
-- Substituição: ao informar ausência, o colaborador pode indicar quem cobre (colaborador cadastrado, pessoa avulsa/freelancer já cadastrada ou informar um novo). A exigência de aprovação é configurável por empresa em níveis: aprovação automática quando o substituto é colaborador cadastrado, automática quando é do mesmo cargo, ou sempre exigir aprovação do gestor. Cobertura aprovada mostra "ausência coberta" na rotina, com a linha do substituto abaixo da pessoa ausente — sem apagar o registro de que a pessoa escalada não trabalhou.
-- Central de pendências do gestor com três blocos: Operação, Tratativas de ponto e Administrativo, cada item com a ação que falta ("definir impacto", "analisar justificativa", "aprovar substituição", "confirmar horário informado").
-- Tratativa de ponto: gestor marca analisada, confirma a informação ou pede ajuste, com observação livre. Fica claro na tela que isso não altera ponto.
+- Operação do Dia com contadores (equipe prevista, atrasos previstos, ausências, coberturas, saídas antecipadas) e selo na linha da pessoa.
+- Previsto e confirmado visualmente diferentes: "⚠ Atraso previsto ~30 min" x "Atraso confirmado — 24 min"; "⚠ Pretende sair às 22:30" x "Saída antecipada às 22:27".
+- Só ocorrências com relevância operacional aparecem na rotina; as administrativas (ex.: esquecimento de marcação) ficam na Central de Pendências.
+- Cores: vermelho (problema operacional agora), amarelo (atenção/previsão/cobertura aguardando), verde (coberto ou resolvido), neutro (administrativo).
+- Cobertura só com gente cadastrada: colaborador cadastrado ou **Mão de Obra Extra** já existente. Nada de nome livre nem cadastro paralelo. Cadastro rápido reutiliza a estrutura atual de Mão de Obra Extra com nome e telefone obrigatórios e checagem de telefone repetido, oferecendo selecionar a pessoa existente.
+- Aprovação da cobertura configurável por empresa: sempre, colaborador_cadastrado (interno aprova automático, mão de obra extra continua exigindo aprovação) ou mesmo_cargo.
+- **Aprovada ≠ realizada**: a cobertura guarda status (proposta, aprovada, recusada) e execução (prevista, realizada, nao_realizada). Na rotina: "↳ Marcos 🟡 cobertura prevista" e depois "↳ Marcos 🟢 cobertura realizada".
+- Cobertura não apaga a falta: o registro de que a pessoa escalada não trabalhou permanece.
+- Central de Pendências em três blocos — Operação, Tratativas de ponto e Administrativo — cada item com a ação que falta.
+- Tratativa de ponto: confirmar informação ou solicitar ajuste, com observação, e o aviso explícito "esta tratativa não altera o ponto". Status: pendente, concluida, nao_se_aplica.
 
-## Etapa 3 — Automático, histórico e indicadores
+## Etapa 3 — Automação, histórico e indicadores
 
-- Atestado cadastrado gera a ocorrência automaticamente, com vínculo ao documento e ao período; recusa ou exclusão do atestado cancela a ocorrência. Sem pedir registro em dobro.
+- Atestado cadastrado gera as ocorrências automaticamente — uma por data afetada em que exista jornada prevista, todas ligadas ao mesmo documento.
+- Atestado apresentado depois da falta localiza a ocorrência compatível do dia e vincula/reclassifica, sem criar segunda ausência.
+- Atestado recusado não cancela a ausência: ela permanece e é reclassificada; cancelamento só quando o fato foi registrado errado.
+- Deduplicação nas RPCs por empresa, colaborador, data operacional, jornada e tipo/contexto: se o gestor registrar o mesmo atraso já informado, o sistema aponta ou reutiliza o registro existente.
 - Aba **Ocorrências** no perfil do colaborador, agrupada por mês.
-- Indicadores no painel: atrasos e tempo total de atraso no mês, atrasos no retorno do intervalo, faltas, ausências cobertas e sem cobertura, saídas antecipadas, esquecimentos e pendências em aberto.
-- Histórico completo de alterações de cada ocorrência (quem mudou o quê e quando).
+- Indicadores no painel: atrasos e minutos no mês, atrasos de intervalo, faltas, ausências cobertas e sem cobertura, coberturas previstas x realizadas, saídas antecipadas, esquecimentos, ocorrências e tratativas pendentes, comunicações antecipadas.
+- Auditoria por tipo de evento (ocorrencia_criada, previsao_confirmada, justificativa_enviada, justificativa_complementada, cobertura_proposta/aprovada/recusada/realizada, tratativa_concluida, impacto_alterado, atestado_vinculado, ocorrencia_cancelada).
 
 ## Detalhes técnicos
 
-Banco (migrações por etapa, sempre com GRANT + RLS por `company_id`):
+Banco — migrações por etapa, sempre com `company_id`, GRANT e RLS:
 
-- Enums `dp_ocorrencia_tipo`, `dp_ocorrencia_status`, `dp_ocorrencia_impacto` (`sim|nao|aguardando|nao_se_aplica`), `dp_ocorrencia_origem` (`colaborador|gestor|sistema`), `dp_ocorrencia_cobertura` (`nenhuma|proposta|aprovada|recusada`), `dp_ocorrencia_marcacao` (`entrada|saida|intervalo_inicio|intervalo_retorno`).
-- `dp_ocorrencias`: company_id, colaborador_id, unidade_id, setor_id (setor efetivo via `dp_setor_previsto_id`), data, tipo, status, origem, previsto_entrada/saida, horario_previsto_ref, horario_informado, horario_real, minutos (gerado no backend), justificativa_inicial, justificativa_final, impacta_assiduidade, impacta_administrativo, relevancia_operacional, tratativa_ponto (bool), tratativa_status, tratativa_decisao, tratativa_observacao, marcacao_alvo, documento_id (FK `dp_documentos`), solicitacao_id, origem_ocorrencia_id (previsão → confirmada), informada_em, antecedencia_minutos, criado_por, analisado_por/em.
-- `dp_ocorrencia_coberturas`: ocorrencia_id, substituto_colaborador_id, pessoa_avulsa_id, nome_livre, tipo_vinculo, entrada/saida, status, aprovado_por/em, motivo_recusa.
-- `dp_ocorrencia_eventos`: trilha de auditoria (campo, de, para, autor, quando), preenchida por trigger.
-- `dp_config_dp`: `ocorrencia_prazo_retroativo_dias`, `ocorrencia_cobertura_aprovacao` (`sempre|colaborador_cadastrado|mesmo_cargo`), e `dp_ocorrencia_tipo_config` (padrões de impacto/relevância/tratativa por tipo, por empresa, com seed).
-- RPCs `SECURITY DEFINER`: `dp_ocorrencia_registrar` (valida prazo retroativo, calcula previsto e antecedência), `dp_ocorrencia_confirmar` (previsão → confirmada com horário real), `dp_ocorrencia_classificar` (impactos), `dp_ocorrencia_tratar` (tratativa de ponto), `dp_ocorrencia_cobertura_propor` / `dp_ocorrencia_cobertura_decidir` (aplica o nível de aprovação automática), `dp_ocorrencia_cancelar`, `dp_ocorrencias_listar(filtros)`, `dp_ocorrencias_pendencias(company)`, `dp_ocorrencias_do_dia(unidade, data)` para a Operação, `dp_ocorrencias_indicadores`. Trigger em `dp_documentos` (tipo `atestado`) cria/cancela a ocorrência de forma idempotente.
+- Enums `dp_ocorrencia_tipo`, `dp_ocorrencia_estado` (`informada|aguardando_confirmacao|confirmada|cancelada`), `dp_ocorrencia_impacto` (`sim|nao|aguardando|nao_se_aplica`), `dp_ocorrencia_origem` (`colaborador|gestor|sistema`), `dp_ocorrencia_analise_status`, `dp_ocorrencia_cobertura_status` (`proposta|aprovada|recusada`), `dp_ocorrencia_cobertura_execucao` (`prevista|realizada|nao_realizada`), `dp_ocorrencia_marcacao`, `dp_ocorrencia_tratativa_status`.
+- `dp_ocorrencias`: company_id, colaborador_id, unidade_id, setor_id (setor efetivo via `dp_setor_previsto_id`), data_operacional, tipo, estado, origem, previsto_entrada/saida, horario_previsto, horario_estimado, horario_real, minutos, justificativa_inicial, justificativa_final, impacta_assiduidade, impacta_ferias, relevancia_operacional, analise_status, analisado_por/em, tratativa_ponto, tratativa_status, tratativa_decisao, tratativa_observacao, marcacao_alvo, documento_id (FK `dp_documentos`), solicitacao_id, informada_em, antecedencia_minutos, criado_por, created_at, updated_at. Índice parcial para deduplicação por empresa+colaborador+data+tipo entre registros não cancelados.
+- `dp_ocorrencia_coberturas`: company_id, ocorrencia_id, substituto_colaborador_id, mao_de_obra_extra_id (FK `dp_pessoas_apoio`, a entidade atual de Mão de Obra Extra), entrada, saida, status, execucao_status, aprovado_por/em, realizado_confirmado_por/em, motivo_recusa, timestamps. CHECK garante exatamente um dos dois vínculos.
+- `dp_ocorrencia_eventos`: tipo_evento, campo, valor_anterior, valor_novo, metadata (jsonb), autor_id, created_at — alimentada por trigger e pelas RPCs.
+- `dp_config_dp`: `ocorrencia_prazo_retroativo_dias`, `ocorrencia_cobertura_aprovacao` (`sempre|colaborador_cadastrado|mesmo_cargo`); `dp_ocorrencia_tipo_config` com padrões por tipo (impactos, relevância operacional, tratativa) e seed por empresa.
+- RPCs `SECURITY DEFINER`: `dp_ocorrencia_registrar` (resolve data operacional, previsto, antecedência, dedup e prazo retroativo), `dp_ocorrencia_confirmar`, `dp_ocorrencia_complementar`, `dp_ocorrencia_classificar`, `dp_ocorrencia_analisar`, `dp_ocorrencia_tratar`, `dp_ocorrencia_cancelar`, `dp_ocorrencia_cobertura_propor` / `_decidir` / `_confirmar_execucao`, `dp_ocorrencias_listar`, `dp_ocorrencias_pendencias`, `dp_ocorrencias_do_dia`, `dp_ocorrencias_indicadores`, `dp_pessoa_apoio_por_telefone`. Trigger em `dp_documentos` (tipo `atestado`) cria, vincula ou reclassifica de forma idempotente.
 
-Frontend: `src/lib/dp/ocorrencias.ts` (rótulos, cores, cálculo de minutos e antecedência, textos de erro) com testes em `src/lib/dp/__tests__/`; hooks `useDpOcorrencias`, `useDpOcorrenciasDia`, `useDpOcorrenciasConfig`, `useMinhasOcorrencias`; páginas `src/pages/dp/DpOcorrencias.tsx` e componentes em `src/components/dp/ocorrencias/` (cartão, diálogos de registro/confirmação/classificação/tratativa/cobertura, painel de pendências); ações rápidas em `DpMeuHome.tsx`/`DpMeuEscala.tsx`; integração em `DpOperacaoPanorama.tsx` e `useDpOperacaoPanorama.tsx`; item "Ocorrências" no grupo Rotina de `src/config/dpNavigation.tsx` e rota em `src/App.tsx`.
+Frontend: `src/lib/dp/ocorrencias.ts` (tipos, rótulos, cores, data operacional, prévia de minutos/antecedência, textos de erro) com testes em `src/lib/dp/__tests__/`; hooks `useDpOcorrencias`, `useDpOcorrenciasDia`, `useDpOcorrenciasConfig`, `useDpOcorrenciasIndicadores`, `useMinhasOcorrencias`; página `src/pages/dp/DpOcorrencias.tsx`; componentes em `src/components/dp/ocorrencias/` (cartão, diálogos de registro, confirmação, classificação, tratativa e cobertura, painel de pendências), reaproveitando `DpStatusBadge`, `MotivoDialog`/`RecusaDialog` e o cadastro rápido de Mão de Obra Extra; ações rápidas em `DpMeuHome.tsx`/`DpMeuEscala.tsx`; integração em `DpOperacaoPanorama.tsx` e `useDpOperacaoPanorama.tsx`; aba no perfil via `ColaboradorFichaDialog`; item "Ocorrências" no grupo Rotina de `src/config/dpNavigation.tsx` e rota em `src/App.tsx`.
