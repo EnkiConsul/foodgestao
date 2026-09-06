@@ -570,12 +570,18 @@ export interface ConformidadeInput {
   domingosFolgados: string[];
   /** Folgas em dias negociados (exceto domingo) — só contam no modo acordo coletivo. */
   diasNegociadosFolgados?: string[];
-  /** Folgas em dias que não são domingo nem dia negociado (contam só na regra da empresa). */
+  /** Folgas em dias que não são domingo nem dia negociado (contam só como marcadas). */
   folgasOutrosDias?: string[];
-  /** Dias de descanso semanal fixos do cadastro ocorridos no mês (regra da empresa). */
+  /** Dias de descanso semanal fixos do cadastro ocorridos no mês (exibição). */
   descansoSemanalNoMes?: number;
+  /** Descansos fixos do cadastro que caem em dia elegível (regra da empresa). */
+  descansoSemanalElegivelNoMes?: number;
   /** Total de domingos existentes no período analisado. */
   domingosNoPeriodo: number;
+  /** Datas ISO de todos os domingos do período, em ordem. */
+  domingosDoPeriodo?: string[];
+  /** Último domingo folgado antes do período, para medir o intervalo na virada. */
+  ultimoDomingoFolgadoAnterior?: string | null;
   /**
    * Override individual de domingos de folga por mês, cadastrado no colaborador
    * quando o gênero informado não é feminino nem masculino. Quando presente,
@@ -583,6 +589,54 @@ export interface ConformidadeInput {
    */
   domingosMesOverride?: number | null;
 }
+
+export interface IntervaloDomingos {
+  /** Todos os intervalos respeitaram o máximo de domingos trabalhados seguidos. */
+  conforme: boolean;
+  /** Domingos trabalhados que romperam o intervalo exigido. */
+  domingosComIntervaloRompido: string[];
+  /** Maior sequência de domingos trabalhados seguidos no período. */
+  maiorSequenciaTrabalhada: number;
+}
+
+/**
+ * Avalia o espaçamento entre domingos de folga: com intervalo de N semanas,
+ * podem existir no máximo N-1 domingos trabalhados seguidos. O último domingo
+ * folgado antes do período entra na conta para não punir a virada de mês.
+ */
+export function avaliarIntervaloDomingos(
+  domingosFolgados: string[],
+  domingosDoPeriodo: string[],
+  intervaloSemanas: number,
+  ultimoDomingoFolgadoAnterior?: string | null,
+): IntervaloDomingos {
+  const maxSeguidos = Math.max(0, Math.floor(intervaloSemanas) - 1);
+  if (!intervaloSemanas || domingosDoPeriodo.length === 0) {
+    return { conforme: true, domingosComIntervaloRompido: [], maiorSequenciaTrabalhada: 0 };
+  }
+  const folgados = new Set(domingosFolgados);
+  const rompidos: string[] = [];
+  let seq = 0;
+  let maior = 0;
+  // Sem folga anterior conhecida, o período começa "zerado": a sequência só
+  // conta os domingos do próprio período.
+  void ultimoDomingoFolgadoAnterior;
+  for (const dia of [...domingosDoPeriodo].sort()) {
+    if (folgados.has(dia)) {
+      seq = 0;
+      continue;
+    }
+    seq += 1;
+    maior = Math.max(maior, seq);
+    if (seq > maxSeguidos) rompidos.push(dia);
+  }
+  return {
+    conforme: rompidos.length === 0,
+    domingosComIntervaloRompido: rompidos,
+    maiorSequenciaTrabalhada: maior,
+  };
+}
+
 
 export interface ConformidadeLinha extends ConformidadeInput {
   periodicidadeAplicada: number;
