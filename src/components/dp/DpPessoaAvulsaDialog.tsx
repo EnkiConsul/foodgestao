@@ -88,25 +88,24 @@ export function DpPessoaAvulsaDialog({
   }, [open, registro, dataInicial, unidadePadrao]);
 
   const salvar = () => {
-    const parsed = validateWithToast(
-      pessoaAvulsaSchema,
-      {
-        nome: form.nome,
-        tipo: form.tipo,
-        unidade_id: form.unidade_id,
-        cargo_id: form.cargo_id,
-        cobre_colaborador_id: form.cobre_colaborador_id || null,
-        data_inicio: form.data_inicio,
-        data_fim: form.data_fim,
-        entrada: form.entrada || null,
-        saida: form.saida || null,
-        termina_no_dia_seguinte: form.termina_no_dia_seguinte,
-        observacao: form.observacao || null,
-      },
-      (msg) => toast.error("Verifique os dados", { description: msg }),
+    const candidato: PessoaAvulsaInput = {
+      nome: form.nome.trim(),
+      tipo: form.tipo,
+      unidade_id: form.unidade_id,
+      cargo_id: form.cargo_id,
+      cobre_colaborador_id: form.cobre_colaborador_id || null,
+      data_inicio: form.data_inicio,
+      data_fim: form.data_fim,
+      entrada: form.entrada || null,
+      saida: form.saida || null,
+      termina_no_dia_seguinte: form.termina_no_dia_seguinte,
+      observacao: form.observacao || null,
+    };
+    const parsed = validateWithToast(pessoaAvulsaSchema, candidato, (msg) =>
+      toast.error("Verifique os dados", { description: msg }),
     );
     if (!parsed) return;
-    onSalvar({ ...parsed, id: registro?.id });
+    onSalvar({ ...candidato, id: registro?.id });
   };
 
   return (
