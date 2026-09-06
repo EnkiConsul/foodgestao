@@ -315,7 +315,10 @@ export function RevisaoConvocacao(props: Props) {
                           jornada: av.jornada?.entrada && av.jornada?.saida
                             ? `${av.jornada.entrada.slice(0, 5)}–${av.jornada.saida.slice(0, 5)}`
                             : null,
-                          necessidade: `${o.dia.entrada}–${o.dia.saida}`,
+                          necessidade:
+                            av.necessidade_entrada && av.necessidade_saida
+                              ? `${av.necessidade_entrada.slice(0, 5)}–${av.necessidade_saida.slice(0, 5)}`
+                              : `${o.dia.entrada}–${o.dia.saida}`,
                         })}
                       </span>
                     );
