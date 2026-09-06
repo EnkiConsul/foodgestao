@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  diasValidosDoItem,
   diasValidosDoMes,
   itensAplicaveis,
   parsePlanoAutoatribuicao,
@@ -88,7 +89,7 @@ describe("plano de autoatribuição", () => {
     folgas_exigidas: 1,
     elegiveis: 7,
     itens: [
-      { colaborador_id: "c1", colaborador_nome: "SARA", data_sugerida: "2026-09-06", excede_limite: false, motivo: null },
+      { colaborador_id: "c1", colaborador_nome: "SARA", data_sugerida: "2026-09-06", excede_limite: false, motivo: null, dias: [0, 6], ocupacao: { "2026-09-06": 1 } },
       { colaborador_id: "c2", colaborador_nome: "HANNA", data_sugerida: null, excede_limite: false, motivo: "SEM_DIA_DISPONIVEL" },
       { sem_id: true },
     ],
@@ -99,6 +100,11 @@ describe("plano de autoatribuição", () => {
     expect(plano.itens).toHaveLength(2);
     expect(plano.itens[0]).toEqual({
       colaboradorId: "c1", nome: "SARA", data: "2026-09-06", excedeLimite: false, motivo: null,
+      dias: [0, 6], ocupacao: { "2026-09-06": 1 },
+    });
+    expect(plano.itens[1]).toEqual({
+      colaboradorId: "c2", nome: "HANNA", data: null, excedeLimite: false,
+      motivo: "SEM_DIA_DISPONIVEL", dias: [], ocupacao: {},
     });
     expect(plano.dias).toEqual([0, 6]);
   });
@@ -113,11 +119,28 @@ describe("plano de autoatribuição", () => {
     );
   });
 
+  it("orienta a escolha manual quando alguém está acima do limite", () => {
+    const plano = parsePlanoAutoatribuicao({
+      ...raw,
+      itens: [
+        { colaborador_id: "c3", colaborador_nome: "CRISTIANE", data_sugerida: null, excede_limite: false, motivo: "ACIMA_DO_LIMITE", dias: [0] },
+      ],
+    });
+    expect(resumoPlano(plano)).toContain("escolha o dia manualmente");
+  });
+
   it("lista apenas sábados e domingos do mês", () => {
     const dias = diasValidosDoMes("2026-09-01", [0, 6]);
     expect(dias[0]).toBe("2026-09-05");
     expect(dias).toContain("2026-09-27");
     expect(dias).not.toContain("2026-09-07");
     expect(dias).toHaveLength(8);
+  });
+
+  it("lista os dias válidos de cada pessoa do plano", () => {
+    const plano = parsePlanoAutoatribuicao(raw);
+    const diasSara = diasValidosDoItem(plano.competencia, plano.itens[0]);
+    expect(diasSara).toHaveLength(8);
+    expect(diasValidosDoItem(plano.competencia, plano.itens[1])).toHaveLength(0);
   });
 });
