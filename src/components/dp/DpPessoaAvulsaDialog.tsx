@@ -70,6 +70,8 @@ export function DpPessoaAvulsaDialog({
 }: Props) {
   const [form, setForm] = useState({
     nome: "",
+    telefone: "",
+    pessoa_apoio_id: "",
     tipo: "folguista" as PessoaAvulsaTipo,
     colaborador_id: "",
     unidade_id: "",
@@ -83,6 +85,9 @@ export function DpPessoaAvulsaDialog({
     observacao: "",
   });
   const [horarioTocado, setHorarioTocado] = useState(false);
+  const apoio = useDpPessoasApoio({ apenasAtivos: true });
+  const salvarApoio = useSalvarDpPessoaApoio();
+
 
   const manual = form.tipo === "registro_manual";
   const hoje = hojeIso();
@@ -93,7 +98,10 @@ export function DpPessoaAvulsaDialog({
     const dataBase = registro?.data_inicio ?? (dataInicial > hojeIso() ? hojeIso() : dataInicial);
     setForm({
       nome: registro?.nome ?? "",
+      telefone: registro?.telefone ?? "",
+      pessoa_apoio_id: registro?.pessoa_apoio_id ?? "",
       tipo: registro?.tipo ?? "folguista",
+
       colaborador_id: registro?.colaborador_id ?? "",
       unidade_id: registro?.unidade_id ?? unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
       cargo_id: registro?.cargo_id ?? "",
