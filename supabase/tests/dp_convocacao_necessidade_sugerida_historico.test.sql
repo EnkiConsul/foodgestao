@@ -13,7 +13,7 @@ DECLARE
   v_alvo date := (date_trunc('month', now())::date + interval '2 months')::date;
   v_res jsonb;
 BEGIN
-  SELECT c.id, c.owner_id INTO v_company, v_owner
+  SELECT c.id, c.user_id INTO v_company, v_owner
     FROM public.companies c
     JOIN public.dp_unidades u ON u.company_id = c.id
     JOIN public.dp_cargos g ON g.company_id = c.id
@@ -26,11 +26,8 @@ BEGIN
   SELECT id INTO v_unidade FROM public.dp_unidades WHERE company_id = v_company LIMIT 1;
   SELECT id INTO v_cargo FROM public.dp_cargos WHERE company_id = v_company LIMIT 1;
 
-  PERFORM set_config('role', 'authenticated', true);
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_owner, 'role', 'authenticated')::text, true);
-
   INSERT INTO public.dp_convocacao_grupos (id, company_id, unidade_id, competencia, modalidade, status)
-  VALUES (v_grupo, v_company, v_unidade, to_char(v_alvo, 'YYYY-MM'), 'aberta', 'publicada');
+  VALUES (v_grupo, v_company, v_unidade, to_char(v_alvo, 'YYYY-MM'), 'aberta', 'publicado');
 
   -- duas convocações publicadas no mesmo dia da semana, mesma janela
   INSERT INTO public.dp_convocacao_ocorrencias
@@ -43,7 +40,11 @@ BEGIN
     -- cancelada não deve influenciar
     (v_company, v_grupo, v_unidade, v_cargo, v_alvo - 21, '09:00', '18:00', false, 'jornada_individual', 1, 'cancelada');
 
+  -- a função é SECURITY DEFINER e exige admin/owner da empresa
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_owner, 'role', 'authenticated')::text, true);
   v_res := public.dp_convocacao_necessidade_sugerida(v_company, v_unidade, v_cargo, v_alvo);
+  PERFORM set_config('role', 'service_role', true);
 
   ASSERT v_res->>'fonte' = 'historico_convocacoes',
     format('esperado fonte historico_convocacoes, obtido %s', v_res->>'fonte');
