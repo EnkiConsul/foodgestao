@@ -476,9 +476,10 @@ function sobreposicao(p: PessoaPanorama, janela: { abre: number; fecha: number }
 }
 
 /**
- * Cada pessoa entra em UM único período do dia: o período em que a entrada dela
- * cai; se a entrada não cair em nenhum, o de maior sobreposição com a jornada.
- * Devolve o índice do período escolhido, ou null quando não há encaixe.
+ * Cada pessoa entra em UM único período do dia: aquele em que ela passa mais
+ * tempo trabalhando (maior sobreposição de minutos com a jornada). Empate é
+ * resolvido pelo período em que a entrada dela cai. Devolve o índice do
+ * período escolhido, ou null quando não há sobreposição alguma.
  */
 export function melhorPeriodo(
   p: PessoaPanorama,
@@ -490,20 +491,21 @@ export function melhorPeriodo(
   const contemEntrada = janelas.findIndex(
     (w) => !!w && j.abre >= w.abre && j.abre < w.fecha,
   );
-  if (contemEntrada >= 0) return contemEntrada;
 
   let melhor: number | null = null;
   let maior = 0;
   janelas.forEach((w, i) => {
     if (!w) return;
     const min = sobreposicao(p, w);
-    if (min > maior) {
+    if (min <= 0) return;
+    if (min > maior || (min === maior && i === contemEntrada)) {
       maior = min;
       melhor = i;
     }
   });
   return melhor;
 }
+
 
 
 /**
