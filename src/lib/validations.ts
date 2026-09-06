@@ -104,8 +104,9 @@ export function validateWithToast<T>(schema: z.ZodSchema<T>, data: unknown, toas
 // ---- Pessoa avulsa na rotina do dia (teste/folguista) ----
 export const pessoaAvulsaSchema = z
   .object({
-    nome: z.string().trim().min(2, "Informe o nome da pessoa").max(120),
-    tipo: z.enum(["teste", "folguista"]),
+    nome: z.string().trim().max(120).nullable().optional(),
+    tipo: z.enum(["teste", "folguista", "registro_manual"]),
+    colaborador_id: z.string().uuid().nullable().optional(),
     unidade_id: z.string().uuid("Selecione a unidade"),
     cargo_id: z.string().uuid("Selecione o cargo"),
     cobre_colaborador_id: z.string().uuid().nullable().optional(),
@@ -119,4 +120,13 @@ export const pessoaAvulsaSchema = z
   .refine((d) => d.data_fim >= d.data_inicio, {
     message: "A data final não pode ser anterior à data inicial",
     path: ["data_fim"],
+  })
+  .refine((d) => (d.tipo === "registro_manual" ? !!d.colaborador_id : true), {
+    message: "Selecione o colaborador que trabalhou",
+    path: ["colaborador_id"],
+  })
+  .refine((d) => (d.tipo === "registro_manual" ? true : !!d.nome && d.nome.trim().length >= 2), {
+    message: "Informe o nome da pessoa",
+    path: ["nome"],
   });
+
