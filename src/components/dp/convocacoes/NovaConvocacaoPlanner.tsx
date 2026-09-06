@@ -966,50 +966,17 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
               <SheetHeader>
                 <SheetTitle>{rotuloData(diaDetalhe.data)} · {nomeCargo(diaDetalhe.cargo_id)}</SheetTitle>
                 <SheetDescription>
-                  Janela da necessidade, vagas e ajuste individual de horário.
+                  Horário individual das pessoas neste dia. A janela e as vagas são editadas
+                  na lista de datas.
                 </SheetDescription>
               </SheetHeader>
 
               <div className="mt-4 space-y-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Entrada</Label>
-                    <Input type="time" value={diaDetalhe.entrada}
-                      onChange={(e) => patchDia(detalhe!, { entrada: e.target.value })} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Saída</Label>
-                    <Input type="time" value={diaDetalhe.saida}
-                      onChange={(e) => patchDia(detalhe!, { saida: e.target.value })} />
-                  </div>
-                  <label className="col-span-2 flex items-center gap-2 text-xs">
-                    <Checkbox checked={diaDetalhe.vira}
-                      onCheckedChange={(v) => patchDia(detalhe!, { vira: v === true })} />
-                    Termina no dia seguinte
-                  </label>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Vagas</Label>
-                    <Input inputMode="numeric" value={String(diaDetalhe.vagas)}
-                      onChange={(e) => patchDia(detalhe!, { vagas: Math.max(1, Number(e.target.value.replace(/\D/g, "") || 1)) })} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Necessidade real</Label>
-                    <div className="rounded-md border border-border px-2 py-2 text-xs text-muted-foreground">
-                      {(() => {
-                        const cob = cobertura(diaDetalhe.data, diaDetalhe.cargo_id);
-                        return cob.minimo != null
-                          ? `${cob.confirmados}/${cob.minimo}${cob.faltam ? ` · faltam ${cob.faltam}` : ""}`
-                          : `${cob.confirmados} confirmado(s)`;
-                      })()}
-                    </div>
-                  </div>
+                <div className="rounded-lg border border-border px-2 py-2 text-xs text-muted-foreground">
+                  {diaDetalhe.entrada && diaDetalhe.saida
+                    ? `Janela ${diaDetalhe.entrada}–${diaDetalhe.saida}${diaDetalhe.vira ? " (+1)" : ""} · ${diaDetalhe.vagas} vaga(s)`
+                    : `Sem janela definida · ${diaDetalhe.vagas} vaga(s)`}
                 </div>
-
-                {diaDetalhe.origem === "sugerida" && (
-                  <p className="text-[11px] text-muted-foreground">
-                    Janela sugerida pelos funcionários fixos deste cargo no dia.
-                  </p>
-                )}
 
                 <div className="space-y-2">
                   <Label className="text-xs">Horário individual (opcional)</Label>
