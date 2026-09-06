@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, CalendarDays, Clock, Eye, Loader2, Save, Send, Users } from "lucide-react";
 import {
@@ -16,6 +16,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MonthGridCalendar } from "@/components/dp/convocacoes/MonthGridCalendar";
+import {
+  DiasSelecionadosLista,
+  type OrigemHorario,
+} from "@/components/dp/convocacoes/DiasSelecionadosLista";
 import { RevisaoConvocacao } from "@/components/dp/convocacoes/RevisaoConvocacao";
 
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
@@ -59,9 +63,19 @@ interface DiaPlanejado {
   saida: string;
   vira: boolean;
   vagas: number;
-  /** Origem da janela: fixos do cargo, horário geral ou ajuste manual. */
-  origem: "sugerida" | "geral" | "manual";
+  /** Origem da janela: convocações anteriores, fixos do cargo, horário geral ou ajuste manual. */
+  origem: OrigemHorario;
+  /** Havia mais de um horário empatado na sugestão. */
+  ambiguo: boolean;
   expected_updated_at: string | null;
+}
+
+interface SugestaoCache {
+  entrada: string;
+  saida: string;
+  vira: boolean;
+  origem: OrigemHorario;
+  ambiguo: boolean;
 }
 
 interface HorarioOverride {
@@ -105,6 +119,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const [publicando, setPublicando] = useState(false);
   const [justificativa, setJustificativa] = useState("");
   const [revisando, setRevisando] = useState(false);
+  /** Cache das sugestões por cargo|data — remarcar um dia não reconsulta. */
+  const sugestoesRef = useRef<Map<string, SugestaoCache>>(new Map());
 
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
@@ -168,6 +184,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                 vira: !!o.necessidade_termina_no_dia_seguinte,
                 vagas: o.vagas ?? 1,
                 origem: "manual" as const,
+                ambiguo: false,
                 expected_updated_at: o.updated_at ?? null,
               },
             ]),
@@ -286,15 +303,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     if (!cargoAtivo || !selectedCompanyId) return;
     const k = chave(cargoAtivo, iso);
     if (dias[k]) {
-      const alvo = dias[k];
-      if (alvo.expected_updated_at !== null || grupo?.ocorrencias.some((o) => o.id === alvo.id)) {
-        setRemovidas((r) => ({ ...r, [alvo.id]: alvo.expected_updated_at }));
-      }
-      setDias((prev) => {
-        const next = { ...prev };
-        delete next[k];
-        return next;
-      });
+      removerDia(k);
       return;
     }
 
@@ -307,53 +316,94 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
         [k]: {
           id: novoId(), cargo_id: cargoAtivo, data: iso,
           entrada: horarioGeral.entrada, saida: horarioGeral.saida, vira: horarioGeral.vira,
-          vagas, origem: "geral", expected_updated_at: null,
+          vagas, origem: "geral", ambiguo: false, expected_updated_at: null,
         },
       }));
       return;
     }
 
-    let entrada = "";
-    let saida = "";
-    let vira = false;
-    let origem: DiaPlanejado["origem"] = "manual";
-    try {
-      const sug = await buscarNecessidadeSugerida({
-        company_id: selectedCompanyId, unidade_id: unidadeId, cargo_id: cargoAtivo, data: iso,
-      });
-      if (sug?.sugerido) {
-        entrada = hhmm(sug.sugerido.entrada);
-        saida = hhmm(sug.sugerido.saida);
-        vira = !!sug.sugerido.termina_no_dia_seguinte;
-        origem = "sugerida";
-        if (sug.ambiguo) {
-          toast.info(
-            `Há mais de um horário praticado em ${rotuloData(iso)}. Confira a janela do dia.`,
-          );
-        }
-      }
-    } catch {
-      /* prévia apenas: falha na sugestão não bloqueia o planejamento */
-    }
+    const sug = await resolverSugestao(cargoAtivo, iso);
 
     setDias((prev) => ({
       ...prev,
       [k]: {
         id: novoId(), cargo_id: cargoAtivo, data: iso,
-        entrada, saida, vira, vagas, origem, expected_updated_at: null,
+        entrada: sug?.entrada ?? "",
+        saida: sug?.saida ?? "",
+        vira: sug?.vira ?? false,
+        vagas,
+        origem: sug?.origem ?? "manual",
+        ambiguo: sug?.ambiguo ?? false,
+        expected_updated_at: null,
       },
     }));
 
-    if (!entrada) {
+    if (!sug?.entrada) {
       toast.warning(
-        `Sem horário de referência dos fixos em ${rotuloData(iso)}. Informe a janela no detalhe do dia.`,
+        `Sem horário de referência em ${rotuloData(iso)}. Informe a janela na lista de datas.`,
       );
-      setDetalhe(k);
     }
   };
 
+  /** Sugestão do horário padrão: histórico de convocações e, em seguida, equipe fixa. */
+  const resolverSugestao = async (cargoId: string, iso: string): Promise<SugestaoCache | null> => {
+    if (!selectedCompanyId) return null;
+    const k = chave(cargoId, iso);
+    const cache = sugestoesRef.current.get(k);
+    if (cache) return cache;
+    try {
+      const sug = await buscarNecessidadeSugerida({
+        company_id: selectedCompanyId, unidade_id: unidadeId, cargo_id: cargoId, data: iso,
+      });
+      if (!sug?.sugerido) return null;
+      const resolvida: SugestaoCache = {
+        entrada: hhmm(sug.sugerido.entrada),
+        saida: hhmm(sug.sugerido.saida),
+        vira: !!sug.sugerido.termina_no_dia_seguinte,
+        origem: sug.fonte === "historico_convocacoes" ? "historico" : "sugerida",
+        ambiguo: !!sug.ambiguo,
+      };
+      sugestoesRef.current.set(k, resolvida);
+      return resolvida;
+    } catch {
+      /* prévia apenas: falha na sugestão não bloqueia o planejamento */
+      return null;
+    }
+  };
+
+  const removerDia = (k: string) => {
+    const alvo = dias[k];
+    if (!alvo) return;
+    if (alvo.expected_updated_at !== null || grupo?.ocorrencias.some((o) => o.id === alvo.id)) {
+      setRemovidas((r) => ({ ...r, [alvo.id]: alvo.expected_updated_at }));
+    }
+    setDias((prev) => {
+      const next = { ...prev };
+      delete next[k];
+      return next;
+    });
+  };
+
   const patchDia = (k: string, p: Partial<DiaPlanejado>) =>
-    setDias((prev) => (prev[k] ? { ...prev, [k]: { ...prev[k], ...p, origem: "manual" } } : prev));
+    setDias((prev) =>
+      prev[k] ? { ...prev, [k]: { ...prev[k], ...p, origem: "manual", ambiguo: false } } : prev,
+    );
+
+  /** Copia a janela de um dia para os demais dias do mesmo cargo. */
+  const aplicarATodos = (k: string) => {
+    const base = dias[k];
+    if (!base?.entrada || !base?.saida) return;
+    setDias((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([key, d]) =>
+          d.cargo_id === base.cargo_id
+            ? [key, { ...d, entrada: base.entrada, saida: base.saida, vira: base.vira, origem: "manual" as const, ambiguo: false }]
+            : [key, d],
+        ),
+      ),
+    );
+    toast.success("Horário aplicado aos dias deste cargo.");
+  };
 
   const diasCompletos = useMemo(
     () =>
@@ -797,31 +847,29 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   />
                   <p className="text-[11px] text-muted-foreground">
                     Cada selo mostra confirmados/mínimo do cargo e quem ainda está aguardando —
-                    pendente nunca conta como confirmado. Clique num dia escolhido na lista abaixo
-                    para ajustar janela, vagas e horários individuais.
+                    pendente nunca conta como confirmado. Marque os dias e ajuste o horário
+                    direto na lista abaixo, já preenchida com o horário padrão do cargo.
                   </p>
 
-                  {diasDoCargo.length > 0 && (
-                    <div className="space-y-1.5">
-                      {[...diasDoCargo].sort((a, b) => a.data.localeCompare(b.data)).map((d) => {
-                        const cob = cobertura(d.data, d.cargo_id);
-                        const k = chave(d.cargo_id, d.data);
-                        return (
-                          <button
-                            key={k} type="button" onClick={() => setDetalhe(k)}
-                            className="flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-2 py-1.5 text-xs hover:bg-muted/50"
-                          >
-                            <span className="font-medium">{rotuloData(d.data)}</span>
-                            <span className="text-muted-foreground">
-                              {d.entrada && d.saida ? `${d.entrada}–${d.saida}${d.vira ? " +1" : ""}` : "sem horário"}
-                              {" · "}{d.vagas} vaga(s)
-                              {cob.faltam ? ` · faltam ${cob.faltam}` : ""}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <DiasSelecionadosLista
+                    itens={[...diasDoCargo]
+                      .sort((a, b) => a.data.localeCompare(b.data))
+                      .map((d) => ({
+                        chave: chave(d.cargo_id, d.data),
+                        data: d.data,
+                        entrada: d.entrada,
+                        saida: d.saida,
+                        vira: d.vira,
+                        vagas: d.vagas,
+                        origem: d.origem,
+                        ambiguo: d.ambiguo,
+                        faltam: cobertura(d.data, d.cargo_id).faltam ?? null,
+                      }))}
+                    onPatch={patchDia}
+                    onRemover={removerDia}
+                    onAbrirIndividuais={setDetalhe}
+                    onAplicarATodos={aplicarATodos}
+                  />
                 </div>
               )}
 
@@ -918,50 +966,17 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
               <SheetHeader>
                 <SheetTitle>{rotuloData(diaDetalhe.data)} · {nomeCargo(diaDetalhe.cargo_id)}</SheetTitle>
                 <SheetDescription>
-                  Janela da necessidade, vagas e ajuste individual de horário.
+                  Horário individual das pessoas neste dia. A janela e as vagas são editadas
+                  na lista de datas.
                 </SheetDescription>
               </SheetHeader>
 
               <div className="mt-4 space-y-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Entrada</Label>
-                    <Input type="time" value={diaDetalhe.entrada}
-                      onChange={(e) => patchDia(detalhe!, { entrada: e.target.value })} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Saída</Label>
-                    <Input type="time" value={diaDetalhe.saida}
-                      onChange={(e) => patchDia(detalhe!, { saida: e.target.value })} />
-                  </div>
-                  <label className="col-span-2 flex items-center gap-2 text-xs">
-                    <Checkbox checked={diaDetalhe.vira}
-                      onCheckedChange={(v) => patchDia(detalhe!, { vira: v === true })} />
-                    Termina no dia seguinte
-                  </label>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Vagas</Label>
-                    <Input inputMode="numeric" value={String(diaDetalhe.vagas)}
-                      onChange={(e) => patchDia(detalhe!, { vagas: Math.max(1, Number(e.target.value.replace(/\D/g, "") || 1)) })} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Necessidade real</Label>
-                    <div className="rounded-md border border-border px-2 py-2 text-xs text-muted-foreground">
-                      {(() => {
-                        const cob = cobertura(diaDetalhe.data, diaDetalhe.cargo_id);
-                        return cob.minimo != null
-                          ? `${cob.confirmados}/${cob.minimo}${cob.faltam ? ` · faltam ${cob.faltam}` : ""}`
-                          : `${cob.confirmados} confirmado(s)`;
-                      })()}
-                    </div>
-                  </div>
+                <div className="rounded-lg border border-border px-2 py-2 text-xs text-muted-foreground">
+                  {diaDetalhe.entrada && diaDetalhe.saida
+                    ? `Janela ${diaDetalhe.entrada}–${diaDetalhe.saida}${diaDetalhe.vira ? " (+1)" : ""} · ${diaDetalhe.vagas} vaga(s)`
+                    : `Sem janela definida · ${diaDetalhe.vagas} vaga(s)`}
                 </div>
-
-                {diaDetalhe.origem === "sugerida" && (
-                  <p className="text-[11px] text-muted-foreground">
-                    Janela sugerida pelos funcionários fixos deste cargo no dia.
-                  </p>
-                )}
 
                 <div className="space-y-2">
                   <Label className="text-xs">Horário individual (opcional)</Label>

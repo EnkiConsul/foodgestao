@@ -338,7 +338,9 @@ export async function buscarNecessidadeSugerida(args: {
       quantidade: number;
     } | null;
     ambiguo: boolean;
-    alternativas: any[];
+    /** De onde veio a sugestão: convocações anteriores ou prática da equipe fixa. */
+    fonte: "historico_convocacoes" | "equipe_fixa" | null;
+    alternativas: unknown[];
   } | null;
 }
 
