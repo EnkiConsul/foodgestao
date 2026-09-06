@@ -301,6 +301,13 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargoAtivo, limites, dias, preview.regrasCobertura, preview.contagemPorDataCargo, unidadeId, antecedenciaMinima]);
 
+  const patchOverride = (k: string, p: Partial<HorarioOverride>) =>
+    setOverrides((prev) => {
+      const base = prev[k] ?? { entrada: "", saida: "", intervalo_minutos: 0, vira: false };
+      const f = { ...base, ...p };
+      return { ...prev, [k]: { ...f, vira: normalizarVira(f.entrada, f.saida, f.vira) } };
+    });
+
   const patchHorarioGeral = (p: Partial<HorarioOverride>) =>
     setHorarioGeral((h) => {
       const f = { ...h, ...p };
@@ -1009,49 +1016,22 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                           <div className="mb-1 truncate text-xs font-medium">{nomePessoa(id)}</div>
                           <div className="grid grid-cols-3 gap-1.5">
                             <Input type="time" value={ov?.entrada ?? ""}
-                              onChange={(e) =>
-                                setOverrides((prev) => ({
-                                  ...prev,
-                                  [k]: {
-                                    entrada: e.target.value,
-                                    saida: prev[k]?.saida ?? "",
-                                    intervalo_minutos: prev[k]?.intervalo_minutos ?? 0,
-                                    vira: prev[k]?.vira ?? false,
-                                  },
-                                }))
-                              } />
+                              onChange={(e) => patchOverride(k, { entrada: e.target.value })} />
                             <Input type="time" value={ov?.saida ?? ""}
-                              onChange={(e) =>
-                                setOverrides((prev) => ({
-                                  ...prev,
-                                  [k]: {
-                                    entrada: prev[k]?.entrada ?? "",
-                                    saida: e.target.value,
-                                    intervalo_minutos: prev[k]?.intervalo_minutos ?? 0,
-                                    vira: prev[k]?.vira ?? false,
-                                  },
-                                }))
-                              } />
+                              onChange={(e) => patchOverride(k, { saida: e.target.value })} />
                             <Input inputMode="numeric" placeholder="int." value={ov ? String(ov.intervalo_minutos) : ""}
                               onChange={(e) =>
-                                setOverrides((prev) => ({
-                                  ...prev,
-                                  [k]: {
-                                    entrada: prev[k]?.entrada ?? "",
-                                    saida: prev[k]?.saida ?? "",
-                                    intervalo_minutos: Number(e.target.value.replace(/\D/g, "") || 0),
-                                    vira: prev[k]?.vira ?? false,
-                                  },
-                                }))
+                                patchOverride(k, {
+                                  intervalo_minutos: Number(e.target.value.replace(/\D/g, "") || 0),
+                                })
                               } />
                           </div>
                           {ov && (ov.entrada || ov.saida) && (
                             <div className="mt-1 flex items-center justify-between">
                               <label className="flex items-center gap-1.5 text-[11px]">
                                 <Checkbox checked={ov.vira}
-                                  onCheckedChange={(v) =>
-                                    setOverrides((prev) => ({ ...prev, [k]: { ...prev[k], vira: v === true } }))
-                                  } />
+                                  disabled={viraNoDiaSeguinte(ov.entrada, ov.saida)}
+                                  onCheckedChange={(v) => patchOverride(k, { vira: v === true })} />
                                 +1 dia
                               </label>
                               <Button size="sm" variant="ghost" className="h-6 text-[11px]"
