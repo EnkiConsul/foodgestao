@@ -1183,6 +1183,21 @@ export default function DpOperacaoPanorama() {
       </Dialog>
 
 
+      <AlterarSetorDiaDialog
+        open={!!setorAlvo}
+        onOpenChange={(o) => !o && setSetorAlvo(null)}
+        alvo={setorAlvo}
+        setores={panorama.setores ?? []}
+        salvando={panorama.definirSetorDia.isPending}
+        onConfirmar={async (input) => {
+          await panorama.definirSetorDia.mutateAsync(input);
+        }}
+        onEditarSetorHabitual={(id) => {
+          setSetorAlvo(null);
+          navigate(`/dp/colaboradores?editar=${id}&aba=dados&voltar=${encodeURIComponent(location.pathname + location.search)}`);
+        }}
+      />
+
       <Dialog open={verSocios} onOpenChange={setVerSocios}>
         <DialogContent>
           <DialogHeader>
