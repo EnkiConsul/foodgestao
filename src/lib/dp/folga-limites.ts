@@ -6,11 +6,12 @@
 import { DIA_SEMANA_LABEL } from "./dsr-rules";
 
 /** Tipo da regra escolhido pelo gestor no cadastro único de regras de folga. */
-export type TipoRegraFolga = "quantidade" | "cargo" | "colaboradores";
+export type TipoRegraFolga = "quantidade" | "cargo" | "setor" | "colaboradores";
 
 export const TIPO_REGRA_LABEL: Record<TipoRegraFolga, string> = {
   quantidade: "Quantidade de pessoas por dia",
   cargo: "Limite por cargo",
+  setor: "Limite por setor",
   colaboradores: "Não folgam juntos",
 };
 
@@ -28,6 +29,8 @@ export type RegraLimiteFolga = {
   ativo: boolean;
   /** Vazio = qualquer cargo. */
   cargo_ids: string[];
+  /** Setores da regra (tipo `setor`). Vazio = qualquer setor. */
+  setor_ids: string[];
   /** Pessoas que não podem folgar no mesmo dia (tipo `colaboradores`). */
   colaborador_ids: string[];
 };
@@ -83,10 +86,12 @@ export function resolverLimiteFolga(params: {
   data: string;
   unidadeId?: string | null;
   cargoId?: string | null;
+  /** Setor EFETIVO da data (escala publicada → dia da semana → cadastro). */
+  setorId?: string | null;
   regras: RegraLimiteFolga[];
   diaConfig?: LimiteDiaConfig[];
 }): LimiteResolvido {
-  const { data, unidadeId = null, cargoId = null, regras, diaConfig = [] } = params;
+  const { data, unidadeId = null, cargoId = null, setorId = null, regras, diaConfig = [] } = params;
 
   const excecoes = diaConfig.filter(
     (c) => c.data === data && (c.unidade_id === null || c.unidade_id === unidadeId),
@@ -104,6 +109,7 @@ export function resolverLimiteFolga(params: {
     if (unidadeId !== null && r.unidade_id !== unidadeId) return false;
     if (r.dia_semana !== null && r.dia_semana !== wd) return false;
     if (r.cargo_ids.length > 0 && (!cargoId || !r.cargo_ids.includes(cargoId))) return false;
+    if (r.setor_ids.length > 0 && (!setorId || !r.setor_ids.includes(setorId))) return false;
     return vigente(r, data);
   });
 
@@ -111,7 +117,7 @@ export function resolverLimiteFolga(params: {
   if (candidatas.length === 0) return { limite: null, origem: "sem_limite" };
 
   const peso = (r: RegraLimiteFolga) =>
-    (r.cargo_ids.length > 0 ? 2 : 0) + (r.dia_semana !== null ? 1 : 0);
+    (r.cargo_ids.length > 0 ? 4 : 0) + (r.setor_ids.length > 0 ? 2 : 0) + (r.dia_semana !== null ? 1 : 0);
 
   const escolhida = [...candidatas].sort((a, b) => {
     const d = peso(b) - peso(a);
@@ -126,13 +132,21 @@ export function resolverLimiteFolga(params: {
  * Quantas pessoas ocupam folga no dia dentro do escopo da regra: sem cargos na
  * regra, contam todos; com cargos, contam só quem pertence a eles.
  */
-export function ocupacaoNoEscopo<T extends { cargoId?: string | null }>(
+export function ocupacaoNoEscopo<T extends { cargoId?: string | null; setorId?: string | null }>(
   pessoas: readonly T[],
   cargoIds: readonly string[] | null | undefined,
+  setorIds?: readonly string[] | null,
 ): number {
-  if (!cargoIds || cargoIds.length === 0) return pessoas.length;
-  const escopo = new Set(cargoIds);
-  return pessoas.filter((p) => p.cargoId != null && escopo.has(p.cargoId)).length;
+  let lista = [...pessoas];
+  if (cargoIds && cargoIds.length > 0) {
+    const escopo = new Set(cargoIds);
+    lista = lista.filter((p) => p.cargoId != null && escopo.has(p.cargoId));
+  }
+  if (setorIds && setorIds.length > 0) {
+    const escopo = new Set(setorIds);
+    lista = lista.filter((p) => p.setorId != null && escopo.has(p.setorId));
+  }
+  return lista.length;
 }
 
 
@@ -146,7 +160,7 @@ export function diaRegraLabel(diaSemana: number | null): string {
 /** Partes separadas do resumo, para montar o item da lista em blocos. */
 export function partesRegraLimite(
   regra: RegraLimiteFolgaBase,
-  nomes: { cargos?: string[]; colaboradores?: string[] } = {},
+  nomes: { cargos?: string[]; setores?: string[]; colaboradores?: string[] } = {},
 ): { dia: string; escopo: string[]; escopoVazio: string; limite: string } {
   const dia = diaRegraLabel(regra.dia_semana);
 
@@ -157,6 +171,16 @@ export function partesRegraLimite(
       escopo: pessoas,
       escopoVazio: "Pessoas selecionadas",
       limite: "Não podem folgar no mesmo dia",
+    };
+  }
+
+  if (regra.tipo === "setor") {
+    const setores = (nomes.setores ?? []).filter(Boolean);
+    return {
+      dia,
+      escopo: regra.setor_ids.length === 0 ? [] : setores,
+      escopoVazio: regra.setor_ids.length === 0 ? "Qualquer setor" : "Setores selecionados",
+      limite: `Máximo ${regra.maximo} ${regra.maximo === 1 ? "pessoa" : "pessoas"} em folga`,
     };
   }
 
@@ -172,7 +196,7 @@ export function partesRegraLimite(
 /** Frase curta para exibir a regra na lista de cadastro. */
 export function resumoRegraLimite(
   regra: RegraLimiteFolgaBase,
-  nomes: { unidade?: string | null; cargos?: string[]; colaboradores?: string[] } = {},
+  nomes: { unidade?: string | null; cargos?: string[]; setores?: string[]; colaboradores?: string[] } = {},
 ): string {
 
   const escopo = nomes.unidade ?? "Unidade";
@@ -185,6 +209,14 @@ export function resumoRegraLimite(
         ? `${pessoas.slice(0, -1).join(", ")} e ${pessoas[pessoas.length - 1]}`
         : (pessoas[0] ?? "As pessoas selecionadas");
     return `${lista} não folgam no mesmo dia (${escopo.toLowerCase()}, ${dia})`;
+  }
+
+  if (regra.tipo === "setor") {
+    const setores =
+      regra.setor_ids.length === 0
+        ? "qualquer setor"
+        : (nomes.setores ?? []).filter(Boolean).join(", ") || "setores selecionados";
+    return `${escopo}, ${dia}, ${setores}: no máximo ${regra.maximo} em folga`;
   }
 
   const cargos =
