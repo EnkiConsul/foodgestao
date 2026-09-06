@@ -521,16 +521,20 @@ export default function DpConformidadeDsr() {
                     <TableCell className="text-muted-foreground">
                       {(l.cargoId && cargoNome.get(l.cargoId)) || "—"}
                     </TableCell>
+                    <TableCell className="text-center font-semibold">
+                      {l.folgasMarcadas === 0 ? (
+                        <span className="text-destructive">0 · sem folga marcada</span>
+                      ) : (
+                        l.folgasMarcadas
+                      )}
+                    </TableCell>
                     <TableCell className="text-center">{l.domingosNoPeriodo}</TableCell>
-                    <TableCell className="text-center font-semibold">{l.domingosFolgados.length}</TableCell>
+                    <TableCell className="text-center">{l.domingosFolgados.length}</TableCell>
                     {porAcordo && <TableCell className="text-center">{l.negociadosAproveitados}</TableCell>}
 
                     <TableCell className="text-center">{l.esperado}</TableCell>
-                    <TableCell className="text-center">
-                      {l.periodicidadeAplicada > 0
-                        ? `${l.periodicidadeAplicada.toFixed(1)} sem.`
-                        : "sem exigência"}
-                    </TableCell>
+                    <TableCell className="text-center text-xs">{l.rotuloFrequencia}</TableCell>
+
 
                     <TableCell className="text-right">
                       {l.conforme ? (
