@@ -605,7 +605,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     // Override de horário por pessoa/dia (precedência máxima).
     for (const [k, h] of Object.entries(overrides)) {
       const [cargoId, data, colaboradorId] = k.split("|");
-      const dia = dias[chave(cargoId, data)];
+      const dia = mapaDias[chave(cargoId, data)];
       if (!dia) continue;
       const res: any = await definirOverride.mutateAsync({
         ocorrencia_id: dia.id,
