@@ -13,16 +13,18 @@ Confirmei os três pontos no sistema:
 
 ## O que vou fazer
 
-**Um único botão.** Removo "Gerar folgas CLT" do calendário de folgas. Fica só "Distribuir folgas automaticamente", que já segue a regra vigente da unidade: acordo coletivo (sábado e/ou domingo, quantidade por mês) quando houver, ou a leitura legal quando a unidade não tiver acordo.
+**Um único botão, chamado "Gerar Folgas".** Removo "Gerar folgas CLT" do calendário e renomeio "Distribuir folgas automaticamente" para **Gerar Folgas**. Ele segue a regra vigente da unidade: acordo coletivo (sábado e/ou domingo, quantidade por mês) quando houver, ou a leitura legal quando a unidade não tiver acordo.
 
 **Só entra quem precisa folgar no fim de semana.** Ficam fora das sugestões:
 
 - Intermitentes (trabalham por convocação) e sócios.
 - Freelancer, PJ, MEI, autônomo, estágio e temporário — vínculos sem folga semanal a cumprir.
-- Quem, pela configuração de trabalho, não trabalha em nenhum dos dias de descanso da regra da unidade (por exemplo, quem já não trabalha domingo quando a regra é só domingo).
+- **Quem não trabalha no domingo**, mesmo que a regra da unidade aceite sábado: essa pessoa já descansa todos os domingos, o que atende a CLT e supera a regra da empresa/sindicato.
+- Quem não trabalha em nenhum dos dias de descanso da regra da unidade.
 - Quem está de férias, licença ou afastado no mês.
 
 Continua possível marcar folga dessas pessoas manualmente no calendário, e essa folga continua ocupando vaga do dia — é justamente o uso atual, para travar o dia dos fixos.
+
 
 
 **Regra lida por unidade, não da empresa.** Mesmo com o calendário em "todas as unidades", cada pessoa passa a ser avaliada pela regra da unidade dela: dias de descanso válidos, quantidade exigida no mês e limite de pessoas por dia. Assim a folga da Sara no sábado 12/09 conta e ela não recebe sugestão; o mesmo vale para qualquer pessoa cuja unidade aceite sábado.
