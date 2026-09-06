@@ -15,11 +15,10 @@ VALUES
   ('a1111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000', 'dp-admin@test.local',  'authenticated', 'authenticated', now(), now()),
   ('a2222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000', 'dp-viewer@test.local', 'authenticated', 'authenticated', now(), now());
 
-INSERT INTO public.companies (id, user_id, owner_id, name, profile_type, status_tenant, is_active)
+INSERT INTO public.companies (id, user_id, name, timezone)
 VALUES ('c1111111-1111-1111-1111-111111111111',
         'a1111111-1111-1111-1111-111111111111',
-        'a1111111-1111-1111-1111-111111111111',
-        'Empresa Folgas Teste', 'microempresa', 'ativo', true);
+        'Empresa Folgas Teste', 'America/Sao_Paulo');
 
 INSERT INTO public.company_members (company_id, user_id, role)
 VALUES
