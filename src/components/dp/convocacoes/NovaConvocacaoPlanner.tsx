@@ -182,6 +182,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                 vira: !!o.necessidade_termina_no_dia_seguinte,
                 vagas: o.vagas ?? 1,
                 origem: "manual" as const,
+                ambiguo: false,
                 expected_updated_at: o.updated_at ?? null,
               },
             ]),
