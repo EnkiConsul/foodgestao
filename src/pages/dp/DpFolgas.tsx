@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useNavigate } from "react-router-dom";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -145,7 +145,7 @@ export default function DpFolgas() {
   const { selectedCompanyId } = useCompanyContext();
   const { user } = useAuth();
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  
   const colabs = useDpColaboradores();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
   const initialPrefs = loadPrefs(selectedCompanyId);
@@ -1360,15 +1360,6 @@ export default function DpFolgas() {
                     {quickAssign.isPending ? "Atribuindo..." : "Atribuir"}
                   </Button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(`/dp/operacao?ausencia=${format(selectedDay, "yyyy-MM-dd")}`)
-                  }
-                  className="text-xs font-medium text-primary hover:underline"
-                >
-                  Registrar ausência (férias, atestado, período)
-                </button>
               </div>
             </div>
           )}

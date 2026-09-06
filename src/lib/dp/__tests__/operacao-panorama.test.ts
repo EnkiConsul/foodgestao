@@ -273,6 +273,34 @@ describe("blocosPorFuncionamento", () => {
     expect(comB[0].titulo).toBe("Dia");
   });
 
+  it("coloca quem entra às 17:00 e sai 00:35 no período da noite", () => {
+    const blocos = blocosPorFuncionamento({
+      data: SEGUNDA_BLOCOS,
+      pessoas: [pessoa("n", "17:00", "00:35", { termina_no_dia_seguinte: true })],
+      funcionamentoPorUnidade: new Map([
+        [
+          "u1",
+          [
+            {
+              dia_semana: 1,
+              aberto: true,
+              periodos: [
+                { nome: "Dia", hora_abertura: "08:30", hora_fechamento: "18:30" },
+                { nome: "Noite", hora_abertura: "17:00", hora_fechamento: "00:35" },
+              ],
+            },
+          ],
+        ],
+      ]),
+      unidades: [{ id: "u1", nome: "Loja" }],
+      unidadeId: "u1",
+    });
+    const comN = blocos.filter((b) => b.pessoas.some((p) => p.colaborador_id === "n"));
+    expect(comN).toHaveLength(1);
+    expect(comN[0].titulo).toBe("Noite");
+  });
+
+
   it("manda para 'Fora do Horário' quem não tem sobreposição alguma", () => {
     const blocos = blocosPorFuncionamento({
       data: SEGUNDA_BLOCOS,
