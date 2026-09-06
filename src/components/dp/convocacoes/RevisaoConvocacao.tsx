@@ -3,6 +3,10 @@ import { AlertTriangle, CalendarDays, Clock, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
 import { useDpOperacaoPanorama } from "@/hooks/useDpOperacaoPanorama";
 import {
   blocosPorFuncionamento,
