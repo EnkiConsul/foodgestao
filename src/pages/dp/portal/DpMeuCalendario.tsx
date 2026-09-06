@@ -452,14 +452,18 @@ export default function DpMeuCalendario() {
   };
 
   // Minhas folgas futuras (para oferecer troca)
-  const minhasFolgasFuturas = useMemo(() => {
-    if (!meRef.data?.id) return [];
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    return folgas
-      .filter((f) => f.colaborador_id === meRef.data!.id && f.status !== "cancelada" && parseYMD(f.data) >= hoje)
-      .sort((a, b) => a.data.localeCompare(b.data));
-  }, [folgas, meRef.data?.id]);
+  const hojeIso = useMemo(() => toIsoDate(new Date()), []);
+  const minhasFolgasFuturas = useMemo(
+    () => folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso }),
+    [folgas, meRef.data?.id, hojeIso],
+  );
+
+  /** Folgas ofertáveis para o dia aberto no diálogo (sem o próprio dia pedido). */
+  const folgasParaOferecer = useMemo(
+    () => folgasOfertaveis(folgas, { meuId: meRef.data?.id, hojeIso, diaPedidoIso: tradeOpen?.iso }),
+    [folgas, meRef.data?.id, hojeIso, tradeOpen?.iso],
+  );
+
 
   // -------- Mutations --------
   const marcarFolga = useMutation({
