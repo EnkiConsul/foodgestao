@@ -463,14 +463,11 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     toast.success("Horário aplicado aos dias deste cargo.");
   };
 
-  const diasCompletos = useMemo(
-    () =>
-      listaDias.filter(
-        (d) => !!d.entrada && !!d.saida && d.vagas >= 1 &&
-          !!janelaMinutos({ entrada: d.entrada, saida: d.saida, termina_no_dia_seguinte: d.vira }),
-      ),
-    [listaDias],
-  );
+  const diaCompleto = (d: DiaPlanejado) =>
+    !!d.entrada && !!d.saida && d.vagas >= 1 &&
+    !!janelaMinutos({ entrada: d.entrada, saida: d.saida, termina_no_dia_seguinte: d.vira });
+
+  const diasCompletos = useMemo(() => listaDias.filter(diaCompleto), [listaDias]);
   const diasIncompletos = listaDias.length - diasCompletos.length;
   const foraDaAntecedencia = diasCompletos.filter((d) => antecedenciaDias(d.data) < antecedenciaMinima);
 
