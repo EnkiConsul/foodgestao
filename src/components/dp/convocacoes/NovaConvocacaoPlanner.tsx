@@ -301,6 +301,19 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargoAtivo, limites, dias, preview.regrasCobertura, preview.contagemPorDataCargo, unidadeId, antecedenciaMinima]);
 
+  const preAvaliacao = useDpConvocacaoPreAvaliacao(grupoId, revisando);
+  const linhasPreAvaliacao = preAvaliacao.data?.linhas ?? [];
+
+  /** Dias em rascunho sem nenhuma pessoa apta — publicação fica bloqueada. */
+  const diasSemApto = useMemo(() => {
+    const porDia = new Map<string, boolean>();
+    for (const l of linhasPreAvaliacao) {
+      const k = `${l.cargo_id ?? ""}|${l.data}`;
+      porDia.set(k, (porDia.get(k) ?? false) || l.apto);
+    }
+    return [...porDia.entries()].filter(([, temApto]) => !temApto).map(([k]) => k);
+  }, [linhasPreAvaliacao]);
+
   const patchOverride = (k: string, p: Partial<HorarioOverride>) =>
     setOverrides((prev) => {
       const base = prev[k] ?? { entrada: "", saida: "", intervalo_minutos: 0, vira: false };
@@ -646,6 +659,21 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     };
                   })}
                   overrides={overrides}
+                  preAvaliacao={linhasPreAvaliacao}
+                  preAvaliacaoCarregando={preAvaliacao.isLoading || preAvaliacao.isFetching}
+                  onUsarHorarioParaTodos={async (entrada, saida, vira) => {
+                    setUsaHorarioGeral(true);
+                    setHorarioGeral((h) => ({
+                      ...h, entrada, saida, vira: normalizarVira(entrada, saida, vira),
+                    }));
+                    await persistir();
+                    await preAvaliacao.refetch();
+                  }}
+                  onAjustarNecessidade={async (cargoId, data, saida) => {
+                    patchDia(chave(cargoId, data), { saida });
+                    await persistir();
+                    await preAvaliacao.refetch();
+                  }}
                   horarioGeral={usaHorarioGeral ? horarioGeral : null}
                   jornadaDe={preview.jornadaDe}
                   prazoRespostaDias={config.data?.prazo_resposta_dias_uteis ?? null}
@@ -945,6 +973,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     size="sm"
                     onClick={publicarGrupo}
                     disabled={!podeSalvar || publicando || salvando ||
+                      preAvaliacao.isLoading || diasSemApto.length > 0 ||
                       (exigeJustificativa && foraDaAntecedencia.length > 0 && !justificativa.trim())}
                   >
                     {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
@@ -959,12 +988,20 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => {
+                    onClick={async () => {
                       if (!podeSalvar) {
                         toast.error("Informe unidade, cargos, destinatários e ao menos um dia completo.");
                         return;
                       }
-                      setRevisando(true);
+                      setSalvando(true);
+                      try {
+                        await persistir();
+                        setRevisando(true);
+                      } catch (e: any) {
+                        toast.error(e?.message ?? "Não foi possível preparar a revisão.");
+                      } finally {
+                        setSalvando(false);
+                      }
                     }}
                     disabled={salvando || publicando}
                   >
