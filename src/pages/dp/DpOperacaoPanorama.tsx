@@ -58,6 +58,15 @@ import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+
+function rotuloCategoriaPessoa(p: PessoaPanorama): string {
+  if (p.origem === "avulso" || p.origem === "registro_manual") {
+    if (p.avulso_tipo === "folguista") return p.cobre_nome ? `Folguista (cobrindo ${p.cobre_nome})` : "Folguista";
+    if (p.avulso_tipo === "teste") return "Em teste";
+    if (p.origem === "registro_manual") return "Registro manual";
+  }
+  return CATEGORIA_LABEL[p.categoria];
+}
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -184,7 +193,7 @@ function GradeCards({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={ordem} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-2 items-stretch gap-2 sm:gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
           {ordem.map((k) => (
             <CardArrastavel key={k} id={k}>
               {render(k)}
@@ -400,7 +409,7 @@ function DetalheDiaOperacao({
                               </Badge>
                             )}
                             <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
-                              {CATEGORIA_LABEL[p.categoria]}
+                              {rotuloCategoriaPessoa(p)}
                             </Badge>
                           </div>
                         </li>
@@ -427,12 +436,12 @@ function DetalheDiaOperacao({
       )}
 
       <Secao
-        title="Pessoas Registradas no Dia"
+        title="Mão de Obra Extra"
         description="Quem trabalhou no dia por registro manual, em teste ou como folguista"
         action={
           podeRegistrar ? (
             <Button variant="outline" size="sm" onClick={() => onNovaAvulsa(data)}>
-              <UserPlus className="mr-1.5 h-4 w-4" /> Adicionar Pessoa
+              <UserPlus className="mr-1.5 h-4 w-4" /> Mão de Obra Extra
             </Button>
           ) : undefined
         }
@@ -773,7 +782,7 @@ export default function DpOperacaoPanorama() {
                   setAvulsaOpen(true);
                 }}
               >
-                <UserPlus className="h-4 w-4" /> Adicionar Pessoa
+                <UserPlus className="h-4 w-4" /> Mão de Obra Extra
               </Button>
               <Button
                 className="gap-2"

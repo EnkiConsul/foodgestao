@@ -36,9 +36,9 @@ interface Props {
 }
 
 const TIPO_LABEL: Record<PessoaAvulsaTipo, string> = {
-  registro_manual: "Colaborador cadastrado que trabalhou",
-  teste: "Em teste na loja",
   folguista: "Folguista (cobrindo alguém)",
+  teste: "Em teste na loja",
+  registro_manual: "Colaborador cadastrado que trabalhou",
 };
 
 const hojeIso = () => {
@@ -68,7 +68,7 @@ export function DpPessoaAvulsaDialog({
 }: Props) {
   const [form, setForm] = useState({
     nome: "",
-    tipo: "registro_manual" as PessoaAvulsaTipo,
+    tipo: "folguista" as PessoaAvulsaTipo,
     colaborador_id: "",
     unidade_id: "",
     cargo_id: "",
@@ -91,7 +91,7 @@ export function DpPessoaAvulsaDialog({
     const dataBase = registro?.data_inicio ?? (dataInicial > hojeIso() ? hojeIso() : dataInicial);
     setForm({
       nome: registro?.nome ?? "",
-      tipo: registro?.tipo ?? "registro_manual",
+      tipo: registro?.tipo ?? "folguista",
       colaborador_id: registro?.colaborador_id ?? "",
       unidade_id: registro?.unidade_id ?? unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
       cargo_id: registro?.cargo_id ?? "",
