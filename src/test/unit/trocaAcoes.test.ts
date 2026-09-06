@@ -29,17 +29,34 @@ describe("acoesGestorTroca", () => {
     expect(acoesGestorTroca("recusada", "aprovacao_admin").cancelar).toBe(false);
     expect(acoesGestorTroca("cancelada", "aprovacao_admin").cancelar).toBe(false);
   });
+
+  it("troca expirada não aceita nenhuma ação do gestor", () => {
+    expect(acoesGestorTroca("expirada", "aprovacao_admin")).toEqual({
+      aprovar: false,
+      recusar: false,
+      cancelar: false,
+    });
+    expect(acoesGestorTroca("expirada", "direta")).toEqual({
+      aprovar: false,
+      recusar: false,
+      cancelar: false,
+    });
+  });
 });
 
 describe("textoDecisaoGestor", () => {
   it("remove o prefixo do status", () => {
     expect(textoDecisaoGestor("recusada: sem cobertura")).toBe("sem cobertura");
     expect(textoDecisaoGestor("cancelada: erro de data")).toBe("erro de data");
+    expect(textoDecisaoGestor("expirada: sem resposta até o fim do dia 05/09/2026")).toBe(
+      "sem resposta até o fim do dia 05/09/2026",
+    );
   });
 
   it("ignora respostas sem justificativa", () => {
     expect(textoDecisaoGestor("aprovada")).toBeNull();
     expect(textoDecisaoGestor("recusada")).toBeNull();
+    expect(textoDecisaoGestor("expirada")).toBeNull();
     expect(textoDecisaoGestor(null)).toBeNull();
   });
 });
