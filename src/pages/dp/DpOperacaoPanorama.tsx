@@ -434,6 +434,9 @@ export default function DpOperacaoPanorama() {
   const [unidade, setUnidade] = useState<string>("");
   const [aba, setAba] = useState(params.get("aba") === "mes" ? "mes" : "dia");
   const [detalheCategoria, setDetalheCategoria] = useState<CategoriaDia | null>(null);
+  /** Dia aberto em janela a partir do calendário do mês. */
+  const [dataPopout, setDataPopout] = useState<string | null>(null);
+
   const [verSocios, setVerSocios] = useState(false);
   const { role } = useCompanyPermissions();
   const podeRegistrar = role === "owner" || role === "admin";
