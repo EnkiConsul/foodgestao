@@ -713,8 +713,10 @@ export default function DpMeuCalendario() {
     const occupants = occupantsByDate.get(selectedDay.iso) ?? [];
     const isMine = occupants.some((o) => o.colaboradorId === meRef.data?.id);
 
-    // canTrade — só se eu tenho folga futura para oferecer e o dia está em outra ocupação (não meu, não passado)
-    const canTrade = minhasFolgasFuturas.length > 0 && !isMine && selectedDay.status !== "past";
+    // canTrade — só se eu tenho folga em OUTRO dia para oferecer e o dia está em
+    // outra ocupação (não meu, não passado)
+    const ofertaveis = minhasFolgasFuturas.filter((f) => f.data !== selectedDay.iso);
+    const canTrade = ofertaveis.length > 0 && !isMine && selectedDay.status !== "past";
     return { date, isWeekend, occupants, isMine, canTrade };
   }, [selectedDay, occupantsByDate, meRef.data?.id, minhasFolgasFuturas]);
 
@@ -1065,18 +1067,19 @@ export default function DpMeuCalendario() {
                   <SelectValue placeholder="Escolha uma folga sua" />
                 </SelectTrigger>
                 <SelectContent>
-                  {minhasFolgasFuturas.map((f) => (
+                  {folgasParaOferecer.map((f) => (
                     <SelectItem key={f.id} value={f.data}>
                       {formatBR(parseYMD(f.data))}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {minhasFolgasFuturas.length === 0 && (
+              {folgasParaOferecer.length === 0 && (
                 <p className="text-xs text-destructive mt-1">
-                  Você não tem folgas futuras para oferecer em troca.
+                  Você não tem folga em outro dia para oferecer nesta troca.
                 </p>
               )}
+
             </div>
             <div>
               <Label className="flex items-center gap-2">
