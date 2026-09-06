@@ -3,6 +3,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
+import type { Database } from "@/integrations/supabase/types";
+
+type SolicitacaoStatus = Database["public"]["Enums"]["dp_solicitacao_status"];
 
 export type FeriasSolicitacao = {
   id: string;
@@ -23,7 +26,7 @@ export type FeriasSolicitacao = {
 };
 
 /** Solicitações de férias do colaborador, para aprovação do gestor. */
-export function useDpFeriasSolicitacoes(status: string[] = ["pendente"]) {
+export function useDpFeriasSolicitacoes(status: SolicitacaoStatus[] = ["pendente"]) {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
 
