@@ -813,6 +813,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                 </Alert>
               )}
             </div>
+            )}
           </ScrollArea>
 
           <DialogFooter className="flex-row items-center justify-between gap-2 border-t border-border p-3">
@@ -820,21 +821,46 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
               {diasCompletos.length} dia(s) · {destinatarios.length} destinatário(s)
             </span>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={salvarRascunho} disabled={!podeSalvar || salvando || publicando}>
-                {salvando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
-                Salvar rascunho
-              </Button>
-              <Button
-                size="sm"
-                onClick={publicarGrupo}
-                disabled={!podeSalvar || publicando || salvando ||
-                  (exigeJustificativa && foraDaAntecedencia.length > 0 && !justificativa.trim())}
-              >
-                {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
-                Publicar
-              </Button>
+              {revisando ? (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => setRevisando(false)} disabled={publicando}>
+                    Voltar e ajustar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={publicarGrupo}
+                    disabled={!podeSalvar || publicando || salvando ||
+                      (exigeJustificativa && foraDaAntecedencia.length > 0 && !justificativa.trim())}
+                  >
+                    {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
+                    Confirmar e publicar
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" size="sm" onClick={salvarRascunho} disabled={!podeSalvar || salvando || publicando}>
+                    {salvando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
+                    Salvar rascunho
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!podeSalvar) {
+                        toast.error("Informe unidade, cargos, destinatários e ao menos um dia completo.");
+                        return;
+                      }
+                      setRevisando(true);
+                    }}
+                    disabled={salvando || publicando}
+                  >
+                    <Eye className="mr-1 h-4 w-4" />
+                    Revisar e publicar
+                  </Button>
+                </>
+              )}
             </div>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 
