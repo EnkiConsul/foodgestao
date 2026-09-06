@@ -726,6 +726,10 @@ export default function DpConformidadeDsr() {
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-3">
                     <div>
+                      <p className="text-muted-foreground">Mínimo da regra</p>
+                      <p className="font-semibold tabular-nums">{detalhe.esperado}</p>
+                    </div>
+                    <div>
                       <p className="text-muted-foreground">Descansos considerados</p>
                       <p className="font-semibold tabular-nums">{detalhe.folgasEmpresa}</p>
                     </div>
@@ -734,6 +738,7 @@ export default function DpConformidadeDsr() {
                       <p className="font-semibold tabular-nums">{detalhe.folgasMarcadas}</p>
                     </div>
                   </div>
+
                   <p className="mt-2 text-xs text-muted-foreground">
                     {detalheInfo.descansoLabel
                       ? `Inclui o descanso fixo do cadastro de trabalho (${detalheInfo.descansoLabel}), que não gera registro de folga.`
