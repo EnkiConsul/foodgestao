@@ -164,6 +164,7 @@ export function useDpTrocas(filtros: TrocaFiltros = FILTROS_TROCA_PADRAO) {
 
   return {
     rows: filtered,
+    total: (list.data ?? []).length,
     isLoading: list.isLoading,
     responder,
     cancelar,
