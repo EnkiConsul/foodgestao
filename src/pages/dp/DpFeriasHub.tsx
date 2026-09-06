@@ -8,6 +8,8 @@ import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { FeriasRegrasSection } from "@/components/dp/ferias/FeriasRegrasSection";
 import { FeriasDashboard } from "@/components/dp/ferias/FeriasDashboard";
 import { FeriasGozosPanel } from "@/components/dp/ferias/FeriasGozosPanel";
+import { FeriasSolicitacoesPanel } from "@/components/dp/ferias/FeriasSolicitacoesPanel";
+import { FeriasConfigCard } from "@/components/dp/ferias/FeriasConfigCard";
 import { useDpFerias } from "@/hooks/useDpFerias";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 
@@ -94,10 +96,7 @@ export default function DpFeriasHub() {
         <TabsContent value="solicitacoes" className="m-0">
           {aba === "solicitacoes" && (
             <DpEmbeddedProvider>
-              <FeriasGozosPanel
-                status={["planejado"]}
-                vazio="Nenhuma solicitação de férias aguardando aprovação."
-              />
+              <FeriasSolicitacoesPanel />
             </DpEmbeddedProvider>
           )}
         </TabsContent>
@@ -105,7 +104,10 @@ export default function DpFeriasHub() {
         <TabsContent value="programadas" className="m-0">
           {aba === "programadas" && (
             <DpEmbeddedProvider>
-              <FeriasGozosPanel status={["aprovado"]} vazio="Nenhuma férias programada." />
+              <FeriasGozosPanel
+                status={["planejado", "aprovado"]}
+                vazio="Nenhuma férias programada."
+              />
             </DpEmbeddedProvider>
           )}
         </TabsContent>
@@ -132,6 +134,7 @@ export default function DpFeriasHub() {
         <TabsContent value="regras" className="m-0 space-y-6">
           {aba === "regras" && (
             <DpEmbeddedProvider>
+              <FeriasConfigCard />
               <FeriasRegrasSection />
             </DpEmbeddedProvider>
           )}

@@ -104,6 +104,7 @@ const DpMeuMural = lazyWithRetry(() => import("./pages/dp/portal/DpMeuMural"));
 const DpMeuPerfil = lazyWithRetry(() => import("./pages/dp/portal/DpMeuPerfil"));
 const DpMeuDocumentos = lazyWithRetry(() => import("./pages/dp/portal/DpMeuDocumentos"));
 const DpMeuSolicitacoes = lazyWithRetry(() => import("./pages/dp/portal/DpMeuSolicitacoes"));
+const DpMeuFerias = lazyWithRetry(() => import("./pages/dp/portal/DpMeuFerias"));
 const DpMeuTrocas = lazyWithRetry(() => import("./pages/dp/portal/DpMeuTrocas"));
 const DpMeuCalendario = lazyWithRetry(() => import("./pages/dp/portal/DpMeuCalendario"));
 const DpMeuEscala = lazyWithRetry(() => import("./pages/dp/portal/DpMeuEscala"));
@@ -330,6 +331,7 @@ const AppRoutes = () => (
         <Route path="documentos" element={<DpMeuDocumentos />} />
         <Route path="solicitacoes" element={<DpMeuSolicitacoes />} />
         <Route path="trocas" element={<DpMeuTrocas />} />
+        <Route path="ferias" element={<DpMeuFerias />} />
         <Route path="calendario" element={<DpMeuCalendario />} />
         <Route path="escala" element={<DpMeuEscala />} />
         <Route path="convocacoes" element={<DpMinhasConvocacoes />} />
