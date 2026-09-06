@@ -190,6 +190,8 @@ export function RevisaoConvocacao(props: Props) {
 
   const datasUnicas = useMemo(() => [...new Set(ordenados.map((d) => d.data))], [ordenados]);
 
+  const diasEmCimaDaHora = useMemo(() => ordenados.filter((d) => d.abaixoDaAntecedencia), [ordenados]);
+
   return (
     <div className="space-y-4">
       {/* -------------------------------------------------- resumo */}
