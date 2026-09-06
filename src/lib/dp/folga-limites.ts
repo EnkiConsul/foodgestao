@@ -164,7 +164,7 @@ export function partesRegraLimite(
   return {
     dia,
     escopo: regra.cargo_ids.length === 0 ? [] : cargos,
-    escopoVazio: "Qualquer cargo",
+    escopoVazio: regra.cargo_ids.length === 0 ? "Qualquer cargo" : "Cargos selecionados",
     limite: `Máximo ${regra.maximo} ${regra.maximo === 1 ? "pessoa" : "pessoas"} em folga`,
   };
 }
