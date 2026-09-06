@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MonthGridCalendar } from "@/components/dp/convocacoes/MonthGridCalendar";
 import { RevisaoConvocacao } from "@/components/dp/convocacoes/RevisaoConvocacao";
@@ -531,7 +530,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex max-h-[94vh] max-w-5xl flex-col gap-0 overflow-hidden p-0">
+        <DialogContent className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] max-w-5xl grid-cols-none grid-rows-none flex-col gap-0 overflow-hidden p-0 sm:h-[94dvh] sm:max-h-[94dvh]">
           <DialogHeader className="border-b border-border p-4">
             <DialogTitle className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -544,7 +543,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="min-h-0 flex-1">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             {revisando ? (
               <div className="p-4">
                 <RevisaoConvocacao
@@ -861,7 +860,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
               )}
             </div>
             )}
-          </ScrollArea>
+          </div>
 
           <DialogFooter className="flex-row items-center justify-between gap-2 border-t border-border p-3">
             <span className="text-[11px] text-muted-foreground">
