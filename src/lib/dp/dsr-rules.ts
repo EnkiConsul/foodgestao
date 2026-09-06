@@ -669,6 +669,14 @@ export function avaliarConformidade(
       ? Math.max(0, Math.min(negociados, esperado - domingos))
       : 0;
     const folgasConsideradas = domingos + negociadosAproveitados;
+    // Regra da empresa: vale qualquer dia de descanso do mês, inclusive o dia
+    // fixo do cadastro de trabalho (que não gera registro de folga).
+    const domingosEmpresa =
+      domingos
+      + (l.diasNegociadosFolgados?.length ?? 0)
+      + (l.folgasOutrosDias?.length ?? 0)
+      + Math.max(0, l.descansoSemanalNoMes ?? 0);
+
     const override = overrideDomingosMes({ domingosMes: l.domingosMesOverride });
     const modoRotulo: ModoFrequencia = override !== null ? "por_mes" : modoAplicado;
     const rotuloValor = modoRotulo === "por_mes"
