@@ -183,23 +183,23 @@ export function gerarEscalaMes(input: GerarEscalaMesInput): EscalaItem[] {
 
       const ausencia = ausencias.find((a) => dentro(a, data));
       if (ausencia) {
-        itens.push(itemFolga(colab.id, data, ausencia.tipo));
+        empurrar(itemFolga(colab.id, data, ausencia.tipo));
         continue;
       }
 
       const dow = dowDaData(data);
       const dia = colab.config.dias.find((d) => d.dow === dow);
       if (!dia || !dia.trabalha) {
-        itens.push(itemFolga(colab.id, data, feriados.has(data) ? "feriado" : "folga"));
+        empurrar(itemFolga(colab.id, data, feriados.has(data) ? "feriado" : "folga"));
         continue;
       }
 
       const turno = turnoDoDia(dia, colab.config.turno_padrao_id, input.turnos);
       if (!turno) {
-        itens.push({ ...itemFolga(colab.id, data, "trabalho"), observacao: "Sem turno definido" });
+        empurrar({ ...itemFolga(colab.id, data, "trabalho"), observacao: "Sem turno definido" });
         continue;
       }
-      itens.push(itemDeTurno(colab.id, data, turno));
+      empurrar(itemDeTurno(colab.id, data, turno));
     }
   }
 
