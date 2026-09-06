@@ -1,9 +1,11 @@
-import { AlertTriangle, Copy, Trash2, UserCog } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { AlertTriangle, CalendarClock, Copy, Minus, Plus, Trash2, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { viraNoDiaSeguinte } from "@/lib/dp/convocacoes-planejamento";
+
 
 
 export type OrigemHorario = "historico" | "sugerida" | "geral" | "manual";
@@ -26,6 +28,8 @@ interface Props {
   onRemover: (chave: string) => void;
   onAbrirIndividuais: (chave: string) => void;
   onAplicarATodos: (chave: string) => void;
+  /** Rotina do dia simulada, montada sob demanda ao expandir a linha. */
+  renderSimulacao?: (item: DiaSelecionadoItem) => ReactNode;
 }
 
 const ROTULO_ORIGEM: Record<OrigemHorario, string> = {
@@ -49,8 +53,11 @@ export function DiasSelecionadosLista({
   onRemover,
   onAbrirIndividuais,
   onAplicarATodos,
+  renderSimulacao,
 }: Props) {
+  const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
   if (itens.length === 0) return null;
+
 
   return (
     <div className="space-y-2">
@@ -76,6 +83,20 @@ export function DiasSelecionadosLista({
                   >
                     <Copy className="mr-1 h-3 w-3" /> Aplicar a todos os dias
                   </Button>
+                  {renderSimulacao && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-[11px]"
+                      onClick={() =>
+                        setExpandidos((prev) => ({ ...prev, [d.chave]: !prev[d.chave] }))
+                      }
+                    >
+                      <CalendarClock className="mr-1 h-3 w-3" />
+                      {expandidos[d.chave] ? "Ocultar rotina do dia" : "Ver rotina do dia"}
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     size="sm"
@@ -85,6 +106,7 @@ export function DiasSelecionadosLista({
                   >
                     <UserCog className="mr-1 h-3 w-3" /> Horário por pessoa
                   </Button>
+
                   <Button
                     type="button"
                     size="icon"
@@ -119,17 +141,41 @@ export function DiasSelecionadosLista({
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[11px]">Vagas</Label>
-                  <Input
-                    inputMode="numeric"
-                    className="h-8"
-                    value={String(d.vagas)}
-                    onChange={(e) =>
-                      onPatch(d.chave, {
-                        vagas: Math.max(1, Number(e.target.value.replace(/\D/g, "") || 1)),
-                      })
-                    }
-                  />
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 shrink-0"
+                      aria-label="Diminuir vagas"
+                      disabled={d.vagas <= 1}
+                      onClick={() => onPatch(d.chave, { vagas: Math.max(1, d.vagas - 1) })}
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </Button>
+                    <Input
+                      inputMode="numeric"
+                      className="h-8 text-center"
+                      value={String(d.vagas)}
+                      onChange={(e) =>
+                        onPatch(d.chave, {
+                          vagas: Math.max(1, Number(e.target.value.replace(/\D/g, "") || 1)),
+                        })
+                      }
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 shrink-0"
+                      aria-label="Aumentar vagas"
+                      onClick={() => onPatch(d.chave, { vagas: d.vagas + 1 })}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
+
                 <label className="flex items-end gap-2 pb-1.5 text-[11px]">
                   <Checkbox
                     checked={d.vira}
@@ -155,7 +201,10 @@ export function DiasSelecionadosLista({
                 {d.ambiguo && !semHorario && <span>Mais de um horário praticado neste dia</span>}
                 {d.faltam ? <span>Faltam {d.faltam} para o mínimo</span> : null}
               </div>
+
+              {renderSimulacao && expandidos[d.chave] && renderSimulacao(d)}
             </div>
+
           );
         })}
       </div>

@@ -4840,6 +4840,7 @@ export type Database = {
           grupo_id: string
           id: string
           intervalo_minutos: number | null
+          nivel: number
           ocorrencia_id: string | null
           removido_em: string | null
           removido_por: string | null
@@ -4856,6 +4857,7 @@ export type Database = {
           grupo_id: string
           id?: string
           intervalo_minutos?: number | null
+          nivel?: number
           ocorrencia_id?: string | null
           removido_em?: string | null
           removido_por?: string | null
@@ -4872,6 +4874,7 @@ export type Database = {
           grupo_id?: string
           id?: string
           intervalo_minutos?: number | null
+          nivel?: number
           ocorrencia_id?: string | null
           removido_em?: string | null
           removido_por?: string | null
@@ -4995,6 +4998,7 @@ export type Database = {
           horario_geral_saida: string | null
           horario_geral_termina_no_dia_seguinte: boolean | null
           id: string
+          intervalo_niveis_horas: number | null
           modalidade: string
           observacao: string | null
           publicado_em: string | null
@@ -5015,6 +5019,7 @@ export type Database = {
           horario_geral_saida?: string | null
           horario_geral_termina_no_dia_seguinte?: boolean | null
           id?: string
+          intervalo_niveis_horas?: number | null
           modalidade: string
           observacao?: string | null
           publicado_em?: string | null
@@ -5035,6 +5040,7 @@ export type Database = {
           horario_geral_saida?: string | null
           horario_geral_termina_no_dia_seguinte?: boolean | null
           id?: string
+          intervalo_niveis_horas?: number | null
           modalidade?: string
           observacao?: string | null
           publicado_em?: string | null
@@ -5246,6 +5252,7 @@ export type Database = {
           inicio_previsto: string | null
           intervalo_minutos: number
           motivo_recusa: string | null
+          nivel_prioridade: number
           observacao: string | null
           ocorrencia_id: string | null
           origem_oferta: string | null
@@ -5291,6 +5298,7 @@ export type Database = {
           inicio_previsto?: string | null
           intervalo_minutos?: number
           motivo_recusa?: string | null
+          nivel_prioridade?: number
           observacao?: string | null
           ocorrencia_id?: string | null
           origem_oferta?: string | null
@@ -5336,6 +5344,7 @@ export type Database = {
           inicio_previsto?: string | null
           intervalo_minutos?: number
           motivo_recusa?: string | null
+          nivel_prioridade?: number
           observacao?: string | null
           ocorrencia_id?: string | null
           origem_oferta?: string | null
@@ -7812,6 +7821,99 @@ export type Database = {
           },
         ]
       }
+      dp_pessoas_apoio: {
+        Row: {
+          ativo: boolean
+          cargo_id: string | null
+          colaborador_id: string | null
+          company_id: string
+          cpf: string | null
+          created_at: string
+          criado_por: string | null
+          data_nascimento: string | null
+          genero: string | null
+          id: string
+          nome: string
+          observacao: string | null
+          telefone: string | null
+          tipo: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cargo_id?: string | null
+          colaborador_id?: string | null
+          company_id: string
+          cpf?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_nascimento?: string | null
+          genero?: string | null
+          id?: string
+          nome: string
+          observacao?: string | null
+          telefone?: string | null
+          tipo?: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cargo_id?: string | null
+          colaborador_id?: string | null
+          company_id?: string
+          cpf?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_nascimento?: string | null
+          genero?: string | null
+          id?: string
+          nome?: string
+          observacao?: string | null
+          telefone?: string | null
+          tipo?: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_pessoas_apoio_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_apoio_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_apoio_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_apoio_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_apoio_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_pessoas_avulsas: {
         Row: {
           cargo_id: string
@@ -7826,7 +7928,9 @@ export type Database = {
           id: string
           nome: string | null
           observacao: string | null
+          pessoa_apoio_id: string | null
           saida: string | null
+          telefone: string | null
           termina_no_dia_seguinte: boolean
           tipo: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
           unidade_id: string
@@ -7845,7 +7949,9 @@ export type Database = {
           id?: string
           nome?: string | null
           observacao?: string | null
+          pessoa_apoio_id?: string | null
           saida?: string | null
+          telefone?: string | null
           termina_no_dia_seguinte?: boolean
           tipo: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
           unidade_id: string
@@ -7864,7 +7970,9 @@ export type Database = {
           id?: string
           nome?: string | null
           observacao?: string | null
+          pessoa_apoio_id?: string | null
           saida?: string | null
+          telefone?: string | null
           termina_no_dia_seguinte?: boolean
           tipo?: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
           unidade_id?: string
@@ -7911,6 +8019,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_avulsas_pessoa_apoio_id_fkey"
+            columns: ["pessoa_apoio_id"]
+            isOneToOne: false
+            referencedRelation: "dp_pessoas_apoio"
             referencedColumns: ["id"]
           },
           {
@@ -12547,6 +12662,8 @@ export type Database = {
           p_colaboradores: string[]
           p_expected_updated_at: string
           p_grupo_id: string
+          p_intervalo_niveis_horas?: number
+          p_niveis?: Json
         }
         Returns: Json
       }
@@ -12906,6 +13023,45 @@ export type Database = {
         Returns: Json
       }
       dp_pascoa: { Args: { _ano: number }; Returns: string }
+      dp_pessoa_apoio_upsert: {
+        Args: {
+          p_cargo_id?: string
+          p_company_id: string
+          p_cpf?: string
+          p_data_nascimento?: string
+          p_genero?: string
+          p_id?: string
+          p_nome: string
+          p_observacao?: string
+          p_telefone?: string
+          p_tipo?: string
+          p_unidade_id?: string
+        }
+        Returns: {
+          ativo: boolean
+          cargo_id: string | null
+          colaborador_id: string | null
+          company_id: string
+          cpf: string | null
+          created_at: string
+          criado_por: string | null
+          data_nascimento: string | null
+          genero: string | null
+          id: string
+          nome: string
+          observacao: string | null
+          telefone: string | null
+          tipo: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
+          unidade_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dp_pessoas_apoio"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       dp_pode_gerenciar_lixeira: {
         Args: { _company_id: string }
         Returns: boolean

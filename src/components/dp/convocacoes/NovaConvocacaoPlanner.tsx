@@ -21,6 +21,10 @@ import {
   type OrigemHorario,
 } from "@/components/dp/convocacoes/DiasSelecionadosLista";
 import { RevisaoConvocacao } from "@/components/dp/convocacoes/RevisaoConvocacao";
+import { DiaSimulacaoInline } from "@/components/dp/convocacoes/DiaSimulacaoInline";
+import { resolverHorarioDestinatario } from "@/lib/dp/convocacao-revisao";
+import type { PessoaPanorama } from "@/lib/dp/operacao-panorama";
+
 
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
@@ -111,6 +115,10 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const [cargoIds, setCargoIds] = useState<string[]>([]);
   const [cargoAtivo, setCargoAtivo] = useState<string | null>(null);
   const [destinatarios, setDestinatarios] = useState<string[]>([]);
+  /** colaborador_id → nível de prioridade (1 recebe primeiro). */
+  const [niveis, setNiveis] = useState<Record<string, number>>({});
+  const [intervaloNiveisHoras, setIntervaloNiveisHoras] = useState<number | null>(null);
+
   const [titulo, setTitulo] = useState("");
   const [observacao, setObservacao] = useState("");
   const [usaHorarioGeral, setUsaHorarioGeral] = useState(false);
@@ -206,6 +214,9 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     setCargoIds([]);
     setCargoAtivo(null);
     setDestinatarios([]);
+    setNiveis({});
+    setIntervaloNiveisHoras(null);
+
     setTitulo("");
     setObservacao("");
     setUsaHorarioGeral(false);
@@ -216,8 +227,11 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   useEffect(() => {
     if (!open || !grupo) return;
     if (destinatariosSalvos.data?.globais) setDestinatarios(destinatariosSalvos.data.globais);
+    if (destinatariosSalvos.data?.niveis) setNiveis(destinatariosSalvos.data.niveis);
+    setIntervaloNiveisHoras(grupo.intervalo_niveis_horas ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, grupo?.id, destinatariosSalvos.data]);
+
 
   const limites = useMemo(() => {
     const ultimo = new Date(Date.UTC(ano, mes, 0)).getUTCDate();
@@ -462,6 +476,41 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
   const podeSalvar = !!unidadeId && cargoIds.length > 0 && destinatarios.length > 0 && diasCompletos.length > 0;
 
+  /** Pessoas que receberiam a convocação num dia/cargo, com o horário já resolvido. */
+  const convocadosDoDia = (cargoId: string, data: string): PessoaPanorama[] => {
+    const out: PessoaPanorama[] = [];
+    for (const id of destinatarios) {
+      const c = (colaboradores.data ?? []).find((x: any) => x.id === id);
+      if (c?.cargo_id && c.cargo_id !== cargoId) continue;
+      const h = resolverHorarioDestinatario({
+        override: overrides[`${cargoId}|${data}|${id}`],
+        geral: usaHorarioGeral
+          ? { ...horarioGeral, termina_no_dia_seguinte: horarioGeral.vira }
+          : null,
+        jornada: preview.jornadaDe(id, data),
+      });
+      if (!h) continue;
+      out.push({
+        colaborador_id: id,
+        nome: c?.nome ?? "—",
+        categoria: "convocado_pendente",
+        turno_id: null,
+        turno_nome: null,
+        entrada: h.entrada,
+        saida: h.saida,
+        termina_no_dia_seguinte: h.termina_no_dia_seguinte,
+        carga_prevista_horas: h.carga_prevista_horas,
+        unidade_id: unidadeId,
+        cargo_id: c?.cargo_id ?? null,
+        cargo_nome: nomeCargo(c?.cargo_id ?? null),
+        socio: false,
+        origem: "convocacao",
+      });
+    }
+    return out;
+  };
+
+
   // ------------------------------------------------------------ gravação
   const persistir = async (): Promise<string | null> => {
     if (!podeSalvar || !unidadeId) {
@@ -537,7 +586,10 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       grupo_id: grupoId,
       colaboradores: destinatarios,
       expected_updated_at: expected!,
+      niveis: destinatarios.map((id) => ({ colaborador_id: id, nivel: niveis[id] ?? 1 })),
+      intervalo_niveis_horas: destinatarios.length > 1 ? intervaloNiveisHoras : null,
     });
+
     expected = dest?.updated_at ?? expected;
 
     // Override de horário por pessoa/dia (precedência máxima).
@@ -812,7 +864,53 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     })}
                   </div>
                 )}
+
+                {/* -------------------------------------------- prioridade */}
+                {destinatarios.length > 1 && (
+                  <div className="space-y-2 rounded-lg border border-border p-2.5">
+                    <Label className="text-xs">Ordem de preferência (opcional)</Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Nível 1 recebe primeiro. Depois do intervalo abaixo, o nível seguinte
+                      também passa a ver a convocação — os anteriores continuam valendo.
+                    </p>
+                    <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2">
+                      {destinatarios.map((id) => (
+                        <div key={id} className="flex items-center gap-2 text-xs">
+                          <span className="flex-1 truncate">{nomePessoa(id)}</span>
+                          <Select
+                            value={String(niveis[id] ?? 1)}
+                            onValueChange={(v) => setNiveis((p) => ({ ...p, [id]: Number(v) }))}
+                          >
+                            <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <SelectItem key={n} value={String(n)}>Nível {n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Label className="text-[11px]">Intervalo entre níveis (horas)</Label>
+                      <Input
+                        className="h-8 w-24"
+                        inputMode="numeric"
+                        placeholder="ex: 12"
+                        value={intervaloNiveisHoras == null ? "" : String(intervaloNiveisHoras)}
+                        onChange={(e) => {
+                          const n = Number(e.target.value.replace(/\D/g, ""));
+                          setIntervaloNiveisHoras(n > 0 ? Math.min(168, n) : null);
+                        }}
+                      />
+                      <span className="text-[11px] text-muted-foreground">
+                        Em branco, todos recebem ao mesmo tempo.
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
+
 
               {/* ------------------------------------------------ horário padrão */}
               <div className="space-y-2 rounded-xl border border-border p-3">
@@ -921,7 +1019,17 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     onRemover={removerDia}
                     onAbrirIndividuais={setDetalhe}
                     onAplicarATodos={aplicarATodos}
+                    renderSimulacao={(item) => (
+                      <DiaSimulacaoInline
+                        competencia={competencia}
+                        unidadeId={unidadeId}
+                        data={item.data}
+                        vagas={item.vagas}
+                        convocados={convocadosDoDia(cargoAtivo ?? "", item.data)}
+                      />
+                    )}
                   />
+
                 </div>
               )}
 
