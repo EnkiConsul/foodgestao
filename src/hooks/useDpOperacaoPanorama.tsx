@@ -58,6 +58,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         folgas,
         convocacoes,
         atestados,
+        registradas,
         escalas,
         unidades,
         cargos,
@@ -108,6 +109,14 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .eq("tipo", "atestado")
             .eq("status", "aprovada"),
           supabase
+            .from("dp_solicitacoes")
+            .select("colaborador_id, tipo, status, data_alvo, data_fim, motivo")
+            .eq("company_id", selectedCompanyId!)
+            .in("tipo", ["adiantamento", "outros"])
+            .eq("status", "aprovada")
+            .lte("data_alvo", fim)
+            .or(`data_fim.gte.${janelaInicio},data_fim.is.null`),
+          supabase
             .from("dp_escalas")
             .select("id, unidade_id, competencia, status")
             .eq("company_id", selectedCompanyId!)
@@ -136,6 +145,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         folgas,
         convocacoes,
         atestados,
+        registradas,
         escalas,
         unidades,
         cargos,
@@ -175,6 +185,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         folgas: folgas.data ?? [],
         convocacoes: convocacoes.data ?? [],
         atestados: atestados.data ?? [],
+        registradas: registradas.data ?? [],
         unidades: unidades.data ?? [],
         cargos: cargos.data ?? [],
         funcionamento: funcionamento.data ?? [],
