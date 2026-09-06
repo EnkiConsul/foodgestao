@@ -7,7 +7,7 @@ Hoje a tela de Trocas do administrador mostra "Colega aceita" e "Colega recusa",
 Por situação da troca:
 
 - **Aguardando colega**: nenhum botão de aceitar/recusar em nome do colega. Só um botão **Recusar troca**, que pede uma justificativa obrigatória e encerra a solicitação.
-- **Aguardando gestor**: continua com **Aprovar** e **Recusar** (recusa com justificativa obrigatória).
+- **Aguardando gestor**: **Aprovar** aparece somente quando as regras de folga da unidade exigem aprovação do gestor. Se a unidade está configurada para troca direta (só entre colaboradores), o gestor não aprova — vê apenas **Recusar troca** (justificativa obrigatória), com um aviso de que naquela unidade a troca se efetiva com o aceite do colega.
 - **Aprovada**: novo botão **Cancelar troca**, com justificativa obrigatória. Ao cancelar, a troca volta atrás: a folga criada para quem pediu é cancelada e a folga de quem cedeu o dia é restaurada.
 - **Recusada / Cancelada**: sem ações, apenas o histórico.
 
