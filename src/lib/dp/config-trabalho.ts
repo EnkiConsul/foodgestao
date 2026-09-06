@@ -28,6 +28,8 @@ export interface DiaConfig {
   entrada?: string | null;
   saida?: string | null;
   intervalo_minutos?: number | null;
+  /** Setor em que a pessoa normalmente atua neste dia. null = setor habitual. */
+  setor_id?: string | null;
 }
 
 export interface ConfigTrabalho {
@@ -62,8 +64,9 @@ export function normalizarDias(dias: DiaConfig[], folgaFixaDow?: number | null):
         entrada: atual.entrada ? String(atual.entrada).slice(0, 5) : null,
         saida: atual.saida ? String(atual.saida).slice(0, 5) : null,
         intervalo_minutos: atual.intervalo_minutos ?? null,
+        setor_id: atual.setor_id ?? null,
       }
-      : { dow, trabalha: true, turno_id: null, entrada: null, saida: null, intervalo_minutos: null };
+      : { dow, trabalha: true, turno_id: null, entrada: null, saida: null, intervalo_minutos: null, setor_id: null };
     if (folgaFixaDow != null && dow === folgaFixaDow) return { ...base, trabalha: false };
     return base;
   });
