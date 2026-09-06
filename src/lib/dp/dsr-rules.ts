@@ -687,13 +687,21 @@ export function avaliarConformidade(
       l.domingosNoPeriodo,
       { sexo: l.sexo, domingosMes: l.domingosMesOverride },
     );
+    // Piso legal do período: quinzenal para mulheres (Art. 386 CLT), padrão do
+    // setor para os demais. A regra da unidade não pode ficar abaixo dele.
+    const esperadoLegal = minimoLegalDomingos(l.domingosNoPeriodo, {
+      sexo: l.sexo,
+      setorComercio: cfg.setor_comercio !== false,
+    });
+    const esperadoClt = Math.max(esperado, esperadoLegal);
     const domingos = l.domingosFolgados.length;
     const negociados = porAcordo ? (l.diasNegociadosFolgados?.length ?? 0) : 0;
     // No modo acordo, os dias negociados só complementam o que faltar de domingo.
     const negociadosAproveitados = porAcordo
-      ? Math.max(0, Math.min(negociados, esperado - domingos))
+      ? Math.max(0, Math.min(negociados, esperadoClt - domingos))
       : 0;
     const folgasConsideradas = domingos + negociadosAproveitados;
+
     // Regra da empresa: vale qualquer dia de descanso do mês, inclusive o dia
     // fixo do cadastro de trabalho (que não gera registro de folga).
     const domingosEmpresa =
