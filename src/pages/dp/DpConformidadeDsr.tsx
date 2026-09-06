@@ -210,13 +210,29 @@ export default function DpConformidadeDsr() {
         .filter((c) => contratoPolicy(c.regime, c.vinculo_label).participaConformidadeDsr)
         .map((c) => {
           const cfg = configDaUnidade(c.unidade_id ?? null);
+          const elegiveis = new Set(diasElegiveisDaConfig(cfg));
           const negociados = new Set(diasElegiveisDaConfig(cfg).filter((d) => d !== 0));
-          const datas = Array.from(origens.get(c.id)?.keys() ?? []).sort();
+          const todas = Array.from(origens.get(c.id)?.keys() ?? []).sort();
+          const datas = todas.filter((d) => d >= inicio && d <= fim);
           const dowsDescanso = descansoSemanal.get(c.id) ?? [];
           const descansoSemanalNoMes = dowsDescanso.reduce(
             (acc, dow) => acc + diasDaSemanaDoMes(competencia, dow).length,
             0,
           );
+          const descansoSemanalElegivelNoMes = dowsDescanso
+            .filter((dow) => elegiveis.has(dow))
+            .reduce((acc, dow) => acc + diasDaSemanaDoMes(competencia, dow).length, 0);
+          // Último domingo de folga antes do mês analisado (inclui o descanso fixo).
+          const domingoFixo = dowsDescanso.includes(0);
+          const anteriores = todas.filter((d) => d < inicio && weekdayIso(d) === 0);
+          const ultimoDomingoFolgadoAnterior = domingoFixo
+            ? diasDaSemanaDoMes(competenciaAnterior, 0).slice(-1)[0] ?? null
+            : (anteriores.slice(-1)[0] ?? null);
+          const origemMes = new Map<string, "registrada" | "aprovada">();
+          for (const d of datas) {
+            const o = origens.get(c.id)?.get(d);
+            if (o) origemMes.set(d, o);
+          }
           return {
             colaboradorId: c.id,
             nome: c.nome,
@@ -224,7 +240,9 @@ export default function DpConformidadeDsr() {
             domingosMesOverride: c.domingos_folga_mes ?? null,
             unidadeId: c.unidade_id ?? null,
             cargoId: c.cargo_id ?? null,
-            domingosFolgados: datas.filter((d) => weekdayIso(d) === 0),
+            domingosFolgados: domingoFixo
+              ? domingos
+              : datas.filter((d) => weekdayIso(d) === 0),
             diasNegociadosFolgados: datas.filter(
               (d) => weekdayIso(d) !== 0 && negociados.has(weekdayIso(d)),
             ),
@@ -232,11 +250,15 @@ export default function DpConformidadeDsr() {
               (d) => weekdayIso(d) !== 0 && !negociados.has(weekdayIso(d)),
             ),
             descansoSemanalNoMes,
+            descansoSemanalElegivelNoMes,
             dowsDescanso,
-            origemPorData: origens.get(c.id) ?? new Map<string, "registrada" | "aprovada">(),
+            origemPorData: origemMes,
             domingosNoPeriodo: domingos.length,
+            domingosDoPeriodo: domingos,
+            ultimoDomingoFolgadoAnterior,
           };
         });
+
     },
   });
 
