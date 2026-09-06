@@ -84,6 +84,8 @@ const DpCadastroPendencias = lazyWithRetry(() => import("./pages/dp/cadastros/Dp
 const DpEscalas = lazyWithRetry(() => import("./pages/dp/DpEscalas"));
 const DpOperacaoPanorama = lazyWithRetry(() => import("./pages/dp/DpOperacaoPanorama"));
 const DpConvocacoes = lazyWithRetry(() => import("./pages/dp/DpConvocacoes"));
+const DpOcorrencias = lazyWithRetry(() => import("./pages/dp/DpOcorrencias"));
+
 const DpUnidades = lazyWithRetry(() => import("./pages/dp/DpUnidades"));
 const DpCargos = lazyWithRetry(() => import("./pages/dp/DpCargos"));
 const DpAvisos = lazyWithRetry(() => import("./pages/dp/DpAvisos"));
