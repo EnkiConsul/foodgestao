@@ -487,7 +487,7 @@ function DetalheDiaOperacao({
         )}
       </Secao>
 
-      </Secao>
+
 
 
       {foraDaOperacao.length > 0 && (
