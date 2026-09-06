@@ -59,9 +59,19 @@ interface DiaPlanejado {
   saida: string;
   vira: boolean;
   vagas: number;
-  /** Origem da janela: fixos do cargo, horário geral ou ajuste manual. */
-  origem: "sugerida" | "geral" | "manual";
+  /** Origem da janela: convocações anteriores, fixos do cargo, horário geral ou ajuste manual. */
+  origem: OrigemHorario;
+  /** Havia mais de um horário empatado na sugestão. */
+  ambiguo: boolean;
   expected_updated_at: string | null;
+}
+
+interface SugestaoCache {
+  entrada: string;
+  saida: string;
+  vira: boolean;
+  origem: OrigemHorario;
+  ambiguo: boolean;
 }
 
 interface HorarioOverride {
