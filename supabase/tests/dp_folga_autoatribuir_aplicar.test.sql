@@ -6,6 +6,8 @@
 --  3. Aplicar apenas parte da lista cria só as folgas confirmadas.
 --  4. Reaplicar o mesmo item não duplica (idempotente).
 --  5. Membro comum (viewer) não pode ver o plano nem aplicar.
+--  6. Intermitente, PJ, freelancer e quem não trabalha no domingo ficam fora do plano.
+--  7. Folga de sábado conta quando a unidade negocia sábado e a empresa não.
 --
 -- Roda em transação com ROLLBACK: nada é persistido.
 
@@ -104,6 +106,89 @@ BEGIN
   END IF;
   RAISE NOTICE 'OK 4: reaplicação idempotente';
 END $$;
+
+-- 6) Vínculos sem folga a cumprir e quem não trabalha no domingo ficam fora do plano
+INSERT INTO public.dp_colaboradores (id, company_id, unidade_id, nome, ativo, regime)
+VALUES
+  ('e3333333-3333-3333-3333-333333333333', 'c1111111-1111-1111-1111-111111111111',
+   'd1111111-1111-1111-1111-111111111111', 'Colaborador Intermitente', true, 'intermitente'),
+  ('e4444444-4444-4444-4444-444444444444', 'c1111111-1111-1111-1111-111111111111',
+   'd1111111-1111-1111-1111-111111111111', 'Colaborador PJ', true, 'pj'),
+  ('e5555555-5555-5555-5555-555555555555', 'c1111111-1111-1111-1111-111111111111',
+   'd1111111-1111-1111-1111-111111111111', 'Colaborador Freelancer', true, 'freelancer'),
+  ('e6666666-6666-6666-6666-666666666666', 'c1111111-1111-1111-1111-111111111111',
+   'd1111111-1111-1111-1111-111111111111', 'Colaborador Sem Domingo', true, 'clt');
+
+-- Quem não trabalha no domingo: configuração de trabalho vigente sem o domingo
+INSERT INTO public.dp_colaborador_config_trabalho (id, company_id, colaborador_id, unidade_id, vigencia_inicio)
+VALUES ('f6666666-6666-6666-6666-666666666666', 'c1111111-1111-1111-1111-111111111111',
+        'e6666666-6666-6666-6666-666666666666', 'd1111111-1111-1111-1111-111111111111',
+        date_trunc('month', now())::date);
+
+INSERT INTO public.dp_colaborador_config_dias (company_id, config_id, dow, trabalha)
+SELECT 'c1111111-1111-1111-1111-111111111111',
+       'f6666666-6666-6666-6666-666666666666', g, g <> 0
+  FROM generate_series(0, 6) AS g;
+
+DO $$
+DECLARE v jsonb;
+BEGIN
+  v := public.dp_folga_autoatribuicao_plano(
+        'c1111111-1111-1111-1111-111111111111'::uuid, NULL, date_trunc('month', now())::date);
+
+  IF EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v->'itens') i
+     WHERE (i->>'colaborador_id') IN (
+       'e3333333-3333-3333-3333-333333333333',
+       'e4444444-4444-4444-4444-444444444444',
+       'e5555555-5555-5555-5555-555555555555',
+       'e6666666-6666-6666-6666-666666666666')
+  ) THEN
+    RAISE EXCEPTION 'FALHA 6: vínculo sem folga a cumprir entrou no plano — %', v;
+  END IF;
+  RAISE NOTICE 'OK 6: intermitente, PJ, freelancer e quem não trabalha domingo fora do plano';
+END $$;
+
+-- 7) Folga de sábado conta quando a unidade negocia sábado e a empresa não
+INSERT INTO public.dp_config_dp (company_id, unidade_id, tipo_descanso_domingo,
+                                 dias_descanso_negociados, folgas_fds_por_mes)
+VALUES ('c1111111-1111-1111-1111-111111111111', 'd1111111-1111-1111-1111-111111111111',
+        'acordo_coletivo', ARRAY[0, 6], 1)
+ON CONFLICT (company_id, unidade_id) WHERE unidade_id IS NOT NULL DO UPDATE
+   SET tipo_descanso_domingo = 'acordo_coletivo',
+       dias_descanso_negociados = ARRAY[0, 6],
+       folgas_fds_por_mes = 1;
+
+INSERT INTO public.dp_colaboradores (id, company_id, unidade_id, nome, ativo, regime)
+VALUES ('e7777777-7777-7777-7777-777777777777', 'c1111111-1111-1111-1111-111111111111',
+        'd1111111-1111-1111-1111-111111111111', 'Colaborador Sabado', true, 'clt');
+
+INSERT INTO public.dp_folgas (company_id, colaborador_id, data, tipo, origem, status, extra)
+SELECT 'c1111111-1111-1111-1111-111111111111',
+       'e7777777-7777-7777-7777-777777777777', d::date, 'normal', 'admin_manual', 'agendada', false
+  FROM generate_series(date_trunc('month', now())::date,
+                       (date_trunc('month', now()) + interval '1 month - 1 day')::date,
+                       interval '1 day') AS d
+ WHERE EXTRACT(DOW FROM d)::int = 6
+ ORDER BY d
+ LIMIT 1;
+
+DO $$
+DECLARE v jsonb;
+BEGIN
+  v := public.dp_folga_autoatribuicao_plano(
+        'c1111111-1111-1111-1111-111111111111'::uuid, NULL, date_trunc('month', now())::date);
+
+  IF EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v->'itens') i
+     WHERE (i->>'colaborador_id') = 'e7777777-7777-7777-7777-777777777777'
+  ) THEN
+    RAISE EXCEPTION 'FALHA 7: folga de sábado da unidade não foi contada — %', v;
+  END IF;
+  RAISE NOTICE 'OK 7: folga de sábado conta pela regra da unidade';
+END $$;
+
+
 
 -- 5) Viewer bloqueado no plano e na aplicação
 SELECT set_config('request.jwt.claims',

@@ -134,8 +134,9 @@ export function itensAplicaveis(itens: PlanoItem[]): PlanoItem[] {
 export function resumoPlano(plano: PlanoAutoatribuicao): string {
   const aplicaveis = itensAplicaveis(plano.itens).length;
   if (plano.itens.length === 0) {
-    return "Todas as folgas deste mês já estão marcadas. Nada a criar.";
+    return "Todas as folgas deste mês já atendem à regra da unidade. Nada a criar.";
   }
+
   if (aplicaveis === 0) {
     return "Nenhuma das pessoas sem folga tem dia disponível neste mês.";
   }

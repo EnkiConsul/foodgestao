@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.dp_folga_exige_descanso_fds(uuid, uuid, integer[], date) FROM authenticated, anon, public;
+GRANT EXECUTE ON FUNCTION public.dp_folga_exige_descanso_fds(uuid, uuid, integer[], date) TO service_role;
