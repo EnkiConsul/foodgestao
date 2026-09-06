@@ -228,6 +228,12 @@ interface DetalheDiaProps {
   onVerSocios: () => void;
   onDispensar: (d: DiaPanorama) => void;
   onReativar: (d: DiaPanorama) => void;
+  /** Pessoas avulsas (teste/folguista) que cobrem este dia. */
+  avulsos: PessoaAvulsaPanorama[];
+  podeRegistrar: boolean;
+  onNovaAvulsa: (data: string) => void;
+  onEditarAvulsa: (registro: PessoaAvulsaPanorama) => void;
+  onExcluirAvulsa: (registro: PessoaAvulsaPanorama) => void;
 }
 
 /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
