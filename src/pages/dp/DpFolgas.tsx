@@ -1358,84 +1358,86 @@ export default function DpFolgas() {
 
 
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog
+        open={!!folgaGerenciar}
+        onOpenChange={(o) => {
+          if (!o) {
+            setFolgaGerenciar(null);
+            setRemarcarData("");
+            setCancelMotivo("");
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Nova solicitação de ausência</DialogTitle>
+            <DialogTitle>Gerenciar folga</DialogTitle>
             <DialogDescription>
-              Selecione o colaborador, o tipo e o intervalo de datas. A solicitação ficará pendente até aprovação.
+              {folgaGerenciar
+                ? `${folgaGerenciar.nome} — ${format(parseISO(folgaGerenciar.data), "dd/MM/yyyy")}`
+                : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3 py-2">
-            <div className="grid gap-1.5">
-              <Label>Colaborador *</Label>
-              <Select
-                value={form.colaborador_id}
-                onValueChange={(v) => setForm({ ...form, colaborador_id: v })}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {(colabs.data ?? []).filter((c) => c.ativo).map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                  {(colabs.data ?? []).filter((c) => c.ativo).length === 0 && (
-                    <div className="px-3 py-2 text-xs text-muted-foreground">
-                      Nenhum colaborador ativo. Cadastre em Colaboradores.
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Tipo *</Label>
-              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(TIPO_LABEL) as Tipo[]).map((t) => (
-                    <SelectItem key={t} value={t}>{TIPO_LABEL[t]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Data inicial *</Label>
+
+          <div className="space-y-5 py-2">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Remarcar para outro dia
+              </Label>
+              <div className="flex gap-2">
                 <Input
                   type="date"
-                  value={form.data_alvo}
-                  onChange={(e) => setForm({ ...form, data_alvo: e.target.value })}
+                  value={remarcarData}
+                  onChange={(e) => setRemarcarData(e.target.value)}
+                  className="h-11"
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Data final</Label>
-                <Input
-                  type="date"
-                  min={form.data_alvo || undefined}
-                  value={form.data_fim}
-                  onChange={(e) => setForm({ ...form, data_fim: e.target.value })}
-                />
+                <Button
+                  onClick={() =>
+                    folgaGerenciar &&
+                    remarcarFolga.mutate({ id: folgaGerenciar.id, data: remarcarData })
+                  }
+                  disabled={
+                    !folgaGerenciar ||
+                    !remarcarData ||
+                    remarcarData === folgaGerenciar.data ||
+                    remarcarFolga.isPending
+                  }
+                >
+                  {remarcarFolga.isPending ? "Salvando..." : "Remarcar"}
+                </Button>
               </div>
             </div>
-            <div className="grid gap-1.5">
-              <Label>Observações</Label>
+
+            <div className="space-y-2 border-t pt-4">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Cancelar esta folga
+              </Label>
               <Textarea
-                rows={3}
+                rows={2}
                 maxLength={500}
-                placeholder="Motivo, contexto ou observação (opcional)"
-                value={form.motivo}
-                onChange={(e) => setForm({ ...form, motivo: e.target.value })}
+                placeholder="Motivo do cancelamento (fica visível no histórico)"
+                value={cancelMotivo}
+                onChange={(e) => setCancelMotivo(e.target.value)}
               />
-              <div className="text-[10px] text-muted-foreground text-right">
-                {form.motivo.length}/500
-              </div>
+              <Button
+                variant="destructive"
+                onClick={() =>
+                  folgaGerenciar &&
+                  cancelarFolga.mutate({ id: folgaGerenciar.id, motivo: cancelMotivo.trim() })
+                }
+                disabled={!folgaGerenciar || cancelarFolga.isPending}
+              >
+                {cancelarFolga.isPending ? "Cancelando..." : "Cancelar folga"}
+              </Button>
             </div>
           </div>
+
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={create.isPending}>
-              Cancelar
-            </Button>
-            <Button onClick={() => create.mutate()} disabled={create.isPending}>
-              {create.isPending ? "Salvando..." : "Criar solicitação"}
+            <Button
+              variant="ghost"
+              onClick={() => setFolgaGerenciar(null)}
+              disabled={cancelarFolga.isPending || remarcarFolga.isPending}
+            >
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
