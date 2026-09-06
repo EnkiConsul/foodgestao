@@ -1,74 +1,75 @@
 import { Helmet } from "react-helmet-async";
-import { useState } from "react";
-import { format } from "date-fns";
-import { ArrowLeftRight, Ban, Calendar, User, MessageSquare, Check, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
+import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
-import { TextoExpansivel } from "@/components/dp/TextoExpansivel";
+import { TrocaCard } from "@/components/dp/TrocaCard";
+import { TrocaDetalheDialog } from "@/components/dp/TrocaDetalheDialog";
 import { useDpTrocas } from "@/hooks/useDpTrocas";
-import { acoesGestorTroca, textoDecisaoGestor } from "@/lib/dp/troca-acoes";
-import { cn } from "@/lib/utils";
+import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+import {
+  FILTROS_TROCA_PADRAO,
+  contarFiltrosAtivos,
+  type TrocaFiltros,
+} from "@/lib/dp/trocas-filtros";
 
-
-const statusMeta: Record<string, { label: string; className: string }> = {
-  pendente_colega: {
-    label: "Aguardando colega",
-    className: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40",
-  },
-  pendente_gestor: {
-    label: "Aguardando gestor",
-    className: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/40",
-  },
-  aprovada: {
-    label: "Aprovada",
-    className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40",
-  },
-  recusada: {
-    label: "Recusada",
-    className: "bg-destructive/15 text-destructive border-destructive/40",
-  },
-  cancelada: {
-    label: "Cancelada",
-    className: "bg-muted text-muted-foreground border-border",
-  },
-  expirada: {
-    label: "Expirada",
-    className: "bg-muted text-muted-foreground border-border",
-  },
-};
+const STATUS_OPCOES: { value: string; label: string }[] = [
+  { value: "todos", label: "Todos os status" },
+  { value: "pendente_colega", label: "Aguardando colega" },
+  { value: "pendente_gestor", label: "Aguardando gestor" },
+  { value: "aprovada", label: "Aprovadas" },
+  { value: "recusada", label: "Recusadas" },
+  { value: "cancelada", label: "Canceladas" },
+  { value: "expirada", label: "Expiradas" },
+];
 
 export default function DpTrocas() {
   const embedded = useDpEmbedded();
-  const [filtro, setFiltro] = useState<string>("todos");
+  const [filtros, setFiltros] = useState<TrocaFiltros>(FILTROS_TROCA_PADRAO);
   const [recusa, setRecusa] = useState<string | null>(null);
   const [cancelamento, setCancelamento] = useState<string | null>(null);
+  const [detalheId, setDetalheId] = useState<string | null>(null);
 
   const {
     rows,
+    total,
     isLoading,
     responder: responderMut,
     cancelar: cancelarMut,
-  } = useDpTrocas(filtro);
+  } = useDpTrocas(filtros);
 
-  const list = { isLoading };
-  const filtered = rows;
+  const { data: unidades = [] } = useDpUnidades();
+  const { data: cargos = [] } = useDpCargos();
 
-  const responder = {
-    isPending: responderMut.isPending,
-    mutate: (vars: { id: string; aceito: boolean; obs?: string }) =>
-      responderMut.mutate(vars, { onSuccess: () => setRecusa(null) }),
+  const set = <K extends keyof TrocaFiltros>(campo: K, valor: TrocaFiltros[K]) =>
+    setFiltros((f) => ({ ...f, [campo]: valor }));
+
+  const ativos = contarFiltrosAtivos(filtros);
+  const detalhe = useMemo(
+    () => rows.find((r) => r.id === detalheId) ?? null,
+    [rows, detalheId],
+  );
+
+  const aprovar = (id: string) => {
+    setDetalheId(null);
+    responderMut.mutate({ id, aceito: true });
   };
-
-  const cancelar = {
-    isPending: cancelarMut.isPending,
-    mutate: (vars: { id: string; motivo: string }) =>
-      cancelarMut.mutate(vars, { onSuccess: () => setCancelamento(null) }),
+  const abrirRecusa = (id: string) => {
+    setDetalheId(null);
+    setRecusa(id);
   };
-
-
-
+  const abrirCancelamento = (id: string) => {
+    setDetalheId(null);
+    setCancelamento(id);
+  };
 
   return (
     <DpPage>
@@ -79,136 +80,147 @@ export default function DpTrocas() {
         icon={ArrowLeftRight}
         title="Histórico de Trocas Inteligentes"
         description="Acompanhe as permutas temporárias entre colaboradores."
-        actions={
-          <div className="flex items-center gap-2">
-            <select
-              className="bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
-              value={filtro}
-              onChange={(e) => setFiltro(e.target.value)}
-            >
-              <option value="todos">Todos os Status</option>
-              <option value="pendente_colega">Aguardando colega</option>
-              <option value="pendente_gestor">Aguardando gestor</option>
-              <option value="aprovada">Aprovadas</option>
-              <option value="recusada">Recusadas</option>
-              <option value="cancelada">Canceladas</option>
-              <option value="expirada">Expiradas</option>
-            </select>
-          </div>
-        }
       />
 
-      <div className="grid gap-4">
-        {list.isLoading ? (
-          <div className="bg-card border border-border rounded-2xl p-12 text-center text-muted-foreground">
-            Carregando…
+      <DpFilters
+        search={{
+          value: filtros.busca,
+          onChange: (v) => set("busca", v),
+          placeholder: "Buscar por nome ou matrícula...",
+        }}
+        activeCount={ativos}
+        onClear={() => setFiltros(FILTROS_TROCA_PADRAO)}
+        columns={4}
+      >
+        <DpFilterField label="Unidade">
+          <Select value={filtros.unidadeId} onValueChange={(v) => set("unidadeId", v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as unidades</SelectItem>
+              {unidades.map((u) => (
+                <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+
+        <DpFilterField label="Cargo">
+          <Select value={filtros.cargoId} onValueChange={(v) => set("cargoId", v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os cargos</SelectItem>
+              {cargos.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+
+        <DpFilterField label="Situação">
+          <Select value={filtros.status} onValueChange={(v) => set("status", v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {STATUS_OPCOES.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+
+        <DpFilterField label="Período das folgas">
+          <Select
+            value={filtros.periodo}
+            onValueChange={(v) => set("periodo", v as TrocaFiltros["periodo"])}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Qualquer data</SelectItem>
+              <SelectItem value="mes_atual">Mês atual</SelectItem>
+              <SelectItem value="proximo_mes">Próximo mês</SelectItem>
+              <SelectItem value="personalizado">Período personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+
+        {filtros.periodo === "personalizado" && (
+          <>
+            <DpFilterField label="De">
+              <Input type="date" value={filtros.de} onChange={(e) => set("de", e.target.value)} />
+            </DpFilterField>
+            <DpFilterField label="Até">
+              <Input type="date" value={filtros.ate} onChange={(e) => set("ate", e.target.value)} />
+            </DpFilterField>
+          </>
+        )}
+
+        <DpFilterField label="Ordenar por">
+          <Select
+            value={filtros.ordem}
+            onValueChange={(v) => set("ordem", v as TrocaFiltros["ordem"])}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recentes">Mais recentes</SelectItem>
+              <SelectItem value="data_folga">Folga mais próxima</SelectItem>
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+
+        <DpFilterField label="Atalho">
+          <div className="flex h-10 items-center gap-2 rounded-md border border-input px-3">
+            <Switch
+              id="pendentes-gestor"
+              checked={filtros.pendentesGestor}
+              onCheckedChange={(v) => set("pendentesGestor", v)}
+            />
+            <Label htmlFor="pendentes-gestor" className="cursor-pointer text-sm font-normal">
+              Só aguardando minha decisão
+            </Label>
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="bg-card border border-border rounded-2xl p-12 text-center text-muted-foreground">
-            Nenhuma troca encontrada com este filtro.
-          </div>
-        ) : (
-          filtered.map((r) => {
-            const meta = statusMeta[r.status] ?? { label: r.status, className: "bg-muted text-muted-foreground border-border" };
-            const acoes = acoesGestorTroca(r.status, r.modo);
-            const decisao = textoDecisaoGestor(r.gestor_resposta);
-            return (
-              <div key={r.id} className="bg-card border border-border rounded-2xl p-4 sm:p-5 space-y-4 hover:shadow-md transition-shadow">
-                <div className="flex flex-col md:flex-row md:flex-wrap md:items-center md:justify-between gap-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 md:gap-8 flex-1 min-w-0">
-                    <div className="space-y-1 min-w-0">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-                        <User className="size-3" /> Solicitante
-                      </div>
-                      <div className="font-bold truncate">{r.solicitante?.nome ?? "—"}</div>
-                    </div>
+        </DpFilterField>
+      </DpFilters>
 
-                    <div className="space-y-1 min-w-0">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-                        <User className="size-3" /> Destinatário
-                      </div>
-                      <div className="font-bold truncate">{r.destino?.nome ?? "Aguardando..."}</div>
-                    </div>
-
-                    <div className="space-y-1 min-w-0">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-                        <Calendar className="size-3" /> Data da Troca
-                      </div>
-                      <div className="font-bold text-primary text-sm">
-                        {r.data_original ? format(new Date(r.data_original), "dd/MM/yyyy") : "—"}
-                        {r.data_proposta && (
-                          <span className="text-muted-foreground font-normal"> ↔ {format(new Date(r.data_proposta), "dd/MM/yyyy")}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between md:justify-end gap-3 md:gap-3 w-full md:w-auto">
-                    <div className="text-left md:text-right">
-                      <Badge className={cn("border", meta.className)}>{meta.label}</Badge>
-                      <div className="text-[10px] text-muted-foreground mt-1">
-                        Solicitada em {new Date(r.created_at).toLocaleDateString("pt-BR")}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {r.motivo && (
-                  <div className="bg-muted/30 p-3 rounded-xl border border-border/50 flex items-start gap-2">
-                    <MessageSquare className="size-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                    <div className="text-xs text-muted-foreground min-w-0">
-                      <span className="font-bold uppercase text-[9px] block mb-0.5">Motivo informado pelo colaborador:</span>
-                      <TextoExpansivel texto={r.motivo} />
-                    </div>
-                  </div>
-                )}
-
-
-                {(r.colega_resposta || decisao) && (
-                  <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                    {r.colega_resposta && <span><b>Colega:</b> {r.colega_resposta}</span>}
-                    {decisao && (
-                      <span>
-                        <b>Justificativa do gestor:</b> "{decisao}"
-                        {r.gestor_respondido_em && (
-                          <> — {format(new Date(r.gestor_respondido_em), "dd/MM/yyyy HH:mm")}</>
-                        )}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {(acoes.aprovar || acoes.recusar || acoes.cancelar) && (
-                  <div className="grid grid-cols-1 sm:flex sm:flex-wrap sm:items-center gap-2 pt-1">
-                    {acoes.aprovar && (
-                      <Button size="sm" className="min-h-11 w-full sm:w-auto" onClick={() => responder.mutate({ id: r.id, aceito: true })}>
-                        <Check className="h-4 w-4 mr-1" /> Aprovar troca
-                      </Button>
-                    )}
-                    {acoes.recusar && (
-                      <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setRecusa(r.id)}>
-                        <X className="h-4 w-4 mr-1" /> Recusar troca
-                      </Button>
-                    )}
-                    {acoes.cancelar && (
-                      <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setCancelamento(r.id)}>
-                        <Ban className="h-4 w-4 mr-1" /> Cancelar troca
-                      </Button>
-                    )}
-                    {r.status === "pendente_gestor" && !acoes.aprovar && (
-                      <span className="text-xs text-muted-foreground">
-                        Nesta unidade a troca é direta: vale o aceite do colega.
-                      </span>
-                    )}
-                  </div>
-                )}
-
-              </div>
-            );
-          })
+      <div className="flex items-center justify-between gap-2 px-1">
+        <span className="text-sm text-muted-foreground">
+          {isLoading ? "Carregando…" : `${rows.length} de ${total} troca${total === 1 ? "" : "s"}`}
+        </span>
+        {ativos > 0 && (
+          <Button variant="ghost" size="sm" onClick={() => setFiltros(FILTROS_TROCA_PADRAO)}>
+            Limpar filtros
+          </Button>
         )}
       </div>
 
+      <div className="grid gap-4">
+        {isLoading ? (
+          <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">
+            Carregando…
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">
+            Nenhuma troca encontrada com estes filtros.
+          </div>
+        ) : (
+          rows.map((r) => (
+            <TrocaCard
+              key={r.id}
+              troca={r}
+              onOpen={() => setDetalheId(r.id)}
+              onAprovar={() => aprovar(r.id)}
+              onRecusar={() => abrirRecusa(r.id)}
+              onCancelar={() => abrirCancelamento(r.id)}
+            />
+          ))
+        )}
+      </div>
+
+      <TrocaDetalheDialog
+        troca={detalhe}
+        onOpenChange={(v) => !v && setDetalheId(null)}
+        onAprovar={aprovar}
+        onRecusar={abrirRecusa}
+        onCancelar={abrirCancelamento}
+      />
 
       <RecusaDialog
         open={!!recusa}
@@ -216,8 +228,14 @@ export default function DpTrocas() {
         title="Recusar troca"
         description="Informe o motivo da recusa. Ele fica registrado e visível aos dois colaboradores envolvidos."
         motivoObrigatorio
-        loading={responder.isPending}
-        onConfirm={(motivo) => recusa && responder.mutate({ id: recusa, aceito: false, obs: motivo })}
+        loading={responderMut.isPending}
+        onConfirm={(motivo) =>
+          recusa &&
+          responderMut.mutate(
+            { id: recusa, aceito: false, obs: motivo },
+            { onSuccess: () => setRecusa(null) },
+          )
+        }
       />
 
       <RecusaDialog
@@ -226,10 +244,15 @@ export default function DpTrocas() {
         title="Cancelar troca aprovada"
         description="Informe o motivo do cancelamento. As folgas voltam ao estado anterior e os dois colaboradores são avisados."
         motivoObrigatorio
-        loading={cancelar.isPending}
-        onConfirm={(motivo) => cancelamento && cancelar.mutate({ id: cancelamento, motivo })}
+        loading={cancelarMut.isPending}
+        onConfirm={(motivo) =>
+          cancelamento &&
+          cancelarMut.mutate(
+            { id: cancelamento, motivo },
+            { onSuccess: () => setCancelamento(null) },
+          )
+        }
       />
-
     </DpPage>
   );
 }
