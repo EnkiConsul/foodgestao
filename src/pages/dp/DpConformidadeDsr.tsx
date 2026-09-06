@@ -486,11 +486,13 @@ export default function DpConformidadeDsr() {
                 <TableHead>Colaborador</TableHead>
                 <TableHead>Unidade</TableHead>
                 <TableHead>Cargo</TableHead>
+                <TableHead className="text-center">Folgas no mês</TableHead>
                 <TableHead className="text-center">Domingos no mês</TableHead>
-                <TableHead className="text-center">Folgados</TableHead>
+                <TableHead className="text-center">Domingos folgados</TableHead>
                 {porAcordo && <TableHead className="text-center">Dias negociados</TableHead>}
                 <TableHead className="text-center">Mínimo esperado</TableHead>
-                <TableHead className="text-center">Periodicidade</TableHead>
+                <TableHead className="text-center">Regra aplicada</TableHead>
+
                 <TableHead className="text-right">Situação</TableHead>
               </TableRow>
             </TableHeader>
