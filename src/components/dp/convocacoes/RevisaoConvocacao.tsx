@@ -138,7 +138,6 @@ export function RevisaoConvocacao(props: Props) {
       (p) => p.categoria === "fixo" || p.categoria === "convocado_aceito" || p.categoria === "convocado_pendente",
     );
     return simularDia(previstas, convocadosDoDia);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diaPanorama, convocadosDoDia]);
 
   const blocos = useMemo(
