@@ -570,12 +570,18 @@ export interface ConformidadeInput {
   domingosFolgados: string[];
   /** Folgas em dias negociados (exceto domingo) — só contam no modo acordo coletivo. */
   diasNegociadosFolgados?: string[];
-  /** Folgas em dias que não são domingo nem dia negociado (contam só na regra da empresa). */
+  /** Folgas em dias que não são domingo nem dia negociado (contam só como marcadas). */
   folgasOutrosDias?: string[];
-  /** Dias de descanso semanal fixos do cadastro ocorridos no mês (regra da empresa). */
+  /** Dias de descanso semanal fixos do cadastro ocorridos no mês (exibição). */
   descansoSemanalNoMes?: number;
+  /** Descansos fixos do cadastro que caem em dia elegível (regra da empresa). */
+  descansoSemanalElegivelNoMes?: number;
   /** Total de domingos existentes no período analisado. */
   domingosNoPeriodo: number;
+  /** Datas ISO de todos os domingos do período, em ordem. */
+  domingosDoPeriodo?: string[];
+  /** Último domingo folgado antes do período, para medir o intervalo na virada. */
+  ultimoDomingoFolgadoAnterior?: string | null;
   /**
    * Override individual de domingos de folga por mês, cadastrado no colaborador
    * quando o gênero informado não é feminino nem masculino. Quando presente,
@@ -583,6 +589,61 @@ export interface ConformidadeInput {
    */
   domingosMesOverride?: number | null;
 }
+
+export interface IntervaloDomingos {
+  /** Todos os intervalos respeitaram o máximo de domingos trabalhados seguidos. */
+  conforme: boolean;
+  /** Domingos trabalhados que romperam o intervalo exigido. */
+  domingosComIntervaloRompido: string[];
+  /** Maior sequência de domingos trabalhados seguidos no período. */
+  maiorSequenciaTrabalhada: number;
+}
+
+/**
+ * Avalia o espaçamento entre domingos de folga: com intervalo de N semanas,
+ * podem existir no máximo N-1 domingos trabalhados seguidos. O último domingo
+ * folgado antes do período entra na conta para não punir a virada de mês.
+ */
+export function avaliarIntervaloDomingos(
+  domingosFolgados: string[],
+  domingosDoPeriodo: string[],
+  intervaloSemanas: number,
+  ultimoDomingoFolgadoAnterior?: string | null,
+): IntervaloDomingos {
+  const maxSeguidos = Math.max(0, Math.floor(intervaloSemanas) - 1);
+  if (!intervaloSemanas || domingosDoPeriodo.length === 0) {
+    return { conforme: true, domingosComIntervaloRompido: [], maiorSequenciaTrabalhada: 0 };
+  }
+  const folgados = new Set(domingosFolgados);
+  const ordenados = [...domingosDoPeriodo].sort();
+  const rompidos: string[] = [];
+  // Domingos trabalhados entre a última folga dominical conhecida e o início do
+  // período entram na sequência, para a virada de mês não zerar a contagem.
+  let seq = 0;
+  if (ultimoDomingoFolgadoAnterior) {
+    const anterior = new Date(`${ultimoDomingoFolgadoAnterior}T00:00:00Z`);
+    const primeiro = new Date(`${ordenados[0]}T00:00:00Z`);
+    const dias = Math.round((primeiro.getTime() - anterior.getTime()) / 86_400_000);
+    seq = Math.max(0, Math.floor(dias / 7) - 1);
+  }
+  let maior = seq;
+  for (const dia of ordenados) {
+    if (folgados.has(dia)) {
+      seq = 0;
+      continue;
+    }
+    seq += 1;
+    maior = Math.max(maior, seq);
+    if (seq > maxSeguidos) rompidos.push(dia);
+  }
+
+  return {
+    conforme: rompidos.length === 0,
+    domingosComIntervaloRompido: rompidos,
+    maiorSequenciaTrabalhada: maior,
+  };
+}
+
 
 export interface ConformidadeLinha extends ConformidadeInput {
   periodicidadeAplicada: number;
@@ -604,14 +665,19 @@ export interface ConformidadeLinha extends ConformidadeInput {
   folgasMarcadas: number;
   /** Folgas em dias negociados aproveitadas por acordo coletivo. */
   negociadosAproveitados: number;
-  /** Exigência legal (folga em domingo, ou dia negociado no acordo coletivo). */
+  /** Intervalo máximo, em semanas, entre domingos de folga. */
+  intervaloDomingoExigido: number;
+  /** Domingos trabalhados que romperam esse intervalo. */
+  domingosComIntervaloRompido: string[];
+  /** Exigência legal: intervalo entre domingos + mínimo do período. */
   conformeClt: boolean;
-  /** Regra configurada da unidade, considerando qualquer dia de descanso. */
+  /** Regra configurada da unidade, considerando os dias de descanso elegíveis. */
   conformeEmpresa: boolean;
   /** Descansos considerados na leitura da empresa. */
   folgasEmpresa: number;
   /** Ambas as leituras em ordem. */
   conforme: boolean;
+
 }
 
 
@@ -698,19 +764,36 @@ export function avaliarConformidade(
     const esperadoClt = Math.max(esperado, esperadoLegal);
     const domingos = l.domingosFolgados.length;
     const negociados = porAcordo ? (l.diasNegociadosFolgados?.length ?? 0) : 0;
-    // No modo acordo, os dias negociados só complementam o que faltar de domingo.
+    // No modo acordo, os dias negociados substituem o domingo na contagem.
     const negociadosAproveitados = porAcordo
       ? Math.max(0, Math.min(negociados, esperadoClt - domingos))
       : 0;
     const folgasConsideradas = domingos + negociadosAproveitados;
 
-    // Regra da empresa: vale qualquer dia de descanso do mês, inclusive o dia
-    // fixo do cadastro de trabalho (que não gera registro de folga).
+    // Intervalo exigido entre domingos de folga: o mais protetivo entre a regra
+    // configurada e o padrão legal (quinzenal para mulheres). No acordo coletivo
+    // o dia negociado substitui o domingo, então o espaçamento não se aplica.
+    const intervaloLegal = l.sexo === "F"
+      ? PADRAO_LEGAL_DOMINGO_MULHER
+      : padraoLegalDomingo(cfg.setor_comercio !== false);
+    const intervaloDomingoExigido = pFinal > 0 ? Math.min(pFinal, intervaloLegal) : intervaloLegal;
+    const intervalo = porAcordo
+      ? { conforme: true, domingosComIntervaloRompido: [], maiorSequenciaTrabalhada: 0 }
+      : avaliarIntervaloDomingos(
+        l.domingosFolgados,
+        l.domingosDoPeriodo ?? [],
+        intervaloDomingoExigido,
+        l.ultimoDomingoFolgadoAnterior ?? null,
+      );
+
+    // Regra da empresa: só descansos que valem pela regra — domingo, dias
+    // negociados e o descanso fixo do cadastro quando cai num dia elegível.
     const domingosEmpresa =
       domingos
       + (l.diasNegociadosFolgados?.length ?? 0)
-      + (l.folgasOutrosDias?.length ?? 0)
-      + Math.max(0, l.descansoSemanalNoMes ?? 0);
+      + Math.max(0, l.descansoSemanalElegivelNoMes ?? l.descansoSemanalNoMes ?? 0);
+
+
 
     const override = overrideDomingosMes({ domingosMes: l.domingosMesOverride });
     const modoRotulo: ModoFrequencia = override !== null ? "por_mes" : modoAplicado;
@@ -742,13 +825,23 @@ export function avaliarConformidade(
         + (l.folgasOutrosDias?.length ?? 0),
 
       negociadosAproveitados,
-      // Leitura legal: só domingo (ou dia negociado, quando há acordo coletivo),
-      // com o piso legal do período.
-      conformeClt: folgasConsideradas >= esperadoClt,
-      // Leitura da empresa: qualquer descanso do mês, incluindo o dia fixo do cadastro.
+      intervaloDomingoExigido,
+      domingosComIntervaloRompido: intervalo.domingosComIntervaloRompido,
+      // Leitura legal: espaçamento entre domingos respeitado e mínimo do
+      // período atingido (no acordo coletivo, o dia negociado vale por domingo).
+      conformeClt:
+        intervalo.conforme
+        && folgasConsideradas >= esperadoLegal
+        && folgasConsideradas >= esperadoClt,
+      // Leitura da empresa: descansos em dias que valem pela regra da unidade.
       folgasEmpresa: domingosEmpresa,
       conformeEmpresa: domingosEmpresa >= esperado,
-      conforme: folgasConsideradas >= esperadoClt && domingosEmpresa >= esperado,
+      conforme:
+        intervalo.conforme
+        && folgasConsideradas >= esperadoClt
+        && domingosEmpresa >= esperado,
+
+
 
     };
 

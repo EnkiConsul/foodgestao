@@ -119,6 +119,14 @@ export default function DpConformidadeDsr() {
   const domingos = useMemo(() => diasDaSemanaDoMes(competencia, 0), [competencia]);
   const inicio = primeiroDiaDoMes(competencia);
   const fim = ultimoDiaDoMes(competencia);
+  /** Mês anterior, usado só para achar o último domingo folgado antes do período. */
+  const competenciaAnterior = useMemo(() => {
+    const [y, m] = competencia.split("-").map(Number);
+    const d = new Date(y, (m ?? 1) - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }, [competencia]);
+  const inicioAnterior = primeiroDiaDoMes(competenciaAnterior);
+
 
 
   /** Regra efetiva da unidade (exceção quando existir, senão padrão da empresa). */
@@ -141,11 +149,12 @@ export default function DpConformidadeDsr() {
         .order("nome");
       if (cErr) throw cErr;
 
+      // Busca desde o mês anterior para medir o intervalo na virada do mês.
       const { data: folgas, error: fErr } = await supabase
         .from("dp_folgas")
         .select("colaborador_id, data, status")
         .eq("company_id", selectedCompanyId!)
-        .gte("data", inicio)
+        .gte("data", inicioAnterior)
         .lte("data", fim);
       if (fErr) throw fErr;
 
@@ -157,9 +166,10 @@ export default function DpConformidadeDsr() {
         .eq("tipo", "folga")
         .eq("status", "aprovada")
         .not("data_alvo", "is", null)
-        .gte("data_alvo", inicio)
+        .gte("data_alvo", inicioAnterior)
         .lte("data_alvo", fim);
       if (aErr) throw aErr;
+
 
       // Dias fixos de descanso semanal do cadastro de trabalho vigente.
       const { data: configDias, error: dErr } = await supabase
@@ -200,13 +210,29 @@ export default function DpConformidadeDsr() {
         .filter((c) => contratoPolicy(c.regime, c.vinculo_label).participaConformidadeDsr)
         .map((c) => {
           const cfg = configDaUnidade(c.unidade_id ?? null);
+          const elegiveis = new Set(diasElegiveisDaConfig(cfg));
           const negociados = new Set(diasElegiveisDaConfig(cfg).filter((d) => d !== 0));
-          const datas = Array.from(origens.get(c.id)?.keys() ?? []).sort();
+          const todas = Array.from(origens.get(c.id)?.keys() ?? []).sort();
+          const datas = todas.filter((d) => d >= inicio && d <= fim);
           const dowsDescanso = descansoSemanal.get(c.id) ?? [];
           const descansoSemanalNoMes = dowsDescanso.reduce(
             (acc, dow) => acc + diasDaSemanaDoMes(competencia, dow).length,
             0,
           );
+          const descansoSemanalElegivelNoMes = dowsDescanso
+            .filter((dow) => elegiveis.has(dow))
+            .reduce((acc, dow) => acc + diasDaSemanaDoMes(competencia, dow).length, 0);
+          // Último domingo de folga antes do mês analisado (inclui o descanso fixo).
+          const domingoFixo = dowsDescanso.includes(0);
+          const anteriores = todas.filter((d) => d < inicio && weekdayIso(d) === 0);
+          const ultimoDomingoFolgadoAnterior = domingoFixo
+            ? diasDaSemanaDoMes(competenciaAnterior, 0).slice(-1)[0] ?? null
+            : (anteriores.slice(-1)[0] ?? null);
+          const origemMes = new Map<string, "registrada" | "aprovada">();
+          for (const d of datas) {
+            const o = origens.get(c.id)?.get(d);
+            if (o) origemMes.set(d, o);
+          }
           return {
             colaboradorId: c.id,
             nome: c.nome,
@@ -214,7 +240,9 @@ export default function DpConformidadeDsr() {
             domingosMesOverride: c.domingos_folga_mes ?? null,
             unidadeId: c.unidade_id ?? null,
             cargoId: c.cargo_id ?? null,
-            domingosFolgados: datas.filter((d) => weekdayIso(d) === 0),
+            domingosFolgados: domingoFixo
+              ? domingos
+              : datas.filter((d) => weekdayIso(d) === 0),
             diasNegociadosFolgados: datas.filter(
               (d) => weekdayIso(d) !== 0 && negociados.has(weekdayIso(d)),
             ),
@@ -222,11 +250,15 @@ export default function DpConformidadeDsr() {
               (d) => weekdayIso(d) !== 0 && !negociados.has(weekdayIso(d)),
             ),
             descansoSemanalNoMes,
+            descansoSemanalElegivelNoMes,
             dowsDescanso,
-            origemPorData: origens.get(c.id) ?? new Map<string, "registrada" | "aprovada">(),
+            origemPorData: origemMes,
             domingosNoPeriodo: domingos.length,
+            domingosDoPeriodo: domingos,
+            ultimoDomingoFolgadoAnterior,
           };
         });
+
     },
   });
 
@@ -279,14 +311,8 @@ export default function DpConformidadeDsr() {
     colaborador: {
       label: "Colaborador", sortKey: "nome",
       value: (l) => l.nome,
-      render: (l) => (
-        <span className="font-medium">
-          {l.nome}
-          {l.sexo === "F" && (
-            <span className="ml-2 text-xs text-muted-foreground">(Art. 386 CLT)</span>
-          )}
-        </span>
-      ),
+      render: (l) => <span className="font-medium">{l.nome}</span>,
+
     },
     unidade: {
       label: "Unidade", sortKey: "unidade", center: true,
@@ -437,6 +463,7 @@ export default function DpConformidadeDsr() {
       "Domingos folgados", "Folgas em dias de descanso negociados", "Folgas consideradas (CLT)",
       "Descansos considerados (empresa)", "Regra aplicada", "Mínimo da regra",
       "Mínimo legal", "Mínimo exigido (CLT)",
+      "Intervalo exigido entre domingos (semanas)", "Domingos fora do intervalo",
       "Situação CLT", "Situação regra da empresa",
     ];
     const rowsCsv = linhasFiltradas.map((l) => [
@@ -454,9 +481,12 @@ export default function DpConformidadeDsr() {
       String(l.esperado),
       String(l.esperadoLegal),
       String(l.esperadoClt),
+      String(l.intervaloDomingoExigido),
+      l.domingosComIntervaloRompido.map(diaMesIso).join(" ") || "—",
       l.conformeClt ? "Em ordem" : "Em falta",
       l.conformeEmpresa ? "Em ordem" : "Em falta",
     ]);
+
 
 
 
@@ -698,7 +728,19 @@ export default function DpConformidadeDsr() {
                       <p className="text-muted-foreground">Folgas consideradas</p>
                       <p className="font-semibold tabular-nums">{detalhe.folgasConsideradas}</p>
                     </div>
+                    <div>
+                      <p className="text-muted-foreground">Intervalo entre domingos</p>
+                      <p className="font-semibold tabular-nums">
+                        1 a cada {detalhe.intervaloDomingoExigido} semanas
+                      </p>
+                    </div>
                   </div>
+                  {detalhe.domingosComIntervaloRompido.length > 0 && (
+                    <p className="mt-2 text-xs text-destructive">
+                      Ficou mais de {detalhe.intervaloDomingoExigido - 1} domingo(s) seguidos
+                      trabalhando: {detalhe.domingosComIntervaloRompido.map(diaMesIso).join(", ")}.
+                    </p>
+                  )}
                   {detalhe.esperadoClt > detalhe.esperado && (
                     <p className="mt-2 text-xs text-muted-foreground">
                       A regra cadastrada pede {detalhe.esperado}, mas o mínimo legal do mês é{" "}
@@ -708,6 +750,7 @@ export default function DpConformidadeDsr() {
                         : " pelo padrão legal do setor."}
                     </p>
                   )}
+
                   {detalheInfo.acordo && (
                     <p className="mt-2 text-xs text-muted-foreground">
                       Por acordo coletivo, os dias de descanso combinados
@@ -741,9 +784,10 @@ export default function DpConformidadeDsr() {
 
                   <p className="mt-2 text-xs text-muted-foreground">
                     {detalheInfo.descansoLabel
-                      ? `Inclui o descanso fixo do cadastro de trabalho (${detalheInfo.descansoLabel}), que não gera registro de folga.`
-                      : "Sem descanso fixo no cadastro de trabalho; conta só as folgas marcadas."}
+                      ? `Inclui o descanso fixo do cadastro de trabalho (${detalheInfo.descansoLabel}) quando cai num dia de descanso da regra; folgas em outros dias não contam.`
+                      : "Sem descanso fixo no cadastro de trabalho; conta só as folgas em dias de descanso da regra."}
                   </p>
+
                 </div>
 
                 <div>

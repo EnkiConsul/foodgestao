@@ -5,6 +5,7 @@ import {
   alertasDeCiencia,
   domingosEsperados,
   avaliarConformidade,
+  avaliarIntervaloDomingos,
   PADRAO_LEGAL_DOMINGO_MULHER,
   frequenciaParaSemanas,
   semanasDaConfig,
@@ -464,5 +465,88 @@ describe("avaliarConformidade — leitura CLT x leitura da empresa", () => {
     );
     expect(l.conformeClt).toBe(false);
     expect(l.conformeEmpresa).toBe(false);
+  });
+});
+
+describe("avaliarIntervaloDomingos — espaçamento entre domingos", () => {
+  const domingosSet = ["2025-09-07", "2025-09-14", "2025-09-21", "2025-09-28"];
+
+  it("aceita um domingo a cada duas semanas", () => {
+    const r = avaliarIntervaloDomingos(["2025-09-07", "2025-09-21"], domingosSet, 2);
+    expect(r.conforme).toBe(true);
+    expect(r.maiorSequenciaTrabalhada).toBe(1);
+  });
+
+  it("acusa dois domingos seguidos trabalhados na regra quinzenal", () => {
+    const r = avaliarIntervaloDomingos(["2025-09-07"], domingosSet, 2);
+    expect(r.conforme).toBe(false);
+    expect(r.domingosComIntervaloRompido).toEqual(["2025-09-21", "2025-09-28"]);
+  });
+
+  it("dois domingos no mesmo par de semanas não cobre o resto do mês", () => {
+    const r = avaliarIntervaloDomingos(["2025-09-07", "2025-09-14"], domingosSet, 2);
+    expect(r.conforme).toBe(false);
+    expect(r.domingosComIntervaloRompido).toEqual(["2025-09-28"]);
+  });
+
+  it("considera os domingos trabalhados antes do mês na virada", () => {
+    const r = avaliarIntervaloDomingos(
+      ["2025-09-14"],
+      domingosSet,
+      2,
+      "2025-08-17",
+    );
+    expect(r.domingosComIntervaloRompido).toContain("2025-09-07");
+  });
+
+  it("sem exigência de intervalo nada é acusado", () => {
+    const r = avaliarIntervaloDomingos([], domingosSet, 0);
+    expect(r.conforme).toBe(true);
+  });
+});
+
+describe("avaliarConformidade — intervalo entre domingos", () => {
+  const cfgLegal = {
+    tipo_descanso_domingo: "legal" as const,
+    setor_comercio: true,
+    modo_frequencia_domingo: "por_mes" as const,
+    periodicidade_domingo: 3,
+    periodicidade_domingo_mulher: 2,
+    domingos_por_mes: 2,
+    modo_frequencia_domingo_mulher: "por_mes" as const,
+    domingos_por_mes_mulher: 2,
+  };
+
+  it("mulher com dois domingos seguidos folgados fica em falta pelo espaçamento", () => {
+    const [l] = avaliarConformidade(
+      [{
+        colaboradorId: "1",
+        nome: "Rosângela",
+        sexo: "F",
+        domingosFolgados: ["2025-09-07", "2025-09-14"],
+        domingosNoPeriodo: 4,
+        domingosDoPeriodo: ["2025-09-07", "2025-09-14", "2025-09-21", "2025-09-28"],
+      }],
+      cfgLegal,
+    );
+    expect(l.intervaloDomingoExigido).toBe(2);
+    expect(l.domingosComIntervaloRompido).toEqual(["2025-09-28"]);
+    expect(l.conformeClt).toBe(false);
+  });
+
+  it("mulher com domingos alternados fica em ordem", () => {
+    const [l] = avaliarConformidade(
+      [{
+        colaboradorId: "2",
+        nome: "Sara",
+        sexo: "F",
+        domingosFolgados: ["2025-09-07", "2025-09-21"],
+        domingosNoPeriodo: 4,
+        domingosDoPeriodo: ["2025-09-07", "2025-09-14", "2025-09-21", "2025-09-28"],
+      }],
+      cfgLegal,
+    );
+    expect(l.conformeClt).toBe(true);
+    expect(l.domingosComIntervaloRompido).toEqual([]);
   });
 });
