@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/contexts/CompanyContext";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 
 export type PessoaApoioTipo = "teste" | "folguista";
 
@@ -29,7 +29,7 @@ const COLS =
 
 /** Banco de folguistas e pessoas em teste reaproveitáveis na rotina do dia. */
 export function useDpPessoasApoio(opts?: { apenasAtivos?: boolean }) {
-  const { selectedCompanyId } = useCompany();
+  const { selectedCompanyId } = useCompanyContext();
   return useQuery({
     queryKey: ["dp_pessoas_apoio", selectedCompanyId, opts?.apenasAtivos ?? false],
     enabled: !!selectedCompanyId,
@@ -48,7 +48,7 @@ export function useDpPessoasApoio(opts?: { apenasAtivos?: boolean }) {
 }
 
 export function useSalvarDpPessoaApoio() {
-  const { selectedCompanyId } = useCompany();
+  const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: PessoaApoioInput): Promise<string> => {
