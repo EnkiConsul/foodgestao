@@ -107,6 +107,15 @@ export default function DpOcorrencias() {
     [colaboradores],
   );
 
+  // O colaborador vindo do atalho pode estar inativo: garantimos que ele
+  // apareça selecionado no filtro mesmo assim.
+  const opcoesColaborador = useMemo(() => {
+    const alvo = filtros.colaboradorId;
+    if (alvo === "all" || colaboradoresAtivos.some((c) => c.id === alvo)) return colaboradoresAtivos;
+    const extra = colaboradores.find((c) => c.id === alvo);
+    return extra ? [{ id: extra.id, nome: `${extra.nome} (inativo)` }, ...colaboradoresAtivos] : colaboradoresAtivos;
+  }, [colaboradoresAtivos, colaboradores, filtros.colaboradorId]);
+
   const opcoesSubstituto = useMemo<SubstitutoOpcao[]>(
     () => [
       ...pessoasApoio
