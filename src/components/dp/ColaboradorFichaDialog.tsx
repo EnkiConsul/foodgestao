@@ -39,6 +39,8 @@ import {
   User, Briefcase, Mail, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil, X, Users, Award,
 } from "lucide-react";
 import { maskCpf } from "@/lib/cpf";
+import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
+
 
 const fmtDate = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 const fmtCurrency = (v?: number | null) =>
