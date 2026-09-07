@@ -288,7 +288,7 @@ export function useAplicarFicha() {
             config_id: configId,
             dow: d.dow,
             trabalha: d.trabalha,
-            turno_id: null,
+            turno_id: d.trabalha ? turnoId ?? null : null,
             entrada: d.trabalha ? d.entrada : null,
             saida: d.trabalha ? d.saida : null,
             intervalo_minutos: d.trabalha ? d.intervalo_minutos ?? 0 : null,
