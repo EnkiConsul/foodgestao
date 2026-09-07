@@ -597,7 +597,7 @@ function DetalheDiaOperacao({
         <Secao title="Fora da Operação" description="Folgas, férias e afastamentos do dia">
           <ul className="divide-y">
             {foraDaOperacao.map((p) => (
-              <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
                 <span className="truncate text-sm">{p.nome}</span>
                 <div className="flex shrink-0 items-center gap-1.5">
                   {tagSocio(p) && (
@@ -852,7 +852,11 @@ export default function DpOperacaoPanorama() {
   // Sócios ausentes seguem visíveis nas listas (com a tag "Folga sócio"),
   // mesmo não somando nos números dos cards de folga/férias.
   const pessoasDaCategoria = detalheCategoria
-    ? (diaAtivo?.pessoas ?? []).filter((p) => p.categoria === detalheCategoria)
+    ? (diaAtivo?.pessoas ?? [])
+        .filter((p) => p.categoria === detalheCategoria)
+        // Ocorrências derivadas (atraso/saída antecipada) podem repetir a mesma
+        // pessoa na categoria: mantemos apenas a primeira entrada dela.
+        .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
     : [];
   const sociosDoDialogo = sociosDe(diaAtivo);
   const avulsosDoDiaAtivo = detalheAvulso
@@ -1268,7 +1272,7 @@ export default function DpOperacaoPanorama() {
           </DialogHeader>
           <ul className="max-h-[60vh] divide-y overflow-y-auto">
             {sociosDoDialogo.map((p) => (
-              <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
                 <span className="truncate text-sm">{p.nome}</span>
                 <Badge variant="outline">{p.categoria === "ferias" ? "Férias" : "Folga"}</Badge>
               </li>
@@ -1288,7 +1292,7 @@ export default function DpOperacaoPanorama() {
           </DialogHeader>
           <ul className="max-h-[60vh] divide-y overflow-y-auto">
             {pessoasDaCategoria.map((p) => (
-              <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
                 <span className="truncate text-sm">{p.nome}</span>
                 <div className="flex shrink-0 items-center gap-1.5">
                   {tagSocio(p) && (
@@ -1313,7 +1317,7 @@ export default function DpOperacaoPanorama() {
           </DialogHeader>
           <ul className="max-h-[60vh] divide-y overflow-y-auto">
             {avulsosDoDiaAtivo.map((p) => (
-              <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
                 <div className="min-w-0">
                   <span className="block truncate text-sm">{p.nome}</span>
                   <span className="block text-xs text-muted-foreground">

@@ -73,9 +73,16 @@ export default function DpOcorrencias() {
   const embedded = useDpEmbedded();
   const [searchParams] = useSearchParams();
   const colaboradorParam = searchParams.get("colaborador");
+  const dataParam = searchParams.get("data");
   const [filtros, setFiltros] = useState<OcorrenciaFiltros>(
-    colaboradorParam
-      ? { ...FILTROS_PADRAO, colaboradorId: colaboradorParam, periodo: "mes", somentePendentes: false }
+    colaboradorParam || dataParam
+      ? {
+          ...FILTROS_PADRAO,
+          colaboradorId: colaboradorParam ?? "all",
+          data: dataParam ?? null,
+          periodo: "mes",
+          somentePendentes: false,
+        }
       : FILTROS_PADRAO,
   );
   const [novaOpen, setNovaOpen] = useState(false);
@@ -107,6 +114,15 @@ export default function DpOcorrencias() {
     [colaboradores],
   );
 
+  // O colaborador vindo do atalho pode estar inativo: garantimos que ele
+  // apareça selecionado no filtro mesmo assim.
+  const opcoesColaborador = useMemo(() => {
+    const alvo = filtros.colaboradorId;
+    if (alvo === "all" || colaboradoresAtivos.some((c) => c.id === alvo)) return colaboradoresAtivos;
+    const extra = colaboradores.find((c) => c.id === alvo);
+    return extra ? [{ id: extra.id, nome: `${extra.nome} (inativo)` }, ...colaboradoresAtivos] : colaboradoresAtivos;
+  }, [colaboradoresAtivos, colaboradores, filtros.colaboradorId]);
+
   const opcoesSubstituto = useMemo<SubstitutoOpcao[]>(
     () => [
       ...pessoasApoio
@@ -135,7 +151,11 @@ export default function DpOcorrencias() {
       "tratativa",
       "cobertura",
     ];
-    return chaves.filter((k) => filtros[k] !== "all").length + (filtros.somentePendentes ? 1 : 0);
+    return (
+      chaves.filter((k) => filtros[k] !== "all").length +
+      (filtros.somentePendentes ? 1 : 0) +
+      (filtros.data ? 1 : 0)
+    );
   }, [filtros]);
 
 
@@ -186,15 +206,25 @@ export default function DpOcorrencias() {
         ))}
       </div>
 
-      <Tabs value={filtros.periodo} onValueChange={(v) => set("periodo", v as OcorrenciaPeriodo)}>
-        <TabsList>
-          {PERIODOS.map((p) => (
-            <TabsTrigger key={p.value} value={p.value}>
-              {p.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      {filtros.data ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Mostrando apenas o dia</span>
+          <span className="font-medium">{filtros.data.split("-").reverse().join("/")}</span>
+          <Button size="sm" variant="ghost" onClick={() => set("data", null)}>
+            Ver o período todo
+          </Button>
+        </div>
+      ) : (
+        <Tabs value={filtros.periodo} onValueChange={(v) => set("periodo", v as OcorrenciaPeriodo)}>
+          <TabsList>
+            {PERIODOS.map((p) => (
+              <TabsTrigger key={p.value} value={p.value}>
+                {p.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      )}
 
       <DpFilters
         search={{
@@ -213,7 +243,7 @@ export default function DpOcorrencias() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {colaboradoresAtivos.map((c) => (
+              {opcoesColaborador.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.nome}
                 </SelectItem>
