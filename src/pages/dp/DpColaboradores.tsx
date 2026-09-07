@@ -32,6 +32,8 @@ import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpSalvarLargurasButton } from "@/components/dp/DpSalvarLargurasButton";
+import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
+
 
 import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
