@@ -55,6 +55,7 @@ export function OcorrenciaCard({
   onAnalisar,
   onCancelar,
   onCobrir,
+  onHistorico,
   onImpacto,
 }: Props) {
   const validas = coberturas.filter((c) => c.status !== "recusada");
