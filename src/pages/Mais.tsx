@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { useDpMenuLayout } from "@/hooks/useDpMenuLayout";
 import { useHiddenScreens } from "@/hooks/useHiddenScreens";
 import { filterMoreGroups } from "@/lib/nav/hiddenScreens";
+import { searchNavItems } from "@/lib/nav/navSearch";
+
 import {
   orderLeavesByLayout,
   orderSubgroupsByLayout,
@@ -82,10 +84,11 @@ export default function Mais() {
   const q = norm(query.trim());
   const isSearching = q.length > 0;
 
-  const searchResults = useMemo(() => {
-    if (!isSearching) return [];
-    return allItems.filter((it) => norm(it.label).includes(q));
-  }, [allItems, q, isSearching]);
+  const searchResults = useMemo(
+    () => (isSearching ? searchNavItems(config.moreGroups, query) : []),
+    [config.moreGroups, query, isSearching],
+  );
+
 
   const handleToggleFav = (to: string, label: string) => {
     const res = toggle(to);
@@ -117,7 +120,12 @@ export default function Mais() {
             <div className="flex flex-col items-center justify-center py-16 text-center gap-2 text-muted-foreground">
               <SearchX className="h-8 w-8" />
               <p className="text-sm">Nenhum item encontrado</p>
+              <p className="text-[11px] max-w-[16rem]">
+                Tente outra palavra — a busca também entende termos do dia a dia,
+                como "funcionário", "vale" ou "atestado".
+              </p>
             </div>
+
           )
         ) : (
           <>
