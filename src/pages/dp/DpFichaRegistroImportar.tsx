@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { DpPage } from "@/components/dp/DpPage";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FichaRevisaoCard } from "@/components/dp/ficha-registro/FichaRevisaoCard";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -59,17 +59,20 @@ export default function DpFichaRegistroImportar() {
   };
 
   return (
-    <DpPage
-      title="Importar ficha de registro"
-      description="Envie a ficha de registro em PDF e confira os dados antes de gerar o cadastro."
-      actions={
-        <Button variant="outline" size="sm" className="h-10 rounded-full" asChild>
-          <Link to="/dp/colaboradores">
-            <ArrowLeft className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Colaboradores</span>
-          </Link>
-        </Button>
-      }
-    >
+    <DpPage>
+      <DpPageHeader
+        icon={FileText}
+        title="Importar ficha de registro"
+        description="Envie a ficha de registro em PDF e confira os dados antes de gerar o cadastro."
+        actions={
+          <Button variant="outline" size="sm" className="h-10 rounded-full" asChild>
+            <Link to="/dp/colaboradores">
+              <ArrowLeft className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Colaboradores</span>
+            </Link>
+          </Button>
+        }
+      />
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Enviar ficha em PDF</CardTitle>
