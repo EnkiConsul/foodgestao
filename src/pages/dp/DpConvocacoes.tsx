@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
-  BellRing, CalendarClock, CheckCircle2, ClipboardCheck, Clock, History, Pencil, Plus,
+  BellRing, CalendarClock, CalendarDays, CheckCircle2, ClipboardCheck, Clock, History, Pencil, Plus,
   Settings2, Users, CalendarRange,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
