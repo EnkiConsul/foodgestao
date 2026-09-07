@@ -31,7 +31,7 @@ O que confirmei nos seus dois arquivos:
 ## Etapas
 
 ### Etapa 1 — Ler a ficha e criar o cadastro
-- Botão **Importar ficha de registro** na tela de Colaboradores e na central de importação.
+- Botão próprio **Importar ficha de registro** no topo da tela de Colaboradores, ao lado de "Novo colaborador" — é a porta de entrada da funcionalidade (a central de importação de documentos continua só para contracheques e afins; o motor de leitura é reaproveitado por baixo).
 - Envio do PDF, separação automática das fichas (páginas de continuação seguem com a pessoa anterior).
 - Leitura por IA página a página, devolvendo cada campo com nível de confiança (Identificado / Revisar / Não encontrado).
 - Lista do resultado: pronto para importar · revisar · já cadastrado (CPF) · com erro.
