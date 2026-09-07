@@ -746,6 +746,7 @@ export default function DpFolgas() {
 
   const statCards = [
     { label: "FOLGAS MARCADAS", value: stats.marcadas, icon: CheckCircle2, tone: "text-emerald-600" },
+    { label: "RESERVAS", value: stats.reservas, icon: Users, tone: "text-amber-600" },
     { label: "VAGAS RESTANTES", value: stats.restantes, icon: Users, tone: "text-blue-600" },
     { label: "DIAS LOTADOS", value: stats.lotados, icon: AlertTriangle, tone: "text-red-600" },
     { label: "CAPACIDADE TOTAL", value: stats.capacidade, icon: CalendarIcon, tone: "text-primary" },
