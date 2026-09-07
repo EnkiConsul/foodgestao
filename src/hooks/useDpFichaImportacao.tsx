@@ -178,6 +178,11 @@ export interface AplicarFichaInput {
   dados: FichaDadosEditaveis;
   cargoId: string | null;
   unidadeId: string | null;
+  /** Setor escolhido na conferência (a ficha não traz setor). */
+  setorId?: string | null;
+  /** Vínculo escolhido na conferência (clt, intermitente, pj…). */
+  regime?: string | null;
+
   /** Quando o CPF já existe: atualizar o cadastro em vez de criar outro. */
   atualizarExistente: boolean;
   /** Grava também a configuração de jornada sugerida. */
@@ -203,6 +208,8 @@ export function useAplicarFicha() {
       dados,
       cargoId,
       unidadeId,
+      setorId,
+      regime,
       atualizarExistente,
       jornada,
       turnoId,
@@ -222,15 +229,21 @@ export function useAplicarFicha() {
         cpf,
         cargo_id: cargoId,
         unidade_id: unidadeId,
+        setor_id: setorId ?? null,
+        regime: (regime ?? null) as never,
         origem_cadastro: "ficha_importacao",
         ficha_importacao_item_id: item.id,
       };
+
 
       let colaboradorId: string;
       if (atualizarExistente && item.colaborador_existente_id) {
         // Atualiza só o que veio preenchido (e o que foi escolhido na comparação),
         // para nunca apagar dados já cadastrados.
-        const sempre = new Set(["ficha_importacao_item_id", "cargo_id", "unidade_id"]);
+        const sempre = new Set([
+          "ficha_importacao_item_id", "cargo_id", "unidade_id", "setor_id", "regime",
+        ]);
+
         const limpo = Object.fromEntries(
           Object.entries(payload).filter(([k, v]) => {
             if (k === "company_id" || k === "origem_cadastro") return false;

@@ -32,6 +32,8 @@ import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpSalvarLargurasButton } from "@/components/dp/DpSalvarLargurasButton";
+import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
+
 
 import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
@@ -95,6 +97,8 @@ export default function DpColaboradores() {
   const [cargoFilter, setCargoFilter] = useState<string>("all");
   const [perfilFilter, setPerfilFilter] = useState<string>("all");
   const [setorFilter, setSetorFilter] = useState<string>("all");
+  const [incompletosFilter, setIncompletosFilter] = useState(false);
+
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewing, setViewing] = useState<DpColaborador | null>(null);
@@ -155,7 +159,12 @@ export default function DpColaboradores() {
         if (setorFilter !== "all" && setorFilter !== "__sem__" && (c as any).setor_id !== setorFilter) return false;
         if (statusFilter === "ativos" && !c.ativo) return false;
         if (statusFilter === "desligados" && c.ativo) return false;
+        if (incompletosFilter) {
+          const usaSetores = (list.data ?? []).some((x) => (x as any).setor_id);
+          if (camposFaltando(c as never, { exigirSetor: usaSetores }).length === 0) return false;
+        }
         return true;
+
       })
       .sort((a, b) => {
         const perfilDestaca = (p: string | null) => p === "admin" || p === "gestor";
@@ -169,7 +178,7 @@ export default function DpColaboradores() {
         }
         return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
       });
-  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter]);
+  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter, incompletosFilter]);
 
   /** Setor só aparece quando a empresa já usa setores. */
   const setoresEmUso = useMemo(() => {
@@ -182,6 +191,11 @@ export default function DpColaboradores() {
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   }, [list.data]);
   const mostrarSetor = setoresEmUso.length > 0;
+
+  /** Campos essenciais ainda em branco no cadastro (setor só conta se a empresa usa setores). */
+  const faltantesDe = (c: DpColaborador) =>
+    camposFaltando(c as never, { exigirSetor: mostrarSetor });
+
 
   // ---------- Colunas em formato de planilha (ordem, largura, ordenação e filtros) ----------
   const {
@@ -221,9 +235,19 @@ export default function DpColaboradores() {
               <Badge variant="outline" className="h-4 px-1 text-[10px] uppercase border-primary/30 text-primary bg-primary/5">
                 {vinculoLabel(c as any)}
               </Badge>
+              {c.ativo && faltantesDe(c).length > 0 && (
+                <Badge
+                  variant="outline"
+                  className="h-4 px-1 text-[10px] border-amber-500/40 text-amber-600 dark:text-amber-400"
+                  title={`Falta: ${resumoFaltando(faltantesDe(c), 9)}`}
+                >
+                  Cadastro incompleto ({faltantesDe(c).length})
+                </Badge>
+              )}
               {folha && <Badge variant="outline" className="h-4 px-1 text-[10px]">Ponto</Badge>}
               {adiantamento && <Badge variant="outline" className="h-4 px-1 text-[10px]">Adiantamento</Badge>}
             </div>
+
           </>
         );
       },
@@ -474,7 +498,20 @@ export default function DpColaboradores() {
             </SelectContent>
           </Select>
         </DpFilterField>
+        <DpFilterField label="Cadastro">
+          <Select
+            value={incompletosFilter ? "incompletos" : "all"}
+            onValueChange={(v) => setIncompletosFilter(v === "incompletos")}
+          >
+            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="incompletos">Só cadastros incompletos</SelectItem>
+            </SelectContent>
+          </Select>
+        </DpFilterField>
       </DpFilters>
+
 
       <DpContentCard contentClassName="hidden md:block">
           {list.isLoading ? (

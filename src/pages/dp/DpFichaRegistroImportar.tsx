@@ -8,15 +8,32 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FichaRevisaoCard } from "@/components/dp/ficha-registro/FichaRevisaoCard";
+import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpSetores } from "@/hooks/useDpSetores";
+import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   useDpFichaImportacoes, useDpFichaItens, useEnviarFichaPdf,
 } from "@/hooks/useDpFichaImportacao";
+
+/** Vínculos do cadastro (enum dp_regime_trabalho) — igual ao card de conferência. */
+const REGIMES: Array<{ value: string; label: string }> = [
+  { value: "clt", label: "CLT efetivo" },
+  { value: "intermitente", label: "CLT intermitente" },
+  { value: "estagio", label: "Estagiário" },
+  { value: "temporario", label: "Temporário" },
+  { value: "pj", label: "PJ / Sócio" },
+  { value: "mei", label: "MEI" },
+  { value: "freelancer", label: "Freelancer (sem registro)" },
+];
+
 
 export default function DpFichaRegistroImportar() {
   const { selectedCompanyId } = useCompanyContext();
@@ -54,7 +71,24 @@ export default function DpFichaRegistroImportar() {
       return (data?.cnpj as string | null) ?? null;
     },
   });
+  const { setores: setoresEmpresa } = useDpSetores();
+  const setoresAtivos = useMemo(
+    () => setoresEmpresa
+      .filter((s) => s.ativo !== false)
+      .map((s) => ({ id: s.id, nome: s.nome, unidade_id: s.unidade_id })),
+    [setoresEmpresa],
+  );
 
+  // Setor e vínculo aplicados a todas as fichas (cargo, unidade e horário seguem ficha por ficha).
+  const [setorPadraoId, setSetorPadraoId] = useState<string | null>(null);
+  const [regimePadrao, setRegimePadrao] = useState<string | null>(null);
+
+  const { data: colaboradores = [] } = useDpColaboradores();
+  const [cadastroAbertoId, setCadastroAbertoId] = useState<string | null>(null);
+  const colaboradorAberto = useMemo(
+    () => colaboradores.find((c) => c.id === cadastroAbertoId) ?? null,
+    [colaboradores, cadastroAbertoId],
+  );
 
   useEffect(() => {
     if (!importacaoId && importacoes[0]) setImportacaoId(importacoes[0].id);
@@ -62,6 +96,7 @@ export default function DpFichaRegistroImportar() {
 
   const pendentes = itens.filter((i) => ["pendente", "revisar", "duplicado"].includes(i.status));
   const prontos = itens.filter((i) => ["criado", "atualizado"].includes(i.status));
+
 
   const enviarArquivo = () => {
     if (!file) return;
@@ -155,6 +190,50 @@ export default function DpFichaRegistroImportar() {
       {pendentes.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold">Conferir e cadastrar ({pendentes.length})</h2>
+
+          <Card className="bg-muted/20">
+            <CardContent className="grid gap-3 p-4 sm:grid-cols-2">
+              <div className="space-y-1 sm:col-span-2">
+                <p className="text-sm font-medium">Aplicar a todas as fichas</p>
+                <p className="text-xs text-muted-foreground">
+                  Vale para as fichas em que você não escolher outro valor. Cargo, unidade e horário continuam ficha por ficha.
+                </p>
+              </div>
+              {setoresAtivos.length > 0 && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Setor</Label>
+                  <Select
+                    value={setorPadraoId ?? "__none"}
+                    onValueChange={(v) => setSetorPadraoId(v === "__none" ? null : v)}
+                  >
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Não aplicar</SelectItem>
+                      {setoresAtivos.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-1">
+                <Label className="text-xs">Vínculo</Label>
+                <Select
+                  value={regimePadrao ?? "__none"}
+                  onValueChange={(v) => setRegimePadrao(v === "__none" ? null : v)}
+                >
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">Não aplicar</SelectItem>
+                    {REGIMES.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
           {pendentes.map((item) => (
             <FichaRevisaoCard
               key={item.id}
@@ -162,8 +241,12 @@ export default function DpFichaRegistroImportar() {
               cargos={cargos.map((c) => ({ id: c.id, nome: c.nome, cbo: c.cbo }))}
               turnos={turnos}
               unidades={unidadesDaEmpresa}
+              setores={setoresAtivos}
               unidadePadraoId={unidadesDaEmpresa[0]?.id ?? null}
               empresaCnpj={empresaCnpj}
+              setorPadraoId={setorPadraoId}
+              regimePadrao={regimePadrao}
+              onAbrirCadastro={setCadastroAbertoId}
             />
           ))}
         </div>
@@ -179,11 +262,21 @@ export default function DpFichaRegistroImportar() {
               cargos={cargos.map((c) => ({ id: c.id, nome: c.nome, cbo: c.cbo }))}
               turnos={turnos}
               unidades={unidadesDaEmpresa}
+              setores={setoresAtivos}
               unidadePadraoId={null}
               empresaCnpj={empresaCnpj}
+              onAbrirCadastro={setCadastroAbertoId}
             />
           ))}
         </div>
+      )}
+
+      {colaboradorAberto && (
+        <ColaboradorFormDialog
+          open={!!colaboradorAberto}
+          onOpenChange={(o) => !o && setCadastroAbertoId(null)}
+          colaborador={colaboradorAberto}
+        />
       )}
 
       {atual && !processando && itens.length === 0 && atual.status !== "failed" && (
@@ -197,6 +290,7 @@ export default function DpFichaRegistroImportar() {
           </p>
         )
       )}
+
     </DpPage>
   );
 }

@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Check, FileText, Loader2, Plus, UserCheck, X } from "lucide-react";
+import {
+  AlertTriangle, Check, ChevronDown, ChevronUp, FileText, Loader2, Plus, UserCheck, UserCog, X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,11 +16,14 @@ import { matchCargo } from "@/lib/dp/ficha-registro/cargo-match";
 import { matchTurno, type TurnoCadastrado } from "@/lib/dp/ficha-registro/turno-match";
 import { formatCnpj, matchUnidade } from "@/lib/dp/ficha-registro/unidade-match";
 import { CONFIANCA_LABEL, nivelDoCampo, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
+import { montarPayloadFicha } from "@/lib/dp/ficha-registro/payload";
+import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { CargoCorrespondenciaDialog } from "./CargoCorrespondenciaDialog";
 import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
 import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
+
 
 
 const DOW_LABEL = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -30,16 +35,44 @@ const NIVEL_CLASS: Record<NivelConfianca, string> = {
   ausente: "border-muted text-muted-foreground",
 };
 
+/** Vínculos disponíveis no cadastro (enum dp_regime_trabalho). */
+const REGIMES: Array<{ value: string; label: string }> = [
+  { value: "clt", label: "CLT efetivo" },
+  { value: "intermitente", label: "CLT intermitente" },
+  { value: "estagio", label: "Estagiário" },
+  { value: "temporario", label: "Temporário" },
+  { value: "pj", label: "PJ / Sócio" },
+  { value: "mei", label: "MEI" },
+  { value: "freelancer", label: "Freelancer (sem registro)" },
+];
+
+const ESTADOS_CIVIS: Array<{ value: string; label: string }> = [
+  { value: "solteiro", label: "Solteiro(a)" },
+  { value: "casado", label: "Casado(a)" },
+  { value: "uniao_estavel", label: "União estável" },
+  { value: "divorciado", label: "Divorciado(a)" },
+  { value: "viuvo", label: "Viúvo(a)" },
+];
+
 interface Props {
   item: FichaItem;
   cargos: Array<{ id: string; nome: string; cbo?: string | null }>;
   unidades: Array<{ id: string; nome: string; cnpj?: string | null }>;
+  setores?: Array<{ id: string; nome: string; unidade_id: string | null }>;
   turnos?: TurnoCadastrado[];
   unidadePadraoId: string | null;
   empresaCnpj?: string | null;
+  /** Setor e vínculo definidos na barra "aplicar a todas as fichas". */
+  setorPadraoId?: string | null;
+  regimePadrao?: string | null;
+  /** Abre o cadastro completo do colaborador criado por esta ficha. */
+  onAbrirCadastro?: (colaboradorId: string) => void;
 }
 
-export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadePadraoId, empresaCnpj }: Props) {
+export function FichaRevisaoCard({
+  item, cargos, unidades, setores = [], turnos = [], unidadePadraoId, empresaCnpj,
+  setorPadraoId = null, regimePadrao = null, onAbrirCadastro,
+}: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
 
@@ -53,6 +86,11 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
   const [unidadeId, setUnidadeId] = useState<string | null>(
     unidadeSugerida.unidade_id ?? unidadePadraoId ?? unidades[0]?.id ?? null,
   );
+  const [setorEscolhido, setSetorEscolhido] = useState<string | null>(null);
+  const [regimeEscolhido, setRegimeEscolhido] = useState<string | null>(null);
+  const setorId = setorEscolhido ?? setorPadraoId ?? null;
+  const regime = regimeEscolhido ?? regimePadrao ?? null;
+  const [completarAberto, setCompletarAberto] = useState(false);
   const [usarJornada, setUsarJornada] = useState(true);
   const [atualizar, setAtualizar] = useState(!!item.colaborador_existente_id);
   const [anexarFicha, setAnexarFicha] = useState(true);
@@ -60,9 +98,14 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
   const [cargoDialog, setCargoDialog] = useState(false);
   const [comparacao, setComparacao] = useState(false);
   const [confirmouEmpresa, setConfirmouEmpresa] = useState(false);
+  const [whatsappEditado, setWhatsappEditado] = useState(false);
   const empresaDivergente = unidadeSugerida.empresaConfere === "nao";
   const bloqueadoPorEmpresa = empresaDivergente && !confirmouEmpresa;
 
+  const setoresDaUnidade = useMemo(
+    () => (unidadeId ? setores.filter((s) => !s.unidade_id || s.unidade_id === unidadeId) : setores),
+    [setores, unidadeId],
+  );
 
   const jornada = useMemo(() => jornadaDaFicha(dados), [dados]);
   const turnoSugerido = useMemo(() => matchTurno(jornada, turnos, unidadeId), [jornada, turnos, unidadeId]);
@@ -74,6 +117,16 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
   const aplicado = item.status === "criado" || item.status === "atualizado";
   const ignorado = item.status === "ignorado";
 
+  /** O que continuará em branco no cadastro depois de aplicar esta ficha. */
+  const faltando = useMemo(() => {
+    const base = montarPayloadFicha(dados);
+    return camposFaltando(
+      { ...base, setor_id: setorId, regime },
+      { exigirSetor: setores.length > 0 },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dados, setorId, regime, setores.length]);
+
   const executar = (camposPermitidos: string[] | null) =>
     aplicar.mutate(
       {
@@ -81,6 +134,8 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
         dados,
         cargoId,
         unidadeId,
+        setorId,
+        regime,
         atualizarExistente: atualizar && !!item.colaborador_existente_id,
         jornada: usarJornada ? jornada : null,
         turnoId: usarJornada ? turnoEscolhido : null,
@@ -96,9 +151,32 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
       },
     );
 
+  const set = (campo: string, valor: string) =>
+    setDados((d) => {
+      // O WhatsApp acompanha o telefone até alguém digitar um número diferente.
+      if (campo === "telefone" && !whatsappEditado) return { ...d, telefone: valor, whatsapp: valor };
+      return { ...d, [campo]: valor };
+    });
 
+  const endereco = (dados.endereco ?? {}) as Record<string, unknown>;
+  const setEndereco = (parte: string, valor: string) =>
+    setDados((d) => ({
+      ...d,
+      endereco: { ...((d.endereco ?? {}) as Record<string, unknown>), [parte]: valor },
+    }));
 
-  const set = (campo: string, valor: string) => setDados((d) => ({ ...d, [campo]: valor }));
+  const campoEndereco = (label: string, parte: string, className?: string) => (
+    <div className={cn("space-y-1", className)}>
+      <Label className="text-xs">{label}</Label>
+      <Input
+        className="h-9"
+        value={typeof endereco[parte] === "string" ? String(endereco[parte]) : ""}
+        onChange={(e) => setEndereco(parte, e.target.value)}
+        disabled={aplicado || ignorado}
+      />
+    </div>
+  );
+
 
   const campo = (label: string, nome: string, tipo: "text" | "date" = "text") => {
     const valor = dados[nome];
@@ -168,6 +246,26 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
           {campo("Admissão", "data_admissao", "date")}
           {campo("Salário", "salario")}
           {campo("Telefone", "telefone")}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs">WhatsApp</Label>
+              {!whatsappEditado && !!dados.whatsapp && (
+                <Badge variant="outline" className="h-4 px-1 text-[10px] font-normal text-muted-foreground">
+                  igual ao telefone
+                </Badge>
+              )}
+            </div>
+            <Input
+              className="h-9"
+              value={typeof dados.whatsapp === "string" ? dados.whatsapp : ""}
+              onChange={(e) => {
+                setWhatsappEditado(true);
+                setDados((d) => ({ ...d, whatsapp: e.target.value }));
+              }}
+              disabled={aplicado || ignorado}
+            />
+          </div>
+
           {campo("Nome da mãe", "nome_mae")}
           {campo("RG", "rg_numero")}
           {campo("CTPS", "ctps_numero")}
@@ -237,6 +335,103 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
 
           </div>
         )}
+
+        {!aplicado && (
+          <div className="rounded-lg border bg-muted/20">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 p-3 text-left"
+              onClick={() => setCompletarAberto((v) => !v)}
+            >
+              <span className="text-sm font-medium">Completar cadastro</span>
+              <span className="flex items-center gap-2">
+                {faltando.length > 0 ? (
+                  <Badge variant="outline" className="border-amber-500/50 text-[11px] text-amber-600 dark:text-amber-400">
+                    {faltando.length} campo(s) em branco
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-emerald-500/50 text-[11px] text-emerald-600 dark:text-emerald-400">
+                    completo
+                  </Badge>
+                )}
+                {completarAberto ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </span>
+            </button>
+
+            {completarAberto && (
+              <div className="space-y-3 border-t p-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {setores.length > 0 && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Setor</Label>
+                      <Select
+                        value={setorId ?? "__none"}
+                        onValueChange={(v) => setSetorEscolhido(v === "__none" ? null : v)}
+                      >
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none">Sem setor</SelectItem>
+                          {setoresDaUnidade.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Vínculo</Label>
+                    <Select
+                      value={regime ?? "__none"}
+                      onValueChange={(v) => setRegimeEscolhido(v === "__none" ? null : v)}
+                    >
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Não informado</SelectItem>
+                        {REGIMES.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Estado civil</Label>
+                    <Select
+                      value={(dados.estado_civil as string) || "__none"}
+                      onValueChange={(v) => set("estado_civil", v === "__none" ? "" : v)}
+                    >
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Não informado</SelectItem>
+                        {ESTADOS_CIVIS.map((e) => (
+                          <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {campo("E-mail", "email")}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                  {campoEndereco("Rua", "logradouro", "lg:col-span-3")}
+                  {campoEndereco("Número", "numero")}
+                  {campoEndereco("Bairro", "bairro", "lg:col-span-2")}
+                  {campoEndereco("Cidade", "cidade", "lg:col-span-3")}
+                  {campoEndereco("UF", "uf")}
+                  {campoEndereco("CEP", "cep", "lg:col-span-2")}
+                </div>
+
+                <p className="text-[11px] text-muted-foreground">
+                  Benefícios, dados bancários e jornada detalhada continuam no cadastro completo do colaborador.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+
 
         {!jornada.vazia && (
           <div className="rounded-lg border bg-muted/30 p-3">
@@ -337,7 +532,22 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
           </pre>
         )}
 
+        {!aplicado && faltando.length > 0 && (
+          <p className="text-[11px] text-amber-600 dark:text-amber-400">
+            Vai ficar em falta: {resumoFaltando(faltando)}. Nada impede o cadastro — dá para completar depois.
+          </p>
+        )}
+
+        {aplicado && item.colaborador_id && onAbrirCadastro && (
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => onAbrirCadastro(item.colaborador_id!)}>
+              <UserCog className="mr-1 h-4 w-4" /> Abrir cadastro completo
+            </Button>
+          </div>
+        )}
+
         {!aplicado && (
+
           <div className="flex flex-wrap justify-end gap-2">
             <Button
               variant="ghost"

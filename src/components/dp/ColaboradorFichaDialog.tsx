@@ -39,6 +39,8 @@ import {
   User, Briefcase, Mail, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil, X, Users, Award,
 } from "lucide-react";
 import { maskCpf } from "@/lib/cpf";
+import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
+
 
 const fmtDate = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 const fmtCurrency = (v?: number | null) =>
@@ -120,6 +122,13 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
     (colaborador as any)?.cargo_id ?? null,
     (colaborador as any)?.unidade_id ?? null,
   );
+
+  /** Campos essenciais em branco — aviso no topo da ficha. */
+  const faltandoFicha = useMemo(
+    () => (colaborador && colaborador.ativo ? camposFaltando(colaborador as never) : []),
+    [colaborador],
+  );
+
 
   const perfil = (colaborador as any)?.perfil_acesso as string | null;
   const isDesligado = !!colaborador?.data_desligamento;
@@ -345,7 +354,25 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6 pt-4">
+          {faltandoFicha.length > 0 && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Cadastro incompleto</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Falta preencher: {resumoFaltando(faltandoFicha, 9)}.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 h-8"
+                onClick={() => { onOpenChange(false); onEdit(); }}
+              >
+                Completar cadastro
+              </Button>
+            </div>
+          )}
+
           {/* Identificação */}
+
           <Section icon={User} title="Identificação">
             <Field label="CPF" value={colaborador?.cpf ? maskCpf(colaborador.cpf) : "—"} />
             <Field label="Matrícula" value={colaborador?.matricula} />

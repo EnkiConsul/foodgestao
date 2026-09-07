@@ -4,8 +4,10 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, FileCheck2, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap } from "lucide-react";
+import { ClipboardList, FileCheck2, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap, UserCog } from "lucide-react";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
+import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
+
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
 
 export type Pendencia = {
@@ -726,6 +728,38 @@ export function useDpPendencias() {
       } catch (e) {
         console.warn("pendencias/documentos:", e);
       }
+
+      // 14. Cadastro de colaborador incompleto (campos essenciais em branco)
+      try {
+        const { data: colabs } = await supabase
+          .from("dp_colaboradores")
+          .select(
+            "id, nome, setor_id, telefone, whatsapp, email_contato, endereco, data_nascimento, estado_civil, regime, pis_nit, salario_base",
+          )
+          .eq("company_id", selectedCompanyId!)
+          .eq("ativo", true);
+
+        const lista = (colabs ?? []) as any[];
+        const usaSetores = lista.some((c) => c.setor_id);
+        for (const c of lista) {
+          const faltando = camposFaltando(c, { exigirSetor: usaSetores });
+          if (faltando.length === 0) continue;
+          results.push({
+            id: `cadastro-incompleto-${c.id}`,
+            icon: UserCog,
+            titulo: `Completar cadastro de ${c.nome}`,
+            subtitulo: `Falta: ${resumoFaltando(faltando, 4)}`,
+            tipo: "Cadastro",
+            vencimento: null,
+            atrasoDias: 0,
+            url: `/dp/colaboradores?editar=${c.id}&aba=dados`,
+          });
+        }
+      } catch (e) {
+        console.warn("pendencias/cadastro-incompleto:", e);
+      }
+
+
 
 
       // Ordenar: mais atrasado primeiro; empate → vencimento mais próximo

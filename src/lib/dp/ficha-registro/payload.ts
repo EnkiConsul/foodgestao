@@ -45,7 +45,10 @@ export const CAMPOS_FICHA: Array<{ coluna: string; label: string }> = [
   { coluna: "data_admissao", label: "Admissão" },
   { coluna: "sexo", label: "Gênero" },
   { coluna: "telefone", label: "Telefone" },
+  { coluna: "whatsapp", label: "WhatsApp" },
   { coluna: "email_contato", label: "E-mail" },
+  { coluna: "estado_civil", label: "Estado civil" },
+
   { coluna: "cargo", label: "Cargo (texto da ficha)" },
   { coluna: "salario_base", label: "Salário" },
   { coluna: "rg_numero", label: "RG" },
@@ -70,7 +73,15 @@ export const CAMPOS_FICHA: Array<{ coluna: string; label: string }> = [
   { coluna: "deficiencia", label: "Deficiência" },
 ];
 
+/** Endereço da ficha; null quando nada foi lido nem preenchido (não apaga o cadastro). */
+function enderecoOuNulo(v: unknown): Record<string, unknown> | null {
+  const e = montarEndereco((v ?? {}) as Record<string, unknown>);
+  const algum = Object.values(e).some((x) => !!x && String(x).trim() !== "");
+  return algum ? (e as unknown as Record<string, unknown>) : null;
+}
+
 /** Monta o conjunto de colunas do cadastro a partir dos dados revisados da ficha. */
+
 export function montarPayloadFicha(dados: Record<string, unknown>): Record<string, unknown> {
   return {
     nome: txt(dados.nome),
@@ -80,8 +91,11 @@ export function montarPayloadFicha(dados: Record<string, unknown>): Record<strin
     data_admissao: dataIso(dados.data_admissao),
     sexo: sexoNorm(dados.sexo),
     telefone: txt(dados.telefone),
-    email_contato: txt(dados.email),
-    endereco: montarEndereco((dados.endereco ?? {}) as Record<string, unknown>),
+    whatsapp: txt(dados.whatsapp),
+    email_contato: txt(dados.email ?? dados.email_contato),
+    estado_civil: txt(dados.estado_civil),
+    endereco: enderecoOuNulo(dados.endereco),
+
     cargo: txt(dados.cargo_nome),
     salario_base: num(dados.salario),
     rg_numero: txt(dados.rg_numero),
