@@ -523,18 +523,6 @@ export default function DpColaboradores() {
             </SelectContent>
           </Select>
         </DpFilterField>
-        <DpFilterField label="Cadastro">
-          <Select
-            value={incompletosFilter ? "incompletos" : "all"}
-            onValueChange={(v) => setIncompletosFilter(v === "incompletos")}
-          >
-            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="incompletos">Só cadastros incompletos</SelectItem>
-            </SelectContent>
-          </Select>
-        </DpFilterField>
       </DpFilters>
 
 
