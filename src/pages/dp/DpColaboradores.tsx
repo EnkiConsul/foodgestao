@@ -33,6 +33,7 @@ import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpSalvarLargurasButton } from "@/components/dp/DpSalvarLargurasButton";
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
+import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 
 
 import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
@@ -144,9 +145,18 @@ export default function DpColaboradores() {
   }, [list.data]);
   const mostrarSetor = setoresEmUso.length > 0;
 
+  /**
+   * Salário de referência do cargo na unidade: intermitente/horista (e quem
+   * herda o piso do cargo) não deve acender "incompleto" por falta de salário.
+   */
+  const salarioCargoDe = useDpSalarioCargoResolver();
+
   /** Campos OBRIGATÓRIOS ainda em branco (selo, aba e filtro de incompletos olham só estes). */
   const faltantesDe = (c: DpColaborador) =>
-    camposFaltandoObrigatorios(c as never, { exigirSetor: mostrarSetor });
+    camposFaltandoObrigatorios(c as never, {
+      exigirSetor: mostrarSetor,
+      salarioCargo: salarioCargoDe(c.cargo_id, c.unidade_id),
+    });
 
   const counts = useMemo(() => {
     const all = list.data ?? [];
@@ -179,7 +189,7 @@ export default function DpColaboradores() {
         if (statusFilter === "desligados" && c.ativo) return false;
         if (statusFilter === "incompletos" && (!c.ativo || faltantesDe(c).length === 0)) return false;
         if (incompletosFilter) {
-          if (camposFaltandoObrigatorios(c as never, { exigirSetor: mostrarSetor }).length === 0) return false;
+          if (faltantesDe(c).length === 0) return false;
         }
         return true;
 
