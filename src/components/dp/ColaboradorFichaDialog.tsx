@@ -1,3 +1,4 @@
+import { DOCUMENTOS_PESSOAIS } from "@/lib/dp/documentos-pessoais";
 import { useMemo } from "react";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpDependentes } from "@/hooks/useDpDependentes";
