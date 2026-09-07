@@ -391,7 +391,9 @@ export default function DpAnalytics() {
               icon={HeartPulse}
               label="Dias de atestado"
               value={String(ausencias.diasAfastamento)}
-              hint={`${ausencias.atestados.colaboradores} pessoas`}
+              hint={`${ausencias.atestados.colaboradores} ${
+                ausencias.atestados.colaboradores === 1 ? "pessoa" : "pessoas"
+              }`}
             />
           </div>
 
@@ -566,7 +568,9 @@ export default function DpAnalytics() {
                   icon={HeartPulse}
                   label="Dias de atestado"
                   value={String(ausencias.diasAfastamento)}
-                  hint={`${ausencias.atestados.ocorrencias} atestados · ${ausencias.atestados.colaboradores} pessoas`}
+                  hint={`${ausencias.atestados.ocorrencias} atestados · ${ausencias.atestados.colaboradores} ${
+                    ausencias.atestados.colaboradores === 1 ? "pessoa" : "pessoas"
+                  }`}
                 />
                 <Kpi
                   icon={CalendarDays}
