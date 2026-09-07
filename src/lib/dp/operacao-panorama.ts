@@ -143,6 +143,8 @@ export interface PessoaAvulsaPanorama {
   observacao: string | null;
   /** Setor em que a pessoa atua no dia (guardado no próprio registro). */
   setor_id?: string | null;
+  /** Setor habitual do cadastro de apoio (folguista/teste), usado como padrão. */
+  setor_habitual_id?: string | null;
   /** Telefone de contato (folguista/teste). */
   telefone?: string | null;
   /** Cadastro reaproveitável de apoio que originou o registro. */
@@ -540,11 +542,16 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       unidade_id: a.unidade_id,
       cargo_id: a.cargo_id,
       cargo_nome: a.cargo_nome,
-      setor_id: a.setor_id ?? null,
-      setor_nome: a.setor_id ? nomeSetor.get(a.setor_id) ?? null : null,
-      setor_origem: a.setor_id ? "escala" : "nenhum",
-      setor_habitual_id: null,
-      setor_habitual_nome: null,
+      setor_id: a.setor_id ?? a.setor_habitual_id ?? null,
+      setor_nome: (() => {
+        const id = a.setor_id ?? a.setor_habitual_id ?? null;
+        return id ? nomeSetor.get(id) ?? null : null;
+      })(),
+      setor_origem: a.setor_id ? "escala" : a.setor_habitual_id ? "cadastro" : "nenhum",
+      setor_habitual_id: a.setor_habitual_id ?? null,
+      setor_habitual_nome: a.setor_habitual_id
+        ? nomeSetor.get(a.setor_habitual_id) ?? null
+        : null,
       socio: false,
       origem: "avulso",
       avulso_id: a.id,
