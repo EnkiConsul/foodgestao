@@ -163,6 +163,7 @@ export default function DpFichaRegistroImportar() {
               turnos={turnos}
               unidades={unidadesDaEmpresa}
               unidadePadraoId={unidadesDaEmpresa[0]?.id ?? null}
+              empresaCnpj={empresaCnpj}
             />
           ))}
         </div>
@@ -179,6 +180,7 @@ export default function DpFichaRegistroImportar() {
               turnos={turnos}
               unidades={unidadesDaEmpresa}
               unidadePadraoId={null}
+              empresaCnpj={empresaCnpj}
             />
           ))}
         </div>
