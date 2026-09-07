@@ -15,7 +15,7 @@ export function MoreHeader({ query, onQueryChange }: Props) {
   const moduleLabel = MODULE_LABEL[activeModule];
 
   return (
-    <header className="fixed left-0 right-0 top-12 z-30 bg-background border-b md:hidden">
+    <header className="sticky top-14 z-30 -mx-3 border-b bg-background px-3 md:hidden">
       <div className="px-4 flex items-center gap-3 h-11">
         <h1 className="text-sm font-semibold tracking-tight truncate">
           {moduleLabel}
