@@ -213,7 +213,27 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
                   ))}
                 </SelectContent>
               </Select>
+              {unidadeSugerida.unidade_id && unidadeSugerida.unidade_id === unidadeId && (
+                <p className="text-[11px] text-muted-foreground">
+                  {unidadeSugerida.motivo === "cnpj"
+                    ? `Unidade reconhecida pelo CNPJ da ficha (${formatCnpj(unidadeSugerida.cnpj_lido)}).`
+                    : "Unidade reconhecida pelo nome da empresa na ficha."}
+                </p>
+              )}
+              {!unidadeSugerida.unidade_id && !empresaDivergente && !!unidadeSugerida.cnpj_lido && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                  A ficha traz o CNPJ {formatCnpj(unidadeSugerida.cnpj_lido)}, que não está em nenhuma unidade.{" "}
+                  <Link to="/dp/unidades" className="underline">Completar o CNPJ nas unidades</Link> faz as próximas
+                  fichas serem reconhecidas sozinhas.
+                </p>
+              )}
+              {!unidadeSugerida.cnpj_lido && (
+                <p className="text-[11px] text-muted-foreground">
+                  Não conseguimos ler o CNPJ do empregador nesta ficha — confira a unidade.
+                </p>
+              )}
             </div>
+
           </div>
         )}
 
