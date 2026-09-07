@@ -1069,7 +1069,10 @@ export default function DpFolgas() {
                                 ? "bg-emerald-100 text-emerald-700 border-emerald-200"
                                 : "bg-muted text-muted-foreground border-border",
                           )}>
-                            {aprov}{cap != null ? `/${cap}` : ""}
+                            {aprovComReserva}{cap != null ? `/${cap}` : ""}
+                            {reserva > 0 && (
+                              <span className="ml-1 text-[9px] opacity-80">(+{reserva})</span>
+                            )}
                           </span>
                         )}
                         {events.map((ev) => {
