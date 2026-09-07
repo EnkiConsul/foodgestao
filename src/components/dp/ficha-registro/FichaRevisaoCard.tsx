@@ -532,11 +532,24 @@ export function FichaRevisaoCard({
           </pre>
         )}
 
-        {!aplicado && faltando.length > 0 && (
-          <p className="text-[11px] text-amber-600 dark:text-amber-400">
-            Vai ficar em falta: {resumoFaltando(faltando)}. Nada impede o cadastro — dá para completar depois.
-          </p>
-        )}
+        {!aplicado && faltando.length > 0 && (() => {
+          const obrig = faltando.filter((c) => c.obrigatorio);
+          const opc = faltando.filter((c) => !c.obrigatorio);
+          return (
+            <div className="space-y-0.5 text-[11px]">
+              {obrig.length > 0 && (
+                <p className="text-amber-600 dark:text-amber-400">
+                  Obrigatório em falta: {resumoFaltando(obrig)}. Nada impede o cadastro — dá para completar depois.
+                </p>
+              )}
+              {opc.length > 0 && (
+                <p className="text-muted-foreground">
+                  Sugestão de complemento: {resumoFaltando(opc)}.
+                </p>
+              )}
+            </div>
+          );
+        })()}
 
         {aplicado && item.colaborador_id && onAbrirCadastro && (
           <div className="flex justify-end">

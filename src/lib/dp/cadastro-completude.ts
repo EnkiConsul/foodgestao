@@ -11,18 +11,24 @@ export type CampoEssencial = {
   /** Chave estável (não é necessariamente uma coluna: contato cobre telefone/WhatsApp). */
   chave: string;
   label: string;
+  /**
+   * Só os obrigatórios acendem a sinalização de "cadastro incompleto"
+   * (selo na lista, aba/filtro de incompletos, pendência do DP).
+   * Os demais aparecem apenas como sugestão na ficha e na conferência da importação.
+   */
+  obrigatorio: boolean;
 };
 
 export const CAMPOS_ESSENCIAIS: CampoEssencial[] = [
-  { chave: "setor_id", label: "setor" },
-  { chave: "contato", label: "telefone ou WhatsApp" },
-  { chave: "email_contato", label: "e-mail" },
-  { chave: "endereco", label: "endereço" },
-  { chave: "data_nascimento", label: "data de nascimento" },
-  { chave: "estado_civil", label: "estado civil" },
-  { chave: "regime", label: "vínculo" },
-  { chave: "pis_nit", label: "PIS" },
-  { chave: "salario_base", label: "salário" },
+  { chave: "setor_id", label: "setor", obrigatorio: false },
+  { chave: "contato", label: "telefone ou WhatsApp", obrigatorio: true },
+  { chave: "email_contato", label: "e-mail", obrigatorio: false },
+  { chave: "endereco", label: "endereço", obrigatorio: false },
+  { chave: "data_nascimento", label: "data de nascimento", obrigatorio: false },
+  { chave: "estado_civil", label: "estado civil", obrigatorio: false },
+  { chave: "regime", label: "vínculo", obrigatorio: true },
+  { chave: "pis_nit", label: "PIS", obrigatorio: false },
+  { chave: "salario_base", label: "salário", obrigatorio: true },
 ];
 
 export interface ColaboradorCompletude {
@@ -81,11 +87,19 @@ export function camposFaltando(
   });
 }
 
+/** Apenas os campos obrigatórios em falta — base do selo "Cadastro incompleto". */
+export function camposFaltandoObrigatorios(
+  c: ColaboradorCompletude | null | undefined,
+  opts: OpcoesCompletude = {},
+): CampoEssencial[] {
+  return camposFaltando(c, opts).filter((campo) => campo.obrigatorio);
+}
+
 export function cadastroIncompleto(
   c: ColaboradorCompletude | null | undefined,
   opts: OpcoesCompletude = {},
 ): boolean {
-  return camposFaltando(c, opts).length > 0;
+  return camposFaltandoObrigatorios(c, opts).length > 0;
 }
 
 /** Texto curto para avisos: "Falta: setor, endereço e e-mail". */

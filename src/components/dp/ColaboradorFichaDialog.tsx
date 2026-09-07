@@ -123,11 +123,18 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
     (colaborador as any)?.unidade_id ?? null,
   );
 
-  /** Campos essenciais em branco — aviso no topo da ficha. */
+  /** Campos essenciais em branco — aviso no topo da ficha (obrigatórios primeiro). */
   const faltandoFicha = useMemo(
-    () => (colaborador && colaborador.ativo ? camposFaltando(colaborador as never) : []),
+    () =>
+      colaborador && colaborador.ativo
+        ? [...camposFaltando(colaborador as never)].sort(
+            (a, b) => Number(b.obrigatorio) - Number(a.obrigatorio),
+          )
+        : [],
     [colaborador],
   );
+  const faltandoObrig = faltandoFicha.filter((c) => c.obrigatorio);
+  const faltandoOpc = faltandoFicha.filter((c) => !c.obrigatorio);
 
 
   const perfil = (colaborador as any)?.perfil_acesso as string | null;
@@ -356,10 +363,19 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6 pt-4">
           {faltandoFicha.length > 0 && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
-              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Cadastro incompleto</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Falta preencher: {resumoFaltando(faltandoFicha, 9)}.
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                {faltandoObrig.length > 0 ? "Cadastro incompleto" : "Cadastro quase completo"}
               </p>
+              {faltandoObrig.length > 0 && (
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                  Obrigatório: {resumoFaltando(faltandoObrig, 9)}.
+                </p>
+              )}
+              {faltandoOpc.length > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Dá para completar depois: {resumoFaltando(faltandoOpc, 9)}.
+                </p>
+              )}
               <Button
                 variant="outline"
                 size="sm"
