@@ -719,6 +719,11 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
             )}
           </Section>
 
+          {/* Ocorrências */}
+          <Section icon={ClipboardList} title="Ocorrências">
+            <ColaboradorOcorrenciasCard colaboradorId={colaborador?.id ?? null} />
+          </Section>
+
           {/* Acesso ao portal */}
           <Section icon={Lock} title="Acesso ao Portal">
             <Field
