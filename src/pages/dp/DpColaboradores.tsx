@@ -177,14 +177,20 @@ export default function DpColaboradores() {
         if (setorFilter !== "all" && setorFilter !== "__sem__" && (c as any).setor_id !== setorFilter) return false;
         if (statusFilter === "ativos" && !c.ativo) return false;
         if (statusFilter === "desligados" && c.ativo) return false;
+        if (statusFilter === "incompletos" && (!c.ativo || faltantesDe(c).length === 0)) return false;
         if (incompletosFilter) {
-          const usaSetores = (list.data ?? []).some((x) => (x as any).setor_id);
-          if (camposFaltando(c as never, { exigirSetor: usaSetores }).length === 0) return false;
+          if (camposFaltando(c as never, { exigirSetor: mostrarSetor }).length === 0) return false;
         }
         return true;
 
       })
       .sort((a, b) => {
+        // Aba "Incompletos": quem tem mais campos faltando vem primeiro.
+        if (statusFilter === "incompletos") {
+          const diff = faltantesDe(b).length - faltantesDe(a).length;
+          if (diff !== 0) return diff;
+          return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
+        }
         const perfilDestaca = (p: string | null) => p === "admin" || p === "gestor";
         const ga = a.ativo ? (perfilDestaca((a as any).perfil_acesso) ? 0 : 1) : 2;
         const gb = b.ativo ? (perfilDestaca((b as any).perfil_acesso) ? 0 : 1) : 2;
@@ -196,7 +202,8 @@ export default function DpColaboradores() {
         }
         return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
       });
-  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter, incompletosFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter, incompletosFilter, mostrarSetor]);
 
 
 
