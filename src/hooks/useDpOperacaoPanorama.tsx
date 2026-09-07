@@ -19,6 +19,7 @@ import {
   type FolgaPanorama,
   type HorarioSugerido,
   type ItemEscalaPanorama,
+  type OcorrenciaPanorama,
   type PessoaAvulsaPanorama,
   type PessoaAvulsaTipo,
   type ResultadoDia,
@@ -104,6 +105,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         cargos,
         setoresRes,
         funcionamento,
+        ocorrencias,
       ] =
         await Promise.all([
           supabase
@@ -192,6 +194,15 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .eq("company_id", selectedCompanyId!)
             .order("dia_semana")
             .order("ordem"),
+          supabase
+            .from("dp_ocorrencias")
+            .select(
+              "id, colaborador_id, data_operacional, tipo, estado, minutos, horario_estimado, horario_real, unidade_id",
+            )
+            .eq("company_id", selectedCompanyId!)
+            .gte("data_operacional", janelaInicio)
+            .lte("data_operacional", fim)
+            .not("estado", "eq", "cancelada"),
         ]);
 
       const err = [
@@ -210,6 +221,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         cargos,
         setoresRes,
         funcionamento,
+        ocorrencias,
       ].find((r) => r.error);
       if (err?.error) throw err.error;
 
@@ -254,6 +266,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         setores: setoresRes.data ?? [],
         funcionamento: funcionamento.data ?? [],
         itens,
+        ocorrencias: ocorrencias.data ?? [],
       };
     },
   });
@@ -458,6 +471,23 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     }));
   }, [avulsasQuery.data, base.data]);
 
+  const ocorrencias: OcorrenciaPanorama[] = useMemo(
+    () =>
+      (base.data?.ocorrencias ?? [])
+        .filter((o) => !unidadeId || o.unidade_id === unidadeId || o.unidade_id === null)
+        .map((o) => ({
+          id: o.id,
+          colaborador_id: o.colaborador_id,
+          data: o.data_operacional,
+          tipo: o.tipo as OcorrenciaPanorama["tipo"],
+          estado: o.estado as OcorrenciaPanorama["estado"],
+          minutos: o.minutos ?? null,
+          horario_estimado: o.horario_estimado ? o.horario_estimado.slice(0, 5) : null,
+          horario_real: o.horario_real ? o.horario_real.slice(0, 5) : null,
+        })),
+    [base.data?.ocorrencias, unidadeId],
+  );
+
   /** Conta um dia respeitando admissão/desligamento do colaborador. */
   const contar = (data: string): ResultadoDia =>
     contarDia({
@@ -475,6 +505,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       itensPublicados: base.data?.itens,
       avulsos,
       setores: base.data?.setores,
+      ocorrencias,
     });
 
   /** Histórico (janela anterior à competência) usado para aprender o padrão. */
@@ -488,7 +519,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [base.data, colaboradores, turnos, convocacoes, folgas, ausencias, janelaInicio, inicio]);
+  }, [base.data, colaboradores, turnos, convocacoes, folgas, ausencias, ocorrencias, janelaInicio, inicio]);
 
   const padrao = useMemo(() => baselinePorDow(historico, { limite: inicio }), [historico, inicio]);
 
@@ -507,7 +538,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       return { ...r, avaliacao, dispensado, alerta: desvio && !dispensado };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [base.data, dias, padrao, dispensadas, colaboradores, turnos, convocacoes, folgas, ausencias, avulsos]);
+  }, [base.data, dias, padrao, dispensadas, colaboradores, turnos, convocacoes, folgas, ausencias, avulsos, ocorrencias]);
 
   const dispensarAlerta = useMutation({
     mutationFn: async (input: { data: string; previsto: number; padrao: number; observacao?: string }) => {

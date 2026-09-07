@@ -8689,6 +8689,7 @@ export type Database = {
           alerta_ferias_dias: number
           alerta_folha_ponto_dia_mes: number
           alerta_negociacao_dias: number
+          alerta_ocorrencia_horas: number
           alerta_solicitacao_dias: number
           alerta_treinamento_dias: number
           alerta_troca_dias: number
@@ -8705,6 +8706,7 @@ export type Database = {
           alerta_ferias_dias?: number
           alerta_folha_ponto_dia_mes?: number
           alerta_negociacao_dias?: number
+          alerta_ocorrencia_horas?: number
           alerta_solicitacao_dias?: number
           alerta_treinamento_dias?: number
           alerta_troca_dias?: number
@@ -8721,6 +8723,7 @@ export type Database = {
           alerta_ferias_dias?: number
           alerta_folha_ponto_dia_mes?: number
           alerta_negociacao_dias?: number
+          alerta_ocorrencia_horas?: number
           alerta_solicitacao_dias?: number
           alerta_treinamento_dias?: number
           alerta_troca_dias?: number
@@ -14275,6 +14278,21 @@ export type Database = {
         Returns: Json
       }
       dp_nome_normalizado: { Args: { p_nome: string }; Returns: string }
+      dp_notificar_admins_empresa: {
+        Args: {
+          _company_id: string
+          _descricao: string
+          _ref_id: string
+          _ref_table: string
+          _tipo: string
+          _titulo: string
+        }
+        Returns: undefined
+      }
+      dp_notificar_criador_ocorrencia: {
+        Args: { _descricao: string; _ocorrencia_id: string; _titulo: string }
+        Returns: undefined
+      }
       dp_ocorrencia_analisar: {
         Args: {
           _observacao?: string
@@ -14292,6 +14310,28 @@ export type Database = {
           _impacta_assiduidade?: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
           _impacta_ferias?: Database["public"]["Enums"]["dp_ocorrencia_impacto"]
           _ocorrencia_id: string
+        }
+        Returns: undefined
+      }
+      dp_ocorrencia_cobertura_confirmar: {
+        Args: { _cobertura_id: string }
+        Returns: undefined
+      }
+      dp_ocorrencia_cobertura_criar: {
+        Args: {
+          _entrada?: string
+          _mao_de_obra_extra_id?: string
+          _ocorrencia_id: string
+          _saida?: string
+          _substituto_colaborador_id?: string
+        }
+        Returns: string
+      }
+      dp_ocorrencia_cobertura_decidir: {
+        Args: {
+          _aprovar: boolean
+          _cobertura_id: string
+          _motivo_recusa?: string
         }
         Returns: undefined
       }

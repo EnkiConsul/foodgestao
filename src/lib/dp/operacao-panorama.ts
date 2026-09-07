@@ -19,6 +19,7 @@ import {
 } from "@/lib/dp/turno-utils";
 import { paraMinutos } from "@/lib/dp/jornada-utils";
 import { turnoDoDia, type ConfigTrabalho, type TurnoResolvido } from "@/lib/dp/config-trabalho";
+import type { OcorrenciaEstado, OcorrenciaTipo } from "@/lib/dp/ocorrencias";
 
 export type CategoriaDia =
   | "fixo"
@@ -27,7 +28,11 @@ export type CategoriaDia =
   | "folga_padrao"
   | "folga_extra"
   | "ferias"
-  | "atestado";
+  | "atestado"
+  | "ausente"
+  | "atrasado"
+  | "saida_antecipada";
+
 
 export const CATEGORIA_LABEL: Record<CategoriaDia, string> = {
   fixo: "Fixos Escalados",
@@ -37,6 +42,9 @@ export const CATEGORIA_LABEL: Record<CategoriaDia, string> = {
   folga_extra: "Folga Extra",
   ferias: "Férias",
   atestado: "Atestado / Licença",
+  ausente: "Ausências",
+  atrasado: "Atrasos",
+  saida_antecipada: "Saídas Antecipadas",
 };
 
 export interface ColaboradorPanorama {
@@ -82,6 +90,17 @@ export interface AusenciaPanorama {
   inicio: string;
   fim: string;
   tipo: "ferias" | "atestado";
+}
+
+export interface OcorrenciaPanorama {
+  id: string;
+  colaborador_id: string;
+  data: string;
+  tipo: OcorrenciaTipo;
+  estado: OcorrenciaEstado;
+  minutos: number | null;
+  horario_estimado: string | null;
+  horario_real: string | null;
 }
 
 export interface ItemEscalaPanorama {
@@ -161,6 +180,12 @@ export interface PessoaPanorama {
   /** Origem do horário: jornada habitual, escala, convocação, avulso ou registro manual. */
   origem: "jornada" | "escala" | "convocacao" | "avulso" | "registro_manual";
 
+  /** Ocorrências do dia vinculadas a esta pessoa (para badge e cards). */
+  ocorrencias?: OcorrenciaPanorama[];
+
+  /** Preenchido só para entradas extras criadas a partir de uma ocorrência. */
+  ocorrencia_id?: string;
+
   /** Preenchido só para pessoas avulsas (teste/folguista). */
   avulso_id?: string;
   avulso_tipo?: PessoaAvulsaTipo;
@@ -197,6 +222,9 @@ const zeradas = (): Contagens => ({
   folga_extra: 0,
   ferias: 0,
   atestado: 0,
+  ausente: 0,
+  atrasado: 0,
+  saida_antecipada: 0,
 });
 
 export const parseData = (iso: string): Date => new Date(`${iso}T12:00:00`);
@@ -249,6 +277,8 @@ export interface ContarDiaInput {
   itensPublicados?: ItemEscalaPanorama[];
   /** Pessoas avulsas (teste/folguista) registradas para a rotina do dia. */
   avulsos?: PessoaAvulsaPanorama[];
+  /** Ocorrências operacionais do dia (falta, atraso, saída antecipada). */
+  ocorrencias?: OcorrenciaPanorama[];
   /** Setores da unidade, só para nomear o setor efetivo. */
   setores?: { id: string; nome: string }[];
 }
@@ -259,6 +289,15 @@ export interface ContarDiaInput {
  * folga padrão > trabalho. Férias aprovadas vencem a convocação: quem está de
  * férias não é escalado nem convocado.
  */
+const OCORRENCIA_CATEGORIA: Partial<Record<OcorrenciaTipo, CategoriaDia>> = {
+  falta: "ausente",
+  previsao_falta: "ausente",
+  atraso: "atrasado",
+  previsao_atraso: "atrasado",
+  saida_antecipada: "saida_antecipada",
+  previsao_saida_antecipada: "saida_antecipada",
+};
+
 export function contarDia(input: ContarDiaInput): ResultadoDia {
   const { data, colaboradores, turnos } = input;
   const dow = dowDaData(data);
@@ -293,6 +332,15 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     if (a.tipo !== "registro_manual" || !a.colaborador_id) continue;
     if (data < a.data_inicio || data > a.data_fim) continue;
     manualPor.set(a.colaborador_id, a);
+  }
+
+  // Ocorrências do dia (falta, atraso, saída antecipada) agrupadas por colaborador.
+  const ocorrenciasPor = new Map<string, OcorrenciaPanorama[]>();
+  for (const o of input.ocorrencias ?? []) {
+    if (o.data !== data) continue;
+    const lista = ocorrenciasPor.get(o.colaborador_id) ?? [];
+    lista.push(o);
+    ocorrenciasPor.set(o.colaborador_id, lista);
   }
 
   const turnoPorId = new Map(turnos.map((t) => [t.id, t]));
@@ -497,6 +545,69 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       cobre_nome: a.cobre_nome,
       observacao: a.observacao,
     });
+  }
+
+  // Aplica ocorrências do dia aos colaboradores já classificados. Ausente
+  // vence a categoria de trabalho: quem faltou não conta como trabalhando.
+  // Atraso e saída antecipada geram uma pessoa adicional nos cards
+  // correspondentes, sem afetar o total de trabalhando.
+  const colabPorId = new Map(colaboradores.map((c) => [c.id, c]));
+  const pessoaPrincipalPorColab = new Map<string, PessoaPanorama>();
+  for (const p of pessoas) {
+    if (!p.avulso_id && !p.colaborador_id.startsWith("avulso:")) {
+      pessoaPrincipalPorColab.set(p.colaborador_id, p);
+    }
+  }
+
+  for (const [colabId, ocorrencias] of ocorrenciasPor.entries()) {
+    const principal = pessoaPrincipalPorColab.get(colabId);
+    const colab = colabPorId.get(colabId);
+    const categoriasTrabalho: CategoriaDia[] = ["fixo", "convocado_aceito", "convocado_pendente"];
+    const temAusente = ocorrencias.some((o) => OCORRENCIA_CATEGORIA[o.tipo] === "ausente");
+
+    if (principal && temAusente && categoriasTrabalho.includes(principal.categoria)) {
+      contagens[principal.categoria] -= 1;
+      contagens.ausente += 1;
+      principal.categoria = "ausente";
+      principal.ocorrencias = ocorrencias;
+      continue;
+    }
+
+    if (principal) {
+      principal.ocorrencias = ocorrencias;
+    }
+
+    for (const o of ocorrencias) {
+      const cat = OCORRENCIA_CATEGORIA[o.tipo];
+      if (!cat) continue;
+      // Ausente já é representado pela pessoa principal quando a categoria de
+      // trabalho foi substituída. Para categorias sem pessoa, não contamos.
+      if (cat === "ausente" && (principal?.categoria === "ausente" || principal?.categoria === "ferias" || principal?.categoria === "atestado" || principal?.categoria === "folga_padrao" || principal?.categoria === "folga_extra")) continue;
+      if (principal) {
+        pessoas.push({ ...principal, categoria: cat, ocorrencias: [o], ocorrencia_id: o.id });
+        contagens[cat] += 1;
+      } else if (colab) {
+        pessoas.push({
+          colaborador_id: colab.id,
+          nome: colab.nome,
+          categoria: cat,
+          turno_id: null,
+          turno_nome: null,
+          entrada: null,
+          saida: null,
+          termina_no_dia_seguinte: false,
+          carga_prevista_horas: 0,
+          unidade_id: colab.unidade_id ?? null,
+          cargo_id: colab.cargo_id ?? null,
+          cargo_nome: colab.cargo_nome ?? null,
+          socio: !!colab.socio,
+          origem: "jornada",
+          ocorrencias: [o],
+          ocorrencia_id: o.id,
+        });
+        contagens[cat] += 1;
+      }
+    }
   }
 
   // Confirmados = fixos escalados + convocações aceitas.

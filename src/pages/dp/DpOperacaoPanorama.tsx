@@ -50,6 +50,7 @@ import {
   type PessoaAvulsaPanorama,
   type PessoaPanorama,
 } from "@/lib/dp/operacao-panorama";
+import { TIPO_LABEL, ESTADO_LABEL, TIPOS_PREVISAO } from "@/lib/dp/ocorrencias";
 import { DpPessoaAvulsaDialog } from "@/components/dp/DpPessoaAvulsaDialog";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 
@@ -68,6 +69,30 @@ function rotuloCategoriaPessoa(p: PessoaPanorama): string {
     if (p.origem === "registro_manual") return "Registro manual";
   }
   return CATEGORIA_LABEL[p.categoria];
+}
+
+function OcorrenciaBadges({ ocorrencias }: { ocorrencias: PessoaPanorama["ocorrencias"] }) {
+  if (!ocorrencias?.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {ocorrencias.map((o) => {
+        const prev = TIPOS_PREVISAO.includes(o.tipo);
+        return (
+          <Badge
+            key={o.id}
+            variant="outline"
+            className={prev ? "border-amber-500/50 text-amber-600" : "border-destructive/50 text-destructive"}
+            title={ESTADO_LABEL[o.estado]}
+          >
+            {TIPO_LABEL[o.tipo]}
+            {o.minutos ? ` · ${o.minutos}min` : null}
+            {o.horario_estimado ? ` · ~${o.horario_estimado}` : null}
+            {o.horario_real ? ` · real ${o.horario_real}` : null}
+          </Badge>
+        );
+      })}
+    </div>
+  );
 }
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -102,6 +127,9 @@ const CATEGORIA_ORDEM: CategoriaDia[] = [
   "folga_extra",
   "ferias",
   "atestado",
+  "ausente",
+  "atrasado",
+  "saida_antecipada",
 ];
 
 const CATEGORIA_TONE: Record<CategoriaDia, "primary" | "muted" | "success" | "warning" | "danger"> = {
@@ -112,6 +140,9 @@ const CATEGORIA_TONE: Record<CategoriaDia, "primary" | "muted" | "success" | "wa
   folga_extra: "muted",
   ferias: "primary",
   atestado: "danger",
+  ausente: "danger",
+  atrasado: "warning",
+  saida_antecipada: "warning",
 };
 
 const CATEGORIA_ICON: Record<CategoriaDia, typeof Users> = {
@@ -122,6 +153,9 @@ const CATEGORIA_ICON: Record<CategoriaDia, typeof Users> = {
   folga_extra: Sun,
   ferias: Plane,
   atestado: HeartPulse,
+  ausente: UserX,
+  atrasado: Clock,
+  saida_antecipada: Clock,
 };
 
 const AVULSO_LABEL: Record<"avulso_teste" | "avulso_folguista", string> = {
@@ -304,7 +338,9 @@ function DetalheDiaOperacao({
   onExcluirAvulsa,
 }: DetalheDiaProps) {
   const foraDaOperacao = dia.pessoas.filter((p) =>
-    ["folga_padrao", "folga_extra", "ferias", "atestado"].includes(p.categoria),
+    ["folga_padrao", "folga_extra", "ferias", "atestado", "ausente", "atrasado", "saida_antecipada"].includes(
+      p.categoria,
+    ),
   );
   const ausReg = ausenciasRegistradas.filter((a) => a.inicio <= data && a.fim >= data);
   const rotuloAus = (t: string) => (t === "adiantamento" ? "Adiantamento" : t === "outros" ? "Ausência" : t);
@@ -398,9 +434,12 @@ function DetalheDiaOperacao({
                     <p className="mb-1 text-xs font-semibold text-muted-foreground">
                       {g.cargo_nome} ({g.pessoas.length})
                     </p>
-                    <ul className="divide-y">
-                      {g.pessoas.map((p) => (
-                        <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+                      <ul className="divide-y">
+                        {g.pessoas.map((p) => (
+                          <li
+                            key={`${p.colaborador_id}-${p.categoria}-${p.ocorrencia_id ?? p.avulso_id ?? ""}`}
+                            className="flex items-center justify-between gap-3 py-2"
+                          >
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium">{p.nome}</p>
                             <p className="text-xs text-muted-foreground">
