@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   BellRing, CalendarClock, CheckCircle2, ClipboardCheck, Clock, History, Pencil, Plus,
-  Settings2, Users,
+  Settings2, Users, CalendarRange,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpPage, DpPageHeader, DpContentCard, DpEmptyState } from "@/components/dp/DpPage";
 import { NovaConvocacaoPlanner } from "@/components/dp/convocacoes/NovaConvocacaoPlanner";
 import { ConvocacoesRegrasPanel } from "@/components/dp/convocacoes/ConvocacoesRegrasPanel";
+import { DisponibilidadePainel } from "@/components/dp/convocacoes/DisponibilidadePainel";
 import { AprovacaoParcialDialog } from "@/components/dp/convocacoes/AprovacaoParcialDialog";
 import { useDpConvocacaoGrupos, type GrupoComOcorrencias } from "@/hooks/useDpConvocacaoGrupos";
 import {
@@ -268,6 +269,9 @@ export default function DpConvocacoes() {
           <TabsTrigger value="historico" className="gap-1.5">
             <History className="h-4 w-4" /> Histórico
           </TabsTrigger>
+          <TabsTrigger value="disponibilidade" className="gap-1.5">
+            <CalendarRange className="h-4 w-4" /> Disponibilidade
+          </TabsTrigger>
           <TabsTrigger value="regras" className="gap-1.5">
             <Settings2 className="h-4 w-4" /> Regras
           </TabsTrigger>
@@ -407,6 +411,10 @@ export default function DpConvocacoes() {
               </div>
             )}
           </DpContentCard>
+        </TabsContent>
+
+        <TabsContent value="disponibilidade" className="mt-3">
+          <DisponibilidadePainel />
         </TabsContent>
 
         <TabsContent value="regras" className="mt-3">

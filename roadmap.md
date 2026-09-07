@@ -14,7 +14,7 @@
 ## Disponibilidade de intermitentes/freelancers
 - [x] Fase 1 — diagnóstico
 - [x] Fase 2 — regras do período mensal + portal (janela, alteração tardia, lembrete)
-- [ ] Fase 3 — Convocações > Disponibilidade (visão do gestor)
+- [x] Fase 3 — Convocações > Disponibilidade (visão do gestor)
 - [ ] Fase 4 — integração com Folgas
 - [ ] Fase 5 — conflitos e previsão de ausência
 - [ ] Fase 6 — Planejamento
