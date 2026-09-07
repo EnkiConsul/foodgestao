@@ -30,7 +30,8 @@ export default function DpFichaRegistroImportar() {
     [importacoes, importacaoId],
   );
   const processando = atual?.status === "processing";
-  const { data: itens = [] } = useDpFichaItens(atual?.id, processando);
+  const aguardandoFichas = atual?.status === "ready" && (atual?.fichas_identificadas ?? 0) > 0;
+  const { data: itens = [] } = useDpFichaItens(atual?.id, processando, aguardandoFichas);
 
   const { data: cargos = [] } = useDpCargos();
   const { data: unidades = [] } = useDpUnidades();
