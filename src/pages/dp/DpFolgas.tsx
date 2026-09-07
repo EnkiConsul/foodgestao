@@ -1016,10 +1016,12 @@ export default function DpFolgas() {
                 const isToday = isSameDay(day, new Date());
                 const cap = capacityByDay.get(key) ?? null;
                 const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
+                const reserva = (reservasByDay.get(key) ?? 0);
+                const aprovComReserva = aprov + reserva;
                 const blocked = blockedByDate.get(key);
-                const lotado = !blocked && cap != null && cap > 0 && aprov >= cap;
+                const lotado = !blocked && cap != null && cap > 0 && aprovComReserva >= cap;
 
-                const parcial = !blocked && aprov > 0 && !lotado;
+                const parcial = !blocked && aprovComReserva > 0 && !lotado;
                 const wd = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][day.getDay()];
                 const hasEvents = events.length > 0 || !!blocked;
 
