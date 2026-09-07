@@ -3,6 +3,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Clock,
+  History as HistoryIcon,
   User,
   UserPlus,
   XCircle,
@@ -41,6 +42,7 @@ interface Props {
   onAnalisar: () => void;
   onCancelar: () => void;
   onCobrir?: () => void;
+  onHistorico?: () => void;
   onImpacto: (campo: "assiduidade" | "ferias", valor: OcorrenciaImpacto) => void;
 }
 
@@ -54,6 +56,7 @@ export function OcorrenciaCard({
   onAnalisar,
   onCancelar,
   onCobrir,
+  onHistorico,
   onImpacto,
 }: Props) {
   const validas = coberturas.filter((c) => c.status !== "recusada");
@@ -160,8 +163,14 @@ export function OcorrenciaCard({
               <XCircle className="mr-1 h-3.5 w-3.5" /> Cancelar
             </Button>
           )}
+          {onHistorico && (
+            <Button size="sm" variant="ghost" onClick={onHistorico}>
+              <HistoryIcon className="mr-1 h-3.5 w-3.5" /> Histórico
+            </Button>
+          )}
         </div>
       </div>
+
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">

@@ -40,7 +40,18 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { useDpPessoasApoio } from "@/hooks/useDpPessoasApoio";
 import { OcorrenciaCoberturaDialog } from "@/components/dp/ocorrencias/OcorrenciaCoberturaDialog";
+import { OcorrenciaHistoricoDialog } from "@/components/dp/ocorrencias/OcorrenciaHistoricoDialog";
+import { useDpOcorrenciasIndicadores } from "@/hooks/useDpOcorrenciasIndicadores";
 import type { SubstitutoOpcao } from "@/components/dp/ocorrencias/SubstitutoPicker";
+
+function mesCorrente(): { inicio: string; fim: string } {
+  const hoje = new Date();
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  return {
+    inicio: iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)),
+    fim: iso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)),
+  };
+}
 
 const COBERTURAS: { value: string; label: string }[] = [
   { value: "all", label: "Todas" },
@@ -73,6 +84,8 @@ export default function DpOcorrencias() {
   const [tratativa, setTratativa] = useState<Ocorrencia | null>(null);
   const [cancelarId, setCancelarId] = useState<string | null>(null);
   const [cobrir, setCobrir] = useState<Ocorrencia | null>(null);
+  const [historico, setHistorico] = useState<Ocorrencia | null>(null);
+  const mes = useMemo(() => mesCorrente(), []);
 
 
   const set = <K extends keyof OcorrenciaFiltros>(k: K, v: OcorrenciaFiltros[K]) =>
@@ -83,6 +96,11 @@ export default function DpOcorrencias() {
   const { data: unidades = [] } = useDpUnidades();
   const { setores } = useDpSetores(filtros.unidadeId === "all" ? null : filtros.unidadeId);
   const { data: pessoasApoio = [] } = useDpPessoasApoio({ apenasAtivos: true });
+  const { indicadores } = useDpOcorrenciasIndicadores({
+    inicio: mes.inicio,
+    fim: mes.fim,
+    unidadeId: filtros.unidadeId,
+  });
 
   const colaboradoresAtivos = useMemo(
     () => colaboradores.filter((c) => c.ativo).map((c) => ({ id: c.id, nome: c.nome })),
@@ -142,6 +160,31 @@ export default function DpOcorrencias() {
           </Button>
         }
       />
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {[
+          { label: "Faltas no mês", valor: indicadores.faltas },
+          { label: "Ausências justificadas", valor: indicadores.ausencias_justificadas },
+          {
+            label: "Atrasos no mês",
+            valor: indicadores.atrasos,
+            detalhe: indicadores.atraso_minutos ? `${indicadores.atraso_minutos} min` : undefined,
+          },
+          { label: "Saídas antecipadas", valor: indicadores.saidas_antecipadas },
+          {
+            label: "Ausências cobertas",
+            valor: indicadores.ausencias_cobertas,
+            detalhe: `${indicadores.ausencias_descobertas} sem cobertura`,
+          },
+          { label: "Aguardando decisão", valor: indicadores.pendentes },
+        ].map((c) => (
+          <div key={c.label} className="rounded-lg border bg-card p-3">
+            <p className="text-xs text-muted-foreground">{c.label}</p>
+            <p className="text-xl font-semibold">{c.valor}</p>
+            {c.detalhe && <p className="text-[11px] text-muted-foreground">{c.detalhe}</p>}
+          </div>
+        ))}
+      </div>
 
       <Tabs value={filtros.periodo} onValueChange={(v) => set("periodo", v as OcorrenciaPeriodo)}>
         <TabsList>
@@ -362,6 +405,7 @@ export default function DpOcorrencias() {
                 onAnalisar={() => acoes.analisar.mutate({ id: o.id, status: "analisada" })}
                 onCancelar={() => setCancelarId(o.id)}
                 onCobrir={() => setCobrir(o)}
+                onHistorico={() => setHistorico(o)}
 
                 onImpacto={(campo, valor) =>
                   acoes.classificar.mutate(
@@ -446,6 +490,10 @@ export default function DpOcorrencias() {
         }
         onDecidir={(input) => acoes.decidirCobertura.mutate(input)}
         onConfirmar={(id) => acoes.confirmarCobertura.mutate(id)}
+      />
+      <OcorrenciaHistoricoDialog
+        ocorrencia={historico}
+        onOpenChange={(open) => !open && setHistorico(null)}
       />
     </DpPage>
 

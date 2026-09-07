@@ -37,7 +37,9 @@ import { diasTrabalhaveisNoMes } from "@/lib/dp/beneficios-regras";
 
 import {
   User, Briefcase, Mail, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil, X, Users, Award,
+  ClipboardList,
 } from "lucide-react";
+import { ColaboradorOcorrenciasCard } from "@/components/dp/ocorrencias/ColaboradorOcorrenciasCard";
 import { maskCpf } from "@/lib/cpf";
 import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
@@ -717,6 +719,11 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
             ) : (
               <div className="col-span-full text-sm text-muted-foreground">Nenhum dependente cadastrado.</div>
             )}
+          </Section>
+
+          {/* Ocorrências */}
+          <Section icon={ClipboardList} title="Ocorrências">
+            <ColaboradorOcorrenciasCard colaboradorId={colaborador?.id ?? null} />
           </Section>
 
           {/* Acesso ao portal */}
