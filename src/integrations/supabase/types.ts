@@ -4174,9 +4174,14 @@ export type Database = {
           company_id: string
           cpf: string | null
           created_at: string
+          ctps_expedicao: string | null
+          ctps_numero: string | null
+          ctps_serie: string | null
+          ctps_uf: string | null
           data_admissao: string | null
           data_desligamento: string | null
           data_nascimento: string | null
+          deficiencia: string | null
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
@@ -4193,19 +4198,26 @@ export type Database = {
           email_portal: string | null
           endereco: Json | null
           estado_civil: string | null
+          ficha_importacao_item_id: string | null
           folga_fixa_semana: number | null
           forma_pagamento: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido: boolean
+          grau_instrucao: string | null
           id: string
           insalubridade_percentual: number
           matricula: string | null
           motivo_desligamento:
             | Database["public"]["Enums"]["dp_motivo_desligamento"]
             | null
+          nacionalidade: string | null
+          naturalidade: string | null
           nome: string
+          nome_mae: string | null
+          nome_pai: string | null
           observacao_desligamento: string | null
           observacoes: string | null
           optante_adiantamento: boolean
+          origem_cadastro: string
           perfil_acesso: Database["public"]["Enums"]["dp_perfil_acesso"]
           periculosidade_percentual: number
           pis_nit: string | null
@@ -4213,13 +4225,23 @@ export type Database = {
           premio_assiduidade: boolean
           premio_assiduidade_tipo: string
           premio_assiduidade_valor: number | null
+          raca_cor: string | null
           regime: Database["public"]["Enums"]["dp_regime_trabalho"]
+          reservista: string | null
+          reservista_categoria: string | null
+          rg_emissao: string | null
+          rg_numero: string | null
+          rg_orgao: string | null
+          rg_uf: string | null
           salario_base: number | null
           setor_id: string | null
           sexo: string | null
           sindicato_id: string | null
           socio_remuneracao: string | null
           telefone: string | null
+          titulo_eleitor: string | null
+          titulo_secao: string | null
+          titulo_zona: string | null
           unidade_id: string | null
           updated_at: string
           user_id: string | null
@@ -4274,9 +4296,14 @@ export type Database = {
           company_id: string
           cpf?: string | null
           created_at?: string
+          ctps_expedicao?: string | null
+          ctps_numero?: string | null
+          ctps_serie?: string | null
+          ctps_uf?: string | null
           data_admissao?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
+          deficiencia?: string | null
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -4293,19 +4320,26 @@ export type Database = {
           email_portal?: string | null
           endereco?: Json | null
           estado_civil?: string | null
+          ficha_importacao_item_id?: string | null
           folga_fixa_semana?: number | null
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido?: boolean
+          grau_instrucao?: string | null
           id?: string
           insalubridade_percentual?: number
           matricula?: string | null
           motivo_desligamento?:
             | Database["public"]["Enums"]["dp_motivo_desligamento"]
             | null
+          nacionalidade?: string | null
+          naturalidade?: string | null
           nome: string
+          nome_mae?: string | null
+          nome_pai?: string | null
           observacao_desligamento?: string | null
           observacoes?: string | null
           optante_adiantamento?: boolean
+          origem_cadastro?: string
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
           periculosidade_percentual?: number
           pis_nit?: string | null
@@ -4313,13 +4347,23 @@ export type Database = {
           premio_assiduidade?: boolean
           premio_assiduidade_tipo?: string
           premio_assiduidade_valor?: number | null
+          raca_cor?: string | null
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
+          reservista?: string | null
+          reservista_categoria?: string | null
+          rg_emissao?: string | null
+          rg_numero?: string | null
+          rg_orgao?: string | null
+          rg_uf?: string | null
           salario_base?: number | null
           setor_id?: string | null
           sexo?: string | null
           sindicato_id?: string | null
           socio_remuneracao?: string | null
           telefone?: string | null
+          titulo_eleitor?: string | null
+          titulo_secao?: string | null
+          titulo_zona?: string | null
           unidade_id?: string | null
           updated_at?: string
           user_id?: string | null
@@ -4374,9 +4418,14 @@ export type Database = {
           company_id?: string
           cpf?: string | null
           created_at?: string
+          ctps_expedicao?: string | null
+          ctps_numero?: string | null
+          ctps_serie?: string | null
+          ctps_uf?: string | null
           data_admissao?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
+          deficiencia?: string | null
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -4393,19 +4442,26 @@ export type Database = {
           email_portal?: string | null
           endereco?: Json | null
           estado_civil?: string | null
+          ficha_importacao_item_id?: string | null
           folga_fixa_semana?: number | null
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
           fundamental_concluido?: boolean
+          grau_instrucao?: string | null
           id?: string
           insalubridade_percentual?: number
           matricula?: string | null
           motivo_desligamento?:
             | Database["public"]["Enums"]["dp_motivo_desligamento"]
             | null
+          nacionalidade?: string | null
+          naturalidade?: string | null
           nome?: string
+          nome_mae?: string | null
+          nome_pai?: string | null
           observacao_desligamento?: string | null
           observacoes?: string | null
           optante_adiantamento?: boolean
+          origem_cadastro?: string
           perfil_acesso?: Database["public"]["Enums"]["dp_perfil_acesso"]
           periculosidade_percentual?: number
           pis_nit?: string | null
@@ -4413,13 +4469,23 @@ export type Database = {
           premio_assiduidade?: boolean
           premio_assiduidade_tipo?: string
           premio_assiduidade_valor?: number | null
+          raca_cor?: string | null
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"]
+          reservista?: string | null
+          reservista_categoria?: string | null
+          rg_emissao?: string | null
+          rg_numero?: string | null
+          rg_orgao?: string | null
+          rg_uf?: string | null
           salario_base?: number | null
           setor_id?: string | null
           sexo?: string | null
           sindicato_id?: string | null
           socio_remuneracao?: string | null
           telefone?: string | null
+          titulo_eleitor?: string | null
+          titulo_secao?: string | null
+          titulo_zona?: string | null
           unidade_id?: string | null
           updated_at?: string
           user_id?: string | null
@@ -4464,6 +4530,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaboradores_ficha_importacao_item_id_fkey"
+            columns: ["ficha_importacao_item_id"]
+            isOneToOne: false
+            referencedRelation: "dp_ficha_importacao_itens"
             referencedColumns: ["id"]
           },
           {
@@ -6900,6 +6973,171 @@ export type Database = {
             columns: ["solicitacao_id"]
             isOneToOne: true
             referencedRelation: "dp_solicitacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_ficha_importacao_itens: {
+        Row: {
+          arquivo_path: string | null
+          colaborador_existente_id: string | null
+          colaborador_id: string | null
+          company_id: string
+          confianca_campos: Json
+          cpf_extraido: string | null
+          created_at: string
+          dados_extraidos: Json
+          erro_mensagem: string | null
+          id: string
+          importacao_id: string
+          nome_extraido: string | null
+          pagina_fim: number
+          pagina_inicio: number
+          status: string
+          texto_origem: string | null
+          updated_at: string
+        }
+        Insert: {
+          arquivo_path?: string | null
+          colaborador_existente_id?: string | null
+          colaborador_id?: string | null
+          company_id: string
+          confianca_campos?: Json
+          cpf_extraido?: string | null
+          created_at?: string
+          dados_extraidos?: Json
+          erro_mensagem?: string | null
+          id?: string
+          importacao_id: string
+          nome_extraido?: string | null
+          pagina_fim: number
+          pagina_inicio: number
+          status?: string
+          texto_origem?: string | null
+          updated_at?: string
+        }
+        Update: {
+          arquivo_path?: string | null
+          colaborador_existente_id?: string | null
+          colaborador_id?: string | null
+          company_id?: string
+          confianca_campos?: Json
+          cpf_extraido?: string | null
+          created_at?: string
+          dados_extraidos?: Json
+          erro_mensagem?: string | null
+          id?: string
+          importacao_id?: string
+          nome_extraido?: string | null
+          pagina_fim?: number
+          pagina_inicio?: number
+          status?: string
+          texto_origem?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ficha_importacao_itens_colaborador_existente_id_fkey"
+            columns: ["colaborador_existente_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ficha_importacao_itens_colaborador_existente_id_fkey"
+            columns: ["colaborador_existente_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ficha_importacao_itens_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ficha_importacao_itens_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ficha_importacao_itens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ficha_importacao_itens_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_ficha_importacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_ficha_importacoes: {
+        Row: {
+          arquivo_nome: string
+          arquivo_path: string
+          atualizados: number
+          company_id: string
+          concluido_em: string | null
+          created_at: string
+          criado_por: string | null
+          criados: number
+          erro_mensagem: string | null
+          fichas_identificadas: number
+          id: string
+          paginas_processadas: number
+          status: string
+          total_paginas: number
+          updated_at: string
+        }
+        Insert: {
+          arquivo_nome: string
+          arquivo_path: string
+          atualizados?: number
+          company_id: string
+          concluido_em?: string | null
+          created_at?: string
+          criado_por?: string | null
+          criados?: number
+          erro_mensagem?: string | null
+          fichas_identificadas?: number
+          id?: string
+          paginas_processadas?: number
+          status?: string
+          total_paginas?: number
+          updated_at?: string
+        }
+        Update: {
+          arquivo_nome?: string
+          arquivo_path?: string
+          atualizados?: number
+          company_id?: string
+          concluido_em?: string | null
+          created_at?: string
+          criado_por?: string | null
+          criados?: number
+          erro_mensagem?: string | null
+          fichas_identificadas?: number
+          id?: string
+          paginas_processadas?: number
+          status?: string
+          total_paginas?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_ficha_importacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

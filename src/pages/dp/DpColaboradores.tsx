@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal, FileText } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -390,6 +390,13 @@ export default function DpColaboradores() {
 
               <Link to="/dp/colaboradores/lixeira">
                 <Trash2 className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Lixeira</span>
+              </Link>
+            </Button>
+
+            <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
+              <Link to="/dp/colaboradores/importar-ficha">
+                <FileText className="h-4 w-4 sm:mr-2" />{" "}
+                <span className="hidden sm:inline">Importar ficha de registro</span>
               </Link>
             </Button>
 
