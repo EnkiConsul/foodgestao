@@ -8,15 +8,32 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FichaRevisaoCard } from "@/components/dp/ficha-registro/FichaRevisaoCard";
+import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpSetores } from "@/hooks/useDpSetores";
+import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   useDpFichaImportacoes, useDpFichaItens, useEnviarFichaPdf,
 } from "@/hooks/useDpFichaImportacao";
+
+/** Vínculos do cadastro (enum dp_regime_trabalho) — igual ao card de conferência. */
+const REGIMES: Array<{ value: string; label: string }> = [
+  { value: "clt", label: "CLT efetivo" },
+  { value: "intermitente", label: "CLT intermitente" },
+  { value: "estagio", label: "Estagiário" },
+  { value: "temporario", label: "Temporário" },
+  { value: "pj", label: "PJ / Sócio" },
+  { value: "mei", label: "MEI" },
+  { value: "freelancer", label: "Freelancer (sem registro)" },
+];
+
 
 export default function DpFichaRegistroImportar() {
   const { selectedCompanyId } = useCompanyContext();
