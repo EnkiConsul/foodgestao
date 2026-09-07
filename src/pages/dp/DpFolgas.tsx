@@ -55,6 +55,7 @@ import { CalendarSkeleton } from "@/components/dp/DpSkeletons";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
+import { useDpFolgaReserva } from "@/hooks/useDpFolgaReserva";
 import { useAuth } from "@/hooks/useAuth";
 import {
   diasValidosDoItem,
