@@ -918,10 +918,12 @@ export default function DpFolgas() {
                 const isToday = isSameDay(day, new Date());
                 const cap = capacityByDay.get(key) ?? null;
                 const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
+                const reserva = (reservasByDay.get(key) ?? 0);
+                const aprovComReserva = aprov + reserva;
                 const blocked = blockedByDate.get(key);
-                const lotado = !blocked && cap != null && cap > 0 && aprov >= cap;
+                const lotado = !blocked && cap != null && cap > 0 && aprovComReserva >= cap;
 
-                const parcial = !blocked && aprov > 0 && !lotado;
+                const parcial = !blocked && aprovComReserva > 0 && !lotado;
 
                 return (
                   <button
@@ -962,7 +964,10 @@ export default function DpFolgas() {
                               : "bg-emerald-100 text-emerald-700",
                           )}
                         >
-                          {aprov}{cap != null ? `/${cap}` : ""}
+                          {aprovComReserva}{cap != null ? `/${cap}` : ""}
+                          {reserva > 0 && (
+                            <span className="ml-1 text-[9px] opacity-80">(+{reserva})</span>
+                          )}
 
                         </span>
                       )}
