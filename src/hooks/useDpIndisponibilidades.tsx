@@ -25,7 +25,10 @@ const ymdLocal = (d: Date) =>
 function mensagemErro(raw: string): string {
   if (raw.includes("PAST_DATE_NOT_EDITABLE")) return "Dias que já passaram não podem ser alterados.";
   if (raw.includes("ACCEPTED_CALL_REQUIRES_REPLACEMENT"))
-    return "Você já confirmou uma convocação neste dia. Para informar que não poderá trabalhar, será necessário solicitar substituição.";
+    return "Você já confirmou uma convocação neste dia. Confirme o aviso ao gestor para prosseguir.";
+  if (raw.includes("CIENCIA_MULTA_OBRIGATORIA"))
+    return "É preciso marcar a ciência da multa prevista em lei para enviar o aviso.";
+  if (raw.includes("INVALID_INPUT")) return "Informe o motivo para enviar o aviso.";
   if (raw.includes("REGIME_NAO_CONVOCAVEL"))
     return "Seu vínculo usa o fluxo de folgas, não a agenda de disponibilidade.";
   if (raw.includes("FORBIDDEN")) return "Você não tem acesso a esta ação.";
