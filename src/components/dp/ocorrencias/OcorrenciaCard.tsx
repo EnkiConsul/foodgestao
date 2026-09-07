@@ -165,7 +165,7 @@ export function OcorrenciaCard({
           )}
           {onHistorico && (
             <Button size="sm" variant="ghost" onClick={onHistorico}>
-              <History className="mr-1 h-3.5 w-3.5" /> Histórico
+              <HistoryIcon className="mr-1 h-3.5 w-3.5" /> Histórico
             </Button>
           )}
         </div>
