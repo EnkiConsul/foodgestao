@@ -121,6 +121,13 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
     (colaborador as any)?.unidade_id ?? null,
   );
 
+  /** Campos essenciais em branco — aviso no topo da ficha. */
+  const faltandoFicha = useMemo(
+    () => (colaborador && colaborador.ativo ? camposFaltando(colaborador as never) : []),
+    [colaborador],
+  );
+
+
   const perfil = (colaborador as any)?.perfil_acesso as string | null;
   const isDesligado = !!colaborador?.data_desligamento;
   const folga = (colaborador as any)?.folga_fixa_semana;
