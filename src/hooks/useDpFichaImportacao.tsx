@@ -178,6 +178,11 @@ export interface AplicarFichaInput {
   dados: FichaDadosEditaveis;
   cargoId: string | null;
   unidadeId: string | null;
+  /** Setor escolhido na conferência (a ficha não traz setor). */
+  setorId?: string | null;
+  /** Vínculo escolhido na conferência (clt, intermitente, pj…). */
+  regime?: string | null;
+
   /** Quando o CPF já existe: atualizar o cadastro em vez de criar outro. */
   atualizarExistente: boolean;
   /** Grava também a configuração de jornada sugerida. */
