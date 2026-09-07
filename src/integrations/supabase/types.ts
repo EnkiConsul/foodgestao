@@ -13967,6 +13967,14 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_disponibilidade_painel: {
+        Args: {
+          _company_id: string
+          _competencia?: string
+          _unidade_id?: string
+        }
+        Returns: Json
+      }
       dp_documento_requisitos_seed: {
         Args: { _company_id: string }
         Returns: number
