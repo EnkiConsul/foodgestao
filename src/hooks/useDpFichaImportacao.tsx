@@ -301,6 +301,40 @@ export function useAplicarFicha() {
 
       }
 
+      if (anexarFicha && item.arquivo_path) {
+        // Copia o PDF de origem para os documentos do colaborador, registrando
+        // as páginas de onde a ficha foi lida. Falha aqui não desfaz o cadastro.
+        try {
+          const destino = `${selectedCompanyId}/${colaboradorId}/${Date.now()}-ficha-registro.pdf`;
+          const copia = await supabase.storage
+            .from(BUCKET)
+            // deno-lint-ignore no-explicit-any
+            .copy(item.arquivo_path, destino, { destinationBucket: DP_DOCUMENTOS_BUCKET } as any);
+          if (!copia.error) {
+            const paginas =
+              item.pagina_inicio && item.pagina_fim && item.pagina_fim !== item.pagina_inicio
+                ? `páginas ${item.pagina_inicio} a ${item.pagina_fim}`
+                : item.pagina_inicio
+                  ? `página ${item.pagina_inicio}`
+                  : null;
+            await supabase.from("dp_documentos").insert({
+              company_id: selectedCompanyId,
+              colaborador_id: colaboradorId,
+              file_path: destino,
+              file_name: "ficha-registro.pdf",
+              mime_type: "application/pdf",
+              tipo: "ficha_registro",
+              titulo: "Ficha de registro importada",
+              descricao: paginas ? `Arquivo de origem da importação (${paginas}).` : "Arquivo de origem da importação.",
+            });
+          }
+        } catch {
+          // anexo é complementar: segue sem interromper a importação
+        }
+      }
+
+
+
       const { error: itemErr } = await supabase
         .from("dp_ficha_importacao_itens")
         .update({
