@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/titleCase";
+import { DpActions, type DpAction } from "@/components/dp/DpActions";
 
 /**
  * Quando uma tela é renderizada dentro de outra (como aba), o wrapper
