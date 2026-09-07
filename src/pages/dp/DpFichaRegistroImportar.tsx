@@ -71,7 +71,24 @@ export default function DpFichaRegistroImportar() {
       return (data?.cnpj as string | null) ?? null;
     },
   });
+  const { setores: setoresEmpresa } = useDpSetores();
+  const setoresAtivos = useMemo(
+    () => setoresEmpresa
+      .filter((s) => s.ativo !== false)
+      .map((s) => ({ id: s.id, nome: s.nome, unidade_id: s.unidade_id })),
+    [setoresEmpresa],
+  );
 
+  // Setor e vínculo aplicados a todas as fichas (cargo, unidade e horário seguem ficha por ficha).
+  const [setorPadraoId, setSetorPadraoId] = useState<string | null>(null);
+  const [regimePadrao, setRegimePadrao] = useState<string | null>(null);
+
+  const { data: colaboradores = [] } = useDpColaboradores();
+  const [cadastroAbertoId, setCadastroAbertoId] = useState<string | null>(null);
+  const colaboradorAberto = useMemo(
+    () => colaboradores.find((c) => c.id === cadastroAbertoId) ?? null,
+    [colaboradores, cadastroAbertoId],
+  );
 
   useEffect(() => {
     if (!importacaoId && importacoes[0]) setImportacaoId(importacoes[0].id);
@@ -79,6 +96,7 @@ export default function DpFichaRegistroImportar() {
 
   const pendentes = itens.filter((i) => ["pendente", "revisar", "duplicado"].includes(i.status));
   const prontos = itens.filter((i) => ["criado", "atualizado"].includes(i.status));
+
 
   const enviarArquivo = () => {
     if (!file) return;
