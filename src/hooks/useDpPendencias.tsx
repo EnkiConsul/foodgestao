@@ -727,6 +727,38 @@ export function useDpPendencias() {
         console.warn("pendencias/documentos:", e);
       }
 
+      // 14. Cadastro de colaborador incompleto (campos essenciais em branco)
+      try {
+        const { data: colabs } = await supabase
+          .from("dp_colaboradores")
+          .select(
+            "id, nome, setor_id, telefone, whatsapp, email_contato, endereco, data_nascimento, estado_civil, regime, pis_nit, salario_base",
+          )
+          .eq("company_id", selectedCompanyId!)
+          .eq("ativo", true);
+
+        const lista = (colabs ?? []) as any[];
+        const usaSetores = lista.some((c) => c.setor_id);
+        for (const c of lista) {
+          const faltando = camposFaltando(c, { exigirSetor: usaSetores });
+          if (faltando.length === 0) continue;
+          results.push({
+            id: `cadastro-incompleto-${c.id}`,
+            icon: UserCog,
+            titulo: `Completar cadastro de ${c.nome}`,
+            subtitulo: `Falta: ${resumoFaltando(faltando, 4)}`,
+            tipo: "Cadastro",
+            vencimento: null,
+            atrasoDias: 0,
+            url: `/dp/colaboradores?editar=${c.id}&aba=dados`,
+          });
+        }
+      } catch (e) {
+        console.warn("pendencias/cadastro-incompleto:", e);
+      }
+
+
+
 
       // Ordenar: mais atrasado primeiro; empate → vencimento mais próximo
       results.sort((a, b) => {
