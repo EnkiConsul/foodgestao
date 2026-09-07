@@ -13989,6 +13989,7 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_disponibilidade_lembretes_dia: { Args: never; Returns: number }
       dp_disponibilidade_painel: {
         Args: {
           _company_id: string
@@ -15478,6 +15479,7 @@ export type Database = {
         | "disponibilidade_janela_fechando"
         | "disponibilidade_alteracao_tardia"
         | "disponibilidade_conflito_convocacao"
+        | "disponibilidade_janela_encerrada"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -15962,6 +15964,7 @@ export const Constants = {
         "disponibilidade_janela_fechando",
         "disponibilidade_alteracao_tardia",
         "disponibilidade_conflito_convocacao",
+        "disponibilidade_janela_encerrada",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [

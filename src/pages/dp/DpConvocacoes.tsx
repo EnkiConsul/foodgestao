@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
-  BellRing, CalendarClock, CheckCircle2, ClipboardCheck, Clock, History, Pencil, Plus,
+  BellRing, CalendarClock, CalendarDays, CheckCircle2, ClipboardCheck, Clock, History, Pencil, Plus,
   Settings2, Users, CalendarRange,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { DpPage, DpPageHeader, DpContentCard, DpEmptyState } from "@/components/
 import { NovaConvocacaoPlanner } from "@/components/dp/convocacoes/NovaConvocacaoPlanner";
 import { ConvocacoesRegrasPanel } from "@/components/dp/convocacoes/ConvocacoesRegrasPanel";
 import { DisponibilidadePainel } from "@/components/dp/convocacoes/DisponibilidadePainel";
+import { PlanejamentoPainel } from "@/components/dp/convocacoes/PlanejamentoPainel";
 import { AprovacaoParcialDialog } from "@/components/dp/convocacoes/AprovacaoParcialDialog";
 import { useDpConvocacaoGrupos, type GrupoComOcorrencias } from "@/hooks/useDpConvocacaoGrupos";
 import {
@@ -272,6 +273,9 @@ export default function DpConvocacoes() {
           <TabsTrigger value="disponibilidade" className="gap-1.5">
             <CalendarRange className="h-4 w-4" /> Disponibilidade
           </TabsTrigger>
+          <TabsTrigger value="planejamento" className="gap-1.5">
+            <CalendarDays className="h-4 w-4" /> Planejamento
+          </TabsTrigger>
           <TabsTrigger value="regras" className="gap-1.5">
             <Settings2 className="h-4 w-4" /> Regras
           </TabsTrigger>
@@ -415,6 +419,16 @@ export default function DpConvocacoes() {
 
         <TabsContent value="disponibilidade" className="mt-3">
           <DisponibilidadePainel />
+        </TabsContent>
+
+        <TabsContent value="planejamento" className="mt-3">
+          <PlanejamentoPainel
+            onPlanejarDia={(unidade, data) => {
+              setEmEdicao(null);
+              setInicial({ unidadeId: unidade, datas: [data] });
+              setWizard(true);
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="regras" className="mt-3">
