@@ -53,3 +53,46 @@ export function contarPendencias(
     return nivel === "baixa";
   }).length;
 }
+
+const semAcento = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/**
+ * Trecho do texto lido do PDF que mais se aproxima dos termos informados.
+ * Serve para o usuário conferir de onde veio (ou por que faltou) um campo
+ * com leitura duvidosa. Devolve null quando nada parecido é encontrado.
+ */
+export function trechoDoTexto(
+  texto: string | null | undefined,
+  termos: Array<string | null | undefined>,
+  linhasContexto = 1,
+): string | null {
+  const bruto = (texto ?? "").trim();
+  if (!bruto) return null;
+  const linhas = bruto.split(/\r?\n/);
+  const alvos = termos
+    .map((t) => semAcento(String(t ?? "").trim()))
+    .filter((t) => t.length >= 3);
+  if (alvos.length === 0) return null;
+
+  let melhor = -1;
+  let melhorPontos = 0;
+  linhas.forEach((linha, i) => {
+    const norm = semAcento(linha);
+    const pontos = alvos.filter((a) => norm.includes(a)).length;
+    if (pontos > melhorPontos) {
+      melhorPontos = pontos;
+      melhor = i;
+    }
+  });
+  if (melhor < 0) return null;
+
+  const inicio = Math.max(0, melhor - linhasContexto);
+  const fim = Math.min(linhas.length, melhor + linhasContexto + 1);
+  return linhas
+    .slice(inicio, fim)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .join("\n");
+}
+

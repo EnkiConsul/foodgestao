@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { matchCargo } from "@/lib/dp/ficha-registro/cargo-match";
 import { matchTurno, type TurnoCadastrado } from "@/lib/dp/ficha-registro/turno-match";
 import { formatCnpj, matchUnidade } from "@/lib/dp/ficha-registro/unidade-match";
-import { CONFIANCA_LABEL, nivelDoCampo, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
+import { CONFIANCA_LABEL, nivelDoCampo, trechoDoTexto, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
 import { montarPayloadFicha } from "@/lib/dp/ficha-registro/payload";
 import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
@@ -95,6 +95,7 @@ export function FichaRevisaoCard({
   const [usarJornada, setUsarJornada] = useState(true);
   const [atualizar, setAtualizar] = useState(!!item.colaborador_existente_id);
   const [anexarFicha, setAnexarFicha] = useState(true);
+  const [trechos, setTrechos] = useState<Record<string, boolean>>({});
   const [verTexto, setVerTexto] = useState(false);
   const [cargoDialog, setCargoDialog] = useState(false);
   const [comparacao, setComparacao] = useState(false);
@@ -186,6 +187,9 @@ export function FichaRevisaoCard({
   const campo = (label: string, nome: string, tipo: "text" | "date" = "text") => {
     const valor = dados[nome];
     const nivel = nivelDoCampo(valor, confianca, nome);
+    const duvidoso = nivel === "baixa" || nivel === "ausente";
+    const trecho = duvidoso ? trechoDoTexto(item.texto_origem, [label, valor as string]) : null;
+    const aberto = !!trechos[nome];
     return (
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2">
@@ -201,9 +205,26 @@ export function FichaRevisaoCard({
           onChange={(e) => set(nome, e.target.value)}
           disabled={aplicado || ignorado}
         />
+        {trecho && (
+          <>
+            <button
+              type="button"
+              className="text-[11px] text-muted-foreground underline underline-offset-2"
+              onClick={() => setTrechos((t) => ({ ...t, [nome]: !t[nome] }))}
+            >
+              {aberto ? "Esconder trecho lido" : "Ver trecho lido"}
+            </button>
+            {aberto && (
+              <pre className="whitespace-pre-wrap rounded-md bg-muted p-2 text-[11px] leading-snug text-muted-foreground">
+                {trecho}
+              </pre>
+            )}
+          </>
+        )}
       </div>
     );
   };
+
 
   if (ignorado) {
     return (
