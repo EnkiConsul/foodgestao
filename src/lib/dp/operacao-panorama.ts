@@ -143,6 +143,8 @@ export interface PessoaAvulsaPanorama {
   observacao: string | null;
   /** Setor em que a pessoa atua no dia (guardado no próprio registro). */
   setor_id?: string | null;
+  /** Setor habitual do cadastro de apoio (folguista/teste), usado como padrão. */
+  setor_habitual_id?: string | null;
   /** Telefone de contato (folguista/teste). */
   telefone?: string | null;
   /** Cadastro reaproveitável de apoio que originou o registro. */
@@ -540,11 +542,16 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       unidade_id: a.unidade_id,
       cargo_id: a.cargo_id,
       cargo_nome: a.cargo_nome,
-      setor_id: a.setor_id ?? null,
-      setor_nome: a.setor_id ? nomeSetor.get(a.setor_id) ?? null : null,
-      setor_origem: a.setor_id ? "escala" : "nenhum",
-      setor_habitual_id: null,
-      setor_habitual_nome: null,
+      setor_id: a.setor_id ?? a.setor_habitual_id ?? null,
+      setor_nome: (() => {
+        const id = a.setor_id ?? a.setor_habitual_id ?? null;
+        return id ? nomeSetor.get(id) ?? null : null;
+      })(),
+      setor_origem: a.setor_id ? "escala" : a.setor_habitual_id ? "cadastro" : "nenhum",
+      setor_habitual_id: a.setor_habitual_id ?? null,
+      setor_habitual_nome: a.setor_habitual_id
+        ? nomeSetor.get(a.setor_habitual_id) ?? null
+        : null,
       socio: false,
       origem: "avulso",
       avulso_id: a.id,
@@ -797,8 +804,13 @@ export function mensagemAlerta(dia: ResultadoDia, avaliacao: AvaliacaoDia, unida
 export interface GrupoCargo {
   cargo_id: string | null;
   cargo_nome: string;
+  /** Setor do grupo, preenchido quando o agrupamento é por setor. */
+  setor_id?: string | null;
   pessoas: PessoaPanorama[];
 }
+
+/** Dimensão usada para agrupar as pessoas dentro de cada período do dia. */
+export type AgrupamentoEquipe = "cargo" | "setor";
 
 export interface BlocoFuncionamento {
   key: string;
@@ -813,6 +825,7 @@ export interface BlocoFuncionamento {
 }
 
 const SEM_CARGO = "Sem cargo definido";
+const SEM_SETOR_LABEL = "Sem Setor Definido";
 
 function agruparPorCargo(pessoas: PessoaPanorama[]): GrupoCargo[] {
   const mapa = new Map<string, GrupoCargo>();
@@ -829,6 +842,37 @@ function agruparPorCargo(pessoas: PessoaPanorama[]): GrupoCargo[] {
   return [...mapa.values()]
     .map((g) => ({ ...g, pessoas: [...g.pessoas].sort((a, b) => a.nome.localeCompare(b.nome)) }))
     .sort((a, b) => a.cargo_nome.localeCompare(b.cargo_nome));
+}
+
+/** Agrupa por setor efetivo do dia; quem está sem setor fica num grupo à parte. */
+function agruparPorSetor(pessoas: PessoaPanorama[]): GrupoCargo[] {
+  const mapa = new Map<string, GrupoCargo>();
+  for (const p of pessoas) {
+    const chave = p.setor_id ?? "sem-setor";
+    const atual = mapa.get(chave) ?? {
+      cargo_id: null,
+      cargo_nome: p.setor_id ? p.setor_nome ?? SEM_SETOR_LABEL : SEM_SETOR_LABEL,
+      setor_id: p.setor_id ?? null,
+      pessoas: [],
+    };
+    atual.pessoas.push(p);
+    mapa.set(chave, atual);
+  }
+  return [...mapa.values()]
+    .map((g) => ({ ...g, pessoas: [...g.pessoas].sort((a, b) => a.nome.localeCompare(b.nome)) }))
+    .sort((a, b) => {
+      if (!a.setor_id) return 1;
+      if (!b.setor_id) return -1;
+      return a.cargo_nome.localeCompare(b.cargo_nome);
+    });
+}
+
+/** Agrupa a equipe do período pela dimensão escolhida na tela. */
+export function agruparEquipe(
+  pessoas: PessoaPanorama[],
+  agrupar: AgrupamentoEquipe = "cargo",
+): GrupoCargo[] {
+  return agrupar === "setor" ? agruparPorSetor(pessoas) : agruparPorCargo(pessoas);
 }
 
 /** Minutos do período, esticando o fechamento quando ele vira o dia. */
@@ -921,7 +965,10 @@ export function blocosPorFuncionamento(input: {
   unidades: { id: string; nome: string }[];
   /** Quando null, agrupa por unidade. */
   unidadeId: string | null;
+  /** Dimensão dos grupos dentro de cada período (padrão: cargo). */
+  agrupar?: AgrupamentoEquipe;
 }): BlocoFuncionamento[] {
+  const agrupar = (pessoas: PessoaPanorama[]) => agruparEquipe(pessoas, input.agrupar ?? "cargo");
   const dow = dowDaData(input.data);
   const nomeUnidade = new Map(input.unidades.map((u) => [u.id, u.nome]));
   const alvos = input.unidadeId
@@ -959,7 +1006,7 @@ export function blocosPorFuncionamento(input: {
         unidade_nome: nomeUnidade.get(uid) ?? null,
         fechado: false,
         pessoas,
-        grupos: agruparPorCargo(pessoas),
+        grupos: agrupar(pessoas),
       });
     });
 
@@ -978,7 +1025,7 @@ export function blocosPorFuncionamento(input: {
         unidade_nome: nomeUnidade.get(uid) ?? null,
         fechado: false,
         pessoas: semHorario,
-        grupos: agruparPorCargo(semHorario),
+        grupos: agrupar(semHorario),
       });
     }
 
@@ -999,7 +1046,7 @@ export function blocosPorFuncionamento(input: {
         unidade_nome: nomeUnidade.get(uid) ?? null,
         fechado,
         pessoas: restantes,
-        grupos: agruparPorCargo(restantes),
+        grupos: agrupar(restantes),
       });
     }
   }
@@ -1013,7 +1060,7 @@ export function blocosPorFuncionamento(input: {
       unidade_nome: null,
       fechado: false,
       pessoas: semUnidade,
-      grupos: agruparPorCargo(semUnidade),
+      grupos: agrupar(semUnidade),
     });
   }
 

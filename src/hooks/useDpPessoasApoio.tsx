@@ -11,6 +11,8 @@ export interface PessoaApoio {
   tipo: PessoaApoioTipo;
   cargo_id: string | null;
   unidade_id: string | null;
+  /** Setor habitual dentro da unidade (opcional). */
+  setor_id: string | null;
   cpf: string | null;
   genero: string | null;
   data_nascimento: string | null;
@@ -19,13 +21,14 @@ export interface PessoaApoio {
   ativo: boolean;
 }
 
-export interface PessoaApoioInput extends Omit<PessoaApoio, "id" | "ativo"> {
+export interface PessoaApoioInput extends Omit<PessoaApoio, "id" | "ativo" | "setor_id"> {
   id?: string;
   ativo?: boolean;
+  setor_id?: string | null;
 }
 
 const COLS =
-  "id, nome, telefone, tipo, cargo_id, unidade_id, cpf, genero, data_nascimento, observacao, colaborador_id, ativo";
+  "id, nome, telefone, tipo, cargo_id, unidade_id, setor_id, cpf, genero, data_nascimento, observacao, colaborador_id, ativo";
 
 /** Banco de folguistas e pessoas em teste reaproveitáveis na rotina do dia. */
 export function useDpPessoasApoio(opts?: { apenasAtivos?: boolean }) {
@@ -60,6 +63,7 @@ export function useSalvarDpPessoaApoio() {
         tipo: input.tipo,
         cargo_id: input.cargo_id || null,
         unidade_id: input.unidade_id || null,
+        setor_id: input.setor_id || null,
         cpf: input.cpf?.replace(/\D/g, "") || null,
         genero: input.genero || null,
         data_nascimento: input.data_nascimento || null,

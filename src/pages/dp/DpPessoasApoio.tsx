@@ -26,6 +26,8 @@ import {
   useDpPessoasApoio, useExcluirDpPessoaApoio, useSalvarDpPessoaApoio,
   type PessoaApoio, type PessoaApoioTipo,
 } from "@/hooks/useDpPessoasApoio";
+import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
+import { useDpSetores } from "@/hooks/useDpSetores";
 import { pessoaApoioSchema, validateWithToast } from "@/lib/validations";
 
 const TIPO_LABEL: Record<PessoaApoioTipo, string> = {
@@ -39,6 +41,7 @@ const vazio = {
   tipo: "folguista" as PessoaApoioTipo,
   cargo_id: "",
   unidade_id: "",
+  setor_id: "",
   cpf: "",
   genero: "",
   data_nascimento: "",
@@ -56,6 +59,7 @@ export default function DpPessoasApoio() {
   const cargos = useDpCargos();
   const salvar = useSalvarDpPessoaApoio();
   const excluir = useExcluirDpPessoaApoio();
+  const { todos: todosSetores } = useDpSetores();
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -65,6 +69,7 @@ export default function DpPessoasApoio() {
 
   const nomeCargo = (id: string | null) => (cargos.data ?? []).find((c) => c.id === id)?.nome ?? "—";
   const nomeUnidade = (id: string | null) => (unidades.data ?? []).find((u) => u.id === id)?.nome ?? "—";
+  const nomeSetor = (id: string | null) => (id ? todosSetores.find((s) => s.id === id)?.nome ?? null : null);
 
   const visiveis = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -83,6 +88,7 @@ export default function DpPessoasApoio() {
             tipo: p.tipo,
             cargo_id: p.cargo_id ?? "",
             unidade_id: p.unidade_id ?? "",
+            setor_id: p.setor_id ?? "",
             cpf: p.cpf ?? "",
             genero: p.genero ?? "",
             data_nascimento: p.data_nascimento ?? "",
@@ -112,7 +118,12 @@ export default function DpPessoasApoio() {
     );
     if (!parsed) return;
     try {
-      await salvar.mutateAsync({ ...candidato, ativo: form.ativo, id: editando?.id });
+      await salvar.mutateAsync({
+        ...candidato,
+        setor_id: form.setor_id || null,
+        ativo: form.ativo,
+        id: editando?.id,
+      });
       toast.success(editando ? "Cadastro atualizado" : "Pessoa cadastrada");
       setDialogOpen(false);
     } catch (e) {
@@ -193,6 +204,7 @@ export default function DpPessoasApoio() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {nomeCargo(p.cargo_id)} · {nomeUnidade(p.unidade_id)}
+                      {nomeSetor(p.setor_id) ? ` · ${nomeSetor(p.setor_id)}` : ""}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" onClick={() => abrir(p)} aria-label="Editar">
@@ -284,7 +296,9 @@ export default function DpPessoasApoio() {
                 <Label>Unidade habitual</Label>
                 <Select
                   value={form.unidade_id || "nenhum"}
-                  onValueChange={(v) => setForm({ ...form, unidade_id: v === "nenhum" ? "" : v })}
+                  onValueChange={(v) =>
+                    setForm({ ...form, unidade_id: v === "nenhum" ? "" : v, setor_id: "" })
+                  }
                 >
                   <SelectTrigger><SelectValue placeholder="Não definida" /></SelectTrigger>
                   <SelectContent>
@@ -296,6 +310,13 @@ export default function DpPessoasApoio() {
                 </Select>
               </div>
             </div>
+
+            <ColaboradorSetorField
+              unidadeId={form.unidade_id || null}
+              value={form.setor_id || null}
+              onChange={(id) => setForm({ ...form, setor_id: id ?? "" })}
+            />
+
 
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">

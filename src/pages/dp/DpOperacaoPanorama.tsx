@@ -43,6 +43,7 @@ import { AlterarSetorDiaDialog, type AlterarSetorAlvo } from "@/components/dp/se
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import {
   blocosPorFuncionamento,
+  type AgrupamentoEquipe,
   CATEGORIA_LABEL,
   mensagemAlerta,
   somarDias,
@@ -182,6 +183,7 @@ const CARDS_MES = ["dias_mes", "media_pessoas", "dias_fora_padrao", "dias_sem_ni
 type CardMesKey = (typeof CARDS_MES)[number];
 
 const PREFS_KEY = "operacao_cards";
+const AGRUP_KEY = "operacao_agrupamento";
 const UNIDADE_KEY = "operacao_unidade";
 
 /** Card arrastável: o conteúdo é o DpStatCard normal com um handle discreto. */
@@ -302,6 +304,9 @@ interface DetalheDiaProps {
   /** A dimensão Setor só aparece quando a unidade tem setor cadastrado. */
   usaSetores?: boolean;
   onAlterarSetor?: (pessoa: PessoaPanorama, data: string) => void;
+  /** Dimensão dos grupos dentro de cada período: cargo ou setor. */
+  agrupamento?: AgrupamentoEquipe;
+  onAgrupamento?: (v: AgrupamentoEquipe) => void;
   onNovaAvulsa: (data: string) => void;
   onEditarAvulsa: (registro: PessoaAvulsaPanorama) => void;
   onExcluirAvulsa: (registro: PessoaAvulsaPanorama) => void;
@@ -335,6 +340,8 @@ function DetalheDiaOperacao({
   podeRegistrar,
   usaSetores,
   onAlterarSetor,
+  agrupamento,
+  onAgrupamento,
   onNovaAvulsa,
   onEditarAvulsa,
   onExcluirAvulsa,
@@ -417,6 +424,30 @@ function DetalheDiaOperacao({
         </Secao>
       )}
 
+      {usaSetores && onAgrupamento && blocos.length > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Agrupar por</span>
+          <div className="inline-flex overflow-hidden rounded-full border">
+            <Button
+              variant={agrupamento === "setor" ? "ghost" : "secondary"}
+              size="sm"
+              className="h-8 rounded-none px-3 text-xs"
+              onClick={() => onAgrupamento("cargo")}
+            >
+              Cargo
+            </Button>
+            <Button
+              variant={agrupamento === "setor" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 rounded-none px-3 text-xs"
+              onClick={() => onAgrupamento("setor")}
+            >
+              Setor
+            </Button>
+          </div>
+        </div>
+      )}
+
       {blocos.length ? (
         blocos.map((bloco) => (
           <Secao
@@ -434,7 +465,7 @@ function DetalheDiaOperacao({
             {bloco.pessoas.length ? (
               <div className="space-y-3">
                 {bloco.grupos.map((g) => (
-                  <div key={g.cargo_id ?? "sem-cargo"}>
+                  <div key={g.setor_id ?? g.cargo_id ?? "sem-grupo"}>
                     <p className="mb-1 text-xs font-semibold text-muted-foreground">
                       {g.cargo_nome} ({g.pessoas.length})
                     </p>
@@ -708,6 +739,13 @@ export default function DpOperacaoPanorama() {
   const ordemDia = useMemo(() => ordenar(CARDS_DIA, ordemSalva?.dia), [ordemSalva?.dia]);
   const ordemMes = useMemo(() => ordenar(CARDS_MES, ordemSalva?.mes), [ordemSalva?.mes]);
 
+  const agrupamento =
+    ((prefs.extras as Record<string, unknown>)?.[AGRUP_KEY] as AgrupamentoEquipe | undefined) ??
+    "cargo";
+
+  const salvarAgrupamento = (v: AgrupamentoEquipe) =>
+    save({ extras: { ...(prefs.extras ?? {}), [AGRUP_KEY]: v } });
+
   const salvarOrdem = (chave: "dia" | "mes", next: string[]) =>
     save({
       extras: { ...(prefs.extras ?? {}), [PREFS_KEY]: { ...(ordemSalva ?? {}), [chave]: next } },
@@ -735,6 +773,7 @@ export default function DpOperacaoPanorama() {
       funcionamentoPorUnidade: panorama.funcionamentoPorUnidade,
       unidades: panorama.unidades,
       unidadeId,
+      agrupar: agrupamento,
     });
   };
 
@@ -747,7 +786,7 @@ export default function DpOperacaoPanorama() {
   const blocos = useMemo(
     () => blocosDe(data, dia),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dia, data, unidadeId, panorama.funcionamentoPorUnidade, panorama.unidades],
+    [dia, data, unidadeId, agrupamento, panorama.funcionamentoPorUnidade, panorama.unidades],
   );
   const sociosAusentes = useMemo(() => sociosDe(dia), [dia]);
 
@@ -838,6 +877,8 @@ export default function DpOperacaoPanorama() {
         setor_habitual_nome: p.setor_habitual_nome ?? null,
         avulsa_id: p.avulso_id ?? null,
       }),
+    agrupamento,
+    onAgrupamento: salvarAgrupamento,
   };
 
   const propsAvulsas = {
