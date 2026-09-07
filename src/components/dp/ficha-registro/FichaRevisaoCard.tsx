@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, Check, Loader2, UserCheck, X } from "lucide-react";
+import { AlertTriangle, Check, FileText, Loader2, Plus, UserCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { matchCargo } from "@/lib/dp/ficha-registro/cargo-match";
+import { matchTurno, type TurnoCadastrado } from "@/lib/dp/ficha-registro/turno-match";
 import { CONFIANCA_LABEL, nivelDoCampo, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
+import { CargoCorrespondenciaDialog } from "./CargoCorrespondenciaDialog";
+import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
 import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
+
 
 const DOW_LABEL = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
