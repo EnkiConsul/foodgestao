@@ -96,6 +96,11 @@ export default function DpOcorrencias() {
   const { data: unidades = [] } = useDpUnidades();
   const { setores } = useDpSetores(filtros.unidadeId === "all" ? null : filtros.unidadeId);
   const { data: pessoasApoio = [] } = useDpPessoasApoio({ apenasAtivos: true });
+  const { indicadores } = useDpOcorrenciasIndicadores({
+    inicio: mes.inicio,
+    fim: mes.fim,
+    unidadeId: filtros.unidadeId,
+  });
 
   const colaboradoresAtivos = useMemo(
     () => colaboradores.filter((c) => c.ativo).map((c) => ({ id: c.id, nome: c.nome })),
