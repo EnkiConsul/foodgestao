@@ -8799,6 +8799,7 @@ export type Database = {
           id: string
           nome: string
           observacao: string | null
+          setor_id: string | null
           telefone: string | null
           tipo: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
           unidade_id: string | null
@@ -8817,6 +8818,7 @@ export type Database = {
           id?: string
           nome: string
           observacao?: string | null
+          setor_id?: string | null
           telefone?: string | null
           tipo?: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
           unidade_id?: string | null
@@ -8835,6 +8837,7 @@ export type Database = {
           id?: string
           nome?: string
           observacao?: string | null
+          setor_id?: string | null
           telefone?: string | null
           tipo?: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
           unidade_id?: string | null
@@ -8867,6 +8870,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_apoio_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "dp_setores"
             referencedColumns: ["id"]
           },
           {
@@ -14528,6 +14538,7 @@ export type Database = {
           id: string
           nome: string
           observacao: string | null
+          setor_id: string | null
           telefone: string | null
           tipo: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
           unidade_id: string | null
