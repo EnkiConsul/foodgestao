@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { useDpMenuLayout } from "@/hooks/useDpMenuLayout";
 import { useHiddenScreens } from "@/hooks/useHiddenScreens";
 import { filterMoreGroups } from "@/lib/nav/hiddenScreens";
+import { searchNavItems } from "@/lib/nav/navSearch";
+
 import {
   orderLeavesByLayout,
   orderSubgroupsByLayout,
@@ -82,10 +84,11 @@ export default function Mais() {
   const q = norm(query.trim());
   const isSearching = q.length > 0;
 
-  const searchResults = useMemo(() => {
-    if (!isSearching) return [];
-    return allItems.filter((it) => norm(it.label).includes(q));
-  }, [allItems, q, isSearching]);
+  const searchResults = useMemo(
+    () => (isSearching ? searchNavItems(config.moreGroups, query) : []),
+    [config.moreGroups, query, isSearching],
+  );
+
 
   const handleToggleFav = (to: string, label: string) => {
     const res = toggle(to);
