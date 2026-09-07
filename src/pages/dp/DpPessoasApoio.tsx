@@ -86,6 +86,7 @@ export default function DpPessoasApoio() {
             tipo: p.tipo,
             cargo_id: p.cargo_id ?? "",
             unidade_id: p.unidade_id ?? "",
+            setor_id: p.setor_id ?? "",
             cpf: p.cpf ?? "",
             genero: p.genero ?? "",
             data_nascimento: p.data_nascimento ?? "",
@@ -115,7 +116,12 @@ export default function DpPessoasApoio() {
     );
     if (!parsed) return;
     try {
-      await salvar.mutateAsync({ ...candidato, ativo: form.ativo, id: editando?.id });
+      await salvar.mutateAsync({
+        ...candidato,
+        setor_id: form.setor_id || null,
+        ativo: form.ativo,
+        id: editando?.id,
+      });
       toast.success(editando ? "Cadastro atualizado" : "Pessoa cadastrada");
       setDialogOpen(false);
     } catch (e) {
