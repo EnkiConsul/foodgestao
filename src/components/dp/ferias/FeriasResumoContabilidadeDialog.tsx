@@ -1,8 +1,6 @@
 import { toast } from "sonner";
 import { Copy, Download } from "lucide-react";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Button } from "@/components/ui/button";
 
 export type ResumoContabilidade = {
@@ -66,20 +64,13 @@ export function FeriasResumoContabilidadeDialog({ resumo, onOpenChange, saving, 
   };
 
   return (
-    <Dialog open={!!resumo} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Informar à contabilidade</DialogTitle>
-        </DialogHeader>
-
-        <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-xl bg-muted/50 p-3 text-sm">
-          {texto}
-        </pre>
-        <p className="text-xs text-muted-foreground">
-          Nenhum valor é calculado aqui. A contabilidade confere e processa o pagamento.
-        </p>
-
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
+    <DpDialogShell
+      open={!!resumo}
+      onOpenChange={onOpenChange}
+      title="Informar à contabilidade"
+      className="sm:max-w-lg"
+      footer={
+        <>
           <Button variant="outline" onClick={() => void copiar()}>
             <Copy className="mr-1 size-4" /> Copiar
           </Button>
@@ -89,8 +80,20 @@ export function FeriasResumoContabilidadeDialog({ resumo, onOpenChange, saving, 
           <Button disabled={saving} onClick={onConfirmar}>
             {saving ? "Salvando…" : "Marcar como informada"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <div className="space-y-4">
+
+
+        <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-xl bg-muted/50 p-3 text-sm">
+          {texto}
+        </pre>
+        <p className="text-xs text-muted-foreground">
+          Nenhum valor é calculado aqui. A contabilidade confere e processa o pagamento.
+        </p>
+
+      </div>
+    </DpDialogShell>
   );
 }

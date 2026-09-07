@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -45,16 +43,26 @@ export function FolhaDespesaDialog({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Gerar Despesa no Financeiro</DialogTitle>
-          <DialogDescription>
-            Cria uma conta a pagar de {formatarBRL(total)} referente à folha de {competencia}.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Gerar Despesa no Financeiro"
+      description={`Cria uma conta a pagar de ${formatarBRL(total)} referente à folha de ${competencia}.`}
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button
+            disabled={isPending || !dataPagamento}
+            onClick={() => onConfirm({ accountId: accountId || null, categoryId: categoryId || null, dataPagamento })}
+          >
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Gerar Despesa
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="folha-conta">Conta financeira (opcional)</Label>
             <Select value={accountId} onValueChange={setAccountId}>
@@ -88,19 +96,7 @@ export function FolhaDespesaDialog({
               onChange={(e) => setDataPagamento(e.target.value)}
             />
           </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button
-            disabled={isPending || !dataPagamento}
-            onClick={() => onConfirm({ accountId: accountId || null, categoryId: categoryId || null, dataPagamento })}
-          >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Gerar Despesa
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DpDialogShell>
   );
 }

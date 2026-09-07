@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MARCACAO_LABEL, TIPO_LABEL } from "@/lib/dp/ocorrencias";
@@ -31,17 +24,31 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, on
   if (!ocorrencia) return null;
 
   return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Tratativa de ponto</DialogTitle>
-          <DialogDescription>
-            {ocorrencia.colaborador?.nome} — {TIPO_LABEL[ocorrencia.tipo]}
-            {ocorrencia.marcacao_alvo ? ` (${MARCACAO_LABEL[ocorrencia.marcacao_alvo]})` : ""}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
+    <DpDialogShell
+      open
+      onOpenChange={onOpenChange}
+      title="Tratativa de ponto"
+      description={`${ocorrencia.colaborador?.nome} — ${TIPO_LABEL[ocorrencia.tipo]}${ocorrencia.marcacao_alvo ? ` (${MARCACAO_LABEL[ocorrencia.marcacao_alvo]})` : ""}`}
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Fechar
+          </Button>
+          <Button
+            variant="outline"
+            disabled={saving}
+            onClick={() => onSubmit({ decisao: "ajuste_solicitado", observacao })}
+          >
+            Solicitar ajuste
+          </Button>
+          <Button disabled={saving} onClick={() => onSubmit({ decisao: "confirmada", observacao })}>
+            Confirmar informação
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
           {ocorrencia.horario_real && (
             <p className="text-sm text-muted-foreground">
               Horário informado: <strong>{ocorrencia.horario_real.slice(0, 5)}</strong>
@@ -59,24 +66,7 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, on
           <p className="rounded-md border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
             Esta tratativa não altera o ponto. Ela só registra a decisão para quem fará o tratamento.
           </p>
-        </div>
-
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-          <Button
-            variant="outline"
-            disabled={saving}
-            onClick={() => onSubmit({ decisao: "ajuste_solicitado", observacao })}
-          >
-            Solicitar ajuste
-          </Button>
-          <Button disabled={saving} onClick={() => onSubmit({ decisao: "confirmada", observacao })}>
-            Confirmar informação
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DpDialogShell>
   );
 }

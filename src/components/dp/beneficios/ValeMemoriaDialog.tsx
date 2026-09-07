@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Badge } from "@/components/ui/badge";
 import { DIA_SEMANA_CURTO } from "@/lib/dp/dsr-rules";
 import { CLASSE_DIA_LABEL, MOTIVO_DESCONTO_LABEL, type ClasseDia, type MotivoDesconto } from "@/lib/dp/va-calculo";
@@ -60,23 +60,25 @@ export function ValeMemoriaDialog({ open, onOpenChange, linha, valeLabel }: Prop
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-base">{linha.nome} — memória de cálculo</DialogTitle>
-          <DialogDescription>
-            {valeLabel} · cobertura de {dataCurta(linha.periodo.cobertura.inicio)} a{" "}
-            {dataCurta(linha.periodo.cobertura.fim)} · conferência de{" "}
-            {dataCurta(linha.periodo.conferencia.inicio)} a {dataCurta(linha.periodo.conferencia.fim)} · regra da{" "}
-            {linha.origemRegra === "colaborador"
-              ? "ficha do colaborador"
-              : linha.origemRegra === "unidade"
-                ? "unidade"
-                : "empresa"}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`${linha.nome} — memória de cálculo`}
+      description={
+        <>
+          {valeLabel} · cobertura de {dataCurta(linha.periodo.cobertura.inicio)} a{" "}
+          {dataCurta(linha.periodo.cobertura.fim)} · conferência de{" "}
+          {dataCurta(linha.periodo.conferencia.inicio)} a {dataCurta(linha.periodo.conferencia.fim)} · regra da{" "}
+          {linha.origemRegra === "colaborador"
+            ? "ficha do colaborador"
+            : linha.origemRegra === "unidade"
+              ? "unidade"
+              : "empresa"}
+        </>
+      }
+      className="sm:max-w-2xl"
+    >
+      <div className="space-y-4">
           <div className="rounded-xl border border-border p-3">
             <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground">
               {DIA_SEMANA_CURTO.map((d) => (
@@ -141,8 +143,7 @@ export function ValeMemoriaDialog({ open, onOpenChange, linha, valeLabel }: Prop
           )}
 
           {linha.aviso && <p className="text-xs text-muted-foreground">{linha.aviso}</p>}
-        </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DpDialogShell>
   );
 }

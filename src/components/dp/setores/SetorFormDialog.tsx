@@ -6,9 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { useDpSetores, useUpsertDpSetor, type DpSetor } from "@/hooks/useDpSetores";
 
 interface Props {
@@ -64,21 +62,27 @@ export function SetorFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <LayoutGrid className="h-5 w-5 text-primary" aria-hidden="true" />
-            {setor ? "Editar setor" : "Novo setor"}
-          </DialogTitle>
-          <DialogDescription>
-            {unidadeNome
-              ? `Área operacional da unidade ${unidadeNome}.`
-              : "Área operacional da unidade selecionada."}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={LayoutGrid}
+      title={setor ? "Editar setor" : "Novo setor"}
+      description={
+        unidadeNome
+          ? `Área operacional da unidade ${unidadeNome}.`
+          : "Área operacional da unidade selecionada."
+      }
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={salvar} disabled={upsert.isPending}>
+            {setor ? "Salvar" : "Criar setor"}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="setor-nome">Nome do setor *</Label>
             <Input
@@ -131,15 +135,7 @@ export function SetorFormDialog({
               <Switch id="setor-ativo" checked={ativo} onCheckedChange={setAtivo} />
             </div>
           )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={salvar} disabled={upsert.isPending}>
-            {setor ? "Salvar" : "Criar setor"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DpDialogShell>
   );
 }

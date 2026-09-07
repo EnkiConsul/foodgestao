@@ -2,9 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -36,16 +34,23 @@ export function FolhaRubricasDialog({ open, onOpenChange, nome, extras, isPendin
   const totais = totaisDosExtras(validas);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Rubricas Avulsas</DialogTitle>
-          <DialogDescription>
-            Proventos e descontos manuais de {nome} nesta competência (adiantamento, prêmio, vale, empréstimo).
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3">
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Rubricas Avulsas"
+      description={`Proventos e descontos manuais de ${nome} nesta competência (adiantamento, prêmio, vale, empréstimo).`}
+      className="sm:max-w-lg"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button disabled={isPending} onClick={() => onConfirm(validas)}>
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Salvar Rubricas
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
           {linhas.map((l, i) => (
             <div key={i} className="grid grid-cols-1 gap-2 rounded-lg border p-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
               <div className="space-y-1">
@@ -104,16 +109,7 @@ export function FolhaRubricasDialog({ open, onOpenChange, nome, extras, isPendin
             <p>Proventos avulsos: <strong>{formatarBRL(totais.proventos)}</strong></p>
             <p>Descontos avulsos: <strong>{formatarBRL(totais.descontos)}</strong></p>
           </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={isPending} onClick={() => onConfirm(validas)}>
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar Rubricas
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DpDialogShell>
   );
 }
