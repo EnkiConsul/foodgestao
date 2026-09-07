@@ -185,7 +185,9 @@ export function FichaRevisaoCard({ item, cargos, unidades, unidadePadraoId }: Pr
                 </div>
               ))}
             </div>
-            {jornada.observacao && <p className="mt-2 text-[11px] text-muted-foreground">{jornada.observacao}</p>}
+            {jornada.vira_meia_noite && (
+              <p className="mt-2 text-[11px] text-muted-foreground">A saída acontece no dia seguinte.</p>
+            )}
           </div>
         )}
 
