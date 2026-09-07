@@ -54,13 +54,16 @@ export interface DpFilterChip {
 export function DpFilters({
   search,
   children,
-  activeCount = 0,
+  activeCount,
+  chips,
   onClear,
   columns = 4,
   className,
 }: DpFiltersProps) {
   const [open, setOpen] = useState(false);
   const hasFields = Boolean(children);
+  const chipsAtivos = chips?.filter(Boolean) ?? [];
+  const total = activeCount ?? chipsAtivos.length;
 
   const searchInput = search && (
     <div className="relative">
