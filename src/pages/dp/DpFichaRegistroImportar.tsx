@@ -190,6 +190,50 @@ export default function DpFichaRegistroImportar() {
       {pendentes.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold">Conferir e cadastrar ({pendentes.length})</h2>
+
+          <Card className="bg-muted/20">
+            <CardContent className="grid gap-3 p-4 sm:grid-cols-2">
+              <div className="space-y-1 sm:col-span-2">
+                <p className="text-sm font-medium">Aplicar a todas as fichas</p>
+                <p className="text-xs text-muted-foreground">
+                  Vale para as fichas em que você não escolher outro valor. Cargo, unidade e horário continuam ficha por ficha.
+                </p>
+              </div>
+              {setoresAtivos.length > 0 && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Setor</Label>
+                  <Select
+                    value={setorPadraoId ?? "__none"}
+                    onValueChange={(v) => setSetorPadraoId(v === "__none" ? null : v)}
+                  >
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Não aplicar</SelectItem>
+                      {setoresAtivos.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-1">
+                <Label className="text-xs">Vínculo</Label>
+                <Select
+                  value={regimePadrao ?? "__none"}
+                  onValueChange={(v) => setRegimePadrao(v === "__none" ? null : v)}
+                >
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">Não aplicar</SelectItem>
+                    {REGIMES.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
           {pendentes.map((item) => (
             <FichaRevisaoCard
               key={item.id}
@@ -197,8 +241,12 @@ export default function DpFichaRegistroImportar() {
               cargos={cargos.map((c) => ({ id: c.id, nome: c.nome, cbo: c.cbo }))}
               turnos={turnos}
               unidades={unidadesDaEmpresa}
+              setores={setoresAtivos}
               unidadePadraoId={unidadesDaEmpresa[0]?.id ?? null}
               empresaCnpj={empresaCnpj}
+              setorPadraoId={setorPadraoId}
+              regimePadrao={regimePadrao}
+              onAbrirCadastro={setCadastroAbertoId}
             />
           ))}
         </div>
@@ -214,11 +262,21 @@ export default function DpFichaRegistroImportar() {
               cargos={cargos.map((c) => ({ id: c.id, nome: c.nome, cbo: c.cbo }))}
               turnos={turnos}
               unidades={unidadesDaEmpresa}
+              setores={setoresAtivos}
               unidadePadraoId={null}
               empresaCnpj={empresaCnpj}
+              onAbrirCadastro={setCadastroAbertoId}
             />
           ))}
         </div>
+      )}
+
+      {colaboradorAberto && (
+        <ColaboradorFormDialog
+          open={!!colaboradorAberto}
+          onOpenChange={(o) => !o && setCadastroAbertoId(null)}
+          colaborador={colaboradorAberto}
+        />
       )}
 
       {atual && !processando && itens.length === 0 && atual.status !== "failed" && (
@@ -232,6 +290,7 @@ export default function DpFichaRegistroImportar() {
           </p>
         )
       )}
+
     </DpPage>
   );
 }
