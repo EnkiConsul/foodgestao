@@ -6,7 +6,7 @@ import { differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import { ClipboardList, FileCheck2, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap, UserCog } from "lucide-react";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
-import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
+import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
 
@@ -740,9 +740,9 @@ export function useDpPendencias() {
           .eq("ativo", true);
 
         const lista = (colabs ?? []) as any[];
-        const usaSetores = lista.some((c) => c.setor_id);
         for (const c of lista) {
-          const faltando = camposFaltando(c, { exigirSetor: usaSetores });
+          // Só campos obrigatórios geram pendência (opcionais ficam como sugestão na ficha).
+          const faltando = camposFaltandoObrigatorios(c);
           if (faltando.length === 0) continue;
           results.push({
             id: `cadastro-incompleto-${c.id}`,
