@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { AlertTriangle, Check, FileText, Loader2, Plus, UserCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { matchCargo } from "@/lib/dp/ficha-registro/cargo-match";
 import { matchTurno, type TurnoCadastrado } from "@/lib/dp/ficha-registro/turno-match";
+import { formatCnpj, matchUnidade } from "@/lib/dp/ficha-registro/unidade-match";
 import { CONFIANCA_LABEL, nivelDoCampo, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
 import { CargoCorrespondenciaDialog } from "./CargoCorrespondenciaDialog";
 import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
@@ -31,12 +33,13 @@ const NIVEL_CLASS: Record<NivelConfianca, string> = {
 interface Props {
   item: FichaItem;
   cargos: Array<{ id: string; nome: string; cbo?: string | null }>;
-  unidades: Array<{ id: string; nome: string }>;
+  unidades: Array<{ id: string; nome: string; cnpj?: string | null }>;
   turnos?: TurnoCadastrado[];
   unidadePadraoId: string | null;
+  empresaCnpj?: string | null;
 }
 
-export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadePadraoId }: Props) {
+export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadePadraoId, empresaCnpj }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
 
@@ -45,14 +48,21 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
     () => matchCargo({ cargo_nome: (dados.cargo_nome as string) ?? null, cbo: (dados.cbo as string) ?? null }, cargos),
     [dados.cargo_nome, dados.cbo, cargos],
   );
+  const unidadeSugerida = useMemo(() => matchUnidade(dados, unidades, empresaCnpj), [dados, unidades, empresaCnpj]);
   const [cargoId, setCargoId] = useState<string | null>(cargoSugerido.cargo_id);
-  const [unidadeId, setUnidadeId] = useState<string | null>(unidadePadraoId ?? unidades[0]?.id ?? null);
+  const [unidadeId, setUnidadeId] = useState<string | null>(
+    unidadeSugerida.unidade_id ?? unidadePadraoId ?? unidades[0]?.id ?? null,
+  );
   const [usarJornada, setUsarJornada] = useState(true);
   const [atualizar, setAtualizar] = useState(!!item.colaborador_existente_id);
   const [anexarFicha, setAnexarFicha] = useState(true);
   const [verTexto, setVerTexto] = useState(false);
   const [cargoDialog, setCargoDialog] = useState(false);
   const [comparacao, setComparacao] = useState(false);
+  const [confirmouEmpresa, setConfirmouEmpresa] = useState(false);
+  const empresaDivergente = unidadeSugerida.empresaConfere === "nao";
+  const bloqueadoPorEmpresa = empresaDivergente && !confirmouEmpresa;
+
 
   const jornada = useMemo(() => jornadaDaFicha(dados), [dados]);
   const turnoSugerido = useMemo(() => matchTurno(jornada, turnos, unidadeId), [jornada, turnos, unidadeId]);
@@ -204,7 +214,27 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
                   ))}
                 </SelectContent>
               </Select>
+              {unidadeSugerida.unidade_id && unidadeSugerida.unidade_id === unidadeId && (
+                <p className="text-[11px] text-muted-foreground">
+                  {unidadeSugerida.motivo === "cnpj"
+                    ? `Unidade reconhecida pelo CNPJ da ficha (${formatCnpj(unidadeSugerida.cnpj_lido)}).`
+                    : "Unidade reconhecida pelo nome da empresa na ficha."}
+                </p>
+              )}
+              {!unidadeSugerida.unidade_id && !empresaDivergente && !!unidadeSugerida.cnpj_lido && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                  A ficha traz o CNPJ {formatCnpj(unidadeSugerida.cnpj_lido)}, que não está em nenhuma unidade.{" "}
+                  <Link to="/dp/unidades" className="underline">Completar o CNPJ nas unidades</Link> faz as próximas
+                  fichas serem reconhecidas sozinhas.
+                </p>
+              )}
+              {!unidadeSugerida.cnpj_lido && (
+                <p className="text-[11px] text-muted-foreground">
+                  Não conseguimos ler o CNPJ do empregador nesta ficha — confira a unidade.
+                </p>
+              )}
             </div>
+
           </div>
         )}
 
@@ -261,6 +291,23 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
           </div>
         )}
 
+        {empresaDivergente && !aplicado && (
+          <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+            <p className="flex items-center gap-2 text-xs font-medium text-destructive">
+              <AlertTriangle className="h-4 w-4" /> Ficha de outra empresa
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              O empregador desta ficha
+              {unidadeSugerida.empregador_lido ? ` (${unidadeSugerida.empregador_lido})` : ""} tem o CNPJ{" "}
+              {formatCnpj(unidadeSugerida.cnpj_lido)}, que não é da empresa em uso nem de nenhuma unidade cadastrada.
+            </p>
+            <div className="flex items-center gap-2">
+              <Switch checked={confirmouEmpresa} onCheckedChange={setConfirmouEmpresa} />
+              <span className="text-xs">Confirmo que esta ficha é desta empresa</span>
+            </div>
+          </div>
+        )}
+
         {item.colaborador_existente_id && !aplicado && (
           <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
             <Switch checked={atualizar} onCheckedChange={setAtualizar} />
@@ -302,7 +349,7 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
             </Button>
             <Button
               size="sm"
-              disabled={aplicar.isPending || (!!item.colaborador_existente_id && !atualizar)}
+              disabled={aplicar.isPending || bloqueadoPorEmpresa || (!!item.colaborador_existente_id && !atualizar)}
               onClick={() => {
                 if (atualizar && item.colaborador_existente_id) setComparacao(true);
                 else executar(null);

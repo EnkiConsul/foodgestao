@@ -232,13 +232,16 @@ const PROMPT = `Você lê FICHAS DE REGISTRO DE EMPREGADO brasileiras. Responda 
 
 Regras absolutas:
 - NUNCA invente informação. Campo que não aparece na página deve ser null.
-- Não confunda dados do EMPREGADOR (empresa, CNPJ, endereço da empresa) com dados do EMPREGADO. Só devolva dados do empregado.
+- Não confunda dados do EMPREGADOR com dados do EMPREGADO: nome/CNPJ/endereço da empresa vão APENAS em "empregador_nome" e "empregador_cnpj"; todos os outros campos são do empregado.
 - Datas no formato AAAA-MM-DD. Horas no formato HH:MM. Valores numéricos com ponto decimal (1750.00).
 
 Formato:
 {
   "nova_ficha": true|false,           // true se ESTA página inicia a ficha de uma pessoa (tem cabeçalho de ficha/registro com nome do empregado)
+  "empregador_nome": null,             // razão social / nome da empresa ou unidade (empregador) impressa na ficha
+  "empregador_cnpj": null,             // CNPJ do empregador impresso na ficha, só dígitos ou formatado
   "nome": null, "cpf": null, "matricula": null, "data_nascimento": null,
+
   "sexo": null,                        // "Masculino" ou "Feminino"
   "estado_civil": null, "telefone": null, "email": null,
   "nome_pai": null, "nome_mae": null, "nacionalidade": null, "naturalidade": null,
