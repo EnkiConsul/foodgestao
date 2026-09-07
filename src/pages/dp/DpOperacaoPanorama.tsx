@@ -50,7 +50,8 @@ import {
   type PessoaAvulsaPanorama,
   type PessoaPanorama,
 } from "@/lib/dp/operacao-panorama";
-import { DpPessoaAvulsaDialog } from "@/components/dp/DpPessoaAvulsaDialog";
+import { TIPO_LABEL, ESTADO_LABEL, TIPOS_PREVISAO } from "@/lib/dp/ocorrencias";
+import { DpPessoaAvulsaDialog } from "@/components/dp/DpPessoaAvulsaDialog");
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
