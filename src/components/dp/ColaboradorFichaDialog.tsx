@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { maskCpf } from "@/lib/cpf";
 import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
+import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 
 
 const fmtDate = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
@@ -123,15 +124,22 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
     (colaborador as any)?.unidade_id ?? null,
   );
 
+  /** Salário do cargo na unidade — intermitente/horista herda o piso do cargo. */
+  const salarioCargoDe = useDpSalarioCargoResolver();
+  const salarioCargo = salarioCargoDe(
+    (colaborador as any)?.cargo_id ?? null,
+    (colaborador as any)?.unidade_id ?? null,
+  );
+
   /** Campos essenciais em branco — aviso no topo da ficha (obrigatórios primeiro). */
   const faltandoFicha = useMemo(
     () =>
       colaborador && colaborador.ativo
-        ? [...camposFaltando(colaborador as never)].sort(
+        ? [...camposFaltando(colaborador as never, { salarioCargo })].sort(
             (a, b) => Number(b.obrigatorio) - Number(a.obrigatorio),
           )
         : [],
-    [colaborador],
+    [colaborador, salarioCargo],
   );
   const faltandoObrig = faltandoFicha.filter((c) => c.obrigatorio);
   const faltandoOpc = faltandoFicha.filter((c) => !c.obrigatorio);
