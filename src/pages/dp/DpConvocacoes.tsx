@@ -421,6 +421,16 @@ export default function DpConvocacoes() {
           <DisponibilidadePainel />
         </TabsContent>
 
+        <TabsContent value="planejamento" className="mt-3">
+          <PlanejamentoPainel
+            onPlanejarDia={(unidade, data) => {
+              setEmEdicao(null);
+              setInicial({ unidadeId: unidade, datas: [data] });
+              setWizard(true);
+            }}
+          />
+        </TabsContent>
+
         <TabsContent value="regras" className="mt-3">
           <ConvocacoesRegrasPanel />
         </TabsContent>
