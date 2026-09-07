@@ -345,7 +345,25 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6 pt-4">
+          {faltandoFicha.length > 0 && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Cadastro incompleto</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Falta preencher: {resumoFaltando(faltandoFicha, 9)}.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 h-8"
+                onClick={() => { onOpenChange(false); onEdit(); }}
+              >
+                Completar cadastro
+              </Button>
+            </div>
+          )}
+
           {/* Identificação */}
+
           <Section icon={User} title="Identificação">
             <Field label="CPF" value={colaborador?.cpf ? maskCpf(colaborador.cpf) : "—"} />
             <Field label="Matrícula" value={colaborador?.matricula} />
