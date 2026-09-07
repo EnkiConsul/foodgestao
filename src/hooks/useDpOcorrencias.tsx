@@ -150,7 +150,10 @@ export interface RegistrarOcorrenciaInput {
 export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
-  const { inicio, fim } = useMemo(() => intervaloDe(filtros.periodo), [filtros.periodo]);
+  const { inicio, fim } = useMemo(
+    () => (filtros.data ? { inicio: filtros.data, fim: filtros.data } : intervaloDe(filtros.periodo)),
+    [filtros.periodo, filtros.data],
+  );
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["dp_ocorrencias"] });
