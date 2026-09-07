@@ -490,8 +490,18 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
   }, [avulsasQuery.data, base.data]);
 
   const ocorrencias: OcorrenciaPanorama[] = useMemo(
-    () =>
-      (base.data?.ocorrencias ?? [])
+    () => [
+      ...(conflitosQuery.data ?? []).map((c) => ({
+        id: `indisp:${c.id}`,
+        colaborador_id: c.colaborador_id,
+        data: c.data,
+        tipo: "previsao_falta" as OcorrenciaPanorama["tipo"],
+        estado: "aberta" as OcorrenciaPanorama["estado"],
+        minutos: null,
+        horario_estimado: null,
+        horario_real: null,
+      })),
+      ...(base.data?.ocorrencias ?? [])
         .filter((o) => !unidadeId || o.unidade_id === unidadeId || o.unidade_id === null)
         .map((o) => ({
           id: o.id,
