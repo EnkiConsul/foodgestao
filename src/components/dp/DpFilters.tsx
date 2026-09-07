@@ -30,12 +30,20 @@ interface DpFiltersProps {
   };
   /** Campos de filtro: grade no desktop, empilhados na folha do mobile. */
   children?: ReactNode;
-  /** Quantidade de filtros ativos — exibida no botão "Filtros". */
+  /** Quantidade de filtros ativos — se omitido, usa a quantidade de chips. */
   activeCount?: number;
+  /** Filtros aplicados, exibidos como chips removíveis no mobile. */
+  chips?: DpFilterChip[];
   /** Ação de limpar filtros (mostrada na folha do mobile). */
   onClear?: () => void;
   columns?: 2 | 3 | 4;
   className?: string;
+}
+
+export interface DpFilterChip {
+  key: string;
+  label: string;
+  onRemove: () => void;
 }
 
 /**
