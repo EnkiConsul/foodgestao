@@ -470,9 +470,25 @@ export default function DpColaboradores() {
 
       <DpFilters
         search={{ value: search, onChange: setSearch, placeholder: "Nome ou CPF..." }}
-        activeCount={
-          (incompletosFilter ? 1 : 0) + (unidadeFilter !== "all" ? 1 : 0) + (cargoFilter !== "all" ? 1 : 0) + (perfilFilter !== "all" ? 1 : 0) + (setorFilter !== "all" ? 1 : 0)
-        }
+        chips={[
+          ...(incompletosFilter ? [{ key: "incompletos", label: "Cadastros incompletos", onRemove: () => setIncompletosFilter(false) }] : []),
+          ...(unidadeFilter !== "all"
+            ? [{ key: "unidade", label: (unidades.data ?? []).find((u) => u.id === unidadeFilter)?.nome ?? "Unidade", onRemove: () => setUnidadeFilter("all") }]
+            : []),
+          ...(cargoFilter !== "all"
+            ? [{ key: "cargo", label: (cargos.data ?? []).find((c) => c.id === cargoFilter)?.nome ?? "Cargo", onRemove: () => setCargoFilter("all") }]
+            : []),
+          ...(setorFilter !== "all"
+            ? [{
+                key: "setor",
+                label: setorFilter === "__sem__" ? "Sem setor" : (setoresEmUso.find((s) => s.id === setorFilter)?.nome ?? "Setor"),
+                onRemove: () => setSetorFilter("all"),
+              }]
+            : []),
+          ...(perfilFilter !== "all"
+            ? [{ key: "perfil", label: PERFIL_LABEL[perfilFilter] ?? "Perfil", onRemove: () => setPerfilFilter("all") }]
+            : []),
+        ]}
         onClear={() => { setIncompletosFilter(false); setUnidadeFilter("all"); setCargoFilter("all"); setPerfilFilter("all"); setSetorFilter("all"); }}
       >
         <DpFilterField label="Cadastro">
