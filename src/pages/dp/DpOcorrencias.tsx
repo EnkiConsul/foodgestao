@@ -84,6 +84,8 @@ export default function DpOcorrencias() {
   const [tratativa, setTratativa] = useState<Ocorrencia | null>(null);
   const [cancelarId, setCancelarId] = useState<string | null>(null);
   const [cobrir, setCobrir] = useState<Ocorrencia | null>(null);
+  const [historico, setHistorico] = useState<Ocorrencia | null>(null);
+  const mes = useMemo(() => mesCorrente(), []);
 
 
   const set = <K extends keyof OcorrenciaFiltros>(k: K, v: OcorrenciaFiltros[K]) =>
