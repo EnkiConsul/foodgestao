@@ -220,6 +220,8 @@ export function calculateDateStatus(params: {
   allColaboradores?: ColaboradorRecord[];
   manualBlocked?: Map<string, { reason: string; liberada: boolean }>;
   dayLimits?: Map<string, number>;
+  /** Reservas de vagas por indisponibilidade de convocáveis (Fase 4). */
+  reservasByDay?: Map<string, number>;
   birthdayByDate?: Map<string, { colaboradorId: string; status?: string }>;
   pendingRequests?: { data: string; colaborador_id?: string }[];
   canceledFolgas?: { colaborador_id: string; data: string }[];
@@ -237,6 +239,7 @@ export function calculateDateStatus(params: {
     allColaboradores = [],
     manualBlocked = new Map(),
     dayLimits = new Map(),
+    reservasByDay = new Map(),
     birthdayByDate = new Map(),
     pendingRequests = [],
     canceledFolgas = [],
