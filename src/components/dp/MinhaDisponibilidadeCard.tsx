@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { MONTH_NAMES, WEEKDAY_LABELS, formatBR, parseYMD } from "@/lib/dp/folga-rules";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Lock } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useDpIndisponibilidades, type DisponibilidadeDia } from "@/hooks/useDpIndisponibilidades";
 import {
   competenciaLabel,
@@ -59,14 +61,14 @@ const ymdLocal = (d: Date) =>
  * Mobile-first: toque no dia abre a ação correspondente.
  */
 export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNext }: Props) {
-  const { estadoPorDia, tardiaPorDia, janela, marcar, remover, isLoading } = useDpIndisponibilidades({
-    colaboradorId,
-    ano,
-    mes,
-  });
+  const { estadoPorDia, tardiaPorDia, conflitoPorDia, regime, janela, marcar, remover, isLoading } =
+    useDpIndisponibilidades({ colaboradorId, ano, mes });
   const [selecionado, setSelecionado] = useState<string | null>(null);
   // Depois do fechamento, marcar exige um passo extra e explícito.
   const [alteracaoAssumida, setAlteracaoAssumida] = useState(false);
+  const [motivoConflito, setMotivoConflito] = useState("");
+  const [cienciaMulta, setCienciaMulta] = useState(false);
+  const intermitente = regime === "intermitente";
   const encerrada = janela?.estado === "encerrada";
   const fechandoEmBreve = janelaFechandoEmBreve(janela);
   const competencia = competenciaLabel(janela?.competencia) || `${MONTH_NAMES[mes - 1]}/${ano}`;
