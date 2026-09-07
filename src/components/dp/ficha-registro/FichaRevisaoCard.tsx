@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { matchCargo } from "@/lib/dp/ficha-registro/cargo-match";
 import { matchTurno, type TurnoCadastrado } from "@/lib/dp/ficha-registro/turno-match";
 import { formatCnpj, matchUnidade } from "@/lib/dp/ficha-registro/unidade-match";
-import { CONFIANCA_LABEL, nivelDoCampo, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
+import { CONFIANCA_LABEL, nivelDoCampo, trechoDoTexto, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
 import { montarPayloadFicha } from "@/lib/dp/ficha-registro/payload";
 import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
