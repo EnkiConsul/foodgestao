@@ -532,11 +532,11 @@ export default function DpMeuCalendario() {
       // 7) lotação efetiva incluindo reservas de indisponibilidade (Fase 4)
       const { data: limiteDia, error: limiteErr } = await supabase.rpc("dp_folga_limite_dia", {
         p_company: meRef.data.company_id,
-        p_unidade: myUnidade,
-        p_cargo: myCargoId,
+        p_unidade: myUnidade as string,
+        p_cargo: myCargoId as string,
         p_data: iso,
-        p_ignorar_colaborador: null,
-        p_setor: null,
+        p_ignorar_colaborador: undefined,
+        p_setor: undefined,
       });
       if (limiteErr) throw limiteErr;
       const limiteInfo = (limiteDia ?? {}) as Record<string, any>;
