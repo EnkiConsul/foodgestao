@@ -181,10 +181,18 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
               {cargoSugerido.cargo_id && cargoSugerido.cargo_id === cargoId && (
                 <p className="text-[11px] text-muted-foreground">Sugerido pela ficha ({cargoSugerido.motivo === "cbo" ? "pelo código CBO" : "pelo nome"}).</p>
               )}
-              {!cargoSugerido.cargo_id && dados.cargo_nome && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400">Nenhum cargo parecido — escolha um.</p>
+              {!cargoSugerido.cargo_id && !!dados.cargo_nome && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                    Nenhum cargo parecido com “{String(dados.cargo_nome)}”.
+                  </p>
+                  <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setCargoDialog(true)}>
+                    <Plus className="mr-1 h-3 w-3" /> Criar este cargo
+                  </Button>
+                </div>
               )}
             </div>
+
             <div className="space-y-1">
               <Label className="text-xs">Unidade</Label>
               <Select value={unidadeId ?? "__none"} onValueChange={(v) => setUnidadeId(v === "__none" ? null : v)}>
