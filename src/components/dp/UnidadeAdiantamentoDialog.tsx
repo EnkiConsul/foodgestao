@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,22 +35,12 @@ export function UnidadeAdiantamentoDialog({ unidade, open, onOpenChange }: Props
     }
   };
 
-  return (
-    <DpDialogShell
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Adiantamento da unidade"
-      description={`${unidade?.nome}: esta regra será sugerida aos colaboradores da unidade.`}
-      size="sm"
-      footer={
-        <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={salvar.isPending} onClick={() => void concluir()}>
-            {salvar.isPending ? "Salvando..." : "Salvar regra"}
-          </Button>
-        </>
-      }
-    >
+  return <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Adiantamento da unidade</DialogTitle>
+        <DialogDescription>{unidade?.nome}: esta regra será sugerida aos colaboradores da unidade.</DialogDescription>
+      </DialogHeader>
       <div className="space-y-4 py-2">
         <div className="flex items-center justify-between gap-3 rounded-md border p-3">
           <Label htmlFor="unidade-tem-adiantamento">Oferece adiantamento salarial</Label>
@@ -61,6 +51,10 @@ export function UnidadeAdiantamentoDialog({ unidade, open, onOpenChange }: Props
           <Input id="unidade-dia-adiantamento" type="number" min={1} max={28} value={dia} onChange={(e) => setDia(Number(e.target.value))} />
         </div>}
       </div>
-    </DpDialogShell>
-  );
+      <DialogFooter>
+        <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+        <Button disabled={salvar.isPending} onClick={() => void concluir()}>{salvar.isPending ? "Salvando..." : "Salvar regra"}</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>;
 }

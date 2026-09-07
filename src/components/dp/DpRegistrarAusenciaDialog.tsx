@@ -6,7 +6,14 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { Button } from "@/components/ui/button";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -101,24 +108,16 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
   });
 
   return (
-    <DpDialogShell
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Registrar Ausência"
-      description="Férias, atestados e afastamentos entram direto na Operação do dia. Pedidos de folga ficam pendentes de aprovação."
-      size="sm"
-      footer={
-        <>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={salvar.isPending}>
-            Cancelar
-          </Button>
-          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
-            {salvar.isPending ? "Salvando..." : "Registrar"}
-          </Button>
-        </>
-      }
-    >
-      <div className="grid gap-3 py-2">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Registrar Ausência</DialogTitle>
+          <DialogDescription>
+            Férias, atestados e afastamentos entram direto na Operação do dia. Pedidos de folga
+            ficam pendentes de aprovação.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 py-2">
           <div className="grid gap-1.5">
             <Label>Colaborador *</Label>
             <Select
@@ -191,7 +190,16 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
               {form.motivo.length}/500
             </div>
           </div>
-      </div>
-    </DpDialogShell>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={salvar.isPending}>
+            Cancelar
+          </Button>
+          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+            {salvar.isPending ? "Salvando..." : "Registrar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

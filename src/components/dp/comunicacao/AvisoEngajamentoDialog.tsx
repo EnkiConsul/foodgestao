@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, EyeOff, ThumbsUp } from "lucide-react";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useDpAvisoEngajamento } from "@/hooks/useDpMural";
@@ -29,13 +29,12 @@ export function AvisoEngajamentoDialog({
   }, {});
 
   return (
-    <DpDialogShell
-      open={!!avisoId}
-      onOpenChange={onOpenChange}
-      title={`Engajamento — ${titulo ?? ""}`}
-      className="sm:max-w-lg"
-    >
-      <div className="space-y-4">
+    <Dialog open={!!avisoId} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="truncate">Engajamento — {titulo}</DialogTitle>
+        </DialogHeader>
+
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Carregando…</p>
         ) : (
@@ -110,7 +109,7 @@ export function AvisoEngajamentoDialog({
             </div>
           </div>
         )}
-      </div>
-    </DpDialogShell>
+      </DialogContent>
+    </Dialog>
   );
 }

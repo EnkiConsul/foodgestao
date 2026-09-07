@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BellRing, ShieldAlert } from "lucide-react";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useDpFeriasCobertura } from "@/hooks/useDpFeriasCobertura";
@@ -39,27 +41,19 @@ export function FeriasCoberturaDialog({ gozo, onOpenChange }: Props) {
   };
 
   return (
-    <DpDialogShell
-      open={!!gozo}
-      onOpenChange={onOpenChange}
-      icon={ShieldAlert}
-      title="Cobertura durante as férias"
-      description={
-        gozo
-          ? `${gozo.colaborador_nome ?? "Colaborador"} · ${format(parseISO(gozo.data_inicio), "dd/MM/yyyy")} a ${format(parseISO(gozo.data_fim), "dd/MM/yyyy")}`
-          : undefined
-      }
-      className="sm:max-w-lg"
-      footer={
-        <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-          <Button disabled={dias.length === 0} onClick={abrirConvocacao}>
-            <BellRing className="mr-1 size-4" /> Convocar para esses dias
-          </Button>
-        </>
-      }
-    >
-
+    <Dialog open={!!gozo} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ShieldAlert className="size-4 text-amber-500" aria-hidden="true" />
+            Cobertura durante as férias
+          </DialogTitle>
+          <DialogDescription>
+            {gozo
+              ? `${gozo.colaborador_nome ?? "Colaborador"} · ${format(parseISO(gozo.data_inicio), "dd/MM/yyyy")} a ${format(parseISO(gozo.data_fim), "dd/MM/yyyy")}`
+              : ""}
+          </DialogDescription>
+        </DialogHeader>
 
         {isLoading ? (
           <p className="py-8 text-center text-muted-foreground">Calculando…</p>
@@ -86,6 +80,13 @@ export function FeriasCoberturaDialog({ gozo, onOpenChange }: Props) {
           </div>
         )}
 
-    </DpDialogShell>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+          <Button disabled={dias.length === 0} onClick={abrirConvocacao}>
+            <BellRing className="mr-1 size-4" /> Convocar para esses dias
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

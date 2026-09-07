@@ -33,7 +33,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { CienciaLegalDialog } from "@/components/dp/CienciaLegalDialog";
 import { MenosProtetivaBadge } from "@/components/dp/MenosProtetivaBadge";
 import { FolgaRegrasPanel } from "@/components/dp/folgas/FolgaRegrasPanel";
@@ -368,24 +367,17 @@ export function FolgaRegrasFormDialog({
 
   if (etapa === "unidade") {
     return (
-      <DpDialogShell
-        open={open}
-        onOpenChange={onOpenChange}
-        title="Nova Regra De Folgas"
-        description="Escolha a unidade que receberá as regras. Você pode começar copiando as regras de outra unidade."
-        className="sm:max-w-lg"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAvancar} disabled={!unidadeSelecionada}>
-              Avançar
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Nova Regra De Folgas</DialogTitle>
+            <DialogDescription>
+              Escolha a unidade que receberá as regras. Você pode começar copiando as regras de outra
+              unidade.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="nova-unidade">Unidade</Label>
               <Select
@@ -435,7 +427,17 @@ export function FolgaRegrasFormDialog({
               </Select>
             </div>
           </div>
-      </DpDialogShell>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAvancar} disabled={!unidadeSelecionada}>
+              Avançar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     );
   }
 

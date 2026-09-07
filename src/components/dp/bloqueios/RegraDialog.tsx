@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -25,19 +27,12 @@ export function RegraDialog({
   open, isEditing, form, unidades, saving, onChange, onCancel, onSubmit,
 }: Props) {
   return (
-    <DpDialogShell
-      open={open}
-      onOpenChange={(o) => { if (!o) onCancel(); }}
-      title={isEditing ? "Editar Regra" : "Nova Regra"}
-      size="sm"
-      footer={
-        <>
-          <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-          <Button disabled={saving} onClick={onSubmit}>Salvar</Button>
-        </>
-      }
-    >
-      <div className="space-y-4 py-2">
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onCancel(); }}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? "Editar Regra" : "Nova Regra"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>Descrição *</Label>
             <Input
@@ -261,6 +256,11 @@ export function RegraDialog({
             Regra ativa
           </label>
         </div>
-    </DpDialogShell>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+          <Button disabled={saving} onClick={onSubmit}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

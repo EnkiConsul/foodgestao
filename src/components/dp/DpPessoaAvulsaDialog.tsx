@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -207,24 +214,16 @@ export function DpPessoaAvulsaDialog({
 
 
   return (
-    <DpDialogShell
-      open={open}
-      onOpenChange={onOpenChange}
-      title={registro ? "Editar Pessoa no Dia" : "Adicionar Pessoa no Dia"}
-      description="Registre quem trabalhou no dia: um colaborador já cadastrado (quando a convocação ou a escala não foi feita) ou alguém em teste / folguista. Aparece na rotina e conta no quadro."
-      size="sm"
-      footer={
-        <>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={salvando}>
-            Cancelar
-          </Button>
-          <Button onClick={salvar} disabled={salvando}>
-            {salvando ? "Salvando..." : registro ? "Salvar" : "Registrar"}
-          </Button>
-        </>
-      }
-    >
-      <div className="grid gap-3 py-2 pr-1">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{registro ? "Editar Pessoa no Dia" : "Adicionar Pessoa no Dia"}</DialogTitle>
+          <DialogDescription>
+            Registre quem trabalhou no dia: um colaborador já cadastrado (quando a convocação ou a
+            escala não foi feita) ou alguém em teste / folguista. Aparece na rotina e conta no quadro.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid max-h-[65vh] gap-3 overflow-y-auto py-2 pr-1">
           <div className="grid gap-1.5">
             <Label>Quem trabalhou *</Label>
             <Select
@@ -453,7 +452,16 @@ export function DpPessoaAvulsaDialog({
               onChange={(e) => setForm({ ...form, observacao: e.target.value })}
             />
           </div>
-      </div>
-    </DpDialogShell>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={salvando}>
+            Cancelar
+          </Button>
+          <Button onClick={salvar} disabled={salvando}>
+            {salvando ? "Salvando..." : registro ? "Salvar" : "Registrar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

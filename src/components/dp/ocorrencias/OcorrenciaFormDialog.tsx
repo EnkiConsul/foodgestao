@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -89,24 +96,16 @@ export function OcorrenciaFormDialog({
   };
 
   return (
-    <DpDialogShell
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Registrar ocorrência"
-      description="Vincule sempre à data da rotina, e não à data em que o horário aconteceu."
-      size="sm"
-      footer={
-        <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={submit} disabled={saving}>
-            Registrar
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Registrar ocorrência</DialogTitle>
+          <DialogDescription>
+            Vincule sempre à data da rotina, e não à data em que o horário aconteceu.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
           <div className="space-y-1.5">
             <Label>Colaborador *</Label>
             <Select value={colaboradorId} onValueChange={setColaboradorId}>
@@ -196,7 +195,17 @@ export function OcorrenciaFormDialog({
               placeholder="O que foi informado sobre o ocorrido"
             />
           </div>
-      </div>
-    </DpDialogShell>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={submit} disabled={saving}>
+            Registrar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -42,38 +42,36 @@ export function MotivoDialog({
   const canConfirm = motivo.trim().length >= minLength;
 
   return (
-    <DpDialogShell
-      open={open}
-      onOpenChange={onOpenChange}
-      title={title}
-      description={description}
-      size="sm"
-      footer={
-        <>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
+        <div className="grid gap-1.5 py-2">
+          <Label>
+            {label} <span className="text-destructive">*</span>
+          </Label>
+          <Textarea
+            rows={4}
+            autoFocus
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Ex.: cadastro duplicado criado por engano"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Mínimo de {minLength} caracteres. A justificativa fica registrada na auditoria.
+          </p>
+        </div>
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
           <Button variant="destructive" disabled={!canConfirm || loading} onClick={() => onConfirm(motivo.trim())}>
             {loading ? "Processando..." : confirmLabel}
           </Button>
-        </>
-      }
-    >
-      <div className="grid gap-1.5 py-2">
-        <Label>
-          {label} <span className="text-destructive">*</span>
-        </Label>
-        <Textarea
-          rows={4}
-          autoFocus
-          value={motivo}
-          onChange={(e) => setMotivo(e.target.value)}
-          placeholder="Ex.: cadastro duplicado criado por engano"
-        />
-        <p className="text-[11px] text-muted-foreground">
-          Mínimo de {minLength} caracteres. A justificativa fica registrada na auditoria.
-        </p>
-      </div>
-    </DpDialogShell>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

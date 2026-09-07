@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, Send, Users, X } from "lucide-react";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -119,50 +121,18 @@ export function AprovacaoParcialDialog({ parcial, onOpenChange }: AprovacaoParci
     );
 
   return (
-    <DpDialogShell
-      open={!!parcial}
-      onOpenChange={onOpenChange}
-      icon={Clock}
-      title={`Horário parcial · ${parcial.colaborador_nome}`}
-      description={
-        <span className="capitalize">
-          {rotuloData(parcial.data)}
-          {parcial.cargo_nome ? ` · ${parcial.cargo_nome}` : ""}
-          {parcial.unidade_nome ? ` · ${parcial.unidade_nome}` : ""}
-        </span>
-      }
-      className="sm:max-w-lg"
-      footer={
-        <>
-          {aptos.length > 0 ? (
-            <Button
-              variant="outline" className="gap-2"
-              disabled={decidir.isPending || !aval}
-              onClick={() => decidirAgora("REOFERTAR")}
-            >
-              <Send className="h-4 w-4" /> Oferecer aos aptos
-            </Button>
-          ) : null}
-          <Button
-            variant={confirmandoRecusa ? "destructive" : "outline"}
-            className="gap-2"
-            disabled={decidir.isPending || !aval}
-            onClick={() => decidirAgora("RECUSAR", confirmandoRecusa)}
-          >
-            <X className="h-4 w-4" />
-            {confirmandoRecusa ? "Recusar mesmo assim" : "Recusar"}
-          </Button>
-          <Button
-            className="gap-2" disabled={decidir.isPending || !aval}
-            onClick={() => decidirAgora("APROVAR")}
-          >
-            <CheckCircle2 className="h-4 w-4" /> Aprovar horário parcial
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-
+    <Dialog open={!!parcial} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-primary" /> Horário parcial · {parcial.colaborador_nome}
+          </DialogTitle>
+          <DialogDescription className="capitalize">
+            {rotuloData(parcial.data)}
+            {parcial.cargo_nome ? ` · ${parcial.cargo_nome}` : ""}
+            {parcial.unidade_nome ? ` · ${parcial.unidade_nome}` : ""}
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="rounded-lg border border-border p-3 text-sm space-y-1">
           <p>
@@ -234,7 +204,33 @@ export function AprovacaoParcialDialog({ parcial, onOpenChange }: AprovacaoParci
           </div>
         ) : null}
 
-      </div>
-    </DpDialogShell>
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
+          {aptos.length > 0 ? (
+            <Button
+              variant="outline" className="gap-2"
+              disabled={decidir.isPending || !aval}
+              onClick={() => decidirAgora("REOFERTAR")}
+            >
+              <Send className="h-4 w-4" /> Oferecer aos aptos
+            </Button>
+          ) : null}
+          <Button
+            variant={confirmandoRecusa ? "destructive" : "outline"}
+            className="gap-2"
+            disabled={decidir.isPending || !aval}
+            onClick={() => decidirAgora("RECUSAR", confirmandoRecusa)}
+          >
+            <X className="h-4 w-4" />
+            {confirmandoRecusa ? "Recusar mesmo assim" : "Recusar"}
+          </Button>
+          <Button
+            className="gap-2" disabled={decidir.isPending || !aval}
+            onClick={() => decidirAgora("APROVAR")}
+          >
+            <CheckCircle2 className="h-4 w-4" /> Aprovar horário parcial
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO, differenceInCalendarDays, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -138,28 +140,16 @@ export function FeriasGozoDialog({
   };
 
   return (
-    <DpDialogShell
-      open={open}
-      onOpenChange={onOpenChange}
-      title={editing ? "Editar férias" : "Agendar férias"}
-      description="As datas são validadas contra o saldo do período aquisitivo selecionado."
-      className="sm:max-w-lg"
-      footer={
-        <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button
-            disabled={
-              saving || excede || faltaJustificativa || !!erroFracao ||
-              !form.periodo_id || !form.data_inicio || !form.data_fim
-            }
-            onClick={() => onSubmit({ ...form, justificativa: justificativa.trim() || null })}
-          >
-            {saving ? "Salvando…" : editing ? "Salvar" : "Programar"}
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{editing ? "Editar férias" : "Agendar férias"}</DialogTitle>
+          <DialogDescription>
+            As datas são validadas contra o saldo do período aquisitivo selecionado.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label>Período aquisitivo</Label>
             <Select value={form.periodo_id} onValueChange={selectPeriodo} disabled={!!editing}>
@@ -266,7 +256,21 @@ export function FeriasGozoDialog({
             )}
             {erroFracao && <p className="mt-1 text-destructive">{erroFracao}</p>}
           </div>
-      </div>
-    </DpDialogShell>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button
+            disabled={
+              saving || excede || faltaJustificativa || !!erroFracao ||
+              !form.periodo_id || !form.data_inicio || !form.data_fim
+            }
+            onClick={() => onSubmit({ ...form, justificativa: justificativa.trim() || null })}
+          >
+            {saving ? "Salvando…" : editing ? "Salvar" : "Programar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

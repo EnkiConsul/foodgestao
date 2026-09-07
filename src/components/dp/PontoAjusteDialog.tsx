@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { PencilLine } from "lucide-react";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -55,24 +63,19 @@ export function PontoAjusteDialog({ colaboradorId, companyId, dataPadrao }: Prop
   };
 
   return (
-    <>
-      <Button variant="outline" className="w-full" onClick={() => setOpen(true)}>
-        <PencilLine className="mr-2 h-4 w-4" />
-        Solicitar Ajuste de Ponto
-      </Button>
-      <DpDialogShell
-        open={open}
-        onOpenChange={setOpen}
-        title="Solicitar Ajuste de Ponto"
-        description="O DP analisa o pedido antes de alterar o espelho."
-        size="sm"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={enviar} disabled={solicitar.isPending}>Enviar Solicitação</Button>
-          </>
-        }
-      >
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full">
+          <PencilLine className="mr-2 h-4 w-4" />
+          Solicitar Ajuste de Ponto
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Solicitar Ajuste de Ponto</DialogTitle>
+          <DialogDescription>O DP analisa o pedido antes de alterar o espelho.</DialogDescription>
+        </DialogHeader>
+
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="ajuste-data">Dia</Label>
@@ -122,7 +125,12 @@ export function PontoAjusteDialog({ colaboradorId, companyId, dataPadrao }: Prop
             />
           </div>
         </div>
-      </DpDialogShell>
-    </>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={enviar} disabled={solicitar.isPending}>Enviar Solicitação</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

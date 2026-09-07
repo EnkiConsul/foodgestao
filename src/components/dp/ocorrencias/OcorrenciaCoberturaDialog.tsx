@@ -2,7 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,35 +72,16 @@ export function OcorrenciaCoberturaDialog({
   const data = new Date(`${ocorrencia.data_operacional}T12:00:00`).toLocaleDateString("pt-BR");
 
   return (
-    <DpDialogShell
-      open
-      onOpenChange={onOpenChange}
-      title="Cobrir a ausência"
-      description={`${ocorrencia.colaborador?.nome} — ${TIPO_LABEL[ocorrencia.tipo].toLowerCase()} em ${data}`}
-      size="sm"
-      footer={
-        <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-          <Button
-            disabled={!escolhido || saving}
-            onClick={() =>
-              escolhido &&
-              onCriar({
-                substitutoColaboradorId: escolhido.origem === "colaborador" ? escolhido.id : null,
-                maoDeObraExtraId: escolhido.origem === "apoio" ? escolhido.id : null,
-                entrada: entrada || null,
-                saida: saida || null,
-              })
-            }
-          >
-            Registrar cobertura
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Cobrir a ausência</DialogTitle>
+          <DialogDescription>
+            {ocorrencia.colaborador?.nome} — {TIPO_LABEL[ocorrencia.tipo].toLowerCase()} em {data}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
           {coberturas.length > 0 && (
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Coberturas deste dia</Label>
@@ -209,7 +197,28 @@ export function OcorrenciaCoberturaDialog({
               />
             </div>
           </div>
-      </div>
-    </DpDialogShell>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Fechar
+          </Button>
+          <Button
+            disabled={!escolhido || saving}
+            onClick={() =>
+              escolhido &&
+              onCriar({
+                substitutoColaboradorId: escolhido.origem === "colaborador" ? escolhido.id : null,
+                maoDeObraExtraId: escolhido.origem === "apoio" ? escolhido.id : null,
+                entrada: entrada || null,
+                saida: saida || null,
+              })
+            }
+          >
+            Registrar cobertura
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
