@@ -165,9 +165,17 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     return set;
   }, [indisponibilidades.data]);
 
+  const conflitoPorDia = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of (indisponibilidades.data ?? []) as any[]) if (i.conflito) set.add(i.data);
+    return set;
+  }, [indisponibilidades.data]);
+
   return {
     estadoPorDia,
     tardiaPorDia,
+    conflitoPorDia,
+    regime: regime.data ?? null,
     janela: janela.data ?? null,
     janelaCarregando: janela.isLoading,
     indisponibilidades: indisponibilidades.data ?? [],
