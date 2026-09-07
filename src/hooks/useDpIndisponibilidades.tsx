@@ -52,7 +52,7 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_indisponibilidades")
-        .select("id, data, motivo, alteracao_tardia")
+        .select("id, data, motivo, alteracao_tardia, conflito")
         .eq("colaborador_id", colaboradorId!)
         .is("cancelada_em", null)
         .gte("data", inicio)
