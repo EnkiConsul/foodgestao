@@ -159,7 +159,12 @@ export default function DpColaboradores() {
         if (setorFilter !== "all" && setorFilter !== "__sem__" && (c as any).setor_id !== setorFilter) return false;
         if (statusFilter === "ativos" && !c.ativo) return false;
         if (statusFilter === "desligados" && c.ativo) return false;
+        if (incompletosFilter) {
+          const usaSetores = (list.data ?? []).some((x) => (x as any).setor_id);
+          if (camposFaltando(c as never, { exigirSetor: usaSetores }).length === 0) return false;
+        }
         return true;
+
       })
       .sort((a, b) => {
         const perfilDestaca = (p: string | null) => p === "admin" || p === "gestor";
