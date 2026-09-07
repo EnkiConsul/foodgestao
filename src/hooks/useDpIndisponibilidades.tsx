@@ -111,16 +111,32 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
   };
 
   const marcar = useMutation({
-    mutationFn: async ({ data, motivo }: { data: string; motivo?: string | null }) => {
-      const { data: res, error } = await supabase.rpc("dp_indisponibilidade_marcar", {
+    mutationFn: async ({
+      data,
+      motivo,
+      confirmarConflito,
+      cienciaMulta,
+    }: {
+      data: string;
+      motivo?: string | null;
+      confirmarConflito?: boolean;
+      cienciaMulta?: boolean;
+    }) => {
+      const { data: res, error } = await (supabase.rpc as any)("dp_indisponibilidade_marcar", {
         p_data: data,
         p_motivo: motivo?.trim() ? motivo.trim() : undefined,
+        p_confirmar_conflito: !!confirmarConflito,
+        p_ciencia_multa: !!cienciaMulta,
       });
       if (error) throw new Error(mensagemErro(error.message));
-      return (res ?? {}) as { ofertas_encerradas?: number; idempotente?: boolean };
+      return (res ?? {}) as { ofertas_encerradas?: number; idempotente?: boolean; conflito?: boolean };
     },
     onSuccess: (res) => {
       invalidar();
+      if (res.conflito) {
+        toast.success("Aviso enviado ao gestor. A convocação segue válida até a decisão dele.");
+        return;
+      }
       const n = res.ofertas_encerradas ?? 0;
       toast.success(
         n > 0
