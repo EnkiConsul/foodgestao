@@ -313,6 +313,8 @@ export function calculateDateStatus(params: {
   const monthlyCount = allFolgas.filter(
     (f) => f.data === iso && (f.tipo === "sabado" || f.tipo === "domingo" || f.tipo === "normal") && f.extra !== true,
   ).length;
+  const reservaCount = reservasByDay.get(iso) ?? 0;
+  const effectiveCount = monthlyCount + reservaCount;
 
   // Teto mensal do colaborador, derivado da frequência configurada nas regras.
   if (!isAdmin && isWknd && myColaboradorId && typeof tetoMensal === "number" && tetoMensal >= 0) {
@@ -335,8 +337,17 @@ export function calculateDateStatus(params: {
     }
   }
 
-  if (!isAdmin && monthlyCount >= limit && isWknd) {
-    return { status: "taken", label: "Lotado", reason: "Limite de folgas mensais atingido", occupancy: monthlyCount, limit };
+  if (!isAdmin && effectiveCount >= limit && isWknd) {
+    return {
+      status: "taken",
+      label: reservaCount > 0 ? "Reservado" : "Lotado",
+      reason:
+        reservaCount > 0
+          ? "Vagas reservadas por indisponibilidade de convocáveis neste dia."
+          : "Limite de folgas mensais atingido",
+      occupancy: monthlyCount,
+      limit,
+    };
   }
 
 
