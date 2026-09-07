@@ -240,7 +240,10 @@ export function useAplicarFicha() {
       if (atualizarExistente && item.colaborador_existente_id) {
         // Atualiza só o que veio preenchido (e o que foi escolhido na comparação),
         // para nunca apagar dados já cadastrados.
-        const sempre = new Set(["ficha_importacao_item_id", "cargo_id", "unidade_id"]);
+        const sempre = new Set([
+          "ficha_importacao_item_id", "cargo_id", "unidade_id", "setor_id", "regime",
+        ]);
+
         const limpo = Object.fromEntries(
           Object.entries(payload).filter(([k, v]) => {
             if (k === "company_id" || k === "origem_cadastro") return false;
