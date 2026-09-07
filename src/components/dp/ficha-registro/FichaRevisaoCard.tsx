@@ -32,10 +32,11 @@ interface Props {
   item: FichaItem;
   cargos: Array<{ id: string; nome: string; cbo?: string | null }>;
   unidades: Array<{ id: string; nome: string }>;
+  turnos?: TurnoCadastrado[];
   unidadePadraoId: string | null;
 }
 
-export function FichaRevisaoCard({ item, cargos, unidades, unidadePadraoId }: Props) {
+export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadePadraoId }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
 
@@ -48,13 +49,44 @@ export function FichaRevisaoCard({ item, cargos, unidades, unidadePadraoId }: Pr
   const [unidadeId, setUnidadeId] = useState<string | null>(unidadePadraoId ?? unidades[0]?.id ?? null);
   const [usarJornada, setUsarJornada] = useState(true);
   const [atualizar, setAtualizar] = useState(!!item.colaborador_existente_id);
+  const [anexarFicha, setAnexarFicha] = useState(true);
+  const [verTexto, setVerTexto] = useState(false);
+  const [cargoDialog, setCargoDialog] = useState(false);
+  const [comparacao, setComparacao] = useState(false);
 
   const jornada = useMemo(() => jornadaDaFicha(dados), [dados]);
+  const turnoSugerido = useMemo(() => matchTurno(jornada, turnos, unidadeId), [jornada, turnos, unidadeId]);
+  const [turnoId, setTurnoId] = useState<string | null>(null);
+  const turnoEscolhido = turnoId ?? turnoSugerido.turno_id;
   const aplicar = useAplicarFicha();
   const ignorar = useIgnorarFicha();
 
   const aplicado = item.status === "criado" || item.status === "atualizado";
   const ignorado = item.status === "ignorado";
+
+  const executar = (camposPermitidos: string[] | null) =>
+    aplicar.mutate(
+      {
+        item,
+        dados,
+        cargoId,
+        unidadeId,
+        atualizarExistente: atualizar && !!item.colaborador_existente_id,
+        jornada: usarJornada ? jornada : null,
+        turnoId: usarJornada ? turnoEscolhido : null,
+        camposPermitidos,
+        anexarFicha,
+      },
+      {
+        onSuccess: () => {
+          setComparacao(false);
+          toast.success(atualizar ? "Cadastro atualizado" : "Colaborador cadastrado");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
+
+
 
   const set = (campo: string, valor: string) => setDados((d) => ({ ...d, [campo]: valor }));
 
