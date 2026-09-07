@@ -30,7 +30,8 @@ export default function DpFichaRegistroImportar() {
     [importacoes, importacaoId],
   );
   const processando = atual?.status === "processing";
-  const { data: itens = [] } = useDpFichaItens(atual?.id, processando);
+  const aguardandoFichas = atual?.status === "ready" && (atual?.fichas_identificadas ?? 0) > 0;
+  const { data: itens = [] } = useDpFichaItens(atual?.id, processando, aguardandoFichas);
 
   const { data: cargos = [] } = useDpCargos();
   const { data: unidades = [] } = useDpUnidades();
@@ -109,7 +110,9 @@ export default function DpFichaRegistroImportar() {
                 <span className="truncate text-sm font-medium">{atual.arquivo_nome}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">{itens.length} ficha(s)</Badge>
+                <Badge variant="outline">
+                  {Math.max(itens.length, atual.fichas_identificadas ?? 0)} ficha(s)
+                </Badge>
                 {prontos.length > 0 && <Badge className="bg-emerald-600 text-white">{prontos.length} no cadastro</Badge>}
               </div>
             </div>
@@ -167,9 +170,15 @@ export default function DpFichaRegistroImportar() {
       )}
 
       {atual && !processando && itens.length === 0 && atual.status !== "failed" && (
-        <p className="text-sm text-muted-foreground">
-          Nenhuma ficha foi reconhecida neste arquivo. Confira se o PDF é a ficha de registro de empregado.
-        </p>
+        aguardandoFichas ? (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Carregando as fichas lidas…
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Nenhuma ficha foi reconhecida neste arquivo. Confira se o PDF é a ficha de registro de empregado.
+          </p>
+        )
       )}
     </DpPage>
   );
