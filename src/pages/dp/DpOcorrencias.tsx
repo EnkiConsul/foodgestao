@@ -202,15 +202,25 @@ export default function DpOcorrencias() {
         ))}
       </div>
 
-      <Tabs value={filtros.periodo} onValueChange={(v) => set("periodo", v as OcorrenciaPeriodo)}>
-        <TabsList>
-          {PERIODOS.map((p) => (
-            <TabsTrigger key={p.value} value={p.value}>
-              {p.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      {filtros.data ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Mostrando apenas o dia</span>
+          <span className="font-medium">{filtros.data.split("-").reverse().join("/")}</span>
+          <Button size="sm" variant="ghost" onClick={() => set("data", null)}>
+            Ver o período todo
+          </Button>
+        </div>
+      ) : (
+        <Tabs value={filtros.periodo} onValueChange={(v) => set("periodo", v as OcorrenciaPeriodo)}>
+          <TabsList>
+            {PERIODOS.map((p) => (
+              <TabsTrigger key={p.value} value={p.value}>
+                {p.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      )}
 
       <DpFilters
         search={{
