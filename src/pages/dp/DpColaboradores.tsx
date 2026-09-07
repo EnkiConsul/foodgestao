@@ -97,6 +97,8 @@ export default function DpColaboradores() {
   const [cargoFilter, setCargoFilter] = useState<string>("all");
   const [perfilFilter, setPerfilFilter] = useState<string>("all");
   const [setorFilter, setSetorFilter] = useState<string>("all");
+  const [incompletosFilter, setIncompletosFilter] = useState(false);
+
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewing, setViewing] = useState<DpColaborador | null>(null);
