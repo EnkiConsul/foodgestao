@@ -45,7 +45,10 @@ export const CAMPOS_FICHA: Array<{ coluna: string; label: string }> = [
   { coluna: "data_admissao", label: "Admissão" },
   { coluna: "sexo", label: "Gênero" },
   { coluna: "telefone", label: "Telefone" },
+  { coluna: "whatsapp", label: "WhatsApp" },
   { coluna: "email_contato", label: "E-mail" },
+  { coluna: "estado_civil", label: "Estado civil" },
+
   { coluna: "cargo", label: "Cargo (texto da ficha)" },
   { coluna: "salario_base", label: "Salário" },
   { coluna: "rg_numero", label: "RG" },
