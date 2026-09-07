@@ -204,6 +204,7 @@ export default function DpPessoasApoio() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {nomeCargo(p.cargo_id)} · {nomeUnidade(p.unidade_id)}
+                      {nomeSetor(p.setor_id) ? ` · ${nomeSetor(p.setor_id)}` : ""}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" onClick={() => abrir(p)} aria-label="Editar">
