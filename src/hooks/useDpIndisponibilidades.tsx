@@ -77,6 +77,21 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     },
   });
 
+  /** Vínculo do trabalhador — define o texto legal exibido no aviso de conflito. */
+  const regime = useQuery({
+    queryKey: ["dp_colab_regime", colaboradorId],
+    enabled: ativo,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_colaboradores")
+        .select("regime")
+        .eq("id", colaboradorId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.regime ?? null) as string | null;
+    },
+  });
+
   /** Período mensal para informar indisponibilidade — calculado sempre no backend. */
   const janela = useQuery({
     queryKey: ["dp_minha_disponibilidade_janela", colaboradorId, ano, mes],
