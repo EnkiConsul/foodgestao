@@ -31,6 +31,12 @@ import { useDpBeneficios, type Beneficio } from "@/hooks/useDpBeneficios";
 import { BeneficioDialog } from "@/components/dp/beneficios/BeneficiosDialogs";
 
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DOCUMENTOS_PESSOAIS,
+  DOCUMENTOS_PESSOAIS_BLANK,
+  documentosPessoaisDoColaborador,
+  documentosPessoaisParaBanco,
+} from "@/lib/dp/documentos-pessoais";
 import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
@@ -172,6 +178,7 @@ interface Props {
 const NONE_DESLIG = "__none__";
 
 const blank = {
+  ...DOCUMENTOS_PESSOAIS_BLANK,
   nome: "",
   cpf: "",
   matricula: "",
@@ -594,7 +601,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     });
 
     setForm({
-
+      ...DOCUMENTOS_PESSOAIS_BLANK,
+      ...documentosPessoaisDoColaborador(c as unknown as Record<string, unknown>),
       nome: c.nome ?? "",
       cpf: c.cpf ? maskCpf(c.cpf) : "",
       matricula: c.matricula ?? "",
@@ -1293,6 +1301,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     try {
       const colaboradorId = await upsert.mutateAsync({
         id: colaborador?.id ?? criadoId ?? undefined,
+        ...documentosPessoaisParaBanco(form as unknown as Record<string, unknown>),
         nome: form.nome.trim(),
         cpf: form.cpf.replace(/\D/g, "") || null,
         matricula: form.matricula.trim() || null,
