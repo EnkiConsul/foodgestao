@@ -94,6 +94,23 @@ describe("contarDia", () => {
     expect(r.pessoas).toHaveLength(3);
   });
 
+  it("férias aprovadas vencem a convocação aceita no mesmo dia", () => {
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [intermitente("i1")],
+      turnos,
+      folgas: [],
+      convocacoes: [
+        { colaborador_id: "i1", data: SEGUNDA, status: "aceita", turno_id: "t1", entrada: "18:00", saida: "23:00" },
+      ],
+      ausencias: [{ colaborador_id: "i1", inicio: "2026-08-20", fim: "2026-08-30", tipo: "ferias" }],
+    });
+    expect(r.contagens).toMatchObject({ ferias: 1, convocado_aceito: 0 });
+    expect(r.trabalhando).toBe(0);
+  });
+
+
+
   it("usa a escala publicada quando existir item para o dia", () => {
     const r = contarDia({
       data: SEGUNDA,
