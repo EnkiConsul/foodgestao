@@ -532,7 +532,22 @@ export function FichaRevisaoCard({
           </pre>
         )}
 
+        {!aplicado && faltando.length > 0 && (
+          <p className="text-[11px] text-amber-600 dark:text-amber-400">
+            Vai ficar em falta: {resumoFaltando(faltando)}. Nada impede o cadastro — dá para completar depois.
+          </p>
+        )}
+
+        {aplicado && item.colaborador_id && onAbrirCadastro && (
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => onAbrirCadastro(item.colaborador_id!)}>
+              <UserCog className="mr-1 h-4 w-4" /> Abrir cadastro completo
+            </Button>
+          </div>
+        )}
+
         {!aplicado && (
+
           <div className="flex flex-wrap justify-end gap-2">
             <Button
               variant="ghost"
