@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
-import { LayoutGrid } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft, LayoutGrid } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { ContextSelector } from "@/components/layout/ContextSelector";
@@ -7,10 +7,42 @@ import { ModuleSwitcherChip } from "@/components/mobile/ModuleSwitcherChip";
 import { DpNotificacoesBell } from "@/components/dp/DpNotificacoesBell";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
 
+/** Rotas "raiz" de cada superfície — nelas não faz sentido oferecer "voltar". */
+const ROOTS = ["/dp", "/dp/mais", "/dp/meu", "/dp/meu/mais"];
+
+/**
+ * No celular, telas internas (2+ níveis) ganham um botão "voltar" à esquerda,
+ * já que a barra inferior só alcança o início, os atalhos e o menu "Mais".
+ */
+function useMobileBack() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const clean = pathname.replace(/\/+$/, "") || "/dp";
+  const isRoot = ROOTS.includes(clean);
+  const parent = clean.slice(0, clean.lastIndexOf("/")) || "/dp";
+  return {
+    show: !isRoot,
+    goBack: () => navigate(parent),
+  };
+}
+
 export function DpHeader({ variant = "admin" }: { variant?: "admin" | "portal" }) {
+  const { show: showBack, goBack } = useMobileBack();
+
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-background/80 backdrop-blur px-3 md:px-4">
-      <SidebarTrigger className="h-10 w-10 shrink-0 md:h-9 md:w-9" />
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur md:px-4">
+      {showBack && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={goBack}
+          aria-label="Voltar"
+          className="h-10 w-10 shrink-0 md:hidden"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      )}
+      <SidebarTrigger className={showBack ? "hidden h-9 w-9 shrink-0 md:flex" : "h-10 w-10 shrink-0 md:h-9 md:w-9"} />
       <div className="min-w-0 shrink md:hidden">
         <ModuleSwitcherChip />
       </div>
@@ -35,5 +67,3 @@ export function DpHeader({ variant = "admin" }: { variant?: "admin" | "portal" }
     </header>
   );
 }
-
-
