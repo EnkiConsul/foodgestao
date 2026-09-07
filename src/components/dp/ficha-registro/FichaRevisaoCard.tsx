@@ -31,12 +31,13 @@ const NIVEL_CLASS: Record<NivelConfianca, string> = {
 interface Props {
   item: FichaItem;
   cargos: Array<{ id: string; nome: string; cbo?: string | null }>;
-  unidades: Array<{ id: string; nome: string }>;
+  unidades: Array<{ id: string; nome: string; cnpj?: string | null }>;
   turnos?: TurnoCadastrado[];
   unidadePadraoId: string | null;
+  empresaCnpj?: string | null;
 }
 
-export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadePadraoId }: Props) {
+export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadePadraoId, empresaCnpj }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
 
@@ -45,14 +46,21 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
     () => matchCargo({ cargo_nome: (dados.cargo_nome as string) ?? null, cbo: (dados.cbo as string) ?? null }, cargos),
     [dados.cargo_nome, dados.cbo, cargos],
   );
+  const unidadeSugerida = useMemo(() => matchUnidade(dados, unidades, empresaCnpj), [dados, unidades, empresaCnpj]);
   const [cargoId, setCargoId] = useState<string | null>(cargoSugerido.cargo_id);
-  const [unidadeId, setUnidadeId] = useState<string | null>(unidadePadraoId ?? unidades[0]?.id ?? null);
+  const [unidadeId, setUnidadeId] = useState<string | null>(
+    unidadeSugerida.unidade_id ?? unidadePadraoId ?? unidades[0]?.id ?? null,
+  );
   const [usarJornada, setUsarJornada] = useState(true);
   const [atualizar, setAtualizar] = useState(!!item.colaborador_existente_id);
   const [anexarFicha, setAnexarFicha] = useState(true);
   const [verTexto, setVerTexto] = useState(false);
   const [cargoDialog, setCargoDialog] = useState(false);
   const [comparacao, setComparacao] = useState(false);
+  const [confirmouEmpresa, setConfirmouEmpresa] = useState(false);
+  const empresaDivergente = unidadeSugerida.empresaConfere === "nao";
+  const bloqueadoPorEmpresa = empresaDivergente && !confirmouEmpresa;
+
 
   const jornada = useMemo(() => jornadaDaFicha(dados), [dados]);
   const turnoSugerido = useMemo(() => matchTurno(jornada, turnos, unidadeId), [jornada, turnos, unidadeId]);
