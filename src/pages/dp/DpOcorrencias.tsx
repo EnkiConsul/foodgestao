@@ -161,6 +161,31 @@ export default function DpOcorrencias() {
         }
       />
 
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {[
+          { label: "Faltas no mês", valor: indicadores.faltas },
+          { label: "Ausências justificadas", valor: indicadores.ausencias_justificadas },
+          {
+            label: "Atrasos no mês",
+            valor: indicadores.atrasos,
+            detalhe: indicadores.atraso_minutos ? `${indicadores.atraso_minutos} min` : undefined,
+          },
+          { label: "Saídas antecipadas", valor: indicadores.saidas_antecipadas },
+          {
+            label: "Ausências cobertas",
+            valor: indicadores.ausencias_cobertas,
+            detalhe: `${indicadores.ausencias_descobertas} sem cobertura`,
+          },
+          { label: "Aguardando decisão", valor: indicadores.pendentes },
+        ].map((c) => (
+          <div key={c.label} className="rounded-lg border bg-card p-3">
+            <p className="text-xs text-muted-foreground">{c.label}</p>
+            <p className="text-xl font-semibold">{c.valor}</p>
+            {c.detalhe && <p className="text-[11px] text-muted-foreground">{c.detalhe}</p>}
+          </div>
+        ))}
+      </div>
+
       <Tabs value={filtros.periodo} onValueChange={(v) => set("periodo", v as OcorrenciaPeriodo)}>
         <TabsList>
           {PERIODOS.map((p) => (
