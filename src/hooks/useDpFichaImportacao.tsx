@@ -252,6 +252,8 @@ export function useAplicarFicha() {
             .from("dp_colaborador_config_trabalho")
             .update({
               unidade_id: unidadeId,
+              turno_padrao_id: turnoId ?? null,
+
               folga_variavel: !jornada.dias.some((d) => !d.trabalha),
               folga_fixa_dow: jornada.dias.find((d) => !d.trabalha)?.dow ?? null,
               observacoes: "Importado da ficha de registro",
