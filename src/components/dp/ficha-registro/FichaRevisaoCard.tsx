@@ -332,7 +332,7 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
             </Button>
             <Button
               size="sm"
-              disabled={aplicar.isPending || (!!item.colaborador_existente_id && !atualizar)}
+              disabled={aplicar.isPending || bloqueadoPorEmpresa || (!!item.colaborador_existente_id && !atualizar)}
               onClick={() => {
                 if (atualizar && item.colaborador_existente_id) setComparacao(true);
                 else executar(null);
