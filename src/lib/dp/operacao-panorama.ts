@@ -255,8 +255,9 @@ export interface ContarDiaInput {
 
 /**
  * Classifica cada colaborador no dia, sem dupla contagem.
- * Prioridade: férias > atestado > folga extra > folga padrão > trabalho.
- * A convocação aceita vence tudo (o colaborador confirmou presença).
+ * Prioridade: férias > convocação aceita/pendente > atestado > folga extra >
+ * folga padrão > trabalho. Férias aprovadas vencem a convocação: quem está de
+ * férias não é escalado nem convocado.
  */
 export function contarDia(input: ContarDiaInput): ResultadoDia {
   const { data, colaboradores, turnos } = input;
@@ -356,6 +357,15 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
 
 
   for (const colab of colaboradores) {
+    const ausencia = input.ausencias.find((a) => a.colaborador_id === colab.id && dentro(a, data));
+
+    // Férias aprovadas vencem qualquer outra fonte: quem está de férias não é
+    // escalado nem convocado, mesmo que exista convocação registrada no dia.
+    if (ausencia?.tipo === "ferias") {
+      registrar(colab, "ferias");
+      continue;
+    }
+
     const convocacao = convocPor.get(colab.id);
     if (convocacao) {
       const turno = convocacao.turno_id ? turnoPorId.get(convocacao.turno_id) ?? null : null;
@@ -370,7 +380,6 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       continue;
     }
 
-    const ausencia = input.ausencias.find((a) => a.colaborador_id === colab.id && dentro(a, data));
     if (ausencia) {
       registrar(colab, ausencia.tipo);
       continue;
