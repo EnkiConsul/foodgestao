@@ -1929,7 +1929,30 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             </div>
           )}
 
+          {/* Documentos pessoais e filiação — todos opcionais, completados também pela ficha importada. */}
+          <div className="md:col-span-2 space-y-3 rounded-lg border p-4">
+            <div>
+              <p className="text-sm font-medium">Documentos e filiação</p>
+              <p className="text-xs text-muted-foreground">
+                Preenchimento opcional. Se você importar a ficha de registro, estes campos vêm preenchidos.
+              </p>
             </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {DOCUMENTOS_PESSOAIS.map((c) => (
+                <div key={c.campo} className="space-y-1">
+                  <Label className="text-xs">{c.label}</Label>
+                  <Input
+                    type={c.tipo === "date" ? "date" : "text"}
+                    value={String((form as Record<string, unknown>)[c.campo] ?? "")}
+                    onChange={(e) => setForm({ ...form, [c.campo]: e.target.value })}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+            </div>
+
           </TabsContent>
 
 
