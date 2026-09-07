@@ -288,6 +288,24 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     },
   });
 
+  /** Avisos de possível ausência: convocável informou que não poderá comparecer. */
+  const conflitosQuery = useQuery({
+    queryKey: ["dp_panorama_conflitos_disponibilidade", selectedCompanyId, competencia],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_indisponibilidades")
+        .select("id, colaborador_id, data, motivo")
+        .eq("company_id", selectedCompanyId!)
+        .eq("conflito", true)
+        .is("cancelada_em", null)
+        .gte("data", inicio)
+        .lte("data", fim);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   /** Pessoas na rotina do dia (teste/folguista/registro manual) na competência. */
   const avulsasQuery = useQuery({
     queryKey: ["dp_pessoas_avulsas", selectedCompanyId, competencia, unidadeId],
