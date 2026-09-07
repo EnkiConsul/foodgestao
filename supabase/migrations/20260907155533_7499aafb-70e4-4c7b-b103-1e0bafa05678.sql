@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.dp_folga_limite_dia(uuid, uuid, uuid, date, uuid);

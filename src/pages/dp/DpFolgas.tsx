@@ -55,6 +55,7 @@ import { CalendarSkeleton } from "@/components/dp/DpSkeletons";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
+import { useDpFolgaReserva } from "@/hooks/useDpFolgaReserva";
 import { useAuth } from "@/hooks/useAuth";
 import {
   diasValidosDoItem,
@@ -148,6 +149,7 @@ export default function DpFolgas() {
   
   const colabs = useDpColaboradores();
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
+  const { reservasByDay } = useDpFolgaReserva(cursor);
   const initialPrefs = loadPrefs(selectedCompanyId);
   const [unidadeFilter, setUnidadeFilter] = useState<string>(initialPrefs.unidade ?? "todas");
   const [colabFilter, setColabFilter] = useState<string>(initialPrefs.colaborador ?? "todos");
@@ -693,27 +695,31 @@ export default function DpFolgas() {
     let capacidade = 0;
     let lotados = 0;
     let semLimite = 0;
+    let reservas = 0;
     for (const d of eachDayOfInterval({ start: monthStart, end: monthEnd })) {
       const key = format(d, "yyyy-MM-dd");
       const evs = eventsByDay.get(key) ?? [];
       const aprov = evs.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
+      const reserva = (reservasByDay.get(key) ?? 0);
       const cap = capacityByDay.get(key) ?? null;
       marcadas += aprov;
+      reservas += reserva;
       if (cap == null) {
         semLimite += 1;
         continue;
       }
       capacidade += cap;
-      if (aprov >= cap && cap > 0) lotados += 1;
+      if (aprov + reserva >= cap && cap > 0) lotados += 1;
     }
     return {
       marcadas,
       capacidade,
       lotados,
       semLimite,
-      restantes: Math.max(0, capacidade - marcadas),
+      reservas,
+      restantes: Math.max(0, capacidade - marcadas - reservas),
     };
-  }, [eventsByDay, capacityByDay, monthStart, monthEnd]);
+  }, [eventsByDay, capacityByDay, reservasByDay, monthStart, monthEnd]);
 
 
   const selectedEvents = selectedDay
@@ -740,6 +746,7 @@ export default function DpFolgas() {
 
   const statCards = [
     { label: "FOLGAS MARCADAS", value: stats.marcadas, icon: CheckCircle2, tone: "text-emerald-600" },
+    { label: "RESERVAS", value: stats.reservas, icon: Users, tone: "text-amber-600" },
     { label: "VAGAS RESTANTES", value: stats.restantes, icon: Users, tone: "text-blue-600" },
     { label: "DIAS LOTADOS", value: stats.lotados, icon: AlertTriangle, tone: "text-red-600" },
     { label: "CAPACIDADE TOTAL", value: stats.capacidade, icon: CalendarIcon, tone: "text-primary" },
@@ -798,7 +805,7 @@ export default function DpFolgas() {
       )}
 
       {/* Stat cards */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
         {statCards.map((s) => (
           <div
             key={s.label}
@@ -916,10 +923,12 @@ export default function DpFolgas() {
                 const isToday = isSameDay(day, new Date());
                 const cap = capacityByDay.get(key) ?? null;
                 const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
+                const reserva = (reservasByDay.get(key) ?? 0);
+                const aprovComReserva = aprov + reserva;
                 const blocked = blockedByDate.get(key);
-                const lotado = !blocked && cap != null && cap > 0 && aprov >= cap;
+                const lotado = !blocked && cap != null && cap > 0 && aprovComReserva >= cap;
 
-                const parcial = !blocked && aprov > 0 && !lotado;
+                const parcial = !blocked && aprovComReserva > 0 && !lotado;
 
                 return (
                   <button
@@ -960,7 +969,10 @@ export default function DpFolgas() {
                               : "bg-emerald-100 text-emerald-700",
                           )}
                         >
-                          {aprov}{cap != null ? `/${cap}` : ""}
+                          {aprovComReserva}{cap != null ? `/${cap}` : ""}
+                          {reserva > 0 && (
+                            <span className="ml-1 text-[9px] opacity-80">(+{reserva})</span>
+                          )}
 
                         </span>
                       )}
@@ -1009,10 +1021,12 @@ export default function DpFolgas() {
                 const isToday = isSameDay(day, new Date());
                 const cap = capacityByDay.get(key) ?? null;
                 const aprov = events.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
+                const reserva = (reservasByDay.get(key) ?? 0);
+                const aprovComReserva = aprov + reserva;
                 const blocked = blockedByDate.get(key);
-                const lotado = !blocked && cap != null && cap > 0 && aprov >= cap;
+                const lotado = !blocked && cap != null && cap > 0 && aprovComReserva >= cap;
 
-                const parcial = !blocked && aprov > 0 && !lotado;
+                const parcial = !blocked && aprovComReserva > 0 && !lotado;
                 const wd = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][day.getDay()];
                 const hasEvents = events.length > 0 || !!blocked;
 
@@ -1060,7 +1074,10 @@ export default function DpFolgas() {
                                 ? "bg-emerald-100 text-emerald-700 border-emerald-200"
                                 : "bg-muted text-muted-foreground border-border",
                           )}>
-                            {aprov}{cap != null ? `/${cap}` : ""}
+                            {aprovComReserva}{cap != null ? `/${cap}` : ""}
+                            {reserva > 0 && (
+                              <span className="ml-1 text-[9px] opacity-80">(+{reserva})</span>
+                            )}
                           </span>
                         )}
                         {events.map((ev) => {
