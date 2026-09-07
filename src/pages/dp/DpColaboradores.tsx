@@ -183,6 +183,11 @@ export default function DpColaboradores() {
   }, [list.data]);
   const mostrarSetor = setoresEmUso.length > 0;
 
+  /** Campos essenciais ainda em branco no cadastro (setor só conta se a empresa usa setores). */
+  const faltantesDe = (c: DpColaborador) =>
+    camposFaltando(c as never, { exigirSetor: mostrarSetor });
+
+
   // ---------- Colunas em formato de planilha (ordem, largura, ordenação e filtros) ----------
   const {
     colOrder, colWidths, resize, resetWidth,
