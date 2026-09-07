@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FichaRevisaoCard } from "@/components/dp/ficha-registro/FichaRevisaoCard";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   useDpFichaImportacoes, useDpFichaItens, useEnviarFichaPdf,
@@ -33,6 +34,7 @@ export default function DpFichaRegistroImportar() {
 
   const { data: cargos = [] } = useDpCargos();
   const { data: unidades = [] } = useDpUnidades();
+  const { turnos = [] } = useDpTurnos();
   const unidadesDaEmpresa = useMemo(
     () => unidades.filter((u) => u.company_id === selectedCompanyId).map((u) => ({ id: u.id, nome: u.nome })),
     [unidades, selectedCompanyId],
@@ -140,6 +142,7 @@ export default function DpFichaRegistroImportar() {
               key={item.id}
               item={item}
               cargos={cargos.map((c) => ({ id: c.id, nome: c.nome, cbo: c.cbo }))}
+              turnos={turnos}
               unidades={unidadesDaEmpresa}
               unidadePadraoId={unidadesDaEmpresa[0]?.id ?? null}
             />
@@ -155,6 +158,7 @@ export default function DpFichaRegistroImportar() {
               key={item.id}
               item={item}
               cargos={cargos.map((c) => ({ id: c.id, nome: c.nome, cbo: c.cbo }))}
+              turnos={turnos}
               unidades={unidadesDaEmpresa}
               unidadePadraoId={null}
             />

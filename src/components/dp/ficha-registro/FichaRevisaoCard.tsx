@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, Check, Loader2, UserCheck, X } from "lucide-react";
+import { AlertTriangle, Check, FileText, Loader2, Plus, UserCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { matchCargo } from "@/lib/dp/ficha-registro/cargo-match";
+import { matchTurno, type TurnoCadastrado } from "@/lib/dp/ficha-registro/turno-match";
 import { CONFIANCA_LABEL, nivelDoCampo, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
+import { CargoCorrespondenciaDialog } from "./CargoCorrespondenciaDialog";
+import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
 import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
+
 
 const DOW_LABEL = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -28,10 +32,11 @@ interface Props {
   item: FichaItem;
   cargos: Array<{ id: string; nome: string; cbo?: string | null }>;
   unidades: Array<{ id: string; nome: string }>;
+  turnos?: TurnoCadastrado[];
   unidadePadraoId: string | null;
 }
 
-export function FichaRevisaoCard({ item, cargos, unidades, unidadePadraoId }: Props) {
+export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadePadraoId }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
 
@@ -44,13 +49,44 @@ export function FichaRevisaoCard({ item, cargos, unidades, unidadePadraoId }: Pr
   const [unidadeId, setUnidadeId] = useState<string | null>(unidadePadraoId ?? unidades[0]?.id ?? null);
   const [usarJornada, setUsarJornada] = useState(true);
   const [atualizar, setAtualizar] = useState(!!item.colaborador_existente_id);
+  const [anexarFicha, setAnexarFicha] = useState(true);
+  const [verTexto, setVerTexto] = useState(false);
+  const [cargoDialog, setCargoDialog] = useState(false);
+  const [comparacao, setComparacao] = useState(false);
 
   const jornada = useMemo(() => jornadaDaFicha(dados), [dados]);
+  const turnoSugerido = useMemo(() => matchTurno(jornada, turnos, unidadeId), [jornada, turnos, unidadeId]);
+  const [turnoId, setTurnoId] = useState<string | null>(null);
+  const turnoEscolhido = turnoId ?? turnoSugerido.turno_id;
   const aplicar = useAplicarFicha();
   const ignorar = useIgnorarFicha();
 
   const aplicado = item.status === "criado" || item.status === "atualizado";
   const ignorado = item.status === "ignorado";
+
+  const executar = (camposPermitidos: string[] | null) =>
+    aplicar.mutate(
+      {
+        item,
+        dados,
+        cargoId,
+        unidadeId,
+        atualizarExistente: atualizar && !!item.colaborador_existente_id,
+        jornada: usarJornada ? jornada : null,
+        turnoId: usarJornada ? turnoEscolhido : null,
+        camposPermitidos,
+        anexarFicha,
+      },
+      {
+        onSuccess: () => {
+          setComparacao(false);
+          toast.success(atualizar ? "Cadastro atualizado" : "Colaborador cadastrado");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
+
+
 
   const set = (campo: string, valor: string) => setDados((d) => ({ ...d, [campo]: valor }));
 
@@ -145,10 +181,18 @@ export function FichaRevisaoCard({ item, cargos, unidades, unidadePadraoId }: Pr
               {cargoSugerido.cargo_id && cargoSugerido.cargo_id === cargoId && (
                 <p className="text-[11px] text-muted-foreground">Sugerido pela ficha ({cargoSugerido.motivo === "cbo" ? "pelo código CBO" : "pelo nome"}).</p>
               )}
-              {!cargoSugerido.cargo_id && dados.cargo_nome && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400">Nenhum cargo parecido — escolha um.</p>
+              {!cargoSugerido.cargo_id && !!dados.cargo_nome && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                    Nenhum cargo parecido com “{String(dados.cargo_nome)}”.
+                  </p>
+                  <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setCargoDialog(true)}>
+                    <Plus className="mr-1 h-3 w-3" /> Criar este cargo
+                  </Button>
+                </div>
               )}
             </div>
+
             <div className="space-y-1">
               <Label className="text-xs">Unidade</Label>
               <Select value={unidadeId ?? "__none"} onValueChange={(v) => setUnidadeId(v === "__none" ? null : v)}>
@@ -188,6 +232,32 @@ export function FichaRevisaoCard({ item, cargos, unidades, unidadePadraoId }: Pr
             {jornada.vira_meia_noite && (
               <p className="mt-2 text-[11px] text-muted-foreground">A saída acontece no dia seguinte.</p>
             )}
+            {!aplicado && usarJornada && (
+              <div className="mt-3 space-y-1">
+                <Label className="text-xs">Turno correspondente</Label>
+                <Select
+                  value={turnoEscolhido ?? "__none"}
+                  onValueChange={(v) => setTurnoId(v === "__none" ? null : v)}
+                >
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">Sem turno (grava só os horários)</SelectItem>
+                    {turnos.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.nome} · {String(t.entrada).slice(0, 5)}–{String(t.saida).slice(0, 5)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  {turnoSugerido.turno_id
+                    ? `Sugerido pelo horário da ficha (${turnoSugerido.entrada}–${turnoSugerido.saida}).`
+                    : turnoSugerido.entrada
+                      ? `Nenhum turno com ${turnoSugerido.entrada}–${turnoSugerido.saida}; os horários serão gravados direto no dia.`
+                      : "Sem horário identificado nesta ficha."}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -198,6 +268,26 @@ export function FichaRevisaoCard({ item, cargos, unidades, unidadePadraoId }: Pr
               Este CPF já tem cadastro. Ative para completar o cadastro existente com os dados da ficha.
             </span>
           </div>
+        )}
+
+        {!aplicado && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Switch checked={anexarFicha} onCheckedChange={setAnexarFicha} />
+              <span className="text-xs text-muted-foreground">Guardar o PDF da ficha nos documentos do colaborador</span>
+            </div>
+            {!!item.texto_origem && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setVerTexto((v) => !v)}>
+                <FileText className="mr-1 h-3 w-3" /> {verTexto ? "Ocultar" : "Ver"} texto lido
+              </Button>
+            )}
+          </div>
+        )}
+
+        {verTexto && !!item.texto_origem && (
+          <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-lg border bg-muted/40 p-3 text-[11px] leading-relaxed">
+            {item.texto_origem}
+          </pre>
         )}
 
         {!aplicado && (
@@ -213,29 +303,39 @@ export function FichaRevisaoCard({ item, cargos, unidades, unidadePadraoId }: Pr
             <Button
               size="sm"
               disabled={aplicar.isPending || (!!item.colaborador_existente_id && !atualizar)}
-              onClick={() =>
-                aplicar.mutate(
-                  {
-                    item,
-                    dados,
-                    cargoId,
-                    unidadeId,
-                    atualizarExistente: atualizar && !!item.colaborador_existente_id,
-                    jornada: usarJornada ? jornada : null,
-                  },
-                  {
-                    onSuccess: () => toast.success(atualizar ? "Cadastro atualizado" : "Colaborador cadastrado"),
-                    onError: (e: Error) => toast.error(e.message),
-                  },
-                )
-              }
+              onClick={() => {
+                if (atualizar && item.colaborador_existente_id) setComparacao(true);
+                else executar(null);
+              }}
             >
               {aplicar.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Check className="mr-1 h-4 w-4" />}
-              {atualizar && item.colaborador_existente_id ? "Atualizar cadastro" : "Criar cadastro"}
+              {atualizar && item.colaborador_existente_id ? "Comparar e atualizar" : "Criar cadastro"}
             </Button>
           </div>
+        )}
+
+        {cargoDialog && (
+          <CargoCorrespondenciaDialog
+            open={cargoDialog}
+            onOpenChange={setCargoDialog}
+            cargoNome={String(dados.cargo_nome ?? "")}
+            cbo={(dados.cbo as string) ?? null}
+            onCriado={(id) => setCargoId(id)}
+          />
+        )}
+
+        {comparacao && item.colaborador_existente_id && (
+          <FichaComparacaoDialog
+            open={comparacao}
+            onOpenChange={setComparacao}
+            colaboradorId={item.colaborador_existente_id}
+            dados={dados}
+            aplicando={aplicar.isPending}
+            onConfirmar={(colunas) => executar(colunas)}
+          />
         )}
       </CardContent>
     </Card>
   );
 }
+

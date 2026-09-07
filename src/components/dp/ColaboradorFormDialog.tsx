@@ -31,6 +31,12 @@ import { useDpBeneficios, type Beneficio } from "@/hooks/useDpBeneficios";
 import { BeneficioDialog } from "@/components/dp/beneficios/BeneficiosDialogs";
 
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DOCUMENTOS_PESSOAIS,
+  DOCUMENTOS_PESSOAIS_BLANK,
+  documentosPessoaisDoColaborador,
+  documentosPessoaisParaBanco,
+} from "@/lib/dp/documentos-pessoais";
 import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
@@ -172,6 +178,7 @@ interface Props {
 const NONE_DESLIG = "__none__";
 
 const blank = {
+  ...DOCUMENTOS_PESSOAIS_BLANK,
   nome: "",
   cpf: "",
   matricula: "",
@@ -594,7 +601,8 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     });
 
     setForm({
-
+      ...DOCUMENTOS_PESSOAIS_BLANK,
+      ...documentosPessoaisDoColaborador(c as unknown as Record<string, unknown>),
       nome: c.nome ?? "",
       cpf: c.cpf ? maskCpf(c.cpf) : "",
       matricula: c.matricula ?? "",
@@ -1293,6 +1301,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     try {
       const colaboradorId = await upsert.mutateAsync({
         id: colaborador?.id ?? criadoId ?? undefined,
+        ...documentosPessoaisParaBanco(form as unknown as Record<string, unknown>),
         nome: form.nome.trim(),
         cpf: form.cpf.replace(/\D/g, "") || null,
         matricula: form.matricula.trim() || null,
@@ -1920,7 +1929,30 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             </div>
           )}
 
+          {/* Documentos pessoais e filiação — todos opcionais, completados também pela ficha importada. */}
+          <div className="md:col-span-2 space-y-3 rounded-lg border p-4">
+            <div>
+              <p className="text-sm font-medium">Documentos e filiação</p>
+              <p className="text-xs text-muted-foreground">
+                Preenchimento opcional. Se você importar a ficha de registro, estes campos vêm preenchidos.
+              </p>
             </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {DOCUMENTOS_PESSOAIS.map((c) => (
+                <div key={c.campo} className="space-y-1">
+                  <Label className="text-xs">{c.label}</Label>
+                  <Input
+                    type={c.tipo === "date" ? "date" : "text"}
+                    value={String((form as Record<string, unknown>)[c.campo] ?? "")}
+                    onChange={(e) => setForm({ ...form, [c.campo]: e.target.value })}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+            </div>
+
           </TabsContent>
 
 

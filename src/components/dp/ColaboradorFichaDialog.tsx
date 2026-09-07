@@ -1,3 +1,4 @@
+import { DOCUMENTOS_PESSOAIS } from "@/lib/dp/documentos-pessoais";
 import { useMemo } from "react";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpDependentes } from "@/hooks/useDpDependentes";
@@ -366,6 +367,25 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
               />
             )}
           </Section>
+
+          {/* Documentos e filiação — só aparece quando há algo preenchido. */}
+          {DOCUMENTOS_PESSOAIS.some((c) => (colaborador as any)?.[c.campo]) && (
+            <Section icon={User} title="Documentos e Filiação">
+              {DOCUMENTOS_PESSOAIS.filter((c) => (colaborador as any)?.[c.campo]).map((c) => (
+                <Field
+                  key={c.campo}
+                  label={c.label}
+                  value={
+                    c.tipo === "date"
+                      ? fmtDate((colaborador as any)[c.campo])
+                      : String((colaborador as any)[c.campo])
+                  }
+                />
+              ))}
+            </Section>
+          )}
+
+
 
           {/* Contato e vínculo */}
           <Section icon={Mail} title="Contato e Vínculo">

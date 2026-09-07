@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 import { montarJornadaSugerida, type JornadaSugerida } from "@/lib/dp/ficha-registro/jornada-parse";
-import { montarEndereco } from "@/lib/dp/ficha-registro/endereco-parse";
+import { dataIso, digits, montarPayloadFicha, txt } from "@/lib/dp/ficha-registro/payload";
+import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 
 export type FichaImportacao = Database["public"]["Tables"]["dp_ficha_importacoes"]["Row"];
 export type FichaItem = Database["public"]["Tables"]["dp_ficha_importacao_itens"]["Row"];
@@ -29,36 +30,6 @@ export interface FichaDadosEditaveis {
 }
 
 const hoje = () => new Date().toISOString().slice(0, 10);
-const digits = (v: unknown) => String(v ?? "").replace(/\D+/g, "");
-
-function txt(v: unknown): string | null {
-  const s = String(v ?? "").trim();
-  return s ? s : null;
-}
-
-function num(v: unknown): number | null {
-  if (v === null || v === undefined || v === "") return null;
-  if (typeof v === "number") return Number.isFinite(v) ? v : null;
-  const s = String(v).replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}\b)/g, "").replace(",", ".");
-  const n = Number(s);
-  return Number.isFinite(n) ? n : null;
-}
-
-function dataIso(v: unknown): string | null {
-  const s = String(v ?? "").trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
-  return null;
-}
-
-function sexoNorm(v: unknown): string | null {
-  const s = String(v ?? "").trim().toLowerCase();
-  if (s.startsWith("m")) return "M";
-  if (s.startsWith("f")) return "F";
-  return null;
-}
-
 
 /** Jornada sugerida pela ficha, pronta para a tela de revisão. */
 export function jornadaDaFicha(dados: Record<string, unknown> | null): JornadaSugerida {
@@ -69,6 +40,7 @@ export function jornadaDaFicha(dados: Record<string, unknown> | null): JornadaSu
     jornada_dias: (d.jornada_dias as any[]) ?? [],
   });
 }
+
 
 /** Lista de importações de ficha da empresa selecionada, com polling durante o processamento. */
 export function useDpFichaImportacoes() {
@@ -181,6 +153,15 @@ export interface AplicarFichaInput {
   atualizarExistente: boolean;
   /** Grava também a configuração de jornada sugerida. */
   jornada?: JornadaSugerida | null;
+  /** Turno reconhecido para os dias trabalhados (null grava só os horários). */
+  turnoId?: string | null;
+  /**
+   * Ao atualizar quem já existe: colunas escolhidas na comparação lado a lado.
+   * Quando não informado, todas as colunas preenchidas da ficha são gravadas.
+   */
+  camposPermitidos?: string[] | null;
+  /** Anexa o PDF original da ficha nos documentos do colaborador. */
+  anexarFicha?: boolean;
 }
 
 /** Cria (ou atualiza) o cadastro do colaborador a partir da ficha revisada. */
@@ -188,61 +169,47 @@ export function useAplicarFicha() {
   const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
   return useMutation({
-    mutationFn: async ({ item, dados, cargoId, unidadeId, atualizarExistente, jornada }: AplicarFichaInput) => {
+    mutationFn: async ({
+      item,
+      dados,
+      cargoId,
+      unidadeId,
+      atualizarExistente,
+      jornada,
+      turnoId,
+      camposPermitidos,
+      anexarFicha,
+    }: AplicarFichaInput) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       const nome = txt(dados.nome);
       const cpf = digits(dados.cpf);
       if (!nome) throw new Error("Informe o nome do colaborador.");
       if (cpf.length !== 11) throw new Error("Informe um CPF com 11 dígitos.");
 
-      const endereco = montarEndereco((dados.endereco ?? {}) as Record<string, unknown>);
       const payload = {
+        ...montarPayloadFicha(dados as Record<string, unknown>),
         company_id: selectedCompanyId,
         nome,
         cpf,
-        matricula: txt(dados.matricula),
-        data_nascimento: dataIso(dados.data_nascimento),
-        data_admissao: dataIso(dados.data_admissao),
-        sexo: sexoNorm(dados.sexo),
-        telefone: txt(dados.telefone),
-        email_contato: txt(dados.email),
-        endereco: endereco as unknown as Database["public"]["Tables"]["dp_colaboradores"]["Insert"]["endereco"],
         cargo_id: cargoId,
-        cargo: txt(dados.cargo_nome),
         unidade_id: unidadeId,
-        salario_base: num(dados.salario),
-        rg_numero: txt(dados.rg_numero),
-        rg_orgao: txt(dados.rg_orgao),
-        rg_uf: txt(dados.rg_uf),
-        rg_emissao: dataIso(dados.rg_emissao),
-        ctps_numero: txt(dados.ctps_numero),
-        ctps_serie: txt(dados.ctps_serie),
-        ctps_uf: txt(dados.ctps_uf),
-        ctps_expedicao: dataIso(dados.ctps_expedicao),
-        titulo_eleitor: txt(dados.titulo_eleitor),
-        titulo_zona: txt(dados.titulo_zona),
-        titulo_secao: txt(dados.titulo_secao),
-        reservista: txt(dados.reservista),
-        reservista_categoria: txt(dados.reservista_categoria),
-        nome_pai: txt(dados.nome_pai),
-        nome_mae: txt(dados.nome_mae),
-        nacionalidade: txt(dados.nacionalidade),
-        naturalidade: txt(dados.naturalidade),
-        raca_cor: txt(dados.raca_cor),
-        grau_instrucao: txt(dados.grau_instrucao),
-        deficiencia: txt(dados.deficiencia),
         origem_cadastro: "ficha_importacao",
         ficha_importacao_item_id: item.id,
       };
 
       let colaboradorId: string;
       if (atualizarExistente && item.colaborador_existente_id) {
-        // Atualiza só o que veio preenchido, para não apagar dados já cadastrados.
+        // Atualiza só o que veio preenchido (e o que foi escolhido na comparação),
+        // para nunca apagar dados já cadastrados.
+        const sempre = new Set(["ficha_importacao_item_id", "cargo_id", "unidade_id"]);
         const limpo = Object.fromEntries(
-          Object.entries(payload).filter(([k, v]) => k === "ficha_importacao_item_id" || k === "origem_cadastro" || (v !== null && v !== undefined)),
+          Object.entries(payload).filter(([k, v]) => {
+            if (k === "company_id" || k === "origem_cadastro") return false;
+            if (sempre.has(k)) return v !== null && v !== undefined ? true : k === "ficha_importacao_item_id";
+            if (v === null || v === undefined) return false;
+            return !camposPermitidos || camposPermitidos.includes(k);
+          }),
         );
-        delete (limpo as Record<string, unknown>).company_id;
-        delete (limpo as Record<string, unknown>).origem_cadastro;
         const { error } = await supabase
           .from("dp_colaboradores")
           // deno-lint-ignore no-explicit-any
@@ -252,6 +219,7 @@ export function useAplicarFicha() {
         if (error) throw error;
         colaboradorId = item.colaborador_existente_id;
       } else {
+
         const { data, error } = await supabase
           .from("dp_colaboradores")
           // deno-lint-ignore no-explicit-any
@@ -284,6 +252,8 @@ export function useAplicarFicha() {
             .from("dp_colaborador_config_trabalho")
             .update({
               unidade_id: unidadeId,
+              turno_padrao_id: turnoId ?? null,
+
               folga_variavel: !jornada.dias.some((d) => !d.trabalha),
               folga_fixa_dow: jornada.dias.find((d) => !d.trabalha)?.dow ?? null,
               observacoes: "Importado da ficha de registro",
@@ -302,7 +272,7 @@ export function useAplicarFicha() {
               company_id: selectedCompanyId,
               colaborador_id: colaboradorId,
               unidade_id: unidadeId,
-              turno_padrao_id: null,
+              turno_padrao_id: turnoId ?? null,
               folga_variavel: !jornada.dias.some((d) => !d.trabalha),
               folga_fixa_dow: jornada.dias.find((d) => !d.trabalha)?.dow ?? null,
               observacoes: "Importado da ficha de registro",
@@ -320,7 +290,7 @@ export function useAplicarFicha() {
             config_id: configId,
             dow: d.dow,
             trabalha: d.trabalha,
-            turno_id: null,
+            turno_id: d.trabalha ? turnoId ?? null : null,
             entrada: d.trabalha ? d.entrada : null,
             saida: d.trabalha ? d.saida : null,
             intervalo_minutos: d.trabalha ? d.intervalo_minutos ?? 0 : null,
@@ -330,6 +300,40 @@ export function useAplicarFicha() {
         if (diasErr) throw diasErr;
 
       }
+
+      if (anexarFicha && item.arquivo_path) {
+        // Copia o PDF de origem para os documentos do colaborador, registrando
+        // as páginas de onde a ficha foi lida. Falha aqui não desfaz o cadastro.
+        try {
+          const destino = `${selectedCompanyId}/${colaboradorId}/${Date.now()}-ficha-registro.pdf`;
+          const copia = await supabase.storage
+            .from(BUCKET)
+            // deno-lint-ignore no-explicit-any
+            .copy(item.arquivo_path, destino, { destinationBucket: DP_DOCUMENTOS_BUCKET } as any);
+          if (!copia.error) {
+            const paginas =
+              item.pagina_inicio && item.pagina_fim && item.pagina_fim !== item.pagina_inicio
+                ? `páginas ${item.pagina_inicio} a ${item.pagina_fim}`
+                : item.pagina_inicio
+                  ? `página ${item.pagina_inicio}`
+                  : null;
+            await supabase.from("dp_documentos").insert({
+              company_id: selectedCompanyId,
+              colaborador_id: colaboradorId,
+              file_path: destino,
+              file_name: "ficha-registro.pdf",
+              mime_type: "application/pdf",
+              tipo: "ficha_registro",
+              titulo: "Ficha de registro importada",
+              descricao: paginas ? `Arquivo de origem da importação (${paginas}).` : "Arquivo de origem da importação.",
+            });
+          }
+        } catch {
+          // anexo é complementar: segue sem interromper a importação
+        }
+      }
+
+
 
       const { error: itemErr } = await supabase
         .from("dp_ficha_importacao_itens")
