@@ -26,6 +26,8 @@ import {
   useDpPessoasApoio, useExcluirDpPessoaApoio, useSalvarDpPessoaApoio,
   type PessoaApoio, type PessoaApoioTipo,
 } from "@/hooks/useDpPessoasApoio";
+import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
+import { useDpSetores } from "@/hooks/useDpSetores";
 import { pessoaApoioSchema, validateWithToast } from "@/lib/validations";
 
 const TIPO_LABEL: Record<PessoaApoioTipo, string> = {
@@ -39,6 +41,7 @@ const vazio = {
   tipo: "folguista" as PessoaApoioTipo,
   cargo_id: "",
   unidade_id: "",
+  setor_id: "",
   cpf: "",
   genero: "",
   data_nascimento: "",
