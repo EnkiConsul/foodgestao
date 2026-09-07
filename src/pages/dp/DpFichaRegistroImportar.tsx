@@ -37,9 +37,22 @@ export default function DpFichaRegistroImportar() {
   const { data: unidades = [] } = useDpUnidades();
   const { turnos = [] } = useDpTurnos();
   const unidadesDaEmpresa = useMemo(
-    () => unidades.filter((u) => u.company_id === selectedCompanyId).map((u) => ({ id: u.id, nome: u.nome })),
+    () => unidades
+      .filter((u) => u.company_id === selectedCompanyId)
+      .map((u) => ({ id: u.id, nome: u.nome, cnpj: (u as { cnpj?: string | null }).cnpj ?? null })),
     [unidades, selectedCompanyId],
   );
+  const { data: empresaCnpj = null } = useQuery({
+    queryKey: ["company_cnpj", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("companies").select("cnpj").eq("id", selectedCompanyId!).maybeSingle();
+      if (error) throw error;
+      return (data?.cnpj as string | null) ?? null;
+    },
+  });
+
 
   useEffect(() => {
     if (!importacaoId && importacoes[0]) setImportacaoId(importacoes[0].id);
