@@ -12,6 +12,7 @@ import { DpPage, DpPageHeader, DpContentCard, DpEmptyState } from "@/components/
 import { NovaConvocacaoPlanner } from "@/components/dp/convocacoes/NovaConvocacaoPlanner";
 import { ConvocacoesRegrasPanel } from "@/components/dp/convocacoes/ConvocacoesRegrasPanel";
 import { DisponibilidadePainel } from "@/components/dp/convocacoes/DisponibilidadePainel";
+import { PlanejamentoPainel } from "@/components/dp/convocacoes/PlanejamentoPainel";
 import { AprovacaoParcialDialog } from "@/components/dp/convocacoes/AprovacaoParcialDialog";
 import { useDpConvocacaoGrupos, type GrupoComOcorrencias } from "@/hooks/useDpConvocacaoGrupos";
 import {
@@ -271,6 +272,9 @@ export default function DpConvocacoes() {
           </TabsTrigger>
           <TabsTrigger value="disponibilidade" className="gap-1.5">
             <CalendarRange className="h-4 w-4" /> Disponibilidade
+          </TabsTrigger>
+          <TabsTrigger value="planejamento" className="gap-1.5">
+            <CalendarDays className="h-4 w-4" /> Planejamento
           </TabsTrigger>
           <TabsTrigger value="regras" className="gap-1.5">
             <Settings2 className="h-4 w-4" /> Regras
