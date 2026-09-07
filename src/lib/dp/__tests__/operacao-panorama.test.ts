@@ -9,6 +9,7 @@ import {
   type ColaboradorPanorama,
   type PessoaPanorama,
   type PessoaAvulsaPanorama,
+  type OcorrenciaPanorama,
 } from "@/lib/dp/operacao-panorama";
 import type { TurnoResolvido } from "@/lib/dp/config-trabalho";
 
@@ -466,5 +467,77 @@ describe("horarioMaisUsado", () => {
       saida: "23:00",
       termina_no_dia_seguinte: false,
     });
+  });
+});
+
+describe("contarDia com ocorrências", () => {
+  const vazio = { convocacoes: [], folgas: [], ausencias: [] };
+  const ocorrencia = (over: Partial<OcorrenciaPanorama> = {}): OcorrenciaPanorama => ({
+    id: "o1",
+    colaborador_id: "a",
+    data: SEGUNDA,
+    tipo: "falta",
+    estado: "confirmada",
+    minutos: null,
+    horario_estimado: null,
+    horario_real: null,
+    ...over,
+  });
+
+  it("converte falta confirmada em ausente e reduz trabalhando", () => {
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [fixo("a")],
+      turnos,
+      ...vazio,
+      ocorrencias: [ocorrencia()],
+    });
+    expect(r.contagens.fixo).toBe(0);
+    expect(r.contagens.ausente).toBe(1);
+    expect(r.trabalhando).toBe(0);
+    expect(r.pessoas[0].categoria).toBe("ausente");
+    expect(r.pessoas[0].ocorrencias).toHaveLength(1);
+  });
+
+  it("mantém atraso como trabalhando e cria card atrasado", () => {
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [fixo("a")],
+      turnos,
+      ...vazio,
+      ocorrencias: [ocorrencia({ tipo: "atraso", estado: "confirmada", minutos: 15 })],
+    });
+    expect(r.contagens.fixo).toBe(1);
+    expect(r.contagens.atrasado).toBe(1);
+    expect(r.trabalhando).toBe(1);
+    expect(r.pessoas.some((p) => p.categoria === "atrasado")).toBe(true);
+    const principal = r.pessoas.find((p) => p.categoria === "fixo");
+    expect(principal?.ocorrencias?.[0].tipo).toBe("atraso");
+  });
+
+  it("cria saída antecipada sem afetar trabalhando", () => {
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [fixo("a")],
+      turnos,
+      ...vazio,
+      ocorrencias: [ocorrencia({ tipo: "saida_antecipada", estado: "confirmada", horario_real: "14:00" })],
+    });
+    expect(r.contagens.fixo).toBe(1);
+    expect(r.contagens.saida_antecipada).toBe(1);
+    expect(r.trabalhando).toBe(1);
+  });
+
+  it("ignora ocorrência de colaborador que já estava de férias", () => {
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [fixo("a")],
+      turnos,
+      ...vazio,
+      ausencias: [{ colaborador_id: "a", inicio: "2026-08-20", fim: "2026-08-30", tipo: "ferias" }],
+      ocorrencias: [ocorrencia()],
+    });
+    expect(r.contagens.ferias).toBe(1);
+    expect(r.contagens.ausente).toBe(0);
   });
 });

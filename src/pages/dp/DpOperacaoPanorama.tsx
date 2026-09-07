@@ -102,6 +102,9 @@ const CATEGORIA_ORDEM: CategoriaDia[] = [
   "folga_extra",
   "ferias",
   "atestado",
+  "ausente",
+  "atrasado",
+  "saida_antecipada",
 ];
 
 const CATEGORIA_TONE: Record<CategoriaDia, "primary" | "muted" | "success" | "warning" | "danger"> = {
@@ -112,6 +115,9 @@ const CATEGORIA_TONE: Record<CategoriaDia, "primary" | "muted" | "success" | "wa
   folga_extra: "muted",
   ferias: "primary",
   atestado: "danger",
+  ausente: "danger",
+  atrasado: "warning",
+  saida_antecipada: "warning",
 };
 
 const CATEGORIA_ICON: Record<CategoriaDia, typeof Users> = {
@@ -122,6 +128,9 @@ const CATEGORIA_ICON: Record<CategoriaDia, typeof Users> = {
   folga_extra: Sun,
   ferias: Plane,
   atestado: HeartPulse,
+  ausente: UserX,
+  atrasado: Clock,
+  saida_antecipada: Clock,
 };
 
 const AVULSO_LABEL: Record<"avulso_teste" | "avulso_folguista", string> = {
@@ -304,7 +313,9 @@ function DetalheDiaOperacao({
   onExcluirAvulsa,
 }: DetalheDiaProps) {
   const foraDaOperacao = dia.pessoas.filter((p) =>
-    ["folga_padrao", "folga_extra", "ferias", "atestado"].includes(p.categoria),
+    ["folga_padrao", "folga_extra", "ferias", "atestado", "ausente", "atrasado", "saida_antecipada"].includes(
+      p.categoria,
+    ),
   );
   const ausReg = ausenciasRegistradas.filter((a) => a.inicio <= data && a.fim >= data);
   const rotuloAus = (t: string) => (t === "adiantamento" ? "Adiantamento" : t === "outros" ? "Ausência" : t);
@@ -398,9 +409,12 @@ function DetalheDiaOperacao({
                     <p className="mb-1 text-xs font-semibold text-muted-foreground">
                       {g.cargo_nome} ({g.pessoas.length})
                     </p>
-                    <ul className="divide-y">
-                      {g.pessoas.map((p) => (
-                        <li key={p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+                      <ul className="divide-y">
+                        {g.pessoas.map((p) => (
+                          <li
+                            key={`${p.colaborador_id}-${p.categoria}-${p.ocorrencia_id ?? p.avulso_id ?? ""}`}
+                            className="flex items-center justify-between gap-3 py-2"
+                          >
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium">{p.nome}</p>
                             <p className="text-xs text-muted-foreground">
