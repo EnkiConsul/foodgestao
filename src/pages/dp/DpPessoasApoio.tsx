@@ -293,7 +293,9 @@ export default function DpPessoasApoio() {
                 <Label>Unidade habitual</Label>
                 <Select
                   value={form.unidade_id || "nenhum"}
-                  onValueChange={(v) => setForm({ ...form, unidade_id: v === "nenhum" ? "" : v })}
+                  onValueChange={(v) =>
+                    setForm({ ...form, unidade_id: v === "nenhum" ? "" : v, setor_id: "" })
+                  }
                 >
                   <SelectTrigger><SelectValue placeholder="Não definida" /></SelectTrigger>
                   <SelectContent>
@@ -305,6 +307,13 @@ export default function DpPessoasApoio() {
                 </Select>
               </div>
             </div>
+
+            <ColaboradorSetorField
+              unidadeId={form.unidade_id || null}
+              value={form.setor_id || null}
+              onChange={(id) => setForm({ ...form, setor_id: id ?? "" })}
+            />
+
 
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
