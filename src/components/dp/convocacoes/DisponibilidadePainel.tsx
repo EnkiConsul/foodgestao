@@ -143,11 +143,10 @@ export function DisponibilidadePainel() {
         </DpContentCard>
       ) : !dados || dados.resumo.convocaveis === 0 ? (
         <DpContentCard>
-          <DpEmptyState
-            icon={Users}
-            title="Nenhum convocável neste escopo"
-            description="Só entram aqui vínculos que trabalham por convocação (intermitente e freelancer) com cadastro ativo."
-          />
+          <DpEmptyState icon={Users} dashed>
+            <span className="font-medium text-foreground">Nenhum convocável neste escopo</span>
+            <span>Só entram aqui vínculos que trabalham por convocação (intermitente e freelancer) com cadastro ativo.</span>
+          </DpEmptyState>
         </DpContentCard>
       ) : (
         <>
