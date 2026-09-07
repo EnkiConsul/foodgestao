@@ -98,8 +98,9 @@ export function parseJornadaCompacta(texto: string | null | undefined): {
   const vazio = { entrada: null, saida: null, intervalo_minutos: null };
   if (!texto) return vazio;
 
-  // Remove a carga semanal final ("44:00" após espaço), que não é horário do dia.
-  const limpo = String(texto).replace(/\s+\d{2}:\d{2}\s*$/, " ");
+  // A carga semanal no fim da linha ("44:00") não é hora válida e cai fora sozinha
+  // na normalização; horas como "00:35" (virada de meia-noite) são preservadas.
+  const limpo = String(texto);
 
   const horas: string[] = [];
   for (const m of limpo.matchAll(HHMM)) {
