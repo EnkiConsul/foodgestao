@@ -513,7 +513,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           horario_estimado: o.horario_estimado ? o.horario_estimado.slice(0, 5) : null,
           horario_real: o.horario_real ? o.horario_real.slice(0, 5) : null,
         })),
-    [base.data?.ocorrencias, unidadeId],
+    ],
+    [base.data?.ocorrencias, conflitosQuery.data, unidadeId],
   );
 
   /** Conta um dia respeitando admissão/desligamento do colaborador. */
