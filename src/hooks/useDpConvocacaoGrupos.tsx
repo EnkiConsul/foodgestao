@@ -395,6 +395,10 @@ export interface SalvarConfigArgs {
   sub_freelancer_por_freelancer?: boolean;
   sub_freelancer_por_intermitente?: boolean;
   sub_fixo_em_folga_dominical?: boolean;
+  disponibilidade_janela_abre_dia?: number;
+  disponibilidade_janela_fecha_dia?: number;
+  disponibilidade_reserva_folga?: boolean;
+  disponibilidade_lembrete_dias?: number;
 }
 
 export function useSalvarConvocacaoConfig() {
@@ -420,7 +424,11 @@ export function useSalvarConvocacaoConfig() {
         p_sub_freelancer_por_freelancer: args.sub_freelancer_por_freelancer,
         p_sub_freelancer_por_intermitente: args.sub_freelancer_por_intermitente,
         p_sub_fixo_em_folga_dominical: args.sub_fixo_em_folga_dominical,
-      });
+        p_disponibilidade_janela_abre_dia: args.disponibilidade_janela_abre_dia,
+        p_disponibilidade_janela_fecha_dia: args.disponibilidade_janela_fecha_dia,
+        p_disponibilidade_reserva_folga: args.disponibilidade_reserva_folga,
+        p_disponibilidade_lembrete_dias: args.disponibilidade_lembrete_dias,
+      } as any);
       if (error) throw error;
       return data;
     },
