@@ -4774,6 +4774,10 @@ export type Database = {
           autonomia_colaborador_desistir: boolean
           company_id: string
           created_at: string
+          disponibilidade_janela_abre_dia: number
+          disponibilidade_janela_fecha_dia: number
+          disponibilidade_lembrete_dias: number
+          disponibilidade_reserva_folga: boolean
           exige_justificativa_excecao: boolean
           id: string
           permite_oferta_aberta: boolean
@@ -4793,6 +4797,10 @@ export type Database = {
           autonomia_colaborador_desistir?: boolean
           company_id: string
           created_at?: string
+          disponibilidade_janela_abre_dia?: number
+          disponibilidade_janela_fecha_dia?: number
+          disponibilidade_lembrete_dias?: number
+          disponibilidade_reserva_folga?: boolean
           exige_justificativa_excecao?: boolean
           id?: string
           permite_oferta_aberta?: boolean
@@ -4812,6 +4820,10 @@ export type Database = {
           autonomia_colaborador_desistir?: boolean
           company_id?: string
           created_at?: string
+          disponibilidade_janela_abre_dia?: number
+          disponibilidade_janela_fecha_dia?: number
+          disponibilidade_lembrete_dias?: number
+          disponibilidade_reserva_folga?: boolean
           exige_justificativa_excecao?: boolean
           id?: string
           permite_oferta_aberta?: boolean
@@ -7694,6 +7706,7 @@ export type Database = {
       }
       dp_indisponibilidades: {
         Row: {
+          alteracao_tardia: boolean
           cancelada_em: string | null
           cancelada_por: string | null
           colaborador_id: string
@@ -7701,12 +7714,15 @@ export type Database = {
           created_at: string
           criado_por: string | null
           data: string
+          dentro_da_janela: boolean | null
           id: string
+          informada_em: string
           motivo: string | null
           origem: string
           updated_at: string
         }
         Insert: {
+          alteracao_tardia?: boolean
           cancelada_em?: string | null
           cancelada_por?: string | null
           colaborador_id: string
@@ -7714,12 +7730,15 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data: string
+          dentro_da_janela?: boolean | null
           id?: string
+          informada_em?: string
           motivo?: string | null
           origem?: string
           updated_at?: string
         }
         Update: {
+          alteracao_tardia?: boolean
           cancelada_em?: string | null
           cancelada_por?: string | null
           colaborador_id?: string
@@ -7727,7 +7746,9 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data?: string
+          dentro_da_janela?: boolean | null
           id?: string
+          informada_em?: string
           motivo?: string | null
           origem?: string
           updated_at?: string
@@ -13659,6 +13680,10 @@ export type Database = {
           autonomia_colaborador_desistir: boolean
           company_id: string
           created_at: string
+          disponibilidade_janela_abre_dia: number
+          disponibilidade_janela_fecha_dia: number
+          disponibilidade_lembrete_dias: number
+          disponibilidade_reserva_folga: boolean
           exige_justificativa_excecao: boolean
           id: string
           permite_oferta_aberta: boolean
@@ -13902,6 +13927,10 @@ export type Database = {
           p_aprovacao_modo?: string
           p_autonomia_colaborador_desistir?: boolean
           p_company_id: string
+          p_disponibilidade_janela_abre_dia?: number
+          p_disponibilidade_janela_fecha_dia?: number
+          p_disponibilidade_lembrete_dias?: number
+          p_disponibilidade_reserva_folga?: boolean
           p_exige_justificativa_excecao?: boolean
           p_expected_updated_at?: string
           p_permite_oferta_aberta?: boolean
@@ -13927,6 +13956,14 @@ export type Database = {
           p_elegibilidade?: Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
           p_motivo?: Database["public"]["Enums"]["dp_motivo_desligamento"]
           p_observacao?: string
+        }
+        Returns: Json
+      }
+      dp_disponibilidade_janela: {
+        Args: {
+          _company_id: string
+          _competencia?: string
+          _unidade_id?: string
         }
         Returns: Json
       }
@@ -14275,6 +14312,10 @@ export type Database = {
       dp_indisponibilidade_remover: { Args: { p_data: string }; Returns: Json }
       dp_jornada_dia_prevista: {
         Args: { p_colaborador: string; p_data: string }
+        Returns: Json
+      }
+      dp_minha_disponibilidade_janela: {
+        Args: { _competencia?: string }
         Returns: Json
       }
       dp_nome_normalizado: { Args: { p_nome: string }; Returns: string }
@@ -15399,6 +15440,9 @@ export type Database = {
         | "ferias_canceladas"
         | "ferias_proximas"
         | "ferias_retorno"
+        | "disponibilidade_janela_abriu"
+        | "disponibilidade_janela_fechando"
+        | "disponibilidade_alteracao_tardia"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -15879,6 +15923,9 @@ export const Constants = {
         "ferias_canceladas",
         "ferias_proximas",
         "ferias_retorno",
+        "disponibilidade_janela_abriu",
+        "disponibilidade_janela_fechando",
+        "disponibilidade_alteracao_tardia",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [
