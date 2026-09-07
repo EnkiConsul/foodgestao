@@ -246,6 +246,26 @@ export function FichaRevisaoCard({
           {campo("Admissão", "data_admissao", "date")}
           {campo("Salário", "salario")}
           {campo("Telefone", "telefone")}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs">WhatsApp</Label>
+              {!whatsappEditado && !!dados.whatsapp && (
+                <Badge variant="outline" className="h-4 px-1 text-[10px] font-normal text-muted-foreground">
+                  igual ao telefone
+                </Badge>
+              )}
+            </div>
+            <Input
+              className="h-9"
+              value={typeof dados.whatsapp === "string" ? dados.whatsapp : ""}
+              onChange={(e) => {
+                setWhatsappEditado(true);
+                setDados((d) => ({ ...d, whatsapp: e.target.value }));
+              }}
+              disabled={aplicado || ignorado}
+            />
+          </div>
+
           {campo("Nome da mãe", "nome_mae")}
           {campo("RG", "rg_numero")}
           {campo("CTPS", "ctps_numero")}
