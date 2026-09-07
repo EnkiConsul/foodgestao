@@ -56,7 +56,18 @@ export default function DpFolgasHub() {
       />
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
-        <DpTabsBar>
+        <DpTabsBar
+          value={aba}
+          onValueChange={setAba}
+          sectionTitle="Seções de Folgas"
+          sections={[
+            { value: "calendario", label: "Calendário" },
+            { value: "regras", label: "Regras" },
+            { value: "solicitacoes", label: "Solicitações" },
+            { value: "trocas", label: "Trocas" },
+            { value: "conformidade", label: "Conformidade" },
+          ]}
+        >
           <TabsTrigger value="calendario">Calendário</TabsTrigger>
           <TabsTrigger value="regras">Regras</TabsTrigger>
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>

@@ -2143,7 +2143,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           </div>
         </Tabs>
 
-        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border p-3 sm:flex-row sm:p-4 sm:justify-between">
+        <DialogFooter className="sticky bottom-0 z-10 shrink-0 flex-col gap-2 border-t border-border bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:p-4 sm:pb-4 sm:justify-between">
           <p className="order-2 text-center text-[11px] text-muted-foreground sm:order-1 sm:text-left sm:text-xs">
             {`Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
             {dirty ? " · alterações não salvas" : ""}

@@ -38,6 +38,7 @@ import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 
 import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
+import { DpListCard } from "@/components/dp/DpDataList";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { supabase } from "@/integrations/supabase/client";
@@ -421,39 +422,15 @@ export default function DpColaboradores() {
         icon={Users}
         title="Colaboradores"
         description="Gerencie a equipe, cargos e acessos ao sistema."
-        actions={
-          <>
-            <DpSalvarLargurasButton screenKey="dp_colaboradores" colOrder={colOrder} colWidths={colWidths} />
-            <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
-              <Link to="/dp/colaboradores/apoio">
-                <UserPlus className="h-4 w-4 sm:mr-2" />{" "}
-                <span className="hidden sm:inline">Folguistas e testes</span>
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
-
-              <Link to="/dp/colaboradores/lixeira">
-                <Trash2 className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Lixeira</span>
-              </Link>
-            </Button>
-
-            <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
-              <Link to="/dp/colaboradores/importar-ficha">
-                <FileText className="h-4 w-4 sm:mr-2" />{" "}
-                <span className="hidden sm:inline">Importar ficha de registro</span>
-              </Link>
-            </Button>
-
-            <Button
-              size="sm"
-              className="h-10 rounded-full font-semibold sm:size-lg"
-              onClick={() => abrirCadastro(null)}
-            >
-              <Plus className="h-4 w-4 mr-1.5 sm:h-5 sm:w-5 sm:mr-2" /> Novo
-              <span className="hidden sm:inline">&nbsp;Colaborador</span>
-            </Button>
-          </>
+        actionsExtra={
+          <DpSalvarLargurasButton screenKey="dp_colaboradores" colOrder={colOrder} colWidths={colWidths} />
         }
+        actionItems={[
+          { key: "novo", label: "Novo colaborador", icon: Plus, primary: true, onSelect: () => abrirCadastro(null) },
+          { key: "apoio", label: "Folguistas e testes", icon: UserPlus, to: "/dp/colaboradores/apoio" },
+          { key: "importar", label: "Importar ficha de registro", icon: FileText, to: "/dp/colaboradores/importar-ficha" },
+          { key: "lixeira", label: "Lixeira", icon: Trash2, to: "/dp/colaboradores/lixeira" },
+        ]}
       />
 
       <Tabs value={statusFilter} onValueChange={setStatusFilter}>
@@ -469,9 +446,25 @@ export default function DpColaboradores() {
 
       <DpFilters
         search={{ value: search, onChange: setSearch, placeholder: "Nome ou CPF..." }}
-        activeCount={
-          (incompletosFilter ? 1 : 0) + (unidadeFilter !== "all" ? 1 : 0) + (cargoFilter !== "all" ? 1 : 0) + (perfilFilter !== "all" ? 1 : 0) + (setorFilter !== "all" ? 1 : 0)
-        }
+        chips={[
+          ...(incompletosFilter ? [{ key: "incompletos", label: "Cadastros incompletos", onRemove: () => setIncompletosFilter(false) }] : []),
+          ...(unidadeFilter !== "all"
+            ? [{ key: "unidade", label: (unidades.data ?? []).find((u) => u.id === unidadeFilter)?.nome ?? "Unidade", onRemove: () => setUnidadeFilter("all") }]
+            : []),
+          ...(cargoFilter !== "all"
+            ? [{ key: "cargo", label: (cargos.data ?? []).find((c) => c.id === cargoFilter)?.nome ?? "Cargo", onRemove: () => setCargoFilter("all") }]
+            : []),
+          ...(setorFilter !== "all"
+            ? [{
+                key: "setor",
+                label: setorFilter === "__sem__" ? "Sem setor" : (setoresEmUso.find((s) => s.id === setorFilter)?.nome ?? "Setor"),
+                onRemove: () => setSetorFilter("all"),
+              }]
+            : []),
+          ...(perfilFilter !== "all"
+            ? [{ key: "perfil", label: PERFIL_LABEL[perfilFilter] ?? "Perfil", onRemove: () => setPerfilFilter("all") }]
+            : []),
+        ]}
         onClear={() => { setIncompletosFilter(false); setUnidadeFilter("all"); setCargoFilter("all"); setPerfilFilter("all"); setSetorFilter("all"); }}
       >
         <DpFilterField label="Cadastro">
@@ -658,17 +651,18 @@ export default function DpColaboradores() {
           const perfil = (c as any).perfil_acesso as string | null;
           const folha = (c as any).possui_folha_ponto as boolean | null;
           return (
-            <div key={c.id} className="rounded-2xl border border-border bg-card p-4 space-y-3 active:scale-[0.98] transition-transform">
-              <div className="cursor-pointer" onClick={() => setViewing(c)}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold uppercase truncate">{c.nome}</div>
-                    <div className="font-mono text-xs text-muted-foreground mt-0.5">{c.cpf ?? "—"}</div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      {c.cargo_nome ?? c.cargo ?? "—"}
-                      {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
-                    </div>
-                  </div>
+            <DpListCard
+              key={c.id}
+              title={c.nome}
+              subtitle={<span className="font-mono">{c.cpf ?? "—"}</span>}
+              meta={
+                <>
+                  {c.cargo_nome ?? c.cargo ?? "—"}
+                  {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
+                </>
+              }
+              badges={
+                <>
                   {c.ativo ? (
                     <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
                       Ativo
@@ -678,9 +672,6 @@ export default function DpColaboradores() {
                       Desligado {fmtDate(c.data_desligamento)}
                     </Badge>
                   )}
-                </div>
-
-                <div className="flex flex-wrap gap-1.5 mt-3">
                   <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5 text-[11px]">
                     {vinculoLabel(c as any)}
                   </Badge>
@@ -711,30 +702,34 @@ export default function DpColaboradores() {
                       Cadastro incompleto ({faltantesDe(c).length})
                     </Badge>
                   )}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-1 pt-1 border-t border-border/60" onClick={(e) => e.stopPropagation()}>
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => abrirCadastro(c)}>
-                  <Pencil className="h-4 w-4 mr-1" /> Editar
-                </Button>
-                <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => abrirCadastro(c, "acesso")}>
-                  {c.user_id ? <KeyRound className="h-4 w-4 mr-1" /> : <UserPlus className="h-4 w-4 mr-1" />} Acesso
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={`min-h-11 flex-1 ${c.ativo ? "text-destructive" : ""}`}
-                  onClick={() => abrirCadastro(c, "desligamento")}
-                >
-                  {c.ativo ? <UserMinus className="h-4 w-4 mr-1" /> : <RotateCcw className="h-4 w-4 mr-1" />}
-                  {c.ativo ? "Desligar" : "Reintegrar"}
-                </Button>
-                <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(c)} title="Remover">
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            </div>
+                </>
+              }
+              onOpen={() => setViewing(c)}
+              actions={[
+                { key: "editar", label: "Editar cadastro", icon: Pencil, onSelect: () => abrirCadastro(c) },
+                {
+                  key: "acesso",
+                  label: c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal",
+                  icon: c.user_id ? KeyRound : UserPlus,
+                  onSelect: () => abrirCadastro(c, "acesso"),
+                },
+                {
+                  key: "desligamento",
+                  label: c.ativo ? "Registrar desligamento" : "Desligamento / reintegração",
+                  icon: c.ativo ? UserMinus : RotateCcw,
+                  destructive: c.ativo,
+                  onSelect: () => abrirCadastro(c, "desligamento"),
+                },
+                {
+                  key: "remover",
+                  label: "Remover cadastro",
+                  icon: Trash2,
+                  destructive: true,
+                  separatorBefore: true,
+                  onSelect: () => setToDelete(c),
+                },
+              ]}
+            />
           );
         })}
       </div>
