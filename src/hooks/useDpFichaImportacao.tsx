@@ -268,22 +268,52 @@ export function useAplicarFicha() {
       }
 
       if (jornada && !jornada.vazia) {
-        const cfg = await supabase
+        // Reaproveita a jornada vigente quando já existe (um colaborador só pode ter uma em aberto).
+        const vigente = await supabase
           .from("dp_colaborador_config_trabalho")
-          .insert({
-            company_id: selectedCompanyId,
-            colaborador_id: colaboradorId,
-            unidade_id: unidadeId,
-            turno_padrao_id: null,
-            folga_variavel: !jornada.dias.some((d) => !d.trabalha),
-            folga_fixa_dow: jornada.dias.find((d) => !d.trabalha)?.dow ?? null,
-            observacoes: "Importado da ficha de registro",
-            vigencia_inicio: dataIso(dados.data_admissao) ?? hoje(),
-          })
           .select("id")
-          .single();
-        if (cfg.error) throw cfg.error;
-        const configId = (cfg.data as { id: string }).id;
+          .eq("colaborador_id", colaboradorId)
+          .is("vigencia_fim", null)
+          .maybeSingle();
+        if (vigente.error) throw vigente.error;
+
+        let configId: string;
+        if (vigente.data?.id) {
+          configId = (vigente.data as { id: string }).id;
+          const { error: upErr } = await supabase
+            .from("dp_colaborador_config_trabalho")
+            .update({
+              unidade_id: unidadeId,
+              folga_variavel: !jornada.dias.some((d) => !d.trabalha),
+              folga_fixa_dow: jornada.dias.find((d) => !d.trabalha)?.dow ?? null,
+              observacoes: "Importado da ficha de registro",
+            })
+            .eq("id", configId);
+          if (upErr) throw upErr;
+          const { error: delErr } = await supabase
+            .from("dp_colaborador_config_dias")
+            .delete()
+            .eq("config_id", configId);
+          if (delErr) throw delErr;
+        } else {
+          const cfg = await supabase
+            .from("dp_colaborador_config_trabalho")
+            .insert({
+              company_id: selectedCompanyId,
+              colaborador_id: colaboradorId,
+              unidade_id: unidadeId,
+              turno_padrao_id: null,
+              folga_variavel: !jornada.dias.some((d) => !d.trabalha),
+              folga_fixa_dow: jornada.dias.find((d) => !d.trabalha)?.dow ?? null,
+              observacoes: "Importado da ficha de registro",
+              vigencia_inicio: dataIso(dados.data_admissao) ?? hoje(),
+            })
+            .select("id")
+            .single();
+          if (cfg.error) throw cfg.error;
+          configId = (cfg.data as { id: string }).id;
+        }
+
         const { error: diasErr } = await supabase.from("dp_colaborador_config_dias").insert(
           jornada.dias.map((d) => ({
             company_id: selectedCompanyId,
@@ -298,6 +328,7 @@ export function useAplicarFicha() {
           })),
         );
         if (diasErr) throw diasErr;
+
       }
 
       const { error: itemErr } = await supabase
