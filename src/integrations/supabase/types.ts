@@ -14335,7 +14335,12 @@ export type Database = {
         Returns: number
       }
       dp_indisponibilidade_marcar: {
-        Args: { p_data: string; p_motivo?: string }
+        Args: {
+          p_ciencia_multa?: boolean
+          p_confirmar_conflito?: boolean
+          p_data: string
+          p_motivo?: string
+        }
         Returns: Json
       }
       dp_indisponibilidade_remover: { Args: { p_data: string }; Returns: Json }
