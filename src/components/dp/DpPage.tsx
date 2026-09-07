@@ -41,12 +41,34 @@ interface DpPageHeaderProps {
   icon: LucideIcon;
   title: string;
   description?: string;
+  /** Ações livres (compatibilidade) ou uma `<DpActions />`. */
   actions?: ReactNode;
+  /** Lista de ações no padrão do módulo — mobile mostra principal + "Mais". */
+  actionItems?: DpAction[];
+  /** Controles avulsos exibidos só no desktop (ex.: salvar larguras). */
+  actionsExtra?: ReactNode;
   className?: string;
 }
 
-export function DpPageHeader({ icon: Icon, title, description, actions, className }: DpPageHeaderProps) {
+function HeaderActions({
+  actions, actionItems, actionsExtra,
+}: Pick<DpPageHeaderProps, "actions" | "actionItems" | "actionsExtra">) {
+  if (actionItems && actionItems.length > 0) {
+    return <DpActions actions={actionItems} extra={actionsExtra} />;
+  }
+  if (!actions) return null;
+  return (
+    <div className="dp-page-actions flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end [&>*]:min-h-11">
+      {actions}
+    </div>
+  );
+}
+
+export function DpPageHeader({
+  icon: Icon, title, description, actions, actionItems, actionsExtra, className,
+}: DpPageHeaderProps) {
   const embedded = useDpEmbedded();
+  const temAcoes = Boolean(actions || (actionItems && actionItems.length > 0));
   if (embedded) {
     return (
       <header className={cn("dp-page-header-embedded flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
@@ -57,16 +79,12 @@ export function DpPageHeader({ icon: Icon, title, description, actions, classNam
           </h2>
           {description && <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{description}</p>}
         </div>
-        {actions && (
-          <div className="dp-page-actions -mx-3 flex shrink-0 items-center gap-2 overflow-x-auto px-3 pb-0.5 [scrollbar-width:none] [&>*]:shrink-0 [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:justify-end sm:overflow-visible sm:px-0">
-            {actions}
-          </div>
-        )}
+        {temAcoes && <HeaderActions actions={actions} actionItems={actionItems} actionsExtra={actionsExtra} />}
       </header>
     );
   }
   return (
-    <header className={cn("dp-page-header flex flex-col gap-2 sm:gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
+    <header className={cn("dp-page-header flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
       <div className="flex min-w-0 items-start gap-2 sm:gap-3">
         <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary sm:mt-1 sm:h-7 sm:w-7" />
         <div className="min-w-0">
@@ -76,11 +94,7 @@ export function DpPageHeader({ icon: Icon, title, description, actions, classNam
           )}
         </div>
       </div>
-      {actions && (
-        <div className="dp-page-actions -mx-3 flex shrink-0 items-center gap-2 overflow-x-auto px-3 pb-0.5 [scrollbar-width:none] [&>*]:shrink-0 [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:justify-end sm:overflow-visible sm:px-0">
-          {actions}
-        </div>
-      )}
+      {temAcoes && <HeaderActions actions={actions} actionItems={actionItems} actionsExtra={actionsExtra} />}
     </header>
   );
 }
