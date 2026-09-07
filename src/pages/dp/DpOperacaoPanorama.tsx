@@ -449,7 +449,25 @@ function DetalheDiaOperacao({
                               {p.termina_no_dia_seguinte ? " (+1)" : ""} ·{" "}
                               {formatarHoras(p.carga_prevista_horas)}
                             </p>
+                            {p.ocorrencias?.length ? (
+                              <div className="mt-1 flex flex-wrap items-center gap-1">
+                                <OcorrenciaBadges ocorrencias={p.ocorrencias} />
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="h-auto p-0 text-xs"
+                                  onClick={() =>
+                                    navigate(
+                                      `/dp/ocorrencias?colaborador=${p.colaborador_id}&data=${data}`,
+                                    )
+                                  }
+                                >
+                                  Ver ocorrências
+                                </Button>
+                              </div>
+                            ) : null}
                           </div>
+
                           <div className="flex shrink-0 items-center gap-1.5">
                             {usaSetores && (
                               <Badge
