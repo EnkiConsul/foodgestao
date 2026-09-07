@@ -692,6 +692,15 @@ export default function DpColaboradores() {
                   >
                     Folha: {folha ? "Sim" : "Não"}
                   </Badge>
+                  {c.ativo && faltantesDe(c).length > 0 && (
+                    <Badge
+                      variant="outline"
+                      className="text-[11px] border-amber-500/40 text-amber-600 dark:text-amber-400"
+                      title={`Falta: ${resumoFaltando(faltantesDe(c), 9)}`}
+                    >
+                      Cadastro incompleto ({faltantesDe(c).length})
+                    </Badge>
+                  )}
                 </div>
               </div>
 
