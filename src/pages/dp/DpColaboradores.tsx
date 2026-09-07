@@ -178,7 +178,7 @@ export default function DpColaboradores() {
         }
         return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
       });
-  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter]);
+  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter, incompletosFilter]);
 
   /** Setor só aparece quando a empresa já usa setores. */
   const setoresEmUso = useMemo(() => {
