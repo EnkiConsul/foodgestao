@@ -213,7 +213,7 @@ export default function DpOcorrencias() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {colaboradoresAtivos.map((c) => (
+              {opcoesColaborador.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.nome}
                 </SelectItem>
