@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,11 +85,19 @@ export function BeneficioDialog({
   const valid = form.nome.trim().length > 1;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Editar benefício" : "Novo benefício"}</DialogTitle>
-        </DialogHeader>
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editing ? "Editar benefício" : "Novo benefício"}
+      className="sm:max-w-lg"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button disabled={!valid || saving} onClick={() => onSubmit(form)}>Salvar</Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
         {editing && (
           <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400">
             Este é o cadastro do catálogo da empresa: a alteração vale para todos os colaboradores que
@@ -204,12 +210,8 @@ export function BeneficioDialog({
             <Label>Benefício ativo</Label>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!valid || saving} onClick={() => onSubmit(form)}>Salvar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DpDialogShell>
   );
 }
 
@@ -272,11 +274,18 @@ export function AtribuicaoDialog({
   const valid = !!form.colaborador_id && !!form.beneficio_id && !!form.data_inicio;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Editar benefício do colaborador" : "Atribuir benefício"}</DialogTitle>
-        </DialogHeader>
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editing ? "Editar benefício do colaborador" : "Atribuir benefício"}
+      className="sm:max-w-lg"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button disabled={!valid || saving} onClick={() => onSubmit(form)}>Salvar</Button>
+        </>
+      }
+    >
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label>Colaborador</Label>
@@ -351,11 +360,6 @@ export function AtribuicaoDialog({
             <Label>Vínculo ativo</Label>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!valid || saving} onClick={() => onSubmit(form)}>Salvar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </DpDialogShell>
   );
 }

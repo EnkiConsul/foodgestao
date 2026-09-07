@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,17 +39,27 @@ export function FeriasFaltasDialog({ periodo, onOpenChange, saving, onSubmit }: 
   const revisao = valido && exigeRevisaoAdministrativa(valor);
 
   return (
-    <Dialog open={!!periodo} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Faltas do período aquisitivo</DialogTitle>
-          <DialogDescription>
-            Informe somente faltas que devem ser consideradas para fins de férias. Ausências
-            justificadas não devem ser incluídas.
-          </DialogDescription>
-        </DialogHeader>
-
-        {periodo && (
+    <DpDialogShell
+      open={!!periodo}
+      onOpenChange={onOpenChange}
+      title="Faltas do período aquisitivo"
+      description="Informe somente faltas que devem ser consideradas para fins de férias. Ausências justificadas não devem ser incluídas."
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            disabled={!valido || precisaMotivo || saving}
+            onClick={() => onSubmit(valor, motivo.trim() || null)}
+          >
+            Salvar
+          </Button>
+        </>
+      }
+    >
+      {periodo && (
           <div className="space-y-4">
             <div className="rounded-xl bg-muted/50 p-3 text-sm">
               <p className="font-semibold">{periodo.colaborador_nome ?? "Colaborador"}</p>
@@ -102,20 +110,7 @@ export function FeriasFaltasDialog({ periodo, onOpenChange, saving, onSubmit }: 
               </div>
             )}
           </div>
-        )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button
-            disabled={!valido || precisaMotivo || saving}
-            onClick={() => onSubmit(valor, motivo.trim() || null)}
-          >
-            Salvar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      )}
+    </DpDialogShell>
   );
 }

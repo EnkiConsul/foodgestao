@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,11 +87,18 @@ export function ExameDialog({
   const valid = !!form.colaborador_id;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Editar exame" : "Novo exame (ASO)"}</DialogTitle>
-        </DialogHeader>
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editing ? "Editar exame" : "Novo exame (ASO)"}
+      className="sm:max-w-lg"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button disabled={!valid || saving} onClick={() => onSubmit(form)}>Salvar</Button>
+        </>
+      }
+    >
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label>Colaborador</Label>
@@ -173,12 +178,7 @@ export function ExameDialog({
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!valid || saving} onClick={() => onSubmit(form)}>Salvar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </DpDialogShell>
   );
 }
 
@@ -214,11 +214,18 @@ export function EpiDialog({
   }, [open, editing]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Editar EPI" : "Novo EPI"}</DialogTitle>
-        </DialogHeader>
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editing ? "Editar EPI" : "Novo EPI"}
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button disabled={!form.nome.trim() || saving} onClick={() => onSubmit(form)}>Salvar</Button>
+        </>
+      }
+    >
         <div className="grid gap-4">
           <div className="space-y-2">
             <Label>Nome</Label>
@@ -257,12 +264,7 @@ export function EpiDialog({
             <Switch checked={form.ativo} onCheckedChange={(v) => setForm((f) => ({ ...f, ativo: v }))} />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!form.nome.trim() || saving} onClick={() => onSubmit(form)}>Salvar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </DpDialogShell>
   );
 }
 
@@ -316,11 +318,18 @@ export function EpiEntregaDialog({
   const valid = !!form.colaborador_id && !!form.epi_id && form.quantidade > 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Editar entrega" : "Registrar entrega de EPI"}</DialogTitle>
-        </DialogHeader>
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editing ? "Editar entrega" : "Registrar entrega de EPI"}
+      className="sm:max-w-lg"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button disabled={!valid || saving} onClick={() => onSubmit(form)}>Salvar</Button>
+        </>
+      }
+    >
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label>Colaborador</Label>
@@ -396,12 +405,7 @@ export function EpiEntregaDialog({
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!valid || saving} onClick={() => onSubmit(form)}>Salvar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </DpDialogShell>
   );
 }
 
@@ -445,11 +449,18 @@ export function TreinamentoDialog({
   }, [open, editing]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Editar treinamento" : "Novo treinamento"}</DialogTitle>
-        </DialogHeader>
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editing ? "Editar treinamento" : "Novo treinamento"}
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button disabled={!form.nome.trim() || saving} onClick={() => onSubmit(form)}>Salvar</Button>
+        </>
+      }
+    >
         <div className="grid gap-4">
           <div className="space-y-2">
             <Label>Nome</Label>
@@ -500,12 +511,7 @@ export function TreinamentoDialog({
             <Switch checked={form.ativo} onCheckedChange={(v) => setForm((f) => ({ ...f, ativo: v }))} />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!form.nome.trim() || saving} onClick={() => onSubmit(form)}>Salvar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </DpDialogShell>
   );
 }
 
@@ -555,11 +561,18 @@ export function ParticipacaoDialog({
   const valid = !!form.colaborador_id && !!form.treinamento_id;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Editar participação" : "Nova participação"}</DialogTitle>
-        </DialogHeader>
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editing ? "Editar participação" : "Nova participação"}
+      className="sm:max-w-lg"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button disabled={!valid || saving} onClick={() => onSubmit(form)}>Salvar</Button>
+        </>
+      }
+    >
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label>Colaborador</Label>
@@ -628,11 +641,6 @@ export function ParticipacaoDialog({
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!valid || saving} onClick={() => onSubmit(form)}>Salvar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </DpDialogShell>
   );
 }

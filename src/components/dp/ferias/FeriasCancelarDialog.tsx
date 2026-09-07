@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,18 +24,30 @@ export function FeriasCancelarDialog({ gozo, onOpenChange, saving, onSubmit }: P
   }, [gozo]);
 
   return (
-    <Dialog open={!!gozo} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Cancelar férias</DialogTitle>
-          <DialogDescription>
-            {gozo
-              ? `${gozo.colaborador_nome ?? "Colaborador"} · ${fmt(gozo.data_inicio)} a ${fmt(gozo.data_fim)}`
-              : ""}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-2">
+    <DpDialogShell
+      open={!!gozo}
+      onOpenChange={onOpenChange}
+      title="Cancelar férias"
+      description={
+        gozo
+          ? `${gozo.colaborador_nome ?? "Colaborador"} · ${fmt(gozo.data_inicio)} a ${fmt(gozo.data_fim)}`
+          : undefined
+      }
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Voltar</Button>
+          <Button
+            variant="destructive"
+            disabled={saving || motivo.trim().length < 3}
+            onClick={() => onSubmit(motivo.trim())}
+          >
+            {saving ? "Cancelando…" : "Cancelar férias"}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-2">
           <Label>Motivo do cancelamento</Label>
           <Textarea
             rows={3}
@@ -48,19 +58,7 @@ export function FeriasCancelarDialog({ gozo, onOpenChange, saving, onSubmit }: P
           <p className="text-xs text-muted-foreground">
             O registro não é apagado: ele fica no histórico com o motivo e a data do cancelamento.
           </p>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Voltar</Button>
-          <Button
-            variant="destructive"
-            disabled={saving || motivo.trim().length < 3}
-            onClick={() => onSubmit(motivo.trim())}
-          >
-            {saving ? "Cancelando…" : "Cancelar férias"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DpDialogShell>
   );
 }

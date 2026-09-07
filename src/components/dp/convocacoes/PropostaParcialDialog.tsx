@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock } from "lucide-react";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,19 +55,41 @@ export function PropostaParcialDialog({
   }, [entrada, saida, necessidade]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-primary" /> Posso vir parte do horário
-          </DialogTitle>
-          <DialogDescription>
-            Horário pedido: {hhmm(necessidade.entrada)} → {hhmm(necessidade.saida)}
-            {necessidade.termina_no_dia_seguinte ? " (do dia seguinte)" : ""}. Informe o horário que
-            você consegue cumprir — dentro desse período.
-          </DialogDescription>
-        </DialogHeader>
-
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={Clock}
+      title="Posso vir parte do horário"
+      description={
+        <>
+          Horário pedido: {hhmm(necessidade.entrada)} → {hhmm(necessidade.saida)}
+          {necessidade.termina_no_dia_seguinte ? " (do dia seguinte)" : ""}. Informe o horário que
+          você consegue cumprir — dentro desse período.
+        </>
+      }
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            Voltar
+          </Button>
+          <Button
+            disabled={!validacao.ok || loading}
+            onClick={() =>
+              onConfirm({
+                entrada,
+                saida,
+                termina_no_dia_seguinte: viraODia,
+                observacao: observacao.trim() || null,
+              })
+            }
+          >
+            Enviar para aprovação
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="parcial-entrada">Chego às</Label>
@@ -118,25 +138,7 @@ export function PropostaParcialDialog({
           />
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            Voltar
-          </Button>
-          <Button
-            disabled={!validacao.ok || loading}
-            onClick={() =>
-              onConfirm({
-                entrada,
-                saida,
-                termina_no_dia_seguinte: viraODia,
-                observacao: observacao.trim() || null,
-              })
-            }
-          >
-            Enviar para aprovação
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DpDialogShell>
   );
 }

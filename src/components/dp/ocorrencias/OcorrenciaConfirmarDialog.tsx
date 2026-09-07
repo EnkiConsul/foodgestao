@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,17 +38,39 @@ export function OcorrenciaConfirmarDialog({
   const minutos = minutosEntre(previsto, horarioReal);
 
   return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Confirmar {TIPO_LABEL[destino].toLowerCase()}</DialogTitle>
-          <DialogDescription>
-            {ocorrencia.colaborador?.nome} — rotina de{" "}
-            {new Date(`${ocorrencia.data_operacional}T12:00:00`).toLocaleDateString("pt-BR")}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
+    <DpDialogShell
+      open
+      onOpenChange={onOpenChange}
+      title={`Confirmar ${TIPO_LABEL[destino].toLowerCase()}`}
+      description={`${ocorrencia.colaborador?.nome} — rotina de ${new Date(`${ocorrencia.data_operacional}T12:00:00`).toLocaleDateString("pt-BR")}`}
+      size="sm"
+      footer={
+        <>
+          <Button
+            variant="outline"
+            disabled={saving || !texto.trim()}
+            onClick={() => onNaoAconteceu(texto.trim())}
+          >
+            Não aconteceu
+          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Fechar
+          </Button>
+          <Button
+            disabled={saving || (pedeHorario && !horarioReal)}
+            onClick={() =>
+              onConfirm({
+                horarioReal: pedeHorario ? horarioReal || null : null,
+                justificativaFinal: texto.trim() || null,
+              })
+            }
+          >
+            Confirmar
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
           {previsto && (
             <p className="text-sm text-muted-foreground">
               Horário previsto: <strong>{previsto}</strong>
@@ -90,33 +105,7 @@ export function OcorrenciaConfirmarDialog({
               </p>
             )}
           </div>
-        </div>
-
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button
-            variant="outline"
-            className="sm:mr-auto"
-            disabled={saving || !texto.trim()}
-            onClick={() => onNaoAconteceu(texto.trim())}
-          >
-            Não aconteceu
-          </Button>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-          <Button
-            disabled={saving || (pedeHorario && !horarioReal)}
-            onClick={() =>
-              onConfirm({
-                horarioReal: pedeHorario ? horarioReal || null : null,
-                justificativaFinal: texto.trim() || null,
-              })
-            }
-          >
-            Confirmar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DpDialogShell>
   );
 }

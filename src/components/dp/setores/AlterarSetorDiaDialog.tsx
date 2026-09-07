@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -86,16 +84,22 @@ export function AlterarSetorDiaDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Alterar setor deste dia</DialogTitle>
-          <DialogDescription>
-            Vale somente para {dataLonga(alvo.data)}. A área padrão do cadastro não muda.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3">
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Alterar setor deste dia"
+      description={`Vale somente para ${dataLonga(alvo.data)}. A área padrão do cadastro não muda.`}
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={confirmar} disabled={salvando}>
+            {escolha === USAR_PADRAO ? "Usar setor padrão" : "Alterar setor"}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
           <div className="rounded-lg border bg-muted/30 p-3 text-xs">
             <p className="text-sm font-medium text-foreground">{alvo.nome}</p>
             <p className="text-muted-foreground">
@@ -143,15 +147,7 @@ export function AlterarSetorDiaDialog({
               Editar setor habitual do colaborador
             </Button>
           )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={confirmar} disabled={salvando}>
-            {escolha === USAR_PADRAO ? "Usar setor padrão" : "Alterar setor"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DpDialogShell>
   );
 }

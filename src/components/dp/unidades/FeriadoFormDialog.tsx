@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,13 +58,37 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
   const invalido = !nome.trim() || (tipo === "especifica" && !data);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{feriado ? "Editar feriado" : "Novo feriado"}</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
+    <DpDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={feriado ? "Editar feriado" : "Novo feriado"}
+      size="sm"
+      footer={
+        <>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button
+            disabled={invalido || saving}
+            onClick={() =>
+              onSubmit({
+                id: feriado?.id,
+                nome,
+                tipo,
+                data: tipo === "especifica" ? data : null,
+                dia: tipo === "anual" ? Number(dia) : null,
+                mes: tipo === "especifica" ? null : Number(mes),
+                ordinal: tipo === "relativa" ? Number(ordinal) : null,
+                dia_semana: tipo === "relativa" ? Number(diaSemana) : null,
+                ativo: feriado?.ativo ?? true,
+                observacao,
+              })
+            }
+          >
+            {saving ? "Salvando…" : "Salvar"}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
           <div className="space-y-1.5">
             <Label>Nome *</Label>
             <Input
@@ -171,31 +193,7 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
               rows={2}
             />
           </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button
-            disabled={invalido || saving}
-            onClick={() =>
-              onSubmit({
-                id: feriado?.id,
-                nome,
-                tipo,
-                data: tipo === "especifica" ? data : null,
-                dia: tipo === "anual" ? Number(dia) : null,
-                mes: tipo === "especifica" ? null : Number(mes),
-                ordinal: tipo === "relativa" ? Number(ordinal) : null,
-                dia_semana: tipo === "relativa" ? Number(diaSemana) : null,
-                ativo: feriado?.ativo ?? true,
-                observacao,
-              })
-            }
-          >
-            {saving ? "Salvando…" : "Salvar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DpDialogShell>
   );
 }
