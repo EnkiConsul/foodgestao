@@ -208,6 +208,8 @@ export function useAplicarFicha() {
       dados,
       cargoId,
       unidadeId,
+      setorId,
+      regime,
       atualizarExistente,
       jornada,
       turnoId,
@@ -227,9 +229,12 @@ export function useAplicarFicha() {
         cpf,
         cargo_id: cargoId,
         unidade_id: unidadeId,
+        setor_id: setorId ?? null,
+        regime: (regime ?? null) as never,
         origem_cadastro: "ficha_importacao",
         ficha_importacao_item_id: item.id,
       };
+
 
       let colaboradorId: string;
       if (atualizarExistente && item.colaborador_existente_id) {
