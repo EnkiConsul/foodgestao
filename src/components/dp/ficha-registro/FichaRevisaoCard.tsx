@@ -117,15 +117,19 @@ export function FichaRevisaoCard({
   const aplicado = item.status === "criado" || item.status === "atualizado";
   const ignorado = item.status === "ignorado";
 
+  /** Salário do cargo escolhido cobre a exigência de salário (intermitente/horista). */
+  const salarioCargoDe = useDpSalarioCargoResolver();
+  const salarioCargo = salarioCargoDe(cargoId, unidadeId);
+
   /** O que continuará em branco no cadastro depois de aplicar esta ficha. */
   const faltando = useMemo(() => {
     const base = montarPayloadFicha(dados);
     return camposFaltando(
       { ...base, setor_id: setorId, regime },
-      { exigirSetor: setores.length > 0 },
+      { exigirSetor: setores.length > 0, salarioCargo },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dados, setorId, regime, setores.length]);
+  }, [dados, setorId, regime, setores.length, salarioCargo]);
 
   const executar = (camposPermitidos: string[] | null) =>
     aplicar.mutate(
