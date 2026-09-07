@@ -336,6 +336,103 @@ export function FichaRevisaoCard({
           </div>
         )}
 
+        {!aplicado && (
+          <div className="rounded-lg border bg-muted/20">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 p-3 text-left"
+              onClick={() => setCompletarAberto((v) => !v)}
+            >
+              <span className="text-sm font-medium">Completar cadastro</span>
+              <span className="flex items-center gap-2">
+                {faltando.length > 0 ? (
+                  <Badge variant="outline" className="border-amber-500/50 text-[11px] text-amber-600 dark:text-amber-400">
+                    {faltando.length} campo(s) em branco
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-emerald-500/50 text-[11px] text-emerald-600 dark:text-emerald-400">
+                    completo
+                  </Badge>
+                )}
+                {completarAberto ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </span>
+            </button>
+
+            {completarAberto && (
+              <div className="space-y-3 border-t p-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {setores.length > 0 && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Setor</Label>
+                      <Select
+                        value={setorId ?? "__none"}
+                        onValueChange={(v) => setSetorEscolhido(v === "__none" ? null : v)}
+                      >
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none">Sem setor</SelectItem>
+                          {setoresDaUnidade.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Vínculo</Label>
+                    <Select
+                      value={regime ?? "__none"}
+                      onValueChange={(v) => setRegimeEscolhido(v === "__none" ? null : v)}
+                    >
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Não informado</SelectItem>
+                        {REGIMES.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Estado civil</Label>
+                    <Select
+                      value={(dados.estado_civil as string) || "__none"}
+                      onValueChange={(v) => set("estado_civil", v === "__none" ? "" : v)}
+                    >
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Não informado</SelectItem>
+                        {ESTADOS_CIVIS.map((e) => (
+                          <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {campo("E-mail", "email")}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                  {campoEndereco("Rua", "logradouro", "lg:col-span-3")}
+                  {campoEndereco("Número", "numero")}
+                  {campoEndereco("Bairro", "bairro", "lg:col-span-2")}
+                  {campoEndereco("Cidade", "cidade", "lg:col-span-3")}
+                  {campoEndereco("UF", "uf")}
+                  {campoEndereco("CEP", "cep", "lg:col-span-2")}
+                </div>
+
+                <p className="text-[11px] text-muted-foreground">
+                  Benefícios, dados bancários e jornada detalhada continuam no cadastro completo do colaborador.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+
+
         {!jornada.vazia && (
           <div className="rounded-lg border bg-muted/30 p-3">
             <div className="flex items-center justify-between gap-3">
