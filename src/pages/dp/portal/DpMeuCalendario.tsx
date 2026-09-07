@@ -529,23 +529,24 @@ export default function DpMeuCalendario() {
       const bloq = manualBlocked.get(iso);
       if (bloq && !bloq.liberada) throw new Error("Esta data está bloqueada administrativamente.");
 
-      // 7) lotação (limite efetivo x ocupantes da unidade). Quando a regra do dia limita
-      // cargos, a contagem considera só folgas de pessoas desses cargos.
-      const limite = dayLimits.get(iso) ?? 1;
-      const escopoCargos = dayRegraCargos.get(iso) ?? null;
-      const ocupados = ocupacaoNoEscopo(
-        folgas
-          .filter(
-            (f: any) =>
-              f.data === iso &&
-              f.extra !== true &&
-              f.status !== "cancelada" &&
-              (!myUnidade || f.dp_colaboradores?.unidade_id === myUnidade),
-          )
-          .map((f: any) => ({ cargoId: (f.dp_colaboradores?.cargo_id ?? null) as string | null })),
-        escopoCargos,
-      );
-      if (ocupados >= limite) throw new Error("Data indisponível. Limite de folgas atingido.");
+      // 7) lotação efetiva incluindo reservas de indisponibilidade (Fase 4)
+      const { data: limiteDia, error: limiteErr } = await supabase.rpc("dp_folga_limite_dia", {
+        p_company: meRef.data.company_id,
+        p_unidade: myUnidade,
+        p_cargo: myCargoId,
+        p_data: iso,
+        p_ignorar_colaborador: null,
+        p_setor: null,
+      });
+      if (limiteErr) throw limiteErr;
+      const limiteInfo = (limiteDia ?? {}) as Record<string, any>;
+      if (limiteInfo.excedido) {
+        throw new Error(
+          limiteInfo.reserva && limiteInfo.reserva > 0
+            ? "Data indisponível. Vagas reservadas por indisponibilidade de convocáveis."
+            : "Data indisponível. Limite de folgas atingido.",
+        );
+      }
 
       // 8) pessoas que não podem folgar no mesmo dia
       const { data: conflito, error: conflitoErr } = await supabase.rpc(
