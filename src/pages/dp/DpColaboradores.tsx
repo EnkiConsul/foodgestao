@@ -132,14 +132,32 @@ export default function DpColaboradores() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params, list.data]);
 
+  /** Setor só aparece quando a empresa já usa setores. */
+  const setoresEmUso = useMemo(() => {
+    const map = new Map<string, string>();
+    (list.data ?? []).forEach((c) => {
+      const id = (c as any).setor_id as string | null;
+      if (id && c.setor_nome) map.set(id, c.setor_nome);
+    });
+    return Array.from(map, ([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [list.data]);
+  const mostrarSetor = setoresEmUso.length > 0;
+
+  /** Campos essenciais ainda em branco no cadastro (setor só conta se a empresa usa setores). */
+  const faltantesDe = (c: DpColaborador) =>
+    camposFaltando(c as never, { exigirSetor: mostrarSetor });
+
   const counts = useMemo(() => {
     const all = list.data ?? [];
     return {
       todos: all.length,
       ativos: all.filter((c) => c.ativo).length,
       desligados: all.filter((c) => !c.ativo).length,
+      incompletos: all.filter((c) => c.ativo && faltantesDe(c).length > 0).length,
     };
-  }, [list.data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.data, mostrarSetor]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -159,14 +177,20 @@ export default function DpColaboradores() {
         if (setorFilter !== "all" && setorFilter !== "__sem__" && (c as any).setor_id !== setorFilter) return false;
         if (statusFilter === "ativos" && !c.ativo) return false;
         if (statusFilter === "desligados" && c.ativo) return false;
+        if (statusFilter === "incompletos" && (!c.ativo || faltantesDe(c).length === 0)) return false;
         if (incompletosFilter) {
-          const usaSetores = (list.data ?? []).some((x) => (x as any).setor_id);
-          if (camposFaltando(c as never, { exigirSetor: usaSetores }).length === 0) return false;
+          if (camposFaltando(c as never, { exigirSetor: mostrarSetor }).length === 0) return false;
         }
         return true;
 
       })
       .sort((a, b) => {
+        // Aba "Incompletos": quem tem mais campos faltando vem primeiro.
+        if (statusFilter === "incompletos") {
+          const diff = faltantesDe(b).length - faltantesDe(a).length;
+          if (diff !== 0) return diff;
+          return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
+        }
         const perfilDestaca = (p: string | null) => p === "admin" || p === "gestor";
         const ga = a.ativo ? (perfilDestaca((a as any).perfil_acesso) ? 0 : 1) : 2;
         const gb = b.ativo ? (perfilDestaca((b as any).perfil_acesso) ? 0 : 1) : 2;
@@ -178,23 +202,9 @@ export default function DpColaboradores() {
         }
         return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
       });
-  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter, incompletosFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter, incompletosFilter, mostrarSetor]);
 
-  /** Setor só aparece quando a empresa já usa setores. */
-  const setoresEmUso = useMemo(() => {
-    const map = new Map<string, string>();
-    (list.data ?? []).forEach((c) => {
-      const id = (c as any).setor_id as string | null;
-      if (id && c.setor_nome) map.set(id, c.setor_nome);
-    });
-    return Array.from(map, ([id, nome]) => ({ id, nome }))
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  }, [list.data]);
-  const mostrarSetor = setoresEmUso.length > 0;
-
-  /** Campos essenciais ainda em branco no cadastro (setor só conta se a empresa usa setores). */
-  const faltantesDe = (c: DpColaborador) =>
-    camposFaltando(c as never, { exigirSetor: mostrarSetor });
 
 
   // ---------- Colunas em formato de planilha (ordem, largura, ordenação e filtros) ----------
@@ -441,16 +451,31 @@ export default function DpColaboradores() {
           <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
           <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
           <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
+          {counts.incompletos > 0 && (
+            <TabsTrigger value="incompletos">Incompletos ({counts.incompletos})</TabsTrigger>
+          )}
         </DpTabsBar>
       </Tabs>
 
       <DpFilters
         search={{ value: search, onChange: setSearch, placeholder: "Nome ou CPF..." }}
         activeCount={
-          (unidadeFilter !== "all" ? 1 : 0) + (cargoFilter !== "all" ? 1 : 0) + (perfilFilter !== "all" ? 1 : 0) + (setorFilter !== "all" ? 1 : 0)
+          (incompletosFilter ? 1 : 0) + (unidadeFilter !== "all" ? 1 : 0) + (cargoFilter !== "all" ? 1 : 0) + (perfilFilter !== "all" ? 1 : 0) + (setorFilter !== "all" ? 1 : 0)
         }
-        onClear={() => { setUnidadeFilter("all"); setCargoFilter("all"); setPerfilFilter("all"); setSetorFilter("all"); }}
+        onClear={() => { setIncompletosFilter(false); setUnidadeFilter("all"); setCargoFilter("all"); setPerfilFilter("all"); setSetorFilter("all"); }}
       >
+        <DpFilterField label="Cadastro">
+          <Select
+            value={incompletosFilter ? "incompletos" : "all"}
+            onValueChange={(v) => setIncompletosFilter(v === "incompletos")}
+          >
+            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="incompletos">Só cadastros incompletos</SelectItem>
+            </SelectContent>
+          </Select>
+        </DpFilterField>
         <DpFilterField label="Unidade">
           <Select value={unidadeFilter} onValueChange={setUnidadeFilter}>
             <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
@@ -495,18 +520,6 @@ export default function DpColaboradores() {
               <SelectItem value="colaborador">Colaborador</SelectItem>
               <SelectItem value="gestor">Gestor</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
-            </SelectContent>
-          </Select>
-        </DpFilterField>
-        <DpFilterField label="Cadastro">
-          <Select
-            value={incompletosFilter ? "incompletos" : "all"}
-            onValueChange={(v) => setIncompletosFilter(v === "incompletos")}
-          >
-            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="incompletos">Só cadastros incompletos</SelectItem>
             </SelectContent>
           </Select>
         </DpFilterField>
@@ -679,6 +692,15 @@ export default function DpColaboradores() {
                   >
                     Folha: {folha ? "Sim" : "Não"}
                   </Badge>
+                  {c.ativo && faltantesDe(c).length > 0 && (
+                    <Badge
+                      variant="outline"
+                      className="text-[11px] border-amber-500/40 text-amber-600 dark:text-amber-400"
+                      title={`Falta: ${resumoFaltando(faltantesDe(c), 9)}`}
+                    >
+                      Cadastro incompleto ({faltantesDe(c).length})
+                    </Badge>
+                  )}
                 </div>
               </div>
 
