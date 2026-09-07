@@ -852,7 +852,11 @@ export default function DpOperacaoPanorama() {
   // Sócios ausentes seguem visíveis nas listas (com a tag "Folga sócio"),
   // mesmo não somando nos números dos cards de folga/férias.
   const pessoasDaCategoria = detalheCategoria
-    ? (diaAtivo?.pessoas ?? []).filter((p) => p.categoria === detalheCategoria)
+    ? (diaAtivo?.pessoas ?? [])
+        .filter((p) => p.categoria === detalheCategoria)
+        // Ocorrências derivadas (atraso/saída antecipada) podem repetir a mesma
+        // pessoa na categoria: mantemos apenas a primeira entrada dela.
+        .filter((p, i, arr) => arr.findIndex((o) => o.colaborador_id === p.colaborador_id) === i)
     : [];
   const sociosDoDialogo = sociosDe(diaAtivo);
   const avulsosDoDiaAtivo = detalheAvulso
