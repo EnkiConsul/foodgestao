@@ -186,6 +186,9 @@ export function FichaRevisaoCard({
   const campo = (label: string, nome: string, tipo: "text" | "date" = "text") => {
     const valor = dados[nome];
     const nivel = nivelDoCampo(valor, confianca, nome);
+    const duvidoso = nivel === "baixa" || nivel === "ausente";
+    const trecho = duvidoso ? trechoDoTexto(item.texto_origem, [label, valor as string]) : null;
+    const aberto = !!trechos[nome];
     return (
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2">
@@ -201,9 +204,26 @@ export function FichaRevisaoCard({
           onChange={(e) => set(nome, e.target.value)}
           disabled={aplicado || ignorado}
         />
+        {trecho && (
+          <>
+            <button
+              type="button"
+              className="text-[11px] text-muted-foreground underline underline-offset-2"
+              onClick={() => setTrechos((t) => ({ ...t, [nome]: !t[nome] }))}
+            >
+              {aberto ? "Esconder trecho lido" : "Ver trecho lido"}
+            </button>
+            {aberto && (
+              <pre className="whitespace-pre-wrap rounded-md bg-muted p-2 text-[11px] leading-snug text-muted-foreground">
+                {trecho}
+              </pre>
+            )}
+          </>
+        )}
       </div>
     );
   };
+
 
   if (ignorado) {
     return (
