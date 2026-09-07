@@ -232,6 +232,32 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
             {jornada.vira_meia_noite && (
               <p className="mt-2 text-[11px] text-muted-foreground">A saída acontece no dia seguinte.</p>
             )}
+            {!aplicado && usarJornada && (
+              <div className="mt-3 space-y-1">
+                <Label className="text-xs">Turno correspondente</Label>
+                <Select
+                  value={turnoEscolhido ?? "__none"}
+                  onValueChange={(v) => setTurnoId(v === "__none" ? null : v)}
+                >
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">Sem turno (grava só os horários)</SelectItem>
+                    {turnos.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.nome} · {String(t.entrada).slice(0, 5)}–{String(t.saida).slice(0, 5)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  {turnoSugerido.turno_id
+                    ? `Sugerido pelo horário da ficha (${turnoSugerido.entrada}–${turnoSugerido.saida}).`
+                    : turnoSugerido.entrada
+                      ? `Nenhum turno com ${turnoSugerido.entrada}–${turnoSugerido.saida}; os horários serão gravados direto no dia.`
+                      : "Sem horário identificado nesta ficha."}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -242,6 +268,26 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
               Este CPF já tem cadastro. Ative para completar o cadastro existente com os dados da ficha.
             </span>
           </div>
+        )}
+
+        {!aplicado && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Switch checked={anexarFicha} onCheckedChange={setAnexarFicha} />
+              <span className="text-xs text-muted-foreground">Guardar o PDF da ficha nos documentos do colaborador</span>
+            </div>
+            {!!item.texto_origem && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setVerTexto((v) => !v)}>
+                <FileText className="mr-1 h-3 w-3" /> {verTexto ? "Ocultar" : "Ver"} texto lido
+              </Button>
+            )}
+          </div>
+        )}
+
+        {verTexto && !!item.texto_origem && (
+          <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-lg border bg-muted/40 p-3 text-[11px] leading-relaxed">
+            {item.texto_origem}
+          </pre>
         )}
 
         {!aplicado && (
@@ -257,29 +303,39 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
             <Button
               size="sm"
               disabled={aplicar.isPending || (!!item.colaborador_existente_id && !atualizar)}
-              onClick={() =>
-                aplicar.mutate(
-                  {
-                    item,
-                    dados,
-                    cargoId,
-                    unidadeId,
-                    atualizarExistente: atualizar && !!item.colaborador_existente_id,
-                    jornada: usarJornada ? jornada : null,
-                  },
-                  {
-                    onSuccess: () => toast.success(atualizar ? "Cadastro atualizado" : "Colaborador cadastrado"),
-                    onError: (e: Error) => toast.error(e.message),
-                  },
-                )
-              }
+              onClick={() => {
+                if (atualizar && item.colaborador_existente_id) setComparacao(true);
+                else executar(null);
+              }}
             >
               {aplicar.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Check className="mr-1 h-4 w-4" />}
-              {atualizar && item.colaborador_existente_id ? "Atualizar cadastro" : "Criar cadastro"}
+              {atualizar && item.colaborador_existente_id ? "Comparar e atualizar" : "Criar cadastro"}
             </Button>
           </div>
+        )}
+
+        {cargoDialog && (
+          <CargoCorrespondenciaDialog
+            open={cargoDialog}
+            onOpenChange={setCargoDialog}
+            cargoNome={String(dados.cargo_nome ?? "")}
+            cbo={(dados.cbo as string) ?? null}
+            onCriado={(id) => setCargoId(id)}
+          />
+        )}
+
+        {comparacao && item.colaborador_existente_id && (
+          <FichaComparacaoDialog
+            open={comparacao}
+            onOpenChange={setComparacao}
+            colaboradorId={item.colaborador_existente_id}
+            dados={dados}
+            aplicando={aplicar.isPending}
+            onConfirmar={(colunas) => executar(colunas)}
+          />
         )}
       </CardContent>
     </Card>
   );
 }
+
