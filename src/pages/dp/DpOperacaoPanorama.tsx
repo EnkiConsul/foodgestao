@@ -183,6 +183,7 @@ const CARDS_MES = ["dias_mes", "media_pessoas", "dias_fora_padrao", "dias_sem_ni
 type CardMesKey = (typeof CARDS_MES)[number];
 
 const PREFS_KEY = "operacao_cards";
+const AGRUP_KEY = "operacao_agrupamento";
 const UNIDADE_KEY = "operacao_unidade";
 
 /** Card arrastável: o conteúdo é o DpStatCard normal com um handle discreto. */
@@ -737,6 +738,13 @@ export default function DpOperacaoPanorama() {
 
   const ordemDia = useMemo(() => ordenar(CARDS_DIA, ordemSalva?.dia), [ordemSalva?.dia]);
   const ordemMes = useMemo(() => ordenar(CARDS_MES, ordemSalva?.mes), [ordemSalva?.mes]);
+
+  const agrupamento =
+    ((prefs.extras as Record<string, unknown>)?.[AGRUP_KEY] as AgrupamentoEquipe | undefined) ??
+    "cargo";
+
+  const salvarAgrupamento = (v: AgrupamentoEquipe) =>
+    save({ extras: { ...(prefs.extras ?? {}), [AGRUP_KEY]: v } });
 
   const salvarOrdem = (chave: "dia" | "mes", next: string[]) =>
     save({
