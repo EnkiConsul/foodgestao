@@ -24,11 +24,13 @@ Ofertas ainda pendentes seguem sendo encerradas como já acontece hoje, sem muda
 ## Detalhes técnicos
 
 Banco (uma migração aditiva):
-- `dp_indisponibilidades`: novas colunas `conflito boolean not null default false`, `conflito_convocacao_id uuid references dp_convocacoes(id)`, `conflito_resolvido_em timestamptz`, `conflito_resolvido_por uuid`.
-- `dp_indisponibilidade_marcar(p_data, p_motivo, p_confirmar_conflito boolean default false)`: nova sobrecarga/parâmetro. Quando existe convocação em `aceita`/`encerrada_operacionalmente`/com comparecimento:
+- `dp_indisponibilidades`: novas colunas `conflito boolean not null default false`, `conflito_convocacao_id uuid references dp_convocacoes(id)`, `conflito_resolvido_em timestamptz`, `conflito_resolvido_por uuid`, `ciencia_multa_em timestamptz`.
+- `dp_indisponibilidade_marcar(p_data, p_motivo, p_confirmar_conflito boolean default false, p_ciencia_multa boolean default false)`: nova sobrecarga/parâmetro. Quando existe convocação em `aceita`/`encerrada_operacionalmente`/com comparecimento:
   - `p_confirmar_conflito = false` → mantém a exceção atual `ACCEPTED_CALL_REQUIRES_REPLACEMENT`;
   - `true` e motivo informado → grava a indisponibilidade com `conflito = true` e `conflito_convocacao_id`, registra evento em `dp_convocacao_log_evento_trabalhador` (`indisponibilidade_conflito`), e insere notificação `para_admins` do novo tipo de enum `disponibilidade_conflito_convocacao`;
+  - regime `intermitente` exige `p_ciencia_multa = true`, senão erro `CIENCIA_MULTA_OBRIGATORIA`; quando aceito, grava `ciencia_multa_em = now()` e inclui a ciência no evento de auditoria;
   - `true` sem motivo → erro `INVALID_INPUT`.
+
   - A convocação não muda de status.
 - Reserva de folga (Fase 4) ignora registros com `conflito = true` para não reservar vaga em dia que já tem convocação confirmada.
 - `REVOKE EXECUTE ... FROM anon, PUBLIC` e `GRANT EXECUTE ... TO authenticated, service_role`; RLS das novas colunas herdada da tabela.
