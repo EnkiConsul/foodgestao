@@ -491,6 +491,10 @@ export default function DpOcorrencias() {
         onDecidir={(input) => acoes.decidirCobertura.mutate(input)}
         onConfirmar={(id) => acoes.confirmarCobertura.mutate(id)}
       />
+      <OcorrenciaHistoricoDialog
+        ocorrencia={historico}
+        onOpenChange={(open) => !open && setHistorico(null)}
+      />
     </DpPage>
 
   );
