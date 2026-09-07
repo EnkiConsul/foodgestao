@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { pessoaAvulsaSchema, validateWithToast } from "@/lib/validations";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 import { useDpPessoasApoio, useSalvarDpPessoaApoio } from "@/hooks/useDpPessoasApoio";
@@ -76,6 +77,7 @@ export function DpPessoaAvulsaDialog({
     colaborador_id: "",
     unidade_id: "",
     cargo_id: "",
+    setor_id: "",
     cobre_colaborador_id: "",
     data_inicio: dataInicial,
     data_fim: dataInicial,
@@ -105,6 +107,7 @@ export function DpPessoaAvulsaDialog({
       colaborador_id: registro?.colaborador_id ?? "",
       unidade_id: registro?.unidade_id ?? unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
       cargo_id: registro?.cargo_id ?? "",
+      setor_id: registro?.setor_id ?? registro?.setor_habitual_id ?? "",
       cobre_colaborador_id: "",
       data_inicio: dataBase,
       data_fim: registro?.data_fim ?? dataBase,
@@ -156,6 +159,7 @@ export function DpPessoaAvulsaDialog({
       tipo: p.tipo,
       cargo_id: p.cargo_id ?? f.cargo_id,
       unidade_id: p.unidade_id ?? f.unidade_id,
+      setor_id: p.setor_id ?? f.setor_id,
     }));
   };
 
@@ -180,6 +184,7 @@ export function DpPessoaAvulsaDialog({
       termina_no_dia_seguinte: form.termina_no_dia_seguinte,
       observacao: form.observacao || null,
       telefone: manual ? null : form.telefone || null,
+      setor_id: form.setor_id || null,
       pessoa_apoio_id: manual ? null : form.pessoa_apoio_id || null,
     };
     const parsed = validateWithToast(pessoaAvulsaSchema, candidato, (msg) =>
@@ -198,6 +203,7 @@ export function DpPessoaAvulsaDialog({
           tipo: form.tipo === "teste" ? "teste" : "folguista",
           cargo_id: form.cargo_id || null,
           unidade_id: form.unidade_id || null,
+          setor_id: form.setor_id || null,
           cpf: null,
           genero: null,
           data_nascimento: null,
@@ -317,7 +323,7 @@ export function DpPessoaAvulsaDialog({
               <Label>Unidade *</Label>
               <Select
                 value={form.unidade_id}
-                onValueChange={(v) => setForm({ ...form, unidade_id: v })}
+                onValueChange={(v) => setForm({ ...form, unidade_id: v, setor_id: "" })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione..." />
@@ -346,6 +352,17 @@ export function DpPessoaAvulsaDialog({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="grid gap-1.5">
+            <ColaboradorSetorField
+              unidadeId={form.unidade_id || null}
+              value={form.setor_id || null}
+              onChange={(id) => setForm({ ...form, setor_id: id ?? "" })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Vale só para este registro. Ao deixar em branco, usamos o setor habitual do cadastro.
+            </p>
           </div>
 
           {form.tipo === "folguista" && (
