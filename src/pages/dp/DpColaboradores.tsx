@@ -38,6 +38,7 @@ import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 
 import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
+import { DpListCard } from "@/components/dp/DpDataList";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { supabase } from "@/integrations/supabase/client";
