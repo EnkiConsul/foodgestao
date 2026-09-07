@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { matchCargo } from "@/lib/dp/ficha-registro/cargo-match";
 import { matchTurno, type TurnoCadastrado } from "@/lib/dp/ficha-registro/turno-match";
+import { formatCnpj, matchUnidade } from "@/lib/dp/ficha-registro/unidade-match";
 import { CONFIANCA_LABEL, nivelDoCampo, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
 import { CargoCorrespondenciaDialog } from "./CargoCorrespondenciaDialog";
 import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
