@@ -4,8 +4,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
+  TIPOS_COBRIVEIS,
   textoErroOcorrencia,
   type OcorrenciaAnalise,
+  type OcorrenciaCoberturaExecucao,
+  type OcorrenciaCoberturaStatus,
   type OcorrenciaEstado,
   type OcorrenciaImpacto,
   type OcorrenciaMarcacao,
@@ -13,6 +16,22 @@ import {
   type OcorrenciaTipo,
   type OcorrenciaTratativa,
 } from "@/lib/dp/ocorrencias";
+
+export interface OcorrenciaCobertura {
+  id: string;
+  ocorrencia_id: string;
+  substituto_colaborador_id: string | null;
+  mao_de_obra_extra_id: string | null;
+  entrada: string | null;
+  saida: string | null;
+  status: OcorrenciaCoberturaStatus;
+  execucao_status: OcorrenciaCoberturaExecucao;
+  motivo_recusa: string | null;
+  created_at: string;
+  substituto: { nome: string } | null;
+  apoio: { nome: string; telefone: string | null } | null;
+}
+
 
 export type OcorrenciaPeriodo = "hoje" | "semana" | "mes" | "todas";
 
@@ -28,6 +47,8 @@ export interface OcorrenciaFiltros {
   impactaFerias: string;
   tratativa: string;
   somentePendentes: boolean;
+  cobertura: string;
+
   busca: string;
 }
 
@@ -43,6 +64,8 @@ export const FILTROS_PADRAO: OcorrenciaFiltros = {
   impactaFerias: "all",
   tratativa: "all",
   somentePendentes: true,
+  cobertura: "all",
+
   busca: "",
 };
 
@@ -163,6 +186,38 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
     },
   });
 
+  const ids = useMemo(() => (lista.data ?? []).map((o) => o.id), [lista.data]);
+
+  const coberturasQuery = useQuery({
+    queryKey: ["dp_ocorrencia_coberturas", selectedCompanyId, ids],
+    enabled: !!selectedCompanyId && ids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_ocorrencia_coberturas")
+        .select(
+          `id, ocorrencia_id, substituto_colaborador_id, mao_de_obra_extra_id, entrada, saida,
+           status, execucao_status, motivo_recusa, created_at,
+           substituto:dp_colaboradores!dp_ocorrencia_coberturas_substituto_colaborador_id_fkey(nome),
+           apoio:dp_pessoas_apoio!dp_ocorrencia_coberturas_mao_de_obra_extra_id_fkey(nome, telefone)`,
+        )
+        .eq("company_id", selectedCompanyId!)
+        .in("ocorrencia_id", ids)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as OcorrenciaCobertura[];
+    },
+  });
+
+  const coberturasPorOcorrencia = useMemo(() => {
+    const mapa = new Map<string, OcorrenciaCobertura[]>();
+    for (const c of coberturasQuery.data ?? []) {
+      const atual = mapa.get(c.ocorrencia_id) ?? [];
+      atual.push(c);
+      mapa.set(c.ocorrencia_id, atual);
+    }
+    return mapa;
+  }, [coberturasQuery.data]);
+
   const ocorrencias = useMemo(() => {
     const todas = lista.data ?? [];
     const termo = filtros.busca.trim().toLowerCase();
@@ -176,10 +231,27 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
           o.impacta_ferias === "aguardando";
         if (!pendente || o.estado === "cancelada") return false;
       }
+      if (filtros.cobertura !== "all") {
+        const lista = (coberturasPorOcorrencia.get(o.id) ?? []).filter((c) => c.status !== "recusada");
+        const cobrivel = TIPOS_COBRIVEIS.includes(o.tipo);
+        if (filtros.cobertura === "sem" && (!cobrivel || lista.length > 0)) return false;
+        if (filtros.cobertura === "proposta" && !lista.some((c) => c.status === "proposta")) return false;
+        if (
+          filtros.cobertura === "aprovada" &&
+          !lista.some((c) => c.status === "aprovada" && c.execucao_status === "prevista")
+        )
+          return false;
+        if (
+          filtros.cobertura === "realizada" &&
+          !lista.some((c) => c.execucao_status === "realizada")
+        )
+          return false;
+      }
       if (termo && !(o.colaborador?.nome ?? "").toLowerCase().includes(termo)) return false;
       return true;
     });
-  }, [lista.data, filtros.busca, filtros.somentePendentes]);
+  }, [lista.data, filtros.busca, filtros.somentePendentes, filtros.cobertura, coberturasPorOcorrencia]);
+
 
   const config = useQuery({
     queryKey: ["dp_ocorrencia_config", selectedCompanyId],
@@ -322,11 +394,73 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
     onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),
   });
 
+  const invalidateCoberturas = () => {
+    invalidate();
+    qc.invalidateQueries({ queryKey: ["dp_ocorrencia_coberturas"] });
+    qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+  };
+
+  const criarCobertura = useMutation({
+    mutationFn: async (input: {
+      ocorrenciaId: string;
+      substitutoColaboradorId?: string | null;
+      maoDeObraExtraId?: string | null;
+      entrada?: string | null;
+      saida?: string | null;
+    }) => {
+      const { data, error } = await supabase.rpc("dp_ocorrencia_cobertura_criar", {
+        _ocorrencia_id: input.ocorrenciaId,
+        _substituto_colaborador_id: input.substitutoColaboradorId ?? undefined,
+        _mao_de_obra_extra_id: input.maoDeObraExtraId ?? undefined,
+        _entrada: input.entrada ?? undefined,
+        _saida: input.saida ?? undefined,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => {
+      invalidateCoberturas();
+      toast.success("Cobertura registrada.");
+    },
+    onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),
+  });
+
+  const decidirCobertura = useMutation({
+    mutationFn: async (input: { coberturaId: string; aprovar: boolean; motivoRecusa?: string }) => {
+      const { error } = await supabase.rpc("dp_ocorrencia_cobertura_decidir", {
+        _cobertura_id: input.coberturaId,
+        _aprovar: input.aprovar,
+        _motivo_recusa: input.motivoRecusa ?? undefined,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      invalidateCoberturas();
+      toast.success(v.aprovar ? "Cobertura aprovada." : "Cobertura recusada.");
+    },
+    onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),
+  });
+
+  const confirmarCobertura = useMutation({
+    mutationFn: async (coberturaId: string) => {
+      const { error } = await supabase.rpc("dp_ocorrencia_cobertura_confirmar", {
+        _cobertura_id: coberturaId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateCoberturas();
+      toast.success("Cobertura confirmada como realizada.");
+    },
+    onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),
+  });
+
   return {
     ocorrencias,
     total: lista.data?.length ?? 0,
     loading: lista.isLoading,
     config: config.data,
+    coberturasPorOcorrencia,
     registrar,
     confirmar,
     complementar,
@@ -334,5 +468,9 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
     analisar,
     tratar,
     cancelar,
+    criarCobertura,
+    decidirCobertura,
+    confirmarCobertura,
   };
 }
+

@@ -71,6 +71,12 @@ function rotuloCategoriaPessoa(p: PessoaPanorama): string {
   return CATEGORIA_LABEL[p.categoria];
 }
 
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 function OcorrenciaBadges({ ocorrencias }: { ocorrencias: PessoaPanorama["ocorrencias"] }) {
   if (!ocorrencias?.length) return null;
   return (
@@ -94,11 +100,7 @@ function OcorrenciaBadges({ ocorrencias }: { ocorrencias: PessoaPanorama["ocorre
     </div>
   );
 }
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 
 const hojeIso = () => {
   const d = new Date();
@@ -337,6 +339,8 @@ function DetalheDiaOperacao({
   onEditarAvulsa,
   onExcluirAvulsa,
 }: DetalheDiaProps) {
+  const navigate = useNavigate();
+
   const foraDaOperacao = dia.pessoas.filter((p) =>
     ["folga_padrao", "folga_extra", "ferias", "atestado", "ausente", "atrasado", "saida_antecipada"].includes(
       p.categoria,
@@ -447,7 +451,25 @@ function DetalheDiaOperacao({
                               {p.termina_no_dia_seguinte ? " (+1)" : ""} ·{" "}
                               {formatarHoras(p.carga_prevista_horas)}
                             </p>
+                            {p.ocorrencias?.length ? (
+                              <div className="mt-1 flex flex-wrap items-center gap-1">
+                                <OcorrenciaBadges ocorrencias={p.ocorrencias} />
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="h-auto p-0 text-xs"
+                                  onClick={() =>
+                                    navigate(
+                                      `/dp/ocorrencias?colaborador=${p.colaborador_id}&data=${data}`,
+                                    )
+                                  }
+                                >
+                                  Ver ocorrências
+                                </Button>
+                              </div>
+                            ) : null}
                           </div>
+
                           <div className="flex shrink-0 items-center gap-1.5">
                             {usaSetores && (
                               <Badge

@@ -200,7 +200,44 @@ export const OCORRENCIA_ERRO_TEXTO: Record<string, string> = {
   OCORRENCIA_JA_ANALISADA: "O gestor já analisou. Envie um complemento em vez de alterar.",
   OCORRENCIA_MOTIVO_OBRIGATORIO: "Escreva o motivo.",
   OCORRENCIA_TRATATIVA_INVALIDA: "Decisão de tratativa inválida.",
+  COBERTURA_PESSOA_OBRIGATORIA: "Escolha quem vai cobrir.",
+  COBERTURA_PESSOA_DUPLICADA: "Escolha só um: colaborador ou pessoa de apoio.",
+  COBERTURA_NAO_ENCONTRADA: "Essa cobertura não existe mais.",
+  COBERTURA_JA_DECIDIDA: "Essa cobertura já foi decidida.",
+  COBERTURA_NAO_APROVADA: "Aprove a cobertura antes de confirmar que aconteceu.",
+  COBERTURA_MOTIVO_OBRIGATORIO: "Escreva o motivo da recusa.",
 };
+
+export type OcorrenciaCoberturaStatus = Database["public"]["Enums"]["dp_ocorrencia_cobertura_status"];
+export type OcorrenciaCoberturaExecucao =
+  Database["public"]["Enums"]["dp_ocorrencia_cobertura_execucao"];
+
+export const COBERTURA_STATUS_LABEL: Record<OcorrenciaCoberturaStatus, string> = {
+  proposta: "Cobertura proposta",
+  aprovada: "Cobertura aprovada",
+  recusada: "Cobertura recusada",
+};
+
+export const COBERTURA_EXECUCAO_LABEL: Record<OcorrenciaCoberturaExecucao, string> = {
+  prevista: "Prevista",
+  realizada: "Realizada",
+  nao_realizada: "Não aconteceu",
+};
+
+/** Tipos de ocorrência que deixam a operação descoberta e podem receber cobertura. */
+export const TIPOS_COBRIVEIS: OcorrenciaTipo[] = [
+  "falta",
+  "previsao_falta",
+  "atestado",
+  "ausencia_justificada",
+  "saida_antecipada",
+  "previsao_saida_antecipada",
+];
+
+export function podeCobrir(o: { tipo: OcorrenciaTipo; estado: OcorrenciaEstado }): boolean {
+  return o.estado !== "cancelada" && TIPOS_COBRIVEIS.includes(o.tipo);
+}
+
 
 export function textoErroOcorrencia(message?: string | null): string {
   if (!message) return "Não foi possível concluir.";

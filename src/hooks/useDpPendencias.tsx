@@ -108,6 +108,54 @@ export function useDpPendencias() {
         console.warn("pendencias/trocas:", e);
       }
 
+      // 2b. Ocorrências aguardando decisão do gestor
+      try {
+        const { data: ocs } = await supabase
+          .from("dp_ocorrencias")
+          .select(
+            "id, tipo, estado, analise_status, tratativa_status, tratativa_ponto, data_operacional, created_at, colaborador:colaborador_id(nome)",
+          )
+          .eq("company_id", selectedCompanyId!)
+          .neq("estado", "cancelada")
+          .order("created_at", { ascending: true })
+          .limit(50);
+        (ocs ?? [])
+          .filter(
+            (o: any) =>
+              o.estado === "aguardando_confirmacao" ||
+              o.analise_status === "pendente" ||
+              (o.tratativa_ponto && o.tratativa_status === "pendente"),
+          )
+          .forEach((o: any) => {
+            const vencimento = new Date(o.created_at);
+            vencimento.setHours(vencimento.getHours() + cfg.alerta_ocorrencia_horas);
+            const dias = differenceInCalendarDays(today, vencimento);
+            const titulo =
+              o.estado === "aguardando_confirmacao"
+                ? "Previsão aguardando confirmação"
+                : o.analise_status === "pendente"
+                  ? "Ocorrência aguardando análise"
+                  : "Ponto aguardando tratativa";
+            results.push({
+              id: `ocorrencia-${o.id}`,
+              icon: ClipboardList,
+              titulo,
+              subtitulo: `${o.colaborador?.nome ?? "Colaborador"} · ${format(
+                new Date(`${o.data_operacional}T12:00:00`),
+                "dd/MM",
+              )}`,
+              tipo: "Ocorrência",
+              vencimento: ymd(vencimento),
+              atrasoDias: dias,
+              url: "/dp/ocorrencias",
+            });
+          });
+      } catch (e) {
+        console.warn("pendencias/ocorrencias:", e);
+      }
+
+
+
       // Carregar unidades ativas (usadas nos blocos 3-6)
       let unidades: Array<{
         id: string;

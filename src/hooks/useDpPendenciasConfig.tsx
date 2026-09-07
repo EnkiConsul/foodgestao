@@ -5,6 +5,8 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 export type DpPendenciasConfig = {
   alerta_solicitacao_dias: number;
   alerta_troca_dias: number;
+  alerta_ocorrencia_horas: number;
+
   alerta_contracheque_dia_mes: number;
   alerta_adiantamento_offset: number;
   alerta_folha_ponto_dia_mes: number;
@@ -19,6 +21,7 @@ export type DpPendenciasConfig = {
 export const DP_PENDENCIAS_CONFIG_DEFAULT: DpPendenciasConfig = {
   alerta_solicitacao_dias: 3,
   alerta_troca_dias: 3,
+  alerta_ocorrencia_horas: 24,
   alerta_contracheque_dia_mes: 10,
   alerta_adiantamento_offset: 5,
   alerta_folha_ponto_dia_mes: 10,
@@ -42,7 +45,7 @@ export function useDpPendenciasConfig() {
       const { data, error } = await supabase
         .from("dp_pendencias_config")
         .select(
-          "alerta_solicitacao_dias, alerta_troca_dias, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, alerta_ferias_dias, alerta_aso_dias, alerta_epi_dias, alerta_treinamento_dias, dias_carencia_portal",
+          "alerta_solicitacao_dias, alerta_troca_dias, alerta_ocorrencia_horas, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, alerta_ferias_dias, alerta_aso_dias, alerta_epi_dias, alerta_treinamento_dias, dias_carencia_portal",
         )
         .eq("company_id", selectedCompanyId!)
         .maybeSingle();
@@ -51,6 +54,8 @@ export function useDpPendenciasConfig() {
       return {
         alerta_solicitacao_dias: data.alerta_solicitacao_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_solicitacao_dias,
         alerta_troca_dias: data.alerta_troca_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_troca_dias,
+        alerta_ocorrencia_horas:
+          (data as any).alerta_ocorrencia_horas ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_ocorrencia_horas,
         alerta_contracheque_dia_mes:
           data.alerta_contracheque_dia_mes ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_contracheque_dia_mes,
         alerta_adiantamento_offset:

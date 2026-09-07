@@ -21,6 +21,8 @@ const PRAZO_FIELDS: Array<{
 }> = [
   { key: "alerta_solicitacao_dias", label: "Solicitações (dias para responder)", helper: "Dias após a criação da solicitação até virar pendência atrasada.", min: 1, max: 30 },
   { key: "alerta_troca_dias", label: "Trocas (dias para aprovação do gestor)", helper: "Dias após a criação da troca até virar pendência atrasada.", min: 1, max: 30 },
+  { key: "alerta_ocorrencia_horas", label: "Ocorrências (horas para decidir)", helper: "Horas após o registro da ocorrência até ela virar pendência atrasada.", min: 1, max: 240 },
+
   { key: "alerta_contracheque_dia_mes", label: "Contracheque (dia limite do mês)", helper: "A partir desse dia do mês, cobra o contracheque do mês anterior por unidade.", min: 1, max: 31 },
   { key: "alerta_adiantamento_offset", label: "Adiantamento (dias após o dia de pagamento)", helper: "Somado ao 'dia_adiantamento' da unidade. Ex.: 5 → cobra 5 dias após.", min: 1, max: 31 },
   { key: "alerta_folha_ponto_dia_mes", label: "Folha de ponto (dia limite do mês)", helper: "A partir desse dia do mês, cobra a folha de ponto do mês anterior por unidade com relógio.", min: 1, max: 31 },
