@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  cadastroIncompleto, camposFaltando, resumoFaltando,
+  cadastroIncompleto, camposFaltando, camposFaltandoObrigatorios, resumoFaltando,
 } from "@/lib/dp/cadastro-completude";
 
 const completo = {
@@ -54,5 +54,25 @@ describe("cadastro-completude", () => {
     expect(campos.length).toBe(9);
     expect(resumoFaltando(campos, 2)).toBe("setor e telefone ou WhatsApp e mais 7");
     expect(resumoFaltando([])).toBe("");
+  });
+
+  it("só campos obrigatórios marcam o cadastro como incompleto", () => {
+    // Falta só opcional (endereço, PIS) → cadastro NÃO é incompleto.
+    const soOpcionais = { ...completo, endereco: null, pis_nit: null, email_contato: null };
+    expect(camposFaltando(soOpcionais).map((x) => x.chave)).toEqual([
+      "email_contato", "endereco", "pis_nit",
+    ]);
+    expect(cadastroIncompleto(soOpcionais)).toBe(false);
+    expect(camposFaltandoObrigatorios(soOpcionais)).toEqual([]);
+  });
+
+  it("falta de salário, contato ou vínculo marca como incompleto", () => {
+    expect(cadastroIncompleto({ ...completo, salario_base: 0 })).toBe(true);
+    expect(cadastroIncompleto({ ...completo, telefone: null, whatsapp: null })).toBe(true);
+    expect(cadastroIncompleto({ ...completo, regime: null })).toBe(true);
+    // Obrigatórios preenchidos + opcionais vazios → completo para a sinalização.
+    expect(cadastroIncompleto({
+      telefone: "62999990000", regime: "clt", salario_base: 1800,
+    }, { exigirSetor: false })).toBe(false);
   });
 });
