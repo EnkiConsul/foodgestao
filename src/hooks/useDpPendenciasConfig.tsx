@@ -5,6 +5,8 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 export type DpPendenciasConfig = {
   alerta_solicitacao_dias: number;
   alerta_troca_dias: number;
+  alerta_ocorrencia_horas: number;
+
   alerta_contracheque_dia_mes: number;
   alerta_adiantamento_offset: number;
   alerta_folha_ponto_dia_mes: number;
