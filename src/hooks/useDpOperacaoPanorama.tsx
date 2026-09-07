@@ -488,6 +488,11 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       saida: a.saida ? a.saida.slice(0, 5) : null,
       termina_no_dia_seguinte: !!a.termina_no_dia_seguinte,
       observacao: a.observacao,
+      telefone: a.telefone ?? null,
+      pessoa_apoio_id: a.pessoa_apoio_id ?? null,
+      setor_id: a.setor_id ?? null,
+      setor_habitual_id:
+        (a as { pessoa_apoio?: { setor_id: string | null } | null }).pessoa_apoio?.setor_id ?? null,
     }));
   }, [avulsasQuery.data, base.data]);
 
