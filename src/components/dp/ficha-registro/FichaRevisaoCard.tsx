@@ -95,6 +95,7 @@ export function FichaRevisaoCard({
   const [usarJornada, setUsarJornada] = useState(true);
   const [atualizar, setAtualizar] = useState(!!item.colaborador_existente_id);
   const [anexarFicha, setAnexarFicha] = useState(true);
+  const [trechos, setTrechos] = useState<Record<string, boolean>>({});
   const [verTexto, setVerTexto] = useState(false);
   const [cargoDialog, setCargoDialog] = useState(false);
   const [comparacao, setComparacao] = useState(false);
