@@ -83,8 +83,11 @@ export function montarPayloadFicha(dados: Record<string, unknown>): Record<strin
     data_admissao: dataIso(dados.data_admissao),
     sexo: sexoNorm(dados.sexo),
     telefone: txt(dados.telefone),
-    email_contato: txt(dados.email),
+    whatsapp: txt(dados.whatsapp),
+    email_contato: txt(dados.email ?? dados.email_contato),
+    estado_civil: txt(dados.estado_civil),
     endereco: montarEndereco((dados.endereco ?? {}) as Record<string, unknown>),
+
     cargo: txt(dados.cargo_nome),
     salario_base: num(dados.salario),
     rg_numero: txt(dados.rg_numero),
