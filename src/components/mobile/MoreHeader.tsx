@@ -8,8 +8,8 @@ type Props = {
   onQueryChange: (value: string) => void;
 };
 
-/** Header fixo do /mais — nome do módulo à esquerda e campo "Buscar" à direita.
- *  Fica 100% fixo logo abaixo da topbar global (h-12 no mobile, h-14 no desktop). */
+/** Header do /mais — nome do módulo à esquerda e campo "Buscar" à direita.
+ *  Fica colado logo abaixo da topbar global (h-14), acompanhando a rolagem. */
 export function MoreHeader({ query, onQueryChange }: Props) {
   const activeModule = useActiveModule();
   const moduleLabel = MODULE_LABEL[activeModule];

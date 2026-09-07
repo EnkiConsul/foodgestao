@@ -105,7 +105,7 @@ export default function Mais() {
     <div className="min-h-full bg-background pb-[calc(80px+env(safe-area-inset-bottom))]">
       <MoreHeader query={query} onQueryChange={setQuery} />
 
-      <div className="px-4 pt-12 pb-4 space-y-6">
+      <div className="pt-4 pb-4 space-y-6">
         {isSearching ? (
           searchResults.length > 0 ? (
             <MoreGroupSection
