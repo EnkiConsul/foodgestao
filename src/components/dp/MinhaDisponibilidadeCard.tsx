@@ -207,10 +207,54 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
             {passado && <p className="text-muted-foreground">Dias que já passaram não podem ser alterados.</p>}
 
             {!passado && estadoSel === "convocacao_confirmada" && (
-              <p className="text-muted-foreground">
-                Você já confirmou uma convocação neste dia. Para informar que não poderá trabalhar, será necessário
-                solicitar substituição.
-              </p>
+              <div className="space-y-3">
+                <p className="text-amber-600">
+                  Você já confirmou uma convocação neste dia. Se avisar que não poderá comparecer, o gestor recebe
+                  o aviso como possível ausência — a convocação continua válida até a decisão dele.
+                </p>
+                {intermitente && (
+                  <p className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs">
+                    Por lei (CLT, art. 452-A, §4º), quem aceita a convocação e não comparece está sujeito a multa de
+                    50% da remuneração que seria devida naquele dia, compensável em até 30 dias.
+                  </p>
+                )}
+                <Textarea
+                  value={motivoConflito}
+                  onChange={(e) => setMotivoConflito(e.target.value)}
+                  placeholder="Explique o motivo (obrigatório)"
+                  rows={3}
+                />
+                {intermitente && (
+                  <label className="flex items-start gap-2 text-xs">
+                    <Checkbox
+                      checked={cienciaMulta}
+                      onCheckedChange={(v) => setCienciaMulta(v === true)}
+                      className="mt-0.5"
+                    />
+                    <span>Estou ciente da multa prevista em lei em caso de não comparecimento.</span>
+                  </label>
+                )}
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  disabled={
+                    marcar.isPending || !motivoConflito.trim() || (intermitente && !cienciaMulta)
+                  }
+                  onClick={() =>
+                    marcar.mutate(
+                      {
+                        data: selecionado!,
+                        motivo: motivoConflito,
+                        confirmarConflito: true,
+                        cienciaMulta,
+                      },
+                      { onSuccess: () => setSelecionado(null) },
+                    )
+                  }
+                >
+                  {marcar.isPending ? "Enviando..." : "Avisar que não poderei comparecer"}
+                </Button>
+              </div>
             )}
 
             {!passado && estadoSel === "convocacao_pendente" && (
