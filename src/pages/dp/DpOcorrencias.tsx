@@ -73,9 +73,16 @@ export default function DpOcorrencias() {
   const embedded = useDpEmbedded();
   const [searchParams] = useSearchParams();
   const colaboradorParam = searchParams.get("colaborador");
+  const dataParam = searchParams.get("data");
   const [filtros, setFiltros] = useState<OcorrenciaFiltros>(
-    colaboradorParam
-      ? { ...FILTROS_PADRAO, colaboradorId: colaboradorParam, periodo: "mes", somentePendentes: false }
+    colaboradorParam || dataParam
+      ? {
+          ...FILTROS_PADRAO,
+          colaboradorId: colaboradorParam ?? "all",
+          data: dataParam ?? null,
+          periodo: "mes",
+          somentePendentes: false,
+        }
       : FILTROS_PADRAO,
   );
   const [novaOpen, setNovaOpen] = useState(false);
