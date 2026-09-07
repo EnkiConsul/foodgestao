@@ -148,6 +148,7 @@ export default function DpFolgas() {
   const qc = useQueryClient();
   
   const colabs = useDpColaboradores();
+  const { reservasByDay } = useDpFolgaReserva(cursor);
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
   const initialPrefs = loadPrefs(selectedCompanyId);
   const [unidadeFilter, setUnidadeFilter] = useState<string>(initialPrefs.unidade ?? "todas");
