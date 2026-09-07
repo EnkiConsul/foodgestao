@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Check, FileText, Loader2, Plus, UserCheck, X } from "lucide-react";
+import {
+  AlertTriangle, Check, ChevronDown, ChevronUp, FileText, Loader2, Plus, UserCheck, UserCog, X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,11 +16,14 @@ import { matchCargo } from "@/lib/dp/ficha-registro/cargo-match";
 import { matchTurno, type TurnoCadastrado } from "@/lib/dp/ficha-registro/turno-match";
 import { formatCnpj, matchUnidade } from "@/lib/dp/ficha-registro/unidade-match";
 import { CONFIANCA_LABEL, nivelDoCampo, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
+import { montarPayloadFicha } from "@/lib/dp/ficha-registro/payload";
+import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { CargoCorrespondenciaDialog } from "./CargoCorrespondenciaDialog";
 import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
 import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
+
 
 
 const DOW_LABEL = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
