@@ -8894,6 +8894,7 @@ export type Database = {
           observacao: string | null
           pessoa_apoio_id: string | null
           saida: string | null
+          setor_id: string | null
           telefone: string | null
           termina_no_dia_seguinte: boolean
           tipo: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
@@ -8915,6 +8916,7 @@ export type Database = {
           observacao?: string | null
           pessoa_apoio_id?: string | null
           saida?: string | null
+          setor_id?: string | null
           telefone?: string | null
           termina_no_dia_seguinte?: boolean
           tipo: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
@@ -8936,6 +8938,7 @@ export type Database = {
           observacao?: string | null
           pessoa_apoio_id?: string | null
           saida?: string | null
+          setor_id?: string | null
           telefone?: string | null
           termina_no_dia_seguinte?: boolean
           tipo?: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
@@ -8990,6 +8993,13 @@ export type Database = {
             columns: ["pessoa_apoio_id"]
             isOneToOne: false
             referencedRelation: "dp_pessoas_apoio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_pessoas_avulsas_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "dp_setores"
             referencedColumns: ["id"]
           },
           {
@@ -14475,6 +14485,21 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_operacao_alerta_dispensar: {
+        Args: {
+          p_company: string
+          p_data: string
+          p_observacao?: string
+          p_padrao?: number
+          p_previsto?: number
+          p_unidade: string
+        }
+        Returns: Json
+      }
+      dp_operacao_alerta_reverter: {
+        Args: { p_company: string; p_data: string; p_unidade: string }
+        Returns: Json
+      }
       dp_pascoa: { Args: { _ano: number }; Returns: string }
       dp_pessoa_apoio_upsert: {
         Args: {
@@ -14514,6 +14539,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      dp_pessoa_avulsa_definir_setor_dia: {
+        Args: {
+          p_acao: string
+          p_avulsa_id: string
+          p_motivo?: string
+          p_setor_id?: string
+        }
+        Returns: Json
       }
       dp_pode_gerenciar_lixeira: {
         Args: { _company_id: string }
