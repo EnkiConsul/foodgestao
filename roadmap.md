@@ -5,8 +5,8 @@
 - [x] Férias etapa 1: direito por faltas, alertas de prazo e painel com abas
 - [x] Férias etapa 2: pedido do colaborador, aprovação/recusa, cancelamento com motivo, ciência e antecedência do aviso
 - [x] Férias etapa 3: feriados por unidade, 13º por unidade e resumo para contabilidade
-- [ ] Férias etapa 4: bloqueio de folga/convocação em férias, sugestão de cobertura e fracionamento
+- [x] Férias etapa 4: bloqueio de folga/convocação em férias, sugestão de cobertura e fracionamento
 - [x] Feriados: replicar lista de feriados entre unidades
-- [ ] Ocorrências etapa 1: tela /dp/ocorrencias, registro pelo colaborador e gestor, estados/análise/impactos
-- [ ] Ocorrências etapa 2: rotina do dia, coberturas (Mão de Obra Extra) e central de pendências
-- [ ] Ocorrências etapa 3: atestado automático, histórico no perfil, indicadores e auditoria
+- [x] Ocorrências etapa 1: tela /dp/ocorrencias, registro pelo colaborador e gestor, estados/análise/impactos
+- [x] Ocorrências etapa 2: rotina do dia, coberturas (Mão de Obra Extra) e central de pendências
+- [x] Ocorrências etapa 3: atestado automático, histórico no perfil, indicadores e auditoria
