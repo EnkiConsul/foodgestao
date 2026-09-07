@@ -70,6 +70,30 @@ function rotuloCategoriaPessoa(p: PessoaPanorama): string {
   }
   return CATEGORIA_LABEL[p.categoria];
 }
+
+function OcorrenciaBadges({ ocorrencias }: { ocorrencias: PessoaPanorama["ocorrencias"] }) {
+  if (!ocorrencias?.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {ocorrencias.map((o) => {
+        const prev = TIPOS_PREVISAO.includes(o.tipo);
+        return (
+          <Badge
+            key={o.id}
+            variant="outline"
+            className={prev ? "border-amber-500/50 text-amber-600" : "border-destructive/50 text-destructive"}
+            title={ESTADO_LABEL[o.estado]}
+          >
+            {TIPO_LABEL[o.tipo]}
+            {o.minutos ? ` · ${o.minutos}min` : null}
+            {o.horario_estimado ? ` · ~${o.horario_estimado}` : null}
+            {o.horario_real ? ` · real ${o.horario_real}` : null}
+          </Badge>
+        );
+      })}
+    </div>
+  );
+}
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
