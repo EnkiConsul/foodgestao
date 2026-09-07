@@ -53,11 +53,12 @@ function dataIso(v: unknown): string | null {
 }
 
 function sexoNorm(v: unknown): string | null {
-  const s = String(v ?? "").toLowerCase();
-  if (s.startsWith("m")) return "masculino";
-  if (s.startsWith("f")) return "feminino";
+  const s = String(v ?? "").trim().toLowerCase();
+  if (s.startsWith("m")) return "M";
+  if (s.startsWith("f")) return "F";
   return null;
 }
+
 
 /** Jornada sugerida pela ficha, pronta para a tela de revisão. */
 export function jornadaDaFicha(dados: Record<string, unknown> | null): JornadaSugerida {
