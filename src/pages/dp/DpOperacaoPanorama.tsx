@@ -339,6 +339,8 @@ function DetalheDiaOperacao({
   podeRegistrar,
   usaSetores,
   onAlterarSetor,
+  agrupamento,
+  onAgrupamento,
   onNovaAvulsa,
   onEditarAvulsa,
   onExcluirAvulsa,
@@ -763,6 +765,7 @@ export default function DpOperacaoPanorama() {
       funcionamentoPorUnidade: panorama.funcionamentoPorUnidade,
       unidades: panorama.unidades,
       unidadeId,
+      agrupar: agrupamento,
     });
   };
 
@@ -775,7 +778,7 @@ export default function DpOperacaoPanorama() {
   const blocos = useMemo(
     () => blocosDe(data, dia),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dia, data, unidadeId, panorama.funcionamentoPorUnidade, panorama.unidades],
+    [dia, data, unidadeId, agrupamento, panorama.funcionamentoPorUnidade, panorama.unidades],
   );
   const sociosAusentes = useMemo(() => sociosDe(dia), [dia]);
 
