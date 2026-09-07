@@ -25,7 +25,10 @@ const ymdLocal = (d: Date) =>
 function mensagemErro(raw: string): string {
   if (raw.includes("PAST_DATE_NOT_EDITABLE")) return "Dias que já passaram não podem ser alterados.";
   if (raw.includes("ACCEPTED_CALL_REQUIRES_REPLACEMENT"))
-    return "Você já confirmou uma convocação neste dia. Para informar que não poderá trabalhar, será necessário solicitar substituição.";
+    return "Você já confirmou uma convocação neste dia. Confirme o aviso ao gestor para prosseguir.";
+  if (raw.includes("CIENCIA_MULTA_OBRIGATORIA"))
+    return "É preciso marcar a ciência da multa prevista em lei para enviar o aviso.";
+  if (raw.includes("INVALID_INPUT")) return "Informe o motivo para enviar o aviso.";
   if (raw.includes("REGIME_NAO_CONVOCAVEL"))
     return "Seu vínculo usa o fluxo de folgas, não a agenda de disponibilidade.";
   if (raw.includes("FORBIDDEN")) return "Você não tem acesso a esta ação.";
@@ -49,7 +52,7 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_indisponibilidades")
-        .select("id, data, motivo, alteracao_tardia")
+        .select("id, data, motivo, alteracao_tardia, conflito")
         .eq("colaborador_id", colaboradorId!)
         .is("cancelada_em", null)
         .gte("data", inicio)
@@ -71,6 +74,21 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
         .lte("data", fim);
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  /** Vínculo do trabalhador — define o texto legal exibido no aviso de conflito. */
+  const regime = useQuery({
+    queryKey: ["dp_colab_regime", colaboradorId],
+    enabled: ativo,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_colaboradores")
+        .select("regime")
+        .eq("id", colaboradorId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.regime ?? null) as string | null;
     },
   });
 
@@ -108,16 +126,32 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
   };
 
   const marcar = useMutation({
-    mutationFn: async ({ data, motivo }: { data: string; motivo?: string | null }) => {
-      const { data: res, error } = await supabase.rpc("dp_indisponibilidade_marcar", {
+    mutationFn: async ({
+      data,
+      motivo,
+      confirmarConflito,
+      cienciaMulta,
+    }: {
+      data: string;
+      motivo?: string | null;
+      confirmarConflito?: boolean;
+      cienciaMulta?: boolean;
+    }) => {
+      const { data: res, error } = await (supabase.rpc as any)("dp_indisponibilidade_marcar", {
         p_data: data,
         p_motivo: motivo?.trim() ? motivo.trim() : undefined,
+        p_confirmar_conflito: !!confirmarConflito,
+        p_ciencia_multa: !!cienciaMulta,
       });
       if (error) throw new Error(mensagemErro(error.message));
-      return (res ?? {}) as { ofertas_encerradas?: number; idempotente?: boolean };
+      return (res ?? {}) as { ofertas_encerradas?: number; idempotente?: boolean; conflito?: boolean };
     },
     onSuccess: (res) => {
       invalidar();
+      if (res.conflito) {
+        toast.success("Aviso enviado ao gestor. A convocação segue válida até a decisão dele.");
+        return;
+      }
       const n = res.ofertas_encerradas ?? 0;
       toast.success(
         n > 0
@@ -146,9 +180,17 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     return set;
   }, [indisponibilidades.data]);
 
+  const conflitoPorDia = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of (indisponibilidades.data ?? []) as any[]) if (i.conflito) set.add(i.data);
+    return set;
+  }, [indisponibilidades.data]);
+
   return {
     estadoPorDia,
     tardiaPorDia,
+    conflitoPorDia,
+    regime: regime.data ?? null,
     janela: janela.data ?? null,
     janelaCarregando: janela.isLoading,
     indisponibilidades: indisponibilidades.data ?? [],

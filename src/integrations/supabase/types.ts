@@ -7709,8 +7709,13 @@ export type Database = {
           alteracao_tardia: boolean
           cancelada_em: string | null
           cancelada_por: string | null
+          ciencia_multa_em: string | null
           colaborador_id: string
           company_id: string
+          conflito: boolean
+          conflito_convocacao_id: string | null
+          conflito_resolvido_em: string | null
+          conflito_resolvido_por: string | null
           created_at: string
           criado_por: string | null
           data: string
@@ -7725,8 +7730,13 @@ export type Database = {
           alteracao_tardia?: boolean
           cancelada_em?: string | null
           cancelada_por?: string | null
+          ciencia_multa_em?: string | null
           colaborador_id: string
           company_id: string
+          conflito?: boolean
+          conflito_convocacao_id?: string | null
+          conflito_resolvido_em?: string | null
+          conflito_resolvido_por?: string | null
           created_at?: string
           criado_por?: string | null
           data: string
@@ -7741,8 +7751,13 @@ export type Database = {
           alteracao_tardia?: boolean
           cancelada_em?: string | null
           cancelada_por?: string | null
+          ciencia_multa_em?: string | null
           colaborador_id?: string
           company_id?: string
+          conflito?: boolean
+          conflito_convocacao_id?: string | null
+          conflito_resolvido_em?: string | null
+          conflito_resolvido_por?: string | null
           created_at?: string
           criado_por?: string | null
           data?: string
@@ -7759,6 +7774,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_indisponibilidades_conflito_convocacao_id_fkey"
+            columns: ["conflito_convocacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_convocacoes"
             referencedColumns: ["id"]
           },
           {
@@ -14313,7 +14335,12 @@ export type Database = {
         Returns: number
       }
       dp_indisponibilidade_marcar: {
-        Args: { p_data: string; p_motivo?: string }
+        Args: {
+          p_ciencia_multa?: boolean
+          p_confirmar_conflito?: boolean
+          p_data: string
+          p_motivo?: string
+        }
         Returns: Json
       }
       dp_indisponibilidade_remover: { Args: { p_data: string }; Returns: Json }
@@ -15450,6 +15477,7 @@ export type Database = {
         | "disponibilidade_janela_abriu"
         | "disponibilidade_janela_fechando"
         | "disponibilidade_alteracao_tardia"
+        | "disponibilidade_conflito_convocacao"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -15933,6 +15961,7 @@ export const Constants = {
         "disponibilidade_janela_abriu",
         "disponibilidade_janela_fechando",
         "disponibilidade_alteracao_tardia",
+        "disponibilidade_conflito_convocacao",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [

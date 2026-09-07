@@ -288,6 +288,24 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     },
   });
 
+  /** Avisos de possível ausência: convocável informou que não poderá comparecer. */
+  const conflitosQuery = useQuery({
+    queryKey: ["dp_panorama_conflitos_disponibilidade", selectedCompanyId, competencia],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_indisponibilidades")
+        .select("id, colaborador_id, data, motivo")
+        .eq("company_id", selectedCompanyId!)
+        .eq("conflito", true)
+        .is("cancelada_em", null)
+        .gte("data", inicio)
+        .lte("data", fim);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   /** Pessoas na rotina do dia (teste/folguista/registro manual) na competência. */
   const avulsasQuery = useQuery({
     queryKey: ["dp_pessoas_avulsas", selectedCompanyId, competencia, unidadeId],
@@ -472,8 +490,18 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
   }, [avulsasQuery.data, base.data]);
 
   const ocorrencias: OcorrenciaPanorama[] = useMemo(
-    () =>
-      (base.data?.ocorrencias ?? [])
+    () => [
+      ...(conflitosQuery.data ?? []).map((c) => ({
+        id: `indisp:${c.id}`,
+        colaborador_id: c.colaborador_id,
+        data: c.data,
+        tipo: "previsao_falta" as OcorrenciaPanorama["tipo"],
+        estado: "aberta" as OcorrenciaPanorama["estado"],
+        minutos: null,
+        horario_estimado: null,
+        horario_real: null,
+      })),
+      ...(base.data?.ocorrencias ?? [])
         .filter((o) => !unidadeId || o.unidade_id === unidadeId || o.unidade_id === null)
         .map((o) => ({
           id: o.id,
@@ -485,7 +513,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           horario_estimado: o.horario_estimado ? o.horario_estimado.slice(0, 5) : null,
           horario_real: o.horario_real ? o.horario_real.slice(0, 5) : null,
         })),
-    [base.data?.ocorrencias, unidadeId],
+    ],
+    [base.data?.ocorrencias, conflitosQuery.data, unidadeId],
   );
 
   /** Conta um dia respeitando admissão/desligamento do colaborador. */
