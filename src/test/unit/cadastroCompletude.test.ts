@@ -76,3 +76,33 @@ describe("cadastro-completude", () => {
     }, { exigirSetor: false })).toBe(false);
   });
 });
+
+describe("salário por forma de pagamento e cargo", () => {
+  const semSalario = { ...completo, salario_base: null };
+
+  it("horista (intermitente) com valor_hora não acusa falta de salário", () => {
+    const c = { ...semSalario, forma_pagamento: "horista", valor_hora: 12.5 };
+    expect(camposFaltando(c).map((x) => x.chave)).toEqual([]);
+  });
+
+  it("diarista com valor_diaria não acusa falta de salário", () => {
+    const c = { ...semSalario, forma_pagamento: "diarista", valor_diaria: 150 };
+    expect(camposFaltando(c).map((x) => x.chave)).toEqual([]);
+  });
+
+  it("salário vindo do cargo cobre a exigência", () => {
+    expect(camposFaltando(semSalario).map((x) => x.chave)).toEqual(["salario_base"]);
+    expect(camposFaltando(semSalario, { salarioCargo: 1900 })).toEqual([]);
+    expect(cadastroIncompleto(semSalario, { salarioCargo: 1900 })).toBe(false);
+  });
+
+  it("sem valor próprio e sem salário do cargo continua incompleto", () => {
+    expect(cadastroIncompleto(semSalario, { salarioCargo: null })).toBe(true);
+    expect(cadastroIncompleto(semSalario, { salarioCargo: 0 })).toBe(true);
+  });
+
+  it("sócio somente lucros não é cobrado de salário", () => {
+    const c = { ...semSalario, socio_remuneracao: "somente_lucros" };
+    expect(camposFaltando(c)).toEqual([]);
+  });
+});
