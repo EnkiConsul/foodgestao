@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -45,7 +46,10 @@ export function jornadaDaFicha(dados: Record<string, unknown> | null): JornadaSu
 /** Lista de importações de ficha da empresa selecionada, com polling durante o processamento. */
 export function useDpFichaImportacoes() {
   const { selectedCompanyId } = useCompanyContext();
-  return useQuery({
+  const qc = useQueryClient();
+  const anteriores = useRef<Map<string, string>>(new Map());
+
+  const query = useQuery({
     queryKey: ["dp_ficha_importacoes", selectedCompanyId],
     enabled: !!selectedCompanyId,
     refetchInterval: (q) => {
@@ -63,15 +67,39 @@ export function useDpFichaImportacoes() {
       return (data ?? []) as FichaImportacao[];
     },
   });
+
+  // A ficha é gravada no mesmo instante em que a leitura é marcada como concluída:
+  // ao ver a transição processing → ready/failed, recarrega as fichas daquele arquivo.
+  useEffect(() => {
+    for (const row of query.data ?? []) {
+      const antes = anteriores.current.get(row.id);
+      anteriores.current.set(row.id, row.status);
+      if (antes === "processing" && row.status !== "processing") {
+        qc.invalidateQueries({ queryKey: ["dp_ficha_itens", selectedCompanyId, row.id] });
+      }
+    }
+  }, [query.data, qc, selectedCompanyId]);
+
+  return query;
 }
 
 /** Fichas identificadas dentro de uma importação. */
-export function useDpFichaItens(importacaoId?: string | null, processando = false) {
+export function useDpFichaItens(
+  importacaoId?: string | null,
+  processando = false,
+  aguardandoFichas = false,
+) {
   const { selectedCompanyId } = useCompanyContext();
   return useQuery({
     queryKey: ["dp_ficha_itens", selectedCompanyId, importacaoId],
     enabled: !!selectedCompanyId && !!importacaoId,
-    refetchInterval: processando ? 3000 : false,
+    refetchInterval: (q) => {
+      if (processando) return 3000;
+      // Leitura concluída com fichas encontradas mas nada carregado ainda: tenta de novo.
+      const rows = (q.state.data ?? []) as FichaItem[];
+      if (aguardandoFichas && rows.length === 0 && q.state.dataUpdateCount < 8) return 2000;
+      return false;
+    },
     queryFn: async (): Promise<FichaItem[]> => {
       const { data, error } = await supabase
         .from("dp_ficha_importacao_itens")
@@ -84,6 +112,7 @@ export function useDpFichaItens(importacaoId?: string | null, processando = fals
     },
   });
 }
+
 
 /** Envia o PDF das fichas e dispara a leitura em segundo plano. */
 export function useEnviarFichaPdf() {
