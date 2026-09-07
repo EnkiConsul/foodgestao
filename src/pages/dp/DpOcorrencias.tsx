@@ -40,7 +40,18 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { useDpPessoasApoio } from "@/hooks/useDpPessoasApoio";
 import { OcorrenciaCoberturaDialog } from "@/components/dp/ocorrencias/OcorrenciaCoberturaDialog";
+import { OcorrenciaHistoricoDialog } from "@/components/dp/ocorrencias/OcorrenciaHistoricoDialog";
+import { useDpOcorrenciasIndicadores } from "@/hooks/useDpOcorrenciasIndicadores";
 import type { SubstitutoOpcao } from "@/components/dp/ocorrencias/SubstitutoPicker";
+
+function mesCorrente(): { inicio: string; fim: string } {
+  const hoje = new Date();
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  return {
+    inicio: iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)),
+    fim: iso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)),
+  };
+}
 
 const COBERTURAS: { value: string; label: string }[] = [
   { value: "all", label: "Todas" },
