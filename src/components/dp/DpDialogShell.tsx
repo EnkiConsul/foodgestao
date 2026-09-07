@@ -61,10 +61,12 @@ export function DpDialogShell({
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
-        <div className={cn("flex-1 overflow-y-auto p-4", contentClassName)}>{children}</div>
+        <div className={cn("min-w-0 flex-1 overflow-y-auto overscroll-contain p-4", contentClassName)}>{children}</div>
 
         {footer && (
-          <DialogFooter className="flex-row gap-2 border-t p-4">{footer}</DialogFooter>
+          <DialogFooter className="shrink-0 flex-row gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-4 [&>*]:min-h-11 [&>*]:flex-1 sm:[&>*]:flex-none">
+            {footer}
+          </DialogFooter>
         )}
       </DialogContent>
     </Dialog>
