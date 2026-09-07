@@ -120,7 +120,12 @@ export default function Mais() {
             <div className="flex flex-col items-center justify-center py-16 text-center gap-2 text-muted-foreground">
               <SearchX className="h-8 w-8" />
               <p className="text-sm">Nenhum item encontrado</p>
+              <p className="text-[11px] max-w-[16rem]">
+                Tente outra palavra — a busca também entende termos do dia a dia,
+                como "funcionário", "vale" ou "atestado".
+              </p>
             </div>
+
           )
         ) : (
           <>

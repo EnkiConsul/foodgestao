@@ -109,7 +109,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Operação", to: "/dp/escalas/mes", icon: CalendarClock, shortcut: true },
 
       { label: "Ocorrências", to: "/dp/ocorrencias", icon: ClipboardList, shortcut: true },
-      { label: "Convocações", to: "/dp/convocacoes", icon: BellRing },
+      { label: "Convocações", to: "/dp/convocacoes", icon: BellRing, shortcut: true },
       { label: "Folgas", to: "/dp/folgas", icon: Calendar, shortcut: true },
       { label: "Férias", to: "/dp/ferias", icon: Palmtree, shortcut: true },
 
