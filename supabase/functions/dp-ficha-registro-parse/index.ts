@@ -238,7 +238,10 @@ Regras absolutas:
 Formato:
 {
   "nova_ficha": true|false,           // true se ESTA página inicia a ficha de uma pessoa (tem cabeçalho de ficha/registro com nome do empregado)
+  "empregador_nome": null,             // razão social / nome da empresa ou unidade (empregador) impressa na ficha
+  "empregador_cnpj": null,             // CNPJ do empregador impresso na ficha, só dígitos ou formatado
   "nome": null, "cpf": null, "matricula": null, "data_nascimento": null,
+
   "sexo": null,                        // "Masculino" ou "Feminino"
   "estado_civil": null, "telefone": null, "email": null,
   "nome_pai": null, "nome_mae": null, "nacionalidade": null, "naturalidade": null,
