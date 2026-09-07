@@ -35,16 +35,44 @@ const NIVEL_CLASS: Record<NivelConfianca, string> = {
   ausente: "border-muted text-muted-foreground",
 };
 
+/** Vínculos disponíveis no cadastro (enum dp_regime_trabalho). */
+const REGIMES: Array<{ value: string; label: string }> = [
+  { value: "clt", label: "CLT efetivo" },
+  { value: "intermitente", label: "CLT intermitente" },
+  { value: "estagio", label: "Estagiário" },
+  { value: "temporario", label: "Temporário" },
+  { value: "pj", label: "PJ / Sócio" },
+  { value: "mei", label: "MEI" },
+  { value: "freelancer", label: "Freelancer (sem registro)" },
+];
+
+const ESTADOS_CIVIS: Array<{ value: string; label: string }> = [
+  { value: "solteiro", label: "Solteiro(a)" },
+  { value: "casado", label: "Casado(a)" },
+  { value: "uniao_estavel", label: "União estável" },
+  { value: "divorciado", label: "Divorciado(a)" },
+  { value: "viuvo", label: "Viúvo(a)" },
+];
+
 interface Props {
   item: FichaItem;
   cargos: Array<{ id: string; nome: string; cbo?: string | null }>;
   unidades: Array<{ id: string; nome: string; cnpj?: string | null }>;
+  setores?: Array<{ id: string; nome: string; unidade_id: string | null }>;
   turnos?: TurnoCadastrado[];
   unidadePadraoId: string | null;
   empresaCnpj?: string | null;
+  /** Setor e vínculo definidos na barra "aplicar a todas as fichas". */
+  setorPadraoId?: string | null;
+  regimePadrao?: string | null;
+  /** Abre o cadastro completo do colaborador criado por esta ficha. */
+  onAbrirCadastro?: (colaboradorId: string) => void;
 }
 
-export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadePadraoId, empresaCnpj }: Props) {
+export function FichaRevisaoCard({
+  item, cargos, unidades, setores = [], turnos = [], unidadePadraoId, empresaCnpj,
+  setorPadraoId = null, regimePadrao = null, onAbrirCadastro,
+}: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
 
@@ -58,6 +86,11 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
   const [unidadeId, setUnidadeId] = useState<string | null>(
     unidadeSugerida.unidade_id ?? unidadePadraoId ?? unidades[0]?.id ?? null,
   );
+  const [setorEscolhido, setSetorEscolhido] = useState<string | null>(null);
+  const [regimeEscolhido, setRegimeEscolhido] = useState<string | null>(null);
+  const setorId = setorEscolhido ?? setorPadraoId ?? null;
+  const regime = regimeEscolhido ?? regimePadrao ?? null;
+  const [completarAberto, setCompletarAberto] = useState(false);
   const [usarJornada, setUsarJornada] = useState(true);
   const [atualizar, setAtualizar] = useState(!!item.colaborador_existente_id);
   const [anexarFicha, setAnexarFicha] = useState(true);
@@ -65,9 +98,14 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
   const [cargoDialog, setCargoDialog] = useState(false);
   const [comparacao, setComparacao] = useState(false);
   const [confirmouEmpresa, setConfirmouEmpresa] = useState(false);
+  const [whatsappEditado, setWhatsappEditado] = useState(false);
   const empresaDivergente = unidadeSugerida.empresaConfere === "nao";
   const bloqueadoPorEmpresa = empresaDivergente && !confirmouEmpresa;
 
+  const setoresDaUnidade = useMemo(
+    () => (unidadeId ? setores.filter((s) => !s.unidade_id || s.unidade_id === unidadeId) : setores),
+    [setores, unidadeId],
+  );
 
   const jornada = useMemo(() => jornadaDaFicha(dados), [dados]);
   const turnoSugerido = useMemo(() => matchTurno(jornada, turnos, unidadeId), [jornada, turnos, unidadeId]);
@@ -79,6 +117,16 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
   const aplicado = item.status === "criado" || item.status === "atualizado";
   const ignorado = item.status === "ignorado";
 
+  /** O que continuará em branco no cadastro depois de aplicar esta ficha. */
+  const faltando = useMemo(() => {
+    const base = montarPayloadFicha(dados);
+    return camposFaltando(
+      { ...base, setor_id: setorId, regime },
+      { exigirSetor: setores.length > 0 },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dados, setorId, regime, setores.length]);
+
   const executar = (camposPermitidos: string[] | null) =>
     aplicar.mutate(
       {
@@ -86,6 +134,8 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
         dados,
         cargoId,
         unidadeId,
+        setorId,
+        regime,
         atualizarExistente: atualizar && !!item.colaborador_existente_id,
         jornada: usarJornada ? jornada : null,
         turnoId: usarJornada ? turnoEscolhido : null,
@@ -101,9 +151,32 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
       },
     );
 
+  const set = (campo: string, valor: string) =>
+    setDados((d) => {
+      // O WhatsApp acompanha o telefone até alguém digitar um número diferente.
+      if (campo === "telefone" && !whatsappEditado) return { ...d, telefone: valor, whatsapp: valor };
+      return { ...d, [campo]: valor };
+    });
 
+  const endereco = (dados.endereco ?? {}) as Record<string, unknown>;
+  const setEndereco = (parte: string, valor: string) =>
+    setDados((d) => ({
+      ...d,
+      endereco: { ...((d.endereco ?? {}) as Record<string, unknown>), [parte]: valor },
+    }));
 
-  const set = (campo: string, valor: string) => setDados((d) => ({ ...d, [campo]: valor }));
+  const campoEndereco = (label: string, parte: string, className?: string) => (
+    <div className={cn("space-y-1", className)}>
+      <Label className="text-xs">{label}</Label>
+      <Input
+        className="h-9"
+        value={typeof endereco[parte] === "string" ? String(endereco[parte]) : ""}
+        onChange={(e) => setEndereco(parte, e.target.value)}
+        disabled={aplicado || ignorado}
+      />
+    </div>
+  );
+
 
   const campo = (label: string, nome: string, tipo: "text" | "date" = "text") => {
     const valor = dados[nome];
