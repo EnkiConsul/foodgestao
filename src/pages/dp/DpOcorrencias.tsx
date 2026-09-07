@@ -151,7 +151,11 @@ export default function DpOcorrencias() {
       "tratativa",
       "cobertura",
     ];
-    return chaves.filter((k) => filtros[k] !== "all").length + (filtros.somentePendentes ? 1 : 0);
+    return (
+      chaves.filter((k) => filtros[k] !== "all").length +
+      (filtros.somentePendentes ? 1 : 0) +
+      (filtros.data ? 1 : 0)
+    );
   }, [filtros]);
 
 
