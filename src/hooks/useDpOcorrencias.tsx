@@ -48,6 +48,8 @@ export interface OcorrenciaFiltros {
   tratativa: string;
   somentePendentes: boolean;
   cobertura: string;
+  /** Quando informado, restringe a lista a esse dia (ignora o período). */
+  data?: string | null;
 
   busca: string;
 }
