@@ -59,6 +59,7 @@ export default function DpPessoasApoio() {
   const cargos = useDpCargos();
   const salvar = useSalvarDpPessoaApoio();
   const excluir = useExcluirDpPessoaApoio();
+  const { todos: todosSetores } = useDpSetores();
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -68,6 +69,7 @@ export default function DpPessoasApoio() {
 
   const nomeCargo = (id: string | null) => (cargos.data ?? []).find((c) => c.id === id)?.nome ?? "—";
   const nomeUnidade = (id: string | null) => (unidades.data ?? []).find((u) => u.id === id)?.nome ?? "—";
+  const nomeSetor = (id: string | null) => (id ? todosSetores.find((s) => s.id === id)?.nome ?? null : null);
 
   const visiveis = useMemo(() => {
     const q = search.trim().toLowerCase();
