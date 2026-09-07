@@ -695,27 +695,31 @@ export default function DpFolgas() {
     let capacidade = 0;
     let lotados = 0;
     let semLimite = 0;
+    let reservas = 0;
     for (const d of eachDayOfInterval({ start: monthStart, end: monthEnd })) {
       const key = format(d, "yyyy-MM-dd");
       const evs = eventsByDay.get(key) ?? [];
       const aprov = evs.filter((e) => e.status === "aprovada" && e.tipo === "folga").length;
+      const reserva = (reservasByDay.get(key) ?? 0);
       const cap = capacityByDay.get(key) ?? null;
       marcadas += aprov;
+      reservas += reserva;
       if (cap == null) {
         semLimite += 1;
         continue;
       }
       capacidade += cap;
-      if (aprov >= cap && cap > 0) lotados += 1;
+      if (aprov + reserva >= cap && cap > 0) lotados += 1;
     }
     return {
       marcadas,
       capacidade,
       lotados,
       semLimite,
-      restantes: Math.max(0, capacidade - marcadas),
+      reservas,
+      restantes: Math.max(0, capacidade - marcadas - reservas),
     };
-  }, [eventsByDay, capacityByDay, monthStart, monthEnd]);
+  }, [eventsByDay, capacityByDay, reservasByDay, monthStart, monthEnd]);
 
 
   const selectedEvents = selectedDay
