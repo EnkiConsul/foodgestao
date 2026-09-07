@@ -291,6 +291,23 @@ export function FichaRevisaoCard({ item, cargos, unidades, turnos = [], unidadeP
           </div>
         )}
 
+        {empresaDivergente && !aplicado && (
+          <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+            <p className="flex items-center gap-2 text-xs font-medium text-destructive">
+              <AlertTriangle className="h-4 w-4" /> Ficha de outra empresa
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              O empregador desta ficha
+              {unidadeSugerida.empregador_lido ? ` (${unidadeSugerida.empregador_lido})` : ""} tem o CNPJ{" "}
+              {formatCnpj(unidadeSugerida.cnpj_lido)}, que não é da empresa em uso nem de nenhuma unidade cadastrada.
+            </p>
+            <div className="flex items-center gap-2">
+              <Switch checked={confirmouEmpresa} onCheckedChange={setConfirmouEmpresa} />
+              <span className="text-xs">Confirmo que esta ficha é desta empresa</span>
+            </div>
+          </div>
+        )}
+
         {item.colaborador_existente_id && !aplicado && (
           <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
             <Switch checked={atualizar} onCheckedChange={setAtualizar} />
