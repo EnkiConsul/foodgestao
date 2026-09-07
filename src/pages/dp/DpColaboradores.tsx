@@ -422,39 +422,15 @@ export default function DpColaboradores() {
         icon={Users}
         title="Colaboradores"
         description="Gerencie a equipe, cargos e acessos ao sistema."
-        actions={
-          <>
-            <DpSalvarLargurasButton screenKey="dp_colaboradores" colOrder={colOrder} colWidths={colWidths} />
-            <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
-              <Link to="/dp/colaboradores/apoio">
-                <UserPlus className="h-4 w-4 sm:mr-2" />{" "}
-                <span className="hidden sm:inline">Folguistas e testes</span>
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
-
-              <Link to="/dp/colaboradores/lixeira">
-                <Trash2 className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Lixeira</span>
-              </Link>
-            </Button>
-
-            <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
-              <Link to="/dp/colaboradores/importar-ficha">
-                <FileText className="h-4 w-4 sm:mr-2" />{" "}
-                <span className="hidden sm:inline">Importar ficha de registro</span>
-              </Link>
-            </Button>
-
-            <Button
-              size="sm"
-              className="h-10 rounded-full font-semibold sm:size-lg"
-              onClick={() => abrirCadastro(null)}
-            >
-              <Plus className="h-4 w-4 mr-1.5 sm:h-5 sm:w-5 sm:mr-2" /> Novo
-              <span className="hidden sm:inline">&nbsp;Colaborador</span>
-            </Button>
-          </>
+        actionsExtra={
+          <DpSalvarLargurasButton screenKey="dp_colaboradores" colOrder={colOrder} colWidths={colWidths} />
         }
+        actionItems={[
+          { key: "novo", label: "Novo colaborador", icon: Plus, primary: true, onSelect: () => abrirCadastro(null) },
+          { key: "apoio", label: "Folguistas e testes", icon: UserPlus, to: "/dp/colaboradores/apoio" },
+          { key: "importar", label: "Importar ficha de registro", icon: FileText, to: "/dp/colaboradores/importar-ficha" },
+          { key: "lixeira", label: "Lixeira", icon: Trash2, to: "/dp/colaboradores/lixeira" },
+        ]}
       />
 
       <Tabs value={statusFilter} onValueChange={setStatusFilter}>
