@@ -393,6 +393,13 @@ export default function DpColaboradores() {
               </Link>
             </Button>
 
+            <Button variant="outline" size="sm" className="h-10 rounded-full sm:size-lg" asChild>
+              <Link to="/dp/colaboradores/importar-ficha">
+                <FileText className="h-4 w-4 sm:mr-2" />{" "}
+                <span className="hidden sm:inline">Importar ficha de registro</span>
+              </Link>
+            </Button>
+
             <Button
               size="sm"
               className="h-10 rounded-full font-semibold sm:size-lg"
