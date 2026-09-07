@@ -8,7 +8,10 @@ A Fase 5 troca esse bloqueio por um caminho consciente: o trabalhador confirma q
 
 Portal do trabalhador:
 - Ao marcar indisponibilidade num dia com convocação confirmada, aparece um aviso explicando que já existe compromisso naquele dia e que o aviso será enviado ao gestor como possível ausência. É preciso marcar a confirmação e escrever o motivo para prosseguir.
+- Se o vínculo for intermitente, o aviso traz também a consequência legal: quem aceita a convocação e não comparece está sujeito a multa de 50% da remuneração que seria devida naquele dia, compensável em até 30 dias (CLT, art. 452-A, §4º). O trabalhador precisa marcar a ciência dessa condição; a ciência fica registrada com data e hora.
+- Para freelancer (não intermitente) o texto não menciona multa.
 - Sem essa confirmação, nada é gravado (comportamento atual preservado).
+
 - O dia passa a mostrar o selo "Aviso enviado ao gestor" no calendário do portal.
 
 Gestor:
