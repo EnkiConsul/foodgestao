@@ -14301,6 +14301,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      dp_ocorrencia_atestado_aplicar: {
+        Args: { _solicitacao_id: string }
+        Returns: number
+      }
       dp_ocorrencia_cancelar: {
         Args: { _motivo: string; _ocorrencia_id: string }
         Returns: undefined
@@ -14385,6 +14389,15 @@ export type Database = {
       dp_ocorrencia_tratar: {
         Args: { _decisao: string; _observacao?: string; _ocorrencia_id: string }
         Returns: undefined
+      }
+      dp_ocorrencias_indicadores: {
+        Args: {
+          _company_id: string
+          _fim: string
+          _inicio: string
+          _unidade_id?: string
+        }
+        Returns: Json
       }
       dp_pascoa: { Args: { _ano: number }; Returns: string }
       dp_pessoa_apoio_upsert: {
