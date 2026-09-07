@@ -165,7 +165,8 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     hubTo: "/dp/cadastros",
     matchPrefixes: ["/dp/colaboradores", "/dp/cadastros"],
     items: [
-      { label: "Colaboradores", to: "/dp/colaboradores", icon: Users, shortcut: true },
+      { label: "Colaboradores", to: "/dp/colaboradores", icon: Users, shortcut: true, end: true },
+      { label: "Importar ficha de registro", to: "/dp/colaboradores/importar-ficha", icon: FileText, shortLabel: "Importar ficha" },
       { label: "Cargos e Salários", to: "/dp/cadastros/cargos", icon: Briefcase },
       { label: "Unidades", to: "/dp/cadastros/unidades", icon: Building2 },
       { label: "Benefícios", to: "/dp/cadastros/beneficios", icon: Gift },
