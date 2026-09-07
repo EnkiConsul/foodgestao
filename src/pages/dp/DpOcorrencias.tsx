@@ -405,6 +405,7 @@ export default function DpOcorrencias() {
                 onAnalisar={() => acoes.analisar.mutate({ id: o.id, status: "analisada" })}
                 onCancelar={() => setCancelarId(o.id)}
                 onCobrir={() => setCobrir(o)}
+                onHistorico={() => setHistorico(o)}
 
                 onImpacto={(campo, valor) =>
                   acoes.classificar.mutate(
