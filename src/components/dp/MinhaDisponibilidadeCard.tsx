@@ -74,6 +74,8 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
   const competencia = competenciaLabel(janela?.competencia) || `${MONTH_NAMES[mes - 1]}/${ano}`;
   const abrirDia = (iso: string) => {
     setAlteracaoAssumida(false);
+    setMotivoConflito("");
+    setCienciaMulta(false);
     setSelecionado(iso);
   };
 
@@ -200,6 +202,11 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
               {selecionado && tardiaPorDia.has(selecionado) && (
                 <Badge variant="outline" className="border-amber-500/50 text-[10px] text-amber-600">
                   Alteração tardia
+                </Badge>
+              )}
+              {selecionado && conflitoPorDia.has(selecionado) && (
+                <Badge variant="outline" className="border-destructive/50 text-[10px] text-destructive">
+                  Aviso enviado ao gestor
                 </Badge>
               )}
             </DialogDescription>
