@@ -16,6 +16,8 @@ import {
 
 const EMPRESA = "__empresa__";
 
+const DIAS = Array.from({ length: 28 }, (_, i) => i + 1);
+
 /** Regras de convocação por empresa ou por unidade (herança: unidade > empresa). */
 export function ConvocacoesRegrasPanel() {
   const [escopo, setEscopo] = useState<string>(EMPRESA);
@@ -38,6 +40,10 @@ export function ConvocacoesRegrasPanel() {
     sub_freelancer_por_freelancer: true,
     sub_freelancer_por_intermitente: false,
     sub_fixo_em_folga_dominical: false,
+    disponibilidade_janela_abre_dia: 1,
+    disponibilidade_janela_fecha_dia: 10,
+    disponibilidade_reserva_folga: false,
+    disponibilidade_lembrete_dias: 2,
   });
   const [expected, setExpected] = useState<string | null>(null);
 
@@ -57,6 +63,10 @@ export function ConvocacoesRegrasPanel() {
       sub_freelancer_por_freelancer: !!c.sub_freelancer_por_freelancer,
       sub_freelancer_por_intermitente: !!c.sub_freelancer_por_intermitente,
       sub_fixo_em_folga_dominical: !!c.sub_fixo_em_folga_dominical,
+      disponibilidade_janela_abre_dia: c.disponibilidade_janela_abre_dia ?? 1,
+      disponibilidade_janela_fecha_dia: c.disponibilidade_janela_fecha_dia ?? 10,
+      disponibilidade_reserva_folga: !!c.disponibilidade_reserva_folga,
+      disponibilidade_lembrete_dias: c.disponibilidade_lembrete_dias ?? 2,
     });
     // Só há controle otimista quando a linha existe para o escopo escolhido.
     const mesmoEscopo = (c.unidade_id ?? null) === unidadeId;
@@ -65,7 +75,18 @@ export function ConvocacoesRegrasPanel() {
 
   const herdada = config.data && (config.data as any).unidade_id !== unidadeId;
 
+  const janelaInvalida =
+    form.disponibilidade_janela_abre_dia < 1 ||
+    form.disponibilidade_janela_abre_dia > 28 ||
+    form.disponibilidade_janela_fecha_dia < 1 ||
+    form.disponibilidade_janela_fecha_dia > 28 ||
+    form.disponibilidade_janela_abre_dia > form.disponibilidade_janela_fecha_dia;
+
   const gravar = async () => {
+    if (janelaInvalida) {
+      toast.error("Ajuste o período de disponibilidade: use dias de 1 a 28, com a abertura antes do fechamento.");
+      return;
+    }
     try {
       await salvar.mutateAsync({
         unidade_id: unidadeId,
@@ -117,7 +138,7 @@ export function ConvocacoesRegrasPanel() {
                 Herdando o padrão da empresa
               </Badge>
             )}
-            <Button size="sm" onClick={gravar} disabled={salvar.isPending || config.isLoading}>
+            <Button size="sm" onClick={gravar} disabled={salvar.isPending || config.isLoading || janelaInvalida}>
               {salvar.isPending ? (
                 <Loader2 className="mr-1 h-4 w-4 animate-spin" />
               ) : (
@@ -190,6 +211,81 @@ export function ConvocacoesRegrasPanel() {
             "sub_fixo_em_folga_dominical",
             "Convocar quem está em folga dominical",
             "Chamar pessoa cuja folga cai no domingo. Não substitui o DSR: a folga precisa ser compensada em outro dia da mesma semana.",
+          )}
+        </div>
+
+
+        <div className="space-y-3 rounded-lg border border-border p-3">
+          <div>
+            <div className="text-sm font-bold">Disponibilidade dos convocáveis</div>
+            <p className="text-[11px] text-muted-foreground">
+              Período mensal em que intermitentes e freelancers informam os dias em que não poderão
+              trabalhar. O período acontece no mês anterior ao mês planejado; as datas exatas são
+              calculadas pelo sistema conforme o fuso da unidade.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Abre no dia</Label>
+              <Select
+                value={String(form.disponibilidade_janela_abre_dia)}
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, disponibilidade_janela_abre_dia: Number(v) }))
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DIAS.map((d) => (
+                    <SelectItem key={d} value={String(d)}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Fecha no dia</Label>
+              <Select
+                value={String(form.disponibilidade_janela_fecha_dia)}
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, disponibilidade_janela_fecha_dia: Number(v) }))
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DIAS.map((d) => (
+                    <SelectItem key={d} value={String(d)}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Lembrete (dias antes de fechar)</Label>
+              <Input
+                inputMode="numeric"
+                value={String(form.disponibilidade_lembrete_dias)}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    disponibilidade_lembrete_dias: Math.min(
+                      15,
+                      Number(e.target.value.replace(/\D/g, "")) || 0,
+                    ),
+                  }))
+                }
+              />
+            </div>
+          </div>
+
+          {janelaInvalida && (
+            <p className="text-[11px] font-medium text-destructive">
+              A abertura precisa ser no mesmo dia ou antes do fechamento.
+            </p>
+          )}
+
+          {switchRow(
+            "disponibilidade_reserva_folga",
+            "Indisponibilidades reservam capacidade das folgas",
+            "Quando ligado, um dia informado como indisponível também ocupa vaga no limite de folgas daquele dia.",
           )}
         </div>
 
