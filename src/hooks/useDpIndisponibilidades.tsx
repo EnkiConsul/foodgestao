@@ -74,6 +74,21 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     },
   });
 
+  /** Período mensal para informar indisponibilidade — calculado sempre no backend. */
+  const janela = useQuery({
+    queryKey: ["dp_minha_disponibilidade_janela", colaboradorId, ano, mes],
+    enabled: ativo,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("dp_minha_disponibilidade_janela", {
+        _competencia: `${ano}-${String(mes).padStart(2, "0")}-01`,
+      });
+      if (error) throw error;
+      return (data ?? null) as DisponibilidadeJanela | null;
+    },
+  });
+
+
+
   const estadoPorDia = useMemo(() => {
     const map = new Map<string, DisponibilidadeDia>();
     for (const i of indisponibilidades.data ?? []) map.set(i.data, "indisponivel");
