@@ -734,15 +734,44 @@ export function useDpPendencias() {
         const { data: colabs } = await supabase
           .from("dp_colaboradores")
           .select(
-            "id, nome, setor_id, telefone, whatsapp, email_contato, endereco, data_nascimento, estado_civil, regime, pis_nit, salario_base",
+            "id, nome, setor_id, telefone, whatsapp, email_contato, endereco, data_nascimento, estado_civil, regime, pis_nit, salario_base, forma_pagamento, valor_hora, valor_diaria, base_salarial, socio_remuneracao, cargo_id, unidade_id",
           )
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true);
 
+        // Salário pode vir do cargo (piso do patronal / ajuste da unidade) —
+        // intermitente/horista sem valor próprio não está incompleto por isso.
+        const [{ data: pisos }, { data: vinculosPatronal }] = await Promise.all([
+          supabase
+            .from("dp_cargo_salarios")
+            .select("cargo_id, unidade_id, sindicato_patronal_id, salario_base, vigencia_inicio, vigencia_fim"),
+          supabase
+            .from("dp_sindicato_unidades")
+            .select("unidade_id, sindicato_id, dp_sindicatos!inner(tipo)")
+            .eq("dp_sindicatos.tipo", "patronal"),
+        ]);
+        const pisosPorCargo = agruparPisosPorCargo((pisos ?? []) as any[]);
+        const patronalPorUnidade = new Map<string, string>();
+        for (const v of (vinculosPatronal ?? []) as any[]) {
+          if (!patronalPorUnidade.has(v.unidade_id)) patronalPorUnidade.set(v.unidade_id, v.sindicato_id);
+        }
+        const salarioCargoDe = (cargoId: string | null, unidadeId: string | null): number | null => {
+          if (!cargoId || !unidadeId) return null;
+          return salarioCargoNaUnidade(
+            pisosPorCargo.get(cargoId) ?? [],
+            unidadeId,
+            patronalPorUnidade.get(unidadeId) ?? null,
+            undefined,
+            { aceitarFuturo: true },
+          ).valor;
+        };
+
         const lista = (colabs ?? []) as any[];
         for (const c of lista) {
           // Só campos obrigatórios geram pendência (opcionais ficam como sugestão na ficha).
-          const faltando = camposFaltandoObrigatorios(c);
+          const faltando = camposFaltandoObrigatorios(c, {
+            salarioCargo: salarioCargoDe(c.cargo_id, c.unidade_id),
+          });
           if (faltando.length === 0) continue;
           results.push({
             id: `cadastro-incompleto-${c.id}`,
