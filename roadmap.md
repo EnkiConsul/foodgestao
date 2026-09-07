@@ -10,3 +10,12 @@
 - [x] Ocorrências etapa 1: tela /dp/ocorrencias, registro pelo colaborador e gestor, estados/análise/impactos
 - [x] Ocorrências etapa 2: rotina do dia, coberturas (Mão de Obra Extra) e central de pendências
 - [x] Ocorrências etapa 3: atestado automático, histórico no perfil, indicadores e auditoria
+
+## Disponibilidade de intermitentes/freelancers
+- [x] Fase 1 — diagnóstico
+- [x] Fase 2 — regras do período mensal + portal (janela, alteração tardia, lembrete)
+- [ ] Fase 3 — Convocações > Disponibilidade (visão do gestor)
+- [ ] Fase 4 — integração com Folgas
+- [ ] Fase 5 — conflitos e previsão de ausência
+- [ ] Fase 6 — Planejamento
+- [ ] Fase 7 — automação (se prevista)

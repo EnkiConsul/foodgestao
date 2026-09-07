@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { DisponibilidadeJanela } from "@/lib/dp/disponibilidade-janela";
+
 
 export type DisponibilidadeDia =
   | "disponivel"
@@ -47,7 +49,7 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_indisponibilidades")
-        .select("id, data, motivo")
+        .select("id, data, motivo, alteracao_tardia")
         .eq("colaborador_id", colaboradorId!)
         .is("cancelada_em", null)
         .gte("data", inicio)
@@ -72,6 +74,21 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     },
   });
 
+  /** Período mensal para informar indisponibilidade — calculado sempre no backend. */
+  const janela = useQuery({
+    queryKey: ["dp_minha_disponibilidade_janela", colaboradorId, ano, mes],
+    enabled: ativo,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("dp_minha_disponibilidade_janela", {
+        _competencia: `${ano}-${String(mes).padStart(2, "0")}-01`,
+      });
+      if (error) throw error;
+      return (data ?? null) as DisponibilidadeJanela | null;
+    },
+  });
+
+
+
   const estadoPorDia = useMemo(() => {
     const map = new Map<string, DisponibilidadeDia>();
     for (const i of indisponibilidades.data ?? []) map.set(i.data, "indisponivel");
@@ -87,6 +104,7 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     qc.invalidateQueries({ queryKey: ["dp_indisponibilidades_meu"] });
     qc.invalidateQueries({ queryKey: ["dp_convocacoes_meu_cal"] });
     qc.invalidateQueries({ queryKey: ["dp_minhas_convocacoes"] });
+    qc.invalidateQueries({ queryKey: ["dp_minha_disponibilidade_janela"] });
   };
 
   const marcar = useMutation({
@@ -122,8 +140,17 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const tardiaPorDia = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of (indisponibilidades.data ?? []) as any[]) if (i.alteracao_tardia) set.add(i.data);
+    return set;
+  }, [indisponibilidades.data]);
+
   return {
     estadoPorDia,
+    tardiaPorDia,
+    janela: janela.data ?? null,
+    janelaCarregando: janela.isLoading,
     indisponibilidades: indisponibilidades.data ?? [],
     isLoading: indisponibilidades.isLoading || convocacoes.isLoading,
     marcar,

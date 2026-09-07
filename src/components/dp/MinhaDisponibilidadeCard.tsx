@@ -12,7 +12,15 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { MONTH_NAMES, WEEKDAY_LABELS, formatBR, parseYMD } from "@/lib/dp/folga-rules";
+import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, Lock } from "lucide-react";
 import { useDpIndisponibilidades, type DisponibilidadeDia } from "@/hooks/useDpIndisponibilidades";
+import {
+  competenciaLabel,
+  diaMes,
+  janelaFechandoEmBreve,
+  mensagemDisponibilidade,
+} from "@/lib/dp/disponibilidade-janela";
 
 interface Props {
   colaboradorId: string | null;
@@ -51,8 +59,21 @@ const ymdLocal = (d: Date) =>
  * Mobile-first: toque no dia abre a ação correspondente.
  */
 export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNext }: Props) {
-  const { estadoPorDia, marcar, remover, isLoading } = useDpIndisponibilidades({ colaboradorId, ano, mes });
+  const { estadoPorDia, tardiaPorDia, janela, marcar, remover, isLoading } = useDpIndisponibilidades({
+    colaboradorId,
+    ano,
+    mes,
+  });
   const [selecionado, setSelecionado] = useState<string | null>(null);
+  // Depois do fechamento, marcar exige um passo extra e explícito.
+  const [alteracaoAssumida, setAlteracaoAssumida] = useState(false);
+  const encerrada = janela?.estado === "encerrada";
+  const fechandoEmBreve = janelaFechandoEmBreve(janela);
+  const competencia = competenciaLabel(janela?.competencia) || `${MONTH_NAMES[mes - 1]}/${ano}`;
+  const abrirDia = (iso: string) => {
+    setAlteracaoAssumida(false);
+    setSelecionado(iso);
+  };
 
   const hojeIso = ymdLocal(new Date());
 
@@ -75,7 +96,7 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
         <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
           <div>
             <CardTitle className="flex items-center gap-2 text-lg font-black">
-              <CalendarCheck2 className="size-5 text-primary" /> Minha disponibilidade
+              <CalendarCheck2 className="size-5 text-primary" /> Minha disponibilidade — {competencia}
             </CardTitle>
             <CardDescription>
               Informe os dias em que você não poderá trabalhar. Nesses dias você não recebe novas convocações.
@@ -99,6 +120,36 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
               <span key={w}>{w}</span>
             ))}
           </div>
+          {janela && (
+            <div
+              className={cn(
+                "flex items-start gap-2 rounded-xl border p-3 text-xs",
+                janela.estado === "aberta" && !fechandoEmBreve && "border-emerald-500/40 bg-emerald-500/10",
+                janela.estado === "aberta" && fechandoEmBreve && "border-amber-500/40 bg-amber-500/10",
+                janela.estado === "antes" && "border-border bg-muted/40",
+                encerrada && "border-amber-500/40 bg-amber-500/10",
+              )}
+            >
+              {encerrada || fechandoEmBreve ? (
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              ) : (
+                <Lock className="mt-0.5 size-4 shrink-0" />
+              )}
+              <div className="space-y-0.5">
+                <p className="font-bold">{mensagemDisponibilidade(janela)}</p>
+                <p className="text-muted-foreground">
+                  {janela.estado === "antes" &&
+                    `Neste mês o período vai de ${diaMes(janela.abre)} a ${diaMes(janela.fecha)}.`}
+                  {janela.estado === "aberta" &&
+                    (fechandoEmBreve
+                      ? `Faltam poucos dias: o período fecha em ${diaMes(janela.fecha)}.`
+                      : "Sem marcação significa que você está disponível.")}
+                  {encerrada &&
+                    "Você ainda pode informar uma alteração, e o gestor será avisado."}
+                </p>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-7 gap-1">
             {celulas.map((c, i) =>
               !c ? (
@@ -108,7 +159,7 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
                   key={c.iso}
                   type="button"
                   disabled={isLoading}
-                  onClick={() => setSelecionado(c.iso)}
+                  onClick={() => abrirDia(c.iso)}
                   className={cn(
                     "aspect-square rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1 transition",
                     c.iso < hojeIso ? "bg-muted/40 text-muted-foreground" : ESTILO[estado(c.iso)],
@@ -116,7 +167,12 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
                   aria-label={`${formatBR(parseYMD(c.iso))} — ${ROTULO[estado(c.iso)]}`}
                 >
                   {c.dia}
-                  <span className={cn("h-1.5 w-1.5 rounded-full", PONTO[estado(c.iso)])} />
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      tardiaPorDia.has(c.iso) ? "bg-amber-500" : PONTO[estado(c.iso)],
+                    )}
+                  />
                 </button>
               ),
             )}
@@ -137,7 +193,14 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
             <DialogTitle className="text-xl font-black">
               {selecionado && formatBR(parseYMD(selecionado))}
             </DialogTitle>
-            <DialogDescription>{estadoSel ? ROTULO[estadoSel] : ""}</DialogDescription>
+            <DialogDescription className="flex flex-wrap items-center gap-2">
+              {estadoSel ? ROTULO[estadoSel] : ""}
+              {selecionado && tardiaPorDia.has(selecionado) && (
+                <Badge variant="outline" className="border-amber-500/50 text-[10px] text-amber-600">
+                  Alteração tardia
+                </Badge>
+              )}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 text-sm">
@@ -171,15 +234,33 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
             )}
 
             {!passado && (estadoSel === "disponivel" || estadoSel === "convocacao_pendente") && (
-              <Button
-                className="w-full"
-                disabled={marcar.isPending}
-                onClick={() =>
-                  marcar.mutate({ data: selecionado! }, { onSuccess: () => setSelecionado(null) })
-                }
-              >
-                {marcar.isPending ? "Salvando..." : "Marcar como indisponível"}
-              </Button>
+              <>
+                {encerrada && !alteracaoAssumida ? (
+                  <>
+                    <p className="text-amber-600">
+                      {mensagemDisponibilidade(janela)} Se algo mudou, você pode informar agora — o
+                      gestor será avisado da alteração.
+                    </p>
+                    <Button variant="outline" className="w-full" onClick={() => setAlteracaoAssumida(true)}>
+                      Informar alteração de disponibilidade
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    className="w-full"
+                    disabled={marcar.isPending}
+                    onClick={() =>
+                      marcar.mutate({ data: selecionado! }, { onSuccess: () => setSelecionado(null) })
+                    }
+                  >
+                    {marcar.isPending
+                      ? "Salvando..."
+                      : encerrada
+                        ? "Confirmar indisponibilidade"
+                        : "Marcar como indisponível"}
+                  </Button>
+                )}
+              </>
             )}
           </div>
 
