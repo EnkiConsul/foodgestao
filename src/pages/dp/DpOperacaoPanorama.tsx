@@ -877,6 +877,8 @@ export default function DpOperacaoPanorama() {
         setor_habitual_nome: p.setor_habitual_nome ?? null,
         avulsa_id: p.avulso_id ?? null,
       }),
+    agrupamento,
+    onAgrupamento: salvarAgrupamento,
   };
 
   const propsAvulsas = {
