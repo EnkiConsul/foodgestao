@@ -36,6 +36,18 @@ import {
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
+import { useDpPessoasApoio } from "@/hooks/useDpPessoasApoio";
+import { OcorrenciaCoberturaDialog } from "@/components/dp/ocorrencias/OcorrenciaCoberturaDialog";
+import type { SubstitutoOpcao } from "@/components/dp/ocorrencias/SubstitutoPicker";
+
+const COBERTURAS: { value: string; label: string }[] = [
+  { value: "all", label: "Todas" },
+  { value: "sem", label: "Sem cobertura" },
+  { value: "proposta", label: "Cobertura proposta" },
+  { value: "aprovada", label: "Cobertura aprovada" },
+  { value: "realizada", label: "Cobertura realizada" },
+];
+
 
 const PERIODOS: { value: OcorrenciaPeriodo; label: string }[] = [
   { value: "hoje", label: "Hoje" },
@@ -51,6 +63,8 @@ export default function DpOcorrencias() {
   const [confirmar, setConfirmar] = useState<Ocorrencia | null>(null);
   const [tratativa, setTratativa] = useState<Ocorrencia | null>(null);
   const [cancelarId, setCancelarId] = useState<string | null>(null);
+  const [cobrir, setCobrir] = useState<Ocorrencia | null>(null);
+
 
   const set = <K extends keyof OcorrenciaFiltros>(k: K, v: OcorrenciaFiltros[K]) =>
     setFiltros((f) => ({ ...f, [k]: v }));
@@ -59,10 +73,26 @@ export default function DpOcorrencias() {
   const { data: colaboradores = [] } = useDpColaboradores();
   const { data: unidades = [] } = useDpUnidades();
   const { setores } = useDpSetores(filtros.unidadeId === "all" ? null : filtros.unidadeId);
+  const { data: pessoasApoio = [] } = useDpPessoasApoio({ apenasAtivos: true });
 
   const colaboradoresAtivos = useMemo(
     () => colaboradores.filter((c) => c.ativo).map((c) => ({ id: c.id, nome: c.nome })),
     [colaboradores],
+  );
+
+  const opcoesSubstituto = useMemo<SubstitutoOpcao[]>(
+    () => [
+      ...pessoasApoio
+        .filter((p) => !p.colaborador_id)
+        .map((p) => ({
+          id: p.id,
+          nome: p.nome,
+          detalhe: p.tipo === "folguista" ? "Folguista" : "Em teste",
+          origem: "apoio" as const,
+        })),
+      ...colaboradoresAtivos.map((c) => ({ id: c.id, nome: c.nome, origem: "colaborador" as const })),
+    ],
+    [pessoasApoio, colaboradoresAtivos],
   );
 
   const activeCount = useMemo(() => {
@@ -76,9 +106,11 @@ export default function DpOcorrencias() {
       "impactaAssiduidade",
       "impactaFerias",
       "tratativa",
+      "cobertura",
     ];
     return chaves.filter((k) => filtros[k] !== "all").length + (filtros.somentePendentes ? 1 : 0);
   }, [filtros]);
+
 
   return (
     <DpPage>
@@ -272,6 +304,22 @@ export default function DpOcorrencias() {
           </Select>
         </DpFilterField>
 
+        <DpFilterField label="Cobertura">
+          <Select value={filtros.cobertura} onValueChange={(v) => set("cobertura", v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {COBERTURAS.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+
+
         <DpFilterField label="Pendências">
           <div className="flex h-10 items-center gap-2">
             <Switch
@@ -299,10 +347,13 @@ export default function DpOcorrencias() {
               <OcorrenciaCard
                 key={o.id}
                 ocorrencia={o}
+                coberturas={acoes.coberturasPorOcorrencia.get(o.id) ?? []}
                 onConfirmar={() => setConfirmar(o)}
                 onTratativa={() => setTratativa(o)}
                 onAnalisar={() => acoes.analisar.mutate({ id: o.id, status: "analisada" })}
                 onCancelar={() => setCancelarId(o.id)}
+                onCobrir={() => setCobrir(o)}
+
                 onImpacto={(campo, valor) =>
                   acoes.classificar.mutate(
                     campo === "assiduidade"
@@ -371,6 +422,23 @@ export default function DpOcorrencias() {
           acoes.cancelar.mutate({ id: cancelarId, motivo }, { onSuccess: () => setCancelarId(null) })
         }
       />
+      <OcorrenciaCoberturaDialog
+        ocorrencia={cobrir}
+        coberturas={cobrir ? acoes.coberturasPorOcorrencia.get(cobrir.id) ?? [] : []}
+        opcoes={opcoesSubstituto}
+        saving={
+          acoes.criarCobertura.isPending ||
+          acoes.decidirCobertura.isPending ||
+          acoes.confirmarCobertura.isPending
+        }
+        onOpenChange={(open) => !open && setCobrir(null)}
+        onCriar={(input) =>
+          cobrir && acoes.criarCobertura.mutate({ ocorrenciaId: cobrir.id, ...input })
+        }
+        onDecidir={(input) => acoes.decidirCobertura.mutate(input)}
+        onConfirmar={(id) => acoes.confirmarCobertura.mutate(id)}
+      />
     </DpPage>
+
   );
 }

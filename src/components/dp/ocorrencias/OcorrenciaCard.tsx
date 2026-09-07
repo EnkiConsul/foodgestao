@@ -1,16 +1,28 @@
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Clock, User, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardCheck,
+  Clock,
+  User,
+  UserPlus,
+  XCircle,
+} from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   ANALISE_LABEL,
+  COBERTURA_EXECUCAO_LABEL,
+  COBERTURA_STATUS_LABEL,
   COR_BADGE,
   COR_CLASSE,
   ESTADO_LABEL,
   IMPACTO_LABEL,
   MARCACAO_LABEL,
   ORIGEM_LABEL,
+  TIPOS_COBRIVEIS,
   TIPOS_PREVISAO,
   TIPO_LABEL,
   TRATATIVA_LABEL,
@@ -18,14 +30,17 @@ import {
   resumoOperacional,
   type OcorrenciaImpacto,
 } from "@/lib/dp/ocorrencias";
-import type { Ocorrencia } from "@/hooks/useDpOcorrencias";
+import type { Ocorrencia, OcorrenciaCobertura } from "@/hooks/useDpOcorrencias";
+
 
 interface Props {
   ocorrencia: Ocorrencia;
+  coberturas?: OcorrenciaCobertura[];
   onConfirmar: () => void;
   onTratativa: () => void;
   onAnalisar: () => void;
   onCancelar: () => void;
+  onCobrir?: () => void;
   onImpacto: (campo: "assiduidade" | "ferias", valor: OcorrenciaImpacto) => void;
 }
 
@@ -33,12 +48,17 @@ const IMPACTOS: OcorrenciaImpacto[] = ["sim", "nao", "aguardando", "nao_se_aplic
 
 export function OcorrenciaCard({
   ocorrencia: o,
+  coberturas = [],
   onConfirmar,
   onTratativa,
   onAnalisar,
   onCancelar,
+  onCobrir,
   onImpacto,
 }: Props) {
+  const validas = coberturas.filter((c) => c.status !== "recusada");
+  const cobrivel = TIPOS_COBRIVEIS.includes(o.tipo) && o.estado !== "cancelada";
+
   const cor = corOcorrencia(o);
   const previsao = TIPOS_PREVISAO.includes(o.tipo);
   const data = new Date(`${o.data_operacional}T12:00:00`).toLocaleDateString("pt-BR", {
@@ -72,6 +92,19 @@ export function OcorrenciaCard({
             {o.unidade?.nome ? ` · ${o.unidade.nome}` : ""}
             {o.setor?.nome ? ` · ${o.setor.nome}` : ""}
           </p>
+          {validas.length > 0 && (
+            <p className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+              <UserPlus className="h-3 w-3" />
+              Cobertura: {validas.map((c) => c.substituto?.nome ?? c.apoio?.nome ?? "sem nome").join(", ")}
+              <Badge variant="outline" className="text-[10px]">
+                {COBERTURA_STATUS_LABEL[validas[0].status]}
+              </Badge>
+              <Badge variant="outline" className="text-[10px]">
+                {COBERTURA_EXECUCAO_LABEL[validas[0].execucao_status]}
+              </Badge>
+            </p>
+          )}
+
           {(o.previsto_entrada || o.previsto_saida) && (
             <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
@@ -115,6 +148,13 @@ export function OcorrenciaCard({
               <User className="mr-1 h-3.5 w-3.5" /> Marcar analisada
             </Button>
           )}
+          {cobrivel && onCobrir && (
+            <Button size="sm" variant={validas.length ? "ghost" : "outline"} onClick={onCobrir}>
+              <UserPlus className="mr-1 h-3.5 w-3.5" />
+              {validas.length ? "Ver cobertura" : "Cobrir"}
+            </Button>
+          )}
+
           {o.estado !== "cancelada" && (
             <Button size="sm" variant="ghost" onClick={onCancelar}>
               <XCircle className="mr-1 h-3.5 w-3.5" /> Cancelar

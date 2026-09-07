@@ -71,6 +71,12 @@ function rotuloCategoriaPessoa(p: PessoaPanorama): string {
   return CATEGORIA_LABEL[p.categoria];
 }
 
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 function OcorrenciaBadges({ ocorrencias }: { ocorrencias: PessoaPanorama["ocorrencias"] }) {
   if (!ocorrencias?.length) return null;
   return (
@@ -94,11 +100,7 @@ function OcorrenciaBadges({ ocorrencias }: { ocorrencias: PessoaPanorama["ocorre
     </div>
   );
 }
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 
 const hojeIso = () => {
   const d = new Date();
