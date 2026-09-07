@@ -65,6 +65,8 @@ export interface PessoaAvulsaInput {
   telefone?: string | null;
   /** Vínculo com o cadastro reaproveitável de apoio. */
   pessoa_apoio_id?: string | null;
+  /** Setor em que a pessoa atua no dia. */
+  setor_id?: string | null;
 }
 
 
@@ -314,7 +316,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       let q = supabase
         .from("dp_pessoas_avulsas")
         .select(
-          "id, nome, tipo, colaborador_id, unidade_id, cargo_id, cobre_colaborador_id, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao, telefone, pessoa_apoio_id",
+          "id, nome, tipo, colaborador_id, unidade_id, cargo_id, cobre_colaborador_id, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao, telefone, pessoa_apoio_id, setor_id",
         )
 
 
@@ -569,21 +571,22 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [base.data, dias, padrao, dispensadas, colaboradores, turnos, convocacoes, folgas, ausencias, avulsos, ocorrencias]);
 
+  /**
+   * Marcar o dia como resolvido é uma rotina do banco: ela decide sozinha entre
+   * criar e atualizar (inclusive quando o painel está em "todas as unidades",
+   * caso em que a unidade fica vazia) e nunca duplica o registro.
+   */
   const dispensarAlerta = useMutation({
     mutationFn: async (input: { data: string; previsto: number; padrao: number; observacao?: string }) => {
-      const { data: userData } = await supabase.auth.getUser();
-      const { error } = await supabase.from("dp_operacao_alertas_dispensas").upsert(
-        {
-          company_id: selectedCompanyId!,
-          unidade_id: unidadeId,
-          data: input.data,
-          previsto_snapshot: input.previsto,
-          padrao_snapshot: input.padrao,
-          observacao: input.observacao ?? null,
-          dispensado_por: userData.user?.id ?? null,
-        },
-        { onConflict: "company_id,unidade_id,data" },
-      );
+      const { error } = await supabase.rpc("dp_operacao_alerta_dispensar", {
+        p_company: selectedCompanyId!,
+        // A rotina aceita empresa sem unidade (visão "todas as unidades").
+        p_unidade: unidadeId as unknown as string,
+        p_data: input.data,
+        p_previsto: input.previsto,
+        p_padrao: input.padrao,
+        p_observacao: input.observacao ?? undefined,
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_panorama_dispensas"] }),
@@ -591,17 +594,16 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
 
   const reativarAlerta = useMutation({
     mutationFn: async (data: string) => {
-      let q = supabase
-        .from("dp_operacao_alertas_dispensas")
-        .delete()
-        .eq("company_id", selectedCompanyId!)
-        .eq("data", data);
-      q = unidadeId ? q.eq("unidade_id", unidadeId) : q.is("unidade_id", null);
-      const { error } = await q;
+      const { error } = await supabase.rpc("dp_operacao_alerta_reverter", {
+        p_company: selectedCompanyId!,
+        p_unidade: unidadeId as unknown as string,
+        p_data: data,
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_panorama_dispensas"] }),
   });
+
 
   const salvarAvulsa = useMutation({
     mutationFn: async (input: PessoaAvulsaInput) => {
@@ -624,6 +626,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         observacao: input.observacao?.trim() || null,
         telefone: manual ? null : input.telefone?.trim() || null,
         pessoa_apoio_id: manual ? null : input.pessoa_apoio_id ?? null,
+        setor_id: input.setor_id ?? null,
 
       };
       if (input.id) {
@@ -662,9 +665,10 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
   );
 
   /**
-   * Altera o setor de um colaborador só naquela data (ou volta ao setor padrão).
-   * Todo o trabalho é do backend: ele deriva empresa/unidade, materializa o item
-   * da escala e preserva turno, horário, tipo, carga e observações.
+   * Altera o setor de uma pessoa só naquela data (ou volta ao setor padrão).
+   * Colaborador cadastrado vai pela escala; folguista, pessoa em teste ou
+   * registro do dia é gravado no próprio registro avulso — nunca se manda para
+   * o banco o identificador sintético usado nas listas da tela.
    */
   const definirSetorDia = useMutation({
     mutationFn: async (input: {
@@ -673,22 +677,38 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       acao: "USAR_PADRAO" | "DEFINIR_SETOR";
       setor_id?: string | null;
       motivo?: string | null;
+      /** Preenchido quando o alvo é folguista / pessoa em teste / registro do dia. */
+      avulsa_id?: string | null;
     }) => {
+      const setor = input.acao === "DEFINIR_SETOR" ? input.setor_id ?? null : null;
+      const motivo = input.motivo?.trim() || null;
+      if (input.avulsa_id) {
+        const { error } = await supabase.rpc("dp_pessoa_avulsa_definir_setor_dia", {
+          p_avulsa_id: input.avulsa_id,
+          p_acao: input.acao,
+          p_setor_id: setor ?? undefined,
+          p_motivo: motivo ?? undefined,
+        });
+        if (error) throw error;
+        return;
+      }
       const { error } = await supabase.rpc("dp_escala_definir_setor_dia", {
         p_colaborador_id: input.colaborador_id,
         p_data: input.data,
         p_acao: input.acao,
-        p_setor_id: input.acao === "DEFINIR_SETOR" ? input.setor_id ?? null : null,
-        p_motivo: input.motivo?.trim() || null,
+        p_setor_id: setor ?? undefined,
+        p_motivo: motivo ?? undefined,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+      qc.invalidateQueries({ queryKey: ["dp_pessoas_avulsas"] });
       qc.invalidateQueries({ queryKey: ["dp_escala_mes"] });
       qc.invalidateQueries({ queryKey: ["dp_folga_limites"] });
     },
   });
+
 
   /** Funcionamento por unidade, no formato de períodos por dia da semana. */
   const funcionamentoPorUnidade = useMemo(() => {

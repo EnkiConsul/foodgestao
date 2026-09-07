@@ -141,6 +141,8 @@ export interface PessoaAvulsaPanorama {
   saida: string | null;
   termina_no_dia_seguinte: boolean;
   observacao: string | null;
+  /** Setor em que a pessoa atua no dia (guardado no próprio registro). */
+  setor_id?: string | null;
   /** Telefone de contato (folguista/teste). */
   telefone?: string | null;
   /** Cadastro reaproveitável de apoio que originou o registro. */
@@ -538,6 +540,11 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       unidade_id: a.unidade_id,
       cargo_id: a.cargo_id,
       cargo_nome: a.cargo_nome,
+      setor_id: a.setor_id ?? null,
+      setor_nome: a.setor_id ? nomeSetor.get(a.setor_id) ?? null : null,
+      setor_origem: a.setor_id ? "escala" : "nenhum",
+      setor_habitual_id: null,
+      setor_habitual_nome: null,
       socio: false,
       origem: "avulso",
       avulso_id: a.id,
@@ -841,13 +848,32 @@ function janelaPessoa(p: PessoaPanorama): { abre: number; fecha: number } | null
   return { abre: entrada, fecha: saida };
 }
 
-/** Minutos em comum entre a jornada e a janela do período. */
+/**
+ * Minutos em comum entre a jornada e a janela do período. Compara também a
+ * jornada deslocada em um dia para os dois lados, para que quem trabalha na
+ * virada da meia-noite continue caindo no período noturno da loja.
+ */
+const DIA_MIN = 24 * 60;
+
+function sobreposicaoJanelas(
+  j: { abre: number; fecha: number },
+  janela: { abre: number; fecha: number },
+): number {
+  return [-DIA_MIN, 0, DIA_MIN].reduce((maior, deslocamento) => {
+    const min = Math.max(
+      0,
+      Math.min(j.fecha + deslocamento, janela.fecha) - Math.max(j.abre + deslocamento, janela.abre),
+    );
+    return Math.max(maior, min);
+  }, 0);
+}
 
 function sobreposicao(p: PessoaPanorama, janela: { abre: number; fecha: number }): number {
   const j = janelaPessoa(p);
   if (!j) return 0;
-  return Math.max(0, Math.min(j.fecha, janela.fecha) - Math.max(j.abre, janela.abre));
+  return sobreposicaoJanelas(j, janela);
 }
+
 
 /**
  * Cada pessoa entra em UM único período do dia: aquele em que ela passa mais
@@ -938,7 +964,27 @@ export function blocosPorFuncionamento(input: {
     });
 
 
-    const restantes = daUnidade.filter((p) => !alocadas.has(p.colaborador_id));
+    const naoAlocadas = daUnidade.filter((p) => !alocadas.has(p.colaborador_id));
+
+    // Quem não tem horário preenchido não está "fora do horário da loja": está
+    // sem horário definido. Separar evita o aviso errado na Rotina do Dia.
+    const semHorario = periodos.length ? naoAlocadas.filter((p) => !janelaPessoa(p)) : [];
+    if (semHorario.length) {
+      out.push({
+        key: `${uid}-sem-horario`,
+        titulo: "Sem Horário Definido",
+        horario: null,
+        unidade_id: uid,
+        unidade_nome: nomeUnidade.get(uid) ?? null,
+        fechado: false,
+        pessoas: semHorario,
+        grupos: agruparPorCargo(semHorario),
+      });
+    }
+
+    const restantes = periodos.length
+      ? naoAlocadas.filter((p) => !!janelaPessoa(p))
+      : naoAlocadas;
     if (restantes.length || (!periodos.length && daUnidade.length)) {
       const fechado = !periodos.length;
       out.push({

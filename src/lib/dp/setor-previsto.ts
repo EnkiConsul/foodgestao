@@ -113,7 +113,17 @@ export function traduzirErroSetor(error: { message?: string } | null | undefined
     return "Este setor está inativo e não pode ser usado em novos ajustes.";
   if (msg.includes("SETOR_LIMITE_DUPLICADO"))
     return "Este setor já participa de outro limite específico para este dia.";
-  return msg || "Não foi possível concluir a alteração de setor.";
+  if (msg.includes("FORBIDDEN"))
+    return "Só um responsável da empresa pode fazer esta alteração.";
+  if (msg.includes("UNAUTHENTICATED"))
+    return "Sua sessão expirou. Entre novamente para continuar.";
+  if (msg.includes("UNIDADE_INVALIDA"))
+    return "Esta unidade não pertence à empresa selecionada.";
+  if (msg.includes("NOT_FOUND"))
+    return "Registro não encontrado. Atualize a tela e tente de novo.";
+  if (msg.includes("INVALID_INPUT"))
+    return "Faltam informações para concluir. Revise os campos e tente de novo.";
+  return msg || "Não foi possível concluir a alteração.";
 }
 
 /** Aviso de excesso de folga depois de uma alteração de setor. */

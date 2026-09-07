@@ -38,7 +38,8 @@ import {
   detalharCargaSemanal, diaDivergeDoBase, horarioEfetivoDia, horarioPadraoDaSemana,
   diasPadrao, DOW_LABEL, DOW_CURTO, folgaFixaDerivada,
   normalizarDias, preencherDiasComHorario, resumoConfigTexto, resumoSemanaPorFaixas,
-  turnoDoDia, validarConfigTrabalho,
+  turnoDoDia, validarConfigTrabalho, horarioParaDiaReativado,
+  ORIGEM_HORARIO_REATIVADO_LABEL,
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
 
@@ -454,20 +455,64 @@ export function ColaboradorJornadaPanel({
   /** Qualquer alteração do usuário habilita o salvamento pelo rodapé do cadastro. */
   const marcarAlterado = () => setAlterado(true);
 
+  /** Horário que cada dia tinha antes de virar folga, para reaproveitar na volta. */
+  const memoriaHorarioRef = useRef<Map<number, HorarioSimples>>(new Map());
+  /** Horário do último dia que virou folga (troca direta de dia de folga). */
+  const ultimoDesligadoRef = useRef<HorarioSimples | null>(null);
+  /** De onde veio o horário aplicado em cada dia reativado (mostrado na tela). */
+  const [origemHorarioDia, setOrigemHorarioDia] = useState<Record<number, keyof typeof ORIGEM_HORARIO_REATIVADO_LABEL>>({});
+
+  /**
+   * Liga/desliga o dia. Ao desligar, guarda o horário que o dia tinha; ao ligar,
+   * reaproveita o horário certo em vez de aplicar o horário predominante da
+   * semana (que trocava o horário real da pessoa na troca de folga).
+   */
   const alternarDia = (dow: number) => {
     marcarAlterado();
-    setDias((prev) => prev.map((d) => (d.dow === dow
-      ? (d.trabalha
-        ? { ...d, trabalha: false, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
-        : {
+    setDias((prev) => {
+      const dia = prev.find((d) => d.dow === dow);
+      if (!dia) return prev;
+
+      if (dia.trabalha) {
+        if (dia.entrada && dia.saida) {
+          const guardado = {
+            entrada: String(dia.entrada).slice(0, 5),
+            saida: String(dia.saida).slice(0, 5),
+            intervalo_minutos: dia.intervalo_minutos ?? 0,
+          };
+          memoriaHorarioRef.current.set(dow, guardado);
+          ultimoDesligadoRef.current = guardado;
+        }
+        setOrigemHorarioDia((o) => {
+          const out = { ...o };
+          delete out[dow];
+          return out;
+        });
+        return prev.map((d) => (d.dow === dow
+          ? { ...d, trabalha: false, turno_id: null, entrada: null, saida: null, intervalo_minutos: null }
+          : d));
+      }
+
+      const escolhido = horarioParaDiaReativado({
+        dias: prev,
+        dow,
+        trocaDireta: ultimoDesligadoRef.current,
+        memoria: memoriaHorarioRef.current.get(dow) ?? null,
+        fallback: horario,
+      });
+      ultimoDesligadoRef.current = null;
+      setOrigemHorarioDia((o) => ({ ...o, [dow]: escolhido.origem }));
+      return prev.map((d) => (d.dow === dow
+        ? {
           ...d,
           trabalha: true,
           turno_id: null,
-          entrada: horario.entrada,
-          saida: horario.saida,
-          intervalo_minutos: horario.intervalo_minutos ?? 0,
-        })
-      : d)));
+          entrada: escolhido.horario.entrada,
+          saida: escolhido.horario.saida,
+          intervalo_minutos: escolhido.horario.intervalo_minutos ?? 0,
+        }
+        : d));
+    });
   };
 
   /**
@@ -980,6 +1025,11 @@ export function ColaboradorJornadaPanel({
                         onChange={(e) => definirHorarioDia(dia.dow, { intervalo_minutos: Number(e.target.value || 0) })}
                       />
                     </div>
+                    {origemHorarioDia[dia.dow] && (
+                      <p className="sm:col-span-3 text-[11px] text-muted-foreground">
+                        {ORIGEM_HORARIO_REATIVADO_LABEL[origemHorarioDia[dia.dow]]} — confira antes de salvar.
+                      </p>
+                    )}
                     {usaSetores && (
                       <div className="space-y-1 sm:col-span-3">
                         <Label className="text-[11px]" htmlFor={`h-set-${dia.dow}`}>Setor neste dia</Label>

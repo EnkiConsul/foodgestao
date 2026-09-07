@@ -547,3 +547,61 @@ export function preencherDiasComHorario(dias: DiaConfig[], base: HorarioDia): Di
   });
   return mudou ? out : dias;
 }
+
+// ------------------------------------------------------------------
+// Horário aplicado ao reativar um dia que estava como folga
+//
+// Ao trocar o dia de folga, o dia que volta a ser trabalhado NÃO deve receber
+// o "horário que mais se repete na semana": isso trocava o horário real da
+// pessoa. A ordem é: horário do dia que acabou de virar folga (troca direta) →
+// horário que aquele dia já tinha antes → horário dos dias vizinhos quando
+// coincidem → só então o horário predominante.
+// ------------------------------------------------------------------
+
+export type OrigemHorarioReativado = "troca" | "memoria" | "vizinhos" | "padrao";
+
+const horarioValido = (h: HorarioDia | null | undefined): h is HorarioDia =>
+  !!h && !!h.entrada && !!h.saida;
+
+const horarioDoDia = (dias: DiaConfig[], dow: number): HorarioDia | null => {
+  const d = dias.find((x) => x.dow === dow);
+  if (!d || !d.trabalha || !temHorarioProprio(d)) return null;
+  return {
+    entrada: String(d.entrada).slice(0, 5),
+    saida: String(d.saida).slice(0, 5),
+    intervalo_minutos: d.intervalo_minutos ?? 0,
+  };
+};
+
+export function horarioParaDiaReativado(input: {
+  dias: DiaConfig[];
+  dow: number;
+  /** Horário do dia que acabou de virar folga nesta mesma troca. */
+  trocaDireta?: HorarioDia | null;
+  /** Horário que este dia já teve antes de virar folga. */
+  memoria?: HorarioDia | null;
+  /** Horário predominante da semana (último recurso). */
+  fallback: HorarioDia;
+}): { horario: HorarioDia; origem: OrigemHorarioReativado } {
+  if (horarioValido(input.trocaDireta)) return { horario: input.trocaDireta, origem: "troca" };
+  if (horarioValido(input.memoria)) return { horario: input.memoria, origem: "memoria" };
+
+  const anterior = horarioDoDia(input.dias, (input.dow + 6) % 7);
+  const seguinte = horarioDoDia(input.dias, (input.dow + 1) % 7);
+  if (
+    horarioValido(anterior) &&
+    horarioValido(seguinte) &&
+    chaveHorario(anterior) === chaveHorario(seguinte)
+  ) {
+    return { horario: anterior, origem: "vizinhos" };
+  }
+
+  return { horario: input.fallback, origem: "padrao" };
+}
+
+export const ORIGEM_HORARIO_REATIVADO_LABEL: Record<OrigemHorarioReativado, string> = {
+  troca: "Horário aproveitado do dia que virou folga",
+  memoria: "Horário que este dia já tinha",
+  vizinhos: "Horário igual ao dos dias vizinhos",
+  padrao: "Horário mais usado na semana",
+};

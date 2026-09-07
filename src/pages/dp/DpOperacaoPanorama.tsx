@@ -38,7 +38,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { SETOR_NAO_DEFINIDO_LABEL, origemSetorSufixo } from "@/lib/dp/setor-previsto";
+import { SETOR_NAO_DEFINIDO_LABEL, origemSetorSufixo, traduzirErroSetor } from "@/lib/dp/setor-previsto";
 import { AlterarSetorDiaDialog, type AlterarSetorAlvo } from "@/components/dp/setores/AlterarSetorDiaDialog";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import {
@@ -64,7 +64,7 @@ import { Label } from "@/components/ui/label";
 
 function rotuloCategoriaPessoa(p: PessoaPanorama): string {
   if (p.origem === "avulso" || p.origem === "registro_manual") {
-    if (p.avulso_tipo === "folguista") return p.cobre_nome ? `Folguista (cobrindo ${p.cobre_nome})` : "Folguista";
+    if (p.avulso_tipo === "folguista") return p.cobre_nome ? `Folguista · cobre ${p.cobre_nome}` : "Folguista";
     if (p.avulso_tipo === "teste") return "Em teste";
     if (p.origem === "registro_manual") return "Registro manual";
   }
@@ -777,15 +777,17 @@ export default function DpOperacaoPanorama() {
     panorama.dispensarAlerta.mutate(
       { data: d.data, previsto: d.trabalhando, padrao: d.avaliacao.padrao ?? 0 },
       {
-        onSuccess: () => toast.success("Alerta marcado como resolvido."),
-        onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível dispensar o alerta."),
+        onSuccess: () => toast.success("Dia marcado como resolvido.", { id: "rotina-dia-ok" }),
+        onError: (e: unknown) =>
+          toast.error(traduzirErroSetor(e as { message?: string }), { id: "rotina-dia-ok" }),
       },
     );
 
   const reativar = (d: DiaPanorama) =>
     panorama.reativarAlerta.mutate(d.data, {
-      onSuccess: () => toast.success("Alerta reativado."),
-      onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível reativar o alerta."),
+      onSuccess: () => toast.success("Aviso do dia reaberto.", { id: "rotina-dia-reabrir" }),
+      onError: (e: unknown) =>
+        toast.error(traduzirErroSetor(e as { message?: string }), { id: "rotina-dia-reabrir" }),
     });
 
   const abrirNovaAvulsa = (iso: string) => {
@@ -803,17 +805,21 @@ export default function DpOperacaoPanorama() {
   const salvarAvulsa = (input: PessoaAvulsaInput) =>
     panorama.salvarAvulsa.mutate(input, {
       onSuccess: () => {
-        toast.success(input.id ? "Pessoa avulsa atualizada." : "Pessoa avulsa registrada no dia.");
+        toast.success(input.id ? "Registro do dia atualizado." : "Pessoa registrada no dia.", {
+          id: "rotina-avulsa-salvar",
+        });
         setAvulsaOpen(false);
         setAvulsaEditando(null);
       },
-      onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível salvar."),
+      onError: (e: unknown) =>
+        toast.error(traduzirErroSetor(e as { message?: string }), { id: "rotina-avulsa-salvar" }),
     });
 
   const excluirAvulsa = (registro: PessoaAvulsaPanorama) =>
     panorama.excluirAvulsa.mutate(registro.id, {
-      onSuccess: () => toast.success("Pessoa avulsa removida do dia."),
-      onError: (e: unknown) => toast.error((e as Error).message ?? "Não foi possível remover."),
+      onSuccess: () => toast.success("Pessoa removida do dia.", { id: "rotina-avulsa-remover" }),
+      onError: (e: unknown) =>
+        toast.error(traduzirErroSetor(e as { message?: string }), { id: "rotina-avulsa-remover" }),
     });
 
   const navigate = useNavigate();
@@ -830,6 +836,7 @@ export default function DpOperacaoPanorama() {
         setor_nome: p.setor_nome ?? null,
         origem: p.setor_origem ?? "nenhum",
         setor_habitual_nome: p.setor_habitual_nome ?? null,
+        avulsa_id: p.avulso_id ?? null,
       }),
   };
 

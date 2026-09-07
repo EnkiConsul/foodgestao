@@ -23,6 +23,8 @@ export interface AlterarSetorAlvo {
   origem: OrigemSetor;
   /** Setor habitual do cadastro. */
   setor_habitual_nome: string | null;
+  /** Folguista / pessoa em teste / registro do dia: id do registro avulso. */
+  avulsa_id?: string | null;
 }
 
 interface Props {
@@ -37,10 +39,12 @@ interface Props {
     acao: "USAR_PADRAO" | "DEFINIR_SETOR";
     setor_id: string | null;
     motivo: string | null;
+    avulsa_id?: string | null;
   }) => Promise<void>;
   /** Abre o cadastro do colaborador para trocar a área padrão. */
   onEditarSetorHabitual?: (colaboradorId: string) => void;
 }
+
 
 const dataLonga = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", {
@@ -73,6 +77,7 @@ export function AlterarSetorDiaDialog({
         acao: escolha === USAR_PADRAO ? "USAR_PADRAO" : "DEFINIR_SETOR",
         setor_id: escolha === USAR_PADRAO ? null : escolha,
         motivo: motivo.trim() || null,
+        avulsa_id: alvo.avulsa_id ?? null,
       });
       toast.success(
         escolha === USAR_PADRAO
@@ -114,7 +119,9 @@ export function AlterarSetorDiaDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={USAR_PADRAO}>Usar setor padrão da pessoa</SelectItem>
+                <SelectItem value={USAR_PADRAO}>
+                  {alvo.avulsa_id ? "Sem setor definido" : "Usar setor padrão da pessoa"}
+                </SelectItem>
                 {setores.map((st) => (
                   <SelectItem key={st.id} value={st.id}>{st.nome}</SelectItem>
                 ))}
@@ -133,7 +140,7 @@ export function AlterarSetorDiaDialog({
             />
           </div>
 
-          {onEditarSetorHabitual && (
+          {onEditarSetorHabitual && !alvo.avulsa_id && (
             <Button
               type="button"
               variant="link"
@@ -148,7 +155,7 @@ export function AlterarSetorDiaDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={confirmar} disabled={salvando}>
-            {escolha === USAR_PADRAO ? "Usar setor padrão" : "Alterar setor"}
+            {escolha === USAR_PADRAO ? (alvo.avulsa_id ? "Deixar sem setor" : "Usar setor padrão") : "Alterar setor"}
           </Button>
         </DialogFooter>
       </DialogContent>
