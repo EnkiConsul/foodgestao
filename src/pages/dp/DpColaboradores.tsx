@@ -198,21 +198,6 @@ export default function DpColaboradores() {
       });
   }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter, incompletosFilter]);
 
-  /** Setor só aparece quando a empresa já usa setores. */
-  const setoresEmUso = useMemo(() => {
-    const map = new Map<string, string>();
-    (list.data ?? []).forEach((c) => {
-      const id = (c as any).setor_id as string | null;
-      if (id && c.setor_nome) map.set(id, c.setor_nome);
-    });
-    return Array.from(map, ([id, nome]) => ({ id, nome }))
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  }, [list.data]);
-  const mostrarSetor = setoresEmUso.length > 0;
-
-  /** Campos essenciais ainda em branco no cadastro (setor só conta se a empresa usa setores). */
-  const faltantesDe = (c: DpColaborador) =>
-    camposFaltando(c as never, { exigirSetor: mostrarSetor });
 
 
   // ---------- Colunas em formato de planilha (ordem, largura, ordenação e filtros) ----------
