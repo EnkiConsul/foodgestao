@@ -58,8 +58,15 @@ const PERIODOS: { value: OcorrenciaPeriodo; label: string }[] = [
 
 export default function DpOcorrencias() {
   const embedded = useDpEmbedded();
-  const [filtros, setFiltros] = useState<OcorrenciaFiltros>(FILTROS_PADRAO);
+  const [searchParams] = useSearchParams();
+  const colaboradorParam = searchParams.get("colaborador");
+  const [filtros, setFiltros] = useState<OcorrenciaFiltros>(
+    colaboradorParam
+      ? { ...FILTROS_PADRAO, colaboradorId: colaboradorParam, periodo: "mes", somentePendentes: false }
+      : FILTROS_PADRAO,
+  );
   const [novaOpen, setNovaOpen] = useState(false);
+
   const [confirmar, setConfirmar] = useState<Ocorrencia | null>(null);
   const [tratativa, setTratativa] = useState<Ocorrencia | null>(null);
   const [cancelarId, setCancelarId] = useState<string | null>(null);
