@@ -153,6 +153,15 @@ export interface AplicarFichaInput {
   atualizarExistente: boolean;
   /** Grava também a configuração de jornada sugerida. */
   jornada?: JornadaSugerida | null;
+  /** Turno reconhecido para os dias trabalhados (null grava só os horários). */
+  turnoId?: string | null;
+  /**
+   * Ao atualizar quem já existe: colunas escolhidas na comparação lado a lado.
+   * Quando não informado, todas as colunas preenchidas da ficha são gravadas.
+   */
+  camposPermitidos?: string[] | null;
+  /** Anexa o PDF original da ficha nos documentos do colaborador. */
+  anexarFicha?: boolean;
 }
 
 /** Cria (ou atualiza) o cadastro do colaborador a partir da ficha revisada. */
@@ -160,61 +169,47 @@ export function useAplicarFicha() {
   const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
   return useMutation({
-    mutationFn: async ({ item, dados, cargoId, unidadeId, atualizarExistente, jornada }: AplicarFichaInput) => {
+    mutationFn: async ({
+      item,
+      dados,
+      cargoId,
+      unidadeId,
+      atualizarExistente,
+      jornada,
+      turnoId,
+      camposPermitidos,
+      anexarFicha,
+    }: AplicarFichaInput) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       const nome = txt(dados.nome);
       const cpf = digits(dados.cpf);
       if (!nome) throw new Error("Informe o nome do colaborador.");
       if (cpf.length !== 11) throw new Error("Informe um CPF com 11 dígitos.");
 
-      const endereco = montarEndereco((dados.endereco ?? {}) as Record<string, unknown>);
       const payload = {
+        ...montarPayloadFicha(dados as Record<string, unknown>),
         company_id: selectedCompanyId,
         nome,
         cpf,
-        matricula: txt(dados.matricula),
-        data_nascimento: dataIso(dados.data_nascimento),
-        data_admissao: dataIso(dados.data_admissao),
-        sexo: sexoNorm(dados.sexo),
-        telefone: txt(dados.telefone),
-        email_contato: txt(dados.email),
-        endereco: endereco as unknown as Database["public"]["Tables"]["dp_colaboradores"]["Insert"]["endereco"],
         cargo_id: cargoId,
-        cargo: txt(dados.cargo_nome),
         unidade_id: unidadeId,
-        salario_base: num(dados.salario),
-        rg_numero: txt(dados.rg_numero),
-        rg_orgao: txt(dados.rg_orgao),
-        rg_uf: txt(dados.rg_uf),
-        rg_emissao: dataIso(dados.rg_emissao),
-        ctps_numero: txt(dados.ctps_numero),
-        ctps_serie: txt(dados.ctps_serie),
-        ctps_uf: txt(dados.ctps_uf),
-        ctps_expedicao: dataIso(dados.ctps_expedicao),
-        titulo_eleitor: txt(dados.titulo_eleitor),
-        titulo_zona: txt(dados.titulo_zona),
-        titulo_secao: txt(dados.titulo_secao),
-        reservista: txt(dados.reservista),
-        reservista_categoria: txt(dados.reservista_categoria),
-        nome_pai: txt(dados.nome_pai),
-        nome_mae: txt(dados.nome_mae),
-        nacionalidade: txt(dados.nacionalidade),
-        naturalidade: txt(dados.naturalidade),
-        raca_cor: txt(dados.raca_cor),
-        grau_instrucao: txt(dados.grau_instrucao),
-        deficiencia: txt(dados.deficiencia),
         origem_cadastro: "ficha_importacao",
         ficha_importacao_item_id: item.id,
       };
 
       let colaboradorId: string;
       if (atualizarExistente && item.colaborador_existente_id) {
-        // Atualiza só o que veio preenchido, para não apagar dados já cadastrados.
+        // Atualiza só o que veio preenchido (e o que foi escolhido na comparação),
+        // para nunca apagar dados já cadastrados.
+        const sempre = new Set(["ficha_importacao_item_id", "cargo_id", "unidade_id"]);
         const limpo = Object.fromEntries(
-          Object.entries(payload).filter(([k, v]) => k === "ficha_importacao_item_id" || k === "origem_cadastro" || (v !== null && v !== undefined)),
+          Object.entries(payload).filter(([k, v]) => {
+            if (k === "company_id" || k === "origem_cadastro") return false;
+            if (sempre.has(k)) return v !== null && v !== undefined ? true : k === "ficha_importacao_item_id";
+            if (v === null || v === undefined) return false;
+            return !camposPermitidos || camposPermitidos.includes(k);
+          }),
         );
-        delete (limpo as Record<string, unknown>).company_id;
-        delete (limpo as Record<string, unknown>).origem_cadastro;
         const { error } = await supabase
           .from("dp_colaboradores")
           // deno-lint-ignore no-explicit-any
@@ -224,6 +219,7 @@ export function useAplicarFicha() {
         if (error) throw error;
         colaboradorId = item.colaborador_existente_id;
       } else {
+
         const { data, error } = await supabase
           .from("dp_colaboradores")
           // deno-lint-ignore no-explicit-any
