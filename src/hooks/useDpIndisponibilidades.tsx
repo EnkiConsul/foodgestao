@@ -49,7 +49,7 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_indisponibilidades")
-        .select("id, data, motivo")
+        .select("id, data, motivo, alteracao_tardia")
         .eq("colaborador_id", colaboradorId!)
         .is("cancelada_em", null)
         .gte("data", inicio)
@@ -104,6 +104,7 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     qc.invalidateQueries({ queryKey: ["dp_indisponibilidades_meu"] });
     qc.invalidateQueries({ queryKey: ["dp_convocacoes_meu_cal"] });
     qc.invalidateQueries({ queryKey: ["dp_minhas_convocacoes"] });
+    qc.invalidateQueries({ queryKey: ["dp_minha_disponibilidade_janela"] });
   };
 
   const marcar = useMutation({
@@ -139,8 +140,17 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const tardiaPorDia = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of (indisponibilidades.data ?? []) as any[]) if (i.alteracao_tardia) set.add(i.data);
+    return set;
+  }, [indisponibilidades.data]);
+
   return {
     estadoPorDia,
+    tardiaPorDia,
+    janela: janela.data ?? null,
+    janelaCarregando: janela.isLoading,
     indisponibilidades: indisponibilidades.data ?? [],
     isLoading: indisponibilidades.isLoading || convocacoes.isLoading,
     marcar,
