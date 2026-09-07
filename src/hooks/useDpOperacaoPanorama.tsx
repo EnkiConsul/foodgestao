@@ -316,7 +316,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       let q = supabase
         .from("dp_pessoas_avulsas")
         .select(
-          "id, nome, tipo, colaborador_id, unidade_id, cargo_id, cobre_colaborador_id, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao, telefone, pessoa_apoio_id, setor_id",
+          "id, nome, tipo, colaborador_id, unidade_id, cargo_id, cobre_colaborador_id, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao, telefone, pessoa_apoio_id, setor_id, pessoa_apoio:dp_pessoas_apoio(setor_id)",
         )
 
 
