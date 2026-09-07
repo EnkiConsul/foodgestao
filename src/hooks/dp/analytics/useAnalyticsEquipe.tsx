@@ -50,7 +50,7 @@ export function useAnalyticsEquipe({ colaboradores, periodo, nomes }: Opts) {
       serie: serieMensal(colaboradores, periodo),
       permanencia: permanencia(colaboradores, periodo),
       motivos: distribuir(
-        desligamentos,
+        desligamentos as Colab[],
         (c) => c.motivo_desligamento ?? null,
         (k) =>
           k
