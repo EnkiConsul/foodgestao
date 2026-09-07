@@ -451,16 +451,31 @@ export default function DpColaboradores() {
           <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
           <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
           <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
+          {counts.incompletos > 0 && (
+            <TabsTrigger value="incompletos">Incompletos ({counts.incompletos})</TabsTrigger>
+          )}
         </DpTabsBar>
       </Tabs>
 
       <DpFilters
         search={{ value: search, onChange: setSearch, placeholder: "Nome ou CPF..." }}
         activeCount={
-          (unidadeFilter !== "all" ? 1 : 0) + (cargoFilter !== "all" ? 1 : 0) + (perfilFilter !== "all" ? 1 : 0) + (setorFilter !== "all" ? 1 : 0)
+          (incompletosFilter ? 1 : 0) + (unidadeFilter !== "all" ? 1 : 0) + (cargoFilter !== "all" ? 1 : 0) + (perfilFilter !== "all" ? 1 : 0) + (setorFilter !== "all" ? 1 : 0)
         }
-        onClear={() => { setUnidadeFilter("all"); setCargoFilter("all"); setPerfilFilter("all"); setSetorFilter("all"); }}
+        onClear={() => { setIncompletosFilter(false); setUnidadeFilter("all"); setCargoFilter("all"); setPerfilFilter("all"); setSetorFilter("all"); }}
       >
+        <DpFilterField label="Cadastro">
+          <Select
+            value={incompletosFilter ? "incompletos" : "all"}
+            onValueChange={(v) => setIncompletosFilter(v === "incompletos")}
+          >
+            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="incompletos">Só cadastros incompletos</SelectItem>
+            </SelectContent>
+          </Select>
+        </DpFilterField>
         <DpFilterField label="Unidade">
           <Select value={unidadeFilter} onValueChange={setUnidadeFilter}>
             <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
