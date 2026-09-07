@@ -41,6 +41,7 @@ interface Props {
   onAnalisar: () => void;
   onCancelar: () => void;
   onCobrir?: () => void;
+  onHistorico?: () => void;
   onImpacto: (campo: "assiduidade" | "ferias", valor: OcorrenciaImpacto) => void;
 }
 
