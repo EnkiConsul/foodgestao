@@ -42,6 +42,11 @@ export interface ColaboradorCompletude {
   regime?: string | null;
   pis_nit?: string | null;
   salario_base?: number | string | null;
+  forma_pagamento?: string | null;
+  valor_hora?: number | string | null;
+  valor_diaria?: number | string | null;
+  base_salarial?: number | string | null;
+  socio_remuneracao?: string | null;
   [key: string]: unknown;
 }
 
@@ -62,6 +67,35 @@ function enderecoVazio(v: unknown): boolean {
 export interface OpcoesCompletude {
   /** Empresas que não usam setores não devem ver a cobrança de setor. */
   exigirSetor?: boolean;
+  /**
+   * Salário resolvido do cargo na unidade do colaborador (ajuste da unidade →
+   * piso do patronal), já calculado pelo chamador via `salarioCargoNaUnidade`.
+   * Quando existe, o salário conta como preenchido mesmo sem valor na ficha.
+   */
+  salarioCargo?: number | null;
+}
+
+const numeroPositivo = (v: unknown): boolean => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0;
+};
+
+/**
+ * Salário coberto? Cada forma de pagamento guarda o valor em um campo
+ * (mensalista → salario_base, horista → valor_hora, diarista → valor_diaria),
+ * sócio "somente lucros" não tem remuneração por desenho, e o salário pode
+ * vir do cadastro do cargo (piso/ajuste) sem valor próprio na ficha.
+ */
+export function salarioPreenchido(
+  c: ColaboradorCompletude,
+  opts: OpcoesCompletude = {},
+): boolean {
+  if (c.socio_remuneracao === "somente_lucros") return true;
+  if (numeroPositivo(c.salario_base)) return true;
+  if (numeroPositivo(c.valor_hora)) return true;
+  if (numeroPositivo(c.valor_diaria)) return true;
+  if (numeroPositivo(c.base_salarial)) return true;
+  return numeroPositivo(opts.salarioCargo);
 }
 
 /** Campos essenciais ainda em branco, na ordem de `CAMPOS_ESSENCIAIS`. */
@@ -80,7 +114,7 @@ export function camposFaltando(
       case "endereco":
         return enderecoVazio(c.endereco);
       case "salario_base":
-        return vazio(c.salario_base) || Number(c.salario_base) <= 0;
+        return !salarioPreenchido(c, opts);
       default:
         return vazio(c[campo.chave]);
     }
