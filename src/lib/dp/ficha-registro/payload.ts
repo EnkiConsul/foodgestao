@@ -73,7 +73,15 @@ export const CAMPOS_FICHA: Array<{ coluna: string; label: string }> = [
   { coluna: "deficiencia", label: "Deficiência" },
 ];
 
+/** Endereço da ficha; null quando nada foi lido nem preenchido (não apaga o cadastro). */
+function enderecoOuNulo(v: unknown): Record<string, unknown> | null {
+  const e = montarEndereco((v ?? {}) as Record<string, unknown>);
+  const algum = Object.values(e).some((x) => !!x && String(x).trim() !== "");
+  return algum ? (e as unknown as Record<string, unknown>) : null;
+}
+
 /** Monta o conjunto de colunas do cadastro a partir dos dados revisados da ficha. */
+
 export function montarPayloadFicha(dados: Record<string, unknown>): Record<string, unknown> {
   return {
     nome: txt(dados.nome),
