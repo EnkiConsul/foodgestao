@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 import { montarJornadaSugerida, type JornadaSugerida } from "@/lib/dp/ficha-registro/jornada-parse";
-import { montarEndereco } from "@/lib/dp/ficha-registro/endereco-parse";
+import { dataIso, digits, montarPayloadFicha, txt } from "@/lib/dp/ficha-registro/payload";
+import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 
 export type FichaImportacao = Database["public"]["Tables"]["dp_ficha_importacoes"]["Row"];
 export type FichaItem = Database["public"]["Tables"]["dp_ficha_importacao_itens"]["Row"];
@@ -29,36 +30,6 @@ export interface FichaDadosEditaveis {
 }
 
 const hoje = () => new Date().toISOString().slice(0, 10);
-const digits = (v: unknown) => String(v ?? "").replace(/\D+/g, "");
-
-function txt(v: unknown): string | null {
-  const s = String(v ?? "").trim();
-  return s ? s : null;
-}
-
-function num(v: unknown): number | null {
-  if (v === null || v === undefined || v === "") return null;
-  if (typeof v === "number") return Number.isFinite(v) ? v : null;
-  const s = String(v).replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}\b)/g, "").replace(",", ".");
-  const n = Number(s);
-  return Number.isFinite(n) ? n : null;
-}
-
-function dataIso(v: unknown): string | null {
-  const s = String(v ?? "").trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
-  return null;
-}
-
-function sexoNorm(v: unknown): string | null {
-  const s = String(v ?? "").trim().toLowerCase();
-  if (s.startsWith("m")) return "M";
-  if (s.startsWith("f")) return "F";
-  return null;
-}
-
 
 /** Jornada sugerida pela ficha, pronta para a tela de revisão. */
 export function jornadaDaFicha(dados: Record<string, unknown> | null): JornadaSugerida {
@@ -69,6 +40,7 @@ export function jornadaDaFicha(dados: Record<string, unknown> | null): JornadaSu
     jornada_dias: (d.jornada_dias as any[]) ?? [],
   });
 }
+
 
 /** Lista de importações de ficha da empresa selecionada, com polling durante o processamento. */
 export function useDpFichaImportacoes() {
