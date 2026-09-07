@@ -14218,28 +14218,17 @@ export type Database = {
         }
         Returns: boolean
       }
-      dp_folga_limite_dia:
-        | {
-            Args: {
-              p_cargo: string
-              p_company: string
-              p_data: string
-              p_ignorar_colaborador?: string
-              p_unidade: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_cargo: string
-              p_company: string
-              p_data: string
-              p_ignorar_colaborador?: string
-              p_setor?: string
-              p_unidade: string
-            }
-            Returns: Json
-          }
+      dp_folga_limite_dia: {
+        Args: {
+          p_cargo: string
+          p_company: string
+          p_data: string
+          p_ignorar_colaborador?: string
+          p_setor?: string
+          p_unidade: string
+        }
+        Returns: Json
+      }
       dp_folga_marcadas_no_mes: {
         Args: {
           _colab: string
