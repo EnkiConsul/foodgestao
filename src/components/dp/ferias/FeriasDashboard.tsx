@@ -47,7 +47,7 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
 
     const lista = comSaldo
       .map((p) => ({ periodo: p, restantes: dias(p), nivel: nivelDe(p) }))
-      .filter((x) => x.nivel !== "normal" && x.nivel !== "planejamento" ? true : x.restantes <= 90)
+      .filter((x) => x.nivel !== "normal")
       .sort((a, b) => a.restantes - b.restantes)
       .slice(0, 8);
 
