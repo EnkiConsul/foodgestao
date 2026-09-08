@@ -536,7 +536,7 @@ export default function Categorias() {
           </div>
 
           {/* Ações secundárias: visíveis no desktop */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-2">
             {contextType === "pj" && selectedCompanyId && (
               <div className="flex items-center gap-1">
                 <Button
@@ -579,7 +579,7 @@ export default function Categorias() {
           {/* Ações secundárias: menu no mobile */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Mais ações" className="h-9 w-9 md:hidden">
+              <Button variant="outline" size="icon" aria-label="Mais ações" className="h-9 w-9 lg:hidden">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -615,7 +615,7 @@ export default function Categorias() {
 
           <div className="flex w-full min-w-0 items-center gap-1">
             <Tabs value={filterStatus} onValueChange={(v) => setFilterStatus(v as "all" | "active" | "blocked")} className="min-w-0 max-w-full flex-1">
-              <TabsList className="h-8 w-full max-w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:w-auto">
+              <TabsList className="h-8 w-full max-w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:w-auto">
                 <TabsTrigger value="all" className="text-xs px-2.5 h-7">Status: todas</TabsTrigger>
                 <TabsTrigger value="active" className="text-xs px-2.5 h-7">Permitem lançamentos</TabsTrigger>
                 <TabsTrigger value="blocked" className="text-xs px-2.5 h-7">Bloqueadas ({counts.blocked})</TabsTrigger>
@@ -626,7 +626,7 @@ export default function Categorias() {
 
 
           <Tabs value={filterType} onValueChange={setFilterType} className="w-full min-w-0 max-w-full">
-            <TabsList className="h-8 w-full max-w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:w-auto">
+            <TabsList className="h-8 w-full max-w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:w-auto">
               <TabsTrigger value="all" className="text-xs px-2.5 h-7">Todas ({counts.total})</TabsTrigger>
               <TabsTrigger value="saida" className="text-xs px-2.5 h-7">Despesas ({counts.despesas})</TabsTrigger>
               <TabsTrigger value="entrada" className="text-xs px-2.5 h-7">Receitas ({counts.receitas})</TabsTrigger>

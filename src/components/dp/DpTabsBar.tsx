@@ -41,11 +41,11 @@ export function DpTabsBar({
       )}
       <div
         className={cn(
-          "dp-tabsbar -mx-3 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:overflow-visible md:px-0 md:pb-0",
+          "dp-tabsbar -mx-3 max-w-full overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0 md:pb-0 lg:overflow-visible",
           usarSeletor && "hidden md:block",
         )}
       >
-        <TabsList className={cn("w-max md:w-auto", className)}>{children}</TabsList>
+        <TabsList className={cn("w-max lg:w-auto", className)}>{children}</TabsList>
       </div>
     </>
   );
