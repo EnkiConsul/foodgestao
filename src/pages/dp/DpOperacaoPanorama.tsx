@@ -1265,6 +1265,11 @@ export default function DpOperacaoPanorama() {
                         {d.contagens.fixo}F · {d.contagens.convocado_aceito}I ·{" "}
                         {d.contagens.folga_padrao + d.contagens.folga_extra}FG
                       </p>
+                      {d.feriado_nome && (
+                        <p className="truncate text-[10px] font-medium leading-tight text-primary" title={d.feriado_nome}>
+                          Feriado · {d.feriado_nome}
+                        </p>
+                      )}
                       {d.avaliacao.padrao != null && (
                         <p className="text-[10px] text-muted-foreground">padrão {d.avaliacao.padrao}</p>
                       )}
