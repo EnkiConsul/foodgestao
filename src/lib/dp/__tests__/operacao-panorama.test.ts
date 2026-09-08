@@ -165,11 +165,10 @@ describe("feriado no padrão da rotina", () => {
 
   it("exclui o feriado do padrão do dia da semana", () => {
     expect(baselinePorDow(historico, opts).get(1)).toBe(6);
-    // Sem informar feriados, o dia contamina a mediana (comportamento antigo).
-    expect(baselinePorDow(historico, { limite: "2026-10-05" }).get(1)).toBe(6);
-    expect(baselinePorDow([...historico, { data: "2026-08-31", trabalhando: 2 }], {
-      limite: "2026-10-05",
-    }).get(1)).toBe(4);
+    // Sem informar feriados, o dia de feriado contamina a mediana.
+    const curto = [historico[0], historico[1]];
+    expect(baselinePorDow(curto, { limite: "2026-10-05" }).get(1)).toBe(4);
+    expect(baselinePorDow(curto, opts).get(1)).toBe(6);
   });
 
   it("não gera padrão de feriado sem histórico suficiente", () => {
