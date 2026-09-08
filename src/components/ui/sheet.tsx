@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/titleCase";
 
 const Sheet = SheetPrimitive.Root;
 
