@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { useDpHorarioPrevisto } from "@/hooks/useDpHorarioPrevisto";
 import { FONTE_LABEL, textoPrevisto } from "@/lib/dp/horario-previsto";
 
@@ -92,19 +93,13 @@ export default function DpMeuEscala() {
   const publicada = (escala.data ?? []).length > 0;
 
   return (
-    <div className="space-y-4 p-4">
+    <DpPage narrow>
       <Helmet>
         <title>Minha Escala | Aveto 360</title>
         <meta name="description" content="Veja seus dias de trabalho, horários e folgas da escala publicada pela sua unidade." />
       </Helmet>
 
-      <header className="flex items-center gap-2">
-        <CalendarClock className="h-5 w-5 text-primary" />
-        <div>
-          <h1 className="text-lg font-semibold">Minha Escala</h1>
-          <p className="text-xs text-muted-foreground">Horários publicados pela sua unidade.</p>
-        </div>
-      </header>
+      <DpPageHeader icon={CalendarClock} title="Minha Escala" description="Horários publicados pela sua unidade." />
 
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" aria-label="Mês anterior" onClick={() => setCompetencia(somarMes(competencia, -1))}>
@@ -194,6 +189,6 @@ export default function DpMeuEscala() {
           </Card>
         </>
       )}
-    </div>
+    </DpPage>
   );
 }

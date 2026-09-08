@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import { PropostaParcialDialog } from "@/components/dp/convocacoes/PropostaParcialDialog";
 import { useMinhasConvocacoes, type MinhaOferta } from "@/hooks/useDpConvocacoes";
@@ -250,18 +251,10 @@ export default function DpMinhasConvocacoes() {
   };
 
   return (
-    <div className="p-4 space-y-4 pb-24">
+    <DpPage narrow>
       <Helmet><title>Minhas Convocações — Aveto 360</title></Helmet>
 
-      <header className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-2xl bg-primary/10 text-primary grid place-items-center">
-          <BellRing className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold leading-tight">Minhas Convocações</h1>
-          <p className="text-sm text-muted-foreground">Aceite ou recuse os dias oferecidos.</p>
-        </div>
-      </header>
+      <DpPageHeader icon={BellRing} title="Minhas Convocações" description="Aceite ou recuse os dias oferecidos." />
 
       {isLoading || me.isLoading ? (
         <div className="space-y-3">
@@ -317,7 +310,7 @@ export default function DpMinhasConvocacoes() {
           }
         />
       ) : null}
-    </div>
+    </DpPage>
   );
 }
 

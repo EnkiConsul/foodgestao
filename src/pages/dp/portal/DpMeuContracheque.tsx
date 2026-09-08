@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useMeusContracheques } from "@/hooks/useDpFolha";
 import { FOLHA_TIPO_LABEL, LANCAMENTO_STATUS_LABEL, formatarBRL } from "@/lib/dp/folha";
@@ -49,18 +50,10 @@ export default function DpMeuContracheque() {
   };
 
   return (
-    <div className="space-y-4 p-4 pb-24">
+    <DpPage narrow>
       <Helmet><title>Meus Contracheques — Aveto 360</title></Helmet>
 
-      <header className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/10 text-primary">
-          <Receipt className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-lg font-bold leading-tight">Meus Contracheques</h1>
-          <p className="text-xs text-muted-foreground">Demonstrativos liberados pelo Departamento Pessoal.</p>
-        </div>
-      </header>
+      <DpPageHeader icon={Receipt} title="Meus Contracheques" description="Demonstrativos liberados pelo Departamento Pessoal." />
 
       {isLoading || me.isLoading ? (
         <Skeleton className="h-40 w-full" />
@@ -111,6 +104,6 @@ export default function DpMeuContracheque() {
           ))}
         </Accordion>
       )}
-    </div>
+    </DpPage>
   );
 }
