@@ -118,6 +118,7 @@ export default function DpColaboradores() {
     setDialogOpen(true);
   };
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
+  const [condicoesDe, setCondicoesDe] = useState<DpColaborador | null>(null);
 
   type Origem = "todos" | "colaboradores" | "folguistas" | "teste";
   const ORIGENS: { key: Origem; label: string }[] = [
