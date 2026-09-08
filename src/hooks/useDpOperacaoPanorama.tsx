@@ -690,44 +690,45 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
   });
 
 
+  /**
+   * Grava pela rotina do banco: além de inserir/atualizar o registro, ela
+   * garante na mesma transação que a pessoa coberta tenha falta/atestado
+   * operacional em cada dia do período (reutilizando o que já existir), para
+   * que ela não continue contando como trabalhando.
+   */
   const salvarAvulsa = useMutation({
     mutationFn: async (input: PessoaAvulsaInput) => {
-      const { data: userData } = await supabase.auth.getUser();
       const manual = input.tipo === "registro_manual";
-      const payload = {
-        company_id: selectedCompanyId!,
-        unidade_id: input.unidade_id,
-        cargo_id: input.cargo_id,
-        nome: manual ? null : input.nome?.trim() ?? null,
-        colaborador_id: manual ? input.colaborador_id ?? null : null,
-        tipo: input.tipo,
-        cobre_colaborador_id: input.tipo === "folguista" ? input.cobre_colaborador_id ?? null : null,
-
-        data_inicio: input.data_inicio,
-        data_fim: input.data_fim,
-        entrada: input.entrada || null,
-        saida: input.saida || null,
-        termina_no_dia_seguinte: !!input.termina_no_dia_seguinte,
-        observacao: input.observacao?.trim() || null,
-        telefone: manual ? null : input.telefone?.trim() || null,
-        pessoa_apoio_id: manual ? null : input.pessoa_apoio_id ?? null,
-        setor_id: input.setor_id ?? null,
-
-      };
-      if (input.id) {
-        const { error } = await supabase
-          .from("dp_pessoas_avulsas")
-          .update(payload)
-          .eq("id", input.id);
-        if (error) throw error;
-        return;
-      }
-      const { error } = await supabase
-        .from("dp_pessoas_avulsas")
-        .insert({ ...payload, criado_por: userData.user?.id ?? null });
+      const cobre = input.tipo === "folguista" ? input.cobre_colaborador_id ?? null : null;
+      const { error } = await supabase.rpc("dp_pessoa_avulsa_salvar", {
+        p_company: selectedCompanyId!,
+        p_id: input.id ?? null,
+        p_unidade: input.unidade_id,
+        p_cargo: input.cargo_id,
+        p_tipo: input.tipo,
+        p_nome: manual ? null : input.nome?.trim() ?? null,
+        p_colaborador: manual ? input.colaborador_id ?? null : null,
+        p_cobre: cobre,
+        p_cobre_motivo: cobre ? input.cobre_motivo ?? null : null,
+        p_data_inicio: input.data_inicio,
+        p_data_fim: input.data_fim,
+        p_entrada: input.entrada || null,
+        p_saida: input.saida || null,
+        p_termina: !!input.termina_no_dia_seguinte,
+        p_observacao: input.observacao?.trim() || null,
+        p_telefone: manual ? null : input.telefone?.trim() || null,
+        p_apoio: manual ? null : input.pessoa_apoio_id ?? null,
+        p_setor: input.setor_id ?? null,
+      });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_pessoas_avulsas"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_pessoas_avulsas"] });
+      // A cobertura pode ter criado ocorrências (falta/atestado) da pessoa
+      // coberta: a base do panorama precisa recarregar para refletir a contagem.
+      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+      qc.invalidateQueries({ queryKey: ["dp_ocorrencias"] });
+    },
   });
 
   const excluirAvulsa = useMutation({
