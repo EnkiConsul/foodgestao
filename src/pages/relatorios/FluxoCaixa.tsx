@@ -331,7 +331,7 @@ export default function RelatorioFluxoCaixa() {
           </p>
 
         </div>
-        <div className="flex items-center gap-2 print:hidden">
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
           <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1">
             <Download className="h-3.5 w-3.5" /> CSV
           </Button>
