@@ -122,15 +122,14 @@ export const FERIAS_ERRO_TEXTO: Record<string, string> = {
  * início do último período aquisitivo completo em relação a hoje.
  */
 export function corteFeriasPadrao(admissaoISO: string, hojeISO: string): string {
-  const [ay, am, ad] = admissaoISO.split("-").map(Number);
-  const hoje = new Date(`${hojeISO}T00:00:00`);
-  let ano = hoje.getFullYear() - (new Date(`${hoje.getFullYear()}-${String(am).padStart(2, "0")}-${String(ad).padStart(2, "0")}T00:00:00`) > hoje ? 1 : 0);
-  ano -= 1;
-  const corte = `${ano}-${String(am).padStart(2, "0")}-${String(ad).padStart(2, "0")}`;
+  const [, mes, dia] = admissaoISO.split("-");
+  const aniversario = `${mes}-${dia}`;
+  const anoHoje = Number(hojeISO.slice(0, 4));
+  const jaPassou = hojeISO.slice(5) >= aniversario;
+  const ano = anoHoje - (jaPassou ? 1 : 2);
+  const corte = `${ano}-${aniversario}`;
   return corte < admissaoISO ? admissaoISO : corte;
 }
-
-void 0 as unknown as typeof ay;
 
 
 
