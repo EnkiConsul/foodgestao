@@ -334,9 +334,7 @@ export default function DpColaboradores() {
       todos: baseColabs.length + baseApoios.length,
       ativos: baseColabs.filter((c) => c.ativo).length + baseApoios.filter((p) => p.ativo).length,
       desligados: baseColabs.filter((c) => !c.ativo).length + baseApoios.filter((p) => !p.ativo).length,
-      incompletos: origem === "colaboradores"
-        ? colabs.filter((c) => c.ativo && faltantesDe(c).length > 0).length
-        : colabs.filter((c) => c.ativo && faltantesDe(c).length > 0).length,
+      incompletos: colabs.filter((c) => c.ativo && faltantesDe(c).length > 0).length,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [list.data, pessoasApoio.data, origem, mostrarSetor]);
