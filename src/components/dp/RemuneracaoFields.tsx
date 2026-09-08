@@ -376,7 +376,13 @@ export function RemuneracaoFields({
 
 
   const labelValor =
-    forma === "horista" ? "Valor da hora *" : forma === "diarista" ? "Valor do dia *" : "Salário base *";
+    forma === "horista"
+      ? "Valor da hora *"
+      : forma === "diarista"
+        ? "Valor do dia *"
+        : policy.entraEmFolha
+          ? "Salário base *"
+          : "Remuneração acordada *";
   const bloqueiaValor = usaBase && !value.valor_hora_manual && calculado != null;
   // Um cargo = um salário de referência: o mensalista abre travado no valor do
   // cargo, mas pode informar remuneração contratual própria (ex.: tempo parcial

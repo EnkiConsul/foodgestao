@@ -277,17 +277,25 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
       <AlertDialog open={confirmarReintegrar} onOpenChange={setConfirmarReintegrar}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reintegrar colaborador?</AlertDialogTitle>
+            <AlertDialogTitle>Desfazer o desligamento?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{colaborador.nome}</strong> voltará a ficar ativo, com acesso completo ao portal.
+              <strong>{colaborador.nome}</strong> volta a ficar ativo no mesmo vínculo, com a admissão
+              original e acesso completo ao portal. Use isso quando o desligamento foi registrado por
+              engano. Para um retorno de verdade, use "Recontratar (novo vínculo)".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleReintegrar()}>Reintegrar</AlertDialogAction>
+            <AlertDialogAction onClick={() => void handleReintegrar()}>Desfazer desligamento</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ColaboradorRecontratacaoDialog
+        colaborador={colaborador}
+        open={recontratar}
+        onOpenChange={setRecontratar}
+      />
     </div>
   );
 }
