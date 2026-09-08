@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DpContentCard, DpEmptyState } from "@/components/dp/DpPage";
+import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpDisponibilidadePainel, type DisponibilidadeDiaResumo } from "@/hooks/useDpDisponibilidadePainel";
 import { competenciaLabel, diaMes, type DisponibilidadeJanela } from "@/lib/dp/disponibilidade-janela";
