@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Palmtree, Plus, Pencil, ClipboardList, AlertTriangle, History } from "lucide-react";
+import { Palmtree, Plus, Pencil, ClipboardList, AlertTriangle, History, Scale } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard, DpFilterCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,13 @@ import { FeriasFaltasDialog } from "@/components/dp/ferias/FeriasFaltasDialog";
 import { FeriasSaldoInicialDialog } from "@/components/dp/ferias/FeriasSaldoInicialDialog";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { FeriasRestricoesAviso } from "@/components/dp/ferias/FeriasRestricoesAviso";
-import { NIVEL_VENCIMENTO_META, nivelVencimentoPeriodo } from "@/lib/dp/ferias-direito";
+import {
+  NIVEL_VENCIMENTO_META,
+  RISCO_DOBRA_META,
+  nivelVencimentoPeriodo,
+  riscoAcumuloPorColaborador,
+} from "@/lib/dp/ferias-direito";
+
 
 const PERIODO_LABEL: Record<FeriasPeriodoStatus, string> = {
   em_aquisicao: "Em aquisição",
@@ -69,10 +75,24 @@ export default function DpFerias() {
   } = useDpFerias(colabFilter);
   const { config: feriasConfig } = useDpFeriasConfig();
 
-  const periodosFiltrados = useMemo(
-    () => (statusFilter === "todos" ? periodos : periodos.filter((p) => p.status === statusFilter)),
-    [periodos, statusFilter],
+  const hojeISOFiltro = format(new Date(), "yyyy-MM-dd");
+  const riscoPorColab = useMemo(
+    () => riscoAcumuloPorColaborador(periodos as any[], hojeISOFiltro),
+    [periodos, hojeISOFiltro],
   );
+  const soRisco = params.get("risco") === "1";
+
+  const periodosFiltrados = useMemo(() => {
+    let base = statusFilter === "todos" ? periodos : periodos.filter((p) => p.status === statusFilter);
+    if (soRisco) {
+      base = base
+        .filter((p) => riscoPorColab.get(p.colaborador_id)?.emRisco)
+        .slice()
+        .sort((a, b) => a.limite_concessivo.localeCompare(b.limite_concessivo));
+    }
+    return base;
+  }, [periodos, statusFilter, soRisco, riscoPorColab]);
+
 
   const gozosByPeriodo = useMemo(() => {
     const map = new Map<string, FeriasGozo[]>();
@@ -190,6 +210,27 @@ export default function DpFerias() {
         </Button>
       )}
 
+      {soRisco && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
+          <Scale className="size-4 text-destructive" aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            Mostrando apenas quem tem <strong>dois períodos de férias em aberto</strong> — risco de
+            pagamento em dobro.
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              const next = new URLSearchParams(params);
+              next.delete("risco");
+              setParams(next, { replace: true });
+            }}
+          >
+            Ver todos
+          </Button>
+        </div>
+      )}
+
       <DpContentCard>
         {periodosError ? (
           <div className="p-4">
@@ -199,8 +240,9 @@ export default function DpFerias() {
           <div className="p-8 text-center text-muted-foreground">Carregando…</div>
         ) : periodosFiltrados.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
-            Nenhum período aquisitivo por aqui. Eles são criados e atualizados automaticamente
-            conforme as admissões.
+            {soRisco
+              ? "Ninguém com dois períodos de férias em aberto. Nenhum risco de pagamento em dobro."
+              : "Nenhum período aquisitivo por aqui. Eles são criados e atualizados automaticamente conforme as admissões."}
           </div>
         ) : (
           <div className="divide-y divide-border">
@@ -209,6 +251,10 @@ export default function DpFerias() {
               const faltas = p.faltas_injustificadas;
               const encerrado = parseISO(p.fim_aquisitivo) <= hoje;
               const externo = !!p.controle_externo;
+              const risco = riscoPorColab.get(p.colaborador_id);
+              const emRisco = !externo && risco?.emRisco === true &&
+                risco.periodosAbertos.some((a) => a.id === p.id);
+              const concederPrimeiro = emRisco && risco?.periodoMaisAntigo?.id === p.id;
               return (
                 <div key={p.id} className={`space-y-3 p-4${externo ? " bg-muted/30" : ""}`}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -217,6 +263,15 @@ export default function DpFerias() {
                       <p className="text-sm text-muted-foreground">
                         Aquisitivo {fmt(p.inicio_aquisitivo)} — {fmt(p.fim_aquisitivo)} · limite {fmt(p.limite_concessivo)}
                       </p>
+                      {emRisco && (
+                        <p className="text-xs font-medium text-destructive">
+                          {risco?.periodosAbertos.length} períodos em aberto — risco de pagar férias
+                          em dobro.{" "}
+                          {concederPrimeiro
+                            ? "Este é o que vence primeiro: conceda este antes."
+                            : "Conceda primeiro o período mais antigo."}
+                        </p>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {externo ? (
@@ -226,7 +281,12 @@ export default function DpFerias() {
                       ) : (
                         <Badge className={PERIODO_TONE[p.status]}>{PERIODO_LABEL[p.status]}</Badge>
                       )}
+                      {emRisco && (
+                        <Badge className={RISCO_DOBRA_META.tone}>{RISCO_DOBRA_META.label}</Badge>
+                      )}
+                      {concederPrimeiro && <Badge variant="outline">Conceder primeiro</Badge>}
                       {alertaLimite(p)}
+
                       <Badge variant="outline">Direito {p.dias_direito}d</Badge>
                       <Badge variant="outline">Saldo {p.dias_saldo}d</Badge>
                       {p.dias_vendidos > 0 && <Badge variant="outline">Abono {p.dias_vendidos}d</Badge>}

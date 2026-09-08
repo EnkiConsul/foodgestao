@@ -202,3 +202,90 @@ export function textoErroFerias(mensagem?: string | null): string {
   }
   return mensagem;
 }
+
+/* ------------------------------------------------------------------ *
+ * Risco de pagamento em dobro (acúmulo de períodos)
+ *
+ * A lei manda conceder as férias dentro dos 12 meses seguintes ao fim do
+ * ano de trabalho. Quem acumula mais de um período em aberto está a um
+ * passo de estourar esse prazo — e aí a empresa paga em dobro.
+ * ------------------------------------------------------------------ */
+
+export type PeriodoRisco = {
+  id: string;
+  inicio_aquisitivo: string;
+  fim_aquisitivo: string;
+  limite_concessivo: string;
+  dias_saldo: number | null | undefined;
+  status: string;
+  controle_externo?: boolean | null;
+};
+
+export type RiscoAcumulo = {
+  /** Duas ou mais férias em aberto: risco concreto de pagar em dobro. */
+  emRisco: boolean;
+  /** Períodos com saldo a conceder, do mais antigo para o mais novo. */
+  periodosAbertos: PeriodoRisco[];
+  /** Período que vence primeiro (o que deve ser concedido antes). */
+  periodoMaisAntigo: PeriodoRisco | null;
+  /** Dias até o prazo do período mais antigo (negativo = já vencido). */
+  diasParaLimite: number | null;
+};
+
+/** Um período conta como "em aberto" quando ainda há dias a conceder. */
+export function periodoEmAberto(p: PeriodoRisco): boolean {
+  if (p.controle_externo) return false;
+  if ((p.dias_saldo ?? 0) <= 0) return false;
+  return p.status !== "em_aquisicao" && p.status !== "concluido";
+}
+
+/** Situação de acúmulo de férias de uma pessoa. */
+export function riscoAcumulo(args: { periodos: PeriodoRisco[]; hojeISO: string }): RiscoAcumulo {
+  const abertos = args.periodos
+    .filter(periodoEmAberto)
+    .slice()
+    .sort((a, b) => a.limite_concessivo.localeCompare(b.limite_concessivo));
+  const maisAntigo = abertos[0] ?? null;
+  return {
+    emRisco: abertos.length >= 2,
+    periodosAbertos: abertos,
+    periodoMaisAntigo: maisAntigo,
+    diasParaLimite: maisAntigo ? diffDias(maisAntigo.limite_concessivo, args.hojeISO) : null,
+  };
+}
+
+/** Risco de acúmulo por colaborador, a partir de uma lista única de períodos. */
+export function riscoAcumuloPorColaborador<T extends PeriodoRisco & { colaborador_id: string }>(
+  periodos: T[],
+  hojeISO: string,
+): Map<string, RiscoAcumulo> {
+  const porColab = new Map<string, T[]>();
+  for (const p of periodos) {
+    const lista = porColab.get(p.colaborador_id) ?? [];
+    lista.push(p);
+    porColab.set(p.colaborador_id, lista);
+  }
+  const out = new Map<string, RiscoAcumulo>();
+  for (const [id, lista] of porColab) out.set(id, riscoAcumulo({ periodos: lista, hojeISO }));
+  return out;
+}
+
+/** Frase curta para o gestor entender o risco sem ler a lei. */
+export function textoRiscoAcumulo(risco: RiscoAcumulo): string | null {
+  if (!risco.emRisco) return null;
+  const n = risco.periodosAbertos.length;
+  return `${n} períodos de férias em aberto — risco de pagar em dobro. Conceda o mais antigo primeiro.`;
+}
+
+/** Selo de risco de dobra, no mesmo padrão visual dos demais. */
+export const RISCO_DOBRA_META = {
+  label: "Risco de dobra",
+  tone: "bg-destructive/15 text-destructive",
+} as const;
+
+/** Explicação em linguagem simples, usada na aba de regras. */
+export const FERIAS_EXPLICACAO_DOBRA = [
+  "Cada ano trabalhado gera um período de férias. A empresa tem os 12 meses seguintes para conceder essas férias.",
+  "Se esse prazo passar, a lei manda pagar as férias em dobro. Por isso o sistema nunca deve deixar duas férias em aberto ao mesmo tempo.",
+  "Como o sistema avisa, em ordem: Planejar (ainda dá tempo) → A conceder (o ano fechou e ninguém tirou) → Atenção (faltam 30 dias ou menos) → Vencido (o prazo passou) → Risco de dobra (a pessoa tem dois períodos em aberto).",
+] as const;

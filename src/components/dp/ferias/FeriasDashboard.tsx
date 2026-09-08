@@ -2,13 +2,20 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertTriangle, CalendarClock, CheckCircle2, Palmtree, Inbox } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, Palmtree, Inbox, Scale } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DpContentCard } from "@/components/dp/DpPage";
-import { NIVEL_VENCIMENTO_META, nivelVencimentoPeriodo, textoPrazo } from "@/lib/dp/ferias-direito";
+import {
+  NIVEL_VENCIMENTO_META,
+  RISCO_DOBRA_META,
+  nivelVencimentoPeriodo,
+  riscoAcumuloPorColaborador,
+  textoPrazo,
+} from "@/lib/dp/ferias-direito";
 import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
 import type { FeriasGozo, FeriasPeriodo } from "@/hooks/useDpFerias";
+
 
 const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
@@ -26,7 +33,7 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
   const { config: feriasConfig } = useDpFeriasConfig();
   const politica = feriasConfig.sinalizacaoCicloEncerrado;
 
-  const { kpis, atencoes } = useMemo(() => {
+  const { kpis, atencoes, riscoPorColab } = useMemo(() => {
     const comSaldo = periodos.filter(
       (p) =>
         !p.controle_externo &&
@@ -45,10 +52,14 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
         politica,
       });
 
+    const riscos = riscoAcumuloPorColaborador(periodos as any[], hojeISO);
+    const emRisco = (id: string) => riscos.get(id)?.emRisco === true;
+
     const lista = comSaldo
-      .map((p) => ({ periodo: p, restantes: dias(p), nivel: nivelDe(p) }))
-      .filter((x) => x.nivel !== "normal")
-      .sort((a, b) => a.restantes - b.restantes)
+      .map((p) => ({ periodo: p, restantes: dias(p), nivel: nivelDe(p), risco: emRisco(p.colaborador_id) }))
+      .filter((x) => x.risco || x.nivel !== "normal")
+      // risco de dobra sempre no topo, depois o prazo mais curto
+      .sort((a, b) => Number(b.risco) - Number(a.risco) || a.restantes - b.restantes)
       .slice(0, 8);
 
     return {
@@ -61,8 +72,10 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
         aguardando: gozos.filter((g) => g.status === "planejado").length,
         programadas: gozos.filter((g) => g.status === "aprovado").length,
         emFerias: gozos.filter((g) => g.status === "em_gozo").length,
+        risco: [...riscos.values()].filter((r) => r.emRisco).length,
       },
       atencoes: lista,
+      riscoPorColab: riscos,
     };
   }, [periodos, gozos, hojeISO, politica]);
 
@@ -86,15 +99,36 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
         ))}
       </div>
 
+      {kpis.risco > 0 && (
+        <Link
+          to="/dp/ferias?aba=planejamento&risco=1"
+          className="flex flex-wrap items-center gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 transition-colors hover:bg-destructive/15"
+        >
+          <Scale className="size-5 shrink-0 text-destructive" aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-destructive">
+              {kpis.risco} pessoa(s) com risco de pagamento em dobro
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Têm dois períodos de férias em aberto. Pela lei, as férias precisam sair nos 12 meses
+              seguintes ao fim do ano trabalhado — passando disso, o pagamento é em dobro. Conceda
+              sempre o período mais antigo primeiro.
+            </p>
+          </div>
+          <span className="text-xs font-medium text-destructive underline">Ver quem está em risco</span>
+        </Link>
+      )}
+
       {atencoes.length > 0 && (
         <DpContentCard>
           <div className="border-b border-border px-4 py-3">
             <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Atenções</p>
           </div>
           <div className="divide-y divide-border">
-            {atencoes.map(({ periodo, restantes, nivel }) => {
+            {atencoes.map(({ periodo, restantes, nivel, risco }) => {
               const meta = NIVEL_VENCIMENTO_META[nivel];
               const detalhe = descricaoColaborador?.(periodo.colaborador_id);
+              const abertos = riscoPorColab.get(periodo.colaborador_id)?.periodosAbertos.length ?? 0;
               return (
                 <div key={periodo.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
                   <div className="min-w-0">
@@ -103,9 +137,15 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
                     <p className="text-sm text-muted-foreground">
                       {periodo.dias_saldo ?? 0} dias disponíveis · prazo até {fmt(periodo.limite_concessivo)}
                     </p>
+                    {risco && (
+                      <p className="text-xs font-medium text-destructive">
+                        {abertos} períodos em aberto — risco de pagar férias em dobro.
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge className={meta.tone}>{meta.label}</Badge>
+                    {risco && <Badge className={RISCO_DOBRA_META.tone}>{RISCO_DOBRA_META.label}</Badge>}
+                    {nivel !== "normal" && <Badge className={meta.tone}>{meta.label}</Badge>}
                     <span className="text-xs text-muted-foreground">{textoPrazo(restantes)}</span>
                     <Button asChild size="sm" variant="outline">
                       <Link to={`/dp/ferias?aba=planejamento&periodo=${periodo.id}`}>Programar</Link>
@@ -117,6 +157,7 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
           </div>
         </DpContentCard>
       )}
+
     </div>
   );
 }
