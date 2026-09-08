@@ -360,25 +360,36 @@ export function useDpPendencias() {
 
         const unidadeMap = new Map(unidades.map((u) => [u.id, u.nome]));
 
+        // Última negociação por par unidade×sindicato — 1 query só (evita N+1).
+        const ultimaPorPar = new Map<string, { ano: number; mes: number }>();
+        {
+          const { data: todasNegs } = await supabase
+            .from("dp_sindicato_negociacoes")
+            .select("ano, mes, unidade_id, sindicato_id, sindicato_laboral_id")
+            .eq("company_id", selectedCompanyId!)
+            .not("unidade_id", "is", null)
+            .not("ano", "is", null)
+            .not("mes", "is", null);
+          (todasNegs ?? []).forEach((n: any) => {
+            const sid = n.sindicato_laboral_id ?? n.sindicato_id;
+            if (!n.unidade_id || !sid) return;
+            const key = `${n.unidade_id}|${sid}`;
+            const atual = ultimaPorPar.get(key);
+            if (!atual || n.ano > atual.ano || (n.ano === atual.ano && n.mes > atual.mes)) {
+              ultimaPorPar.set(key, { ano: n.ano, mes: n.mes });
+            }
+          });
+        }
+
         for (const [unidadeId, sindSet] of parByUnidade.entries()) {
           const unidadeNome = unidadeMap.get(unidadeId);
           if (!unidadeNome) continue;
           for (const sindId of sindSet) {
             const nomeSind = sindicatoNome.get(sindId) ?? "Sindicato";
-            const { data: negs } = await supabase
-              .from("dp_sindicato_negociacoes")
-              .select("ano, mes")
-              .eq("company_id", selectedCompanyId!)
-              .eq("unidade_id", unidadeId)
-              .or(`sindicato_laboral_id.eq.${sindId},sindicato_id.eq.${sindId}`)
-              .not("ano", "is", null)
-              .not("mes", "is", null)
-              .order("ano", { ascending: false })
-              .order("mes", { ascending: false })
-              .limit(1);
+            const ultima = ultimaPorPar.get(`${unidadeId}|${sindId}`) ?? null;
 
             const id = `negociacao-${unidadeId}-${sindId}`;
-            if (!negs || negs.length === 0) {
+            if (!ultima) {
               results.push({
                 id,
                 icon: Scale,
