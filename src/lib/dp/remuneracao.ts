@@ -61,7 +61,7 @@ export function ajustarFormaPagamento(
   return formaPagamentoValida(regime, forma) as FormaPagamento;
 }
 
-/** O vínculo gera folha de pagamento CLT (freelancer/PJ ficam fora). */
+/** O vínculo é remunerado como CLT (freelancer/PJ ficam fora). */
 export function entraEmFolha(regime?: string | null): boolean {
   return contratoPolicy(regime).entraEmFolha;
 }
@@ -143,8 +143,8 @@ export function valeTransporteDoMes(
 }
 
 /**
- * Motivo do bloqueio da folha quando a remuneração não está cadastrada.
- * `null` = colaborador apto a gerar folha.
+ * Motivo do bloqueio quando a remuneração não está cadastrada.
+ * `null` = remuneração cadastrada.
  */
 export function remuneracaoPendente(r: RemuneracaoColaborador): string | null {
   const forma = r.forma_pagamento ?? "mensalista";
@@ -242,7 +242,7 @@ export interface OcorrenciasMes {
 
 /**
  * Prêmio de assiduidade devido no mês conforme o critério cadastrado.
- * Função pura — a folha (quando ativada) consome este resultado.
+ * Função pura — usada para conferência e exportação.
  */
 export function premioAssiduidadeDevido(
   cfg: AssiduidadeConfig,
