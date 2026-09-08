@@ -298,7 +298,7 @@ export default function DpEscalas() {
 
       <DpPageHeader
         icon={CalendarRange}
-        title="Gerador de escala"
+        title="Gerador de Escala"
         description="Proposta automática de folgas por jornada vigente, com validação de DSR, férias, bloqueios e limite diário."
         actions={
           <div className="flex flex-wrap gap-2">

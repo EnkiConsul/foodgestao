@@ -130,7 +130,7 @@ export default function DpModelosMensagem() {
       <Helmet><title>Modelos de mensagem — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={MessageSquare}
-        title="Modelos de mensagem"
+        title="Modelos de Mensagem"
         description="Templates de WhatsApp/e-mail com variáveis."
         actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo modelo</Button>}
       />
