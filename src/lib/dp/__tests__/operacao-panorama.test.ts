@@ -6,6 +6,8 @@ import {
   diasDaCompetencia,
   blocosPorFuncionamento,
   horarioMaisUsado,
+  agruparEquipe,
+  SEM_SETOR_LABEL,
   type ColaboradorPanorama,
   type PessoaPanorama,
   type PessoaAvulsaPanorama,
@@ -539,5 +541,79 @@ describe("contarDia com ocorrências", () => {
     });
     expect(r.contagens.ferias).toBe(1);
     expect(r.contagens.ausente).toBe(0);
+  });
+});
+
+describe("setor da pessoa avulsa e agrupamento da equipe", () => {
+  const vazio = { convocacoes: [], folgas: [], ausencias: [] };
+  const setores = [
+    { id: "s1", nome: "Salão" },
+    { id: "s2", nome: "Cozinha" },
+  ];
+  const avulsa = (over: Partial<PessoaAvulsaPanorama> = {}): PessoaAvulsaPanorama => ({
+    id: "av1",
+    nome: "Maria Teste",
+    tipo: "folguista",
+    unidade_id: "u1",
+    cargo_id: "c1",
+    cargo_nome: "Atendente",
+    cobre_nome: null,
+    data_inicio: SEGUNDA,
+    data_fim: SEGUNDA,
+    entrada: "08:00",
+    saida: "16:00",
+    termina_no_dia_seguinte: false,
+    observacao: null,
+    ...over,
+  });
+
+  it("usa o setor habitual do cadastro quando o registro do dia não tem setor", () => {
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [],
+      turnos,
+      setores,
+      ...vazio,
+      avulsos: [avulsa({ setor_habitual_id: "s2" })],
+    });
+    const p = r.pessoas.find((x) => x.origem === "avulso");
+    expect(p?.setor_id).toBe("s2");
+    expect(p?.setor_nome).toBe("Cozinha");
+    expect(p?.setor_origem).toBe("cadastro");
+  });
+
+  it("o setor do registro do dia vence o setor habitual", () => {
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [],
+      turnos,
+      setores,
+      ...vazio,
+      avulsos: [avulsa({ setor_habitual_id: "s2", setor_id: "s1" })],
+    });
+    const p = r.pessoas.find((x) => x.origem === "avulso");
+    expect(p?.setor_id).toBe("s1");
+    expect(p?.setor_origem).toBe("escala");
+    expect(p?.setor_habitual_nome).toBe("Cozinha");
+  });
+
+  it("sem setor em lugar nenhum, a pessoa fica sem setor definido", () => {
+    const r = contarDia({ data: SEGUNDA, colaboradores: [], turnos, setores, ...vazio, avulsos: [avulsa()] });
+    const p = r.pessoas.find((x) => x.origem === "avulso");
+    expect(p?.setor_id).toBeNull();
+    expect(p?.setor_origem).toBe("nenhum");
+  });
+
+  it("agrupa a equipe por setor, deixando quem está sem setor no fim", () => {
+    const pessoas: PessoaPanorama[] = [
+      { colaborador_id: "a", nome: "Ana", categoria: "fixo", setor_id: "s1", setor_nome: "Salão" },
+      { colaborador_id: "b", nome: "Bruno", categoria: "fixo", setor_id: null, setor_nome: null },
+      { colaborador_id: "c", nome: "Carla", categoria: "fixo", setor_id: "s2", setor_nome: "Cozinha" },
+    ] as PessoaPanorama[];
+    const porSetor = agruparEquipe(pessoas, "setor");
+    expect(porSetor.map((g) => g.cargo_nome).at(-1)).toBe(SEM_SETOR_LABEL);
+    expect(porSetor).toHaveLength(3);
+    const porCargo = agruparEquipe(pessoas, "cargo");
+    expect(porCargo).toHaveLength(1);
   });
 });

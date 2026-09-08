@@ -825,7 +825,7 @@ export interface BlocoFuncionamento {
 }
 
 const SEM_CARGO = "Sem cargo definido";
-const SEM_SETOR_LABEL = "Sem Setor Definido";
+export const SEM_SETOR_LABEL = "Sem Setor Definido";
 
 function agruparPorCargo(pessoas: PessoaPanorama[]): GrupoCargo[] {
   const mapa = new Map<string, GrupoCargo>();
