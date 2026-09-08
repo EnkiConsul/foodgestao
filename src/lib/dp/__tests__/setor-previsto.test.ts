@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolverSetorPrevisto, origemSetorSufixo, dimensaoSetorAtiva } from "@/lib/dp/setor-previsto";
+import { resolverSetorPrevisto, origemSetorSufixo, setorDiaDivergeDoHabitual, dimensaoSetorAtiva } from "@/lib/dp/setor-previsto";
 import { setorEfetivoDoDia, type ColaboradorPanorama } from "@/lib/dp/operacao-panorama";
 import { gerarEscalaMes, type EscalaItem } from "@/lib/dp/escala-mes";
 
@@ -66,6 +66,20 @@ describe("setor efetivo por data", () => {
     expect(origemSetorSufixo("escala")).toBe("alterado hoje");
     expect(origemSetorSufixo("cadastro")).toBeNull();
     expect(origemSetorSufixo("nenhum")).toBeNull();
+  });
+
+  it("'alterado hoje' só aparece quando o setor do dia diverge do habitual", () => {
+    // Divergência real: avisa.
+    expect(setorDiaDivergeDoHabitual("escala", "cozinha", "salao")).toBe(true);
+    expect(setorDiaDivergeDoHabitual("config_dia", "cozinha", "salao")).toBe(true);
+    // Setor do dia igual ao habitual (ex.: habitual definido hoje): sem aviso.
+    expect(setorDiaDivergeDoHabitual("escala", "salao", "salao")).toBe(false);
+    // Habitual antes vazio: não é alteração.
+    expect(setorDiaDivergeDoHabitual("escala", "salao", null)).toBe(false);
+    expect(setorDiaDivergeDoHabitual("escala", null, "salao")).toBe(false);
+    // Origens sem sufixo nunca avisam.
+    expect(setorDiaDivergeDoHabitual("cadastro", "cozinha", "salao")).toBe(false);
+    expect(setorDiaDivergeDoHabitual("nenhum", "cozinha", "salao")).toBe(false);
   });
 
   it("a dimensão setor só liga com pelo menos um setor ativo", () => {
