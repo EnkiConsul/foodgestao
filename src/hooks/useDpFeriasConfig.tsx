@@ -14,6 +14,8 @@ export type FeriasConfig = {
   fracaoMinDias: number;
   /** Tamanho mínimo que ao menos um dos períodos precisa ter. */
   fracaoMaiorDias: number;
+  /** A partir de quando o sistema controla as férias (antes disso é histórico). */
+  controleInicio: string | null;
 };
 
 export const FERIAS_CONFIG_DEFAULT: FeriasConfig = {
@@ -22,6 +24,7 @@ export const FERIAS_CONFIG_DEFAULT: FeriasConfig = {
   fracionamentoMax: 3,
   fracaoMinDias: 5,
   fracaoMaiorDias: 14,
+  controleInicio: null,
 };
 
 export const ADIANTAMENTO_13_LABEL: Record<FeriasAdiantamento13, string> = {
