@@ -419,10 +419,10 @@ export default function DpColaboradores() {
         const adiantamento = (c as any).optante_adiantamento as boolean | null;
         return (
           <>
-            <div className="font-semibold uppercase truncate" title={c.nome}>{c.nome}</div>
+            <div className="font-semibold truncate" title={c.nome}>{c.nome}</div>
             <div className="font-mono text-[11px] text-muted-foreground">{c.cpf ?? "—"}</div>
             <div className="mt-1 flex flex-wrap gap-1">
-              <Badge variant="outline" className="h-4 px-1 text-[10px] uppercase border-primary/30 text-primary bg-primary/5">
+              <Badge variant="outline" className="h-4 px-1 text-[10px] border-primary/30 text-primary bg-primary/5">
                 {vinculoLabel(c as any)}
               </Badge>
               {c.ativo && faltantesDe(c).length > 0 && (
@@ -741,7 +741,7 @@ export default function DpColaboradores() {
                         />
                       ))}
                       <TableHead
-                        className="uppercase text-xs tracking-wider text-center"
+                        className="text-xs text-center"
                         style={{ width: COLAB_ACOES_WIDTH }}
                       >
                         Ações
@@ -853,7 +853,7 @@ export default function DpColaboradores() {
                           Desligado {fmtDate(c.data_desligamento)}
                         </Badge>
                       )}
-                      <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5 text-[11px]">
+                      <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 text-[11px]">
                         {vinculoLabel(c as any)}
                       </Badge>
                       <Badge
@@ -904,12 +904,12 @@ export default function DpColaboradores() {
                 <Table className="table-fixed" style={{ width: "100%", minWidth: 720 }}>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="uppercase text-xs tracking-wider">Nome</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">CPF</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">Cargo</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">Unidade</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">Setor</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider text-center">Ações</TableHead>
+                      <TableHead className="text-xs">Nome</TableHead>
+                      <TableHead className="text-xs">CPF</TableHead>
+                      <TableHead className="text-xs">Cargo</TableHead>
+                      <TableHead className="text-xs">Unidade</TableHead>
+                      <TableHead className="text-xs">Setor</TableHead>
+                      <TableHead className="text-xs text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1021,11 +1021,11 @@ export default function DpColaboradores() {
                 <Table className="table-fixed" style={{ width: "100%", minWidth: 720 }}>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="uppercase text-xs tracking-wider">Nome</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">Origem</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">Cargo / Unidade</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">Status</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider text-center">Ações</TableHead>
+                      <TableHead className="text-xs">Nome</TableHead>
+                      <TableHead className="text-xs">Origem</TableHead>
+                      <TableHead className="text-xs">Cargo / Unidade</TableHead>
+                      <TableHead className="text-xs">Status</TableHead>
+                      <TableHead className="text-xs text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
