@@ -2,39 +2,45 @@
 
 ## O problema hoje
 
-Ao gerar os períodos de férias de uma pessoa, o sistema cria um período por ano **desde a data de admissão**. Para quem já trabalhava na empresa antes de o Pessoas 360 entrar em uso, isso inventa férias vencidas e alertas de prazo que não correspondem à realidade — as férias antigas já foram pagas ou controladas fora do sistema.
+Ao gerar os períodos de férias de uma pessoa, o sistema cria um período por ano **desde a data de admissão**. Para quem já trabalhava na empresa antes de o Pessoas 360 entrar em uso, isso inventa férias vencidas antigas e alertas de prazo que não correspondem à realidade — essas férias já foram pagas ou controladas fora do sistema.
+
+## Regra padrão
+
+Por segurança, o padrão passa a ser: **o sistema cobra apenas o último ciclo de férias de cada pessoa** (o período aquisitivo mais recente já completo, mais o período em curso). Nada anterior a isso gera pendência ou alerta de vencimento.
+
+Se a empresa quiser controlar mais do que isso, ela mesma define uma data de corte anterior — a responsabilidade por esses períodos antigos é da empresa.
 
 ## O que muda
 
-1. **Data de início do controle de férias**
-   - Nas configurações do Pessoas (Férias), a empresa informa a partir de qual dia o sistema passa a controlar férias.
-   - Na ficha de cada pessoa é possível informar uma data própria (para quem entrou depois ou tem situação diferente), que prevalece sobre a da empresa.
-   - Sem essa data informada, o padrão continua sendo a admissão (comportamento atual para empresas novas).
+1. **Data de corte do controle de férias**
+   - Nas configurações do Pessoas (Férias), a empresa pode informar a partir de qual dia o sistema controla férias. Em branco = regra padrão (último ciclo).
+   - Na ficha de cada pessoa é possível informar uma data própria, que prevalece sobre a da empresa.
 
-2. **Geração de períodos respeitando a data de controle**
-   - Só são criados períodos cujo ano aquisitivo termina a partir da data de controle.
-   - Períodos anteriores não são criados nem alertados; nada é apagado do que já existe.
+2. **Geração de períodos respeitando o corte**
+   - Sem data informada: cria o período em curso e o último período aquisitivo completo; os anteriores ficam fora da cobrança.
+   - Com data informada: cria a partir do período aquisitivo que termina nessa data ou depois.
+   - Nada existente é apagado.
 
-3. **Saldo inicial informado (opcional)**
-   - Para o período em curso na virada, o gestor pode registrar um **saldo inicial de dias** e uma observação (ex.: "20 dias de saldo trazidos do controle anterior").
-   - Esse saldo entra no cálculo de dias disponíveis, aparece identificado como "saldo trazido" e fica registrado no histórico com autor e data.
+3. **Períodos anteriores como "controle externo"**
+   - Períodos fora do corte ficam marcados como controlados fora do sistema: sem alerta de vencimento, sem prazo cobrado, visíveis apenas como histórico com o selo "Controle externo".
 
-4. **Períodos anteriores como "controle externo"**
-   - Períodos já existentes que ficarem antes da data de controle passam a ser marcados como controlados fora do sistema: sem alerta de vencimento, sem cobrança de prazo, visíveis apenas como histórico.
+4. **Saldo inicial informado (opcional)**
+   - Para o período em curso na virada, o gestor pode registrar um **saldo inicial de dias** e uma observação (ex.: "20 dias trazidos do controle anterior").
+   - Esse saldo entra nos dias disponíveis, aparece identificado como "saldo trazido" e fica no histórico com autor e data.
 
 5. **Telas afetadas**
-   - Hub de Férias: aviso claro quando a empresa ainda não definiu a data de controle, e selo "Controle externo" nos períodos antigos.
+   - Hub de Férias: explicação da regra de corte em uso e selo "Controle externo" nos períodos antigos.
    - Painéis de prazo/vencimento e indicadores deixam de contar os períodos de controle externo.
-   - Portal do colaborador mostra apenas o que o sistema controla, com o saldo trazido somado quando informado.
+   - Portal do colaborador mostra apenas o que o sistema controla, somando o saldo trazido quando informado.
 
 ## Detalhes técnicos
 
-- `dp_config_dp`: nova coluna `ferias_controle_inicio date`.
+- `dp_config_dp`: nova coluna `ferias_controle_inicio date` (nulo = regra padrão do último ciclo).
 - `dp_colaboradores`: nova coluna `ferias_controle_inicio date` (sobrepõe a da empresa).
 - `dp_ferias_periodos`: novas colunas `controle_externo boolean not null default false`, `saldo_inicial_dias integer`, `saldo_inicial_obs text`.
-- `dp_ferias_gerar_periodos`: passa a iniciar no período aquisitivo cujo `fim_aquisitivo >= COALESCE(colaborador.ferias_controle_inicio, config.ferias_controle_inicio, data_admissao)`; marca `controle_externo` nos períodos anteriores existentes.
-- `dp_ferias_recalc_periodo` / cálculo de saldo: somar `saldo_inicial_dias` aos dias de direito e ignorar períodos `controle_externo` nas contagens de vencimento.
-- Nova rotina `dp_ferias_definir_saldo_inicial(_periodo_id, _dias, _obs)` — `SECURITY DEFINER`, `pg_advisory_xact_lock`, validação de admin/owner da empresa, `REVOKE` de `anon/PUBLIC` e `GRANT EXECUTE` para `authenticated, service_role`, com registro no histórico.
+- `dp_ferias_gerar_periodos`: calcula o corte efetivo — `colaborador.ferias_controle_inicio` → `config.ferias_controle_inicio` → padrão (início do penúltimo período aquisitivo em relação a hoje) — e só cria períodos com `fim_aquisitivo >= corte`; marca `controle_externo = true` nos períodos existentes anteriores ao corte.
+- `dp_ferias_recalc_periodo` e o cálculo de saldo: somar `saldo_inicial_dias` aos dias de direito; ignorar períodos `controle_externo` nas contagens de vencimento e pendências.
+- Nova rotina `dp_ferias_definir_saldo_inicial(_periodo_id, _dias, _obs)` — `SECURITY DEFINER`, `pg_advisory_xact_lock`, validação de admin/owner da empresa, `REVOKE` de `anon/PUBLIC`, `GRANT EXECUTE` para `authenticated, service_role`, com registro no histórico.
 - Erros novos traduzidos em `FERIAS_ERRO_TEXTO` (`src/lib/dp/ferias-direito.ts`).
-- Hooks: `useDpFeriasConfig`, `useDpFerias`, `useDpMinhasFerias`, `useAnalyticsFerias` — filtrar `controle_externo` e expor o saldo trazido.
-- Testes unitários das regras puras + typecheck e a suíte do Pessoas 360; validação visual no preview.
+- Hooks `useDpFeriasConfig`, `useDpFerias`, `useDpMinhasFerias`, `useAnalyticsFerias`: filtrar `controle_externo` e expor o saldo trazido.
+- Testes unitários das regras puras de corte + typecheck e a suíte do Pessoas 360; validação visual no preview.
