@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Info } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { pessoaAvulsaSchema, validateWithToast } from "@/lib/validations";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
@@ -39,9 +41,39 @@ interface Props {
 }
 
 const TIPO_LABEL: Record<PessoaAvulsaTipo, string> = {
-  folguista: "Folguista que cobre uma folga",
-  teste: "Em teste na loja",
-  registro_manual: "Colaborador cadastrado que trabalhou",
+  folguista: "Folguista",
+  teste: "Teste",
+  registro_manual: "Colaborador",
+};
+
+/** Explicação de cada tipo, mostrada no ícone de informação ao lado do campo. */
+const TIPO_INFO: Record<PessoaAvulsaTipo, string> = {
+  folguista: "Folguista: pessoa que cobre uma folga, falta ou atestado, ou reforça a equipe pontualmente.",
+  teste: "Teste: pessoa em avaliação operacional na loja, ainda sem cadastro de colaborador.",
+  registro_manual:
+    "Colaborador: pessoa já cadastrada na empresa, adicionada de forma extraordinária a este dia (quando a convocação ou a escala não foi feita).",
+};
+
+/**
+ * Aviso contextual de risco: classificação operacional, nunca conclusão legal.
+ * Textos alinhados à orientação jurídica do cadastro de vínculos.
+ */
+const TIPO_RISCO: Partial<Record<PessoaAvulsaTipo, string>> = {
+  folguista:
+    "“Folguista” é uma classificação operacional de cobertura ou reforço — não é um regime de contratação. O enquadramento trabalhista da pessoa deve ser definido e formalizado pela empresa.",
+  teste:
+    "“Teste” é apenas uma identificação operacional de avaliação — não representa um regime de contratação nem substitui a formalização aplicável.",
+};
+
+const RISCO_GERAL =
+  "Esta classificação é operacional e não substitui a formalização trabalhista aplicável. Dependendo das características reais da relação de trabalho, podem existir obrigações trabalhistas, previdenciárias ou contratuais. Em caso de dúvida, consulte seu contador, departamento pessoal ou assessoria jurídica.";
+
+/** Motivos operacionais de cobertura (atestado não cria documento médico). */
+const COBRE_MOTIVO_LABEL: Record<string, string> = {
+  folga: "Folga",
+  falta: "Falta",
+  atestado: "Atestado",
+  outro: "Outro",
 };
 
 const hojeIso = () => {
@@ -79,6 +111,7 @@ export function DpPessoaAvulsaDialog({
     cargo_id: "",
     setor_id: "",
     cobre_colaborador_id: "",
+    cobre_motivo: "",
     data_inicio: dataInicial,
     data_fim: dataInicial,
     entrada: "",
@@ -108,7 +141,8 @@ export function DpPessoaAvulsaDialog({
       unidade_id: registro?.unidade_id ?? unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
       cargo_id: registro?.cargo_id ?? "",
       setor_id: registro?.setor_id ?? registro?.setor_habitual_id ?? "",
-      cobre_colaborador_id: "",
+      cobre_colaborador_id: registro?.cobre_colaborador_id ?? "",
+      cobre_motivo: registro?.cobre_motivo ?? "",
       data_inicio: dataBase,
       data_fim: registro?.data_fim ?? dataBase,
       entrada: registro?.entrada ?? "",
@@ -143,10 +177,40 @@ export function DpPessoaAvulsaDialog({
     }));
   };
 
+  /**
+   * Troca o tipo limpando identificadores incompatíveis: dados de pessoa de
+   * apoio não valem para colaborador cadastrado, e cobertura só existe no
+   * folguista.
+   */
+  const trocarTipo = (v: PessoaAvulsaTipo) => {
+    setForm((f) => ({
+      ...f,
+      tipo: v,
+      colaborador_id: v === "registro_manual" ? f.colaborador_id : "",
+      pessoa_apoio_id: v === "registro_manual" ? "" : f.pessoa_apoio_id,
+      nome: v === "registro_manual" ? "" : f.nome,
+      telefone: v === "registro_manual" ? "" : f.telefone,
+      cobre_colaborador_id: v === "folguista" ? f.cobre_colaborador_id : "",
+      cobre_motivo: v === "folguista" ? f.cobre_motivo : "",
+    }));
+  };
+
   /** Reaproveita alguém já cadastrado no banco de folguistas/testes. */
   const escolherApoio = (id: string) => {
     if (id === "novo") {
-      setForm((f) => ({ ...f, pessoa_apoio_id: "" }));
+      // "Nova pessoa" limpa tudo que foi herdado de outro cadastro; preserva
+      // apenas as datas e a unidade da operação (padrão da tela).
+      setForm((f) => ({
+        ...f,
+        pessoa_apoio_id: "",
+        nome: "",
+        telefone: "",
+        cargo_id: "",
+        setor_id: "",
+        cobre_colaborador_id: "",
+        cobre_motivo: "",
+        unidade_id: unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
+      }));
       return;
     }
     const p = (apoio.data ?? []).find((x) => x.id === id);
@@ -177,6 +241,7 @@ export function DpPessoaAvulsaDialog({
       unidade_id: form.unidade_id,
       cargo_id: form.cargo_id,
       cobre_colaborador_id: form.cobre_colaborador_id || null,
+      cobre_motivo: form.cobre_colaborador_id ? form.cobre_motivo || null : null,
       data_inicio: form.data_inicio,
       data_fim: form.data_fim,
       entrada: form.entrada || null,
@@ -225,17 +290,31 @@ export function DpPessoaAvulsaDialog({
         <DialogHeader>
           <DialogTitle>{registro ? "Editar Pessoa no Dia" : "Adicionar Pessoa no Dia"}</DialogTitle>
           <DialogDescription>
-            Registre quem trabalhou no dia: um colaborador já cadastrado (quando a convocação ou a
-            escala não foi feita) ou alguém em teste / folguista. Aparece na rotina e conta no quadro.
+            Adicione uma pessoa à equipe deste dia. Ela aparece na rotina e conta no quadro.
           </DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[65vh] gap-3 overflow-y-auto py-2 pr-1">
           <div className="grid gap-1.5">
-            <Label>Quem trabalhou *</Label>
-            <Select
-              value={form.tipo}
-              onValueChange={(v) => setForm({ ...form, tipo: v as PessoaAvulsaTipo })}
-            >
+            <div className="flex items-center gap-1.5">
+              <Label>Tipo de Mão de Obra Extra *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="O que é cada tipo"
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 space-y-2 text-xs" align="start">
+                  {(Object.keys(TIPO_INFO) as PessoaAvulsaTipo[]).map((t) => (
+                    <p key={t}>{TIPO_INFO[t]}</p>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            </div>
+            <Select value={form.tipo} onValueChange={(v) => trocarTipo(v as PessoaAvulsaTipo)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -247,6 +326,12 @@ export function DpPessoaAvulsaDialog({
                 ))}
               </SelectContent>
             </Select>
+            {TIPO_RISCO[form.tipo] && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs text-muted-foreground">
+                <p>{TIPO_RISCO[form.tipo]}</p>
+                <p className="mt-1.5">{RISCO_GERAL}</p>
+              </div>
+            )}
           </div>
 
           {manual ? (
@@ -366,27 +451,65 @@ export function DpPessoaAvulsaDialog({
           </div>
 
           {form.tipo === "folguista" && (
-            <div className="grid gap-1.5">
-              <Label>Cobrindo quem (opcional)</Label>
-              <Select
-                value={form.cobre_colaborador_id || "nenhum"}
-                onValueChange={(v) =>
-                  setForm({ ...form, cobre_colaborador_id: v === "nenhum" ? "" : v })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Ninguém em específico" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nenhum">Ninguém em específico</SelectItem>
-                  {colaboradores.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className="grid gap-1.5">
+                <Label>Cobrindo quem (opcional)</Label>
+                <Select
+                  value={form.cobre_colaborador_id || "nenhum"}
+                  onValueChange={(v) =>
+                    setForm({
+                      ...form,
+                      cobre_colaborador_id: v === "nenhum" ? "" : v,
+                      cobre_motivo: v === "nenhum" ? "" : form.cobre_motivo,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ninguém em específico" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhum">Ninguém em específico</SelectItem>
+                    {colaboradores.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!form.cobre_colaborador_id && (
+                  <p className="text-xs text-muted-foreground">
+                    Sem cobertura, a pessoa aparece como “Folguista Extra” na rotina.
+                  </p>
+                )}
+              </div>
+              {form.cobre_colaborador_id && (
+                <div className="grid gap-1.5">
+                  <Label>Motivo da cobertura</Label>
+                  <Select
+                    value={form.cobre_motivo || "outro"}
+                    onValueChange={(v) => setForm({ ...form, cobre_motivo: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(COBRE_MOTIVO_LABEL).map(([v, l]) => (
+                        <SelectItem key={v} value={v}>
+                          {l}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {form.cobre_motivo === "atestado"
+                      ? "Motivo apenas operacional: não cria nem substitui o documento médico."
+                      : form.cobre_motivo === "falta" || form.cobre_motivo === "atestado"
+                        ? "O dia da pessoa coberta é ajustado automaticamente: se já houver registro, ele é reaproveitado sem duplicar."
+                        : "Se a pessoa coberta já tiver folga ou ausência registrada no dia, o registro existente é reaproveitado."}
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           <div className="grid grid-cols-2 gap-3">

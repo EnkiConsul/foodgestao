@@ -128,7 +128,7 @@ export async function carregarPanorama(
     supabase
       .from("dp_pessoas_avulsas")
       .select(
-        "id, nome, tipo, colaborador_id, unidade_id, cargo_id, cobre_colaborador_id, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao",
+        "id, nome, tipo, colaborador_id, unidade_id, cargo_id, cobre_colaborador_id, cobre_motivo, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao",
       )
       .eq("company_id", companyId)
       .lte("data_inicio", fim)
@@ -282,7 +282,9 @@ export async function carregarPanorama(
       unidade_id: a.unidade_id,
       cargo_id: a.cargo_id,
       cargo_nome: nomeCargo.get(a.cargo_id) ?? null,
+      cobre_colaborador_id: a.cobre_colaborador_id ?? null,
       cobre_nome: a.cobre_colaborador_id ? nomeColab.get(a.cobre_colaborador_id) ?? null : null,
+      cobre_motivo: a.cobre_motivo ?? null,
       data_inicio: a.data_inicio,
       data_fim: a.data_fim,
       entrada: a.entrada ? a.entrada.slice(0, 5) : null,

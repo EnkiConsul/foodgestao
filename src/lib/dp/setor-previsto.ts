@@ -41,6 +41,21 @@ export function origemSetorSufixo(origem: OrigemSetor): string | null {
   return null;
 }
 
+/**
+ * "Alterado hoje"/"rotina do dia" só faz sentido quando o setor efetivo do dia
+ * diverge do setor habitual atual. Definir um setor habitual que estava vazio
+ * (ou um ajuste do dia igual ao habitual) não é alteração — sem aviso.
+ */
+export function setorDiaDivergeDoHabitual(
+  origem: OrigemSetor,
+  setorDiaId: string | null | undefined,
+  setorHabitualId: string | null | undefined,
+): boolean {
+  if (!origemSetorSufixo(origem)) return false;
+  if (!setorDiaId || !setorHabitualId) return false;
+  return setorDiaId !== setorHabitualId;
+}
+
 /** A dimensão Setor só liga quando a unidade tem pelo menos um setor ativo. */
 export function dimensaoSetorAtiva(setores: readonly { ativo: boolean }[]): boolean {
   return setores.some((s) => s.ativo);
@@ -119,8 +134,17 @@ export function traduzirErroSetor(error: { message?: string } | null | undefined
     return "Sua sessão expirou. Entre novamente para continuar.";
   if (msg.includes("UNIDADE_INVALIDA"))
     return "Esta unidade não pertence à empresa selecionada.";
-  if (msg.includes("NOT_FOUND"))
+  if (msg.includes("NOT_FOUND") || msg.includes("AVULSA_NAO_ENCONTRADA"))
     return "Registro não encontrado. Atualize a tela e tente de novo.";
+  if (msg.includes("AVULSA_SEM_PERMISSAO"))
+    return "Só um responsável da empresa pode registrar pessoas no dia.";
+  if (msg.includes("AVULSA_PERIODO_INVALIDO"))
+    return "Período inválido: a data final não pode ser anterior à inicial.";
+  if (msg.includes("AVULSA_MOTIVO_INVALIDO")) return "Motivo de cobertura inválido.";
+  if (msg.includes("OCORRENCIA_SEM_PERMISSAO"))
+    return "Você não tem permissão para registrar isso.";
+  if (msg.includes("OCORRENCIA_COLABORADOR_NAO_ENCONTRADO"))
+    return "Não encontramos a pessoa coberta. Atualize a tela e tente de novo.";
   if (msg.includes("INVALID_INPUT"))
     return "Faltam informações para concluir. Revise os campos e tente de novo.";
   return msg || "Não foi possível concluir a alteração.";

@@ -38,7 +38,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { SETOR_NAO_DEFINIDO_LABEL, origemSetorSufixo, traduzirErroSetor } from "@/lib/dp/setor-previsto";
+import { SETOR_NAO_DEFINIDO_LABEL, origemSetorSufixo, setorDiaDivergeDoHabitual, traduzirErroSetor } from "@/lib/dp/setor-previsto";
 import { AlterarSetorDiaDialog, type AlterarSetorAlvo } from "@/components/dp/setores/AlterarSetorDiaDialog";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import {
@@ -64,9 +64,22 @@ import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
+/** Rótulo curto do motivo operacional da cobertura. */
+const COBRE_MOTIVO_LABEL: Record<string, string> = {
+  folga: "Folga",
+  falta: "Falta",
+  atestado: "Atestado",
+  outro: "Outro",
+};
+
+/** Badge do folguista: com cobertura mostra quem; sem cobertura é "extra". */
+function rotuloFolguista(p: { cobre_nome?: string | null }): string {
+  return p.cobre_nome ? `Folguista · Cobrindo ${p.cobre_nome}` : "Folguista Extra";
+}
+
 function rotuloCategoriaPessoa(p: PessoaPanorama): string {
   if (p.origem === "avulso" || p.origem === "registro_manual") {
-    if (p.avulso_tipo === "folguista") return p.cobre_nome ? `Folguista · cobre ${p.cobre_nome}` : "Folguista";
+    if (p.avulso_tipo === "folguista") return rotuloFolguista(p);
     if (p.avulso_tipo === "teste") return "Em teste";
     if (p.origem === "registro_manual") return "Registro manual";
   }
@@ -530,7 +543,7 @@ function DetalheDiaOperacao({
                                 }
                               >
                                 {p.setor_nome ?? SETOR_NAO_DEFINIDO_LABEL}
-                                {origemSetorSufixo(p.setor_origem ?? "nenhum")
+                                {setorDiaDivergeDoHabitual(p.setor_origem ?? "nenhum", p.setor_id, p.setor_habitual_id)
                                   ? ` · ${origemSetorSufixo(p.setor_origem ?? "nenhum")}`
                                   : ""}
                               </Badge>
@@ -579,7 +592,7 @@ function DetalheDiaOperacao({
 
       <Secao
         title="Mão de Obra Extra"
-        description="Quem trabalhou no dia por registro manual, em teste ou como folguista"
+        description="Pessoas adicionadas à equipe deste dia: folguistas, pessoas em teste ou colaboradores"
         action={
           podeRegistrar ? (
             <Button variant="outline" size="sm" onClick={() => onNovaAvulsa(data)}>
@@ -601,7 +614,9 @@ function DetalheDiaOperacao({
                     {[
                       a.cargo_nome,
                       `${a.entrada ?? "--:--"} às ${a.saida ?? "--:--"}${a.termina_no_dia_seguinte ? " (+1)" : ""}`,
-                      a.cobre_nome ? `cobrindo ${a.cobre_nome}` : null,
+                      a.cobre_nome
+                        ? `Cobrindo ${a.cobre_nome}${a.cobre_motivo ? ` · ${COBRE_MOTIVO_LABEL[a.cobre_motivo] ?? a.cobre_motivo}` : ""}`
+                        : null,
                       a.data_fim !== a.data_inicio ? `até ${a.data_fim}` : null,
                     ]
                       .filter(Boolean)
@@ -614,7 +629,7 @@ function DetalheDiaOperacao({
                     {a.tipo === "teste"
                       ? "Em teste"
                       : a.tipo === "folguista"
-                        ? "Folguista"
+                        ? rotuloFolguista(a)
                         : "Registro manual"}
                   </Badge>
                   {podeRegistrar && (
@@ -1458,10 +1473,14 @@ export default function DpOperacaoPanorama() {
                   <span className="block truncate text-sm">{p.nome}</span>
                   <span className="block text-xs text-muted-foreground">
                     {p.entrada ? `${p.entrada} às ${p.saida ?? "--:--"}` : "—"}
-                    {p.cobre_nome ? ` · cobrindo ${p.cobre_nome}` : ""}
+                    {p.cobre_nome
+                      ? ` · Cobrindo ${p.cobre_nome}${p.cobre_motivo ? ` · ${COBRE_MOTIVO_LABEL[p.cobre_motivo] ?? p.cobre_motivo}` : ""}`
+                      : ""}
                   </span>
                 </div>
-                <Badge variant="secondary">{p.avulso_tipo === "teste" ? "Em teste" : "Folguista"}</Badge>
+                <Badge variant="secondary">
+                  {p.avulso_tipo === "teste" ? "Em teste" : rotuloFolguista(p)}
+                </Badge>
               </li>
             ))}
             {!avulsosDoDiaAtivo.length && (

@@ -9028,6 +9028,7 @@ export type Database = {
         Row: {
           cargo_id: string
           cobre_colaborador_id: string | null
+          cobre_motivo: string | null
           colaborador_id: string | null
           company_id: string
           created_at: string
@@ -9050,6 +9051,7 @@ export type Database = {
         Insert: {
           cargo_id: string
           cobre_colaborador_id?: string | null
+          cobre_motivo?: string | null
           colaborador_id?: string | null
           company_id: string
           created_at?: string
@@ -9072,6 +9074,7 @@ export type Database = {
         Update: {
           cargo_id?: string
           cobre_colaborador_id?: string | null
+          cobre_motivo?: string | null
           colaborador_id?: string | null
           company_id?: string
           created_at?: string
@@ -14722,6 +14725,29 @@ export type Database = {
           p_setor_id?: string
         }
         Returns: Json
+      }
+      dp_pessoa_avulsa_salvar: {
+        Args: {
+          p_apoio?: string
+          p_cargo?: string
+          p_cobre?: string
+          p_cobre_motivo?: string
+          p_colaborador?: string
+          p_company: string
+          p_data_fim?: string
+          p_data_inicio?: string
+          p_entrada?: string
+          p_id?: string
+          p_nome?: string
+          p_observacao?: string
+          p_saida?: string
+          p_setor?: string
+          p_telefone?: string
+          p_termina?: boolean
+          p_tipo?: Database["public"]["Enums"]["dp_pessoa_avulsa_tipo"]
+          p_unidade?: string
+        }
+        Returns: string
       }
       dp_pode_gerenciar_lixeira: {
         Args: { _company_id: string }
