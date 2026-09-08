@@ -831,8 +831,13 @@ export function avaliarDia(
 
 const DOW_PLURAL = ["domingos", "segundas", "terças", "quartas", "quintas", "sextas", "sábados"];
 
-export function mensagemAlerta(dia: ResultadoDia, avaliacao: AvaliacaoDia, unidade?: string | null): string {
-  const alvo = `${DOW_PLURAL[dia.dow]}${unidade ? ` na ${unidade}` : ""}`;
+export function mensagemAlerta(
+  dia: ResultadoDia & { feriado_nome?: string | null },
+  avaliacao: AvaliacaoDia,
+  unidade?: string | null,
+): string {
+  const base = dia.feriado_nome ? "feriados" : DOW_PLURAL[dia.dow];
+  const alvo = `${base}${unidade ? ` na ${unidade}` : ""}`;
   const rotulo = avaliacao.situacao === "abaixo" ? "abaixo do padrão" : "acima do padrão";
   return `Previsto ${dia.trabalhando}, padrão ${avaliacao.padrao} para ${alvo} — ${rotulo}.`;
 }
