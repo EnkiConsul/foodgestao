@@ -338,6 +338,19 @@ export default function DpFerias() {
           )
         }
       />
+
+      <FeriasSaldoInicialDialog
+        periodo={saldoPeriodo}
+        onOpenChange={(v) => { if (!v) setSaldoPeriodo(null); }}
+        saving={definirSaldoInicial.isPending}
+        onSubmit={(dias, observacao) =>
+          saldoPeriodo &&
+          definirSaldoInicial.mutate(
+            { periodoId: saldoPeriodo.id, dias, observacao },
+            { onSuccess: () => setSaldoPeriodo(null) },
+          )
+        }
+      />
     </DpPage>
   );
 }
