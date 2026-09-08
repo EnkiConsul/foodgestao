@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMeuPonto } from "@/hooks/useDpPonto";
 import { PontoAjusteDialog } from "@/components/dp/PontoAjusteDialog";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { useMeusAjustesPonto, AJUSTE_ACAO_LABEL } from "@/hooks/useDpPontoAjustes";
 import { useDpHorarioPrevisto } from "@/hooks/useDpHorarioPrevisto";
 import { textoPrevisto } from "@/lib/dp/horario-previsto";
