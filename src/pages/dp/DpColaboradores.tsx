@@ -122,8 +122,20 @@ export default function DpColaboradores() {
     setAbaInicial(aba);
     setDialogOpen(true);
   };
+  const navigate = useNavigate();
+  const [metodoOpen, setMetodoOpen] = useState(false);
+  const [apoioOpen, setApoioOpen] = useState(false);
+  const [apoioTipo, setApoioTipo] = useState<PessoaApoioTipo>("folguista");
+  const escolherMetodo = (m: NovoCadastroMetodo) => {
+    setMetodoOpen(false);
+    if (m === "colaborador") return abrirCadastro(null);
+    if (m === "importar") return navigate("/dp/colaboradores/importar-ficha");
+    setApoioTipo(m === "teste" ? "teste" : "folguista");
+    setApoioOpen(true);
+  };
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
   const [condicoesDe, setCondicoesDe] = useState<DpColaborador | null>(null);
+
 
   type Origem = "todos" | "colaboradores" | "folguistas" | "teste";
   const ORIGENS: { key: Origem; label: string }[] = [
