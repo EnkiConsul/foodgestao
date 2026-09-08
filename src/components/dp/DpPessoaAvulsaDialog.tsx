@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Info } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { pessoaAvulsaSchema, validateWithToast } from "@/lib/validations";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
@@ -39,9 +41,39 @@ interface Props {
 }
 
 const TIPO_LABEL: Record<PessoaAvulsaTipo, string> = {
-  folguista: "Folguista que cobre uma folga",
-  teste: "Em teste na loja",
-  registro_manual: "Colaborador cadastrado que trabalhou",
+  folguista: "Folguista",
+  teste: "Teste",
+  registro_manual: "Colaborador",
+};
+
+/** Explicação de cada tipo, mostrada no ícone de informação ao lado do campo. */
+const TIPO_INFO: Record<PessoaAvulsaTipo, string> = {
+  folguista: "Folguista: pessoa que cobre uma folga, falta ou atestado, ou reforça a equipe pontualmente.",
+  teste: "Teste: pessoa em avaliação operacional na loja, ainda sem cadastro de colaborador.",
+  registro_manual:
+    "Colaborador: pessoa já cadastrada na empresa, adicionada de forma extraordinária a este dia (quando a convocação ou a escala não foi feita).",
+};
+
+/**
+ * Aviso contextual de risco: classificação operacional, nunca conclusão legal.
+ * Textos alinhados à orientação jurídica do cadastro de vínculos.
+ */
+const TIPO_RISCO: Partial<Record<PessoaAvulsaTipo, string>> = {
+  folguista:
+    "“Folguista” é uma classificação operacional de cobertura ou reforço — não é um regime de contratação. O enquadramento trabalhista da pessoa deve ser definido e formalizado pela empresa.",
+  teste:
+    "“Teste” é apenas uma identificação operacional de avaliação — não representa um regime de contratação nem substitui a formalização aplicável.",
+};
+
+const RISCO_GERAL =
+  "Esta classificação é operacional e não substitui a formalização trabalhista aplicável. Dependendo das características reais da relação de trabalho, podem existir obrigações trabalhistas, previdenciárias ou contratuais. Em caso de dúvida, consulte seu contador, departamento pessoal ou assessoria jurídica.";
+
+/** Motivos operacionais de cobertura (atestado não cria documento médico). */
+const COBRE_MOTIVO_LABEL: Record<string, string> = {
+  folga: "Folga",
+  falta: "Falta",
+  atestado: "Atestado",
+  outro: "Outro",
 };
 
 const hojeIso = () => {
