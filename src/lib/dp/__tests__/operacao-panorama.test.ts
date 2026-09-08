@@ -152,6 +152,59 @@ describe("baselinePorDow e avaliarDia", () => {
   });
 });
 
+describe("feriado no padrão da rotina", () => {
+  const historico = [
+    { data: "2026-09-07", trabalhando: 2 }, // feriado (segunda)
+    { data: "2026-09-14", trabalhando: 6 },
+    { data: "2026-09-21", trabalhando: 6 },
+    { data: "2026-09-28", trabalhando: 6 },
+  ];
+  const opts = { limite: "2026-10-05", feriados: new Set(["2026-09-07"]) };
+
+  it("exclui o feriado do padrão do dia da semana", () => {
+    expect(baselinePorDow(historico, opts).get(1)).toBe(6);
+    // Sem informar feriados, o dia contamina a mediana (comportamento antigo).
+    expect(baselinePorDow(historico, { limite: "2026-10-05" }).get(1)).toBe(6);
+    expect(baselinePorDow([...historico, { data: "2026-08-31", trabalhando: 2 }], {
+      limite: "2026-10-05",
+    }).get(1)).toBe(4);
+  });
+
+  it("não gera padrão de feriado sem histórico suficiente", () => {
+    expect(baselineFeriado(historico, opts)).toBeNull();
+    expect(avaliarDia(2, baselineFeriado(historico, opts)).situacao).toBe("sem_padrao");
+  });
+
+  it("aprende o padrão do feriado quando há feriados anteriores", () => {
+    const comFeriados = [...historico, { data: "2026-09-20", trabalhando: 2 }];
+    const dois = { limite: "2026-10-05", feriados: new Set(["2026-09-07", "2026-09-20"]) };
+    expect(baselineFeriado(comFeriados, dois)).toBe(2);
+    expect(avaliarDia(2, baselineFeriado(comFeriados, dois)).situacao).toBe("ok");
+    expect(avaliarDia(6, baselineFeriado(comFeriados, dois)).situacao).toBe("acima");
+  });
+
+  it("feriado sem padrão próprio não vira alerta de dia comum", () => {
+    const padrao = baselinePorDow(historico, opts);
+    // Dia comum com 2 pessoas fica abaixo; o mesmo número em feriado, não.
+    expect(avaliarDia(2, padrao.get(1)).situacao).toBe("abaixo");
+    expect(avaliarDia(2, baselineFeriado(historico, opts)).situacao).toBe("sem_padrao");
+  });
+
+  it("mensagem do alerta fala em feriados quando o dia é feriado", () => {
+    const dia = { data: "2026-09-07", dow: 1, trabalhando: 2 } as never;
+    const avaliacao = { situacao: "abaixo" as const, padrao: 6, diferenca: -4 };
+    expect(mensagemAlerta({ ...(dia as object), feriado_nome: "Independência" } as never, avaliacao)).toContain(
+      "feriados",
+    );
+    expect(mensagemAlerta(dia, avaliacao)).toContain("segundas");
+  });
+
+  it("sem feriados informados o padrão de feriado é nulo", () => {
+    expect(baselineFeriado(historico, { limite: "2026-10-05" })).toBeNull();
+    expect(baselineFeriado(historico, { limite: "2026-10-05", feriados: new Set() })).toBeNull();
+  });
+});
+
 describe("diasDaCompetencia", () => {
   it("gera todos os dias do mês", () => {
     expect(diasDaCompetencia("2026-02")).toHaveLength(28);
