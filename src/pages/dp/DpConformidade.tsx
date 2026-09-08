@@ -91,7 +91,7 @@ export default function DpConformidade() {
 
       <div className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:max-w-sm">
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold uppercase text-muted-foreground">Colaborador</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
           <Select value={colabFilter} onValueChange={setColabFilter}>
             <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-72">

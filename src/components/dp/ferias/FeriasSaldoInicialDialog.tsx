@@ -41,7 +41,7 @@ export function FeriasSaldoInicialDialog({ periodo, saving, onOpenChange, onSubm
 
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">
+            <Label className="text-xs font-medium text-muted-foreground">
               Dias de direito neste período
             </Label>
             <Input
@@ -51,7 +51,7 @@ export function FeriasSaldoInicialDialog({ periodo, saving, onOpenChange, onSubm
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">
+            <Label className="text-xs font-medium text-muted-foreground">
               Observação (opcional)
             </Label>
             <Textarea

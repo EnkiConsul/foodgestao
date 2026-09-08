@@ -164,7 +164,7 @@ export function CargoFormDialog({ open, onOpenChange, cargo, colaboradoresCount 
         <div className="shrink-0 border-b bg-card px-4 py-3 sm:px-6">
           <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Briefcase className="size-5 shrink-0 text-primary" aria-hidden="true" />
-            <span className="truncate uppercase">{form.nome || (cargo ? cargo.nome : "Novo cargo")}</span>
+            <span className="truncate">{form.nome || (cargo ? cargo.nome : "Novo cargo")}</span>
           </DialogTitle>
           <DialogDescription className="text-xs">
             {cargo

@@ -724,7 +724,7 @@ export default function DpHistoricoCompleto() {
 
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase text-muted-foreground">Tipo</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Tipo</Label>
             <Select value={tipo} onValueChange={setTipo}>
               <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>
@@ -741,7 +741,7 @@ export default function DpHistoricoCompleto() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase text-muted-foreground">Unidade</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Unidade</Label>
             <Select value={unidadeId} onValueChange={setUnidadeId}>
               <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
               <SelectContent>
@@ -753,7 +753,7 @@ export default function DpHistoricoCompleto() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase text-muted-foreground">Colaborador</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
             <Select value={colabId} onValueChange={setColabId}>
               <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>
@@ -765,7 +765,7 @@ export default function DpHistoricoCompleto() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase text-muted-foreground">Mês</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
             <Select value={mes} onValueChange={setMes}>
               <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>
@@ -777,7 +777,7 @@ export default function DpHistoricoCompleto() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase text-muted-foreground">Ano</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Ano</Label>
             <Select value={ano} onValueChange={setAno}>
               <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>
@@ -1000,7 +1000,7 @@ export default function DpHistoricoCompleto() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase text-muted-foreground">Motivo Da Exclusão</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Motivo Da Exclusão</Label>
             <Textarea
               rows={2}
               placeholder="Ex.: arquivo importado na competência errada"

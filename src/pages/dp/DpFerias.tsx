@@ -151,7 +151,7 @@ export default function DpFerias() {
       <DpFilterCard>
         <div className="grid flex-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">Colaborador</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
             <Select value={colabFilter} onValueChange={setColabFilter}>
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent className="max-h-72">
@@ -163,7 +163,7 @@ export default function DpFerias() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">Situação</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Situação</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>

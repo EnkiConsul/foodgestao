@@ -58,7 +58,7 @@ export function FeriasConfigCard() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold uppercase text-muted-foreground">
+          <Label className="text-xs font-medium text-muted-foreground">
             Antecedência mínima (dias)
           </Label>
           <Input
@@ -74,7 +74,7 @@ export function FeriasConfigCard() {
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold uppercase text-muted-foreground">
+          <Label className="text-xs font-medium text-muted-foreground">
             Adiantamento do 13º junto às férias
           </Label>
           <Select value={politica} onValueChange={(v) => setPolitica(v as FeriasAdiantamento13)}>
@@ -97,7 +97,7 @@ export function FeriasConfigCard() {
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">
+            <Label className="text-xs font-medium text-muted-foreground">
               Máximo de períodos
             </Label>
             <Input
@@ -107,7 +107,7 @@ export function FeriasConfigCard() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">
+            <Label className="text-xs font-medium text-muted-foreground">
               Mínimo de dias por período
             </Label>
             <Input
@@ -117,7 +117,7 @@ export function FeriasConfigCard() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">
+            <Label className="text-xs font-medium text-muted-foreground">
               Um período com pelo menos
             </Label>
             <Input
