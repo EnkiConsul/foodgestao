@@ -24,6 +24,8 @@ import {
   useDpColaboradores, useDeleteDpColaborador, useReintegrarDpColaborador,
   type DpColaborador,
 } from "@/hooks/useDpColaboradores";
+import { useDpPessoasApoio, type PessoaApoio } from "@/hooks/useDpPessoasApoio";
+import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
