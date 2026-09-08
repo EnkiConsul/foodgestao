@@ -511,9 +511,8 @@ export default function DpColaboradores() {
           <DpSalvarLargurasButton screenKey="dp_colaboradores" colOrder={colOrder} colWidths={colWidths} />
         }
         actionItems={[
-          { key: "novo", label: "Novo colaborador", icon: Plus, primary: true, onSelect: () => abrirCadastro(null) },
+          { key: "novo", label: "Novo colaborador", icon: Plus, primary: true, onSelect: () => setMetodoOpen(true) },
           { key: "apoio", label: "Folguistas e testes", icon: UserPlus, to: "/dp/colaboradores/apoio" },
-          { key: "importar", label: "Importar ficha de registro", icon: FileText, to: "/dp/colaboradores/importar-ficha" },
           { key: "lixeira", label: "Lixeira", icon: Trash2, to: "/dp/colaboradores/lixeira" },
         ]}
       />
