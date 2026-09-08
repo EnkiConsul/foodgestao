@@ -382,7 +382,7 @@ function DetalheDiaOperacao({
   const navigate = useNavigate();
 
   const foraDaOperacao = dia.pessoas.filter((p) =>
-    ["folga_padrao", "folga_extra", "ferias", "atestado", "ausente", "atrasado", "saida_antecipada"].includes(
+    ["coberto", "folga_padrao", "folga_extra", "ferias", "atestado", "ausente", "atrasado", "saida_antecipada"].includes(
       p.categoria,
     ),
   );

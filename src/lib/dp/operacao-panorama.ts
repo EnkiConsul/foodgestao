@@ -454,20 +454,6 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       continue;
     }
 
-    const convocacao = convocPor.get(colab.id);
-    if (convocacao) {
-      const turno = convocacao.turno_id ? turnoPorId.get(convocacao.turno_id) ?? null : null;
-      registrar(colab, convocacao.status === "aceita" ? "convocado_aceito" : "convocado_pendente", {
-        turno_id: convocacao.turno_id,
-        turno_nome: turno?.nome ?? "Convocação",
-        entrada: convocacao.entrada,
-        saida: convocacao.saida,
-        intervalo_minutos: convocacao.intervalo_minutos ?? turno?.intervalo_minutos ?? 0,
-        origem: "convocacao",
-      });
-      continue;
-    }
-
     if (ausencia) {
       registrar(colab, ausencia.tipo);
       continue;
@@ -486,6 +472,29 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     const extra = folgas.find((f) => f.tipo === "extra" || f.extra === true);
     if (extra) {
       registrar(colab, "folga_extra");
+      continue;
+    }
+
+    const cobertura = coberturaPor.get(colab.id);
+    if (cobertura && !colab.intermitente) {
+      registrar(colab, "coberto", undefined, {
+        coberto_por_nome: cobertura.nome ?? "Folguista",
+        cobre_motivo: cobertura.cobre_motivo ?? null,
+      });
+      continue;
+    }
+
+    const convocacao = convocPor.get(colab.id);
+    if (convocacao) {
+      const turno = convocacao.turno_id ? turnoPorId.get(convocacao.turno_id) ?? null : null;
+      registrar(colab, convocacao.status === "aceita" ? "convocado_aceito" : "convocado_pendente", {
+        turno_id: convocacao.turno_id,
+        turno_nome: turno?.nome ?? "Convocação",
+        entrada: convocacao.entrada,
+        saida: convocacao.saida,
+        intervalo_minutos: convocacao.intervalo_minutos ?? turno?.intervalo_minutos ?? 0,
+        origem: "convocacao",
+      });
       continue;
     }
 
@@ -511,15 +520,6 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
 
     // Intermitente sem convocação e sem ausência simplesmente não está na operação.
     if (colab.intermitente) continue;
-
-    const cobertura = coberturaPor.get(colab.id);
-    if (cobertura) {
-      registrar(colab, "coberto", undefined, {
-        coberto_por_nome: cobertura.nome ?? "Folguista",
-        cobre_motivo: cobertura.cobre_motivo ?? null,
-      });
-      continue;
-    }
 
     const item = itemPor.get(colab.id);
     if (item) {
