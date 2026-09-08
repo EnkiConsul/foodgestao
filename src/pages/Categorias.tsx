@@ -625,8 +625,8 @@ export default function Categorias() {
           </div>
 
 
-          <Tabs value={filterType} onValueChange={setFilterType} className="max-w-full">
-            <TabsList className="h-8 overflow-x-auto flex w-auto">
+          <Tabs value={filterType} onValueChange={setFilterType} className="w-full min-w-0 max-w-full">
+            <TabsList className="h-8 w-full max-w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:w-auto">
               <TabsTrigger value="all" className="text-xs px-2.5 h-7">Todas ({counts.total})</TabsTrigger>
               <TabsTrigger value="saida" className="text-xs px-2.5 h-7">Despesas ({counts.despesas})</TabsTrigger>
               <TabsTrigger value="entrada" className="text-xs px-2.5 h-7">Receitas ({counts.receitas})</TabsTrigger>
