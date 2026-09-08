@@ -16,7 +16,7 @@ import { primeiroDiaDoMes, ultimoDiaDoMes } from "@/lib/dp/competencia";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
 
 import { cn } from "@/lib/utils";
-import { DpPage, DpPageHeader, DpContentCard, useDpEmbedded } from "@/components/dp/DpPage";
+import { DpPage, DpPageHeader, DpContentCard, DpFilterCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
@@ -506,7 +506,7 @@ export default function DpConformidadeDsr() {
     <DpPage>
       {!embedded && (
         <Helmet>
-          <title>Conformidade de DSR | Pessoas Aveto 360</title>
+          <title>Conformidade de DSR — Pessoas 360°</title>
           <meta name="description" content="Relatório de domingos trabalhados e folgados por colaborador, comparado à periodicidade legal configurada." />
         </Helmet>
       )}
@@ -522,37 +522,39 @@ export default function DpConformidadeDsr() {
         }
       />
 
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="cd-comp">Competência</Label>
-          <Input
-            id="cd-comp" type="month" className="w-44"
-            value={competencia} onChange={(e) => setCompetencia(e.target.value || competenciaAtual())}
-          />
-        </div>
-
-        {linhas.length > 0 && (
-          <div className="ml-auto flex flex-col items-end gap-1">
-            <button
-              type="button"
-              onClick={alternarFiltroFora}
-              className="flex flex-wrap items-center gap-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              title={filtroForaAtivo ? "Mostrar todos" : "Ver só quem está com algo em falta"}
-            >
-              <Badge variant={foraClt > 0 ? "destructive" : "default"}>
-                {foraClt > 0 ? `${foraClt} sem folga em domingo (CLT)` : "CLT em ordem"}
-              </Badge>
-              <Badge variant={foraEmpresa > 0 ? "destructive" : "default"}>
-                {foraEmpresa > 0 ? `${foraEmpresa} fora da regra da empresa` : "Regra da empresa em ordem"}
-              </Badge>
-            </button>
-
-            <p className="text-[11px] text-muted-foreground">
-              {linhasFiltradas.length} de {linhas.length} colaborador(es)
-            </p>
+      <DpFilterCard>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+          <div className="space-y-1.5">
+            <Label htmlFor="cd-comp">Competência</Label>
+            <Input
+              id="cd-comp" type="month" className="w-full sm:w-44"
+              value={competencia} onChange={(e) => setCompetencia(e.target.value || competenciaAtual())}
+            />
           </div>
-        )}
-      </div>
+
+          {linhas.length > 0 && (
+            <div className="flex flex-col items-start gap-1 sm:ml-auto sm:items-end">
+              <button
+                type="button"
+                onClick={alternarFiltroFora}
+                className="flex flex-wrap items-center gap-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                title={filtroForaAtivo ? "Mostrar todos" : "Ver só quem está com algo em falta"}
+              >
+                <Badge variant={foraClt > 0 ? "destructive" : "default"}>
+                  {foraClt > 0 ? `${foraClt} sem folga em domingo (CLT)` : "CLT em ordem"}
+                </Badge>
+                <Badge variant={foraEmpresa > 0 ? "destructive" : "default"}>
+                  {foraEmpresa > 0 ? `${foraEmpresa} fora da regra da empresa` : "Regra da empresa em ordem"}
+                </Badge>
+              </button>
+
+              <p className="text-[11px] text-muted-foreground">
+                {linhasFiltradas.length} de {linhas.length} colaborador(es)
+              </p>
+            </div>
+          )}
+        </div>
+      </DpFilterCard>
 
 
       {query.isError ? (

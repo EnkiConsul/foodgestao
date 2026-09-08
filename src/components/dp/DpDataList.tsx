@@ -60,10 +60,10 @@ export function DpListCard({
         onClick={onOpen}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="truncate font-semibold uppercase">{title}</div>
-            {subtitle && <div className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</div>}
-          </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-semibold">{title}</div>
+          {subtitle && <div className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</div>}
+        </div>
         </div>
         {meta && <div className="text-sm text-muted-foreground">{meta}</div>}
         {badges && <div className="flex flex-wrap gap-1.5 pt-1">{badges}</div>}

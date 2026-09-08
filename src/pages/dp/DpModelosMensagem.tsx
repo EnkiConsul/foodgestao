@@ -20,6 +20,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
 import { applyModeloVars } from "@/hooks/useDpModelosMensagem";
 
 type Modelo = {
@@ -135,29 +136,37 @@ export default function DpModelosMensagem() {
         actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo modelo</Button>}
       />
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por título ou corpo..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
-        </div>
-        <Select value={canalFilter} onValueChange={setCanalFilter}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos canais</SelectItem>
-            <SelectItem value="whatsapp">WhatsApp</SelectItem>
-            <SelectItem value="email">E-mail</SelectItem>
-            <SelectItem value="sms">SMS</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
-            <SelectItem value="ativo">Ativos</SelectItem>
-            <SelectItem value="inativo">Inativos</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <DpFilters
+        search={{ value: search, onChange: setSearch, placeholder: "Buscar por título ou corpo..." }}
+        columns={3}
+        chips={[
+          ...(canalFilter !== "todos" ? [{ key: "canal", label: `Canal: ${canalFilter.toUpperCase()}`, onRemove: () => setCanalFilter("todos") }] : []),
+          ...(statusFilter !== "todos" ? [{ key: "status", label: `Status: ${statusFilter === "ativo" ? "Ativos" : "Inativos"}`, onRemove: () => setStatusFilter("todos") }] : []),
+        ]}
+        onClear={() => { setSearch(""); setCanalFilter("todos"); setStatusFilter("todos"); }}
+      >
+        <DpFilterField label="Canal">
+          <Select value={canalFilter} onValueChange={setCanalFilter}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos canais</SelectItem>
+              <SelectItem value="whatsapp">WhatsApp</SelectItem>
+              <SelectItem value="email">E-mail</SelectItem>
+              <SelectItem value="sms">SMS</SelectItem>
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Status">
+          <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="ativo">Ativos</SelectItem>
+              <SelectItem value="inativo">Inativos</SelectItem>
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+      </DpFilters>
 
       <DpContentCard contentClassName="overflow-x-auto hidden md:block">
           {list.isLoading ? <TableSkeleton columns={5} headers={["Título", "Canal", "Variáveis", "Ativo", ""]} /> : (
@@ -230,7 +239,7 @@ export default function DpModelosMensagem() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar modelo" : "Novo modelo"}</DialogTitle>
+            <DialogTitle>{editing ? "Editar Modelo" : "Novo Modelo"}</DialogTitle>
             <DialogDescription>Use chaves {"{nome}"}, {"{data}"} para variáveis dinâmicas.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
