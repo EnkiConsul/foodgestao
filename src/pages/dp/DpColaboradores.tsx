@@ -117,6 +117,61 @@ export default function DpColaboradores() {
   };
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
 
+  type Origem = "todos" | "colaboradores" | "folguistas" | "teste";
+  const ORIGENS: { key: Origem; label: string }[] = [
+    { key: "todos", label: "Todos" },
+    { key: "colaboradores", label: "Colaboradores" },
+    { key: "folguistas", label: "Folguistas" },
+    { key: "teste", label: "Em Teste" },
+  ];
+  const { prefs, save: savePrefs } = useDpUserPrefs();
+  const origem = (prefs?.extras?.colaboradores_origem as Origem) ?? "colaboradores";
+  const setOrigem = (o: Origem) => {
+    savePrefs({ extras: { ...(prefs?.extras ?? {}), colaboradores_origem: o } });
+  };
+
+  const pessoasApoio = useDpPessoasApoio();
+  const pessoasApoioVisiveis = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (pessoasApoio.data ?? [])
+      .filter((p) => {
+        if (origem === "folguistas" && p.tipo !== "folguista") return false;
+        if (origem === "teste" && p.tipo !== "teste") return false;
+        if (unidadeFilter !== "all" && p.unidade_id !== unidadeFilter) return false;
+        if (cargoFilter !== "all" && p.cargo_id !== cargoFilter) return false;
+        if (q && !p.nome.toLowerCase().includes(q) && !(p.telefone ?? "").includes(q)) return false;
+        return true;
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [pessoasApoio.data, search, unidadeFilter, cargoFilter, origem]);
+
+  const todosVisiveis = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const colabs = (list.data ?? [])
+      .filter((c) => {
+        if (q) {
+          const hit =
+            c.nome.toLowerCase().includes(q) ||
+            (c.cpf ?? "").toLowerCase().includes(q) ||
+            (c.matricula ?? "").toLowerCase().includes(q);
+          if (!hit) return false;
+        }
+        if (unidadeFilter !== "all" && c.unidade_id !== unidadeFilter) return false;
+        if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
+        return true;
+      })
+      .map((c) => ({ tipo: "colaborador" as const, item: c, nome: c.nome }));
+    const apoio = (pessoasApoio.data ?? [])
+      .filter((p) => {
+        if (q && !p.nome.toLowerCase().includes(q) && !(p.telefone ?? "").includes(q)) return false;
+        if (unidadeFilter !== "all" && p.unidade_id !== unidadeFilter) return false;
+        if (cargoFilter !== "all" && p.cargo_id !== cargoFilter) return false;
+        return true;
+      })
+      .map((p) => ({ tipo: p.tipo === "folguista" ? ("folguista" as const) : ("teste" as const), item: p, nome: p.nome }));
+    return [...colabs, ...apoio].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [list.data, pessoasApoio.data, search, unidadeFilter, cargoFilter]);
+
   /**
    * Atalho de outras telas (ex.: Rotina): /dp/colaboradores?editar=<id> abre o
    * cadastro da pessoa direto, sem o gestor precisar procurar na lista.
