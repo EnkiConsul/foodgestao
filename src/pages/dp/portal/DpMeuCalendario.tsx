@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { FolgaCalendarShared } from "@/components/dp/FolgaCalendarShared";
 import { Button } from "@/components/ui/button";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -1119,6 +1120,6 @@ export default function DpMeuCalendario() {
           tipo="folga"
         />
       )}
-    </div>
+    </DpPage>
   );
 }
