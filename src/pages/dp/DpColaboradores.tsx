@@ -741,7 +741,7 @@ export default function DpColaboradores() {
                         />
                       ))}
                       <TableHead
-                        className="uppercase text-xs tracking-wider text-center"
+                        className="text-xs text-center"
                         style={{ width: COLAB_ACOES_WIDTH }}
                       >
                         Ações
@@ -904,12 +904,12 @@ export default function DpColaboradores() {
                 <Table className="table-fixed" style={{ width: "100%", minWidth: 720 }}>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="uppercase text-xs tracking-wider">Nome</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">CPF</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">Cargo</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">Unidade</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">Setor</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider text-center">Ações</TableHead>
+                      <TableHead className="text-xs">Nome</TableHead>
+                      <TableHead className="text-xs">CPF</TableHead>
+                      <TableHead className="text-xs">Cargo</TableHead>
+                      <TableHead className="text-xs">Unidade</TableHead>
+                      <TableHead className="text-xs">Setor</TableHead>
+                      <TableHead className="text-xs text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1021,11 +1021,11 @@ export default function DpColaboradores() {
                 <Table className="table-fixed" style={{ width: "100%", minWidth: 720 }}>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="uppercase text-xs tracking-wider">Nome</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">Origem</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">Cargo / Unidade</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider">Status</TableHead>
-                      <TableHead className="uppercase text-xs tracking-wider text-center">Ações</TableHead>
+                      <TableHead className="text-xs">Nome</TableHead>
+                      <TableHead className="text-xs">Origem</TableHead>
+                      <TableHead className="text-xs">Cargo / Unidade</TableHead>
+                      <TableHead className="text-xs">Status</TableHead>
+                      <TableHead className="text-xs text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
