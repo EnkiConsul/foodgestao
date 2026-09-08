@@ -503,14 +503,14 @@ function DetalheDiaOperacao({
                         {g.pessoas.map((p) => (
                           <li
                             key={`${p.colaborador_id}-${p.categoria}-${p.ocorrencia_id ?? p.avulso_id ?? ""}`}
-                            className="flex items-center justify-between gap-3 py-2"
+                            className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2"
                           >
-                          <div className="min-w-0">
+                          <div className="min-w-0 w-full sm:w-auto">
                             <p className="truncate text-sm font-medium">{p.nome}</p>
                             <p className="text-xs text-muted-foreground">
-                              {p.entrada ?? "--:--"} às {p.saida ?? "--:--"}
+                              <span className="whitespace-nowrap">{p.entrada ?? "--:--"} às {p.saida ?? "--:--"}</span>
                               {p.termina_no_dia_seguinte ? " (+1)" : ""} ·{" "}
-                              {formatarHoras(p.carga_prevista_horas)}
+                              <span className="whitespace-nowrap">{formatarHoras(p.carga_prevista_horas)}</span>
                             </p>
                             {p.ocorrencias?.length ? (
                               <div className="mt-1 flex flex-wrap items-center gap-1">
@@ -531,7 +531,7 @@ function DetalheDiaOperacao({
                             ) : null}
                           </div>
 
-                          <div className="flex shrink-0 items-center gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
                             {usaSetores && (
                               <Badge
                                 variant="outline"
@@ -604,8 +604,8 @@ function DetalheDiaOperacao({
         {avulsosDoDia.length ? (
           <ul className="divide-y">
             {avulsosDoDia.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-3 py-2">
-                <div className="min-w-0">
+              <li key={a.id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
+                <div className="min-w-0 w-full sm:w-auto">
                   <p className="truncate text-sm font-medium">
                     {a.nome ??
                       (a.colaborador_id ? nomesColaboradores.get(a.colaborador_id) ?? "Colaborador" : "Sem nome")}
@@ -624,7 +624,7 @@ function DetalheDiaOperacao({
                   </p>
                   {a.observacao && <p className="text-xs text-muted-foreground">{a.observacao}</p>}
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
                   <Badge variant="secondary">
                     {a.tipo === "teste"
                       ? "Em teste"
@@ -660,9 +660,9 @@ function DetalheDiaOperacao({
         <Secao title="Fora da Operação" description="Folgas, férias e afastamentos do dia">
           <ul className="divide-y">
             {foraDaOperacao.map((p) => (
-              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
                 <span className="truncate text-sm">{p.nome}</span>
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
                   {tagSocio(p) && (
                     <Badge variant="outline" className="border-primary/40 text-primary">
                       Folga sócio
@@ -684,13 +684,13 @@ function DetalheDiaOperacao({
           <ul className="divide-y">
             {ausReg.map((a, i) => (
               <li key={`${a.colaborador_id}-${i}`} className="flex items-start justify-between gap-3 py-2">
-                <div className="min-w-0">
+                <div className="min-w-0 w-full sm:w-auto">
                   <span className="block truncate text-sm">
                     {nomesColaboradores.get(a.colaborador_id) ?? "—"}
                   </span>
                   {a.motivo && <span className="block text-xs text-muted-foreground">{a.motivo}</span>}
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
                   <Badge variant="outline">{rotuloAus(a.tipo)}</Badge>
                   {a.fim !== a.inicio && <span className="text-xs text-muted-foreground">até {a.fim}</span>}
                 </div>
@@ -1329,7 +1329,7 @@ export default function DpOperacaoPanorama() {
                 <ul className="divide-y">
                   {diasAlerta.map((d) => (
                     <li key={d.data} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                      <div className="min-w-0">
+                      <div className="min-w-0 w-full sm:w-auto">
                         <button
                           type="button"
                           className="text-sm font-medium underline-offset-2 hover:underline"
@@ -1423,7 +1423,7 @@ export default function DpOperacaoPanorama() {
           </DialogHeader>
           <ul className="max-h-[60vh] divide-y overflow-y-auto">
             {sociosDoDialogo.map((p) => (
-              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
                 <span className="truncate text-sm">{p.nome}</span>
                 <Badge variant="outline">{p.categoria === "ferias" ? "Férias" : "Folga"}</Badge>
               </li>
@@ -1443,9 +1443,9 @@ export default function DpOperacaoPanorama() {
           </DialogHeader>
           <ul className="max-h-[60vh] divide-y overflow-y-auto">
             {pessoasDaCategoria.map((p) => (
-              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
+              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
                 <span className="truncate text-sm">{p.nome}</span>
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
                   {tagSocio(p) && (
                     <Badge variant="outline" className="border-primary/40 text-primary">Folga sócio</Badge>
                   )}
@@ -1468,8 +1468,8 @@ export default function DpOperacaoPanorama() {
           </DialogHeader>
           <ul className="max-h-[60vh] divide-y overflow-y-auto">
             {avulsosDoDiaAtivo.map((p) => (
-              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex items-center justify-between gap-3 py-2">
-                <div className="min-w-0">
+              <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
+                <div className="min-w-0 w-full sm:w-auto">
                   <span className="block truncate text-sm">{p.nome}</span>
                   <span className="block text-xs text-muted-foreground">
                     {p.entrada ? `${p.entrada} às ${p.saida ?? "--:--"}` : "—"}
