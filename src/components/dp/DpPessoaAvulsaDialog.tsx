@@ -451,27 +451,65 @@ export function DpPessoaAvulsaDialog({
           </div>
 
           {form.tipo === "folguista" && (
-            <div className="grid gap-1.5">
-              <Label>Cobrindo quem (opcional)</Label>
-              <Select
-                value={form.cobre_colaborador_id || "nenhum"}
-                onValueChange={(v) =>
-                  setForm({ ...form, cobre_colaborador_id: v === "nenhum" ? "" : v })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Ninguém em específico" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nenhum">Ninguém em específico</SelectItem>
-                  {colaboradores.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className="grid gap-1.5">
+                <Label>Cobrindo quem (opcional)</Label>
+                <Select
+                  value={form.cobre_colaborador_id || "nenhum"}
+                  onValueChange={(v) =>
+                    setForm({
+                      ...form,
+                      cobre_colaborador_id: v === "nenhum" ? "" : v,
+                      cobre_motivo: v === "nenhum" ? "" : form.cobre_motivo,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ninguém em específico" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhum">Ninguém em específico</SelectItem>
+                    {colaboradores.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!form.cobre_colaborador_id && (
+                  <p className="text-xs text-muted-foreground">
+                    Sem cobertura, a pessoa aparece como “Folguista Extra” na rotina.
+                  </p>
+                )}
+              </div>
+              {form.cobre_colaborador_id && (
+                <div className="grid gap-1.5">
+                  <Label>Motivo da cobertura</Label>
+                  <Select
+                    value={form.cobre_motivo || "outro"}
+                    onValueChange={(v) => setForm({ ...form, cobre_motivo: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(COBRE_MOTIVO_LABEL).map(([v, l]) => (
+                        <SelectItem key={v} value={v}>
+                          {l}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {form.cobre_motivo === "atestado"
+                      ? "Motivo apenas operacional: não cria nem substitui o documento médico."
+                      : form.cobre_motivo === "falta" || form.cobre_motivo === "atestado"
+                        ? "O dia da pessoa coberta é ajustado automaticamente: se já houver registro, ele é reaproveitado sem duplicar."
+                        : "Se a pessoa coberta já tiver folga ou ausência registrada no dia, o registro existente é reaproveitado."}
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           <div className="grid grid-cols-2 gap-3">
