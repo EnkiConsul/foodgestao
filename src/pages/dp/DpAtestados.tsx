@@ -374,7 +374,7 @@ export default function DpAtestados() {
           <DpFilterCard>
             <div className="grid gap-3 md:grid-cols-5">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase text-foreground">Unidade</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Unidade</Label>
                 <Select value={fUnidade} onValueChange={setFUnidade}>
                   <SelectTrigger><SelectValue placeholder="Unidade" /></SelectTrigger>
                   <SelectContent>
@@ -384,7 +384,7 @@ export default function DpAtestados() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase text-foreground">Colaborador</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
                 <Select value={fColab} onValueChange={setFColab}>
                   <SelectTrigger><SelectValue placeholder="Colaborador" /></SelectTrigger>
                   <SelectContent>
@@ -394,15 +394,15 @@ export default function DpAtestados() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase text-foreground">Data Início</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Data Início</Label>
                 <Input type="date" value={fDataInicio} onChange={(e) => setFDataInicio(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase text-foreground">Data Fim</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Data Fim</Label>
                 <Input type="date" value={fDataFim} onChange={(e) => setFDataFim(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase text-foreground">Status</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Status</Label>
                 <Select value={fStatus} onValueChange={setFStatus}>
                   <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
                   <SelectContent>
@@ -443,7 +443,7 @@ export default function DpAtestados() {
                     const FileIcon = fileKind.icon;
                     return (
                       <TableRow key={r.id} className="align-middle">
-                        <TableCell className="truncate px-3 font-bold uppercase text-foreground" title={r.dp_colaboradores?.nome ?? ""}>{r.dp_colaboradores?.nome ?? "—"}</TableCell>
+                        <TableCell className="truncate px-3 font-semibold text-foreground" title={r.dp_colaboradores?.nome ?? ""}>{r.dp_colaboradores?.nome ?? "—"}</TableCell>
                         <TableCell className="truncate px-3 text-foreground" title={unitName ?? ""}>{unitName ?? "—"}</TableCell>
                         <TableCell className="whitespace-nowrap px-3">{formatDate(r.data_alvo)}</TableCell>
                         <TableCell className="whitespace-nowrap px-3">{formatDate(r.data_fim)}</TableCell>
@@ -519,7 +519,7 @@ export default function DpAtestados() {
                 <div key={r.id} className="rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <div className="font-bold uppercase truncate">{r.dp_colaboradores?.nome ?? "—"}</div>
+                      <div className="truncate font-semibold">{r.dp_colaboradores?.nome ?? "—"}</div>
                       {unitName && <div className="text-[11px] text-muted-foreground truncate">{unitName}</div>}
                     </div>
                     <Badge variant="outline" className={STATUS_BADGE[r.status].className + " shrink-0"}>{STATUS_BADGE[r.status].label}</Badge>
