@@ -39,7 +39,12 @@ export function exigeRevisaoAdministrativa(faltas: number | null | undefined): b
   return typeof faltas === "number" && faltas > 32;
 }
 
-export type NivelVencimento = "normal" | "planejamento" | "atencao" | "vencido";
+export type NivelVencimento =
+  | "normal"
+  | "planejamento"
+  | "a_conceder"
+  | "atencao"
+  | "vencido";
 
 export const NIVEL_VENCIMENTO_META: Record<
   NivelVencimento,
@@ -47,8 +52,18 @@ export const NIVEL_VENCIMENTO_META: Record<
 > = {
   normal: { label: "Normal", tone: "bg-muted text-muted-foreground" },
   planejamento: { label: "Planejar", tone: "bg-sky-500/15 text-sky-600" },
+  a_conceder: { label: "A conceder", tone: "bg-amber-500/10 text-amber-700" },
   atencao: { label: "Atenção", tone: "bg-amber-500/15 text-amber-600" },
   vencido: { label: "Vencido", tone: "bg-destructive/15 text-destructive" },
+};
+
+/** Como a empresa quer sinalizar ciclos de férias que já se encerraram. */
+export type FeriasSinalizacaoCiclo = "legal" | "a_conceder" | "vencido";
+
+export const FERIAS_SINALIZACAO_LABEL: Record<FeriasSinalizacaoCiclo, string> = {
+  legal: "Somente pelo prazo legal (12 meses após o fim do ciclo)",
+  a_conceder: "Marcar como “A conceder” assim que o ciclo encerra",
+  vencido: "Marcar como “Vencido” assim que o ciclo encerra",
 };
 
 /**
