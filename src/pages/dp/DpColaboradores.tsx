@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal, FileText, History as HistoryIcon } from "lucide-react";
+import { Plus, Pencil, Trash, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal, FileText, History as HistoryIcon, Building2 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -37,6 +37,7 @@ import { MotivoDialog } from "@/components/dp/MotivoDialog";
 import { Link } from "react-router-dom";
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
 import { ColaboradorCondicoesDialog } from "@/components/dp/ColaboradorCondicoesDialog";
+import { ApoioUnidadesDialog } from "@/components/dp/ApoioUnidadesDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpSalvarLargurasButton } from "@/components/dp/DpSalvarLargurasButton";
@@ -158,6 +159,7 @@ export default function DpColaboradores() {
   };
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
   const [condicoesDe, setCondicoesDe] = useState<DpColaborador | null>(null);
+  const [apoioUnidadesDe, setApoioUnidadesDe] = useState<DpColaborador | null>(null);
 
   /** Ações padrão de colaborador reutilizadas nos cards e na tabela unificada. */
   const acoesColaborador = (c: DpColaborador) => [
@@ -792,6 +794,9 @@ export default function DpColaboradores() {
                                 <DropdownMenuItem onSelect={() => setCondicoesDe(c)}>
                                   <HistoryIcon className="h-4 w-4 mr-2" /> Alterar condições de trabalho
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => setApoioUnidadesDe(c)}>
+                                  <Building2 className="h-4 w-4 mr-2" /> Atuação em outras unidades
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => setToDelete(c)}>
                                   <Trash2 className="h-4 w-4 mr-2 text-destructive" /> Remover
                                 </DropdownMenuItem>
@@ -1074,6 +1079,9 @@ export default function DpColaboradores() {
                                     <DropdownMenuItem onSelect={() => setCondicoesDe(c)}>
                                       <HistoryIcon className="h-4 w-4 mr-2" /> Alterar condições de trabalho
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => setApoioUnidadesDe(c)}>
+                                      <Building2 className="h-4 w-4 mr-2" /> Atuação em outras unidades
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onSelect={() => setToDelete(c)}>
                                       <Trash2 className="h-4 w-4 mr-2 text-destructive" /> Remover
                                     </DropdownMenuItem>
@@ -1302,6 +1310,13 @@ export default function DpColaboradores() {
         </Dialog>
       )}
 
+      <ApoioUnidadesDialog
+        open={!!apoioUnidadesDe}
+        onOpenChange={(o) => !o && setApoioUnidadesDe(null)}
+        nome={apoioUnidadesDe?.nome ?? ""}
+        colaboradorId={apoioUnidadesDe?.id ?? null}
+        unidadeHabitualId={apoioUnidadesDe?.unidade_id ?? null}
+      />
       <ColaboradorCondicoesDialog
         colaborador={condicoesDe}
         open={!!condicoesDe}
