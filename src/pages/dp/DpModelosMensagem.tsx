@@ -21,12 +21,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
+import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
+import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
+import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { applyModeloVars } from "@/hooks/useDpModelosMensagem";
 
 type Modelo = {
   id: string; titulo: string; corpo: string; canal: "whatsapp" | "email" | "sms";
   variaveis: string[]; ativo: boolean;
 };
+
+type ModColKey = "titulo" | "canal" | "variaveis" | "ativo";
+type ModSortKey = "padrao" | "titulo" | "canal" | "ativo";
+
+const MOD_COL_ORDER: ModColKey[] = ["titulo", "canal", "variaveis", "ativo"];
+const MOD_COL_WIDTHS: Record<ModColKey, number> = { titulo: 260, canal: 120, variaveis: 260, ativo: 100 };
+const MOD_ACOES_WIDTH = 140;
 
 export default function DpModelosMensagem() {
   const { selectedCompanyId } = useCompanyContext();
