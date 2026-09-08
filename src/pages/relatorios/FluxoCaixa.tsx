@@ -397,7 +397,7 @@ export default function RelatorioFluxoCaixa() {
           <FluxoCaixaFiltros filtros={filtros} onChange={setFiltros} opcoes={filtroOpcoes} />
 
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
             <div className="flex items-center gap-2">
               <Switch id="hide-empty" checked={hideEmpty} onCheckedChange={setHideEmpty} />
               <Label htmlFor="hide-empty" className="text-xs text-muted-foreground">Só com movimento</Label>
