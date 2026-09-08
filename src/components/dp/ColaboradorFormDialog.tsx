@@ -509,6 +509,44 @@ export function ColaboradorFormDialog({
   }, [open, form.unidade_id, form.cargo_id, padroesBeneficios.data]);
 
 
+  /**
+   * Pré-preenche o cadastro quando estamos promovendo uma pessoa de apoio
+   * (folguista ou em teste) a colaborador. A lógica normal de edição sobrescreve
+   * estes valores quando um colaborador real é passado.
+   */
+  useEffect(() => {
+    if (!open || colaborador?.id || !pessoaApoioInicial) return;
+    const p = pessoaApoioInicial;
+    setForm({
+      ...DOCUMENTOS_PESSOAIS_BLANK,
+      nome: p.nome ?? "",
+      cpf: p.cpf ? maskCpf(p.cpf) : "",
+      matricula: "",
+      email: "",
+      whatsapp: p.telephone ?? "",
+      cargo_id: p.cargo_id ?? "",
+      unidade_id: p.unidade_id ?? "",
+      setor_id: p.setor_id ?? "",
+      sindicato_id: "",
+      data_admissao: new Date().toISOString().slice(0, 10),
+      data_nascimento: p.data_nascimento ?? "",
+      sexo: p.genero && ["F", "M", "none"].includes(p.genero) ? p.genero : "none",
+      domingos_folga_mes: "none",
+      data_desligamento: "",
+      motivo_desligamento: NONE_DESLIG,
+      elegivel_recontratacao: NONE_DESLIG,
+      observacao_desligamento: "",
+      tipo_vinculo: "CLT",
+      folga_fixa_semana: "none",
+      perfil_acesso: "colaborador",
+      ativo: true,
+      possui_folha_ponto: false,
+      optante_adiantamento: false,
+    });
+    setRem({ ...remuneracaoBlank, forma_pagamento: formaPagamentoPadrao("clt") });
+    setCriadoId(null);
+  }, [open, pessoaApoioInicial, colaborador?.id]);
+
   useEffect(() => {
     if (!open) return;
     cienciaConfirmada.current = null;
