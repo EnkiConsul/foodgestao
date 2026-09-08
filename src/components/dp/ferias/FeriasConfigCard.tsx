@@ -13,8 +13,9 @@ import {
 import { useDpFeriasConfigUnidades } from "@/hooks/useDpFeriasConfigUnidades";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import {
-  FERIAS_SINALIZACAO_LABEL, type FeriasSinalizacaoCiclo,
+  FERIAS_EXPLICACAO_DOBRA, FERIAS_SINALIZACAO_LABEL, type FeriasSinalizacaoCiclo,
 } from "@/lib/dp/ferias-direito";
+
 
 /** Antecedência do aviso de férias e política de adiantamento do 13º. */
 export function FeriasConfigCard() {
@@ -138,11 +139,21 @@ export function FeriasConfigCard() {
         </div>
       </div>
 
+      <div className="space-y-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+        <p className="text-sm font-medium text-destructive">
+          Duas férias em aberto = risco de pagar em dobro
+        </p>
+        {FERIAS_EXPLICACAO_DOBRA.map((linha) => (
+          <p key={linha} className="text-xs text-muted-foreground">{linha}</p>
+        ))}
+      </div>
+
       <div className="space-y-2 rounded-xl border p-3">
         <p className="text-sm font-medium">Sinalizar férias de ciclos já encerrados</p>
         <p className="text-xs text-muted-foreground">
           Quando o ano de trabalho fecha e ninguém tirou as férias, o sistema pode avisar antes
-          do prazo legal terminar.
+          do prazo legal terminar. Qualquer opção escolhida aqui muda só o aviso: o prazo legal e o
+          alerta de risco de dobra continuam valendo.
         </p>
         <Select
           value={sinalizacao}
@@ -156,6 +167,7 @@ export function FeriasConfigCard() {
           </SelectContent>
         </Select>
       </div>
+
 
       <div className="space-y-2 rounded-xl border p-3">
         <p className="text-sm font-medium">Início do Controle de Férias</p>

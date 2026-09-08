@@ -4,8 +4,11 @@ import {
   exigeRevisaoAdministrativa,
   nivelVencimento,
   nivelVencimentoPeriodo,
+  riscoAcumulo,
+  riscoAcumuloPorColaborador,
   textoErroFerias,
   textoPrazo,
+  textoRiscoAcumulo,
 } from "../ferias-direito";
 
 describe("faixas legais de faltas", () => {
@@ -125,5 +128,77 @@ describe("nivelVencimentoPeriodo — ciclos já encerrados", () => {
     expect(nivelVencimentoPeriodo({ ...base, hojeISO: "2026-10-05", politica: "legal" })).toBe(
       "vencido",
     );
+  });
+});
+
+describe("risco de pagamento em dobro", () => {
+  const p = (id: string, ini: string, fim: string, limite: string, saldo: number, extra: any = {}) => ({
+    id,
+    inicio_aquisitivo: ini,
+    fim_aquisitivo: fim,
+    limite_concessivo: limite,
+    dias_saldo: saldo,
+    status: "disponivel",
+    ...extra,
+  });
+
+  const hojeISO = "2026-09-08";
+
+  it("um período em aberto não gera risco", () => {
+    const r = riscoAcumulo({ periodos: [p("a", "2024-10-01", "2025-09-30", "2026-09-30", 30)], hojeISO });
+    expect(r.emRisco).toBe(false);
+    expect(r.periodosAbertos).toHaveLength(1);
+  });
+
+  it("dois períodos com saldo geram risco e apontam o mais antigo", () => {
+    const r = riscoAcumulo({
+      periodos: [
+        p("novo", "2025-10-01", "2026-09-30", "2027-09-30", 30),
+        p("antigo", "2024-10-01", "2025-09-30", "2026-09-30", 30),
+      ],
+      hojeISO,
+    });
+    expect(r.emRisco).toBe(true);
+    expect(r.periodoMaisAntigo?.id).toBe("antigo");
+    expect(r.diasParaLimite).toBe(22);
+  });
+
+  it("período de controle externo não conta", () => {
+    const r = riscoAcumulo({
+      periodos: [
+        p("hist", "2023-10-01", "2024-09-30", "2025-09-30", 30, { controle_externo: true }),
+        p("atual", "2024-10-01", "2025-09-30", "2026-09-30", 30),
+      ],
+      hojeISO,
+    });
+    expect(r.emRisco).toBe(false);
+  });
+
+  it("período sem saldo ou em aquisição não conta", () => {
+    const r = riscoAcumulo({
+      periodos: [
+        p("zerado", "2024-10-01", "2025-09-30", "2026-09-30", 0),
+        p("emcurso", "2025-10-01", "2026-09-30", "2027-09-30", 30, { status: "em_aquisicao" }),
+        p("aberto", "2023-10-01", "2024-09-30", "2025-09-30", 12),
+      ],
+      hojeISO,
+    });
+    expect(r.emRisco).toBe(false);
+    expect(r.periodoMaisAntigo?.id).toBe("aberto");
+  });
+
+  it("agrupa o risco por colaborador", () => {
+    const mapa = riscoAcumuloPorColaborador(
+      [
+        { ...p("a1", "2024-10-01", "2025-09-30", "2026-09-30", 30), colaborador_id: "c1" },
+        { ...p("a2", "2025-10-01", "2026-09-30", "2027-09-30", 30), colaborador_id: "c1" },
+        { ...p("b1", "2024-10-01", "2025-09-30", "2026-09-30", 30), colaborador_id: "c2" },
+      ],
+      hojeISO,
+    );
+    expect(mapa.get("c1")?.emRisco).toBe(true);
+    expect(mapa.get("c2")?.emRisco).toBe(false);
+    expect(textoRiscoAcumulo(mapa.get("c1")!)).toContain("dobro");
+    expect(textoRiscoAcumulo(mapa.get("c2")!)).toBeNull();
   });
 });

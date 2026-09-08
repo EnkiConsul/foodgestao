@@ -17,7 +17,7 @@ import {
   FRACIONAMENTO_PADRAO, avaliarFracionamento, descreverFracionamento,
   type FracionamentoRegra,
 } from "@/lib/dp/ferias-fracionamento";
-import { FERIAS_ERRO_TEXTO } from "@/lib/dp/ferias-direito";
+import { FERIAS_ERRO_TEXTO, riscoAcumulo } from "@/lib/dp/ferias-direito";
 
 type Props = {
   open: boolean;
@@ -122,7 +122,32 @@ export function FeriasGozoDialog({
   }, [form.data_inicio]);
   const emCimaDaHora =
     !editing && diasDeAviso !== null && diasDeAviso < antecedenciaDias;
-  const faltaJustificativa = emCimaDaHora && justificativa.trim().length < 3;
+
+  /**
+   * Ordem legal: o período que vence primeiro precisa sair primeiro. Deixar o mais
+   * antigo em aberto é o caminho direto para o pagamento em dobro.
+   */
+  const foraDeOrdem = useMemo(() => {
+    if (editing || !periodoSel) return null;
+    const doColab = periodos.filter((p) => p.colaborador_id === periodoSel.colaborador_id);
+    const risco = riscoAcumulo({
+      periodos: doColab as any[],
+      hojeISO: format(new Date(), "yyyy-MM-dd"),
+    });
+    if (!risco.emRisco) return null;
+    const antigo = risco.periodoMaisAntigo;
+    if (!antigo || antigo.id === periodoSel.id) return null;
+    return {
+      inicio: antigo.inicio_aquisitivo,
+      fim: antigo.fim_aquisitivo,
+      limite: antigo.limite_concessivo,
+      saldo: antigo.dias_saldo ?? 0,
+    };
+  }, [editing, periodoSel, periodos]);
+
+  const precisaJustificar = emCimaDaHora || !!foraDeOrdem;
+  const faltaJustificativa = precisaJustificar && justificativa.trim().length < 3;
+
 
   const selectPeriodo = (id: string) => {
     const p = periodos.find((x) => x.id === id);
@@ -217,20 +242,41 @@ export function FeriasGozoDialog({
             />
           </div>
 
-          {emCimaDaHora && (
-            <div className="space-y-2 rounded-xl border border-amber-400/60 bg-amber-500/10 p-3">
-              <p className="text-sm font-medium text-amber-700">
-                Aviso com {diasDeAviso} dia(s) de antecedência — a empresa pede {antecedenciaDias}.
+          {foraDeOrdem && (
+            <div className="space-y-1 rounded-xl border border-destructive/50 bg-destructive/10 p-3">
+              <p className="text-sm font-medium text-destructive">
+                Esta pessoa tem férias mais antigas em aberto.
               </p>
+              <p className="text-xs text-muted-foreground">
+                O período de {format(parseISO(foraDeOrdem.inicio), "dd/MM/yyyy")} a{" "}
+                {format(parseISO(foraDeOrdem.fim), "dd/MM/yyyy")} ainda tem {foraDeOrdem.saldo} dia(s)
+                e vence em {format(parseISO(foraDeOrdem.limite), "dd/MM/yyyy")}. Programar o período
+                mais novo antes dele pode fazer a empresa pagar férias em dobro.
+              </p>
+            </div>
+          )}
+
+          {(emCimaDaHora || foraDeOrdem) && (
+            <div className="space-y-2 rounded-xl border border-amber-400/60 bg-amber-500/10 p-3">
+              {emCimaDaHora && (
+                <p className="text-sm font-medium text-amber-700">
+                  Aviso com {diasDeAviso} dia(s) de antecedência — a empresa pede {antecedenciaDias}.
+                </p>
+              )}
               <Label>Justificativa</Label>
               <Textarea
                 rows={2}
                 value={justificativa}
-                placeholder="Explique por que estas férias estão sendo marcadas em cima da hora."
+                placeholder={
+                  foraDeOrdem
+                    ? "Explique por que as férias mais antigas não estão sendo concedidas primeiro."
+                    : "Explique por que estas férias estão sendo marcadas em cima da hora."
+                }
                 onChange={(e) => setJustificativa(e.target.value)}
               />
             </div>
           )}
+
 
           <div className="space-y-2">
             <Label>Observação</Label>
