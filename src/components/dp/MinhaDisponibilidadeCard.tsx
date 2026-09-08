@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MONTH_NAMES, WEEKDAY_LABELS, formatBR, parseYMD } from "@/lib/dp/folga-rules";
 import { Badge } from "@/components/ui/badge";
+import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { AlertTriangle, Lock } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
