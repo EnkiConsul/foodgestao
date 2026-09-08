@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calculator, PencilLine, Pencil, Plus } from "lucide-react";
 import {
   formaPagamentoOptions,
+  formaEhAcordoRegistrado,
   valeTransporteDoMes,
   valorHoraPorBase,
   valorDiaPorBase,
@@ -380,9 +381,15 @@ export function RemuneracaoFields({
       ? "Valor da hora *"
       : forma === "diarista"
         ? "Valor do dia *"
-        : policy.entraEmFolha
-          ? "Salário base *"
-          : "Remuneração acordada *";
+        : forma === "semanal"
+          ? "Valor semanal acordado *"
+          : forma === "por_turno"
+            ? "Valor por turno acordado *"
+            : forma === "servico_acordo"
+              ? "Valor por serviço/acordo *"
+              : policy.entraEmFolha
+                ? "Salário base *"
+                : "Remuneração acordada *";
   const bloqueiaValor = usaBase && !value.valor_hora_manual && calculado != null;
   // Um cargo = um salário de referência: o mensalista abre travado no valor do
   // cargo, mas pode informar remuneração contratual própria (ex.: tempo parcial
@@ -586,6 +593,11 @@ export function RemuneracaoFields({
               Em branco, vale o salário de referência do cargo ({formatarBRL(salarioCargo)}).
             </p>
           ) : null}
+          {formaEhAcordoRegistrado(forma) && (
+            <p className="text-[11px] text-muted-foreground">
+              Apenas o acordo fica registrado — o sistema não converte esse valor em hora, dia ou mês.
+            </p>
+          )}
         </div>
 
         {/* Valor da diária — fonte oficial do cachê em convocações */}

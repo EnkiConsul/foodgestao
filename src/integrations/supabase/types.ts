@@ -15640,7 +15640,13 @@ export type Database = {
         | "vale_alimentacao"
         | "vale_transporte"
         | "rescisao"
-      dp_forma_pagamento: "mensalista" | "horista" | "diarista"
+      dp_forma_pagamento:
+        | "mensalista"
+        | "horista"
+        | "diarista"
+        | "semanal"
+        | "por_turno"
+        | "servico_acordo"
       dp_mensagem_canal: "whatsapp" | "email" | "sms"
       dp_motivo_desligamento:
         | "pedido_demissao"
@@ -16124,7 +16130,14 @@ export const Constants = {
         "vale_transporte",
         "rescisao",
       ],
-      dp_forma_pagamento: ["mensalista", "horista", "diarista"],
+      dp_forma_pagamento: [
+        "mensalista",
+        "horista",
+        "diarista",
+        "semanal",
+        "por_turno",
+        "servico_acordo",
+      ],
       dp_mensagem_canal: ["whatsapp", "email", "sms"],
       dp_motivo_desligamento: [
         "pedido_demissao",

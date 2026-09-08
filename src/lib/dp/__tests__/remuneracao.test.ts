@@ -43,6 +43,12 @@ describe("salário e valor-hora", () => {
     // carga 44h/sem → 8,8h/dia
     expect(valorHoraEfetivo({ forma_pagamento: "diarista", salario_base: 176 }, 44)).toBeCloseTo(20, 5);
   });
+
+  it("não calcula valor-hora para acordo registrado (semanal, turno, serviço)", () => {
+    expect(valorHoraEfetivo({ forma_pagamento: "semanal", salario_base: 800 }, 44)).toBeUndefined();
+    expect(valorHoraEfetivo({ forma_pagamento: "por_turno", salario_base: 120 }, 44)).toBeUndefined();
+    expect(valorHoraEfetivo({ forma_pagamento: "servico_acordo", salario_base: 500 }, 44)).toBeUndefined();
+  });
 });
 
 describe("adicional e vale-transporte", () => {
@@ -79,6 +85,9 @@ describe("pendência de remuneração", () => {
     expect(remuneracaoPendente({ forma_pagamento: "horista" })).toMatch(/hora/i);
     expect(remuneracaoPendente({ forma_pagamento: "diarista" })).toMatch(/dia/i);
     expect(remuneracaoPendente({ forma_pagamento: "mensalista" })).toMatch(/salário/i);
+    expect(remuneracaoPendente({ forma_pagamento: "por_turno" })).toMatch(/acordo/i);
+    expect(remuneracaoPendente({ forma_pagamento: "servico_acordo" })).toMatch(/acordo/i);
+    expect(remuneracaoPendente({ forma_pagamento: "semanal", salario_base: 800 })).toBeNull();
   });
 
   it("não aponta pendência quando há valor", () => {
