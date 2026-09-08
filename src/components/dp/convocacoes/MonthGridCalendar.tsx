@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getMonthDays, ymd } from "@/lib/dp/folga-rules";
+import { DiasEmLista } from "@/components/dp/DiasEmLista";
 
 /**
  * Calendário mensal genérico. NÃO conhece regras de Folgas, DSR ou férias:
@@ -92,13 +93,42 @@ export function MonthGridCalendar({
         </Button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] uppercase text-muted-foreground">
+      {/* Mobile: 1 dia = 1 linha */}
+      <div className="md:hidden">
+        <DiasEmLista
+          dias={dias.map((d) => {
+            const iso = ymd(d);
+            const meta = info?.[iso];
+            return {
+              iso,
+              titulo: meta?.titulo ?? undefined,
+              desabilitado: meta?.desabilitado,
+              selecionado: selecionados.has(iso),
+              onSelect: () => onToggleDia(iso),
+              resumo: meta?.selo ? (
+                <span
+                  className={cn(
+                    "inline-flex rounded px-1.5 py-0.5 text-xs font-medium",
+                    TONS[meta.tom ?? "neutro"],
+                  )}
+                >
+                  {meta.selo}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">Sem informação</span>
+              ),
+            };
+          })}
+        />
+      </div>
+
+      <div className="hidden grid-cols-7 gap-1 text-center text-[10px] uppercase text-muted-foreground md:grid">
         {SEMANA.map((d, i) => (
           <div key={`${d}-${i}`}>{d}</div>
         ))}
       </div>
 
-      <div className="mt-1 grid grid-cols-7 gap-1">
+      <div className="mt-1 hidden grid-cols-7 gap-1 md:grid">
         {Array.from({ length: offset }).map((_, i) => (
           <div key={`vazio-${i}`} />
         ))}

@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { DIA_SEMANA_CURTO } from "@/lib/dp/dsr-rules";
 import { CLASSE_DIA_LABEL, MOTIVO_DESCONTO_LABEL, type ClasseDia, type MotivoDesconto } from "@/lib/dp/va-calculo";
 import type { LinhaVale } from "@/hooks/useDpValeCalculadora";
+import { DiasEmLista } from "@/components/dp/DiasEmLista";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -78,12 +79,29 @@ export function ValeMemoriaDialog({ open, onOpenChange, linha, valeLabel }: Prop
 
         <div className="space-y-4">
           <div className="rounded-xl border border-border p-3">
-            <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground">
+            {/* Mobile: 1 dia = 1 linha */}
+            <div className="md:hidden">
+              <DiasEmLista
+                dias={dias.map((d) => ({
+                  iso: d.data,
+                  titulo: `${dataCurta(d.data)} · ${CLASSE_DIA_LABEL[d.classe]}`,
+                  chips: (
+                    <span
+                      className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${CLASSE_ESTILO[d.classe]}`}
+                    >
+                      {CLASSE_DIA_LABEL[d.classe]}
+                    </span>
+                  ),
+                }))}
+              />
+            </div>
+
+            <div className="hidden grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground md:grid">
               {DIA_SEMANA_CURTO.map((d) => (
                 <span key={d}>{d}</span>
               ))}
             </div>
-            <div className="mt-1 grid grid-cols-7 gap-1">
+            <div className="mt-1 hidden grid-cols-7 gap-1 md:grid">
               {Array.from({ length: offset }).map((_, i) => (
                 <span key={`vazio-${i}`} />
               ))}

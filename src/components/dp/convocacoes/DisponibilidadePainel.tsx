@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DpContentCard, DpEmptyState } from "@/components/dp/DpPage";
+import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpDisponibilidadePainel, type DisponibilidadeDiaResumo } from "@/hooks/useDpDisponibilidadePainel";
 import { competenciaLabel, diaMes, type DisponibilidadeJanela } from "@/lib/dp/disponibilidade-janela";
@@ -161,10 +162,47 @@ export function DisponibilidadePainel() {
 
           <DpContentCard>
             <div className="mb-2 text-sm font-semibold">Disponíveis por dia</div>
-            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] text-muted-foreground">
+            {/* Mobile: 1 dia = 1 linha */}
+            <div className="md:hidden">
+              <DiasEmLista
+                dias={dados.dias.map((d) => ({
+                  iso: d.data,
+                  tom:
+                    d.disponiveis === 0
+                      ? ("critico" as const)
+                      : d.indisponiveis > 0 && d.disponiveis <= 2
+                        ? ("atencao" as const)
+                        : undefined,
+                  resumo: (
+                    <span>
+                      <span className="font-semibold">{d.disponiveis}</span> disponível(is)
+                      {d.indisponiveis > 0 ? (
+                        <span className="text-destructive"> · {d.indisponiveis} indisponível(is)</span>
+                      ) : null}
+                    </span>
+                  ),
+                  chips: (
+                    <>
+                      {d.pendentes > 0 && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {d.pendentes} aguardando
+                        </Badge>
+                      )}
+                      {d.aceitas > 0 && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {d.aceitas} confirmada(s)
+                        </Badge>
+                      )}
+                    </>
+                  ),
+                }))}
+              />
+            </div>
+
+            <div className="mb-1 hidden grid-cols-7 gap-1 text-center text-[10px] text-muted-foreground md:grid">
               {DIA_SEMANA.map((d, i) => <span key={i}>{d}</span>)}
             </div>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="hidden grid-cols-7 gap-1 md:grid">
               {Array.from({ length: offset }, (_, i) => <div key={`v${i}`} />)}
               {dados.dias.map((d) => <DiaCelula key={d.data} dia={d} />)}
             </div>

@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MONTH_NAMES, WEEKDAY_LABELS, formatBR, parseYMD } from "@/lib/dp/folga-rules";
 import { Badge } from "@/components/ui/badge";
+import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { AlertTriangle, Lock } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -119,7 +120,7 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-muted-foreground">
+          <div className="hidden grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-muted-foreground md:grid">
             {WEEKDAY_LABELS.map((w) => (
               <span key={w}>{w}</span>
             ))}
@@ -154,7 +155,50 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
               </div>
             </div>
           )}
-          <div className="grid grid-cols-7 gap-1">
+          {/* Mobile: 1 dia = 1 linha */}
+          <div className="md:hidden">
+            <DiasEmLista
+              dias={celulas
+                .filter((c): c is { iso: string; dia: number } => !!c)
+                .map((c) => {
+                  const est = estado(c.iso);
+                  return {
+                    iso: c.iso,
+                    onSelect: () => abrirDia(c.iso),
+                    desabilitado: isLoading,
+                    titulo: ROTULO[est],
+                    tom:
+                      c.iso < hojeIso
+                        ? undefined
+                        : est === "indisponivel"
+                          ? ("critico" as const)
+                          : est === "convocacao_pendente"
+                            ? ("atencao" as const)
+                            : est === "convocacao_confirmada"
+                              ? ("primario" as const)
+                              : ("sucesso" as const),
+                    resumo: (
+                      <span className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "h-2 w-2 shrink-0 rounded-full",
+                            tardiaPorDia.has(c.iso) ? "bg-amber-500" : PONTO[est],
+                          )}
+                        />
+                        {ROTULO[est]}
+                      </span>
+                    ),
+                    chips: tardiaPorDia.has(c.iso) ? (
+                      <Badge variant="outline" className="border-amber-500/50 text-[10px]">
+                        alteração tardia
+                      </Badge>
+                    ) : undefined,
+                  };
+                })}
+            />
+          </div>
+
+          <div className="hidden grid-cols-7 gap-1 md:grid">
             {celulas.map((c, i) =>
               !c ? (
                 <span key={`b${i}`} />
