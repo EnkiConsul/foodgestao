@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import type { FeriasSinalizacaoCiclo } from "@/lib/dp/ferias-direito";
 
 export type FeriasAdiantamento13 = "nao" | "legal" | "qualquer_epoca";
 
@@ -16,6 +17,8 @@ export type FeriasConfig = {
   fracaoMaiorDias: number;
   /** A partir de quando o sistema controla as férias (antes disso é histórico). */
   controleInicio: string | null;
+  /** Como sinalizar ciclos aquisitivos já encerrados com saldo a conceder. */
+  sinalizacaoCicloEncerrado: FeriasSinalizacaoCiclo;
 };
 
 export const FERIAS_CONFIG_DEFAULT: FeriasConfig = {
@@ -25,6 +28,7 @@ export const FERIAS_CONFIG_DEFAULT: FeriasConfig = {
   fracaoMinDias: 5,
   fracaoMaiorDias: 14,
   controleInicio: null,
+  sinalizacaoCicloEncerrado: "a_conceder",
 };
 
 export const ADIANTAMENTO_13_LABEL: Record<FeriasAdiantamento13, string> = {
@@ -45,7 +49,7 @@ export function useDpFeriasConfig() {
       const { data, error } = await supabase
         .from("dp_config_dp")
         .select(
-          "id, ferias_aviso_antecedencia_dias, ferias_adiantamento_13, ferias_fracionamento_max, ferias_fracao_min_dias, ferias_fracao_maior_dias, ferias_controle_inicio",
+          "id, ferias_aviso_antecedencia_dias, ferias_adiantamento_13, ferias_fracionamento_max, ferias_fracao_min_dias, ferias_fracao_maior_dias, ferias_controle_inicio, ferias_sinalizacao_ciclo_encerrado",
         )
         .eq("company_id", selectedCompanyId!)
         .is("unidade_id", null)
@@ -69,6 +73,8 @@ export function useDpFeriasConfig() {
             data?.ferias_fracao_maior_dias ?? FERIAS_CONFIG_DEFAULT.fracaoMaiorDias,
           ),
           controleInicio: (data?.ferias_controle_inicio as string | null | undefined) ?? null,
+          sinalizacaoCicloEncerrado: (data?.ferias_sinalizacao_ciclo_encerrado ??
+            FERIAS_CONFIG_DEFAULT.sinalizacaoCicloEncerrado) as FeriasSinalizacaoCiclo,
         } satisfies FeriasConfig,
       };
     },
@@ -87,6 +93,8 @@ export function useDpFeriasConfig() {
         ferias_fracao_maior_dias: patch.fracaoMaiorDias ?? atual.fracaoMaiorDias,
         ferias_controle_inicio:
           patch.controleInicio !== undefined ? patch.controleInicio : atual.controleInicio,
+        ferias_sinalizacao_ciclo_encerrado:
+          patch.sinalizacaoCicloEncerrado ?? atual.sinalizacaoCicloEncerrado,
       };
       if (query.data?.id) {
         const { error } = await supabase
