@@ -1090,6 +1090,14 @@ export default function DpColaboradores() {
         onOpenChange={(o) => !o && setCondicoesDe(null)}
       />
 
+      <NovoCadastroMetodoDialog open={metodoOpen} onOpenChange={setMetodoOpen} onSelect={escolherMetodo} />
+
+      <PessoaApoioFormDialog
+        open={apoioOpen}
+        onOpenChange={setApoioOpen}
+        tipoInicial={apoioTipo}
+      />
+
       <ColaboradorFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
