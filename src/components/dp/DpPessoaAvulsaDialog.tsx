@@ -111,6 +111,7 @@ export function DpPessoaAvulsaDialog({
     cargo_id: "",
     setor_id: "",
     cobre_colaborador_id: "",
+    cobre_motivo: "",
     data_inicio: dataInicial,
     data_fim: dataInicial,
     entrada: "",
@@ -140,7 +141,8 @@ export function DpPessoaAvulsaDialog({
       unidade_id: registro?.unidade_id ?? unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
       cargo_id: registro?.cargo_id ?? "",
       setor_id: registro?.setor_id ?? registro?.setor_habitual_id ?? "",
-      cobre_colaborador_id: "",
+      cobre_colaborador_id: registro?.cobre_colaborador_id ?? "",
+      cobre_motivo: registro?.cobre_motivo ?? "",
       data_inicio: dataBase,
       data_fim: registro?.data_fim ?? dataBase,
       entrada: registro?.entrada ?? "",
@@ -175,10 +177,40 @@ export function DpPessoaAvulsaDialog({
     }));
   };
 
+  /**
+   * Troca o tipo limpando identificadores incompatíveis: dados de pessoa de
+   * apoio não valem para colaborador cadastrado, e cobertura só existe no
+   * folguista.
+   */
+  const trocarTipo = (v: PessoaAvulsaTipo) => {
+    setForm((f) => ({
+      ...f,
+      tipo: v,
+      colaborador_id: v === "registro_manual" ? f.colaborador_id : "",
+      pessoa_apoio_id: v === "registro_manual" ? "" : f.pessoa_apoio_id,
+      nome: v === "registro_manual" ? "" : f.nome,
+      telefone: v === "registro_manual" ? "" : f.telefone,
+      cobre_colaborador_id: v === "folguista" ? f.cobre_colaborador_id : "",
+      cobre_motivo: v === "folguista" ? f.cobre_motivo : "",
+    }));
+  };
+
   /** Reaproveita alguém já cadastrado no banco de folguistas/testes. */
   const escolherApoio = (id: string) => {
     if (id === "novo") {
-      setForm((f) => ({ ...f, pessoa_apoio_id: "" }));
+      // "Nova pessoa" limpa tudo que foi herdado de outro cadastro; preserva
+      // apenas as datas e a unidade da operação (padrão da tela).
+      setForm((f) => ({
+        ...f,
+        pessoa_apoio_id: "",
+        nome: "",
+        telefone: "",
+        cargo_id: "",
+        setor_id: "",
+        cobre_colaborador_id: "",
+        cobre_motivo: "",
+        unidade_id: unidadePadrao ?? (unidades.length === 1 ? unidades[0].id : ""),
+      }));
       return;
     }
     const p = (apoio.data ?? []).find((x) => x.id === id);
