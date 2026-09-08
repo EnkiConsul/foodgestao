@@ -1173,6 +1173,11 @@ export default function DpOperacaoPanorama() {
                       ),
                       chips: (
                         <>
+                          {d.feriado_nome && (
+                            <Badge variant="outline" className="border-primary/40 text-[10px] text-primary">
+                              Feriado · {d.feriado_nome}
+                            </Badge>
+                          )}
                           <Badge variant="secondary" className="text-[10px]">
                             {d.contagens.fixo} fixo(s)
                           </Badge>
