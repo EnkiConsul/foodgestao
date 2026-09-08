@@ -34,6 +34,8 @@ export interface DiaPanorama extends ResultadoDia {
   dispensado: boolean;
   /** Há desvio relevante e ainda não dispensado. */
   alerta: boolean;
+  /** Nome do feriado da unidade neste dia, quando houver. */
+  feriado_nome: string | null;
 }
 
 /** Ausência registrada pelo gestor (adiantamento/outros), já aprovada. */
