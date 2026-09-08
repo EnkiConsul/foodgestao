@@ -119,17 +119,22 @@ export const FERIAS_ERRO_TEXTO: Record<string, string> = {
 
 /**
  * Corte padrão do controle de férias quando a empresa não informa uma data:
- * início do último período aquisitivo completo em relação a hoje.
+ * início do período aquisitivo que se encerrou no ano civil anterior ao atual.
+ * Assim, quem tem mais de um ano de casa sempre tem ao menos um período cobrado.
+ * Nunca antes da admissão.
  */
 export function corteFeriasPadrao(admissaoISO: string, hojeISO: string): string {
-  const [, mes, dia] = admissaoISO.split("-");
+  const [anoAdm, mes, dia] = admissaoISO.split("-");
   const aniversario = `${mes}-${dia}`;
   const anoHoje = Number(hojeISO.slice(0, 4));
-  const jaPassou = hojeISO.slice(5) >= aniversario;
-  const ano = anoHoje - (jaPassou ? 1 : 2);
+  // O período iniciado no ano Y termina no ano Y+1 (exceto quando o aniversário
+  // é 1º de janeiro, caso em que termina em 31/12 do próprio ano Y).
+  const ano = anoHoje - (aniversario === "01-01" ? 1 : 2);
+  if (ano < Number(anoAdm)) return admissaoISO;
   const corte = `${ano}-${aniversario}`;
   return corte < admissaoISO ? admissaoISO : corte;
 }
+
 
 
 
