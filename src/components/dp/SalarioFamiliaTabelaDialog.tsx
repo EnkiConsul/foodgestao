@@ -150,7 +150,7 @@ export function SalarioFamiliaTabelaDialog({ open, onOpenChange }: DialogProps) 
           </DialogTitle>
           <DialogDescription>
             O INSS reajusta a cota e o teto todo ano. Confirme os valores do ano vigente para o
-            sistema calcular o benefício na folha.
+            sistema calcular o valor de referência do benefício.
           </DialogDescription>
         </DialogHeader>
         <SalarioFamiliaTabelaForm mostrarLinkCadastro onSalvo={() => onOpenChange(false)} />

@@ -79,7 +79,7 @@ export const MODULES: ModuleDefinition[] = [
     slug: "folha",
     name: "Folha 360°",
     shortName: "Folha",
-    description: "Folha de pagamento, provisões, rescisão e holerite.",
+    description: "Indisponível: a folha de pagamento é gerada pela contabilidade, fora do sistema.",
     icon: Receipt,
     entryRoute: "/dp/folha",
     // Desativado: folha de pagamento é gerada pela contabilidade.
