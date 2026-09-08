@@ -18,6 +18,7 @@ import {
 import { FeriasGozoDialog } from "@/components/dp/ferias/FeriasGozoDialog";
 import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
 import { FeriasFaltasDialog } from "@/components/dp/ferias/FeriasFaltasDialog";
+import { FeriasSaldoInicialDialog } from "@/components/dp/ferias/FeriasSaldoInicialDialog";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { FeriasRestricoesAviso } from "@/components/dp/ferias/FeriasRestricoesAviso";
 import { NIVEL_VENCIMENTO_META, nivelVencimento } from "@/lib/dp/ferias-direito";
