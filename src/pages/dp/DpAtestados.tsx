@@ -22,6 +22,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
+import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
+import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -37,6 +40,15 @@ const STATUS_BADGE: Record<Status, { label: string; className: string }> = {
   recusada: { label: "Recusado", className: "bg-destructive text-destructive-foreground" },
   cancelada: { label: "Cancelado", className: "bg-muted text-muted-foreground" },
 };
+
+type AtestColKey = "colaborador" | "unidade" | "data" | "retorno" | "observacoes" | "status" | "detalhes" | "arquivo";
+type AtestSortKey = "padrao" | "colaborador" | "unidade" | "data" | "retorno" | "status";
+
+const ATEST_COL_ORDER: AtestColKey[] = ["colaborador", "unidade", "data", "retorno", "observacoes", "status", "detalhes", "arquivo"];
+const ATEST_COL_WIDTHS: Record<AtestColKey, number> = {
+  colaborador: 220, unidade: 150, data: 110, retorno: 110, observacoes: 190, status: 130, detalhes: 110, arquivo: 110,
+};
+const ATEST_ACOES_WIDTH = 150;
 
 const formatDate = (value?: string | null) => value ? new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR") : "—";
 
@@ -135,6 +147,131 @@ export default function DpAtestados() {
   const unidadeNameById = useMemo(() => {
     return new Map((unidades.data ?? []).map((u) => [u.id, u.nome]));
   }, [unidades.data]);
+
+  /** Configuração das colunas da tabela de histórico (formato planilha). */
+  const COLS = useMemo(() => ({
+    colaborador: {
+      label: "Colaborador", sortKey: "colaborador" as const,
+      value: (r: Row) => r.dp_colaboradores?.nome ?? "—",
+      render: (r: Row) => (
+        <span className="block truncate font-semibold text-foreground" title={r.dp_colaboradores?.nome ?? ""}>{r.dp_colaboradores?.nome ?? "—"}</span>
+      ),
+    },
+    unidade: {
+      label: "Unidade", sortKey: "unidade" as const,
+      value: (r: Row) => (r.dp_colaboradores?.unidade_id ? unidadeNameById.get(r.dp_colaboradores.unidade_id) : null) ?? "—",
+      render: (r: Row) => {
+        const unitName = r.dp_colaboradores?.unidade_id ? unidadeNameById.get(r.dp_colaboradores.unidade_id) : null;
+        return <span className="block truncate" title={unitName ?? ""}>{unitName ?? "—"}</span>;
+      },
+    },
+    data: {
+      label: "Data", sortKey: "data" as const,
+      value: (r: Row) => formatDate(r.data_alvo),
+      render: (r: Row) => <span className="whitespace-nowrap">{formatDate(r.data_alvo)}</span>,
+    },
+    retorno: {
+      label: "Data Retorno", sortKey: "retorno" as const,
+      value: (r: Row) => formatDate(r.data_fim),
+      render: (r: Row) => <span className="whitespace-nowrap">{formatDate(r.data_fim)}</span>,
+    },
+    observacoes: {
+      label: "Observações", sortKey: "padrao" as const,
+      value: (r: Row) => r.motivo || "—",
+      render: (r: Row) => <span className="block truncate" title={r.motivo || ""}>{r.motivo || "—"}</span>,
+    },
+    status: {
+      label: "Status", sortKey: "status" as const,
+      value: (r: Row) => STATUS_BADGE[r.status].label,
+      render: (r: Row) => (
+        <Badge variant="outline" className={`max-w-full truncate ${STATUS_BADGE[r.status].className}`}>{STATUS_BADGE[r.status].label}</Badge>
+      ),
+    },
+    detalhes: {
+      label: "Dias", sortKey: "padrao" as const,
+      value: (r: Row) => String(diffDays(r.data_alvo, r.data_fim)),
+      render: (r: Row) => <span className="font-semibold tabular-nums">{diffDays(r.data_alvo, r.data_fim)}</span>,
+    },
+    arquivo: {
+      label: "Arquivo", sortKey: "padrao" as const,
+      value: (r: Row) => getFileKind(r.arquivo_path).label,
+      render: (r: Row) => {
+        const fileKind = getFileKind(r.arquivo_path);
+        const FileIcon = fileKind.icon;
+        return r.arquivo_path ? (
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+            onClick={() => setPreview({ title: `Atestado — ${r.dp_colaboradores?.nome ?? ""}`, path: r.arquivo_path! })}
+          >
+            <FileIcon className="h-4 w-4" />
+            {fileKind.label}
+          </button>
+        ) : "—";
+      },
+    },
+  }), [unidadeNameById]);
+
+  const {
+    colOrder, colWidths, resize, resetWidth,
+    hidden, toggleHidden, resetLayout, visibleOrder,
+    dragCol, setDragCol, soltarSobre,
+    colFilters, setColFilters, toggleColValue,
+    sortKey, sortDir, aplicarSort,
+    larguraTotal,
+  } = useDpTableColumns<AtestColKey, AtestSortKey>({
+    storageKey: "dp_atestados_col",
+    screenKey: "dp_atestados",
+    defaultOrder: ATEST_COL_ORDER,
+    defaultWidths: ATEST_COL_WIDTHS,
+    essentialKeys: ["colaborador"],
+    acoesWidth: ATEST_ACOES_WIDTH,
+    defaultSortKey: "padrao",
+  });
+
+  /** Aplica os filtros por valor de cada coluna sobre os filtros da barra. */
+  const filtradoPorColuna = useMemo(() => {
+    return filtered.filter((r) =>
+      ATEST_COL_ORDER.every((k) => {
+        const sel = colFilters[k] ?? [];
+        if (!sel.length) return true;
+        return sel.includes(COLS[k].value(r));
+      }),
+    );
+  }, [filtered, colFilters, COLS]);
+
+  /** Opções de filtro de uma coluna considerando os filtros das demais. */
+  const opcoesColuna = (k: AtestColKey) => {
+    const outros = filtered.filter((r) =>
+      ATEST_COL_ORDER.every((other) => {
+        if (other === k) return true;
+        const sel = colFilters[other] ?? [];
+        if (!sel.length) return true;
+        return sel.includes(COLS[other].value(r));
+      }),
+    );
+    const set = new Set<string>();
+    outros.forEach((r) => set.add(COLS[k].value(r)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  };
+
+  /** Ordenação escolhida no cabeçalho; "padrao" mantém a ordem por criação. */
+  const linhasFiltradas = useMemo(() => {
+    if (sortKey === "padrao") return filtradoPorColuna;
+    const arr = [...filtradoPorColuna];
+    arr.sort((a, b) => {
+      let cmp: number;
+      if (sortKey === "data") cmp = (a.data_alvo ?? "").localeCompare(b.data_alvo ?? "");
+      else if (sortKey === "retorno") cmp = (a.data_fim ?? "").localeCompare(b.data_fim ?? "");
+      else {
+        const col = ATEST_COL_ORDER.find((k) => COLS[k].sortKey === sortKey);
+        if (!col) return 0;
+        cmp = COLS[col].value(a).localeCompare(COLS[col].value(b), "pt-BR", { sensitivity: "base" });
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtradoPorColuna, sortKey, sortDir, COLS]);
 
   useEffect(() => {
     if (fColab !== "todos" && !colabsHistorico.some((c) => c.id === fColab)) setFColab("todos");
@@ -271,9 +408,20 @@ export default function DpAtestados() {
         icon={FileWarning}
         title="Atestados"
         description="Gerencie todos os atestados médicos dos colaboradores."
-        actions={pendentesCount > 0 ? (
-          <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive">{pendentesCount} pendente(s)</Badge>
-        ) : undefined}
+        actions={
+          <>
+            {pendentesCount > 0 && (
+              <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive">{pendentesCount} pendente(s)</Badge>
+            )}
+            <DpTableColumnsMenu
+              columns={ATEST_COL_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
+              hidden={hidden}
+              essentialKeys={["colaborador"]}
+              onToggle={toggleHidden}
+              onReset={resetLayout}
+            />
+          </>
+        }
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
@@ -419,56 +567,55 @@ export default function DpAtestados() {
 
           <DpContentCard contentClassName="hidden md:block">
             {list.isLoading ? (
-              <TableSkeleton columns={9} headers={["Colaborador", "Unidade", "Data", "Data Retorno", "Observações", "Status", "Detalhes", "Arquivo", "Ações"]} />
+              <TableSkeleton columns={9} headers={["Colaborador", "Unidade", "Data", "Data Retorno", "Observações", "Status", "Dias", "Arquivo", "Ações"]} />
+            ) : linhasFiltradas.length === 0 ? (
+              <div className="text-center text-muted-foreground py-10">
+                <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                {filtered.length === 0 ? "Nenhum atestado encontrado com os filtros atuais." : "Nenhum resultado para os filtros de coluna aplicados."}
+              </div>
             ) : (
-              <Table className="w-full table-fixed text-xs">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="px-3 w-[20%]">Colaborador</TableHead>
-                    <TableHead className="px-3 w-[11%]">Unidade</TableHead>
-                    <TableHead className="px-3 w-[9%]">Data</TableHead>
-                    <TableHead className="px-3 w-[9%]">Data Retorno</TableHead>
-                    <TableHead className="px-3 w-[12%]">Observações</TableHead>
-                    <TableHead className="px-3 w-[10%]">Status</TableHead>
-                    <TableHead className="px-3 w-[11%]">Detalhes</TableHead>
-                    <TableHead className="px-3 w-[8%]">Arquivo</TableHead>
-                    <TableHead className="px-3 text-right w-[10%]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((r) => {
-                    const d = diffDays(r.data_alvo, r.data_fim);
-                    const unitName = r.dp_colaboradores?.unidade_id ? unidadeNameById.get(r.dp_colaboradores.unidade_id) : null;
-                    const fileKind = getFileKind(r.arquivo_path);
-                    const FileIcon = fileKind.icon;
-                    return (
+              <div className="w-full overflow-x-auto">
+                <Table className="table-fixed text-xs" style={{ width: "100%", minWidth: larguraTotal + ATEST_ACOES_WIDTH }}>
+                  <TableHeader>
+                    <TableRow>
+                      {visibleOrder.map((k) => (
+                        <DpTableColumnHeader
+                          key={k}
+                          label={COLS[k].label}
+                          width={colWidths[k]}
+                          sortAtivo={sortKey === COLS[k].sortKey && COLS[k].sortKey !== "padrao"}
+                          sortDir={sortDir}
+                          onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
+                          ativos={colFilters[k] ?? []}
+                          getOpcoes={() => opcoesColuna(k)}
+                          onToggle={(v) => toggleColValue(k, v)}
+                          onSelecionarTodos={() => setColFilters((p) => ({ ...p, [k]: opcoesColuna(k) }))}
+                          onLimpar={() => setColFilters((p) => ({ ...p, [k]: [] }))}
+                          arrastando={dragCol === k}
+                          onDragStart={() => setDragCol(k)}
+                          onDrop={() => soltarSobre(k)}
+                          onDragEnd={() => setDragCol(null)}
+                          onResize={(largura) => resize(k, largura)}
+                          onResetWidth={() => resetWidth(k)}
+                        />
+                      ))}
+                      <TableHead
+                        className="relative select-none text-right text-xs"
+                        style={{ width: ATEST_ACOES_WIDTH, minWidth: ATEST_ACOES_WIDTH, maxWidth: ATEST_ACOES_WIDTH }}
+                      >
+                        Ações
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {linhasFiltradas.map((r) => (
                       <TableRow key={r.id} className="align-middle">
-                        <TableCell className="truncate px-3 font-semibold text-foreground" title={r.dp_colaboradores?.nome ?? ""}>{r.dp_colaboradores?.nome ?? "—"}</TableCell>
-                        <TableCell className="truncate px-3 text-foreground" title={unitName ?? ""}>{unitName ?? "—"}</TableCell>
-                        <TableCell className="whitespace-nowrap px-3">{formatDate(r.data_alvo)}</TableCell>
-                        <TableCell className="whitespace-nowrap px-3">{formatDate(r.data_fim)}</TableCell>
-                        <TableCell className="truncate px-3" title={r.motivo || ""}>{r.motivo || "—"}</TableCell>
-                        <TableCell className="px-3">
-                          <Badge variant="outline" className={`max-w-full truncate ${STATUS_BADGE[r.status].className}`}>{STATUS_BADGE[r.status].label}</Badge>
-                        </TableCell>
-                        <TableCell className="px-3 font-semibold">
-                          <div>Dias: {d}</div>
-                          <div>Retorno:</div>
-                          <div className="font-normal">{formatDate(r.data_fim)}</div>
-                        </TableCell>
-                        <TableCell className="px-3 truncate">
-                          {r.arquivo_path ? (
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-                              onClick={() => setPreview({ title: `Atestado — ${r.dp_colaboradores?.nome ?? ""}`, path: r.arquivo_path! })}
-                            >
-                              <FileIcon className="h-4 w-4" />
-                              {fileKind.label}
-                            </button>
-                          ) : "—"}
-                        </TableCell>
-                        <TableCell className="px-3 text-right">
+                        {visibleOrder.map((k) => (
+                          <TableCell key={k} className="overflow-hidden px-3" style={{ width: colWidths[k], maxWidth: colWidths[k] }}>
+                            {COLS[k].render(r)}
+                          </TableCell>
+                        ))}
+                        <TableCell className="px-3 text-right" style={{ width: ATEST_ACOES_WIDTH, maxWidth: ATEST_ACOES_WIDTH }}>
                           <div className="flex gap-1 justify-end">
                             <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing(r)}>
                               <Pencil className="h-4 w-4" />
@@ -484,18 +631,10 @@ export default function DpAtestados() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
-                  {filtered.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
-                        <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                        Nenhum atestado encontrado com os filtros atuais.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </DpContentCard>
 
@@ -504,13 +643,13 @@ export default function DpAtestados() {
             {list.isLoading && (
               <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Carregando…</div>
             )}
-            {!list.isLoading && filtered.length === 0 && (
+            {!list.isLoading && linhasFiltradas.length === 0 && (
               <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
                 <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                Nenhum atestado encontrado.
+                {filtered.length === 0 ? "Nenhum atestado encontrado." : "Nenhum resultado para os filtros aplicados."}
               </div>
             )}
-            {!list.isLoading && filtered.map((r) => {
+            {!list.isLoading && linhasFiltradas.map((r) => {
               const d = diffDays(r.data_alvo, r.data_fim);
               const unitName = r.dp_colaboradores?.unidade_id ? unidadeNameById.get(r.dp_colaboradores.unidade_id) : null;
               const fileKind = getFileKind(r.arquivo_path);
