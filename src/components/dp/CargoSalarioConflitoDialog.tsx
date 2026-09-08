@@ -20,6 +20,8 @@ interface Props {
   onCriarVariacao: (nome: string) => void;
   /** Ajusta o formulário para usar o salário do cargo. */
   onUsarSalarioDoCargo: () => void;
+  /** Mantém o valor informado só para este colaborador (ex.: tempo parcial). */
+  onManterDiferente?: () => void;
   saving?: boolean;
 }
 
@@ -29,7 +31,7 @@ interface Props {
  */
 export function CargoSalarioConflitoDialog({
   open, onOpenChange, cargoNome, salarioCargo, salarioInformado,
-  nomeSugerido, onCriarVariacao, onUsarSalarioDoCargo, saving,
+  nomeSugerido, onCriarVariacao, onUsarSalarioDoCargo, onManterDiferente, saving,
 }: Props) {
   const [nome, setNome] = useState(nomeSugerido);
 
@@ -48,12 +50,24 @@ export function CargoSalarioConflitoDialog({
           <DialogDescription>
             O cargo <strong className="text-foreground">{cargoNome}</strong> tem salário de referência de{" "}
             <strong className="text-foreground">{moedaBR(salarioCargo)}</strong>, mas você informou{" "}
-            <strong className="text-foreground">{moedaBR(salarioInformado)}</strong>. Cada cargo tem um único
-            salário — escolha como seguir.
+            <strong className="text-foreground">{moedaBR(salarioInformado)}</strong>. Escolha como seguir.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
+          {onManterDiferente && (
+            <div className="space-y-2 rounded-lg border p-3">
+              <Label>Manter só para este colaborador</Label>
+              <p className="text-xs text-muted-foreground">
+                O valor {moedaBR(salarioInformado)} vale apenas neste cadastro — a referência do cargo
+                não muda. Indicado para jornada reduzida (tempo parcial) ou acordo individual.
+              </p>
+              <Button className="w-full" disabled={saving} onClick={onManterDiferente}>
+                Manter {moedaBR(salarioInformado)} neste cadastro
+              </Button>
+            </div>
+          )}
+
           <div className="space-y-2 rounded-lg border p-3">
             <Label htmlFor="variacao-nome">Criar variação do cargo</Label>
             <Input id="variacao-nome" value={nome} onChange={(e) => setNome(e.target.value)} />

@@ -153,7 +153,9 @@ const FREELANCER: ContratoPolicy = {
   permiteAdiantamento: false,
   adiantamentoHint:
     "Freelancer é pago por acerto avulso, fora da remuneração CLT — não há adiantamento salarial.",
-  formasPagamento: ["diarista", "horista"],
+  // Freelancer: remuneração acordada com formas flexíveis — por dia (turno/serviço),
+  // por hora ou valor fixo mensal. Sempre fora das obrigações CLT.
+  formasPagamento: ["diarista", "horista", "mensalista"],
   entraEmFolha: false,
   exigeCienciaLegal: true,
   cienciaLegalMensagem:

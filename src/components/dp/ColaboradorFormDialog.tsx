@@ -696,6 +696,9 @@ export function ColaboradorFormDialog({
   const socioSelecionado = isSocio(form.tipo_vinculo);
   /** Sócio só por lucros não tem valor de remuneração registrado no sistema. */
   const socioSemRemuneracao = socioSelecionado && socioRem === "somente_lucros";
+  // Freelancer não é regido por regras coletivas de CLT (sindicato, isonomia de
+  // benefícios, adicional por tempo de serviço): os blocos somem do cadastro.
+  const freelancerSelecionado = regimeSelecionado === "freelancer";
 
   /**
    * Gênero fora de masculino/feminino não tem regra dominical própria na
@@ -1303,16 +1306,20 @@ export function ColaboradorFormDialog({
       const e = erroRemuneracao();
       if (e) { toast.error(e.mensagem); setTab("remuneracao"); setCampoErro(e.campo); return; }
 
-      // Benefícios desmarcados exigem ciência de isonomia — sócio não é comparável ao quadro CLT.
-      if (!socioSelecionado && !isonomiaConfirmada.current) {
+      // Benefícios desmarcados exigem ciência de isonomia — sócio e freelancer
+      // não são comparáveis ao quadro CLT.
+      if (!socioSelecionado && !freelancerSelecionado && !isonomiaConfirmada.current) {
         const pendentes = dispensasPendentes();
         if (pendentes.length > 0) { setTab("remuneracao"); setDispensas(pendentes); return; }
       }
 
 
-      // Mensalista com cargo remunerado: o salário vem travado do cargo, sem conflito possível.
+      // Mensalista com cargo remunerado e salário igual ao do cargo: sem conflito
+      // possível. Quando o valor diverge (remuneração contratual própria, ex.:
+      // tempo parcial), a reconciliação abaixo pergunta como seguir.
       const salarioTravadoNoCargo =
-        rem.forma_pagamento === "mensalista" && !!salarioCargo && salarioCargo > 0;
+        rem.forma_pagamento === "mensalista" && !!salarioCargo && salarioCargo > 0 &&
+        Math.abs(numeroBR(rem.salario_base) - salarioCargo) <= 0.009;
       if (salarioTravadoNoCargo) cargoResolvido.current = true;
 
       // Um cargo = um salário: reconcilia o cargo antes de gravar o colaborador.
@@ -1766,8 +1773,8 @@ export function ColaboradorFormDialog({
             onChange={(id) => setForm((f) => ({ ...f, setor_id: id ?? "" }))}
           />
 
-          {/* Sócio não é representado por convenção coletiva: sem enquadramento. */}
-          {!socioSelecionado && (
+          {/* Sócio e freelancer não são representados por convenção coletiva: sem enquadramento. */}
+          {!socioSelecionado && !freelancerSelecionado && (
             <SindicatoEnquadramentoField
               cargoId={form.cargo_id}
               cargoNome={cargoSelecionado?.nome ?? null}
@@ -2110,7 +2117,7 @@ export function ColaboradorFormDialog({
                 value={rem}
                 onChange={patchRem}
                 campoErro={campoErro}
-                isonomia={socioSelecionado ? [] : divergenciasIso}
+                isonomia={socioSelecionado || freelancerSelecionado ? [] : divergenciasIso}
                 onAplicarPadraoIsonomia={aplicarPadraoIsonomia}
                 salarioCargo={salarioCargo}
                 cargoNome={cargoSelecionado?.nome ?? null}
@@ -2142,7 +2149,7 @@ export function ColaboradorFormDialog({
               />
 
               {/* Regra coletiva de anuênio/triênio aplicável a este colaborador */}
-              {!socioSelecionado && <AdicionalTempoServicoCard
+              {!socioSelecionado && !freelancerSelecionado && <AdicionalTempoServicoCard
                 admissao={form.data_admissao || null}
                 cargoId={form.cargo_id || null}
                 unidadeId={form.unidade_id || null}
@@ -2384,6 +2391,11 @@ export function ColaboradorFormDialog({
             cargoResolvido.current = true;
             setConflitoCargo(null);
             toast.info("Salário ajustado para o valor do cargo. Salve para concluir.");
+          }}
+          onManterDiferente={() => {
+            cargoResolvido.current = true;
+            setConflitoCargo(null);
+            toast.info("Remuneração própria mantida — a referência do cargo não muda. Salve para concluir.");
           }}
         />
       )}

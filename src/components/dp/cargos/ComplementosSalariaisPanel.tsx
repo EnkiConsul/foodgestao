@@ -334,7 +334,7 @@ export function ComplementosSalariaisPanel({
           <p className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             O INSS reajusta a cota e o teto todo ano. Confirme os valores do ano vigente para o
-            sistema voltar a calcular o benefício na folha.
+            sistema voltar a calcular o valor de referência do benefício.
           </p>
         )}
         {config.salarioFamiliaAtivo ? (

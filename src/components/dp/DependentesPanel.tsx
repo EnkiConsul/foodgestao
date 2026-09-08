@@ -172,7 +172,7 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal, socio = fal
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <p className="min-w-[12rem] flex-1">
               A tabela do salário-família é reajustada todo ano. Enquanto a cota e o teto do ano
-              vigente não forem confirmados, o benefício não é calculado na folha.
+              vigente não forem confirmados, o valor de referência do benefício fica sem cálculo.
               {!podeConfigurar && " Peça ao gestor da empresa para atualizar."}
             </p>
             {podeConfigurar && (

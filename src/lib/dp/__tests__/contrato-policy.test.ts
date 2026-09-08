@@ -70,9 +70,9 @@ describe("formas de pagamento por regime", () => {
     expect(formaPagamentoValida("intermitente", "mensalista")).toBe("horista");
   });
 
-  it("freelancer é diarista/horista, fora da folha e exige ciência legal", () => {
+  it("freelancer tem remuneração flexível (diária/hora/fixo mensal), fica fora da folha e exige ciência legal", () => {
     const p = contratoPolicy("freelancer");
-    expect(p.formasPagamento).toEqual(["diarista", "horista"]);
+    expect(p.formasPagamento).toEqual(["diarista", "horista", "mensalista"]);
     expect(p.entraEmFolha).toBe(false);
     expect(p.exigeCienciaLegal).toBe(true);
     expect(p.cienciaLegalMensagem).toBeTruthy();
