@@ -141,7 +141,7 @@ export function ComplementosSalariaisPanel({
                 key={c.id}
                 className="flex flex-wrap items-center gap-2 rounded-xl border border-border p-3 text-sm"
               >
-                <p className="min-w-0 flex-1 truncate font-medium uppercase">{c.nome}</p>
+                <p className="min-w-0 flex-1 truncate font-medium">{c.nome}</p>
                 {Number(c.insalubridade_percentual ?? 0) > 0 && (
                   <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400" variant="secondary">
                     Insalubridade {Number(c.insalubridade_percentual)}%

@@ -92,11 +92,11 @@ export default function DpBloqueios() {
         {/* Filtros + ações: valem para as duas listas */}
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">Ano</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Ano</Label>
             <Input type="number" value={anoFiltro} onChange={(e) => setAnoFiltro(Number(e.target.value))} className="w-full sm:w-[120px]" />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">Mês</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
             <select value={mesFiltro} onChange={(e) => setMesFiltro(e.target.value)}
               className="bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary w-full sm:w-[180px]">
               <option value="all">Todos</option>
@@ -104,7 +104,7 @@ export default function DpBloqueios() {
             </select>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">Aplicação</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Aplicação</Label>
             <select value={aplicacaoFiltro} onChange={(e) => setAplicacaoFiltro(e.target.value)}
               className="bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary w-full sm:w-[160px]">
               <option value="all">Todas</option>
@@ -113,7 +113,7 @@ export default function DpBloqueios() {
             </select>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">Unidade</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Unidade</Label>
             <select value={unidadeFiltro} onChange={(e) => setUnidadeFiltro(e.target.value)}
               className="bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary w-full sm:w-[180px]">
               <option value="all">Todas</option>

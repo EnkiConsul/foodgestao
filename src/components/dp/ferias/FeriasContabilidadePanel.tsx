@@ -74,7 +74,7 @@ export function FeriasContabilidadePanel() {
     <div className="space-y-4">
       <DpContentCard contentClassName="grid gap-3 p-4 sm:grid-cols-3">
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold uppercase text-muted-foreground">Unidade</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Unidade</Label>
           <Select value={unidadeId} onValueChange={setUnidadeId}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -86,11 +86,11 @@ export function FeriasContabilidadePanel() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold uppercase text-muted-foreground">Mês de início</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Mês de início</Label>
           <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold uppercase text-muted-foreground">Situação</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Situação</Label>
           <Select value={situacao} onValueChange={(v) => setSituacao(v as typeof situacao)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>

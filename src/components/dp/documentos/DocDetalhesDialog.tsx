@@ -46,7 +46,7 @@ function naturezaLabel(tipoKey: string) {
 function Campo(props: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <div className="text-[11px] font-semibold uppercase text-muted-foreground">{props.label}</div>
+      <div className="text-[11px] font-medium text-muted-foreground">{props.label}</div>
       <div className="text-sm break-words">{props.children}</div>
     </div>
   );
@@ -182,7 +182,7 @@ export function DocDetalhesDialog(props: {
 
             <div className="rounded-lg border p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="text-xs font-semibold uppercase text-muted-foreground">Validação Digital</div>
+                <div className="text-xs font-medium text-muted-foreground">Validação Digital</div>
                 {aceiteBadge()}
               </div>
               <div className="grid gap-4 sm:grid-cols-3">

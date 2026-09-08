@@ -116,7 +116,7 @@ export function DocSubstituirDialog(props: {
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase text-muted-foreground">Novo Arquivo</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Novo Arquivo</Label>
             <Input
               type="file"
               accept="application/pdf,image/*"
@@ -130,7 +130,7 @@ export function DocSubstituirDialog(props: {
           {editavel && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold uppercase text-muted-foreground">Colaborador</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
                 <Select value={colabId} onValueChange={setColabId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
@@ -142,12 +142,12 @@ export function DocSubstituirDialog(props: {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold uppercase text-muted-foreground">Competência</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Competência</Label>
                 <Input type="month" value={competencia} onChange={(e) => setCompetencia(e.target.value)} />
               </div>
 
               <div className="space-y-1.5 sm:col-span-2">
-                <Label className="text-xs font-semibold uppercase text-muted-foreground">Tipo</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Tipo</Label>
                 <Select value={tipo} onValueChange={setTipo}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
@@ -168,7 +168,7 @@ export function DocSubstituirDialog(props: {
           )}
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase text-muted-foreground">Motivo da Substituição</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Motivo da Substituição</Label>
             <Input
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}

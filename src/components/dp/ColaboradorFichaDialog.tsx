@@ -320,7 +320,7 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <DialogTitle className="text-xl font-bold uppercase leading-tight">
+                <DialogTitle className="text-xl font-bold leading-tight">
                   {colaborador?.nome || "Colaborador"}
                 </DialogTitle>
                 {colaborador?.ativo ? (
