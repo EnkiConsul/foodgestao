@@ -136,6 +136,85 @@ export default function DpModelosMensagem() {
     setPreviewOpen(true);
   };
 
+  /** Configuração das colunas da tabela (formato planilha). */
+  const COLS = useMemo(() => ({
+    titulo: {
+      label: "Título", sortKey: "titulo" as const,
+      value: (m: Modelo) => m.titulo,
+      render: (m: Modelo) => <span className="block truncate font-medium" title={m.titulo}>{m.titulo}</span>,
+    },
+    canal: {
+      label: "Canal", sortKey: "canal" as const,
+      value: (m: Modelo) => m.canal.toUpperCase(),
+      render: (m: Modelo) => <Badge variant="outline" className="uppercase">{m.canal}</Badge>,
+    },
+    variaveis: {
+      label: "Variáveis", sortKey: "padrao" as const,
+      value: (m: Modelo) => (m.variaveis ?? []).join(", ") || "—",
+      render: (m: Modelo) => {
+        const txt = (m.variaveis ?? []).join(", ") || "—";
+        return <span className="block truncate text-xs text-muted-foreground" title={txt}>{txt}</span>;
+      },
+    },
+    ativo: {
+      label: "Ativo", sortKey: "ativo" as const,
+      value: (m: Modelo) => (m.ativo ? "Ativo" : "Inativo"),
+      render: (m: Modelo) => (
+        <Switch checked={m.ativo} onCheckedChange={(v) => toggleAtivo.mutate({ id: m.id, ativo: v })} />
+      ),
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), []);
+
+  const {
+    colWidths, resize, resetWidth,
+    hidden, toggleHidden, resetLayout, visibleOrder,
+    dragCol, setDragCol, soltarSobre,
+    colFilters, setColFilters, toggleColValue,
+    sortKey, sortDir, aplicarSort,
+    larguraTotal,
+  } = useDpTableColumns<ModColKey, ModSortKey>({
+    storageKey: "dp_modelos_col",
+    screenKey: "dp_modelos_mensagem",
+    defaultOrder: MOD_COL_ORDER,
+    defaultWidths: MOD_COL_WIDTHS,
+    essentialKeys: ["titulo"],
+    acoesWidth: MOD_ACOES_WIDTH,
+    defaultSortKey: "padrao",
+  });
+
+  /** Aplica os filtros por valor de cada coluna sobre os filtros da barra. */
+  const filtradoPorColuna = useMemo(() => (
+    filtered.filter((m) => MOD_COL_ORDER.every((k) => {
+      const sel = colFilters[k] ?? [];
+      return !sel.length || sel.includes(COLS[k].value(m));
+    }))
+  ), [filtered, colFilters, COLS]);
+
+  /** Opções de filtro de uma coluna considerando os filtros das demais. */
+  const opcoesColuna = (k: ModColKey) => {
+    const outros = filtered.filter((m) => MOD_COL_ORDER.every((other) => {
+      if (other === k) return true;
+      const sel = colFilters[other] ?? [];
+      return !sel.length || sel.includes(COLS[other].value(m));
+    }));
+    const set = new Set<string>();
+    outros.forEach((m) => set.add(COLS[k].value(m)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  };
+
+  const linhas = useMemo(() => {
+    if (sortKey === "padrao") return filtradoPorColuna;
+    const arr = [...filtradoPorColuna];
+    arr.sort((a, b) => {
+      const col = MOD_COL_ORDER.find((k) => COLS[k].sortKey === sortKey);
+      if (!col) return 0;
+      const cmp = COLS[col].value(a).localeCompare(COLS[col].value(b), "pt-BR", { sensitivity: "base" });
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtradoPorColuna, sortKey, sortDir, COLS]);
+
   return (
     <DpPage>
       <Helmet><title>Modelos de mensagem — Pessoas 360°</title></Helmet>
@@ -143,7 +222,18 @@ export default function DpModelosMensagem() {
         icon={MessageSquare}
         title="Modelos de Mensagem"
         description="Templates de WhatsApp/e-mail com variáveis."
-        actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo modelo</Button>}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <DpTableColumnsMenu
+              columns={MOD_COL_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
+              hidden={hidden}
+              essentialKeys={["titulo"]}
+              onToggle={toggleHidden}
+              onReset={resetLayout}
+            />
+            <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo modelo</Button>
+          </div>
+        }
       />
 
       <DpFilters
