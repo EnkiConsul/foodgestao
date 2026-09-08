@@ -21,3 +21,8 @@
 - [ ] Fase 7 — automação (se prevista)
 
 - [x] Alterar Condições de Trabalho com vigência e histórico na ficha do colaborador
+
+## Plano mestre UX/UI
+- [x] Fase 6 — padrão global de tabelas
+- [x] Fase 7 — demais tabelas e listas
+- [x] Fase 8 — revisão final de consistência (tabelas padronizadas, sem transbordo em 360/768/1280)
