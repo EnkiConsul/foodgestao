@@ -60,10 +60,12 @@ export default function DpFerias() {
   const [editing, setEditing] = useState<FeriasGozo | null>(null);
   const [defaultPeriodoId, setDefaultPeriodoId] = useState<string | null>(null);
   const [faltasPeriodo, setFaltasPeriodo] = useState<FeriasPeriodo | null>(null);
+  const [saldoPeriodo, setSaldoPeriodo] = useState<FeriasPeriodo | null>(null);
+
 
   const {
     periodos, periodosLoading, periodosError, refetchAll,
-    gozos, programar, saveGozo, informarFaltas,
+    gozos, programar, saveGozo, informarFaltas, definirSaldoInicial,
   } = useDpFerias(colabFilter);
   const { config: feriasConfig } = useDpFeriasConfig();
 
@@ -116,7 +118,7 @@ export default function DpFerias() {
 
   const hoje = new Date();
   const alertaLimite = (p: FeriasPeriodo) => {
-    if (p.status === "concluido") return null;
+    if (p.status === "concluido" || p.controle_externo) return null;
     const dias = differenceInCalendarDays(parseISO(p.limite_concessivo), hoje);
     const nivel = nivelVencimento(dias);
     if (nivel === "normal") return null;
