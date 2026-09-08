@@ -877,14 +877,27 @@ export default function DpColaboradores() {
                   </TableHeader>
                   <TableBody>
                     {pessoasApoioVisiveis.map((p) => (
-                      <TableRow key={p.id} className="hover:bg-muted/50 transition-colors">
+                      <TableRow
+                        key={p.id}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => setApoioEditando(p)}
+                      >
                         <TableCell className="align-top font-medium">{p.nome}</TableCell>
                         <TableCell className="align-top font-mono text-muted-foreground">{p.cpf ?? "—"}</TableCell>
                         <TableCell className="align-top">{nomeCargo(p.cargo_id)}</TableCell>
                         <TableCell className="align-top">{nomeUnidade(p.unidade_id)}</TableCell>
                         <TableCell className="align-top">{nomeSetorApoio(p.setor_id) ?? "—"}</TableCell>
                         <TableCell className="align-top">
-                          <div className="flex gap-0.5 justify-center">
+                          <div className="flex gap-0.5 justify-center" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              title="Editar cadastro"
+                              onClick={() => setApoioEditando(p)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
                             <Button
                               size="icon"
                               variant="ghost"
@@ -894,6 +907,15 @@ export default function DpColaboradores() {
                               onClick={() => setTransformando(p)}
                             >
                               <UserPlus className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive"
+                              title="Excluir"
+                              onClick={() => setApoioAExcluir(p)}
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -927,7 +949,12 @@ export default function DpColaboradores() {
               <DpListCard
                 key={p.id}
                 title={p.nome}
-                subtitle={<span className="font-mono">{p.cpf ?? "—"}</span>}
+                subtitle={
+                  <span className="font-mono">
+                    {p.cpf ?? "—"}
+                    {p.telefone ? <span className="font-sans"> • {p.telefone}</span> : null}
+                  </span>
+                }
                 meta={
                   <>
                     {nomeCargo(p.cargo_id)}
@@ -939,15 +966,8 @@ export default function DpColaboradores() {
                     {origem === "folguistas" ? "Folguista" : "Em Teste"}
                   </Badge>
                 }
-                actions={[
-                  {
-                    key: "transformar",
-                    label: "Promover a Colaborador",
-                    icon: UserPlus,
-                    disabled: !!p.colaborador_id,
-                    onSelect: () => setTransformando(p),
-                  },
-                ]}
+                onOpen={() => setApoioEditando(p)}
+                actions={acoesApoio(p)}
               />
             ))}
           </div>
