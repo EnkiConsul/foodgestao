@@ -200,8 +200,9 @@ export default function DpFerias() {
               const lista = gozosByPeriodo.get(p.id) ?? [];
               const faltas = p.faltas_injustificadas;
               const encerrado = parseISO(p.fim_aquisitivo) <= hoje;
+              const externo = !!p.controle_externo;
               return (
-                <div key={p.id} className="space-y-3 p-4">
+                <div key={p.id} className={`space-y-3 p-4${externo ? " bg-muted/30" : ""}`}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{p.colaborador_nome ?? "Colaborador"}</p>
@@ -210,44 +211,68 @@ export default function DpFerias() {
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge className={PERIODO_TONE[p.status]}>{PERIODO_LABEL[p.status]}</Badge>
+                      {externo ? (
+                        <Badge className="bg-muted text-muted-foreground">
+                          <History className="mr-1 size-3.5" /> Controle externo
+                        </Badge>
+                      ) : (
+                        <Badge className={PERIODO_TONE[p.status]}>{PERIODO_LABEL[p.status]}</Badge>
+                      )}
                       {alertaLimite(p)}
                       <Badge variant="outline">Direito {p.dias_direito}d</Badge>
                       <Badge variant="outline">Saldo {p.dias_saldo}d</Badge>
                       {p.dias_vendidos > 0 && <Badge variant="outline">Abono {p.dias_vendidos}d</Badge>}
-                      <Button size="sm" variant="outline" onClick={() => abrirNovo(p.id)}>
-                        <Plus className="mr-1 size-3.5" /> Programar
-                      </Button>
+                      {!externo && (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => setSaldoPeriodo(p)}>
+                            Saldo trazido
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => abrirNovo(p.id)}>
+                            <Plus className="mr-1 size-3.5" /> Programar
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
-                    {p.requer_revisao && (
-                      <Badge className="bg-destructive/15 text-destructive">
-                        <AlertTriangle className="mr-1 size-3.5" /> Exige revisão administrativa
-                      </Badge>
-                    )}
-                    {faltas === null || faltas === undefined ? (
-                      <Badge className="bg-amber-500/15 text-amber-600">Faltas não informadas</Badge>
-                    ) : (
-                      <span className="text-muted-foreground">
-                        Faltas informadas: <strong className="text-foreground">{faltas}</strong>
-                      </span>
-                    )}
-                    <Button
-                      size="sm"
-                      variant={faltas === null || faltas === undefined ? "default" : "ghost"}
-                      onClick={() => setFaltasPeriodo(p)}
-                    >
-                      <ClipboardList className="mr-1 size-3.5" />
-                      {faltas === null || faltas === undefined ? "Informar faltas" : "Alterar faltas"}
-                    </Button>
-                    {!encerrado && (
-                      <span className="text-xs text-muted-foreground">
-                        Período ainda em aquisição — as faltas podem ser informadas ao concluir.
-                      </span>
-                    )}
-                  </div>
+                  {externo ? (
+                    <p className="text-xs text-muted-foreground">
+                      Período anterior ao início do controle no sistema — fica apenas como
+                      histórico, sem cobrança de prazo nem alertas.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      {p.requer_revisao && (
+                        <Badge className="bg-destructive/15 text-destructive">
+                          <AlertTriangle className="mr-1 size-3.5" /> Exige revisão administrativa
+                        </Badge>
+                      )}
+                      {p.saldo_inicial_dias !== null && p.saldo_inicial_dias !== undefined && (
+                        <Badge variant="outline">Saldo trazido {p.saldo_inicial_dias}d</Badge>
+                      )}
+                      {faltas === null || faltas === undefined ? (
+                        <Badge className="bg-amber-500/15 text-amber-600">Faltas não informadas</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          Faltas informadas: <strong className="text-foreground">{faltas}</strong>
+                        </span>
+                      )}
+                      <Button
+                        size="sm"
+                        variant={faltas === null || faltas === undefined ? "default" : "ghost"}
+                        onClick={() => setFaltasPeriodo(p)}
+                      >
+                        <ClipboardList className="mr-1 size-3.5" />
+                        {faltas === null || faltas === undefined ? "Informar faltas" : "Alterar faltas"}
+                      </Button>
+                      {!encerrado && (
+                        <span className="text-xs text-muted-foreground">
+                          Período ainda em aquisição — as faltas podem ser informadas ao concluir.
+                        </span>
+                      )}
+                    </div>
+                  )}
+
 
                   {lista.length > 0 && (
                     <div className="space-y-2 rounded-xl bg-muted/40 p-3">
