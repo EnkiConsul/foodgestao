@@ -3,6 +3,7 @@ import {
   diasDireitoPorFaltas,
   exigeRevisaoAdministrativa,
   nivelVencimento,
+  nivelVencimentoPeriodo,
   textoErroFerias,
   textoPrazo,
 } from "../ferias-direito";
@@ -72,5 +73,57 @@ describe("mensagens de erro", () => {
 
   it("mantém a mensagem quando não conhece o código", () => {
     expect(textoErroFerias("erro estranho")).toBe("erro estranho");
+  });
+});
+
+describe("nivelVencimentoPeriodo — ciclos já encerrados", () => {
+  const base = {
+    fimAquisitivo: "2025-09-30",
+    limiteConcessivo: "2026-09-30",
+    diasSaldo: 30,
+    hojeISO: "2026-09-08",
+  };
+
+  it("cenário real (Erildson): política padrão marca A conceder", () => {
+    expect(nivelVencimentoPeriodo({ ...base, hojeISO: "2026-01-10" })).toBe("a_conceder");
+  });
+
+  it("prazo legal apertado continua em Atenção", () => {
+    expect(nivelVencimentoPeriodo(base)).toBe("atencao");
+  });
+
+  it("política legal ignora o ciclo encerrado", () => {
+    expect(nivelVencimentoPeriodo({ ...base, hojeISO: "2026-01-10", politica: "legal" })).toBe(
+      "normal",
+    );
+  });
+
+  it("política vencido marca vencido assim que o ciclo fecha", () => {
+    expect(nivelVencimentoPeriodo({ ...base, hojeISO: "2026-01-10", politica: "vencido" })).toBe(
+      "vencido",
+    );
+  });
+
+  it("sem saldo não sinaliza nada", () => {
+    expect(
+      nivelVencimentoPeriodo({ ...base, hojeISO: "2026-01-10", diasSaldo: 0 }),
+    ).toBe("normal");
+  });
+
+  it("ciclo em aquisição não sinaliza", () => {
+    expect(
+      nivelVencimentoPeriodo({
+        fimAquisitivo: "2026-09-30",
+        limiteConcessivo: "2027-09-30",
+        diasSaldo: 30,
+        hojeISO: "2026-09-08",
+      }),
+    ).toBe("normal");
+  });
+
+  it("prazo legal estourado é vencido em qualquer política", () => {
+    expect(nivelVencimentoPeriodo({ ...base, hojeISO: "2026-10-05", politica: "legal" })).toBe(
+      "vencido",
+    );
   });
 });

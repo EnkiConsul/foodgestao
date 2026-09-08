@@ -39,7 +39,12 @@ export function exigeRevisaoAdministrativa(faltas: number | null | undefined): b
   return typeof faltas === "number" && faltas > 32;
 }
 
-export type NivelVencimento = "normal" | "planejamento" | "atencao" | "vencido";
+export type NivelVencimento =
+  | "normal"
+  | "planejamento"
+  | "a_conceder"
+  | "atencao"
+  | "vencido";
 
 export const NIVEL_VENCIMENTO_META: Record<
   NivelVencimento,
@@ -47,8 +52,18 @@ export const NIVEL_VENCIMENTO_META: Record<
 > = {
   normal: { label: "Normal", tone: "bg-muted text-muted-foreground" },
   planejamento: { label: "Planejar", tone: "bg-sky-500/15 text-sky-600" },
+  a_conceder: { label: "A conceder", tone: "bg-amber-500/10 text-amber-700" },
   atencao: { label: "Atenção", tone: "bg-amber-500/15 text-amber-600" },
   vencido: { label: "Vencido", tone: "bg-destructive/15 text-destructive" },
+};
+
+/** Como a empresa quer sinalizar ciclos de férias que já se encerraram. */
+export type FeriasSinalizacaoCiclo = "legal" | "a_conceder" | "vencido";
+
+export const FERIAS_SINALIZACAO_LABEL: Record<FeriasSinalizacaoCiclo, string> = {
+  legal: "Somente pelo prazo legal (12 meses após o fim do ciclo)",
+  a_conceder: "Marcar como “A conceder” assim que o ciclo encerra",
+  vencido: "Marcar como “Vencido” assim que o ciclo encerra",
 };
 
 /**
@@ -63,6 +78,46 @@ export function nivelVencimento(diasRestantes: number): NivelVencimento {
   if (diasRestantes <= 30) return "atencao";
   if (diasRestantes <= 90) return "planejamento";
   return "normal";
+}
+
+/**
+ * Situação de um período específico, já considerando a política da empresa para
+ * ciclos aquisitivos que se encerraram e ainda têm saldo a conceder.
+ * O prazo legal continua mandando: vencido e atenção têm prioridade.
+ */
+export function nivelVencimentoPeriodo(args: {
+  fimAquisitivo: string;
+  limiteConcessivo: string;
+  diasSaldo: number | null | undefined;
+  hojeISO: string;
+  politica?: FeriasSinalizacaoCiclo;
+}): NivelVencimento {
+  const { fimAquisitivo, limiteConcessivo, hojeISO } = args;
+  const politica = args.politica ?? "a_conceder";
+  const saldo = args.diasSaldo ?? 0;
+  const diasRestantes = diffDias(limiteConcessivo, hojeISO);
+  if (diasRestantes < 0) return "vencido";
+  const cicloEncerradoComSaldo = fimAquisitivo <= hojeISO && saldo > 0;
+  if (politica === "vencido" && cicloEncerradoComSaldo) return "vencido";
+  if (diasRestantes <= 30) return "atencao";
+  if (politica === "a_conceder" && cicloEncerradoComSaldo) return "a_conceder";
+  if (diasRestantes <= 90) return "planejamento";
+  return "normal";
+}
+
+/** Diferença em dias entre duas datas ISO (yyyy-MM-dd), sem fuso. */
+function diffDias(alvoISO: string, baseISO: string): number {
+  const alvo = Date.UTC(
+    Number(alvoISO.slice(0, 4)),
+    Number(alvoISO.slice(5, 7)) - 1,
+    Number(alvoISO.slice(8, 10)),
+  );
+  const base = Date.UTC(
+    Number(baseISO.slice(0, 4)),
+    Number(baseISO.slice(5, 7)) - 1,
+    Number(baseISO.slice(8, 10)),
+  );
+  return Math.round((alvo - base) / 86_400_000);
 }
 
 /** Texto do prazo, em linguagem de gestor. */

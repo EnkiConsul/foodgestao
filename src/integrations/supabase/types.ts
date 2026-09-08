@@ -4793,6 +4793,7 @@ export type Database = {
           ferias_fracao_maior_dias: number | null
           ferias_fracao_min_dias: number | null
           ferias_fracionamento_max: number | null
+          ferias_sinalizacao_ciclo_encerrado: string
           folga_autoatribuir: boolean
           folga_janela_abre_dia: number
           folga_janela_ativa: boolean
@@ -4854,6 +4855,7 @@ export type Database = {
           ferias_fracao_maior_dias?: number | null
           ferias_fracao_min_dias?: number | null
           ferias_fracionamento_max?: number | null
+          ferias_sinalizacao_ciclo_encerrado?: string
           folga_autoatribuir?: boolean
           folga_janela_abre_dia?: number
           folga_janela_ativa?: boolean
@@ -4915,6 +4917,7 @@ export type Database = {
           ferias_fracao_maior_dias?: number | null
           ferias_fracao_min_dias?: number | null
           ferias_fracionamento_max?: number | null
+          ferias_sinalizacao_ciclo_encerrado?: string
           folga_autoatribuir?: boolean
           folga_janela_abre_dia?: number
           folga_janela_ativa?: boolean
@@ -13884,6 +13887,7 @@ export type Database = {
           ferias_fracao_maior_dias: number | null
           ferias_fracao_min_dias: number | null
           ferias_fracionamento_max: number | null
+          ferias_sinalizacao_ciclo_encerrado: string
           folga_autoatribuir: boolean
           folga_janela_abre_dia: number
           folga_janela_ativa: boolean
