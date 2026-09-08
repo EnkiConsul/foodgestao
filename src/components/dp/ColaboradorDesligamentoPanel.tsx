@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertTriangle, LogOut, RotateCcw, UserMinus } from "lucide-react";
+import { AlertTriangle, LogOut, RotateCcw, UserMinus, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import {
   calcAcessoPortalAte,
   toDateOnly,
 } from "@/lib/dp/desligamento";
+import { ColaboradorRecontratacaoDialog } from "@/components/dp/ColaboradorRecontratacaoDialog";
 
 const NONE = "__none__";
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
@@ -49,6 +50,7 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
   const [observacao, setObservacao] = useState("");
   const [confirmar, setConfirmar] = useState(false);
   const [confirmarReintegrar, setConfirmarReintegrar] = useState(false);
+  const [recontratar, setRecontratar] = useState(false);
 
   useEffect(() => {
     if (!colaborador) return;
