@@ -21,12 +21,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
+import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
+import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
+import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { applyModeloVars } from "@/hooks/useDpModelosMensagem";
 
 type Modelo = {
   id: string; titulo: string; corpo: string; canal: "whatsapp" | "email" | "sms";
   variaveis: string[]; ativo: boolean;
 };
+
+type ModColKey = "titulo" | "canal" | "variaveis" | "ativo";
+type ModSortKey = "padrao" | "titulo" | "canal" | "ativo";
+
+const MOD_COL_ORDER: ModColKey[] = ["titulo", "canal", "variaveis", "ativo"];
+const MOD_COL_WIDTHS: Record<ModColKey, number> = { titulo: 260, canal: 120, variaveis: 260, ativo: 100 };
+const MOD_ACOES_WIDTH = 140;
 
 export default function DpModelosMensagem() {
   const { selectedCompanyId } = useCompanyContext();
@@ -126,6 +136,85 @@ export default function DpModelosMensagem() {
     setPreviewOpen(true);
   };
 
+  /** Configuração das colunas da tabela (formato planilha). */
+  const COLS = useMemo(() => ({
+    titulo: {
+      label: "Título", sortKey: "titulo" as const,
+      value: (m: Modelo) => m.titulo,
+      render: (m: Modelo) => <span className="block truncate font-medium" title={m.titulo}>{m.titulo}</span>,
+    },
+    canal: {
+      label: "Canal", sortKey: "canal" as const,
+      value: (m: Modelo) => m.canal.toUpperCase(),
+      render: (m: Modelo) => <Badge variant="outline" className="uppercase">{m.canal}</Badge>,
+    },
+    variaveis: {
+      label: "Variáveis", sortKey: "padrao" as const,
+      value: (m: Modelo) => (m.variaveis ?? []).join(", ") || "—",
+      render: (m: Modelo) => {
+        const txt = (m.variaveis ?? []).join(", ") || "—";
+        return <span className="block truncate text-xs text-muted-foreground" title={txt}>{txt}</span>;
+      },
+    },
+    ativo: {
+      label: "Ativo", sortKey: "ativo" as const,
+      value: (m: Modelo) => (m.ativo ? "Ativo" : "Inativo"),
+      render: (m: Modelo) => (
+        <Switch checked={m.ativo} onCheckedChange={(v) => toggleAtivo.mutate({ id: m.id, ativo: v })} />
+      ),
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), []);
+
+  const {
+    colWidths, resize, resetWidth,
+    hidden, toggleHidden, resetLayout, visibleOrder,
+    dragCol, setDragCol, soltarSobre,
+    colFilters, setColFilters, toggleColValue,
+    sortKey, sortDir, aplicarSort,
+    larguraTotal,
+  } = useDpTableColumns<ModColKey, ModSortKey>({
+    storageKey: "dp_modelos_col",
+    screenKey: "dp_modelos_mensagem",
+    defaultOrder: MOD_COL_ORDER,
+    defaultWidths: MOD_COL_WIDTHS,
+    essentialKeys: ["titulo"],
+    acoesWidth: MOD_ACOES_WIDTH,
+    defaultSortKey: "padrao",
+  });
+
+  /** Aplica os filtros por valor de cada coluna sobre os filtros da barra. */
+  const filtradoPorColuna = useMemo(() => (
+    filtered.filter((m) => MOD_COL_ORDER.every((k) => {
+      const sel = colFilters[k] ?? [];
+      return !sel.length || sel.includes(COLS[k].value(m));
+    }))
+  ), [filtered, colFilters, COLS]);
+
+  /** Opções de filtro de uma coluna considerando os filtros das demais. */
+  const opcoesColuna = (k: ModColKey) => {
+    const outros = filtered.filter((m) => MOD_COL_ORDER.every((other) => {
+      if (other === k) return true;
+      const sel = colFilters[other] ?? [];
+      return !sel.length || sel.includes(COLS[other].value(m));
+    }));
+    const set = new Set<string>();
+    outros.forEach((m) => set.add(COLS[k].value(m)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  };
+
+  const linhas = useMemo(() => {
+    if (sortKey === "padrao") return filtradoPorColuna;
+    const arr = [...filtradoPorColuna];
+    arr.sort((a, b) => {
+      const col = MOD_COL_ORDER.find((k) => COLS[k].sortKey === sortKey);
+      if (!col) return 0;
+      const cmp = COLS[col].value(a).localeCompare(COLS[col].value(b), "pt-BR", { sensitivity: "base" });
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtradoPorColuna, sortKey, sortDir, COLS]);
+
   return (
     <DpPage>
       <Helmet><title>Modelos de mensagem — Pessoas 360°</title></Helmet>
@@ -133,7 +222,18 @@ export default function DpModelosMensagem() {
         icon={MessageSquare}
         title="Modelos de Mensagem"
         description="Templates de WhatsApp/e-mail com variáveis."
-        actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo modelo</Button>}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <DpTableColumnsMenu
+              columns={MOD_COL_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
+              hidden={hidden}
+              essentialKeys={["titulo"]}
+              onToggle={toggleHidden}
+              onReset={resetLayout}
+            />
+            <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo modelo</Button>
+          </div>
+        }
       />
 
       <DpFilters
@@ -170,26 +270,47 @@ export default function DpModelosMensagem() {
 
       <DpContentCard contentClassName="overflow-x-auto hidden md:block">
           {list.isLoading ? <TableSkeleton columns={5} headers={["Título", "Canal", "Variáveis", "Ativo", ""]} /> : (
-            <Table>
+            <Table className="table-fixed text-xs" style={{ width: "100%", minWidth: larguraTotal + MOD_ACOES_WIDTH }}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Canal</TableHead>
-                  <TableHead>Variáveis</TableHead>
-                  <TableHead className="w-20">Ativo</TableHead>
-                  <TableHead className="w-32"></TableHead>
+                  {visibleOrder.map((k) => (
+                    <DpTableColumnHeader
+                      key={k}
+                      label={COLS[k].label}
+                      width={colWidths[k]}
+                      sortAtivo={sortKey === COLS[k].sortKey && COLS[k].sortKey !== "padrao"}
+                      sortDir={sortDir}
+                      onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
+                      ativos={colFilters[k] ?? []}
+                      getOpcoes={() => opcoesColuna(k)}
+                      onToggle={(v) => toggleColValue(k, v)}
+                      onSelecionarTodos={() => setColFilters((p) => ({ ...p, [k]: opcoesColuna(k) }))}
+                      onLimpar={() => setColFilters((p) => ({ ...p, [k]: [] }))}
+                      arrastando={dragCol === k}
+                      onDragStart={() => setDragCol(k)}
+                      onDrop={() => soltarSobre(k)}
+                      onDragEnd={() => setDragCol(null)}
+                      onResize={(largura) => resize(k, largura)}
+                      onResetWidth={() => resetWidth(k)}
+                    />
+                  ))}
+                  <TableHead
+                    className="relative select-none text-right text-xs"
+                    style={{ width: MOD_ACOES_WIDTH, minWidth: MOD_ACOES_WIDTH, maxWidth: MOD_ACOES_WIDTH }}
+                  >
+                    Ações
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((m) => (
+                {linhas.map((m) => (
                   <TableRow key={m.id} className={!m.ativo ? "opacity-60" : ""}>
-                    <TableCell className="font-medium">{m.titulo}</TableCell>
-                    <TableCell><Badge variant="outline" className="uppercase">{m.canal}</Badge></TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{(m.variaveis ?? []).join(", ") || "—"}</TableCell>
-                    <TableCell>
-                      <Switch checked={m.ativo} onCheckedChange={(v) => toggleAtivo.mutate({ id: m.id, ativo: v })} />
-                    </TableCell>
-                    <TableCell>
+                    {visibleOrder.map((k) => (
+                      <TableCell key={k} className="overflow-hidden px-3" style={{ width: colWidths[k], maxWidth: colWidths[k] }}>
+                        {COLS[k].render(m)}
+                      </TableCell>
+                    ))}
+                    <TableCell className="px-3" style={{ width: MOD_ACOES_WIDTH, maxWidth: MOD_ACOES_WIDTH }}>
                       <div className="flex gap-1 justify-end">
                         <Button size="icon" variant="ghost" onClick={() => openPreview(m)} title="Preview"><Eye className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={() => openEdit(m)}><Pencil className="h-4 w-4" /></Button>
@@ -198,8 +319,12 @@ export default function DpModelosMensagem() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum modelo encontrado.</TableCell></TableRow>
+                {linhas.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={visibleOrder.length + 1} className="text-center text-muted-foreground py-8">
+                      {filtered.length === 0 ? "Nenhum modelo encontrado." : "Nenhum resultado para os filtros de coluna aplicados."}
+                    </TableCell>
+                  </TableRow>
                 )}
               </TableBody>
             </Table>
@@ -211,10 +336,10 @@ export default function DpModelosMensagem() {
         {list.isLoading && (
           <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Carregando…</div>
         )}
-        {!list.isLoading && filtered.length === 0 && (
+        {!list.isLoading && linhas.length === 0 && (
           <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Nenhum modelo encontrado.</div>
         )}
-        {!list.isLoading && filtered.map((m) => (
+        {!list.isLoading && linhas.map((m) => (
           <div key={m.id} className={"rounded-2xl border border-border bg-card p-4 space-y-3 active:scale-[0.98] transition-transform " + (!m.ativo ? "opacity-60" : "")}>
             <div className="flex items-start justify-between gap-2">
               <div className="font-medium min-w-0 flex-1 truncate">{m.titulo}</div>
