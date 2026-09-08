@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CalendarClock, Settings } from "lucide-react";
-import DpPage from "@/components/dp/DpPage";
-import { DpPageHeader } from "@/components/dp/DpPageHeader";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

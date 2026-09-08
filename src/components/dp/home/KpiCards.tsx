@@ -3,8 +3,8 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useDpPendencias } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
-import { useDpOcorrencias } from "@/hooks/useDpOcorrencias";
-import { useDpFeriasPeriodos } from "@/hooks/useDpFeriasPeriodos";
+import { useDpOcorrencias, FILTROS_PADRAO } from "@/hooks/useDpOcorrencias";
+import { useDpFerias } from "@/hooks/useDpFerias";
 import { contarAbertas } from "@/lib/dp/pendencias";
 import { addDays, format } from "date-fns";
 
@@ -12,10 +12,9 @@ export function KpiCards() {
   const pend = useDpPendencias();
   const { prefs } = useDpUserPrefs();
   const hoje = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const hojeArr = useMemo(() => [hoje], [hoje]);
-  const ocorrencias = useDpOcorrencias({ datas: hojeArr });
-  const periodos = useDpFeriasPeriodos("abertos");
-  const vencendo = (periodos.data ?? []).filter((p) => p.limite_concessivo && new Date(p.limite_concessivo) <= addDays(new Date(), 60));
+  const ocorrencias = useDpOcorrencias({ ...FILTROS_PADRAO, data: hoje });
+  const { periodos } = useDpFerias("all");
+  const vencendo = periodos.filter((p) => p.limite_concessivo && new Date(p.limite_concessivo) <= addDays(new Date(), 60));
 
   // Fonte única: pendência aberta = não adiada (mema regra do card da Home).
   const pendentesAbertas = useMemo(
@@ -24,7 +23,7 @@ export function KpiCards() {
   );
 
   const cards = [
-    { label: "Ocorrências hoje", value: ocorrencias.data?.length ?? 0, icon: ClipboardList, to: "/dp/ocorrencias" },
+    { label: "Ocorrências hoje", value: ocorrencias.ocorrencias.length, icon: ClipboardList, to: "/dp/ocorrencias" },
     { label: "Pendências abertas", value: pendentesAbertas, icon: Bell, to: "/dp/cadastros/pendencias" },
     { label: "Férias vencendo", value: vencendo.length, icon: Plane, to: "/dp/ferias?tab=periodos" },
     { label: "Ajustes", value: null, icon: Settings, to: "/dp/cadastros" },
