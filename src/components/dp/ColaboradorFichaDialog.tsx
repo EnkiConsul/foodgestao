@@ -566,7 +566,7 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
               value={periculosidade ? `${periculosidade}% · ${fmtCurrency(periculosidadeValor)}/mês` : "Não"}
             />
             <Field
-              label="Adicional Aplicado na Folha"
+              label="Adicional por Tempo de Serviço"
               value={adicionalPercentual ? `${adicionalPercentual}%` : "—"}
             />
             <Field label="Dependentes IRRF" value={dependentesIrrf ?? "—"} />

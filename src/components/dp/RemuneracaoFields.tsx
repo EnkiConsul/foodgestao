@@ -1060,7 +1060,7 @@ export function RemuneracaoFields({
         {beneficios.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
             Nenhum benefício no catálogo da empresa. Crie o primeiro para poder vinculá-lo a este
-            colaborador — ele entra automaticamente na folha.
+            colaborador.
           </p>
         ) : (
           <>
@@ -1116,7 +1116,7 @@ export function RemuneracaoFields({
               })}
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Os benefícios marcados passam a valer a partir de hoje e entram automaticamente na folha.
+              Os benefícios marcados passam a valer a partir de hoje.
               Benefícios de outra unidade ou cargo aparecem esmaecidos.
             </p>
           </>

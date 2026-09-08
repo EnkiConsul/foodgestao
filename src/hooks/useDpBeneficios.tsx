@@ -47,7 +47,7 @@ export type ColaboradorBeneficioInput = {
 
 /**
  * Catálogo de benefícios da empresa e ficha de benefícios por colaborador,
- * Sem vínculo com folha de pagamento (gerada fora do sistema).
+ * Sem vínculo com folha de pagamento (gerada pela contabilidade, fora do sistema).
  */
 export function useDpBeneficios(colaboradorFilter = "todos") {
   const { selectedCompanyId } = useCompanyContext();
