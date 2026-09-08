@@ -376,9 +376,12 @@ export function RemuneracaoFields({
   const labelValor =
     forma === "horista" ? "Valor da hora *" : forma === "diarista" ? "Valor do dia *" : "Salário base *";
   const bloqueiaValor = usaBase && !value.valor_hora_manual && calculado != null;
-  // Um cargo = um salário: mensalista com cargo remunerado não edita o valor aqui.
+  // Um cargo = um salário de referência: o mensalista abre travado no valor do
+  // cargo, mas pode informar remuneração contratual própria (ex.: tempo parcial
+  // proporcional a 30h/25h) sem alterar a referência do cargo.
   const salarioDoCargo = forma === "mensalista" && !!salarioCargo && salarioCargo > 0;
-  const travadoPeloCargo = salarioDoCargo;
+  const [salarioProprio, setSalarioProprio] = useState(false);
+  const travadoPeloCargo = salarioDoCargo && !salarioProprio;
 
   // Cargo remunerado manda no salário do mensalista: espelhamos o valor no campo.
   useEffect(() => {
@@ -386,6 +389,15 @@ export function RemuneracaoFields({
     const alvo = paraBR(salarioCargo);
     if (value.salario_base !== alvo) onChange({ salario_base: alvo });
   }, [travadoPeloCargo, salarioCargo, value.salario_base]);
+
+  // Edição de quem já tem remuneração própria (diferente do cargo): abre destravado.
+  const iniciouSalario = useRef(false);
+  useEffect(() => {
+    if (iniciouSalario.current || !salarioDoCargo || salarioCargo == null) return;
+    if (value.salario_base.trim() === "") return; // em branco, o espelho do cargo preenche
+    iniciouSalario.current = true;
+    if (Math.abs(numeroBR(value.salario_base) - salarioCargo) > 0.009) setSalarioProprio(true);
+  }, [salarioDoCargo, salarioCargo, value.salario_base]);
 
   /**
    * Horista/diarista sem base salarial informada abre com o salário de
@@ -526,6 +538,15 @@ export function RemuneracaoFields({
                 variant="link"
                 size="sm"
                 className="h-auto p-0 text-[11px]"
+                onClick={() => setSalarioProprio(true)}
+              >
+                Informar valor diferente (ex.: tempo parcial)
+              </Button>
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-[11px]"
                 onClick={() => {
                   onBeforeNavigate?.();
                   navigate("/dp/cadastros/cargos");
@@ -534,9 +555,25 @@ export function RemuneracaoFields({
                 Alterar no cargo
               </Button>
             </div>
+          ) : salarioDoCargo && salarioProprio ? (
+            <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+              <span>
+                Remuneração contratual só deste colaborador — a referência do cargo (
+                {formatarBRL(salarioCargo!)}) não muda.
+              </span>
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-[11px]"
+                onClick={() => setSalarioProprio(false)}
+              >
+                Voltar a usar o salário do cargo
+              </Button>
+            </div>
           ) : forma === "mensalista" && salarioCargo ? (
             <p className="text-[11px] text-muted-foreground">
-              Em branco, a folha usa o salário do cargo ({formatarBRL(salarioCargo)}).
+              Em branco, vale o salário de referência do cargo ({formatarBRL(salarioCargo)}).
             </p>
           ) : null}
         </div>
