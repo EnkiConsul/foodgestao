@@ -174,6 +174,8 @@ interface Props {
   colaborador?: DpColaborador | null;
   /** Aba aberta ao exibir o diálogo (ex.: acesso ao portal ou desligamento). */
   abaInicial?: AbaVisivel;
+  /** Folguista ou pessoa em teste que está sendo promovida a colaborador. */
+  pessoaApoioInicial?: PessoaApoio | null;
 }
 
 const NONE_DESLIG = "__none__";
