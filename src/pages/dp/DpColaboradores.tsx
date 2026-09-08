@@ -93,6 +93,7 @@ export default function DpColaboradores() {
   const list = useDpColaboradores();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
+  const { todos: todosSetores } = useDpSetores();
   const del = useDeleteDpColaborador();
   const reintegrar = useReintegrarDpColaborador();
 
