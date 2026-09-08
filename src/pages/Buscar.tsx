@@ -53,8 +53,8 @@ export default function Buscar() {
       </header>
 
       <main className="container mx-auto max-w-3xl px-4 py-6 sm:py-14">
-        <h1 className="mb-4 sm:mb-6 text-xl sm:text-3xl font-bold tracking-tight">
-          Buscar No Aveto 360
+        <h1 className="mb-4 sm:mb-6 text-xl md:text-2xl font-bold tracking-tight">
+          Buscar no Aveto 360
         </h1>
 
         <form onSubmit={onSubmit} role="search" className="mb-6 sm:mb-8 flex flex-col sm:flex-row gap-2">

@@ -283,10 +283,10 @@ export default function Dashboard() {
     <div className="space-y-6 font-sans">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Visão Geral das Suas Finanças
+        <div className="min-w-0">
+          <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+            Visão geral das suas finanças
             {refreshing && <span className="ml-2 text-xs italic opacity-70">atualizando…</span>}
           </p>
 

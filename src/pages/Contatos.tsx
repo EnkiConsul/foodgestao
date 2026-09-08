@@ -126,12 +126,12 @@ export default function Contatos() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Contatos</h1>
-          <p className="text-sm text-muted-foreground">Gerencie clientes e fornecedores</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Contatos</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Gerencie clientes e fornecedores</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <FileSpreadsheet className="h-4 w-4 mr-2" /> <span className="hidden sm:inline">Importar planilha</span>
           </Button>

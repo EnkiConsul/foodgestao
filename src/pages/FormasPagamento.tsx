@@ -120,12 +120,12 @@ export default function FormasPagamento() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Formas de Pagamento</h1>
-          <p className="text-sm text-muted-foreground">Gerencie as formas de pagamento disponíveis</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Formas de Pagamento</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Gerencie as formas de pagamento disponíveis</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={importDefaults} disabled={importing}>
             <Download className="h-4 w-4 mr-2" /> Importar padrão
           </Button>

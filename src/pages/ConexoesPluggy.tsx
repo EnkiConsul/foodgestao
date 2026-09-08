@@ -305,9 +305,9 @@ export default function ConexoesPluggy() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/contas-bancarias")} aria-label="Voltar">
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">Conexões Open Finance</h1>
-          <p className="text-sm text-muted-foreground">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Conexões Open Finance</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">
             Gerencie os bancos conectados via Pluggy e sincronize lançamentos.
           </p>
         </div>
