@@ -13,7 +13,7 @@ export function KpiCards() {
   const { prefs } = useDpUserPrefs();
   const hoje = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const ocorrencias = useDpOcorrencias({ ...FILTROS_PADRAO, data: hoje });
-  const { periodos } = useDpFerias("all");
+  const { periodos } = useDpFerias("todos");
   const vencendo = periodos.filter((p) => p.limite_concessivo && new Date(p.limite_concessivo) <= addDays(new Date(), 60));
 
   // Fonte única: pendência aberta = não adiada (mema regra do card da Home).
