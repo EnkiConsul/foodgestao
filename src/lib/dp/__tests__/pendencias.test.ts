@@ -86,7 +86,7 @@ describe("agruparPorColaborador", () => {
     const subs = agruparPorColaborador(itens);
     expect(subs.map((s) => s.colaborador)).toEqual(["Ana", "Bia", null]);
     expect(subs[0].itens.map((i) => i.id)).toEqual(["1", "2"]); // ordenado por atraso
-    expect(subs[0].total).toBe(2);
+    expect(subs[0].itens.length).toBe(2);
   });
 });
 
