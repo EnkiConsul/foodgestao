@@ -193,14 +193,57 @@ export function PlanejamentoPainel({
             </div>
 
             <div className="mt-4">
-              <div className="grid grid-cols-7 gap-1">
+              {/* Mobile: 1 dia = 1 linha */}
+              <div className="md:hidden">
+                <DiasEmLista
+                  dias={(painel.data?.dias ?? []).map((dia) => {
+                    const conf = conflitoPorDia.get(dia.data) ?? 0;
+                    const descoberto = dia.pendentes > 0 && dia.aceitas === 0;
+                    return {
+                      iso: dia.data,
+                      tom: descoberto ? ("atencao" as const) : undefined,
+                      onSelect: () => onPlanejarDia(unidadeId, dia.data),
+                      resumo: (
+                        <span>
+                          <span className="font-semibold">{dia.aceitas + dia.pendentes}</span>{" "}
+                          convocado(s) de {dia.disponiveis + dia.aceitas + dia.pendentes} possível(is)
+                        </span>
+                      ),
+                      chips: (
+                        <>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {dia.aceitas} confirmado(s)
+                          </Badge>
+                          {dia.pendentes > 0 && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {dia.pendentes} aguardando
+                            </Badge>
+                          )}
+                          {dia.indisponiveis > 0 && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {dia.indisponiveis} indisponível(is)
+                            </Badge>
+                          )}
+                          {conf > 0 && (
+                            <Badge variant="outline" className="border-amber-500/50 text-[10px]">
+                              {conf} aviso(s) de ausência
+                            </Badge>
+                          )}
+                        </>
+                      ),
+                    };
+                  })}
+                />
+              </div>
+
+              <div className="hidden grid-cols-7 gap-1 md:grid">
                 {DIA_SEMANA.map((d, i) => (
                   <div key={i} className="text-center text-[10px] font-medium text-muted-foreground">
                     {d}
                   </div>
                 ))}
               </div>
-              <div className="mt-1 space-y-1">
+              <div className="mt-1 hidden space-y-1 md:block">
                 {semanas.map((sem, i) => (
                   <div key={i} className="grid grid-cols-7 gap-1">
                     {sem.map((dia, j) =>
