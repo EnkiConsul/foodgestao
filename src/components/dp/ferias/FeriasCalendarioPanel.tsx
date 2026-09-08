@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DpContentCard } from "@/components/dp/DpPage";
+import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { useDpFerias } from "@/hooks/useDpFerias";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 
