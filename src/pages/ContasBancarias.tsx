@@ -487,13 +487,13 @@ export default function ContasBancarias() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3">
         <Card className="bg-primary text-primary-foreground shadow-md border-0">
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15">
               <Wallet className="h-5 w-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs opacity-80">Saldo Total</p>
-              <p className="text-lg font-bold">{maskBRL(totals.saldoTotal)}</p>
+              <p className="text-base sm:text-lg font-bold truncate tabular-nums">{maskBRL(totals.saldoTotal)}</p>
             </div>
           </CardContent>
         </Card>
