@@ -27,6 +27,7 @@ import {
 import { useDpPessoasApoio, type PessoaApoio } from "@/hooks/useDpPessoasApoio";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+import { useDpSetores } from "@/hooks/useDpSetores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 import { Link } from "react-router-dom";
