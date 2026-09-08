@@ -121,8 +121,8 @@ interface DpContentCardProps {
 
 export function DpContentCard({ children, className, contentClassName }: DpContentCardProps) {
   return (
-    <Card className={cn("dp-content-card", className)}>
-      <CardContent className={cn("p-0", contentClassName)}>{children}</CardContent>
+    <Card className={cn("dp-content-card min-w-0", className)}>
+      <CardContent className={cn("p-0 min-w-0", contentClassName)}>{children}</CardContent>
     </Card>
   );
 }

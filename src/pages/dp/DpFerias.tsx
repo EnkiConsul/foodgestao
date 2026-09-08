@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Palmtree, Plus, Pencil, ClipboardList, AlertTriangle, History } from "lucide-react";
-import { DpPage, DpPageHeader, DpContentCard, useDpEmbedded } from "@/components/dp/DpPage";
+import { DpPage, DpPageHeader, DpContentCard, DpFilterCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -148,7 +148,7 @@ export default function DpFerias() {
 
       <FeriasRestricoesAviso />
 
-      <div className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-border bg-card p-4">
+      <DpFilterCard>
         <div className="grid flex-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-xs font-bold uppercase text-muted-foreground">Colaborador</Label>
@@ -175,12 +175,13 @@ export default function DpFerias() {
             </Select>
           </div>
         </div>
-        {embedded && (
-          <Button className="rounded-full px-6" onClick={() => abrirNovo()}>
-            <Plus className="mr-2 size-4" /> Programar férias
-          </Button>
-        )}
-      </div>
+      </DpFilterCard>
+
+      {embedded && (
+        <Button className="rounded-full px-6" onClick={() => abrirNovo()}>
+          <Plus className="mr-2 size-4" /> Programar férias
+        </Button>
+      )}
 
       <DpContentCard>
         {periodosError ? (

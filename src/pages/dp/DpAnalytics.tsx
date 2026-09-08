@@ -28,11 +28,13 @@ import {
   YAxis,
 } from "recharts";
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
+import { DpTabsBar } from "@/components/dp/DpTabsBar";
+import { type DpSection } from "@/components/dp/DpSectionSelect";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { useAnalyticsCadastro } from "@/hooks/dp/analytics/useAnalyticsCadastro";
@@ -241,11 +243,20 @@ export default function DpAnalytics() {
   if (cadastro.isError) {
     return (
       <DpPage>
-        <DpPageHeader icon={BarChart3} title="Analytics" description="Indicadores de pessoas e operação." />
+        <DpPageHeader icon={BarChart3} title="Analytics de Pessoas" description="Indicadores de pessoas e operação." />
         <DpErrorState onRetry={cadastro.refetch} />
       </DpPage>
     );
   }
+
+  const abas: DpSection[] = [
+    { value: "visao", label: "Visão geral" },
+    { value: "equipe", label: "Equipe" },
+    { value: "operacao", label: "Operação" },
+    { value: "ausencias", label: "Ausências" },
+    { value: "ferias", label: "Férias" },
+    { value: "convocacoes", label: "Convocações" },
+  ];
 
   return (
     <DpPage>
@@ -259,7 +270,7 @@ export default function DpAnalytics() {
 
       <DpPageHeader
         icon={BarChart3}
-        title="Analytics"
+        title="Analytics de Pessoas"
         description="Quadro, operação, ausências, férias e convocações. Sem valores de folha."
       />
 
@@ -356,14 +367,14 @@ export default function DpAnalytics() {
       </DpFilterCard>
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
-        <TabsList className="flex w-full flex-wrap justify-start gap-1 h-auto">
+        <DpTabsBar sections={abas} value={aba} onValueChange={setAba}>
           <TabsTrigger value="visao">Visão geral</TabsTrigger>
           <TabsTrigger value="equipe">Equipe</TabsTrigger>
           <TabsTrigger value="operacao">Operação</TabsTrigger>
           <TabsTrigger value="ausencias">Ausências</TabsTrigger>
           <TabsTrigger value="ferias">Férias</TabsTrigger>
           <TabsTrigger value="convocacoes">Convocações</TabsTrigger>
-        </TabsList>
+        </DpTabsBar>
 
         {/* ---------------- Visão geral ---------------- */}
         <TabsContent value="visao" className="space-y-4">
