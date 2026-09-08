@@ -557,7 +557,37 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [base.data, colaboradores, turnos, convocacoes, folgas, ausencias, ocorrencias, janelaInicio, inicio]);
 
-  const padrao = useMemo(() => baselinePorDow(historico, { limite: inicio }), [historico, inicio]);
+  const feriadosPorData = useMemo(() => {
+    const linhas = feriadosQuery.data ?? [];
+    const out = new Map<string, string>();
+    if (unidadeId) {
+      for (const l of linhas) if (!out.has(l.data)) out.set(l.data, l.nome);
+      return out;
+    }
+    // Visão "todas as unidades": só é feriado da operação quando vale para todas.
+    const unidades = new Set(linhas.map((l) => l.unidade_id));
+    const porData = new Map<string, { nome: string; unidades: Set<string> }>();
+    for (const l of linhas) {
+      const reg = porData.get(l.data) ?? { nome: l.nome, unidades: new Set<string>() };
+      reg.unidades.add(l.unidade_id);
+      porData.set(l.data, reg);
+    }
+    for (const [data, reg] of porData) {
+      if (unidades.size > 0 && reg.unidades.size === unidadesAtivasIds.length) out.set(data, reg.nome);
+    }
+    return out;
+  }, [feriadosQuery.data, unidadeId, unidadesAtivasIds]);
+
+  const padrao = useMemo(
+    () => baselinePorDow(historico, { limite: inicio, feriados: new Set(feriadosPorData.keys()) }),
+    [historico, inicio, feriadosPorData],
+  );
+
+  /** Padrão aprendido só com feriados anteriores; null quando falta histórico. */
+  const padraoFeriado = useMemo(
+    () => baselineFeriado(historico, { limite: inicio, feriados: new Set(feriadosPorData.keys()) }),
+    [historico, inicio, feriadosPorData],
+  );
 
   const dispensadas = useMemo(
     () => new Set((dispensas.data ?? []).map((d) => d.data)),
@@ -568,13 +598,23 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     if (!base.data) return [];
     return dias.map((data) => {
       const r = contar(data);
-      const avaliacao = avaliarDia(r.trabalhando, padrao.get(r.dow));
+      const feriadoNome = feriadosPorData.get(data) ?? null;
+      // Feriado nunca é comparado com o padrão de dia comum: usa o padrão de
+      // feriado e, sem histórico suficiente, fica sem alerta quantitativo.
+      const referencia = feriadoNome ? padraoFeriado : padrao.get(r.dow);
+      const avaliacao = avaliarDia(r.trabalhando, referencia);
       const dispensado = dispensadas.has(data);
       const desvio = avaliacao.situacao === "abaixo" || avaliacao.situacao === "acima";
-      return { ...r, avaliacao, dispensado, alerta: desvio && !dispensado };
+      return {
+        ...r,
+        avaliacao,
+        dispensado,
+        alerta: desvio && !dispensado,
+        feriado_nome: feriadoNome,
+      };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [base.data, dias, padrao, dispensadas, colaboradores, turnos, convocacoes, folgas, ausencias, avulsos, ocorrencias]);
+  }, [base.data, dias, padrao, padraoFeriado, feriadosPorData, dispensadas, colaboradores, turnos, convocacoes, folgas, ausencias, avulsos, ocorrencias]);
 
   /**
    * Marcar o dia como resolvido é uma rotina do banco: ela decide sozinha entre
