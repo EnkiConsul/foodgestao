@@ -193,6 +193,50 @@ export function useEditarDesligamento() {
   });
 }
 
+/**
+ * Recontratação: novo vínculo para quem já trabalhou na empresa. Diferente de
+ * reintegrar (que desfaz um desligamento registrado por engano), a data de
+ * admissão passa a ser a nova e o vínculo anterior fica no histórico.
+ */
+export function useRecontratarDpColaborador() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      id: string;
+      data_admissao: string;
+      regime?: string | null;
+      forma_pagamento?: string | null;
+      cargo_id?: string | null;
+      unidade_id?: string | null;
+      setor_id?: string | null;
+      salario_base?: number | null;
+      valor_hora?: number | null;
+      matricula?: string | null;
+      justificativa?: string | null;
+    }) => {
+      const { error } = await (supabase.rpc as any)("dp_recontratar_colaborador", {
+        p_colaborador_id: input.id,
+        p_data_admissao: input.data_admissao,
+        p_regime: input.regime ?? null,
+        p_forma_pagamento: input.forma_pagamento ?? null,
+        p_cargo_id: input.cargo_id ?? null,
+        p_unidade_id: input.unidade_id ?? null,
+        p_setor_id: input.setor_id ?? null,
+        p_salario_base: input.salario_base ?? null,
+        p_valor_hora: input.valor_hora ?? null,
+        p_matricula: input.matricula ?? null,
+        p_justificativa: input.justificativa ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+      qc.invalidateQueries({ queryKey: ["dp_colaborador_condicoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    },
+  });
+}
+
 export function useReintegrarDpColaborador() {
   const qc = useQueryClient();
   return useMutation({

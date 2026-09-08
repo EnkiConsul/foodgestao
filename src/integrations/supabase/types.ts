@@ -14703,6 +14703,22 @@ export type Database = {
         Args: { p_colaborador_id: string; p_motivo?: string }
         Returns: undefined
       }
+      dp_recontratar_colaborador: {
+        Args: {
+          p_cargo_id?: string
+          p_colaborador_id: string
+          p_data_admissao: string
+          p_forma_pagamento?: string
+          p_justificativa?: string
+          p_matricula?: string
+          p_regime?: string
+          p_salario_base?: number
+          p_setor_id?: string
+          p_unidade_id?: string
+          p_valor_hora?: number
+        }
+        Returns: string
+      }
       dp_regime_convocavel: {
         Args: { _regime: Database["public"]["Enums"]["dp_regime_trabalho"] }
         Returns: boolean

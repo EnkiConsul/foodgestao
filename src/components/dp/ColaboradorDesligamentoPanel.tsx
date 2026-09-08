@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertTriangle, LogOut, RotateCcw, UserMinus } from "lucide-react";
+import { AlertTriangle, LogOut, RotateCcw, UserMinus, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import {
   calcAcessoPortalAte,
   toDateOnly,
 } from "@/lib/dp/desligamento";
+import { ColaboradorRecontratacaoDialog } from "@/components/dp/ColaboradorRecontratacaoDialog";
 
 const NONE = "__none__";
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
@@ -49,6 +50,7 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
   const [observacao, setObservacao] = useState("");
   const [confirmar, setConfirmar] = useState(false);
   const [confirmarReintegrar, setConfirmarReintegrar] = useState(false);
+  const [recontratar, setRecontratar] = useState(false);
 
   useEffect(() => {
     if (!colaborador) return;
@@ -231,8 +233,11 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
               <Button onClick={() => void handleEditar()} disabled={pending}>
                 {editar.isPending ? "Salvando..." : "Salvar alterações do desligamento"}
               </Button>
-              <Button variant="outline" onClick={() => setConfirmarReintegrar(true)} disabled={pending}>
-                <RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" /> Reintegrar colaborador
+              <Button variant="outline" onClick={() => setRecontratar(true)} disabled={pending}>
+                <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" /> Recontratar (novo vínculo)
+              </Button>
+              <Button variant="ghost" onClick={() => setConfirmarReintegrar(true)} disabled={pending}>
+                <RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" /> Reintegrar (desfazer desligamento)
               </Button>
             </>
           ) : (
@@ -272,17 +277,25 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
       <AlertDialog open={confirmarReintegrar} onOpenChange={setConfirmarReintegrar}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reintegrar colaborador?</AlertDialogTitle>
+            <AlertDialogTitle>Desfazer o desligamento?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{colaborador.nome}</strong> voltará a ficar ativo, com acesso completo ao portal.
+              <strong>{colaborador.nome}</strong> volta a ficar ativo no mesmo vínculo, com a admissão
+              original e acesso completo ao portal. Use isso quando o desligamento foi registrado por
+              engano. Para um retorno de verdade, use "Recontratar (novo vínculo)".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleReintegrar()}>Reintegrar</AlertDialogAction>
+            <AlertDialogAction onClick={() => void handleReintegrar()}>Desfazer desligamento</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ColaboradorRecontratacaoDialog
+        colaborador={colaborador}
+        open={recontratar}
+        onOpenChange={setRecontratar}
+      />
     </div>
   );
 }
