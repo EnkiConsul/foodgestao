@@ -140,6 +140,7 @@ const CATEGORIA_ORDEM: CategoriaDia[] = [
   "fixo",
   "convocado_aceito",
   "convocado_pendente",
+  "coberto",
   "folga_padrao",
   "folga_extra",
   "ferias",
@@ -153,6 +154,7 @@ const CATEGORIA_TONE: Record<CategoriaDia, "primary" | "muted" | "success" | "wa
   fixo: "primary",
   convocado_aceito: "success",
   convocado_pendente: "warning",
+  coberto: "muted",
   folga_padrao: "muted",
   folga_extra: "muted",
   ferias: "primary",
@@ -166,6 +168,7 @@ const CATEGORIA_ICON: Record<CategoriaDia, typeof Users> = {
   fixo: Users,
   convocado_aceito: UserCheck,
   convocado_pendente: Clock,
+  coberto: Handshake,
   folga_padrao: Sun,
   folga_extra: Sun,
   ferias: Plane,
@@ -671,7 +674,11 @@ function DetalheDiaOperacao({
                       Folga sócio
                     </Badge>
                   )}
-                  <Badge variant="outline">{CATEGORIA_LABEL[p.categoria]}</Badge>
+                  <Badge variant="outline">
+                    {p.categoria === "coberto" && p.coberto_por_nome
+                      ? `Coberto por ${p.coberto_por_nome}`
+                      : CATEGORIA_LABEL[p.categoria]}
+                  </Badge>
                 </div>
               </li>
             ))}

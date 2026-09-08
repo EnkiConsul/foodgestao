@@ -125,6 +125,10 @@ export const pessoaAvulsaSchema = z
     message: "A data final não pode ser anterior à data inicial",
     path: ["data_fim"],
   })
+  .refine((d) => !d.cobre_colaborador_id || !!d.cobre_motivo, {
+    message: "Informe o motivo da cobertura",
+    path: ["cobre_motivo"],
+  })
   .refine((d) => (d.tipo === "registro_manual" ? !!d.colaborador_id : true), {
     message: "Selecione o colaborador que trabalhou",
     path: ["colaborador_id"],

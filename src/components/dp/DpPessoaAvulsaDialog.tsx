@@ -180,7 +180,7 @@ export function DpPessoaAvulsaDialog({
       cargo_id: registro?.cargo_id ?? "",
       setor_id: registro?.setor_id ?? registro?.setor_habitual_id ?? "",
       cobre_colaborador_id: registro?.cobre_colaborador_id ?? "",
-      cobre_motivo: registro?.cobre_motivo ?? "",
+      cobre_motivo: registro?.cobre_colaborador_id ? registro.cobre_motivo ?? "outro" : "",
       data_inicio: dataBase,
       data_fim: registro?.data_fim ?? dataBase,
       entrada: registro?.entrada ?? "",
@@ -507,7 +507,7 @@ export function DpPessoaAvulsaDialog({
                     setForm({
                       ...form,
                       cobre_colaborador_id: v === "nenhum" ? "" : v,
-                      cobre_motivo: v === "nenhum" ? "" : form.cobre_motivo,
+                      cobre_motivo: v === "nenhum" ? "" : form.cobre_motivo || "outro",
                     })
                   }
                 >
@@ -533,7 +533,7 @@ export function DpPessoaAvulsaDialog({
                 <div className="grid gap-1.5">
                   <Label>Motivo da cobertura</Label>
                   <Select
-                    value={form.cobre_motivo || "outro"}
+                    value={form.cobre_motivo}
                     onValueChange={(v) => setForm({ ...form, cobre_motivo: v })}
                   >
                     <SelectTrigger>

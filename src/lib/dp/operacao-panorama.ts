@@ -25,6 +25,7 @@ export type CategoriaDia =
   | "fixo"
   | "convocado_aceito"
   | "convocado_pendente"
+  | "coberto"
   | "folga_padrao"
   | "folga_extra"
   | "ferias"
@@ -38,6 +39,7 @@ export const CATEGORIA_LABEL: Record<CategoriaDia, string> = {
   fixo: "Fixos Escalados",
   convocado_aceito: "Convocados Aceitos",
   convocado_pendente: "Aguardando Resposta",
+  coberto: "Coberto por Folguista",
   folga_padrao: "Folga Padrão",
   folga_extra: "Folga Extra",
   ferias: "Férias",
@@ -139,6 +141,8 @@ export interface PessoaAvulsaPanorama {
   cobre_nome: string | null;
   /** Motivo operacional da cobertura (folga, falta, atestado, outro). */
   cobre_motivo?: string | null;
+  /** Nome do folguista que substitui este colaborador no dia. */
+  coberto_por_nome?: string | null;
   data_inicio: string;
   data_fim: string;
   entrada: string | null;
@@ -353,6 +357,16 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     manualPor.set(a.colaborador_id, a);
   }
 
+  // A própria cobertura é suficiente para retirar o colaborador coberto do
+  // quadro de trabalho. Ocorrências e folgas continuam prevalecendo quando
+  // existirem; este mapa cobre também registros antigos sem motivo salvo.
+  const coberturaPor = new Map<string, PessoaAvulsaPanorama>();
+  for (const a of input.avulsos ?? []) {
+    if (a.tipo !== "folguista" || !a.cobre_colaborador_id) continue;
+    if (data < a.data_inicio || data > a.data_fim) continue;
+    coberturaPor.set(a.cobre_colaborador_id, a);
+  }
+
   // Ocorrências do dia (falta, atraso, saída antecipada) agrupadas por colaborador.
   const ocorrenciasPor = new Map<string, OcorrenciaPanorama[]>();
   for (const o of input.ocorrencias ?? []) {
@@ -377,7 +391,13 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       intervalo_minutos?: number | null;
       origem: PessoaPanorama["origem"];
     },
-    extras?: { avulso_id?: string; avulso_tipo?: PessoaAvulsaTipo; observacao?: string | null },
+    extras?: {
+      avulso_id?: string;
+      avulso_tipo?: PessoaAvulsaTipo;
+      observacao?: string | null;
+      coberto_por_nome?: string | null;
+      cobre_motivo?: string | null;
+    },
   ) => {
     // Sócio com unidade definida e jornada cadastrada faz parte do quadro daquela
     // unidade: entra nas contagens normais (fixo e folga padrão da jornada).
@@ -512,6 +532,15 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
 
     if (folgas.some((f) => f.tipo === "normal" || f.tipo === "abono")) {
       registrar(colab, "folga_padrao");
+      continue;
+    }
+
+    const cobertura = coberturaPor.get(colab.id);
+    if (cobertura) {
+      registrar(colab, "coberto", undefined, {
+        coberto_por_nome: cobertura.nome ?? "Folguista",
+        cobre_motivo: cobertura.cobre_motivo ?? null,
+      });
       continue;
     }
 
