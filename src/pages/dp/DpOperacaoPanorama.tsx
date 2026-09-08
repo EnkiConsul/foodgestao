@@ -543,7 +543,7 @@ function DetalheDiaOperacao({
                                 }
                               >
                                 {p.setor_nome ?? SETOR_NAO_DEFINIDO_LABEL}
-                                {origemSetorSufixo(p.setor_origem ?? "nenhum")
+                                {setorDiaDivergeDoHabitual(p.setor_origem ?? "nenhum", p.setor_id, p.setor_habitual_id)
                                   ? ` · ${origemSetorSufixo(p.setor_origem ?? "nenhum")}`
                                   : ""}
                               </Badge>
@@ -592,7 +592,7 @@ function DetalheDiaOperacao({
 
       <Secao
         title="Mão de Obra Extra"
-        description="Quem trabalhou no dia por registro manual, em teste ou como folguista"
+        description="Pessoas adicionadas à equipe deste dia: folguistas, pessoas em teste ou colaboradores"
         action={
           podeRegistrar ? (
             <Button variant="outline" size="sm" onClick={() => onNovaAvulsa(data)}>
@@ -614,7 +614,9 @@ function DetalheDiaOperacao({
                     {[
                       a.cargo_nome,
                       `${a.entrada ?? "--:--"} às ${a.saida ?? "--:--"}${a.termina_no_dia_seguinte ? " (+1)" : ""}`,
-                      a.cobre_nome ? `cobrindo ${a.cobre_nome}` : null,
+                      a.cobre_nome
+                        ? `Cobrindo ${a.cobre_nome}${a.cobre_motivo ? ` · ${COBRE_MOTIVO_LABEL[a.cobre_motivo] ?? a.cobre_motivo}` : ""}`
+                        : null,
                       a.data_fim !== a.data_inicio ? `até ${a.data_fim}` : null,
                     ]
                       .filter(Boolean)
@@ -627,7 +629,7 @@ function DetalheDiaOperacao({
                     {a.tipo === "teste"
                       ? "Em teste"
                       : a.tipo === "folguista"
-                        ? "Folguista"
+                        ? rotuloFolguista(a)
                         : "Registro manual"}
                   </Badge>
                   {podeRegistrar && (
