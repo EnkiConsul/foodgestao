@@ -141,8 +141,6 @@ export interface PessoaAvulsaPanorama {
   cobre_nome: string | null;
   /** Motivo operacional da cobertura (folga, falta, atestado, outro). */
   cobre_motivo?: string | null;
-  /** Nome do folguista que substitui este colaborador no dia. */
-  coberto_por_nome?: string | null;
   data_inicio: string;
   data_fim: string;
   entrada: string | null;
@@ -205,6 +203,8 @@ export interface PessoaPanorama {
   cobre_nome?: string | null;
   /** Motivo operacional da cobertura (folga, falta, atestado, outro). */
   cobre_motivo?: string | null;
+  /** Nome do folguista que substitui este colaborador no dia. */
+  coberto_por_nome?: string | null;
   observacao?: string | null;
 }
 
@@ -232,6 +232,7 @@ const zeradas = (): Contagens => ({
   fixo: 0,
   convocado_aceito: 0,
   convocado_pendente: 0,
+  coberto: 0,
   folga_padrao: 0,
   folga_extra: 0,
   ferias: 0,
@@ -511,6 +512,14 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     // Intermitente sem convocação e sem ausência simplesmente não está na operação.
     if (colab.intermitente) continue;
 
+    const cobertura = coberturaPor.get(colab.id);
+    if (cobertura) {
+      registrar(colab, "coberto", undefined, {
+        coberto_por_nome: cobertura.nome ?? "Folguista",
+        cobre_motivo: cobertura.cobre_motivo ?? null,
+      });
+      continue;
+    }
 
     const item = itemPor.get(colab.id);
     if (item) {
@@ -532,15 +541,6 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
 
     if (folgas.some((f) => f.tipo === "normal" || f.tipo === "abono")) {
       registrar(colab, "folga_padrao");
-      continue;
-    }
-
-    const cobertura = coberturaPor.get(colab.id);
-    if (cobertura) {
-      registrar(colab, "coberto", undefined, {
-        coberto_por_nome: cobertura.nome ?? "Folguista",
-        cobre_motivo: cobertura.cobre_motivo ?? null,
-      });
       continue;
     }
 
