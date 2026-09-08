@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Palmtree, Plus, Pencil, ClipboardList, AlertTriangle } from "lucide-react";
+import { Palmtree, Plus, Pencil, ClipboardList, AlertTriangle, History } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
