@@ -1146,14 +1146,75 @@ export default function DpOperacaoPanorama() {
                 title="Calendário da Operação"
                 description="Clique em um dia para ver o detalhamento por turno."
               >
-                <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted-foreground">
+                {/* Mobile: 1 dia = 1 linha (padrão dos calendários do Pessoas 360°) */}
+                <div className="md:hidden">
+                  <DiasEmLista
+                    dias={panorama.dias.map((d) => ({
+                      iso: d.data,
+                      selecionado: d.data === data,
+                      tom: d.alerta
+                        ? d.avaliacao.situacao === "abaixo"
+                          ? ("critico" as const)
+                          : ("atencao" as const)
+                        : undefined,
+                      onSelect: () => setDataPopout(d.data),
+                      resumo: (
+                        <span>
+                          <span className="font-semibold text-foreground">{d.trabalhando}</span>{" "}
+                          confirmado(s)
+                          {d.aguardando > 0 ? (
+                            <span className="text-amber-600 dark:text-amber-400">
+                              {" "}
+                              · {d.aguardando} aguardando
+                            </span>
+                          ) : null}
+                        </span>
+                      ),
+                      chips: (
+                        <>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {d.contagens.fixo} fixo(s)
+                          </Badge>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {d.contagens.convocado_aceito} convocado(s)
+                          </Badge>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {d.contagens.folga_padrao + d.contagens.folga_extra} folga(s)
+                          </Badge>
+                          {d.avaliacao.padrao != null && (
+                            <Badge variant="outline" className="text-[10px]">
+                              padrão {d.avaliacao.padrao}
+                            </Badge>
+                          )}
+                          {d.alerta && (
+                            <Badge variant="outline" className="border-amber-500/50 text-[10px]">
+                              fora do padrão
+                            </Badge>
+                          )}
+                          {d.dispensado && (
+                            <Badge variant="outline" className="text-[10px]">
+                              avaliado
+                            </Badge>
+                          )}
+                          {diasComSocioAusente.has(d.data) && (
+                            <Badge variant="outline" className="border-amber-500/50 text-[10px]">
+                              sócio ausente
+                            </Badge>
+                          )}
+                        </>
+                      ),
+                    }))}
+                  />
+                </div>
+
+                <div className="hidden grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted-foreground md:grid">
                   {DOW_CURTO.map((d) => (
                     <div key={d} className="py-1">
                       {d}
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-7 gap-1">
+                <div className="hidden grid-cols-7 gap-1 md:grid">
                   {Array.from({ length: panorama.dias[0]?.dow ?? 0 }).map((_, i) => (
                     <div key={`vazio-${i}`} />
                   ))}
