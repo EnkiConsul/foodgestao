@@ -43,7 +43,7 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   const { historico, aplicar, isLoading } = useDpColaboradorCondicoes(colaborador?.id);
   const { data: unidades = [] } = useDpUnidades();
   const { data: cargos = [] } = useDpCargos();
-  const { data: setores = [] } = useDpSetores();
+  const { setores = [] } = useDpSetores();
 
   const [vigencia, setVigencia] = useState(hoje());
   const [regime, setRegime] = useState<string>("clt");
