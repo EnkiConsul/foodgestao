@@ -219,6 +219,9 @@ export default function DpColaboradores() {
       salarioCargo: salarioCargoDe(c.cargo_id, c.unidade_id),
     });
 
+  const nomeSetorApoio = (id: string | null) =>
+    id ? (todosSetores.find((s) => s.id === id)?.nome ?? null) : null;
+
   const counts = useMemo(() => {
     const all = list.data ?? [];
     return {
