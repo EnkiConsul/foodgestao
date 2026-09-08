@@ -600,7 +600,9 @@ describe("contarDia com ocorrências", () => {
     // Hanna não conta como trabalhando; Stefane entra no quadro.
     expect(r.trabalhando).toBe(1);
     expect(r.contagens.ausente).toBe(1);
+    expect(r.contagens.coberto).toBe(0);
     expect(r.contagens_avulsos.folguista).toBe(1);
+    expect(r.pessoas.filter((p) => p.colaborador_id === "a")).toHaveLength(1);
   });
 
   it.each([undefined, "outro", "folga"])(

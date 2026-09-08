@@ -621,7 +621,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
   for (const [colabId, ocorrencias] of ocorrenciasPor.entries()) {
     const principal = pessoaPrincipalPorColab.get(colabId);
     const colab = colabPorId.get(colabId);
-    const categoriasTrabalho: CategoriaDia[] = ["fixo", "convocado_aceito", "convocado_pendente"];
+    const categoriasTrabalho: CategoriaDia[] = ["fixo", "convocado_aceito", "convocado_pendente", "coberto"];
     // Falta e atestado/ausência justificada vencem a categoria de trabalho:
     // quem faltou ou está afastado não conta como trabalhando.
     const catAusencia = ocorrencias
