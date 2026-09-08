@@ -59,10 +59,12 @@ export function DeleteMyAccountCard() {
           removidos; registros legalmente obrigatórios podem ser mantidos anonimizados.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-w-0">
         <AlertDialog open={open} onOpenChange={setOpen}>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive">Excluir conta permanentemente</Button>
+            <Button variant="destructive" className="h-auto w-full whitespace-normal py-2 text-center sm:w-auto">
+              Excluir conta permanentemente
+            </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
