@@ -387,7 +387,7 @@ export default function RelatorioFluxoCaixa() {
 
 
           <Select value={basis} onValueChange={(v) => setBasis(v as DateBasis)}>
-            <SelectTrigger className="h-8 w-[178px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-full max-w-full sm:w-[178px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="pagamento">Data de Pagamento</SelectItem>
               <SelectItem value="vencimento">Data de Vencimento</SelectItem>
