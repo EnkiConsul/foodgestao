@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMeuPonto } from "@/hooks/useDpPonto";
 import { PontoAjusteDialog } from "@/components/dp/PontoAjusteDialog";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { useMeusAjustesPonto, AJUSTE_ACAO_LABEL } from "@/hooks/useDpPontoAjustes";
 import { useDpHorarioPrevisto } from "@/hooks/useDpHorarioPrevisto";
 import { textoPrevisto } from "@/lib/dp/horario-previsto";
@@ -96,21 +97,13 @@ export default function DpMeuPonto() {
   const carregando = isLoading || loadingPrevisto || me.isLoading;
 
   return (
-    <div className="space-y-4 p-4 pb-24">
+    <DpPage narrow>
       <Helmet>
         <title>Meu Ponto | Aveto 360</title>
         <meta name="description" content="Registre sua entrada, intervalo e saída e acompanhe as horas do dia." />
       </Helmet>
 
-      <header className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/10 text-primary">
-          <Fingerprint className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold">Meu Ponto</h1>
-          <p className="text-xs capitalize text-muted-foreground">{dataExtenso(hoje)}</p>
-        </div>
-      </header>
+      <DpPageHeader icon={Fingerprint} title="Meu Ponto" description={dataExtenso(hoje)} />
 
       {carregando ? (
         <Skeleton className="h-48 w-full" />
@@ -206,6 +199,6 @@ export default function DpMeuPonto() {
           )}
         </>
       )}
-    </div>
+    </DpPage>
   );
 }

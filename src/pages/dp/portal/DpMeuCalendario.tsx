@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { FolgaCalendarShared } from "@/components/dp/FolgaCalendarShared";
 import { Button } from "@/components/ui/button";
+import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -738,45 +739,41 @@ export default function DpMeuCalendario() {
     !["past", "mine", "fixed", "pending", "swapped", "weekday"].includes(selectedDay.status);
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <DpPage className="space-y-6 md:space-y-8">
       <Helmet>
         <title>Meu calendário — Portal DP</title>
       </Helmet>
 
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-4xl font-black text-foreground flex items-center gap-4 tracking-tight">
-            <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <CalendarDays className="size-7 text-primary" />
-            </div>
-            Meu calendário
-          </h1>
-          <p className="text-muted-foreground mt-2 font-medium">
-            Escolha suas folgas de fim de semana.
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">{resumoFolgas.texto}</p>
-          {avisoJanela && (
-            <div
-              className={cn(
-                "mt-3 flex items-start gap-2 rounded-xl border px-3 py-2 text-xs font-medium",
-                janela.estado === "aberta"
-                  ? "border-emerald-200 bg-emerald-500/10 text-emerald-700"
-                  : "border-amber-200 bg-amber-500/10 text-amber-700",
-              )}
-            >
-              <AlertCircle className="size-4 shrink-0" />
-              <span>{avisoJanela}</span>
-            </div>
-          )}
-        </div>
+      <DpPageHeader
+        icon={CalendarDays}
+        title="Meu Calendário"
+        description="Escolha suas folgas de fim de semana."
+        actions={
+          <Button
+            variant="outline"
+            className="w-full rounded-full sm:w-auto"
+            onClick={() => navigate("/dp/meu/trocas")}
+          >
+            <ArrowLeftRight className="size-4 mr-2" /> Minhas trocas
+          </Button>
+        }
+      />
 
-        <Button
-          variant="outline"
-          className="rounded-full"
-          onClick={() => navigate("/dp/meu/trocas")}
-        >
-          <ArrowLeftRight className="size-4 mr-2" /> Minhas trocas
-        </Button>
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
+        {avisoJanela && (
+          <div
+            className={cn(
+              "flex items-start gap-2 rounded-xl border px-3 py-2 text-xs font-medium",
+              janela.estado === "aberta"
+                ? "border-emerald-200 bg-emerald-500/10 text-emerald-700"
+                : "border-amber-200 bg-amber-500/10 text-amber-700",
+            )}
+          >
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{avisoJanela}</span>
+          </div>
+        )}
       </div>
 
       {convocavel && (
@@ -1123,6 +1120,6 @@ export default function DpMeuCalendario() {
           tipo="folga"
         />
       )}
-    </div>
+    </DpPage>
   );
 }
