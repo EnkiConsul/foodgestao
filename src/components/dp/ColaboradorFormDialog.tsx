@@ -523,7 +523,7 @@ export function ColaboradorFormDialog({
       cpf: p.cpf ? maskCpf(p.cpf) : "",
       matricula: "",
       email: "",
-      whatsapp: p.telephone ?? "",
+      whatsapp: p.telefone ?? "",
       cargo_id: p.cargo_id ?? "",
       unidade_id: p.unidade_id ?? "",
       setor_id: p.setor_id ?? "",
