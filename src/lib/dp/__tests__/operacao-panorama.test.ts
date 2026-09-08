@@ -555,6 +555,54 @@ describe("contarDia com ocorrências", () => {
     expect(r.pessoas[0].ocorrencias).toHaveLength(1);
   });
 
+  it("converte atestado operacional em afastada e reduz trabalhando", () => {
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [fixo("a")],
+      turnos,
+      ...vazio,
+      ocorrencias: [ocorrencia({ tipo: "atestado", estado: "informada" })],
+    });
+    expect(r.contagens.fixo).toBe(0);
+    expect(r.contagens.atestado).toBe(1);
+    expect(r.trabalhando).toBe(0);
+    expect(r.pessoas.filter((p) => p.colaborador_id === "a")).toHaveLength(1);
+    expect(r.pessoas[0].categoria).toBe("atestado");
+  });
+
+  it("cobertura com falta: coberto sai do quadro e folguista entra trabalhando", () => {
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [fixo("a")],
+      turnos,
+      ...vazio,
+      ocorrencias: [ocorrencia()],
+      avulsos: [
+        {
+          id: "av1",
+          nome: "Stefane",
+          tipo: "folguista",
+          unidade_id: "u1",
+          cargo_id: "c1",
+          cargo_nome: "Auxiliar",
+          cobre_colaborador_id: "a",
+          cobre_nome: "Hanna",
+          cobre_motivo: "falta",
+          data_inicio: SEGUNDA,
+          data_fim: SEGUNDA,
+          entrada: "09:00",
+          saida: "18:00",
+          termina_no_dia_seguinte: false,
+          observacao: null,
+        },
+      ],
+    });
+    // Hanna não conta como trabalhando; Stefane entra no quadro.
+    expect(r.trabalhando).toBe(1);
+    expect(r.contagens.ausente).toBe(1);
+    expect(r.contagens_avulsos.folguista).toBe(1);
+  });
+
   it("mantém atraso como trabalhando e cria card atrasado", () => {
     const r = contarDia({
       data: SEGUNDA,
