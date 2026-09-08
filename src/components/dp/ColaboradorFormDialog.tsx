@@ -696,6 +696,9 @@ export function ColaboradorFormDialog({
   const socioSelecionado = isSocio(form.tipo_vinculo);
   /** Sócio só por lucros não tem valor de remuneração registrado no sistema. */
   const socioSemRemuneracao = socioSelecionado && socioRem === "somente_lucros";
+  // Freelancer não é regido por regras coletivas de CLT (sindicato, isonomia de
+  // benefícios, adicional por tempo de serviço): os blocos somem do cadastro.
+  const freelancerSelecionado = regimeSelecionado === "freelancer";
 
   /**
    * Gênero fora de masculino/feminino não tem regra dominical própria na
