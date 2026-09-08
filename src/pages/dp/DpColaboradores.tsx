@@ -1013,13 +1013,20 @@ export default function DpColaboradores() {
                       }
                       const p = item.item;
                       return (
-                        <TableRow key={p.id} className="hover:bg-muted/50 transition-colors">
+                        <TableRow
+                          key={p.id}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => setApoioEditando(p)}
+                        >
                           <TableCell className="align-top font-medium">{p.nome}</TableCell>
                           <TableCell className="align-top"><Badge variant="outline" className="text-[11px] capitalize">{p.tipo === "folguista" ? "Folguista" : "Em Teste"}</Badge></TableCell>
                           <TableCell className="align-top">{nomeCargo(p.cargo_id)}{p.unidade_id ? <span className="text-muted-foreground"> • {nomeUnidade(p.unidade_id)}</span> : null}</TableCell>
                           <TableCell className="align-top">{p.ativo ? "Ativo" : "Inativo"}</TableCell>
                           <TableCell className="align-top">
-                            <div className="flex gap-0.5 justify-center">
+                            <div className="flex gap-0.5 justify-center" onClick={(e) => e.stopPropagation()}>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar cadastro" onClick={() => setApoioEditando(p)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -1029,6 +1036,9 @@ export default function DpColaboradores() {
                                 onClick={() => setTransformando(p)}
                               >
                                 <UserPlus className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" title="Excluir" onClick={() => setApoioAExcluir(p)}>
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
