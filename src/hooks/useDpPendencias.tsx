@@ -402,7 +402,6 @@ export function useDpPendencias() {
               });
               continue;
             }
-            const ultima: any = negs[0];
             const anoUltimo = ultima.ano ?? 0;
             const mesUltimo = ultima.mes ?? 0;
             // Vencimento = último dia do mesmo mês da última negociação, um ano depois
