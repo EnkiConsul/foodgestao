@@ -21,7 +21,7 @@ import { FeriasFaltasDialog } from "@/components/dp/ferias/FeriasFaltasDialog";
 import { FeriasSaldoInicialDialog } from "@/components/dp/ferias/FeriasSaldoInicialDialog";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { FeriasRestricoesAviso } from "@/components/dp/ferias/FeriasRestricoesAviso";
-import { NIVEL_VENCIMENTO_META, nivelVencimento } from "@/lib/dp/ferias-direito";
+import { NIVEL_VENCIMENTO_META, nivelVencimentoPeriodo } from "@/lib/dp/ferias-direito";
 
 const PERIODO_LABEL: Record<FeriasPeriodoStatus, string> = {
   em_aquisicao: "Em aquisição",
@@ -117,15 +117,22 @@ export default function DpFerias() {
   }, [periodoParam, periodosLoading, periodos]);
 
   const hoje = new Date();
+  const hojeISO = format(hoje, "yyyy-MM-dd");
   const alertaLimite = (p: FeriasPeriodo) => {
     if (p.status === "concluido" || p.controle_externo) return null;
     const dias = differenceInCalendarDays(parseISO(p.limite_concessivo), hoje);
-    const nivel = nivelVencimento(dias);
+    const nivel = nivelVencimentoPeriodo({
+      fimAquisitivo: p.fim_aquisitivo,
+      limiteConcessivo: p.limite_concessivo,
+      diasSaldo: p.dias_saldo,
+      hojeISO,
+      politica: feriasConfig.sinalizacaoCicloEncerrado,
+    });
     if (nivel === "normal") return null;
     const meta = NIVEL_VENCIMENTO_META[nivel];
     return (
       <Badge className={meta.tone}>
-        {nivel === "vencido" ? "Vencido" : `${meta.label} · ${dias}d`}
+        {nivel === "vencido" || nivel === "a_conceder" ? meta.label : `${meta.label} · ${dias}d`}
       </Badge>
     );
   };

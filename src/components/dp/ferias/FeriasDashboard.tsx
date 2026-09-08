@@ -6,7 +6,8 @@ import { AlertTriangle, CalendarClock, CheckCircle2, Palmtree, Inbox } from "luc
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DpContentCard } from "@/components/dp/DpPage";
-import { NIVEL_VENCIMENTO_META, nivelVencimento, textoPrazo } from "@/lib/dp/ferias-direito";
+import { NIVEL_VENCIMENTO_META, nivelVencimentoPeriodo, textoPrazo } from "@/lib/dp/ferias-direito";
+import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
 import type { FeriasGozo, FeriasPeriodo } from "@/hooks/useDpFerias";
 
 const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
@@ -21,6 +22,9 @@ type Props = {
 /** Visão operacional de férias: o que precisa de ação hoje. */
 export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props) {
   const hoje = new Date();
+  const hojeISO = format(hoje, "yyyy-MM-dd");
+  const { config: feriasConfig } = useDpFeriasConfig();
+  const politica = feriasConfig.sinalizacaoCicloEncerrado;
 
   const { kpis, atencoes } = useMemo(() => {
     const comSaldo = periodos.filter(
@@ -32,23 +36,35 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
     );
     const dias = (p: FeriasPeriodo) => differenceInCalendarDays(parseISO(p.limite_concessivo), hoje);
 
+    const nivelDe = (p: FeriasPeriodo) =>
+      nivelVencimentoPeriodo({
+        fimAquisitivo: p.fim_aquisitivo,
+        limiteConcessivo: p.limite_concessivo,
+        diasSaldo: p.dias_saldo,
+        hojeISO,
+        politica,
+      });
+
     const lista = comSaldo
-      .map((p) => ({ periodo: p, restantes: dias(p) }))
-      .filter((x) => x.restantes <= 90)
+      .map((p) => ({ periodo: p, restantes: dias(p), nivel: nivelDe(p) }))
+      .filter((x) => x.nivel !== "normal" && x.nivel !== "planejamento" ? true : x.restantes <= 90)
       .sort((a, b) => a.restantes - b.restantes)
       .slice(0, 8);
 
     return {
       kpis: {
         programar: comSaldo.length,
-        vencendo: comSaldo.filter((p) => dias(p) <= 30).length,
+        vencendo: comSaldo.filter((p) => {
+          const n = nivelDe(p);
+          return n === "vencido" || n === "atencao";
+        }).length,
         aguardando: gozos.filter((g) => g.status === "planejado").length,
         programadas: gozos.filter((g) => g.status === "aprovado").length,
         emFerias: gozos.filter((g) => g.status === "em_gozo").length,
       },
       atencoes: lista,
     };
-  }, [periodos, gozos, hoje]);
+  }, [periodos, gozos, hojeISO, politica]);
 
   const cards = [
     { label: "Precisam ser programadas", value: kpis.programar, icon: CheckCircle2, tone: "text-emerald-600" },
@@ -76,8 +92,7 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
             <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Atenções</p>
           </div>
           <div className="divide-y divide-border">
-            {atencoes.map(({ periodo, restantes }) => {
-              const nivel = nivelVencimento(restantes);
+            {atencoes.map(({ periodo, restantes, nivel }) => {
               const meta = NIVEL_VENCIMENTO_META[nivel];
               const detalhe = descricaoColaborador?.(periodo.colaborador_id);
               return (
