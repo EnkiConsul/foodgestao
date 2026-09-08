@@ -41,6 +41,21 @@ export function origemSetorSufixo(origem: OrigemSetor): string | null {
   return null;
 }
 
+/**
+ * "Alterado hoje"/"rotina do dia" só faz sentido quando o setor efetivo do dia
+ * diverge do setor habitual atual. Definir um setor habitual que estava vazio
+ * (ou um ajuste do dia igual ao habitual) não é alteração — sem aviso.
+ */
+export function setorDiaDivergeDoHabitual(
+  origem: OrigemSetor,
+  setorDiaId: string | null | undefined,
+  setorHabitualId: string | null | undefined,
+): boolean {
+  if (!origemSetorSufixo(origem)) return false;
+  if (!setorDiaId || !setorHabitualId) return false;
+  return setorDiaId !== setorHabitualId;
+}
+
 /** A dimensão Setor só liga quando a unidade tem pelo menos um setor ativo. */
 export function dimensaoSetorAtiva(setores: readonly { ativo: boolean }[]): boolean {
   return setores.some((s) => s.ativo);
