@@ -119,7 +119,7 @@ export function MinhaDisponibilidadeCard({ colaboradorId, ano, mes, onPrev, onNe
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-muted-foreground">
+          <div className="hidden grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-muted-foreground md:grid">
             {WEEKDAY_LABELS.map((w) => (
               <span key={w}>{w}</span>
             ))}
