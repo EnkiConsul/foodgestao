@@ -59,6 +59,7 @@ import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
+import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
