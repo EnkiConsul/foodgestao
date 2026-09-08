@@ -224,7 +224,13 @@ const abaSeguinte = (aba: AbaVisivel): AbaCadastro | null =>
 
 
 
-export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInicial = "dados" }: Props) {
+export function ColaboradorFormDialog({
+  open,
+  onOpenChange,
+  colaborador,
+  abaInicial = "dados",
+  pessoaApoioInicial,
+}: Props) {
   const upsert = useUpsertDpColaborador();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
