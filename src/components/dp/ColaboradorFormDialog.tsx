@@ -1303,16 +1303,20 @@ export function ColaboradorFormDialog({
       const e = erroRemuneracao();
       if (e) { toast.error(e.mensagem); setTab("remuneracao"); setCampoErro(e.campo); return; }
 
-      // Benefícios desmarcados exigem ciência de isonomia — sócio não é comparável ao quadro CLT.
-      if (!socioSelecionado && !isonomiaConfirmada.current) {
+      // Benefícios desmarcados exigem ciência de isonomia — sócio e freelancer
+      // não são comparáveis ao quadro CLT.
+      if (!socioSelecionado && !freelancerSelecionado && !isonomiaConfirmada.current) {
         const pendentes = dispensasPendentes();
         if (pendentes.length > 0) { setTab("remuneracao"); setDispensas(pendentes); return; }
       }
 
 
-      // Mensalista com cargo remunerado: o salário vem travado do cargo, sem conflito possível.
+      // Mensalista com cargo remunerado e salário igual ao do cargo: sem conflito
+      // possível. Quando o valor diverge (remuneração contratual própria, ex.:
+      // tempo parcial), a reconciliação abaixo pergunta como seguir.
       const salarioTravadoNoCargo =
-        rem.forma_pagamento === "mensalista" && !!salarioCargo && salarioCargo > 0;
+        rem.forma_pagamento === "mensalista" && !!salarioCargo && salarioCargo > 0 &&
+        Math.abs(numeroBR(rem.salario_base) - salarioCargo) <= 0.009;
       if (salarioTravadoNoCargo) cargoResolvido.current = true;
 
       // Um cargo = um salário: reconcilia o cargo antes de gravar o colaborador.
