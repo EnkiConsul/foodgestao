@@ -32,6 +32,7 @@ import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 import { Link } from "react-router-dom";
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
+import { ColaboradorCondicoesDialog } from "@/components/dp/ColaboradorCondicoesDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpSalvarLargurasButton } from "@/components/dp/DpSalvarLargurasButton";
