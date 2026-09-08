@@ -3,6 +3,7 @@ import {
   diasDireitoPorFaltas,
   exigeRevisaoAdministrativa,
   nivelVencimento,
+  nivelVencimentoPeriodo,
   textoErroFerias,
   textoPrazo,
 } from "../ferias-direito";
