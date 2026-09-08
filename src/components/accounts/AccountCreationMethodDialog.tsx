@@ -26,11 +26,11 @@ export function AccountCreationMethodDialog({
           {showOpenFinance && (
             <Button
               variant="outline"
-              className="h-auto py-4 px-4 justify-start text-left"
+              className="h-auto w-full py-4 px-4 justify-start text-left whitespace-normal"
               onClick={onSelectOpenFinance}
             >
               <Zap className="h-6 w-6 mr-3 text-primary shrink-0" />
-              <div>
+              <div className="min-w-0">
                 <div className="font-semibold">Conectar via Open Finance</div>
                 <div className="text-xs text-muted-foreground font-normal">
                   Traz automaticamente saldo e lançamentos dos últimos 30 dias.
@@ -40,11 +40,11 @@ export function AccountCreationMethodDialog({
           )}
           <Button
             variant="outline"
-            className="h-auto py-4 px-4 justify-start text-left"
+            className="h-auto w-full py-4 px-4 justify-start text-left whitespace-normal"
             onClick={onSelectManual}
           >
             <Landmark className="h-6 w-6 mr-3 text-primary shrink-0" />
-            <div>
+            <div className="min-w-0">
               <div className="font-semibold">Cadastrar manualmente</div>
               <div className="text-xs text-muted-foreground font-normal">
                 Informar nome, banco, tipo e saldo inicial.
