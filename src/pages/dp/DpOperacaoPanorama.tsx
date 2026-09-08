@@ -1473,10 +1473,14 @@ export default function DpOperacaoPanorama() {
                   <span className="block truncate text-sm">{p.nome}</span>
                   <span className="block text-xs text-muted-foreground">
                     {p.entrada ? `${p.entrada} às ${p.saida ?? "--:--"}` : "—"}
-                    {p.cobre_nome ? ` · cobrindo ${p.cobre_nome}` : ""}
+                    {p.cobre_nome
+                      ? ` · Cobrindo ${p.cobre_nome}${p.cobre_motivo ? ` · ${COBRE_MOTIVO_LABEL[p.cobre_motivo] ?? p.cobre_motivo}` : ""}`
+                      : ""}
                   </span>
                 </div>
-                <Badge variant="secondary">{p.avulso_tipo === "teste" ? "Em teste" : "Folguista"}</Badge>
+                <Badge variant="secondary">
+                  {p.avulso_tipo === "teste" ? "Em teste" : rotuloFolguista(p)}
+                </Badge>
               </li>
             ))}
             {!avulsosDoDiaAtivo.length && (
