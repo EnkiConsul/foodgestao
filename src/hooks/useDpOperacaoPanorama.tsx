@@ -291,6 +291,39 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     },
   });
 
+  /** Unidades ativas da empresa — base da visão "todas as unidades". */
+  const unidadesAtivasIds = useMemo(
+    () => (base.data?.unidades ?? []).filter((u) => u.ativo !== false).map((u) => u.id),
+    [base.data?.unidades],
+  );
+
+  /**
+   * Feriados da unidade no histórico + competência. A fonte é a rotina do banco
+   * `dp_feriados_resolver`, que resolve datas fixas, anuais e relativas e já
+   * respeita empresa/unidade e feriados inativos.
+   */
+  const feriadosQuery = useQuery({
+    queryKey: ["dp_panorama_feriados", selectedCompanyId, janelaInicio, fim, unidadeId, unidadesAtivasIds],
+    enabled: !!selectedCompanyId && (!!unidadeId || unidadesAtivasIds.length > 0),
+    queryFn: async () => {
+      const alvos = unidadeId ? [unidadeId] : unidadesAtivasIds;
+      const listas = await Promise.all(
+        alvos.map(async (uid) => {
+          const { data, error } = await supabase.rpc("dp_feriados_resolver", {
+            _unidade_id: uid,
+            _inicio: janelaInicio,
+            _fim: fim,
+          });
+          if (error) throw error;
+          return (data ?? []).map((f) => ({ data: f.data, nome: f.nome, unidade_id: uid }));
+        }),
+      );
+      return listas.flat();
+    },
+  });
+
+
+
   /** Avisos de possível ausência: convocável informou que não poderá comparecer. */
   const conflitosQuery = useQuery({
     queryKey: ["dp_panorama_conflitos_disponibilidade", selectedCompanyId, competencia],
