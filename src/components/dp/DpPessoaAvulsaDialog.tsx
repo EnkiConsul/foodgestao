@@ -241,6 +241,7 @@ export function DpPessoaAvulsaDialog({
       unidade_id: form.unidade_id,
       cargo_id: form.cargo_id,
       cobre_colaborador_id: form.cobre_colaborador_id || null,
+      cobre_motivo: form.cobre_colaborador_id ? form.cobre_motivo || null : null,
       data_inicio: form.data_inicio,
       data_fim: form.data_fim,
       entrada: form.entrada || null,
@@ -289,17 +290,31 @@ export function DpPessoaAvulsaDialog({
         <DialogHeader>
           <DialogTitle>{registro ? "Editar Pessoa no Dia" : "Adicionar Pessoa no Dia"}</DialogTitle>
           <DialogDescription>
-            Registre quem trabalhou no dia: um colaborador já cadastrado (quando a convocação ou a
-            escala não foi feita) ou alguém em teste / folguista. Aparece na rotina e conta no quadro.
+            Adicione uma pessoa à equipe deste dia. Ela aparece na rotina e conta no quadro.
           </DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[65vh] gap-3 overflow-y-auto py-2 pr-1">
           <div className="grid gap-1.5">
-            <Label>Quem trabalhou *</Label>
-            <Select
-              value={form.tipo}
-              onValueChange={(v) => setForm({ ...form, tipo: v as PessoaAvulsaTipo })}
-            >
+            <div className="flex items-center gap-1.5">
+              <Label>Tipo de Mão de Obra Extra *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="O que é cada tipo"
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 space-y-2 text-xs" align="start">
+                  {(Object.keys(TIPO_INFO) as PessoaAvulsaTipo[]).map((t) => (
+                    <p key={t}>{TIPO_INFO[t]}</p>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            </div>
+            <Select value={form.tipo} onValueChange={(v) => trocarTipo(v as PessoaAvulsaTipo)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -311,6 +326,12 @@ export function DpPessoaAvulsaDialog({
                 ))}
               </SelectContent>
             </Select>
+            {TIPO_RISCO[form.tipo] && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs text-muted-foreground">
+                <p>{TIPO_RISCO[form.tipo]}</p>
+                <p className="mt-1.5">{RISCO_GERAL}</p>
+              </div>
+            )}
           </div>
 
           {manual ? (
