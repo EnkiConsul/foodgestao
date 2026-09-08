@@ -1,52 +1,52 @@
-import { Users, UserCheck, Cake, Wallet } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { useDpAniversariantes30d } from "@/hooks/useDpAniversariantes30d";
+import { ClipboardList, Bell, Plane, Settings } from "lucide-react";
+import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useDpPendencias } from "@/hooks/useDpPendencias";
-
-function Kpi({ icon: Icon, label, value, hint }: { icon: any; label: string; value: number | string; hint?: string }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4 flex items-center gap-4">
-      <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-        <Icon className="h-5 w-5 text-primary" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground leading-tight whitespace-normal break-normal [overflow-wrap:normal] hyphens-none">{label}</p>
-        <p className="text-2xl font-semibold leading-tight">{value}</p>
-        {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-      </div>
-    </div>
-  );
-}
+import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
+import { useDpOcorrencias } from "@/hooks/useDpOcorrencias";
+import { useDpFeriasPeriodos } from "@/hooks/useDpFeriasPeriodos";
+import { contarAbertas } from "@/lib/dp/pendencias";
+import { addDays, format } from "date-fns";
 
 export function KpiCards() {
-  const { selectedCompanyId } = useCompanyContext();
-  const aniv = useDpAniversariantes30d();
   const pend = useDpPendencias();
+  const { prefs } = useDpUserPrefs();
+  const hoje = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const hojeArr = useMemo(() => [hoje], [hoje]);
+  const ocorrencias = useDpOcorrencias({ datas: hojeArr });
+  const periodos = useDpFeriasPeriodos("abertos");
+  const vencendo = (periodos.data ?? []).filter((p) => p.limite_concessivo && new Date(p.limite_concessivo) <= addDays(new Date(), 60));
 
-  const colabs = useQuery({
-    queryKey: ["dp_kpi_colab", selectedCompanyId],
-    enabled: !!selectedCompanyId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_colaboradores")
-        .select("id, ativo")
-        .eq("company_id", selectedCompanyId!);
-      if (error) throw error;
-      const total = data?.length ?? 0;
-      const ativos = (data ?? []).filter((c) => c.ativo).length;
-      return { total, ativos };
-    },
-  });
+  // Fonte única: pendência aberta = não adiada (mema regra do card da Home).
+  const pendentesAbertas = useMemo(
+    () => contarAbertas(pend.data ?? [], prefs.pendencias_adiadas),
+    [pend.data, prefs.pendencias_adiadas],
+  );
 
-  const anivHoje = (aniv.data ?? []).filter((a) => a.faltamDias === 0).length;
+  const cards = [
+    { label: "Ocorrências hoje", value: ocorrencias.data?.length ?? 0, icon: ClipboardList, to: "/dp/ocorrencias" },
+    { label: "Pendências abertas", value: pendentesAbertas, icon: Bell, to: "/dp/cadastros/pendencias" },
+    { label: "Férias vencendo", value: vencendo.length, icon: Plane, to: "/dp/ferias?tab=periodos" },
+    { label: "Ajustes", value: null, icon: Settings, to: "/dp/cadastros" },
+  ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <Kpi icon={Users} label="Colaboradores ativos" value={colabs.data?.ativos ?? "—"} hint={`Total: ${colabs.data?.total ?? 0}`} />
-      <Kpi icon={UserCheck} label="Pendências abertas" value={pend.data?.length ?? "—"} />
-      <Kpi icon={Cake} label="Aniversariantes hoje" value={anivHoje} hint={`${aniv.data?.length ?? 0} nos próximos 30d`} />
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {cards.map((c) => (
+        <Link key={c.label} to={c.to} className="rounded-2xl border-2 border-[hsl(var(--dp-border))] bg-card p-4 hover:border-primary/30 hover:shadow-sm transition-all">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground">{c.label}</p>
+            <c.icon className="h-4 w-4 text-primary/60" />
+          </div>
+          {c.value !== null && <p className="text-2xl font-bold mt-1">{c.value}</p>}
+          {c.label === "Férias vencendo" && vencendo.length > 0 && (
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Próximo: {format(new Date(vencendo[0].limite_concessivo), "dd/MM/yyyy")}
+            </p>
+          )}
+          {c.label === "Ocorrências hoje" && <p className="text-[11px] text-muted-foreground mt-0.5">{format(new Date(), "dd/MM/yyyy")}</p>}
+        </Link>
+      ))}
     </div>
   );
 }
