@@ -44,7 +44,10 @@ export function useDpUserPrefs() {
 
   const save = useMutation({
     mutationFn: async (patch: Partial<DpUserPrefs>) => {
-      const current = query.data ?? DEFAULT;
+      // Lê o valor mais recente do cache no momento da gravação para que
+      // duas gravações em sequência não se sobrescrevam com estado antigo.
+      const cacheKey = ["dp_user_prefs", user?.id, selectedCompanyId];
+      const current = qc.getQueryData<DpUserPrefs>(cacheKey) ?? query.data ?? DEFAULT;
       const merged = { ...current, ...patch };
       const { error } = await supabase
         .from("dp_user_prefs")
