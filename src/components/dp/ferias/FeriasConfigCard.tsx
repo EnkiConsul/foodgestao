@@ -130,6 +130,20 @@ export function FeriasConfigCard() {
       </div>
 
       <div className="space-y-2 rounded-xl border p-3">
+        <p className="text-sm font-medium">Início do Controle de Férias</p>
+        <p className="text-xs text-muted-foreground">
+          Períodos que terminaram antes desta data ficam apenas como histórico, sem cobrança de
+          prazo. Deixe em branco para o sistema considerar o último ciclo já completo.
+        </p>
+        <Input
+          type="date"
+          className="sm:w-60"
+          value={controle}
+          onChange={(e) => setControle(e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-2 rounded-xl border p-3">
         <p className="text-sm font-medium">Exceção por unidade (13º)</p>
         <p className="text-xs text-muted-foreground">
           Deixe em “Seguir a empresa” para a unidade usar a regra acima.

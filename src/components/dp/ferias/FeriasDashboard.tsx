@@ -24,7 +24,11 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
 
   const { kpis, atencoes } = useMemo(() => {
     const comSaldo = periodos.filter(
-      (p) => (p.dias_saldo ?? 0) > 0 && p.status !== "em_aquisicao" && p.status !== "concluido",
+      (p) =>
+        !p.controle_externo &&
+        (p.dias_saldo ?? 0) > 0 &&
+        p.status !== "em_aquisicao" &&
+        p.status !== "concluido",
     );
     const dias = (p: FeriasPeriodo) => differenceInCalendarDays(parseISO(p.limite_concessivo), hoje);
 
