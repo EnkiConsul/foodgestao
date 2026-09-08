@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal, FileText, History as HistoryIcon } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -32,6 +32,7 @@ import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 import { Link } from "react-router-dom";
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
+import { ColaboradorCondicoesDialog } from "@/components/dp/ColaboradorCondicoesDialog";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpSalvarLargurasButton } from "@/components/dp/DpSalvarLargurasButton";
@@ -118,6 +119,7 @@ export default function DpColaboradores() {
     setDialogOpen(true);
   };
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
+  const [condicoesDe, setCondicoesDe] = useState<DpColaborador | null>(null);
 
   type Origem = "todos" | "colaboradores" | "folguistas" | "teste";
   const ORIGENS: { key: Origem; label: string }[] = [
@@ -690,6 +692,9 @@ export default function DpColaboradores() {
                                     <><RotateCcw className="h-4 w-4 mr-2" /> Desligamento / reintegração</>
                                   )}
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => setCondicoesDe(c)}>
+                                  <HistoryIcon className="h-4 w-4 mr-2" /> Alterar condições de trabalho
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => setToDelete(c)}>
                                   <Trash2 className="h-4 w-4 mr-2 text-destructive" /> Remover
                                 </DropdownMenuItem>
@@ -1063,6 +1068,12 @@ export default function DpColaboradores() {
       )}
 
       
+
+      <ColaboradorCondicoesDialog
+        colaborador={condicoesDe}
+        open={!!condicoesDe}
+        onOpenChange={(o) => !o && setCondicoesDe(null)}
+      />
 
       <ColaboradorFormDialog
         open={dialogOpen}

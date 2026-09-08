@@ -19,3 +19,5 @@
 - [ ] Fase 5 — conflitos e previsão de ausência
 - [ ] Fase 6 — Planejamento
 - [ ] Fase 7 — automação (se prevista)
+
+- [x] Alterar Condições de Trabalho com vigência e histórico na ficha do colaborador
