@@ -998,8 +998,8 @@ export default function DpColaboradores() {
               </div>
             )}
             {!list.isLoading && !pessoasApoio.isLoading && todosVisiveis.map((item) => {
-              if (item.kind === "colaborador") {
-                const c = item.colaborador;
+              if (item.tipo === "colaborador") {
+                const c = item.item;
                 return (
                   <DpListCard
                     key={c.id}
@@ -1019,7 +1019,7 @@ export default function DpColaboradores() {
                   />
                 );
               }
-              const p = item.pessoa;
+              const p = item.item;
               return (
                 <DpListCard
                   key={p.id}
