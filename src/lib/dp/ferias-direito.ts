@@ -109,7 +109,30 @@ export const FERIAS_ERRO_TEXTO: Record<string, string> = {
     "Ao dividir as férias, um dos períodos precisa alcançar o número mínimo de dias definido pela empresa.",
   FERIAS_COLABORADOR_EM_FERIAS:
     "Esta pessoa está de férias nessa data — não é possível escalar, convocar ou marcar folga.",
+  FERIAS_SEM_ADMISSAO: "Informe a data de admissão da pessoa antes de controlar as férias.",
+  FERIAS_SALDO_INICIAL_INVALIDO: "O saldo trazido precisa ficar entre 0 e 30 dias.",
+  FERIAS_SALDO_INICIAL_CONFLITO:
+    "Esse saldo é menor do que os dias já marcados neste período. Ajuste as férias primeiro.",
+  FERIAS_CONTROLE_EXTERNO:
+    "Este período é anterior ao início do controle no sistema e fica apenas como histórico.",
 };
+
+/**
+ * Corte padrão do controle de férias quando a empresa não informa uma data:
+ * início do último período aquisitivo completo em relação a hoje.
+ */
+export function corteFeriasPadrao(admissaoISO: string, hojeISO: string): string {
+  const [ay, am, ad] = admissaoISO.split("-").map(Number);
+  const hoje = new Date(`${hojeISO}T00:00:00`);
+  let ano = hoje.getFullYear() - (new Date(`${hoje.getFullYear()}-${String(am).padStart(2, "0")}-${String(ad).padStart(2, "0")}T00:00:00`) > hoje ? 1 : 0);
+  ano -= 1;
+  const corte = `${ano}-${String(am).padStart(2, "0")}-${String(ad).padStart(2, "0")}`;
+  return corte < admissaoISO ? admissaoISO : corte;
+}
+
+void 0 as unknown as typeof ay;
+
+
 
 
 
