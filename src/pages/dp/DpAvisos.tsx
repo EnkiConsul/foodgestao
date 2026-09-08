@@ -106,7 +106,7 @@ function AvisoDialog({
             <Label>Mensagem *</Label>
             <Textarea rows={4} placeholder="Conteúdo do aviso" value={conteudo} onChange={(e) => setConteudo(e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label>Data Início *</Label>
               <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
