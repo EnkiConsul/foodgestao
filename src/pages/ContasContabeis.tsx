@@ -247,8 +247,8 @@ export default function ContasContabeis() {
           >
             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </button>
-          <span className="font-mono text-[10px] md:text-xs text-muted-foreground w-14 md:w-24 shrink-0 truncate">{node.code}</span>
-          <span className="flex-1 text-xs md:text-sm truncate">{node.name}</span>
+          <span className="font-mono text-[10px] md:text-xs text-muted-foreground w-10 md:w-24 shrink-0 truncate">{node.code}</span>
+          <span className="flex-1 min-w-0 text-xs md:text-sm break-words md:truncate">{node.name}</span>
           <div className="hidden md:flex items-center gap-1">
             {node.short_code && <Badge variant="outline" className="text-[10px] font-mono">{node.short_code}</Badge>}
             {node.is_tax && <Badge variant="secondary" className="text-[10px]">Imposto</Badge>}
