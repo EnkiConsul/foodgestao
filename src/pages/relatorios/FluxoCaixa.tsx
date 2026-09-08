@@ -352,9 +352,9 @@ export default function RelatorioFluxoCaixa() {
         <CardContent className="flex flex-wrap items-center gap-2 p-3">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-2 font-normal">
-                <CalendarIcon className="h-3.5 w-3.5" />
-                {periodoLabel}
+              <Button variant="outline" size="sm" className="h-8 max-w-full gap-2 font-normal">
+                <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{periodoLabel}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
