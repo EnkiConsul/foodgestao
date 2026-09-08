@@ -853,7 +853,7 @@ export default function DpColaboradores() {
                           Desligado {fmtDate(c.data_desligamento)}
                         </Badge>
                       )}
-                      <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5 text-[11px]">
+                      <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 text-[11px]">
                         {vinculoLabel(c as any)}
                       </Badge>
                       <Badge
