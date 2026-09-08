@@ -15,6 +15,7 @@ import {
   useSalvarDpPessoaApoio, type PessoaApoio, type PessoaApoioTipo,
 } from "@/hooks/useDpPessoasApoio";
 import { pessoaApoioSchema, validateWithToast } from "@/lib/validations";
+import { ApoioUnidadesField } from "@/components/dp/ApoioUnidadesField";
 
 const vazio = {
   nome: "",
@@ -246,6 +247,17 @@ export function PessoaApoioFormDialog({
               onChange={(e) => setForm({ ...form, observacao: e.target.value })}
             />
           </div>
+
+          {pessoa?.id ? (
+            <ApoioUnidadesField
+              pessoaApoioId={pessoa.id}
+              unidadeHabitualId={form.unidade_id || null}
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Salve o cadastro para liberar essa pessoa em outras unidades.
+            </p>
+          )}
 
           <div className="flex items-center justify-between rounded-md border p-3">
             <div className="pr-3">

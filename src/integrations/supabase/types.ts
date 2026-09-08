@@ -2670,6 +2670,101 @@ export type Database = {
           },
         ]
       }
+      dp_apoio_unidades: {
+        Row: {
+          ativo: boolean
+          cargo_id: string | null
+          colaborador_id: string | null
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          id: string
+          observacao: string | null
+          pessoa_apoio_id: string | null
+          setor_id: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cargo_id?: string | null
+          colaborador_id?: string | null
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          observacao?: string | null
+          pessoa_apoio_id?: string | null
+          setor_id?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cargo_id?: string | null
+          colaborador_id?: string | null
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          observacao?: string | null
+          pessoa_apoio_id?: string | null
+          setor_id?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_apoio_unidades_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_apoio_unidades_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_apoio_unidades_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_apoio_unidades_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_apoio_unidades_pessoa_apoio_id_fkey"
+            columns: ["pessoa_apoio_id"]
+            isOneToOne: false
+            referencedRelation: "dp_pessoas_apoio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_apoio_unidades_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "dp_setores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_apoio_unidades_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_avisos: {
         Row: {
           arquivo_mime: string | null

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Info } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorF
 import { pessoaAvulsaSchema, validateWithToast } from "@/lib/validations";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 import { useDpPessoasApoio, useSalvarDpPessoaApoio } from "@/hooks/useDpPessoasApoio";
+import { useDpApoioUnidades } from "@/hooks/useDpApoioUnidades";
+import { liberacoesParaUnidade, pessoasSelecionaveisNaUnidade } from "@/lib/dp/apoio-unidades";
 import type { HorarioSugerido, PessoaAvulsaPanorama, PessoaAvulsaTipo } from "@/lib/dp/operacao-panorama";
 
 
@@ -122,10 +124,46 @@ export function DpPessoaAvulsaDialog({
   const [horarioTocado, setHorarioTocado] = useState(false);
   const apoio = useDpPessoasApoio({ apenasAtivos: true });
   const salvarApoio = useSalvarDpPessoaApoio();
+  const apoioUnidades = useDpApoioUnidades({ apenasAtivas: true });
 
 
   const manual = form.tipo === "registro_manual";
   const hoje = hojeIso();
+
+  /**
+   * Disponibilidade ativa para a unidade da operação, por pessoa. A unidade
+   * principal da pessoa já é disponível por natureza; as outras precisam de
+   * liberação explícita.
+   */
+  const liberacoesDaUnidade = useMemo(
+    () => liberacoesParaUnidade(apoioUnidades.data ?? [], form.unidade_id || null),
+    [apoioUnidades.data, form.unidade_id],
+  );
+
+  /** Folguistas e pessoas em teste que podem atuar na unidade escolhida. */
+  const apoioDaUnidade = useMemo(
+    () =>
+      pessoasSelecionaveisNaUnidade(
+        apoio.data ?? [],
+        form.unidade_id || null,
+        liberacoesDaUnidade.apoioIds,
+        form.pessoa_apoio_id || null,
+      ),
+    [apoio.data, form.unidade_id, form.pessoa_apoio_id, liberacoesDaUnidade],
+  );
+
+  /** Colaboradores da unidade + os liberados como apoio nessa unidade. */
+  const colaboradoresDaUnidade = useMemo(
+    () =>
+      pessoasSelecionaveisNaUnidade(
+        colaboradores,
+        form.unidade_id || null,
+        liberacoesDaUnidade.colaboradorIds,
+        form.colaborador_id || null,
+      ),
+    [colaboradores, form.unidade_id, form.colaborador_id, liberacoesDaUnidade],
+  );
+
 
   useEffect(() => {
     if (!open) return;
@@ -166,14 +204,20 @@ export function DpPessoaAvulsaDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sugerirHorario, form.unidade_id, form.cargo_id, form.data_inicio]);
 
-  /** Ao escolher o colaborador, já traz o cargo e a unidade do cadastro dele. */
+  /**
+   * Ao escolher o colaborador, traz cargo e unidade do cadastro dele. Quando a
+   * pessoa está liberada como apoio na unidade da operação, mantém essa unidade
+   * e usa o cargo/setor definidos para ela ali — o cadastro dele não muda.
+   */
   const escolherColaborador = (id: string) => {
     const c = colaboradores.find((x) => x.id === id);
+    const liberacao = liberacoesDaUnidade.porColaborador.get(id);
     setForm((f) => ({
       ...f,
       colaborador_id: id,
-      cargo_id: c?.cargo_id ?? f.cargo_id,
-      unidade_id: c?.unidade_id ?? f.unidade_id,
+      cargo_id: liberacao?.cargo_id ?? c?.cargo_id ?? f.cargo_id,
+      setor_id: liberacao?.setor_id ?? f.setor_id,
+      unidade_id: liberacao ? f.unidade_id : (c?.unidade_id ?? f.unidade_id),
     }));
   };
 
@@ -215,15 +259,17 @@ export function DpPessoaAvulsaDialog({
     }
     const p = (apoio.data ?? []).find((x) => x.id === id);
     if (!p) return;
+    const liberacao = liberacoesDaUnidade.porApoio.get(p.id);
     setForm((f) => ({
       ...f,
       pessoa_apoio_id: p.id,
       nome: p.nome,
       telefone: p.telefone ?? "",
       tipo: p.tipo,
-      cargo_id: p.cargo_id ?? f.cargo_id,
-      unidade_id: p.unidade_id ?? f.unidade_id,
-      setor_id: p.setor_id ?? f.setor_id,
+      cargo_id: liberacao?.cargo_id ?? p.cargo_id ?? f.cargo_id,
+      // Liberada como apoio: fica na unidade da operação, não na habitual dela.
+      unidade_id: liberacao ? f.unidade_id : (p.unidade_id ?? f.unidade_id),
+      setor_id: liberacao?.setor_id ?? p.setor_id ?? f.setor_id,
     }));
   };
 
@@ -342,7 +388,7 @@ export function DpPessoaAvulsaDialog({
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {colaboradores.map((c) => (
+                  {colaboradoresDaUnidade.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.nome}
                     </SelectItem>
@@ -355,7 +401,7 @@ export function DpPessoaAvulsaDialog({
             </div>
           ) : (
             <>
-              {(apoio.data ?? []).length > 0 && (
+              {apoioDaUnidade.length > 0 && (
                 <div className="grid gap-1.5">
                   <Label>Já cadastrada antes?</Label>
                   <Select value={form.pessoa_apoio_id || "novo"} onValueChange={escolherApoio}>
@@ -364,7 +410,7 @@ export function DpPessoaAvulsaDialog({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="novo">Nova pessoa</SelectItem>
-                      {(apoio.data ?? []).map((p) => (
+                      {apoioDaUnidade.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
                           {p.nome}
                           {p.telefone ? ` — ${p.telefone}` : ""}
@@ -373,7 +419,8 @@ export function DpPessoaAvulsaDialog({
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Escolha alguém do banco de folguistas e testes para preencher tudo.
+                    Mostra só quem pode trabalhar nesta unidade: a equipe dela e quem foi
+                    liberado para apoiar aqui.
                   </p>
                 </div>
               )}
