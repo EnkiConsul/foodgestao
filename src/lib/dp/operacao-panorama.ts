@@ -737,32 +737,72 @@ function mediana(valores: number[]): number {
   return ord.length % 2 ? ord[meio] : Math.round((ord[meio - 1] + ord[meio]) / 2);
 }
 
-/**
- * Mediana de pessoas trabalhando por dia da semana, a partir dos dias já
- * ocorridos. Dias sem ninguém na operação não entram (loja fechada/sem dado).
- */
-export function baselinePorDow(
+type OptsBaseline = {
+  limite?: string;
+  semanas?: number;
+  /** Datas ISO consideradas feriado — ficam fora do padrão do dia da semana. */
+  feriados?: ReadonlySet<string>;
+};
+
+function amostras(
   historico: { data: string; trabalhando: number }[],
-  opts?: { limite?: string; semanas?: number },
-): Map<number, number> {
+  opts: OptsBaseline | undefined,
+  filtro: (data: string) => boolean,
+): number[][] {
   const semanas = opts?.semanas ?? SEMANAS_BASELINE;
   const limite = opts?.limite;
   const inicio = limite ? somarDias(limite, -semanas * 7) : null;
-
-  const porDow = new Map<number, number[]>();
+  const out: number[][] = [];
   for (const h of historico) {
     if (limite && h.data >= limite) continue;
     if (inicio && h.data < inicio) continue;
     if (h.trabalhando <= 0) continue;
-    const dow = dowDaData(h.data);
+    if (!filtro(h.data)) continue;
+    out.push([dowDaData(h.data), h.trabalhando]);
+  }
+  return out;
+}
+
+/**
+ * Mediana de pessoas trabalhando por dia da semana, a partir dos dias já
+ * ocorridos. Dias sem ninguém na operação não entram (loja fechada/sem dado).
+ * Feriados também ficam fora: eles têm operação própria e contaminariam o
+ * padrão do dia comum.
+ */
+export function baselinePorDow(
+  historico: { data: string; trabalhando: number }[],
+  opts?: OptsBaseline,
+): Map<number, number> {
+  const feriados = opts?.feriados;
+  const porDow = new Map<number, number[]>();
+  for (const [dow, valor] of amostras(historico, opts, (d) => !feriados?.has(d))) {
     const lista = porDow.get(dow) ?? [];
-    lista.push(h.trabalhando);
+    lista.push(valor);
     porDow.set(dow, lista);
   }
 
   const out = new Map<number, number>();
   for (const [dow, valores] of porDow) out.set(dow, mediana(valores));
   return out;
+}
+
+/** Quantos feriados anteriores são necessários para ter padrão de feriado. */
+export const MIN_AMOSTRAS_FERIADO = 2;
+
+/**
+ * Padrão de feriado: mediana dos feriados já ocorridos na janela. Retorna null
+ * quando não há histórico suficiente — nesse caso o dia não gera alerta
+ * quantitativo, para não comparar feriado com dia comum.
+ */
+export function baselineFeriado(
+  historico: { data: string; trabalhando: number }[],
+  opts?: OptsBaseline,
+): number | null {
+  const feriados = opts?.feriados;
+  if (!feriados || feriados.size === 0) return null;
+  const valores = amostras(historico, opts, (d) => feriados.has(d)).map(([, v]) => v);
+  if (valores.length < MIN_AMOSTRAS_FERIADO) return null;
+  return mediana(valores);
 }
 
 export type SituacaoDia = "ok" | "abaixo" | "acima" | "sem_padrao";
@@ -791,8 +831,13 @@ export function avaliarDia(
 
 const DOW_PLURAL = ["domingos", "segundas", "terças", "quartas", "quintas", "sextas", "sábados"];
 
-export function mensagemAlerta(dia: ResultadoDia, avaliacao: AvaliacaoDia, unidade?: string | null): string {
-  const alvo = `${DOW_PLURAL[dia.dow]}${unidade ? ` na ${unidade}` : ""}`;
+export function mensagemAlerta(
+  dia: ResultadoDia & { feriado_nome?: string | null },
+  avaliacao: AvaliacaoDia,
+  unidade?: string | null,
+): string {
+  const base = dia.feriado_nome ? "feriados" : DOW_PLURAL[dia.dow];
+  const alvo = `${base}${unidade ? ` na ${unidade}` : ""}`;
   const rotulo = avaliacao.situacao === "abaixo" ? "abaixo do padrão" : "acima do padrão";
   return `Previsto ${dia.trabalhando}, padrão ${avaliacao.padrao} para ${alvo} — ${rotulo}.`;
 }
