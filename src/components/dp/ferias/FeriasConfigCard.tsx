@@ -23,6 +23,7 @@ export function FeriasConfigCard() {
   const [fracMax, setFracMax] = useState(String(config.fracionamentoMax));
   const [fracMin, setFracMin] = useState(String(config.fracaoMinDias));
   const [fracMaior, setFracMaior] = useState(String(config.fracaoMaiorDias));
+  const [controle, setControle] = useState(config.controleInicio ?? "");
 
   useEffect(() => {
     setDias(String(config.avisoAntecedenciaDias));
@@ -30,12 +31,14 @@ export function FeriasConfigCard() {
     setFracMax(String(config.fracionamentoMax));
     setFracMin(String(config.fracaoMinDias));
     setFracMaior(String(config.fracaoMaiorDias));
+    setControle(config.controleInicio ?? "");
   }, [
     config.avisoAntecedenciaDias,
     config.adiantamento13,
     config.fracionamentoMax,
     config.fracaoMinDias,
     config.fracaoMaiorDias,
+    config.controleInicio,
   ]);
 
   const alterado =
@@ -43,7 +46,8 @@ export function FeriasConfigCard() {
     politica !== config.adiantamento13 ||
     Number(fracMax) !== config.fracionamentoMax ||
     Number(fracMin) !== config.fracaoMinDias ||
-    Number(fracMaior) !== config.fracaoMaiorDias;
+    Number(fracMaior) !== config.fracaoMaiorDias ||
+    (controle || null) !== (config.controleInicio ?? null);
 
   return (
     <DpContentCard contentClassName="space-y-4 p-4">
@@ -123,6 +127,20 @@ export function FeriasConfigCard() {
             />
           </div>
         </div>
+      </div>
+
+      <div className="space-y-2 rounded-xl border p-3">
+        <p className="text-sm font-medium">Início do Controle de Férias</p>
+        <p className="text-xs text-muted-foreground">
+          Períodos que terminaram antes desta data ficam apenas como histórico, sem cobrança de
+          prazo. Deixe em branco para o sistema considerar o último ciclo já completo.
+        </p>
+        <Input
+          type="date"
+          className="sm:w-60"
+          value={controle}
+          onChange={(e) => setControle(e.target.value)}
+        />
       </div>
 
       <div className="space-y-2 rounded-xl border p-3">

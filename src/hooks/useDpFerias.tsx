@@ -249,6 +249,27 @@ export function useDpFerias(colaboradorFilter: string) {
     onError: (e: any) => toast.error(textoErroFerias(e?.message)),
   });
 
+  /** Saldo de dias trazido de fora, informado pelo gestor no período de virada. */
+  const definirSaldoInicial = useMutation({
+    mutationFn: async ({
+      periodoId,
+      dias,
+      observacao,
+    }: { periodoId: string; dias: number; observacao?: string | null }) => {
+      const { error } = await supabase.rpc("dp_ferias_definir_saldo_inicial", {
+        _periodo_id: periodoId,
+        _dias: dias,
+        _obs: observacao?.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Saldo trazido registrado");
+      invalidate();
+    },
+    onError: (e: any) => toast.error(textoErroFerias(e?.message)),
+  });
+
   return {
     periodos: periodosQ.data ?? [],
     periodosLoading: periodosQ.isLoading,
@@ -267,6 +288,7 @@ export function useDpFerias(colaboradorFilter: string) {
     saveGozo,
     cancelarGozo,
     marcarInformado,
+    definirSaldoInicial,
   };
 }
 

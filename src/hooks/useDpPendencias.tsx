@@ -449,6 +449,7 @@ export function useDpPendencias() {
           .from("dp_ferias_periodos")
           .select("id, colaborador_id, limite_concessivo, dias_saldo, dp_colaboradores(nome)")
           .eq("company_id", selectedCompanyId!)
+          .eq("controle_externo", false)
           .gt("dias_saldo", 0)
           .lte("limite_concessivo", ymd(limite))
           .order("limite_concessivo", { ascending: true })
