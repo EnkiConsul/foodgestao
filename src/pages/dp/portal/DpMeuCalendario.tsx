@@ -992,7 +992,7 @@ export default function DpMeuCalendario() {
             <Button
               variant="ghost"
               onClick={() => setSelectedDay(null)}
-              className="uppercase tracking-[0.2em] text-[11px] font-black text-muted-foreground hover:text-foreground min-h-10 w-full sm:w-auto"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground min-h-10 w-full sm:w-auto"
             >
               Fechar
             </Button>
