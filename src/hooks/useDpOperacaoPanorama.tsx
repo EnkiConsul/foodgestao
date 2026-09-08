@@ -58,6 +58,8 @@ export interface PessoaAvulsaInput {
   unidade_id: string;
   cargo_id: string;
   cobre_colaborador_id?: string | null;
+  /** Motivo operacional da cobertura (folga, falta, atestado, outro). */
+  cobre_motivo?: string | null;
   data_inicio: string;
   data_fim: string;
   entrada?: string | null;
@@ -352,7 +354,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       let q = supabase
         .from("dp_pessoas_avulsas")
         .select(
-          "id, nome, tipo, colaborador_id, unidade_id, cargo_id, cobre_colaborador_id, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao, telefone, pessoa_apoio_id, setor_id, pessoa_apoio:dp_pessoas_apoio(setor_id)",
+          "id, nome, tipo, colaborador_id, unidade_id, cargo_id, cobre_colaborador_id, cobre_motivo, data_inicio, data_fim, entrada, saida, termina_no_dia_seguinte, observacao, telefone, pessoa_apoio_id, setor_id, pessoa_apoio:dp_pessoas_apoio(setor_id)",
         )
 
 
@@ -517,7 +519,9 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       unidade_id: a.unidade_id,
       cargo_id: a.cargo_id,
       cargo_nome: cargos.get(a.cargo_id) ?? null,
+      cobre_colaborador_id: a.cobre_colaborador_id ?? null,
       cobre_nome: a.cobre_colaborador_id ? nomes.get(a.cobre_colaborador_id) ?? null : null,
+      cobre_motivo: a.cobre_motivo ?? null,
       data_inicio: a.data_inicio,
       data_fim: a.data_fim,
       entrada: a.entrada ? a.entrada.slice(0, 5) : null,
