@@ -221,6 +221,10 @@ export default function DpColaboradores() {
 
   const nomeSetorApoio = (id: string | null) =>
     id ? (todosSetores.find((s) => s.id === id)?.nome ?? null) : null;
+  const nomeCargo = (id: string | null) =>
+    (cargos.data ?? []).find((c) => c.id === id)?.nome ?? "—";
+  const nomeUnidade = (id: string | null) =>
+    (unidades.data ?? []).find((u) => u.id === id)?.nome ?? "—";
 
   const counts = useMemo(() => {
     const all = list.data ?? [];
