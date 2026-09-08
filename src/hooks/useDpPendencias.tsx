@@ -20,6 +20,9 @@ export type Pendencia = {
   vencimento?: string | null;
   atrasoDias: number;
   url: string;
+  /** Preenchidos somente quando o dado realmente existe na fonte. */
+  colaboradorNome?: string | null;
+  unidadeNome?: string | null;
 };
 
 const MES_NOME = [
@@ -175,38 +178,50 @@ export function useDpPendencias() {
         console.warn("pendencias/unidades:", e);
       }
 
-      // Helper: colaboradores por unidade (cache local)
-      const colabsByUnidade = new Map<string, string[]>();
-      const getColabsByUnidade = async (unidadeId: string): Promise<string[]> => {
-        if (colabsByUnidade.has(unidadeId)) return colabsByUnidade.get(unidadeId)!;
-        const { data } = await supabase
+      // Colaboradores por unidade — 1 query só (evita N+1 por unidade).
+      const unidadeDoColab = new Map<string, string>();
+      try {
+        const { data: colabsU } = await supabase
           .from("dp_colaboradores")
-          .select("id")
-          .eq("company_id", selectedCompanyId!)
-          .eq("unidade_id", unidadeId);
-        const ids = (data ?? []).map((c: any) => c.id);
-        colabsByUnidade.set(unidadeId, ids);
-        return ids;
-      };
+          .select("id, unidade_id")
+          .eq("company_id", selectedCompanyId!);
+        (colabsU ?? []).forEach((c: any) => {
+          if (c.unidade_id) unidadeDoColab.set(c.id, c.unidade_id);
+        });
+      } catch (e) {
+        console.warn("pendencias/colabs-unidade:", e);
+      }
 
+      // Documentos por tipo no período — 1 query por tipo; resolve a unidade em JS.
+      const unidadesComDoc = new Map<string, Set<string>>(); // tipo -> unidadeIds com doc
+      const carregarDocsTipo = async (
+        tipo: "contracheque" | "adiantamento" | "ponto",
+        inicio: string,
+        fim: string,
+      ): Promise<Set<string>> => {
+        const cache = unidadesComDoc.get(`${tipo}:${inicio}:${fim}`);
+        if (cache) return cache;
+        const { data } = await supabase
+          .from("dp_documentos")
+          .select("colaborador_id")
+          .eq("company_id", selectedCompanyId!)
+          .eq("tipo", tipo)
+          .gte("referencia_data", inicio)
+          .lte("referencia_data", fim);
+        const set = new Set<string>();
+        (data ?? []).forEach((d: any) => {
+          const u = unidadeDoColab.get(d.colaborador_id);
+          if (u) set.add(u);
+        });
+        unidadesComDoc.set(`${tipo}:${inicio}:${fim}`, set);
+        return set;
+      };
       const hasDocsForUnidade = async (
         tipo: "contracheque" | "adiantamento" | "ponto",
         unidadeId: string,
         inicio: string,
         fim: string,
-      ): Promise<boolean> => {
-        const colabIds = await getColabsByUnidade(unidadeId);
-        if (colabIds.length === 0) return false;
-        const { count } = await supabase
-          .from("dp_documentos")
-          .select("id", { count: "exact", head: true })
-          .eq("company_id", selectedCompanyId!)
-          .eq("tipo", tipo)
-          .in("colaborador_id", colabIds)
-          .gte("referencia_data", inicio)
-          .lte("referencia_data", fim);
-        return (count ?? 0) > 0;
-      };
+      ): Promise<boolean> => (await carregarDocsTipo(tipo, inicio, fim)).has(unidadeId);
 
       // 3. Contracheque não importado (mês anterior) — por unidade
       if (diaHoje >= cfg.alerta_contracheque_dia_mes) {
