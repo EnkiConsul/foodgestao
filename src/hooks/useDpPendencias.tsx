@@ -20,6 +20,9 @@ export type Pendencia = {
   vencimento?: string | null;
   atrasoDias: number;
   url: string;
+  /** Preenchidos somente quando o dado realmente existe na fonte. */
+  colaboradorNome?: string | null;
+  unidadeNome?: string | null;
 };
 
 const MES_NOME = [
@@ -71,6 +74,7 @@ export function useDpPendencias() {
             titulo: `Solicitação de ${s.tipo}`,
             subtitulo: s.dp_colaboradores?.nome ?? "Colaborador",
             tipo: "Solicitação",
+            colaboradorNome: s.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
             url: "/dp/folgas?aba=solicitacoes",
@@ -99,6 +103,7 @@ export function useDpPendencias() {
             titulo: "Troca aguardando aprovação",
             subtitulo: t.solicitante?.nome ?? "Colaborador",
             tipo: "Troca",
+            colaboradorNome: t.solicitante?.nome ?? null,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
             url: "/dp/folgas?aba=trocas",
@@ -145,6 +150,7 @@ export function useDpPendencias() {
                 "dd/MM",
               )}`,
               tipo: "Ocorrência",
+              colaboradorNome: o.colaborador?.nome ?? null,
               vencimento: ymd(vencimento),
               atrasoDias: dias,
               url: "/dp/ocorrencias",
@@ -175,38 +181,50 @@ export function useDpPendencias() {
         console.warn("pendencias/unidades:", e);
       }
 
-      // Helper: colaboradores por unidade (cache local)
-      const colabsByUnidade = new Map<string, string[]>();
-      const getColabsByUnidade = async (unidadeId: string): Promise<string[]> => {
-        if (colabsByUnidade.has(unidadeId)) return colabsByUnidade.get(unidadeId)!;
-        const { data } = await supabase
+      // Colaboradores por unidade — 1 query só (evita N+1 por unidade).
+      const unidadeDoColab = new Map<string, string>();
+      try {
+        const { data: colabsU } = await supabase
           .from("dp_colaboradores")
-          .select("id")
-          .eq("company_id", selectedCompanyId!)
-          .eq("unidade_id", unidadeId);
-        const ids = (data ?? []).map((c: any) => c.id);
-        colabsByUnidade.set(unidadeId, ids);
-        return ids;
-      };
+          .select("id, unidade_id")
+          .eq("company_id", selectedCompanyId!);
+        (colabsU ?? []).forEach((c: any) => {
+          if (c.unidade_id) unidadeDoColab.set(c.id, c.unidade_id);
+        });
+      } catch (e) {
+        console.warn("pendencias/colabs-unidade:", e);
+      }
 
+      // Documentos por tipo no período — 1 query por tipo; resolve a unidade em JS.
+      const unidadesComDoc = new Map<string, Set<string>>(); // tipo -> unidadeIds com doc
+      const carregarDocsTipo = async (
+        tipo: "contracheque" | "adiantamento" | "ponto",
+        inicio: string,
+        fim: string,
+      ): Promise<Set<string>> => {
+        const cache = unidadesComDoc.get(`${tipo}:${inicio}:${fim}`);
+        if (cache) return cache;
+        const { data } = await supabase
+          .from("dp_documentos")
+          .select("colaborador_id")
+          .eq("company_id", selectedCompanyId!)
+          .eq("tipo", tipo)
+          .gte("referencia_data", inicio)
+          .lte("referencia_data", fim);
+        const set = new Set<string>();
+        (data ?? []).forEach((d: any) => {
+          const u = unidadeDoColab.get(d.colaborador_id);
+          if (u) set.add(u);
+        });
+        unidadesComDoc.set(`${tipo}:${inicio}:${fim}`, set);
+        return set;
+      };
       const hasDocsForUnidade = async (
         tipo: "contracheque" | "adiantamento" | "ponto",
         unidadeId: string,
         inicio: string,
         fim: string,
-      ): Promise<boolean> => {
-        const colabIds = await getColabsByUnidade(unidadeId);
-        if (colabIds.length === 0) return false;
-        const { count } = await supabase
-          .from("dp_documentos")
-          .select("id", { count: "exact", head: true })
-          .eq("company_id", selectedCompanyId!)
-          .eq("tipo", tipo)
-          .in("colaborador_id", colabIds)
-          .gte("referencia_data", inicio)
-          .lte("referencia_data", fim);
-        return (count ?? 0) > 0;
-      };
+      ): Promise<boolean> => (await carregarDocsTipo(tipo, inicio, fim)).has(unidadeId);
 
       // 3. Contracheque não importado (mês anterior) — por unidade
       if (diaHoje >= cfg.alerta_contracheque_dia_mes) {
@@ -224,6 +242,7 @@ export function useDpPendencias() {
               titulo: "Contracheque não importado",
               subtitulo: `${u.nome} — ${MES_NOME[mesAnterior - 1]}/${anoAnterior}`,
               tipo: "Contracheque",
+              unidadeNome: u.nome,
               vencimento: ymd(vencimento),
               atrasoDias: dias,
               url: "/dp/documentos/historico?tipo=contracheque",
@@ -252,6 +271,7 @@ export function useDpPendencias() {
             titulo: "Adiantamento não importado",
             subtitulo: `${u.nome} — ${MES_NOME[mesVigente - 1]}/${anoVigente}`,
             tipo: "Adiantamento",
+            unidadeNome: u.nome,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
             url: "/dp/documentos/adiantamento",
@@ -278,6 +298,7 @@ export function useDpPendencias() {
               titulo: "Folha de ponto não importada",
               subtitulo: `${u.nome} — ${MES_NOME[mesAnterior - 1]}/${anoAnterior}`,
               tipo: "Folha de Ponto",
+              unidadeNome: u.nome,
               vencimento: ymd(vencimento),
               atrasoDias: dias,
               url: "/dp/documentos/ponto",
@@ -345,38 +366,49 @@ export function useDpPendencias() {
 
         const unidadeMap = new Map(unidades.map((u) => [u.id, u.nome]));
 
+        // Última negociação por par unidade×sindicato — 1 query só (evita N+1).
+        const ultimaPorPar = new Map<string, { ano: number; mes: number }>();
+        {
+          const { data: todasNegs } = await supabase
+            .from("dp_sindicato_negociacoes")
+            .select("ano, mes, unidade_id, sindicato_id, sindicato_laboral_id")
+            .eq("company_id", selectedCompanyId!)
+            .not("unidade_id", "is", null)
+            .not("ano", "is", null)
+            .not("mes", "is", null);
+          (todasNegs ?? []).forEach((n: any) => {
+            const sid = n.sindicato_laboral_id ?? n.sindicato_id;
+            if (!n.unidade_id || !sid) return;
+            const key = `${n.unidade_id}|${sid}`;
+            const atual = ultimaPorPar.get(key);
+            if (!atual || n.ano > atual.ano || (n.ano === atual.ano && n.mes > atual.mes)) {
+              ultimaPorPar.set(key, { ano: n.ano, mes: n.mes });
+            }
+          });
+        }
+
         for (const [unidadeId, sindSet] of parByUnidade.entries()) {
           const unidadeNome = unidadeMap.get(unidadeId);
           if (!unidadeNome) continue;
           for (const sindId of sindSet) {
             const nomeSind = sindicatoNome.get(sindId) ?? "Sindicato";
-            const { data: negs } = await supabase
-              .from("dp_sindicato_negociacoes")
-              .select("ano, mes")
-              .eq("company_id", selectedCompanyId!)
-              .eq("unidade_id", unidadeId)
-              .or(`sindicato_laboral_id.eq.${sindId},sindicato_id.eq.${sindId}`)
-              .not("ano", "is", null)
-              .not("mes", "is", null)
-              .order("ano", { ascending: false })
-              .order("mes", { ascending: false })
-              .limit(1);
+            const ultima = ultimaPorPar.get(`${unidadeId}|${sindId}`) ?? null;
 
             const id = `negociacao-${unidadeId}-${sindId}`;
-            if (!negs || negs.length === 0) {
+            if (!ultima) {
               results.push({
                 id,
                 icon: Scale,
                 titulo: `Negociação coletiva pendente — ${nomeSind}`,
                 subtitulo: `${unidadeNome} — nenhuma negociação cadastrada. Cadastre uma nova para renovar.`,
                 tipo: "Negociação",
+                unidadeNome,
                 vencimento: ymd(today),
                 atrasoDias: 0,
                 url: "/dp/cadastros/unidades",
               });
               continue;
             }
-            const ultima: any = negs[0];
             const anoUltimo = ultima.ano ?? 0;
             const mesUltimo = ultima.mes ?? 0;
             // Vencimento = último dia do mesmo mês da última negociação, um ano depois
@@ -394,6 +426,7 @@ export function useDpPendencias() {
                 titulo: `Negociação coletiva pendente — ${nomeSind}`,
                 subtitulo: `${unidadeNome} — última ${String(mesUltimo).padStart(2, "0")}/${anoUltimo} · ${jaVenceu ? "venceu" : "vence"} em ${mesVenc}/${anoUltimo + 1}. Cadastre nova negociação para renovar.`,
                 tipo: "Negociação",
+                unidadeNome,
                 vencimento: ymd(vencimento),
                 atrasoDias: dias,
                 url: "/dp/cadastros/unidades",
@@ -431,6 +464,7 @@ export function useDpPendencias() {
               titulo: "Regras de folgas não cadastradas",
               subtitulo: `${u.nome} — a unidade está sem regra própria de folgas. Revise e salve as regras.`,
               tipo: "Regras",
+              unidadeNome: u.nome,
               atrasoDias: 0,
               url: "/dp/folgas?aba=regras",
             });
@@ -464,6 +498,7 @@ export function useDpPendencias() {
             titulo: jaVenceu ? "Férias vencidas" : "Férias a vencer",
             subtitulo: `${p.dp_colaboradores?.nome ?? "Colaborador"} — ${p.dias_saldo} dia(s) de saldo · limite ${format(vencimento, "dd/MM/yyyy")}`,
             tipo: "Férias",
+            colaboradorNome: p.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
             url: "/dp/ferias",
@@ -494,6 +529,7 @@ export function useDpPendencias() {
             titulo: dias > 0 ? "Exame ocupacional vencido" : "Exame ocupacional a vencer",
             subtitulo: `${e.dp_colaboradores?.nome ?? "Colaborador"} — vence ${format(vencimento, "dd/MM/yyyy")}`,
             tipo: "ASO",
+            colaboradorNome: e.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
             url: "/dp/conformidade",
@@ -520,6 +556,7 @@ export function useDpPendencias() {
             titulo: "Troca de EPI",
             subtitulo: `${e.dp_colaboradores?.nome ?? "Colaborador"} — ${e.dp_epis?.nome ?? "EPI"} · previsto ${format(vencimento, "dd/MM/yyyy")}`,
             tipo: "EPI",
+            colaboradorNome: e.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
             url: "/dp/conformidade",
@@ -545,6 +582,7 @@ export function useDpPendencias() {
             titulo: dias > 0 ? "Treinamento vencido" : "Treinamento a renovar",
             subtitulo: `${p.dp_colaboradores?.nome ?? "Colaborador"} — ${p.dp_treinamentos?.nome ?? "Treinamento"} · vence ${format(vencimento, "dd/MM/yyyy")}`,
             tipo: "Treinamento",
+            colaboradorNome: p.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
             url: "/dp/conformidade",
@@ -677,6 +715,7 @@ export function useDpPendencias() {
             titulo: a.titulo,
             subtitulo: `${a.nome} — dependente de ${porId.get(a.dependenteId) ?? "colaborador"}. ${a.descricao}`,
             tipo: "Dependente",
+            colaboradorNome: porId.get(a.dependenteId) ?? null,
             vencimento: null,
             atrasoDias: a.severidade === "alta" ? 1 : 0,
             url: "/dp/colaboradores",
@@ -744,6 +783,7 @@ export function useDpPendencias() {
                 titulo: `${resumo.pendentesObrigatorios.length} documento(s) obrigatório(s) de ${c.nome}`,
                 subtitulo: `Faltando/irregular: ${nomes}${resumo.pendentesObrigatorios.length > 3 ? "…" : ""}`,
                 tipo: "Documentos",
+                colaboradorNome: c.nome,
                 vencimento: null,
                 atrasoDias: 1,
                 url: "/dp/colaboradores",
@@ -756,6 +796,7 @@ export function useDpPendencias() {
                 titulo: `${resumo.aguardandoAprovacao.length} documento(s) de ${c.nome} aguardando aprovação`,
                 subtitulo: "Enviados pelo colaborador — revise e aprove ou recuse.",
                 tipo: "Documentos",
+                colaboradorNome: c.nome,
                 vencimento: null,
                 atrasoDias: 0,
                 url: "/dp/colaboradores",
@@ -768,6 +809,7 @@ export function useDpPendencias() {
                 titulo: `${resumo.vencendo.length} documento(s) de ${c.nome} vencendo`,
                 subtitulo: resumo.vencendo.map((i) => tituloItem(i)).slice(0, 3).join(", "),
                 tipo: "Documentos",
+                colaboradorNome: c.nome,
                 vencimento: null,
                 atrasoDias: 0,
                 url: "/dp/colaboradores",
@@ -829,6 +871,7 @@ export function useDpPendencias() {
             titulo: `Completar cadastro de ${c.nome}`,
             subtitulo: `Falta: ${resumoFaltando(faltando, 4)}`,
             tipo: "Cadastro",
+            colaboradorNome: c.nome,
             vencimento: null,
             atrasoDias: 0,
             url: `/dp/colaboradores?editar=${c.id}&aba=dados`,

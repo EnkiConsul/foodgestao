@@ -115,6 +115,19 @@ export default function DpConfiguracoes() {
         description="Consolide regras de folga, bloqueios e prazos gerais do departamento pessoal."
       />
 
+      <Link
+        to="/dp/configuracoes/prazos-pendencias"
+        className="flex items-center justify-between gap-3 rounded-2xl border-2 border-[hsl(var(--dp-border))] bg-card p-4 hover:border-primary/30 hover:shadow-sm transition-all"
+      >
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">Prazos das pendências</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Defina os dias de alerta e vencimento usados na geração das pendências.
+          </p>
+        </div>
+        <CalendarClock className="size-5 shrink-0 text-primary" />
+      </Link>
+
       <DpContentCard>
         <div className="mb-4">
           <h2 className="text-lg font-semibold inline-flex items-center gap-2">
