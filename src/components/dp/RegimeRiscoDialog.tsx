@@ -48,7 +48,7 @@ export function RegimeRiscoDialog({ open, onOpenChange, tipo, onEscolher }: Prop
         itens={[
           "As chamadas passam a ser registradas em Convocações, com aceite do colaborador pelo portal.",
           "A convocação aceita entra automaticamente na escala do mês e no controle de ponto.",
-          "As horas convocadas viram lançamentos na folha, com os encargos calculados.",
+          "As horas convocadas ficam apuradas para envio à contabilidade, que calcula os encargos.",
         ]}
       />
     </div>

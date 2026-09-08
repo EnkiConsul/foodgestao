@@ -116,7 +116,7 @@ export function AdicionalTempoServicoCard({
         <Badge variant="outline">
           {config.adicionalModo === "cumulativo" ? "Regras cumulativas" : "Escada"}
         </Badge>
-        {!config.adicionalAtivo && <Badge variant="outline">Não aplicado na folha</Badge>}
+        {!config.adicionalAtivo && <Badge variant="outline">Regra desativada</Badge>}
       </div>
       {total.itens.map((item) => (
         <div key={item.regra.id} className="space-y-0.5">
