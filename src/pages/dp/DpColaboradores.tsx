@@ -24,7 +24,7 @@ import {
   useDpColaboradores, useDeleteDpColaborador, useReintegrarDpColaborador,
   type DpColaborador,
 } from "@/hooks/useDpColaboradores";
-import { useDpPessoasApoio, type PessoaApoio } from "@/hooks/useDpPessoasApoio";
+import { useDpPessoasApoio, useExcluirDpPessoaApoio, type PessoaApoio } from "@/hooks/useDpPessoasApoio";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
@@ -126,6 +126,28 @@ export default function DpColaboradores() {
   const [metodoOpen, setMetodoOpen] = useState(false);
   const [apoioOpen, setApoioOpen] = useState(false);
   const [apoioTipo, setApoioTipo] = useState<PessoaApoioTipo>("folguista");
+  const [apoioEditando, setApoioEditando] = useState<PessoaApoio | null>(null);
+  const [apoioAExcluir, setApoioAExcluir] = useState<PessoaApoio | null>(null);
+  const excluirApoio = useExcluirDpPessoaApoio();
+  /** Ações padrão de folguista / pessoa em teste, usadas na tabela e nos cards. */
+  const acoesApoio = (p: PessoaApoio) => [
+    { key: "editar", label: "Editar cadastro", icon: Pencil, onSelect: () => setApoioEditando(p) },
+    {
+      key: "transformar",
+      label: "Promover a Colaborador",
+      icon: UserPlus,
+      disabled: !!p.colaborador_id,
+      onSelect: () => setTransformando(p),
+    },
+    {
+      key: "remover",
+      label: "Excluir",
+      icon: Trash2,
+      destructive: true,
+      separatorBefore: true,
+      onSelect: () => setApoioAExcluir(p),
+    },
+  ];
   const escolherMetodo = (m: NovoCadastroMetodo) => {
     setMetodoOpen(false);
     if (m === "colaborador") return abrirCadastro(null);
@@ -512,7 +534,7 @@ export default function DpColaboradores() {
         }
         actionItems={[
           { key: "novo", label: "Novo colaborador", icon: Plus, primary: true, onSelect: () => setMetodoOpen(true) },
-          { key: "apoio", label: "Folguistas e testes", icon: UserPlus, to: "/dp/colaboradores/apoio" },
+          
           { key: "lixeira", label: "Lixeira", icon: Trash2, to: "/dp/colaboradores/lixeira" },
         ]}
       />
