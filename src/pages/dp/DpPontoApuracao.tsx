@@ -88,7 +88,7 @@ export default function DpPontoApuracao() {
   return (
     <DpPage>
       <Helmet>
-        <title>Apuração para Folha | Pessoas Aveto 360</title>
+        <title>Apuração do Ponto | Pessoas 360°</title>
         <meta
           name="description"
           content="Rubricas do ponto por colaborador: horas normais, extras 50% e 100%, adicional noturno, faltas e DSR."
@@ -96,8 +96,8 @@ export default function DpPontoApuracao() {
       </Helmet>
 
       <DpPageHeader
-        title="Apuração para Folha"
-        description="Rubricas do mês por colaborador, prontas para lançar na folha."
+        title="Apuração do Ponto"
+        description="Rubricas do mês por colaborador, para conferência e exportação externa."
         icon={Calculator}
         actions={
           <Button variant="outline" size="sm" asChild>
@@ -165,21 +165,19 @@ export default function DpPontoApuracao() {
           <DpContentCard className="space-y-3 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs text-muted-foreground">Total estimado da folha (líquido do ponto)</p>
+                <p className="text-xs text-muted-foreground">Total estimado (líquido do ponto)</p>
                 <p className="text-xl font-semibold">{moeda(totalBruto)}</p>
               </div>
               {periodo && (
-                <Link to={`/dp/folha/${periodo.id}`} className="shrink-0">
-                  <Badge variant={periodo.status === "aberto" ? "secondary" : "default"}>
-                    {PERIODO_STATUS_LABEL[periodo.status as FolhaPeriodoStatus] ?? periodo.status} ·{" "}
-                    {periodo.totalLancamentos} lançamento(s)
-                  </Badge>
-                </Link>
+                <Badge variant={periodo.status === "aberto" ? "secondary" : "default"} className="shrink-0">
+                  {PERIODO_STATUS_LABEL[periodo.status as FolhaPeriodoStatus] ?? periodo.status} ·{" "}
+                  {periodo.totalLancamentos} lançamento(s)
+                </Badge>
               )}
             </div>
             {semSalario > 0 && (
               <p className="text-xs text-muted-foreground">
-                {semSalario} colaborador(es) sem salário base no cargo ficam de fora da geração.
+                {semSalario} colaborador(es) sem salário base no cargo ficam de fora da exportação.
               </p>
             )}
             <div className="flex flex-wrap gap-2">
@@ -187,7 +185,7 @@ export default function DpPontoApuracao() {
                 variant="outline"
                 size="sm"
                 disabled={!apuracao.length}
-                onClick={() => baixarCsv(`apuracao-folha-${competencia}.csv`, apuracaoParaCsv(competencia, apuracao))}
+                onClick={() => baixarCsv(`apuracao-${competencia}.csv`, apuracaoParaCsv(competencia, apuracao))}
               >
                 <Download className="mr-2 h-4 w-4" />
                 Exportar CSV
@@ -198,7 +196,7 @@ export default function DpPontoApuracao() {
                 onClick={() => enviarParaFolha.mutate(apuracao)}
               >
                 <Send className="mr-2 h-4 w-4" />
-                {enviarParaFolha.isPending ? "Gerando..." : "Gerar Lançamentos da Folha"}
+                {enviarParaFolha.isPending ? "Preparando..." : "Preparar Lançamentos"}
               </Button>
             </div>
           </DpContentCard>

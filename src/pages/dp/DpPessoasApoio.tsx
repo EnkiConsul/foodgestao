@@ -227,7 +227,7 @@ export default function DpPessoasApoio() {
           <DialogHeader>
             <DialogTitle>{editando ? "Editar pessoa" : "Nova pessoa de apoio"}</DialogTitle>
             <DialogDescription>
-              Guarde o contato para chamar de novo. Não gera folha, ponto nem acesso ao portal.
+              Guarde o contato para chamar de novo. Não gera ponto nem acesso ao portal.
             </DialogDescription>
           </DialogHeader>
           <div className="grid max-h-[65vh] gap-3 overflow-y-auto py-2 pr-1">
