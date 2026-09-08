@@ -252,9 +252,9 @@ export default function CartoesCredito() {
       </div>
 
       {cards.length > 1 && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Select value={selectedCardId} onValueChange={setSelectedCardId}>
-            <SelectTrigger className="w-[240px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full max-w-full sm:w-[240px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os cartões</SelectItem>
               {cards.map((c) => (

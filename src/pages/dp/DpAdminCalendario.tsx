@@ -739,7 +739,7 @@ export default function DpAdminCalendario() {
               setFilterUser("all");
             }}
           >
-            <SelectTrigger className="h-12 w-[240px] rounded-2xl font-semibold">
+            <SelectTrigger className="h-12 w-full max-w-full sm:w-[240px] rounded-2xl font-semibold">
               <SelectValue placeholder="Todas as Unidades" />
             </SelectTrigger>
             <SelectContent className="rounded-2xl">
@@ -757,7 +757,7 @@ export default function DpAdminCalendario() {
             <UserIcon className="h-3.5 w-3.5" /> Colaborador
           </Label>
           <Select value={filterUser} onValueChange={setFilterUser}>
-            <SelectTrigger className="h-12 w-[240px] rounded-2xl font-semibold">
+            <SelectTrigger className="h-12 w-full max-w-full sm:w-[240px] rounded-2xl font-semibold">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent className="rounded-2xl">
@@ -775,7 +775,7 @@ export default function DpAdminCalendario() {
             <Filter className="h-3.5 w-3.5" /> Tipo
           </Label>
           <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
-            <SelectTrigger className="h-12 w-[200px] rounded-2xl font-semibold">
+            <SelectTrigger className="h-12 w-full max-w-full sm:w-[200px] rounded-2xl font-semibold">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent className="rounded-2xl">
