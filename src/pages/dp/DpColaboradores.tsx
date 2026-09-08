@@ -491,16 +491,26 @@ export default function DpColaboradores() {
         ]}
       />
 
-      <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+      <Tabs value={origem} onValueChange={(v) => setOrigem(v as Origem)}>
         <DpTabsBar>
-          <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
-          <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
-          <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
-          {counts.incompletos > 0 && (
-            <TabsTrigger value="incompletos">Incompletos ({counts.incompletos})</TabsTrigger>
-          )}
+          {ORIGENS.map((o) => (
+            <TabsTrigger key={o.key} value={o.key}>{o.label}</TabsTrigger>
+          ))}
         </DpTabsBar>
       </Tabs>
+
+      {origem === "colaboradores" && (
+        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+          <DpTabsBar>
+            <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
+            <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
+            <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
+            {counts.incompletos > 0 && (
+              <TabsTrigger value="incompletos">Incompletos ({counts.incompletos})</TabsTrigger>
+            )}
+          </DpTabsBar>
+        </Tabs>
+      )}
 
       <DpFilters
         search={{ value: search, onChange: setSearch, placeholder: "Nome ou CPF..." }}
