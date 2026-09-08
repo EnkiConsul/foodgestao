@@ -24,6 +24,7 @@ import {
   type AssiduidadeCriterio,
   type PremioTipo,
 } from "@/lib/dp/remuneracao";
+import { contratoPolicy } from "@/lib/dp/contrato-policy";
 import {
   alertasBeneficioAlimentacao, DESCONTO_TIPO_LABEL, DIAS_BASE_PADRAO, DIAS_ORIGEM_LABEL,
   PERIODICIDADE_LABEL, descreverBaseSimulacao, descreverDiasJornada, diasSimuladosMesComercial,
@@ -275,6 +276,7 @@ export function RemuneracaoFields({
 
   const forma = value.forma_pagamento;
   const formaOptions = formaPagamentoOptions(regime);
+  const policy = contratoPolicy(regime);
   const usaBase = forma === "horista" || forma === "diarista";
   const baseSalarial = numeroBR(value.base_salarial);
   const calculado =
