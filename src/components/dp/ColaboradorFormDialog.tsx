@@ -2048,7 +2048,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             )}
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {/* Remuneração e benefícios — base da folha de pagamento */}
+              {/* Remuneração e benefícios */}
 
               <RemuneracaoFields
                 value={rem}
