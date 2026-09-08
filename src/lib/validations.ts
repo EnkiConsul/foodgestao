@@ -110,6 +110,7 @@ export const pessoaAvulsaSchema = z
     unidade_id: z.string().uuid("Selecione a unidade"),
     cargo_id: z.string().uuid("Selecione o cargo"),
     cobre_colaborador_id: z.string().uuid().nullable().optional(),
+    cobre_motivo: z.enum(["folga", "falta", "atestado", "outro"]).nullable().optional(),
     data_inicio: z.string().min(10, "Informe a data inicial"),
     data_fim: z.string().min(10, "Informe a data final"),
     entrada: z.string().nullable().optional(),
