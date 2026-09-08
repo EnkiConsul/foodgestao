@@ -419,10 +419,10 @@ export default function DpColaboradores() {
         const adiantamento = (c as any).optante_adiantamento as boolean | null;
         return (
           <>
-            <div className="font-semibold uppercase truncate" title={c.nome}>{c.nome}</div>
+            <div className="font-semibold truncate" title={c.nome}>{c.nome}</div>
             <div className="font-mono text-[11px] text-muted-foreground">{c.cpf ?? "—"}</div>
             <div className="mt-1 flex flex-wrap gap-1">
-              <Badge variant="outline" className="h-4 px-1 text-[10px] uppercase border-primary/30 text-primary bg-primary/5">
+              <Badge variant="outline" className="h-4 px-1 text-[10px] border-primary/30 text-primary bg-primary/5">
                 {vinculoLabel(c as any)}
               </Badge>
               {c.ativo && faltantesDe(c).length > 0 && (
