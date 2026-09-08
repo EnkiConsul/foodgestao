@@ -1458,6 +1458,14 @@ export function ColaboradorFormDialog({
           : {}),
       } as any);
 
+      // Se este cadastro veio de uma pessoa de apoio, vincula o histórico e
+      // inativa o registro original para não manter duplicidade.
+      if (pessoaApoioInicial && !pessoaApoioInicial.colaborador_id) {
+        await supabase
+          .from("dp_pessoas_apoio")
+          .update({ colaborador_id: colaboradorId, ativo: false })
+          .eq("id", pessoaApoioInicial.id);
+      }
 
       // Sincroniza a ficha de benefícios marcada no cadastro.
       const hoje = new Date().toISOString().slice(0, 10);
