@@ -28,6 +28,7 @@ import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpSalvarLargurasButton } from "@/components/dp/DpSalvarLargurasButton";
+import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 
 import { DP_DOC_TIPOS, DP_DOC_GRUPOS, docTipoBadgeClass, docTipoGrupo } from "@/lib/dp/documentoTipos";
 import {
@@ -277,6 +278,7 @@ export default function DpHistoricoCompleto() {
 
   const {
     colOrder, colWidths, resize, resetWidth,
+    hidden, toggleHidden, resetLayout, visibleOrder,
     dragCol, setDragCol, soltarSobre,
     colFilters, setColFilters, toggleColValue,
     sortKey, sortDir, aplicarSort,
@@ -286,6 +288,7 @@ export default function DpHistoricoCompleto() {
     screenKey: "dp_historico_documentos",
     defaultOrder: DEFAULT_COL_ORDER,
     defaultWidths: DEFAULT_COL_WIDTHS,
+    essentialKeys: ["colaborador"],
     acoesWidth: ACOES_WIDTH,
     defaultSortKey: "data",
     defaultSortDir: "desc",
@@ -660,6 +663,13 @@ export default function DpHistoricoCompleto() {
         description="Visualize todos os documentos de todos os colaboradores em um único lugar."
         actions={
           <>
+            <DpTableColumnsMenu
+              columns={DEFAULT_COL_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
+              hidden={hidden}
+              essentialKeys={["colaborador"]}
+              onToggle={toggleHidden}
+              onReset={resetLayout}
+            />
             <DpSalvarLargurasButton screenKey="dp_historico_documentos" colOrder={colOrder} colWidths={colWidths} />
             <Button variant="outline" onClick={() => setLogAberto(true)}>
               <HistoryIcon className="mr-1 h-4 w-4" /> Registro De Alterações
@@ -805,7 +815,7 @@ export default function DpHistoricoCompleto() {
           <Table className="table-fixed" style={{ width: "100%", minWidth: larguraTotal }}>
             <TableHeader>
               <TableRow>
-                {colOrder.map((k) => renderColunaHeader(k))}
+                {visibleOrder.map((k) => renderColunaHeader(k))}
                 <TableHead className="uppercase text-xs text-center" style={{ width: ACOES_WIDTH }}>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -819,7 +829,7 @@ export default function DpHistoricoCompleto() {
                   onClick={() => setDetalhe(r)}
                   title="Ver detalhes do documento"
                 >
-                  {colOrder.map((k) => (
+                  {visibleOrder.map((k) => (
                     <TableCell
                       key={k}
                       className={COLS[k].cellClass}
@@ -848,7 +858,7 @@ export default function DpHistoricoCompleto() {
               ))}
               {paged.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={colOrder.length + 1} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={visibleOrder.length + 1} className="text-center text-muted-foreground py-10">
                     Nenhum documento encontrado com esses filtros.
                   </TableCell>
                 </TableRow>

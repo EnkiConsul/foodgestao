@@ -6,6 +6,8 @@ import { resolveLancamentoOrigin, sumDespesas, sumReceitas, type LancamentoOrigi
 import { creditCardLabel } from "@/lib/conciliacao/cardRouting";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
+import { mergeTableLayoutExtras } from "@/lib/table-layouts";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -294,7 +296,13 @@ export default function Lancamentos() {
     });
   }, [contextType, searchParams, selectedCompanyId, setSearchParams, user]);
 
-  // Column visibility
+  // Column visibility — persistida por usuário+empresa+tela (dp_user_prefs.extras.table_layouts),
+  // com localStorage como cache local. Nenhum cálculo ou valor é afetado.
+  const LANCAMENTOS_COLS_DEFAULT: Record<string, boolean> = {
+    data: true, dc: true, categoria: true, conta: true, formaPagamento: true,
+    status: true, vencimento: true, pagamento: true, saldo: true,
+  };
+  const lancamentosPrefs = useDpUserPrefs();
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem("lancamentos_columns");
@@ -302,10 +310,40 @@ export default function Lancamentos() {
     } catch {}
     return { data: true, dc: true, categoria: true, conta: true, formaPagamento: true, status: true, vencimento: true, pagamento: true, saldo: true };
   });
+  const lancamentosColsSynced = useRef<string>(JSON.stringify(visibleColumns));
 
+  // Aplica a preferência individual quando carrega do backend.
+  useEffect(() => {
+    if (lancamentosPrefs.isLoading || !lancamentosPrefs.available) return;
+    const raw = (lancamentosPrefs.prefs.extras as any)?.table_layouts?.financeiro_lancamentos?.visibility;
+    if (!raw || typeof raw !== "object") return;
+    const next = { ...LANCAMENTOS_COLS_DEFAULT };
+    Object.keys(next).forEach((k) => {
+      if (typeof raw[k] === "boolean") next[k] = raw[k];
+    });
+    const sig = JSON.stringify(next);
+    if (sig === lancamentosColsSynced.current) return;
+    lancamentosColsSynced.current = sig;
+    setVisibleColumns(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lancamentosPrefs.isLoading, lancamentosPrefs.available, lancamentosPrefs.prefs.extras]);
+
+  // Autosave com debounce: cache local imediato + backend por usuário/empresa/tela.
   useEffect(() => {
     localStorage.setItem("lancamentos_columns", JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
+    if (!lancamentosPrefs.available || lancamentosPrefs.isLoading) return;
+    const sig = JSON.stringify(visibleColumns);
+    if (sig === lancamentosColsSynced.current) return;
+    const timer = setTimeout(() => {
+      lancamentosColsSynced.current = sig;
+      const currentExtras = (lancamentosPrefs.prefs.extras ?? {}) as Record<string, unknown>;
+      lancamentosPrefs.save({
+        extras: mergeTableLayoutExtras(currentExtras, "financeiro_lancamentos", { visibility: visibleColumns }),
+      });
+    }, 700);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleColumns, lancamentosPrefs.available, lancamentosPrefs.isLoading]);
 
   const toggleColumn = (col: string) => {
     setVisibleColumns((prev) => ({ ...prev, [col]: !prev[col] }));

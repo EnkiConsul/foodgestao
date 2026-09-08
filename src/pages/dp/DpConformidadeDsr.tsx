@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { DpPage, DpPageHeader, DpContentCard, DpFilterCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
+import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -354,6 +355,7 @@ export default function DpConformidadeDsr() {
 
   const {
     colOrder, colWidths, resize, resetWidth,
+    hidden, toggleHidden, resetLayout, visibleOrder,
     dragCol, setDragCol, soltarSobre,
     colFilters, setColFilters, toggleColValue,
     sortKey, sortDir, aplicarSort,
@@ -363,6 +365,7 @@ export default function DpConformidadeDsr() {
     screenKey: "dp_conformidade_dsr",
     defaultOrder: DEFAULT_ORDER,
     defaultWidths: DEFAULT_WIDTHS,
+    essentialKeys: ["colaborador"],
     defaultSortKey: "padrao",
   });
 
@@ -516,9 +519,18 @@ export default function DpConformidadeDsr() {
         description="Folgas de descanso semanal por colaborador no mês, comparadas à regra vigente da unidade e à regra quinzenal feminina."
         icon={ScaleIcon}
         actions={
-          <Button variant="outline" onClick={exportarCsv} disabled={linhasFiltradas.length === 0} className="gap-2">
-            <Download className="h-4 w-4" aria-hidden="true" /> Exportar CSV
-          </Button>
+          <>
+            <DpTableColumnsMenu
+              columns={DEFAULT_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
+              hidden={hidden}
+              essentialKeys={["colaborador"]}
+              onToggle={toggleHidden}
+              onReset={resetLayout}
+            />
+            <Button variant="outline" onClick={exportarCsv} disabled={linhasFiltradas.length === 0} className="gap-2">
+              <Download className="h-4 w-4" aria-hidden="true" /> Exportar CSV
+            </Button>
+          </>
         }
       />
 
@@ -613,7 +625,7 @@ export default function DpConformidadeDsr() {
           <Table className="table-fixed" style={{ width: "100%", minWidth: larguraTotal }}>
             <TableHeader>
               <TableRow>
-                {colOrder.map((k) => (
+                {visibleOrder.map((k) => (
                   <DpTableColumnHeader
                     key={k}
                     label={COLS[k].label}
@@ -640,7 +652,7 @@ export default function DpConformidadeDsr() {
             <TableBody>
               {linhasFiltradas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={colOrder.length} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={visibleOrder.length} className="py-8 text-center text-sm text-muted-foreground">
 
                     {linhas.length === 0
                       ? "Nenhum colaborador ativo no período."
@@ -657,7 +669,7 @@ export default function DpConformidadeDsr() {
                     )}
                     onClick={() => setDetalhe(l)}
                   >
-                    {colOrder.map((k) => (
+                    {visibleOrder.map((k) => (
                       <TableCell
                         key={k}
                         className={cn("overflow-hidden", COLS[k].center && "text-center")}

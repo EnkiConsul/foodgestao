@@ -49,6 +49,7 @@ import { DpFilters, DpFilterField } from "@/components/dp/DpFilters";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { DpListCard } from "@/components/dp/DpDataList";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
+import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { supabase } from "@/integrations/supabase/client";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
@@ -392,6 +393,7 @@ export default function DpColaboradores() {
   // ---------- Colunas em formato de planilha (ordem, largura, ordenação e filtros) ----------
   const {
     colOrder, colWidths, resize, resetWidth,
+    hidden, toggleHidden, resetLayout,
     dragCol, setDragCol, soltarSobre,
     colFilters, setColFilters, toggleColValue,
     sortKey, sortDir, aplicarSort,
@@ -401,6 +403,7 @@ export default function DpColaboradores() {
     screenKey: "dp_colaboradores",
     defaultOrder: DEFAULT_COLAB_COL_ORDER,
     defaultWidths: DEFAULT_COLAB_COL_WIDTHS,
+    essentialKeys: ["colaborador"],
     acoesWidth: COLAB_ACOES_WIDTH,
     defaultSortKey: "padrao",
   });
@@ -521,15 +524,16 @@ export default function DpColaboradores() {
     },
   };
 
-  /** Ordem exibida: injeta "Setor" após "Unidade" quando a empresa usa setores. */
+  /** Ordem exibida: injeta "Setor" após "Unidade" quando a empresa usa setores e remove ocultas. */
   const colunas = useMemo(() => {
-    const base = colOrder.filter((k) => k !== "setor");
+    const base = colOrder.filter((k) => k !== "setor" && !hidden.includes(k));
     if (!mostrarSetor) return base;
+    if (hidden.includes("setor")) return base;
     const idx = base.indexOf("unidade");
     const arr: ColabColKey[] = [...base];
     arr.splice(idx >= 0 ? idx + 1 : arr.length, 0, "setor");
     return arr;
-  }, [colOrder, mostrarSetor]);
+  }, [colOrder, mostrarSetor, hidden]);
 
   /** Aplica os filtros por valor de cada coluna sobre a lista já filtrada no topo. */
   const filtradoPorColuna = useMemo(() => {
@@ -594,7 +598,16 @@ export default function DpColaboradores() {
         title="Colaboradores"
         description="Gerencie a equipe, cargos e acessos ao sistema."
         actionsExtra={
-          <DpSalvarLargurasButton screenKey="dp_colaboradores" colOrder={colOrder} colWidths={colWidths} />
+          <>
+            <DpTableColumnsMenu
+              columns={DEFAULT_COLAB_COL_ORDER.map((k) => ({ key: k, label: COLS[k].label }))}
+              hidden={hidden}
+              essentialKeys={["colaborador"]}
+              onToggle={toggleHidden}
+              onReset={resetLayout}
+            />
+            <DpSalvarLargurasButton screenKey="dp_colaboradores" colOrder={colOrder} colWidths={colWidths} />
+          </>
         }
         actionItems={[
           { key: "novo", label: "Novo colaborador", icon: Plus, primary: true, onSelect: () => setMetodoOpen(true) },
