@@ -613,9 +613,9 @@ export default function Categorias() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="flex items-center gap-1">
-            <Tabs value={filterStatus} onValueChange={(v) => setFilterStatus(v as "all" | "active" | "blocked")} className="max-w-full">
-              <TabsList className="h-8 overflow-x-auto flex w-auto">
+          <div className="flex w-full min-w-0 items-center gap-1">
+            <Tabs value={filterStatus} onValueChange={(v) => setFilterStatus(v as "all" | "active" | "blocked")} className="min-w-0 max-w-full flex-1">
+              <TabsList className="h-8 w-full max-w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:w-auto">
                 <TabsTrigger value="all" className="text-xs px-2.5 h-7">Status: todas</TabsTrigger>
                 <TabsTrigger value="active" className="text-xs px-2.5 h-7">Permitem lançamentos</TabsTrigger>
                 <TabsTrigger value="blocked" className="text-xs px-2.5 h-7">Bloqueadas ({counts.blocked})</TabsTrigger>
