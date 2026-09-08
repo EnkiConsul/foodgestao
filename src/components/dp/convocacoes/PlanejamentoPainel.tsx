@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DpContentCard, DpEmptyState } from "@/components/dp/DpPage";
+import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpDisponibilidadePainel } from "@/hooks/useDpDisponibilidadePainel";
