@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import { BellRing, Save, Info } from "lucide-react";
@@ -60,11 +61,16 @@ export default function DpCadastroPendencias() {
 
   return (
     <DpPage>
-      <Helmet><title>Pendências — Cadastro — Pessoas 360°</title></Helmet>
+      <Helmet><title>Prazos de Pendências — Configurações — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={BellRing}
         title="Prazos de Pendências"
-        description="Configure, por empresa, os prazos usados no quadro de pendências da home do DP."
+        description="Configure, por empresa, os prazos usados na geração das pendências."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link to="/dp/cadastros/pendencias">Ver pendências</Link>
+          </Button>
+        }
       />
 
       <DpContentCard>
