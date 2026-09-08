@@ -264,14 +264,14 @@ export default function ContasContabeis() {
           )}
           <div className="flex items-center gap-0.5 md:gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
             {!node.allow_transactions && (
-              <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7" onClick={() => openNew(node.id)} title="Adicionar filha">
+              <Button variant="ghost" size="icon" className="h-7 w-7 md:h-7 md:w-7 shrink-0" onClick={() => openNew(node.id)} title="Adicionar filha">
                 <PlusCircle className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7" onClick={() => openEdit(node)} title="Editar">
+            <Button variant="ghost" size="icon" className="h-7 w-7 md:h-7 md:w-7 shrink-0" onClick={() => openEdit(node)} title="Editar">
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7 text-destructive" onClick={() => setDeleteTarget(node)} title="Excluir">
+            <Button variant="ghost" size="icon" className="h-7 w-7 md:h-7 md:w-7 shrink-0 text-destructive" onClick={() => setDeleteTarget(node)} title="Excluir">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
