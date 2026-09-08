@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal, FileText, History as HistoryIcon } from "lucide-react";
+import { Plus, Pencil, Trash, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal, FileText, History as HistoryIcon } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -113,6 +113,7 @@ export default function DpColaboradores() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewing, setViewing] = useState<DpColaborador | null>(null);
+  const [viewingApoio, setViewingApoio] = useState<PessoaApoio | null>(null);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [transformando, setTransformando] = useState<PessoaApoio | null>(null);
   /** Aba aberta ao abrir o cadastro pelas ações da lista. */
@@ -158,6 +159,39 @@ export default function DpColaboradores() {
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
   const [condicoesDe, setCondicoesDe] = useState<DpColaborador | null>(null);
 
+  /** Ações padrão de colaborador reutilizadas nos cards e na tabela unificada. */
+  const acoesColaborador = (c: DpColaborador) => [
+    { key: "editar", label: "Editar cadastro", icon: Pencil, onSelect: () => abrirCadastro(c) },
+    {
+      key: "acesso",
+      label: c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal",
+      icon: c.user_id ? KeyRound : UserPlus,
+      onSelect: () => abrirCadastro(c, "acesso"),
+    },
+    {
+      key: "desligamento",
+      label: c.ativo ? "Registrar desligamento" : "Desligamento / reintegração",
+      icon: c.ativo ? UserMinus : RotateCcw,
+      destructive: c.ativo,
+      onSelect: () => abrirCadastro(c, "desligamento"),
+    },
+    {
+      key: "condicoes",
+      label: "Alterar condições de trabalho",
+      icon: HistoryIcon,
+      onSelect: () => setCondicoesDe(c),
+    },
+    {
+      key: "remover",
+      label: "Remover cadastro",
+      icon: Trash2,
+      destructive: true,
+      separatorBefore: true,
+      onSelect: () => setToDelete(c),
+    },
+  ];
+
+
 
   type Origem = "todos" | "colaboradores" | "folguistas" | "teste";
   const ORIGENS: { key: Origem; label: string }[] = [
@@ -172,6 +206,12 @@ export default function DpColaboradores() {
     savePrefs({ extras: { ...(prefs?.extras ?? {}), colaboradores_origem: o } });
   };
 
+  useEffect(() => {
+    if (statusFilter === "incompletos" && origem !== "colaboradores") {
+      setStatusFilter("all");
+    }
+  }, [origem, statusFilter]);
+
   const pessoasApoio = useDpPessoasApoio();
   const pessoasApoioVisiveis = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -181,11 +221,19 @@ export default function DpColaboradores() {
         if (origem === "teste" && p.tipo !== "teste") return false;
         if (unidadeFilter !== "all" && p.unidade_id !== unidadeFilter) return false;
         if (cargoFilter !== "all" && p.cargo_id !== cargoFilter) return false;
+        if (statusFilter === "ativos" && !p.ativo) return false;
+        if (statusFilter === "desligados" && p.ativo) return false;
+        if (statusFilter === "incompletos") return false;
         if (q && !p.nome.toLowerCase().includes(q) && !(p.telefone ?? "").includes(q)) return false;
         return true;
       })
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  }, [pessoasApoio.data, search, unidadeFilter, cargoFilter, origem]);
+      .sort((a, b) => {
+        const ga = a.ativo ? 0 : 1;
+        const gb = b.ativo ? 0 : 1;
+        if (ga !== gb) return ga - gb;
+        return a.nome.localeCompare(b.nome, "pt-BR");
+      });
+  }, [pessoasApoio.data, search, unidadeFilter, cargoFilter, origem, statusFilter]);
 
   const todosVisiveis = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -200,19 +248,29 @@ export default function DpColaboradores() {
         }
         if (unidadeFilter !== "all" && c.unidade_id !== unidadeFilter) return false;
         if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
+        if (statusFilter === "ativos" && !c.ativo) return false;
+        if (statusFilter === "desligados" && c.ativo) return false;
+        if (statusFilter === "incompletos" && (!c.ativo || faltantesDe(c).length === 0)) return false;
         return true;
       })
-      .map((c) => ({ tipo: "colaborador" as const, item: c, nome: c.nome }));
+      .map((c) => ({ tipo: "colaborador" as const, item: c, nome: c.nome, ativo: c.ativo }));
     const apoio = (pessoasApoio.data ?? [])
       .filter((p) => {
         if (q && !p.nome.toLowerCase().includes(q) && !(p.telefone ?? "").includes(q)) return false;
         if (unidadeFilter !== "all" && p.unidade_id !== unidadeFilter) return false;
         if (cargoFilter !== "all" && p.cargo_id !== cargoFilter) return false;
+        if (statusFilter === "ativos" && !p.ativo) return false;
+        if (statusFilter === "desligados" && p.ativo) return false;
+        if (statusFilter === "incompletos") return false;
         return true;
       })
-      .map((p) => ({ tipo: p.tipo === "folguista" ? ("folguista" as const) : ("teste" as const), item: p, nome: p.nome }));
-    return [...colabs, ...apoio].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  }, [list.data, pessoasApoio.data, search, unidadeFilter, cargoFilter]);
+      .map((p) => ({ tipo: p.tipo === "folguista" ? ("folguista" as const) : ("teste" as const), item: p, nome: p.nome, ativo: p.ativo }));
+    return [...colabs, ...apoio].sort((a, b) => {
+      if (a.ativo !== b.ativo) return a.ativo ? -1 : 1;
+      return a.nome.localeCompare(b.nome, "pt-BR");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.data, pessoasApoio.data, search, unidadeFilter, cargoFilter, statusFilter]);
 
   /**
    * Atalho de outras telas (ex.: Rotina): /dp/colaboradores?editar=<id> abre o
@@ -267,15 +325,21 @@ export default function DpColaboradores() {
     (unidades.data ?? []).find((u) => u.id === id)?.nome ?? "—";
 
   const counts = useMemo(() => {
-    const all = list.data ?? [];
+    const colabs = list.data ?? [];
+    const apoios = pessoasApoio.data ?? [];
+    const apoiosPorTipo = (tipo: PessoaApoioTipo) => apoios.filter((p) => p.tipo === tipo);
+    const baseColabs = origem === "colaboradores" || origem === "todos" ? colabs : [];
+    const baseApoios = origem === "todos" ? apoios : origem === "folguistas" ? apoiosPorTipo("folguista") : origem === "teste" ? apoiosPorTipo("teste") : [];
     return {
-      todos: all.length,
-      ativos: all.filter((c) => c.ativo).length,
-      desligados: all.filter((c) => !c.ativo).length,
-      incompletos: all.filter((c) => c.ativo && faltantesDe(c).length > 0).length,
+      todos: baseColabs.length + baseApoios.length,
+      ativos: baseColabs.filter((c) => c.ativo).length + baseApoios.filter((p) => p.ativo).length,
+      desligados: baseColabs.filter((c) => !c.ativo).length + baseApoios.filter((p) => !p.ativo).length,
+      incompletos: origem === "colaboradores"
+        ? colabs.filter((c) => c.ativo && faltantesDe(c).length > 0).length
+        : colabs.filter((c) => c.ativo && faltantesDe(c).length > 0).length,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list.data, mostrarSetor]);
+  }, [list.data, pessoasApoio.data, origem, mostrarSetor]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -534,8 +598,7 @@ export default function DpColaboradores() {
         }
         actionItems={[
           { key: "novo", label: "Novo colaborador", icon: Plus, primary: true, onSelect: () => setMetodoOpen(true) },
-          
-          { key: "lixeira", label: "Lixeira", icon: Trash2, to: "/dp/colaboradores/lixeira" },
+          { key: "lixeira", label: "Lixeira", icon: Trash, to: "/dp/colaboradores/lixeira", keepVisible: true },
         ]}
       />
 
@@ -547,18 +610,17 @@ export default function DpColaboradores() {
         </DpTabsBar>
       </Tabs>
 
-      {origem === "colaboradores" && (
-        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
-          <DpTabsBar>
-            <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
-            <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
-            <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
-            {counts.incompletos > 0 && (
-              <TabsTrigger value="incompletos">Incompletos ({counts.incompletos})</TabsTrigger>
-            )}
-          </DpTabsBar>
-        </Tabs>
-      )}
+      <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+        <DpTabsBar>
+          <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
+          <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
+          <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
+          {origem === "colaboradores" && counts.incompletos > 0 && (
+            <TabsTrigger value="incompletos">Incompletos ({counts.incompletos})</TabsTrigger>
+          )}
+        </DpTabsBar>
+      </Tabs>
+
 
       <DpFilters
         search={{ value: search, onChange: setSearch, placeholder: "Nome ou CPF..." }}
@@ -812,7 +874,7 @@ export default function DpColaboradores() {
                           ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
                           : "text-muted-foreground")}
                       >
-                        Folha: {folha ? "Sim" : "Não"}
+                        Ponto: {folha ? "Sim" : "Não"}
                       </Badge>
                       {c.ativo && faltantesDe(c).length > 0 && (
                         <Badge
@@ -826,30 +888,7 @@ export default function DpColaboradores() {
                     </>
                   }
                   onOpen={() => setViewing(c)}
-                  actions={[
-                    { key: "editar", label: "Editar cadastro", icon: Pencil, onSelect: () => abrirCadastro(c) },
-                    {
-                      key: "acesso",
-                      label: c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal",
-                      icon: c.user_id ? KeyRound : UserPlus,
-                      onSelect: () => abrirCadastro(c, "acesso"),
-                    },
-                    {
-                      key: "desligamento",
-                      label: c.ativo ? "Registrar desligamento" : "Desligamento / reintegração",
-                      icon: c.ativo ? UserMinus : RotateCcw,
-                      destructive: c.ativo,
-                      onSelect: () => abrirCadastro(c, "desligamento"),
-                    },
-                    {
-                      key: "remover",
-                      label: "Remover cadastro",
-                      icon: Trash2,
-                      destructive: true,
-                      separatorBefore: true,
-                      onSelect: () => setToDelete(c),
-                    },
-                  ]}
+                  actions={acoesColaborador(c)}
                 />
               );
             })}
@@ -880,7 +919,7 @@ export default function DpColaboradores() {
                       <TableRow
                         key={p.id}
                         className="cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => setApoioEditando(p)}
+                        onClick={() => setViewingApoio(p)}
                       >
                         <TableCell className="align-top font-medium">{p.nome}</TableCell>
                         <TableCell className="align-top font-mono text-muted-foreground">{p.cpf ?? "—"}</TableCell>
@@ -966,7 +1005,7 @@ export default function DpColaboradores() {
                     {origem === "folguistas" ? "Folguista" : "Em Teste"}
                   </Badge>
                 }
-                onOpen={() => setApoioEditando(p)}
+                onOpen={() => setViewingApoio(p)}
                 actions={acoesApoio(p)}
               />
             ))}
@@ -1000,12 +1039,48 @@ export default function DpColaboradores() {
                             <TableCell className="align-top font-medium">{c.nome}</TableCell>
                             <TableCell className="align-top"><Badge variant="outline" className="text-[11px]">Colaborador</Badge></TableCell>
                             <TableCell className="align-top">{c.cargo_nome ?? c.cargo ?? "—"}{c.unidade_nome ? <span className="text-muted-foreground"> • {c.unidade_nome}</span> : null}</TableCell>
-                            <TableCell className="align-top">{c.ativo ? "Ativo" : "Desligado"}</TableCell>
                             <TableCell className="align-top">
-                              <div className="flex gap-0.5 justify-center">
+                              {c.ativo ? (
+                                <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+                                  Ativo
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/30">
+                                  Desligado {fmtDate(c.data_desligamento)}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <div className="flex gap-0.5 justify-center" onClick={(e) => e.stopPropagation()}>
                                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); abrirCadastro(c); }} title="Editar">
                                   <Pencil className="h-4 w-4" />
                                 </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Mais ações">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-56">
+                                    <DropdownMenuItem onSelect={() => abrirCadastro(c, "acesso")}>
+                                      {c.user_id ? <KeyRound className="h-4 w-4 mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
+                                      {c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal"}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => abrirCadastro(c, "desligamento")}>
+                                      {c.ativo ? (
+                                        <><UserMinus className="h-4 w-4 mr-2 text-destructive" /> Registrar desligamento</>
+                                      ) : (
+                                        <><RotateCcw className="h-4 w-4 mr-2" /> Desligamento / reintegração</>
+                                      )}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => setCondicoesDe(c)}>
+                                      <HistoryIcon className="h-4 w-4 mr-2" /> Alterar condições de trabalho
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => setToDelete(c)}>
+                                      <Trash2 className="h-4 w-4 mr-2 text-destructive" /> Remover
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -1016,12 +1091,22 @@ export default function DpColaboradores() {
                         <TableRow
                           key={p.id}
                           className="cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => setApoioEditando(p)}
+                          onClick={() => setViewingApoio(p)}
                         >
                           <TableCell className="align-top font-medium">{p.nome}</TableCell>
                           <TableCell className="align-top"><Badge variant="outline" className="text-[11px] capitalize">{p.tipo === "folguista" ? "Folguista" : "Em Teste"}</Badge></TableCell>
                           <TableCell className="align-top">{nomeCargo(p.cargo_id)}{p.unidade_id ? <span className="text-muted-foreground"> • {nomeUnidade(p.unidade_id)}</span> : null}</TableCell>
-                          <TableCell className="align-top">{p.ativo ? "Ativo" : "Inativo"}</TableCell>
+                          <TableCell className="align-top">
+                            {p.ativo ? (
+                              <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+                                Ativo
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/30">
+                                Inativo
+                              </Badge>
+                            )}
+                          </TableCell>
                           <TableCell className="align-top">
                             <div className="flex gap-0.5 justify-center" onClick={(e) => e.stopPropagation()}>
                               <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar cadastro" onClick={() => setApoioEditando(p)}>
@@ -1072,6 +1157,7 @@ export default function DpColaboradores() {
             {!list.isLoading && !pessoasApoio.isLoading && todosVisiveis.map((item) => {
               if (item.tipo === "colaborador") {
                 const c = item.item;
+                const folha = (c as any).possui_folha_ponto as boolean | null;
                 return (
                   <DpListCard
                     key={c.id}
@@ -1083,11 +1169,39 @@ export default function DpColaboradores() {
                         {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
                       </>
                     }
-                    badges={<Badge variant="outline" className="text-[11px]">Colaborador</Badge>}
+                    badges={
+                      <>
+                        <Badge variant="outline" className="text-[11px]">Colaborador</Badge>
+                        {c.ativo ? (
+                          <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+                            Ativo
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/30">
+                            Desligado {fmtDate(c.data_desligamento)}
+                          </Badge>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className={"text-[11px] " + (folha
+                            ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
+                            : "text-muted-foreground")}
+                        >
+                          Ponto: {folha ? "Sim" : "Não"}
+                        </Badge>
+                        {c.ativo && faltantesDe(c).length > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="text-[11px] border-amber-500/40 text-amber-600 dark:text-amber-400"
+                            title={`Falta: ${resumoFaltando(faltantesDe(c), 9)}`}
+                          >
+                            Cadastro incompleto ({faltantesDe(c).length})
+                          </Badge>
+                        )}
+                      </>
+                    }
                     onOpen={() => setViewing(c)}
-                    actions={[
-                      { key: "editar", label: "Editar cadastro", icon: Pencil, onSelect: () => abrirCadastro(c) },
-                    ]}
+                    actions={acoesColaborador(c)}
                   />
                 );
               }
@@ -1108,8 +1222,21 @@ export default function DpColaboradores() {
                       {p.unidade_id ? <span> • {nomeUnidade(p.unidade_id)}</span> : null}
                     </>
                   }
-                  badges={<Badge variant="outline" className="text-[11px] capitalize">{p.tipo === "folguista" ? "Folguista" : "Em Teste"}</Badge>}
-                  onOpen={() => setApoioEditando(p)}
+                  badges={
+                    <>
+                      <Badge variant="outline" className="text-[11px] capitalize">{p.tipo === "folguista" ? "Folguista" : "Em Teste"}</Badge>
+                      {p.ativo ? (
+                        <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+                          Ativo
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/30">
+                          Inativo
+                        </Badge>
+                      )}
+                    </>
+                  }
+                  onOpen={() => setViewingApoio(p)}
                   actions={acoesApoio(p)}
                 />
               );
@@ -1132,7 +1259,50 @@ export default function DpColaboradores() {
         />
       )}
 
-      
+      {viewingApoio && (
+        <Dialog open={!!viewingApoio} onOpenChange={(o) => !o && setViewingApoio(null)}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{viewingApoio.nome}</DialogTitle>
+              <DialogDescription>
+                {viewingApoio.tipo === "folguista" ? "Folguista" : "Em Teste"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 text-sm py-2">
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-muted-foreground">Status</span>
+                <span>{viewingApoio.ativo ? "Ativo" : "Inativo"}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-muted-foreground">CPF</span>
+                <span className="font-mono">{viewingApoio.cpf ?? "—"}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-muted-foreground">Telefone</span>
+                <span>{viewingApoio.telefone ?? "—"}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-muted-foreground">Cargo</span>
+                <span>{nomeCargo(viewingApoio.cargo_id)}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-muted-foreground">Unidade</span>
+                <span>{nomeUnidade(viewingApoio.unidade_id) ?? "—"}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-muted-foreground">Setor</span>
+                <span>{nomeSetorApoio(viewingApoio.setor_id) ?? "—"}</span>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setViewingApoio(null)}>Fechar</Button>
+              <Button onClick={() => { setApoioEditando(viewingApoio); setViewingApoio(null); }}>
+                <Pencil className="h-4 w-4 mr-2" /> Editar cadastro
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <ColaboradorCondicoesDialog
         colaborador={condicoesDe}
