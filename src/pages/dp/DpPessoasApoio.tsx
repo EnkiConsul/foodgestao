@@ -29,6 +29,7 @@ import {
 import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { pessoaApoioSchema, validateWithToast } from "@/lib/validations";
+import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 
 const TIPO_LABEL: Record<PessoaApoioTipo, string> = {
   folguista: "Folguista",
