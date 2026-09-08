@@ -16,6 +16,9 @@
 4. **Ações completas na aba Todos**
    Hoje, na aba Todos, o colaborador só tem "Editar". Passa a ter as mesmas ações da aba Colaboradores: editar, acesso ao portal, registrar desligamento ou reintegração, alterar condições de trabalho e remover.
 
+5. **Remover o selo "Folha: Sim/Não" dos cards**
+   Os cards de colaborador exibem hoje o selo "Folha: Sim" ou "Folha: Não". Como folha e ponto não são gerados pelo sistema (vêm da contabilidade), o selo sai dos cards.
+
 ## Detalhes técnicos
 
 - Arquivo: `src/pages/dp/DpColaboradores.tsx` (apenas apresentação; sem mudanças de banco).
