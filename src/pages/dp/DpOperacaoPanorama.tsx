@@ -272,15 +272,31 @@ function Secao({
 }
 
 function SituacaoBadge({ dia }: { dia: DiaPanorama }) {
-  if (dia.dispensado) return <Badge variant="outline">Alerta resolvido</Badge>;
-  if (dia.avaliacao.situacao === "abaixo")
-    return <Badge variant="destructive">Abaixo do padrão ({dia.avaliacao.diferenca})</Badge>;
-  if (dia.avaliacao.situacao === "acima")
-    return <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/15 dark:text-amber-400">
-      Acima do padrão (+{dia.avaliacao.diferenca})
-    </Badge>;
-  if (dia.avaliacao.situacao === "ok") return <Badge variant="secondary">Dentro do padrão</Badge>;
-  return null;
+  const feriado = dia.feriado_nome ? (
+    <Badge variant="outline" className="border-primary/40 text-primary">
+      Feriado · {dia.feriado_nome}
+    </Badge>
+  ) : null;
+
+  const situacao = () => {
+    if (dia.dispensado) return <Badge variant="outline">Alerta resolvido</Badge>;
+    if (dia.avaliacao.situacao === "abaixo")
+      return <Badge variant="destructive">Abaixo do padrão ({dia.avaliacao.diferenca})</Badge>;
+    if (dia.avaliacao.situacao === "acima")
+      return <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/15 dark:text-amber-400">
+        Acima do padrão (+{dia.avaliacao.diferenca})
+      </Badge>;
+    if (dia.avaliacao.situacao === "ok") return <Badge variant="secondary">Dentro do padrão</Badge>;
+    return null;
+  };
+
+  if (!feriado) return situacao();
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      {feriado}
+      {situacao()}
+    </span>
+  );
 }
 
 interface DetalheDiaProps {
