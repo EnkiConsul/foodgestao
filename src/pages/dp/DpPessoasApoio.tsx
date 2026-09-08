@@ -403,6 +403,12 @@ export default function DpPessoasApoio() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ColaboradorFormDialog
+        open={!!transformando}
+        onOpenChange={(o) => !o && setTransformando(null)}
+        pessoaApoioInicial={transformando}
+      />
     </DpPage>
   );
 }
