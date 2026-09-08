@@ -1071,6 +1071,16 @@ export default function DpColaboradores() {
         abaInicial={abaInicial}
       />
 
+      <ColaboradorFormDialog
+        open={!!transformando}
+        onOpenChange={(o) => {
+          if (!o) setTransformando(null);
+        }}
+        colaborador={null}
+        pessoaApoioInicial={transformando}
+        abaInicial="dados"
+      />
+
 
 
 
