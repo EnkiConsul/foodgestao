@@ -489,7 +489,9 @@ export function RemuneracaoFields({
     <div className="md:col-span-2 space-y-4 rounded-xl border border-border bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-semibold">Remuneração e benefícios</div>
-        <Badge variant="outline" className="text-[10px]">Obrigatório para a folha</Badge>
+        <Badge variant="outline" className="text-[10px]">
+          {policy.entraEmFolha ? "Obrigatório" : "Acerto avulso — fora das obrigações CLT"}
+        </Badge>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
