@@ -80,6 +80,46 @@ export function nivelVencimento(diasRestantes: number): NivelVencimento {
   return "normal";
 }
 
+/**
+ * Situação de um período específico, já considerando a política da empresa para
+ * ciclos aquisitivos que se encerraram e ainda têm saldo a conceder.
+ * O prazo legal continua mandando: vencido e atenção têm prioridade.
+ */
+export function nivelVencimentoPeriodo(args: {
+  fimAquisitivo: string;
+  limiteConcessivo: string;
+  diasSaldo: number | null | undefined;
+  hojeISO: string;
+  politica?: FeriasSinalizacaoCiclo;
+}): NivelVencimento {
+  const { fimAquisitivo, limiteConcessivo, hojeISO } = args;
+  const politica = args.politica ?? "a_conceder";
+  const saldo = args.diasSaldo ?? 0;
+  const diasRestantes = diffDias(limiteConcessivo, hojeISO);
+  if (diasRestantes < 0) return "vencido";
+  const cicloEncerradoComSaldo = fimAquisitivo <= hojeISO && saldo > 0;
+  if (politica === "vencido" && cicloEncerradoComSaldo) return "vencido";
+  if (diasRestantes <= 30) return "atencao";
+  if (politica === "a_conceder" && cicloEncerradoComSaldo) return "a_conceder";
+  if (diasRestantes <= 90) return "planejamento";
+  return "normal";
+}
+
+/** Diferença em dias entre duas datas ISO (yyyy-MM-dd), sem fuso. */
+function diffDias(alvoISO: string, baseISO: string): number {
+  const alvo = Date.UTC(
+    Number(alvoISO.slice(0, 4)),
+    Number(alvoISO.slice(5, 7)) - 1,
+    Number(alvoISO.slice(8, 10)),
+  );
+  const base = Date.UTC(
+    Number(baseISO.slice(0, 4)),
+    Number(baseISO.slice(5, 7)) - 1,
+    Number(baseISO.slice(8, 10)),
+  );
+  return Math.round((alvo - base) / 86_400_000);
+}
+
 /** Texto do prazo, em linguagem de gestor. */
 export function textoPrazo(diasRestantes: number): string {
   if (diasRestantes < 0) return `Prazo vencido há ${Math.abs(diasRestantes)} dia(s)`;
