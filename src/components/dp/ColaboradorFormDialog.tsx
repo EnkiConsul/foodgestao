@@ -1773,8 +1773,8 @@ export function ColaboradorFormDialog({
             onChange={(id) => setForm((f) => ({ ...f, setor_id: id ?? "" }))}
           />
 
-          {/* Sócio não é representado por convenção coletiva: sem enquadramento. */}
-          {!socioSelecionado && (
+          {/* Sócio e freelancer não são representados por convenção coletiva: sem enquadramento. */}
+          {!socioSelecionado && !freelancerSelecionado && (
             <SindicatoEnquadramentoField
               cargoId={form.cargo_id}
               cargoNome={cargoSelecionado?.nome ?? null}
@@ -2117,7 +2117,7 @@ export function ColaboradorFormDialog({
                 value={rem}
                 onChange={patchRem}
                 campoErro={campoErro}
-                isonomia={socioSelecionado ? [] : divergenciasIso}
+                isonomia={socioSelecionado || freelancerSelecionado ? [] : divergenciasIso}
                 onAplicarPadraoIsonomia={aplicarPadraoIsonomia}
                 salarioCargo={salarioCargo}
                 cargoNome={cargoSelecionado?.nome ?? null}
@@ -2149,7 +2149,7 @@ export function ColaboradorFormDialog({
               />
 
               {/* Regra coletiva de anuênio/triênio aplicável a este colaborador */}
-              {!socioSelecionado && <AdicionalTempoServicoCard
+              {!socioSelecionado && !freelancerSelecionado && <AdicionalTempoServicoCard
                 admissao={form.data_admissao || null}
                 cargoId={form.cargo_id || null}
                 unidadeId={form.unidade_id || null}
@@ -2391,6 +2391,11 @@ export function ColaboradorFormDialog({
             cargoResolvido.current = true;
             setConflitoCargo(null);
             toast.info("Salário ajustado para o valor do cargo. Salve para concluir.");
+          }}
+          onManterDiferente={() => {
+            cargoResolvido.current = true;
+            setConflitoCargo(null);
+            toast.info("Remuneração própria mantida — a referência do cargo não muda. Salve para concluir.");
           }}
         />
       )}
