@@ -45,7 +45,8 @@ export function useAnalyticsFerias({ periodo, colabIds, dimensao, nomes, enabled
         supabase
           .from("dp_ferias_periodos")
           .select("colaborador_id, limite_concessivo, dias_saldo, status")
-          .eq("company_id", selectedCompanyId!),
+          .eq("company_id", selectedCompanyId!)
+          .eq("controle_externo", false),
         supabase
           .from("dp_ferias_gozos")
           .select("colaborador_id, data_inicio, data_fim, status")

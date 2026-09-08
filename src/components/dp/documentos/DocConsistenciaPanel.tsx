@@ -215,6 +215,7 @@ export function DocConsistenciaPanel() {
           .from("dp_ferias_periodos")
           .select("colaborador_id, limite_concessivo, dias_saldo")
           .eq("company_id", selectedCompanyId!)
+          .eq("controle_externo", false)
           .gt("dias_saldo", 0)
           .lte("limite_concessivo", somaDias(hoje, FERIAS_ALERTA_DIAS)),
       ]);

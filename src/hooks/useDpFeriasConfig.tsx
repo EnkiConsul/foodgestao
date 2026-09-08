@@ -45,7 +45,7 @@ export function useDpFeriasConfig() {
       const { data, error } = await supabase
         .from("dp_config_dp")
         .select(
-          "id, ferias_aviso_antecedencia_dias, ferias_adiantamento_13, ferias_fracionamento_max, ferias_fracao_min_dias, ferias_fracao_maior_dias",
+          "id, ferias_aviso_antecedencia_dias, ferias_adiantamento_13, ferias_fracionamento_max, ferias_fracao_min_dias, ferias_fracao_maior_dias, ferias_controle_inicio",
         )
         .eq("company_id", selectedCompanyId!)
         .is("unidade_id", null)
@@ -68,6 +68,7 @@ export function useDpFeriasConfig() {
           fracaoMaiorDias: Number(
             data?.ferias_fracao_maior_dias ?? FERIAS_CONFIG_DEFAULT.fracaoMaiorDias,
           ),
+          controleInicio: (data?.ferias_controle_inicio as string | null | undefined) ?? null,
         } satisfies FeriasConfig,
       };
     },
@@ -84,6 +85,8 @@ export function useDpFeriasConfig() {
         ferias_fracionamento_max: patch.fracionamentoMax ?? atual.fracionamentoMax,
         ferias_fracao_min_dias: patch.fracaoMinDias ?? atual.fracaoMinDias,
         ferias_fracao_maior_dias: patch.fracaoMaiorDias ?? atual.fracaoMaiorDias,
+        ferias_controle_inicio:
+          patch.controleInicio !== undefined ? patch.controleInicio : atual.controleInicio,
       };
       if (query.data?.id) {
         const { error } = await supabase

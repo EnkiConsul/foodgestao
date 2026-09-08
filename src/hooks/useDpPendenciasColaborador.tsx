@@ -141,6 +141,7 @@ export function useDpPendenciasColaborador() {
           .from("dp_ferias_periodos")
           .select("id, dias_saldo, limite_concessivo, status")
           .eq("colaborador_id", colabId as string)
+          .eq("controle_externo", false)
           .in("status", ["disponivel", "parcial", "vencido"])
           .order("limite_concessivo", { ascending: true })
           .limit(5);
