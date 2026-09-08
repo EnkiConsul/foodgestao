@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { DIA_SEMANA_CURTO } from "@/lib/dp/dsr-rules";
 import { CLASSE_DIA_LABEL, MOTIVO_DESCONTO_LABEL, type ClasseDia, type MotivoDesconto } from "@/lib/dp/va-calculo";
 import type { LinhaVale } from "@/hooks/useDpValeCalculadora";
+import { DiasEmLista } from "@/components/dp/DiasEmLista";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
