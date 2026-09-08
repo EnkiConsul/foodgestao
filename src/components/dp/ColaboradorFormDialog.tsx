@@ -41,6 +41,7 @@ import {
 import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
 import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
