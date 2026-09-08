@@ -4313,6 +4313,7 @@ export type Database = {
           email_portal: string | null
           endereco: Json | null
           estado_civil: string | null
+          ferias_controle_inicio: string | null
           ficha_importacao_item_id: string | null
           folga_fixa_semana: number | null
           forma_pagamento: Database["public"]["Enums"]["dp_forma_pagamento"]
@@ -4435,6 +4436,7 @@ export type Database = {
           email_portal?: string | null
           endereco?: Json | null
           estado_civil?: string | null
+          ferias_controle_inicio?: string | null
           ficha_importacao_item_id?: string | null
           folga_fixa_semana?: number | null
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
@@ -4557,6 +4559,7 @@ export type Database = {
           email_portal?: string | null
           endereco?: Json | null
           estado_civil?: string | null
+          ferias_controle_inicio?: string | null
           ficha_importacao_item_id?: string | null
           folga_fixa_semana?: number | null
           forma_pagamento?: Database["public"]["Enums"]["dp_forma_pagamento"]
@@ -4691,6 +4694,7 @@ export type Database = {
           exige_validacao_menor: boolean
           ferias_adiantamento_13: string
           ferias_aviso_antecedencia_dias: number
+          ferias_controle_inicio: string | null
           ferias_fracao_maior_dias: number | null
           ferias_fracao_min_dias: number | null
           ferias_fracionamento_max: number | null
@@ -4751,6 +4755,7 @@ export type Database = {
           exige_validacao_menor?: boolean
           ferias_adiantamento_13?: string
           ferias_aviso_antecedencia_dias?: number
+          ferias_controle_inicio?: string | null
           ferias_fracao_maior_dias?: number | null
           ferias_fracao_min_dias?: number | null
           ferias_fracionamento_max?: number | null
@@ -4811,6 +4816,7 @@ export type Database = {
           exige_validacao_menor?: boolean
           ferias_adiantamento_13?: string
           ferias_aviso_antecedencia_dias?: number
+          ferias_controle_inicio?: string | null
           ferias_fracao_maior_dias?: number | null
           ferias_fracao_min_dias?: number | null
           ferias_fracionamento_max?: number | null
@@ -6897,6 +6903,7 @@ export type Database = {
         Row: {
           colaborador_id: string
           company_id: string
+          controle_externo: boolean
           created_at: string
           criado_por: string | null
           dias_direito: number
@@ -6914,12 +6921,17 @@ export type Database = {
           observacao: string | null
           origem_faltas: string
           requer_revisao: boolean
+          saldo_inicial_dias: number | null
+          saldo_inicial_em: string | null
+          saldo_inicial_obs: string | null
+          saldo_inicial_por: string | null
           status: Database["public"]["Enums"]["dp_ferias_periodo_status"]
           updated_at: string
         }
         Insert: {
           colaborador_id: string
           company_id: string
+          controle_externo?: boolean
           created_at?: string
           criado_por?: string | null
           dias_direito?: number
@@ -6937,12 +6949,17 @@ export type Database = {
           observacao?: string | null
           origem_faltas?: string
           requer_revisao?: boolean
+          saldo_inicial_dias?: number | null
+          saldo_inicial_em?: string | null
+          saldo_inicial_obs?: string | null
+          saldo_inicial_por?: string | null
           status?: Database["public"]["Enums"]["dp_ferias_periodo_status"]
           updated_at?: string
         }
         Update: {
           colaborador_id?: string
           company_id?: string
+          controle_externo?: boolean
           created_at?: string
           criado_por?: string | null
           dias_direito?: number
@@ -6960,6 +6977,10 @@ export type Database = {
           observacao?: string | null
           origem_faltas?: string
           requer_revisao?: boolean
+          saldo_inicial_dias?: number | null
+          saldo_inicial_em?: string | null
+          saldo_inicial_obs?: string | null
+          saldo_inicial_por?: string | null
           status?: Database["public"]["Enums"]["dp_ferias_periodo_status"]
           updated_at?: string
         }
@@ -13735,6 +13756,7 @@ export type Database = {
           exige_validacao_menor: boolean
           ferias_adiantamento_13: string
           ferias_aviso_antecedencia_dias: number
+          ferias_controle_inicio: string | null
           ferias_fracao_maior_dias: number | null
           ferias_fracao_min_dias: number | null
           ferias_fracionamento_max: number | null
@@ -14227,6 +14249,14 @@ export type Database = {
           fracao_min_dias: number
           fracionamento_max: number
         }[]
+      }
+      dp_ferias_corte_efetivo: {
+        Args: { _colaborador_id: string }
+        Returns: string
+      }
+      dp_ferias_definir_saldo_inicial: {
+        Args: { _dias: number; _obs?: string; _periodo_id: string }
+        Returns: undefined
       }
       dp_ferias_dias_direito: { Args: { _faltas: number }; Returns: number }
       dp_ferias_em_curso: {
