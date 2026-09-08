@@ -1,30 +1,28 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Bell, HeartPulse } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useDpNotificacoes, useMarkNotifRead } from "@/hooks/useDpNotificacoes";
+import { useDpNotificacoes, useMarkNotifRead, useMarkAllNotifsRead } from "@/hooks/useDpNotificacoes";
 import { useDpAtestadosPendentes } from "@/hooks/useDpAtestadosPendentes";
-
-const REF_TO_PATH: Record<string, string> = {
-  dp_solicitacoes: "/dp/folgas?aba=solicitacoes",
-  dp_trocas: "/dp/folgas?aba=trocas",
-  dp_registros_disciplinares: "/dp/disciplinar",
-};
+import { notificacaoPathGestor } from "@/lib/dp/notificacoes";
 
 export function DpNotificacoesBell() {
   const [open, setOpen] = useState(false);
   const { data } = useDpNotificacoes();
   const { data: atestados = [] } = useDpAtestadosPendentes();
   const markRead = useMarkNotifRead();
+  const markAllRead = useMarkAllNotifsRead();
 
   const list = data ?? [];
-  const unread = list.filter((n) => !n.lida_em);
+  const unread = list.filter((n) => !n.lida);
   const totalBadge = unread.length + atestados.length;
 
-  const markAll = () => markRead.mutate(unread.map((n) => n.id));
+  const onError = () => toast.error("Não foi possível atualizar a notificação. Tente novamente.");
+  const markAll = () => markAllRead.mutate(undefined, { onError });
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -42,7 +40,7 @@ export function DpNotificacoesBell() {
         <div className="flex items-center justify-between border-b px-3 py-2">
           <div className="text-sm font-semibold">Notificações</div>
           <div className="flex gap-1">
-            <Button size="sm" variant="ghost" onClick={markAll} disabled={unread.length === 0}>
+            <Button size="sm" variant="ghost" onClick={markAll} disabled={unread.length === 0 || markAllRead.isPending}>
               Marcar todas
             </Button>
             <Button size="sm" variant="ghost" asChild onClick={() => setOpen(false)}>
@@ -69,20 +67,20 @@ export function DpNotificacoesBell() {
           ) : (
             <ul className="divide-y">
               {list.slice(0, 15).map((n) => {
-                const path = REF_TO_PATH[n.ref_table] ?? "/dp/notificacoes";
+                const path = notificacaoPathGestor(n.ref_table);
                 return (
-                  <li key={n.id} className={n.lida_em ? "opacity-60" : ""}>
+                  <li key={n.id} className={n.lida ? "opacity-60" : ""}>
                     <Link
                       to={path}
                       className="flex flex-col gap-0.5 px-3 py-2 hover:bg-muted"
                       onClick={() => {
-                        if (!n.lida_em) markRead.mutate([n.id]);
+                        if (!n.lida) markRead.mutate([n.id], { onError });
                         setOpen(false);
                       }}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-sm font-medium">{n.titulo}</div>
-                        {!n.lida_em && <div className="h-2 w-2 rounded-full bg-primary" />}
+                        {!n.lida && <div className="h-2 w-2 rounded-full bg-primary" />}
                       </div>
                       {n.descricao && <div className="text-xs text-muted-foreground">{n.descricao}</div>}
                       <div className="text-[10px] text-muted-foreground">

@@ -8527,6 +8527,32 @@ export type Database = {
           },
         ]
       }
+      dp_notificacoes_leituras: {
+        Row: {
+          lida_em: string
+          notificacao_id: string
+          user_id: string
+        }
+        Insert: {
+          lida_em?: string
+          notificacao_id: string
+          user_id: string
+        }
+        Update: {
+          lida_em?: string
+          notificacao_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_notificacoes_leituras_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_notificacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_ocorrencia_coberturas: {
         Row: {
           aprovado_em: string | null
@@ -14635,6 +14661,11 @@ export type Database = {
         Returns: Json
       }
       dp_nome_normalizado: { Args: { p_nome: string }; Returns: string }
+      dp_notificacao_marcar_lida: { Args: { _ids: string[] }; Returns: number }
+      dp_notificacoes_marcar_todas: {
+        Args: { _company_id: string }
+        Returns: number
+      }
       dp_notificar_admins_empresa: {
         Args: {
           _company_id: string

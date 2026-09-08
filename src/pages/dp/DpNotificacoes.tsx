@@ -4,34 +4,28 @@ import { Bell, Search, CheckCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useDpNotificacoes, useMarkNotifRead } from "@/hooks/useDpNotificacoes";
+import { useDpNotificacoes, useMarkNotifRead, useMarkAllNotifsRead } from "@/hooks/useDpNotificacoes";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-const REF_TO_PATH: Record<string, string> = {
-  dp_solicitacoes: "/dp/folgas?aba=solicitacoes",
-  dp_trocas: "/dp/folgas?aba=trocas",
-  dp_registros_disciplinares: "/dp/disciplinar",
-  dp_atestados: "/dp/atestados",
-  dp_documentos: "/dp/documentos",
-  dp_avisos: "/dp/avisos",
-};
+import { notificacaoOrigemLabel, notificacaoPathGestor } from "@/lib/dp/notificacoes";
 
 export default function DpNotificacoes() {
   const { data = [], isLoading } = useDpNotificacoes();
   const markRead = useMarkNotifRead();
+  const markAllRead = useMarkAllNotifsRead();
   const [tab, setTab] = useState<"todas" | "nao_lidas" | "lidas">("todas");
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
     return (data ?? []).filter((n) => {
-      if (tab === "nao_lidas" && n.lida_em) return false;
-      if (tab === "lidas" && !n.lida_em) return false;
+      if (tab === "nao_lidas" && n.lida) return false;
+      if (tab === "lidas" && !n.lida) return false;
       if (s && !`${n.titulo} ${n.descricao ?? ""}`.toLowerCase().includes(s)) return false;
       return true;
     });
@@ -39,13 +33,19 @@ export default function DpNotificacoes() {
 
   const counts = useMemo(() => {
     let lidas = 0, naoLidas = 0;
-    for (const n of data ?? []) { if (n.lida_em) lidas++; else naoLidas++; }
+    for (const n of data ?? []) { if (n.lida) lidas++; else naoLidas++; }
     return { lidas, naoLidas, todas: data?.length ?? 0 };
   }, [data]);
 
+  const onError = () => toast.error("Não foi possível atualizar a notificação. Tente novamente.");
+
   const markAll = () => {
-    const ids = (data ?? []).filter((n) => !n.lida_em).map((n) => n.id);
-    if (ids.length) markRead.mutate(ids);
+    markAllRead.mutate(undefined, { onError });
+  };
+
+  const markOne = (id: string, lida: boolean) => {
+    if (lida) return;
+    markRead.mutate([id], { onError });
   };
 
   return (
@@ -56,7 +56,7 @@ export default function DpNotificacoes() {
         title="Central de Notificações"
         description="Histórico dos alertas do sistema (aprovações, atestados, comunicados)."
         actions={
-          <Button variant="outline" onClick={markAll} disabled={counts.naoLidas === 0}>
+          <Button variant="outline" onClick={markAll} disabled={counts.naoLidas === 0 || markAllRead.isPending}>
             <CheckCheck className="h-4 w-4 mr-1" /> Marcar todas como lidas
           </Button>
         }
@@ -98,22 +98,22 @@ export default function DpNotificacoes() {
             </TableHeader>
             <TableBody>
               {filtered.map((n) => {
-                const path = REF_TO_PATH[n.ref_table] ?? "/dp/notificacoes";
+                const path = notificacaoPathGestor(n.ref_table);
                 return (
-                  <TableRow key={n.id} className={n.lida_em ? "opacity-70" : ""}>
+                  <TableRow key={n.id} className={n.lida ? "opacity-70" : ""}>
                     <TableCell>
                       <div className="font-medium">{n.titulo}</div>
                       {n.descricao && <div className="text-xs text-muted-foreground">{n.descricao}</div>}
                     </TableCell>
-                    <TableCell><Badge variant="outline" className="text-[10px]">{n.ref_table}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className="text-[10px]">{notificacaoOrigemLabel(n.ref_table)}</Badge></TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {format(new Date(n.created_at), "dd 'de' MMM yyyy HH:mm", { locale: ptBR })}
                     </TableCell>
                     <TableCell>
-                      {n.lida_em ? <Badge variant="outline">Lida</Badge> : <Badge>Nova</Badge>}
+                      {n.lida ? <Badge variant="outline">Lida</Badge> : <Badge>Nova</Badge>}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button asChild size="sm" variant="ghost" onClick={() => { if (!n.lida_em) markRead.mutate([n.id]); }}>
+                      <Button asChild size="sm" variant="ghost" onClick={() => markOne(n.id, n.lida)}>
                         <Link to={path}>Abrir</Link>
                       </Button>
                     </TableCell>
@@ -127,21 +127,21 @@ export default function DpNotificacoes() {
         {/* Mobile: lista de cards */}
         <div className="md:hidden space-y-3">
           {filtered.map((n) => {
-            const path = REF_TO_PATH[n.ref_table] ?? "/dp/notificacoes";
+            const path = notificacaoPathGestor(n.ref_table);
             return (
-              <div key={n.id} className={"rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform " + (n.lida_em ? "opacity-70" : "")}>
+              <div key={n.id} className={"rounded-2xl border border-border bg-card p-4 space-y-2 active:scale-[0.98] transition-transform " + (n.lida ? "opacity-70" : "")}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">{n.titulo}</div>
                     {n.descricao && <div className="text-xs text-muted-foreground">{n.descricao}</div>}
                   </div>
-                  {n.lida_em ? <Badge variant="outline" className="text-[10px]">Lida</Badge> : <Badge className="text-[10px]">Nova</Badge>}
+                  {n.lida ? <Badge variant="outline" className="text-[10px]">Lida</Badge> : <Badge className="text-[10px]">Nova</Badge>}
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                  <Badge variant="outline" className="text-[10px]">{n.ref_table}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{notificacaoOrigemLabel(n.ref_table)}</Badge>
                   <span>{format(new Date(n.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
                 </div>
-                <Button asChild size="sm" variant="outline" className="w-full min-h-11" onClick={() => { if (!n.lida_em) markRead.mutate([n.id]); }}>
+                <Button asChild size="sm" variant="outline" className="w-full min-h-11" onClick={() => markOne(n.id, n.lida)}>
                   <Link to={path}>Abrir</Link>
                 </Button>
               </div>
