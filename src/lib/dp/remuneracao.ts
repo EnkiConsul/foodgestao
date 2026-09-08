@@ -21,13 +21,34 @@ export const FORMA_PAGAMENTO_LABEL: Record<FormaPagamento, string> = {
   mensalista: "Mensalista (salário fixo)",
   horista: "Horista (por hora trabalhada)",
   diarista: "Diarista (por dia trabalhado)",
+  semanal: "Semanal (valor fixo por semana)",
+  por_turno: "Por turno (valor por turno trabalhado)",
+  servico_acordo: "Por serviço/acordo (valor fechado por serviço)",
 };
 
 export const FORMA_PAGAMENTO_OPTIONS: { value: FormaPagamento; label: string }[] = [
   { value: "mensalista", label: FORMA_PAGAMENTO_LABEL.mensalista },
   { value: "horista", label: FORMA_PAGAMENTO_LABEL.horista },
   { value: "diarista", label: FORMA_PAGAMENTO_LABEL.diarista },
+  { value: "semanal", label: FORMA_PAGAMENTO_LABEL.semanal },
+  { value: "por_turno", label: FORMA_PAGAMENTO_LABEL.por_turno },
+  { value: "servico_acordo", label: FORMA_PAGAMENTO_LABEL.servico_acordo },
 ];
+
+/**
+ * Formas de acerto avulso: o valor informado é apenas o acordo registrado
+ * (por semana, por turno ou por serviço), sem cálculo automático de hora/dia.
+ */
+export const FORMAS_ACORDO_REGISTRADO: readonly FormaPagamento[] = [
+  "semanal",
+  "por_turno",
+  "servico_acordo",
+];
+
+/** A forma de pagamento registra apenas um acordo (sem cálculo automático)? */
+export function formaEhAcordoRegistrado(forma?: FormaPagamento | null): boolean {
+  return !!forma && FORMAS_ACORDO_REGISTRADO.includes(forma);
+}
 
 /** Dias úteis considerados no cálculo padrão do vale-transporte. */
 export const DIAS_UTEIS_MES = 22;
@@ -107,6 +128,10 @@ export function valorHoraEfetivo(
   const forma = r.forma_pagamento ?? "mensalista";
   const carga = cargaSemanalHoras && cargaSemanalHoras > 0 ? cargaSemanalHoras : 44;
 
+  // Acerto avulso (semanal, por turno, por serviço/acordo) é apenas o acordo
+  // registrado — não há conversão automática para valor-hora.
+  if (formaEhAcordoRegistrado(forma)) return undefined;
+
   if (forma === "horista") {
     const vh = num(r.valor_hora);
     return vh > 0 ? vh : undefined;
@@ -152,9 +177,9 @@ export function remuneracaoPendente(r: RemuneracaoColaborador): string | null {
     return num(r.valor_hora) > 0 ? null : "Valor da hora não informado";
   }
   if (salarioBaseEfetivo(r)) return null;
-  return forma === "diarista"
-    ? "Valor do dia não informado"
-    : "Salário base não informado (colaborador e cargo)";
+  if (forma === "diarista") return "Valor do dia não informado";
+  if (formaEhAcordoRegistrado(forma)) return "Valor do acordo não informado";
+  return "Salário base não informado (colaborador e cargo)";
 }
 
 // ------------------------------------------------------------------

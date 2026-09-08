@@ -77,7 +77,13 @@ export interface ContratoPolicy {
 }
 
 /** Formas de pagamento do banco, repetidas aqui para evitar ciclo de import. */
-export type FormaPagamentoRegime = "mensalista" | "horista" | "diarista";
+export type FormaPagamentoRegime =
+  | "mensalista"
+  | "horista"
+  | "diarista"
+  | "semanal"
+  | "por_turno"
+  | "servico_acordo";
 
 const CLT_LIKE: ContratoPolicy = {
   regime: "clt",
@@ -153,9 +159,11 @@ const FREELANCER: ContratoPolicy = {
   permiteAdiantamento: false,
   adiantamentoHint:
     "Freelancer é pago por acerto avulso, fora da remuneração CLT — não há adiantamento salarial.",
-  // Freelancer: remuneração acordada com formas flexíveis — por dia (turno/serviço),
-  // por hora ou valor fixo mensal. Sempre fora das obrigações CLT.
-  formasPagamento: ["diarista", "horista", "mensalista"],
+  // Freelancer: remuneração acordada com formas flexíveis — por dia, por hora,
+  // por turno, por serviço/acordo, por semana ou valor fixo mensal. Por turno e
+  // por serviço registram apenas o acordo, sem cálculo automático. Sempre fora
+  // das obrigações CLT.
+  formasPagamento: ["diarista", "horista", "por_turno", "servico_acordo", "semanal", "mensalista"],
   entraEmFolha: false,
   exigeCienciaLegal: true,
   cienciaLegalMensagem:
