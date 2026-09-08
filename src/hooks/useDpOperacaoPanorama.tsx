@@ -6,6 +6,7 @@ import type { ConfigTrabalho, DiaConfig, TurnoResolvido } from "@/lib/dp/config-
 import { normalizarDias } from "@/lib/dp/config-trabalho";
 import {
   avaliarDia,
+  baselineFeriado,
   baselinePorDow,
   contarDia,
   diasDaCompetencia,
