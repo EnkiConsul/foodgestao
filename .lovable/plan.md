@@ -19,6 +19,9 @@
 5. **Remover o selo "Folha: Sim/Não" dos cards**
    Os cards de colaborador exibem hoje o selo "Folha: Sim" ou "Folha: Não". Como folha e ponto não são gerados pelo sistema (vêm da contabilidade), o selo sai dos cards.
 
+6. **Lixeira fora do menu de 3 pontos**
+   O atalho "Lixeira" hoje fica dentro do menu de ações ao lado do botão "Novo colaborador". Ele passa a ser um botão à parte, com ícone de lixeira sem tampa (para não parecer o mesmo botão de "Excluir" de um cadastro).
+
 ## Detalhes técnicos
 
 - Arquivo: `src/pages/dp/DpColaboradores.tsx` (apenas apresentação; sem mudanças de banco).
@@ -27,3 +30,4 @@
 - Em `todosVisiveis`, ordenar por grupo (`ativo ? 0 : 1`) e depois `nome.localeCompare(..., "pt-BR")`.
 - Extrair o trecho de selos Ativo/Desligado (com `fmtDate(c.data_desligamento)`) em um helper local e usá-lo nos cards/linhas da aba Todos e nas listas de apoio.
 - Reutilizar o mesmo array de ações da aba Colaboradores para as linhas/cards de colaborador na aba Todos.
+- No `DpPageHeader`, mover o item "Lixeira" do menu de ações para um botão secundário ao lado do botão principal, usando um ícone de lixeira sem tampa (ex.: `Trash` do `lucide-react` ou outro que represente a lixeira em vez de exclusão imediata).
