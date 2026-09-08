@@ -931,8 +931,8 @@ export default function DpColaboradores() {
                   </TableHeader>
                   <TableBody>
                     {todosVisiveis.map((item) => {
-                      if (item.kind === "colaborador") {
-                        const c = item.colaborador;
+                      if (item.tipo === "colaborador") {
+                        const c = item.item;
                         return (
                           <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setViewing(c)}>
                             <TableCell className="align-top font-medium">{c.nome}</TableCell>
@@ -949,7 +949,7 @@ export default function DpColaboradores() {
                           </TableRow>
                         );
                       }
-                      const p = item.pessoa;
+                      const p = item.item;
                       return (
                         <TableRow key={p.id} className="hover:bg-muted/50 transition-colors">
                           <TableCell className="align-top font-medium">{p.nome}</TableCell>
