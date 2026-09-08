@@ -24,7 +24,10 @@ import {
   useDpColaboradores, useDeleteDpColaborador, useReintegrarDpColaborador,
   type DpColaborador,
 } from "@/hooks/useDpColaboradores";
+import { useDpPessoasApoio, type PessoaApoio } from "@/hooks/useDpPessoasApoio";
+import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
+import { useDpSetores } from "@/hooks/useDpSetores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 import { Link } from "react-router-dom";
@@ -90,6 +93,7 @@ export default function DpColaboradores() {
   const list = useDpColaboradores();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
+  const { todos: todosSetores } = useDpSetores();
   const del = useDeleteDpColaborador();
   const reintegrar = useReintegrarDpColaborador();
 
@@ -105,6 +109,7 @@ export default function DpColaboradores() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewing, setViewing] = useState<DpColaborador | null>(null);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
+  const [transformando, setTransformando] = useState<PessoaApoio | null>(null);
   /** Aba aberta ao abrir o cadastro pelas ações da lista. */
   const [abaInicial, setAbaInicial] = useState<"dados" | "acesso" | "desligamento">("dados");
   const abrirCadastro = (c: DpColaborador | null, aba: "dados" | "acesso" | "desligamento" = "dados") => {
@@ -113,6 +118,61 @@ export default function DpColaboradores() {
     setDialogOpen(true);
   };
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
+
+  type Origem = "todos" | "colaboradores" | "folguistas" | "teste";
+  const ORIGENS: { key: Origem; label: string }[] = [
+    { key: "todos", label: "Todos" },
+    { key: "colaboradores", label: "Colaboradores" },
+    { key: "folguistas", label: "Folguistas" },
+    { key: "teste", label: "Em Teste" },
+  ];
+  const { prefs, save: savePrefs } = useDpUserPrefs();
+  const origem = (prefs?.extras?.colaboradores_origem as Origem) ?? "colaboradores";
+  const setOrigem = (o: Origem) => {
+    savePrefs({ extras: { ...(prefs?.extras ?? {}), colaboradores_origem: o } });
+  };
+
+  const pessoasApoio = useDpPessoasApoio();
+  const pessoasApoioVisiveis = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (pessoasApoio.data ?? [])
+      .filter((p) => {
+        if (origem === "folguistas" && p.tipo !== "folguista") return false;
+        if (origem === "teste" && p.tipo !== "teste") return false;
+        if (unidadeFilter !== "all" && p.unidade_id !== unidadeFilter) return false;
+        if (cargoFilter !== "all" && p.cargo_id !== cargoFilter) return false;
+        if (q && !p.nome.toLowerCase().includes(q) && !(p.telefone ?? "").includes(q)) return false;
+        return true;
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [pessoasApoio.data, search, unidadeFilter, cargoFilter, origem]);
+
+  const todosVisiveis = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const colabs = (list.data ?? [])
+      .filter((c) => {
+        if (q) {
+          const hit =
+            c.nome.toLowerCase().includes(q) ||
+            (c.cpf ?? "").toLowerCase().includes(q) ||
+            (c.matricula ?? "").toLowerCase().includes(q);
+          if (!hit) return false;
+        }
+        if (unidadeFilter !== "all" && c.unidade_id !== unidadeFilter) return false;
+        if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
+        return true;
+      })
+      .map((c) => ({ tipo: "colaborador" as const, item: c, nome: c.nome }));
+    const apoio = (pessoasApoio.data ?? [])
+      .filter((p) => {
+        if (q && !p.nome.toLowerCase().includes(q) && !(p.telefone ?? "").includes(q)) return false;
+        if (unidadeFilter !== "all" && p.unidade_id !== unidadeFilter) return false;
+        if (cargoFilter !== "all" && p.cargo_id !== cargoFilter) return false;
+        return true;
+      })
+      .map((p) => ({ tipo: p.tipo === "folguista" ? ("folguista" as const) : ("teste" as const), item: p, nome: p.nome }));
+    return [...colabs, ...apoio].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [list.data, pessoasApoio.data, search, unidadeFilter, cargoFilter]);
 
   /**
    * Atalho de outras telas (ex.: Rotina): /dp/colaboradores?editar=<id> abre o
@@ -158,6 +218,13 @@ export default function DpColaboradores() {
       exigirSetor: mostrarSetor,
       salarioCargo: salarioCargoDe(c.cargo_id, c.unidade_id),
     });
+
+  const nomeSetorApoio = (id: string | null) =>
+    id ? (todosSetores.find((s) => s.id === id)?.nome ?? null) : null;
+  const nomeCargo = (id: string | null) =>
+    (cargos.data ?? []).find((c) => c.id === id)?.nome ?? "—";
+  const nomeUnidade = (id: string | null) =>
+    (unidades.data ?? []).find((u) => u.id === id)?.nome ?? "—";
 
   const counts = useMemo(() => {
     const all = list.data ?? [];
@@ -433,16 +500,26 @@ export default function DpColaboradores() {
         ]}
       />
 
-      <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+      <Tabs value={origem} onValueChange={(v) => setOrigem(v as Origem)}>
         <DpTabsBar>
-          <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
-          <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
-          <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
-          {counts.incompletos > 0 && (
-            <TabsTrigger value="incompletos">Incompletos ({counts.incompletos})</TabsTrigger>
-          )}
+          {ORIGENS.map((o) => (
+            <TabsTrigger key={o.key} value={o.key}>{o.label}</TabsTrigger>
+          ))}
         </DpTabsBar>
       </Tabs>
+
+      {origem === "colaboradores" && (
+        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+          <DpTabsBar>
+            <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
+            <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
+            <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
+            {counts.incompletos > 0 && (
+              <TabsTrigger value="incompletos">Incompletos ({counts.incompletos})</TabsTrigger>
+            )}
+          </DpTabsBar>
+        </Tabs>
+      )}
 
       <DpFilters
         search={{ value: search, onChange: setSearch, placeholder: "Nome ou CPF..." }}
@@ -529,210 +606,447 @@ export default function DpColaboradores() {
       </DpFilters>
 
 
-      <DpContentCard contentClassName="hidden md:block">
-          {list.isLoading ? (
-            <TableSkeleton
-              columns={6}
-              headers={["Colaborador", "Cargo", "Unidade", "Status", "Perfil", ""]}
-            />
-          ) : (
-            <div className="w-full overflow-x-auto">
-            <Table className="table-fixed" style={{ width: "100%", minWidth: larguraTotal }}>
-              <TableHeader>
-                <TableRow>
-                  {colunas.map((k) => (
-                    <DpTableColumnHeader
-                      key={k}
-                      label={COLS[k].label}
-                      width={colWidths[k]}
-                      center={COLS[k].center}
-                      sortAtivo={sortKey === COLS[k].sortKey}
-                      sortDir={sortDir}
-                      onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
-                      ativos={colFilters[k]}
-                      getOpcoes={() => opcoesColuna(k)}
-                      onToggle={(v) => toggleColValue(k, v)}
-                      onSelecionarTodos={() => setColFilters((p) => ({ ...p, [k]: opcoesColuna(k) }))}
-                      onLimpar={() => setColFilters((p) => ({ ...p, [k]: [] }))}
-                      arrastando={dragCol === k}
-                      onDragStart={() => setDragCol(k)}
-                      onDrop={() => soltarSobre(k)}
-                      onDragEnd={() => setDragCol(null)}
-                      onResize={(largura) => resize(k, largura)}
-                      onResetWidth={() => resetWidth(k)}
-                    />
-                  ))}
-                  <TableHead
-                    className="uppercase text-xs tracking-wider text-center"
-                    style={{ width: COLAB_ACOES_WIDTH }}
-                  >
-                    Ações
-                  </TableHead>
-
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visiveis.map((c) => (
-                  <TableRow
-                    key={c.id}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => setViewing(c)}
-                  >
-                    {colunas.map((k) => (
-                      <TableCell
-                        key={k}
-                        className="align-top overflow-hidden"
-                        style={{ width: colWidths[k], maxWidth: colWidths[k] }}
+      {origem === "colaboradores" && (
+        <>
+          <DpContentCard contentClassName="hidden md:block">
+              {list.isLoading ? (
+                <TableSkeleton
+                  columns={6}
+                  headers={["Colaborador", "Cargo", "Unidade", "Status", "Perfil", ""]}
+                />
+              ) : (
+                <div className="w-full overflow-x-auto">
+                <Table className="table-fixed" style={{ width: "100%", minWidth: larguraTotal }}>
+                  <TableHeader>
+                    <TableRow>
+                      {colunas.map((k) => (
+                        <DpTableColumnHeader
+                          key={k}
+                          label={COLS[k].label}
+                          width={colWidths[k]}
+                          center={COLS[k].center}
+                          sortAtivo={sortKey === COLS[k].sortKey}
+                          sortDir={sortDir}
+                          onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
+                          ativos={colFilters[k]}
+                          getOpcoes={() => opcoesColuna(k)}
+                          onToggle={(v) => toggleColValue(k, v)}
+                          onSelecionarTodos={() => setColFilters((p) => ({ ...p, [k]: opcoesColuna(k) }))}
+                          onLimpar={() => setColFilters((p) => ({ ...p, [k]: [] }))}
+                          arrastando={dragCol === k}
+                          onDragStart={() => setDragCol(k)}
+                          onDrop={() => soltarSobre(k)}
+                          onDragEnd={() => setDragCol(null)}
+                          onResize={(largura) => resize(k, largura)}
+                          onResetWidth={() => resetWidth(k)}
+                        />
+                      ))}
+                      <TableHead
+                        className="uppercase text-xs tracking-wider text-center"
+                        style={{ width: COLAB_ACOES_WIDTH }}
                       >
-                        {COLS[k].render(c)}
-                      </TableCell>
-                    ))}
-                    <TableCell className="align-top" style={{ width: COLAB_ACOES_WIDTH }} onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-0.5 justify-center">
+                        Ações
+                      </TableHead>
 
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); abrirCadastro(c); }} title="Editar">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Mais ações">
-                              <MoreHorizontal className="h-4 w-4" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {visiveis.map((c) => (
+                      <TableRow
+                        key={c.id}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => setViewing(c)}
+                      >
+                        {colunas.map((k) => (
+                          <TableCell
+                            key={k}
+                            className="align-top overflow-hidden"
+                            style={{ width: colWidths[k], maxWidth: colWidths[k] }}
+                          >
+                            {COLS[k].render(c)}
+                          </TableCell>
+                        ))}
+                        <TableCell className="align-top" style={{ width: COLAB_ACOES_WIDTH }} onClick={(e) => e.stopPropagation()}>
+                          <div className="flex gap-0.5 justify-center">
+
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); abrirCadastro(c); }} title="Editar">
+                              <Pencil className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-56">
-                            <DropdownMenuItem onSelect={() => abrirCadastro(c, "acesso")}>
-                              {c.user_id ? <KeyRound className="h-4 w-4 mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
-                              {c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => abrirCadastro(c, "desligamento")}>
-                              {c.ativo ? (
-                                <><UserMinus className="h-4 w-4 mr-2 text-destructive" /> Registrar desligamento</>
-                              ) : (
-                                <><RotateCcw className="h-4 w-4 mr-2" /> Desligamento / reintegração</>
-                              )}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setToDelete(c)}>
-                              <Trash2 className="h-4 w-4 mr-2 text-destructive" /> Remover
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {visiveis.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={colunas.length + 1} className="text-center text-muted-foreground py-8">
-                      Nenhum colaborador encontrado.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            </div>
-          )}
-      </DpContentCard>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button size="icon" variant="ghost" className="h-8 w-8" title="Mais ações">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuItem onSelect={() => abrirCadastro(c, "acesso")}>
+                                  {c.user_id ? <KeyRound className="h-4 w-4 mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
+                                  {c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => abrirCadastro(c, "desligamento")}>
+                                  {c.ativo ? (
+                                    <><UserMinus className="h-4 w-4 mr-2 text-destructive" /> Registrar desligamento</>
+                                  ) : (
+                                    <><RotateCcw className="h-4 w-4 mr-2" /> Desligamento / reintegração</>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => setToDelete(c)}>
+                                  <Trash2 className="h-4 w-4 mr-2 text-destructive" /> Remover
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {visiveis.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={colunas.length + 1} className="text-center text-muted-foreground py-8">
+                          Nenhum colaborador encontrado.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+                </div>
+              )}
+          </DpContentCard>
 
 
 
-      {/* Mobile: lista de cards */}
-      <div className="md:hidden space-y-3">
-        {list.isLoading && (
-          <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-            Carregando…
+          {/* Mobile: lista de cards */}
+          <div className="md:hidden space-y-3">
+            {list.isLoading && (
+              <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+                Carregando…
+              </div>
+            )}
+            {!list.isLoading && filtered.length === 0 && (
+              <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+                Nenhum colaborador encontrado.
+              </div>
+            )}
+            {!list.isLoading && filtered.map((c) => {
+              const perfil = (c as any).perfil_acesso as string | null;
+              const folha = (c as any).possui_folha_ponto as boolean | null;
+              return (
+                <DpListCard
+                  key={c.id}
+                  title={c.nome}
+                  subtitle={<span className="font-mono">{c.cpf ?? "—"}</span>}
+                  meta={
+                    <>
+                      {c.cargo_nome ?? c.cargo ?? "—"}
+                      {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
+                    </>
+                  }
+                  badges={
+                    <>
+                      {c.ativo ? (
+                        <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+                          Ativo
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/30">
+                          Desligado {fmtDate(c.data_desligamento)}
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5 text-[11px]">
+                        {vinculoLabel(c as any)}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={
+                          "text-[11px] " + (perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30"
+                          : perfil === "gestor" ? "bg-primary/10 text-primary border-primary/30"
+                          : "")
+                        }
+                      >
+                        {PERFIL_LABEL[perfil ?? "colaborador"]}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={"text-[11px] " + (folha
+                          ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
+                          : "text-muted-foreground")}
+                      >
+                        Folha: {folha ? "Sim" : "Não"}
+                      </Badge>
+                      {c.ativo && faltantesDe(c).length > 0 && (
+                        <Badge
+                          variant="outline"
+                          className="text-[11px] border-amber-500/40 text-amber-600 dark:text-amber-400"
+                          title={`Falta: ${resumoFaltando(faltantesDe(c), 9)}`}
+                        >
+                          Cadastro incompleto ({faltantesDe(c).length})
+                        </Badge>
+                      )}
+                    </>
+                  }
+                  onOpen={() => setViewing(c)}
+                  actions={[
+                    { key: "editar", label: "Editar cadastro", icon: Pencil, onSelect: () => abrirCadastro(c) },
+                    {
+                      key: "acesso",
+                      label: c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal",
+                      icon: c.user_id ? KeyRound : UserPlus,
+                      onSelect: () => abrirCadastro(c, "acesso"),
+                    },
+                    {
+                      key: "desligamento",
+                      label: c.ativo ? "Registrar desligamento" : "Desligamento / reintegração",
+                      icon: c.ativo ? UserMinus : RotateCcw,
+                      destructive: c.ativo,
+                      onSelect: () => abrirCadastro(c, "desligamento"),
+                    },
+                    {
+                      key: "remover",
+                      label: "Remover cadastro",
+                      icon: Trash2,
+                      destructive: true,
+                      separatorBefore: true,
+                      onSelect: () => setToDelete(c),
+                    },
+                  ]}
+                />
+              );
+            })}
           </div>
-        )}
-        {!list.isLoading && filtered.length === 0 && (
-          <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-            Nenhum colaborador encontrado.
-          </div>
-        )}
-        {!list.isLoading && filtered.map((c) => {
-          const perfil = (c as any).perfil_acesso as string | null;
-          const folha = (c as any).possui_folha_ponto as boolean | null;
-          return (
-            <DpListCard
-              key={c.id}
-              title={c.nome}
-              subtitle={<span className="font-mono">{c.cpf ?? "—"}</span>}
-              meta={
-                <>
-                  {c.cargo_nome ?? c.cargo ?? "—"}
-                  {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
-                </>
-              }
-              badges={
-                <>
-                  {c.ativo ? (
-                    <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
-                      Ativo
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/30">
-                      Desligado {fmtDate(c.data_desligamento)}
-                    </Badge>
-                  )}
-                  <Badge variant="outline" className="uppercase border-primary/30 text-primary bg-primary/5 text-[11px]">
-                    {vinculoLabel(c as any)}
+        </>
+      )}
+
+      {(origem === "folguistas" || origem === "teste") && (
+        <>
+          <DpContentCard contentClassName="hidden md:block">
+            {pessoasApoio.isLoading ? (
+              <TableSkeleton columns={5} headers={["Nome", "CPF", "Cargo", "Unidade", "Setor", ""]} />
+            ) : (
+              <div className="w-full overflow-x-auto">
+                <Table className="table-fixed" style={{ width: "100%", minWidth: 720 }}>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="uppercase text-xs tracking-wider">Nome</TableHead>
+                      <TableHead className="uppercase text-xs tracking-wider">CPF</TableHead>
+                      <TableHead className="uppercase text-xs tracking-wider">Cargo</TableHead>
+                      <TableHead className="uppercase text-xs tracking-wider">Unidade</TableHead>
+                      <TableHead className="uppercase text-xs tracking-wider">Setor</TableHead>
+                      <TableHead className="uppercase text-xs tracking-wider text-center">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pessoasApoioVisiveis.map((p) => (
+                      <TableRow key={p.id} className="hover:bg-muted/50 transition-colors">
+                        <TableCell className="align-top font-medium">{p.nome}</TableCell>
+                        <TableCell className="align-top font-mono text-muted-foreground">{p.cpf ?? "—"}</TableCell>
+                        <TableCell className="align-top">{nomeCargo(p.cargo_id)}</TableCell>
+                        <TableCell className="align-top">{nomeUnidade(p.unidade_id)}</TableCell>
+                        <TableCell className="align-top">{nomeSetorApoio(p.setor_id) ?? "—"}</TableCell>
+                        <TableCell className="align-top">
+                          <div className="flex gap-0.5 justify-center">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              disabled={!!p.colaborador_id}
+                              title={p.colaborador_id ? "Já transformado em colaborador" : "Transformar em colaborador"}
+                              onClick={() => setTransformando(p)}
+                            >
+                              <UserPlus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {pessoasApoioVisiveis.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                          Nenhuma pessoa encontrada.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </DpContentCard>
+
+          <div className="md:hidden space-y-3">
+            {pessoasApoio.isLoading && (
+              <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+                Carregando…
+              </div>
+            )}
+            {!pessoasApoio.isLoading && pessoasApoioVisiveis.length === 0 && (
+              <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+                Nenhuma pessoa encontrada.
+              </div>
+            )}
+            {!pessoasApoio.isLoading && pessoasApoioVisiveis.map((p) => (
+              <DpListCard
+                key={p.id}
+                title={p.nome}
+                subtitle={<span className="font-mono">{p.cpf ?? "—"}</span>}
+                meta={
+                  <>
+                    {nomeCargo(p.cargo_id)}
+                    {p.unidade_id ? <span> • {nomeUnidade(p.unidade_id)}</span> : null}
+                  </>
+                }
+                badges={
+                  <Badge variant="outline" className="text-[11px] capitalize">
+                    {origem === "folguistas" ? "Folguista" : "Em Teste"}
                   </Badge>
-                  <Badge
-                    variant="outline"
-                    className={
-                      "text-[11px] " + (perfil === "admin" ? "bg-destructive/10 text-destructive border-destructive/30"
-                      : perfil === "gestor" ? "bg-primary/10 text-primary border-primary/30"
-                      : "")
+                }
+                actions={[
+                  {
+                    key: "transformar",
+                    label: "Transformar em colaborador",
+                    icon: UserPlus,
+                    disabled: !!p.colaborador_id,
+                    onSelect: () => setTransformando(p),
+                  },
+                ]}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {origem === "todos" && (
+        <>
+          <DpContentCard contentClassName="hidden md:block">
+            {list.isLoading || pessoasApoio.isLoading ? (
+              <TableSkeleton columns={5} headers={["Nome", "Origem", "Cargo/Unidade", "Status", ""]} />
+            ) : (
+              <div className="w-full overflow-x-auto">
+                <Table className="table-fixed" style={{ width: "100%", minWidth: 720 }}>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="uppercase text-xs tracking-wider">Nome</TableHead>
+                      <TableHead className="uppercase text-xs tracking-wider">Origem</TableHead>
+                      <TableHead className="uppercase text-xs tracking-wider">Cargo / Unidade</TableHead>
+                      <TableHead className="uppercase text-xs tracking-wider">Status</TableHead>
+                      <TableHead className="uppercase text-xs tracking-wider text-center">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {todosVisiveis.map((item) => {
+                      if (item.tipo === "colaborador") {
+                        const c = item.item;
+                        return (
+                          <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setViewing(c)}>
+                            <TableCell className="align-top font-medium">{c.nome}</TableCell>
+                            <TableCell className="align-top"><Badge variant="outline" className="text-[11px]">Colaborador</Badge></TableCell>
+                            <TableCell className="align-top">{c.cargo_nome ?? c.cargo ?? "—"}{c.unidade_nome ? <span className="text-muted-foreground"> • {c.unidade_nome}</span> : null}</TableCell>
+                            <TableCell className="align-top">{c.ativo ? "Ativo" : "Desligado"}</TableCell>
+                            <TableCell className="align-top">
+                              <div className="flex gap-0.5 justify-center">
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); abrirCadastro(c); }} title="Editar">
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+                      const p = item.item;
+                      return (
+                        <TableRow key={p.id} className="hover:bg-muted/50 transition-colors">
+                          <TableCell className="align-top font-medium">{p.nome}</TableCell>
+                          <TableCell className="align-top"><Badge variant="outline" className="text-[11px] capitalize">{p.tipo === "folguista" ? "Folguista" : "Em Teste"}</Badge></TableCell>
+                          <TableCell className="align-top">{nomeCargo(p.cargo_id)}{p.unidade_id ? <span className="text-muted-foreground"> • {nomeUnidade(p.unidade_id)}</span> : null}</TableCell>
+                          <TableCell className="align-top">{p.ativo ? "Ativo" : "Inativo"}</TableCell>
+                          <TableCell className="align-top">
+                            <div className="flex gap-0.5 justify-center">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                disabled={!!p.colaborador_id}
+                                title={p.colaborador_id ? "Já transformado em colaborador" : "Transformar em colaborador"}
+                                onClick={() => setTransformando(p)}
+                              >
+                                <UserPlus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {todosVisiveis.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          Nenhuma pessoa encontrada.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </DpContentCard>
+
+          <div className="md:hidden space-y-3">
+            {(list.isLoading || pessoasApoio.isLoading) && (
+              <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+                Carregando…
+              </div>
+            )}
+            {!list.isLoading && !pessoasApoio.isLoading && todosVisiveis.length === 0 && (
+              <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+                Nenhuma pessoa encontrada.
+              </div>
+            )}
+            {!list.isLoading && !pessoasApoio.isLoading && todosVisiveis.map((item) => {
+              if (item.tipo === "colaborador") {
+                const c = item.item;
+                return (
+                  <DpListCard
+                    key={c.id}
+                    title={c.nome}
+                    subtitle={<span className="font-mono">{c.cpf ?? "—"}</span>}
+                    meta={
+                      <>
+                        {c.cargo_nome ?? c.cargo ?? "—"}
+                        {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
+                      </>
                     }
-                  >
-                    {PERFIL_LABEL[perfil ?? "colaborador"]}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={"text-[11px] " + (folha
-                      ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
-                      : "text-muted-foreground")}
-                  >
-                    Folha: {folha ? "Sim" : "Não"}
-                  </Badge>
-                  {c.ativo && faltantesDe(c).length > 0 && (
-                    <Badge
-                      variant="outline"
-                      className="text-[11px] border-amber-500/40 text-amber-600 dark:text-amber-400"
-                      title={`Falta: ${resumoFaltando(faltantesDe(c), 9)}`}
-                    >
-                      Cadastro incompleto ({faltantesDe(c).length})
-                    </Badge>
-                  )}
-                </>
+                    badges={<Badge variant="outline" className="text-[11px]">Colaborador</Badge>}
+                    onOpen={() => setViewing(c)}
+                    actions={[
+                      { key: "editar", label: "Editar cadastro", icon: Pencil, onSelect: () => abrirCadastro(c) },
+                    ]}
+                  />
+                );
               }
-              onOpen={() => setViewing(c)}
-              actions={[
-                { key: "editar", label: "Editar cadastro", icon: Pencil, onSelect: () => abrirCadastro(c) },
-                {
-                  key: "acesso",
-                  label: c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal",
-                  icon: c.user_id ? KeyRound : UserPlus,
-                  onSelect: () => abrirCadastro(c, "acesso"),
-                },
-                {
-                  key: "desligamento",
-                  label: c.ativo ? "Registrar desligamento" : "Desligamento / reintegração",
-                  icon: c.ativo ? UserMinus : RotateCcw,
-                  destructive: c.ativo,
-                  onSelect: () => abrirCadastro(c, "desligamento"),
-                },
-                {
-                  key: "remover",
-                  label: "Remover cadastro",
-                  icon: Trash2,
-                  destructive: true,
-                  separatorBefore: true,
-                  onSelect: () => setToDelete(c),
-                },
-              ]}
-            />
-          );
-        })}
-      </div>
+              const p = item.item;
+              return (
+                <DpListCard
+                  key={p.id}
+                  title={p.nome}
+                  subtitle={<span className="font-mono">{p.cpf ?? "—"}</span>}
+                  meta={
+                    <>
+                      {nomeCargo(p.cargo_id)}
+                      {p.unidade_id ? <span> • {nomeUnidade(p.unidade_id)}</span> : null}
+                    </>
+                  }
+                  badges={<Badge variant="outline" className="text-[11px] capitalize">{p.tipo === "folguista" ? "Folguista" : "Em Teste"}</Badge>}
+                  actions={[
+                    {
+                      key: "transformar",
+                      label: "Transformar em colaborador",
+                      icon: UserPlus,
+                      disabled: !!p.colaborador_id,
+                      onSelect: () => setTransformando(p),
+                    },
+                  ]}
+                />
+              );
+            })}
+          </div>
+        </>
+      )}
 
 
       {viewing && (
@@ -755,6 +1069,16 @@ export default function DpColaboradores() {
         onOpenChange={setDialogOpen}
         colaborador={editing}
         abaInicial={abaInicial}
+      />
+
+      <ColaboradorFormDialog
+        open={!!transformando}
+        onOpenChange={(o) => {
+          if (!o) setTransformando(null);
+        }}
+        colaborador={null}
+        pessoaApoioInicial={transformando}
+        abaInicial="dados"
       />
 
 

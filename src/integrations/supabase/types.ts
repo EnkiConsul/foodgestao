@@ -4070,6 +4070,121 @@ export type Database = {
           },
         ]
       }
+      dp_colaborador_historico_condicoes: {
+        Row: {
+          base_dias_mes: number | null
+          base_horas_mes: number | null
+          cargo_id: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          forma_pagamento:
+            | Database["public"]["Enums"]["dp_forma_pagamento"]
+            | null
+          id: string
+          justificativa: string | null
+          observacoes: string | null
+          regime: Database["public"]["Enums"]["dp_regime_trabalho"] | null
+          salario_base: number | null
+          setor_id: string | null
+          unidade_id: string | null
+          updated_at: string
+          usuario_id: string | null
+          valor_hora: number | null
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          base_dias_mes?: number | null
+          base_horas_mes?: number | null
+          cargo_id?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          forma_pagamento?:
+            | Database["public"]["Enums"]["dp_forma_pagamento"]
+            | null
+          id?: string
+          justificativa?: string | null
+          observacoes?: string | null
+          regime?: Database["public"]["Enums"]["dp_regime_trabalho"] | null
+          salario_base?: number | null
+          setor_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          usuario_id?: string | null
+          valor_hora?: number | null
+          vigencia_fim?: string | null
+          vigencia_inicio: string
+        }
+        Update: {
+          base_dias_mes?: number | null
+          base_horas_mes?: number | null
+          cargo_id?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          forma_pagamento?:
+            | Database["public"]["Enums"]["dp_forma_pagamento"]
+            | null
+          id?: string
+          justificativa?: string | null
+          observacoes?: string | null
+          regime?: Database["public"]["Enums"]["dp_regime_trabalho"] | null
+          salario_base?: number | null
+          setor_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          usuario_id?: string | null
+          valor_hora?: number | null
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaborador_historico_condicoes_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_historico_condicoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_historico_condicoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_historico_condicoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_historico_condicoes_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "dp_setores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_historico_condicoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_colaborador_jornadas: {
         Row: {
           colaborador_id: string
@@ -13570,6 +13685,24 @@ export type Database = {
           p_unidade: string
         }
         Returns: Json
+      }
+      dp_colaborador_aplicar_condicao: {
+        Args: {
+          p_base_dias_mes: number
+          p_base_horas_mes: number
+          p_cargo_id: string
+          p_colaborador_id: string
+          p_forma_pagamento: string
+          p_justificativa: string
+          p_observacoes: string
+          p_regime: string
+          p_salario_base: number
+          p_setor_id: string
+          p_unidade_id: string
+          p_valor_hora: number
+          p_vigencia_inicio: string
+        }
+        Returns: string
       }
       dp_colaborador_ativo_of: { Args: { _user_id: string }; Returns: string }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }

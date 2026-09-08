@@ -45,13 +45,13 @@ export interface ContratoPolicy {
   jornadaLabel: string;
   /** Texto explicativo exibido quando a jornada é apenas disponibilidade. */
   jornadaHint: string | null;
-  /** Admite adiantamento salarial quinzenal (salário mensal fixo em folha). */
+  /** Admite adiantamento salarial quinzenal (salário mensal fixo). */
   permiteAdiantamento: boolean;
   /** Motivo exibido quando o adiantamento não se aplica ao contrato. */
   adiantamentoHint: string | null;
   /** Formas de pagamento admitidas pelo contrato (ordem de exibição). */
   formasPagamento: FormaPagamentoRegime[];
-  /** O contrato gera folha de pagamento CLT (encargos, holerite). */
+  /** O contrato é remunerado como CLT (encargos, holerite). */
   entraEmFolha: boolean;
   /** Exige ciência formal do risco jurídico no cadastro (sem registro em carteira). */
   exigeCienciaLegal: boolean;
@@ -152,12 +152,12 @@ const FREELANCER: ContratoPolicy = {
     "Freelancer não tem jornada contratual. O que for cadastrado aqui serve apenas como disponibilidade para escala e ponto.",
   permiteAdiantamento: false,
   adiantamentoHint:
-    "Freelancer é pago por acerto avulso, fora da folha CLT — não há adiantamento salarial.",
+    "Freelancer é pago por acerto avulso, fora da remuneração CLT — não há adiantamento salarial.",
   formasPagamento: ["diarista", "horista"],
   entraEmFolha: false,
   exigeCienciaLegal: true,
   cienciaLegalMensagem:
-    "Freelancer sem registro em carteira não possui vínculo formalizado. Havendo habitualidade, subordinação, pessoalidade e onerosidade, a Justiça do Trabalho pode reconhecer vínculo empregatício (arts. 2º e 3º da CLT), com recolhimento retroativo de verbas e encargos. O pagamento fica fora da folha CLT, como acerto avulso.",
+    "Freelancer sem registro em carteira não possui vínculo formalizado. Havendo habitualidade, subordinação, pessoalidade e onerosidade, a Justiça do Trabalho pode reconhecer vínculo empregatício (arts. 2º e 3º da CLT), com recolhimento retroativo de verbas e encargos. O pagamento fica fora da remuneração CLT, como acerto avulso.",
   exigeJornada: true,
   isentoRegrasFolga: false,
   feriasComPeriodoAquisitivo: false,
@@ -179,7 +179,7 @@ const PJ_LIKE: ContratoPolicy = {
   jornadaLabel: "Jornada",
   jornadaHint: null,
   permiteAdiantamento: false,
-  adiantamentoHint: "Contratos PJ/MEI não entram em folha, portanto não têm adiantamento salarial.",
+  adiantamentoHint: "Contratos PJ/MEI não têm adiantamento salarial.",
   formasPagamento: ["mensalista", "diarista", "horista"],
   entraEmFolha: false,
   exigeCienciaLegal: false,
@@ -195,7 +195,7 @@ const PJ_LIKE: ContratoPolicy = {
  *
  * Não tem jornada contratual nem DSR, marca folga/férias livremente no
  * calendário (é apenas registro de ausência para a operação) e é remunerado por
- * pró-labore ou só por distribuição de lucros — nunca por folha CLT.
+ * pró-labore ou só por distribuição de lucros.
  */
 const SOCIO: ContratoPolicy = {
   ...PJ_LIKE,
@@ -210,7 +210,7 @@ const SOCIO: ContratoPolicy = {
   jornadaHint:
     "Sócio não tem jornada contratual. Se preencher, o horário serve apenas como referência para a operação.",
   permiteAdiantamento: false,
-  adiantamentoHint: "Sócio é remunerado por pró-labore/lucros, fora da folha — não há adiantamento salarial.",
+  adiantamentoHint: "Sócio é remunerado por pró-labore/lucros — não há adiantamento salarial.",
   entraEmFolha: false,
   exigeJornada: false,
   isentoRegrasFolga: true,

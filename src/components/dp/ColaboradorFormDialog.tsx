@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useUpsertDpColaborador, useDpColaboradores, type DpColaborador } from "@/hooks/useDpColaboradores";
+import { type PessoaApoio } from "@/hooks/useDpPessoasApoio";
 import { divergenciasIsonomia, DIAS_BASE_PADRAO, type DivergenciaIsonomia } from "@/lib/dp/beneficios-regras";
 import { snapshotColegaBeneficios } from "@/lib/dp/isonomia-snapshot";
 import { itensIsonomiaDoCadastro } from "@/hooks/useDpIsonomiaBeneficios";
@@ -40,6 +41,7 @@ import {
 import { maskCpf, isValidCpf } from "@/lib/cpf";
 import { MOTIVO_DESLIGAMENTO_OPTIONS, ELEGIBILIDADE_OPTIONS } from "@/lib/dp/desligamento";
 import type { Database } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
 import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
@@ -173,6 +175,8 @@ interface Props {
   colaborador?: DpColaborador | null;
   /** Aba aberta ao exibir o diálogo (ex.: acesso ao portal ou desligamento). */
   abaInicial?: AbaVisivel;
+  /** Folguista ou pessoa em teste que está sendo promovida a colaborador. */
+  pessoaApoioInicial?: PessoaApoio | null;
 }
 
 const NONE_DESLIG = "__none__";
@@ -221,7 +225,13 @@ const abaSeguinte = (aba: AbaVisivel): AbaCadastro | null =>
 
 
 
-export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInicial = "dados" }: Props) {
+export function ColaboradorFormDialog({
+  open,
+  onOpenChange,
+  colaborador,
+  abaInicial = "dados",
+  pessoaApoioInicial,
+}: Props) {
   const upsert = useUpsertDpColaborador();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
@@ -499,6 +509,44 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
     setPadraoAplicado(nivelPadrao(padrao));
   }, [open, form.unidade_id, form.cargo_id, padroesBeneficios.data]);
 
+
+  /**
+   * Pré-preenche o cadastro quando estamos promovendo uma pessoa de apoio
+   * (folguista ou em teste) a colaborador. A lógica normal de edição sobrescreve
+   * estes valores quando um colaborador real é passado.
+   */
+  useEffect(() => {
+    if (!open || colaborador?.id || !pessoaApoioInicial) return;
+    const p = pessoaApoioInicial;
+    setForm({
+      ...DOCUMENTOS_PESSOAIS_BLANK,
+      nome: p.nome ?? "",
+      cpf: p.cpf ? maskCpf(p.cpf) : "",
+      matricula: "",
+      email: "",
+      whatsapp: p.telefone ?? "",
+      cargo_id: p.cargo_id ?? "",
+      unidade_id: p.unidade_id ?? "",
+      setor_id: p.setor_id ?? "",
+      sindicato_id: "",
+      data_admissao: new Date().toISOString().slice(0, 10),
+      data_nascimento: p.data_nascimento ?? "",
+      sexo: p.genero && ["F", "M", "none"].includes(p.genero) ? p.genero : "none",
+      domingos_folga_mes: "none",
+      data_desligamento: "",
+      motivo_desligamento: NONE_DESLIG,
+      elegivel_recontratacao: NONE_DESLIG,
+      observacao_desligamento: "",
+      tipo_vinculo: "CLT",
+      folga_fixa_semana: "none",
+      perfil_acesso: "colaborador",
+      ativo: true,
+      possui_folha_ponto: false,
+      optante_adiantamento: false,
+    });
+    setRem({ ...remuneracaoBlank, forma_pagamento: formaPagamentoPadrao("clt") });
+    setCriadoId(null);
+  }, [open, pessoaApoioInicial, colaborador?.id]);
 
   useEffect(() => {
     if (!open) return;
@@ -1411,6 +1459,14 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
           : {}),
       } as any);
 
+      // Se este cadastro veio de uma pessoa de apoio, vincula o histórico e
+      // inativa o registro original para não manter duplicidade.
+      if (pessoaApoioInicial && !pessoaApoioInicial.colaborador_id) {
+        await supabase
+          .from("dp_pessoas_apoio")
+          .update({ colaborador_id: colaboradorId, ativo: false })
+          .eq("id", pessoaApoioInicial.id);
+      }
 
       // Sincroniza a ficha de benefícios marcada no cadastro.
       const hoje = new Date().toISOString().slice(0, 10);
@@ -2048,7 +2104,7 @@ export function ColaboradorFormDialog({ open, onOpenChange, colaborador, abaInic
             )}
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {/* Remuneração e benefícios — base da folha de pagamento */}
+              {/* Remuneração e benefícios */}
 
               <RemuneracaoFields
                 value={rem}

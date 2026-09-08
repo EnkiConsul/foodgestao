@@ -16,7 +16,7 @@ interface ModuloEmDesenvolvimentoGateProps {
 
 const TITULOS: Partial<Record<AppModule, string>> = {
   ponto: "Ponto",
-  folha: "Folha de Pagamento",
+  folha: "Folha de Pagamento (não gerada pelo sistema)",
   escala: "Escala",
 };
 

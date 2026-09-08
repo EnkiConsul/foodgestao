@@ -29,6 +29,7 @@ import {
 import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { pessoaApoioSchema, validateWithToast } from "@/lib/validations";
+import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 
 const TIPO_LABEL: Record<PessoaApoioTipo, string> = {
   folguista: "Folguista",
@@ -66,6 +67,7 @@ export default function DpPessoasApoio() {
   const [editando, setEditando] = useState<PessoaApoio | null>(null);
   const [form, setForm] = useState(vazio);
   const [aExcluir, setAExcluir] = useState<PessoaApoio | null>(null);
+  const [transformando, setTransformando] = useState<PessoaApoio | null>(null);
 
   const nomeCargo = (id: string | null) => (cargos.data ?? []).find((c) => c.id === id)?.nome ?? "—";
   const nomeUnidade = (id: string | null) => (unidades.data ?? []).find((u) => u.id === id)?.nome ?? "—";
@@ -207,6 +209,16 @@ export default function DpPessoasApoio() {
                       {nomeSetor(p.setor_id) ? ` · ${nomeSetor(p.setor_id)}` : ""}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setTransformando(p)}
+                        aria-label="Transformar em colaborador"
+                        title="Transformar em colaborador"
+                        disabled={!!p.colaborador_id}
+                      >
+                        <UserPlus className="h-4 w-4 text-primary" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => abrir(p)} aria-label="Editar">
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -227,7 +239,7 @@ export default function DpPessoasApoio() {
           <DialogHeader>
             <DialogTitle>{editando ? "Editar pessoa" : "Nova pessoa de apoio"}</DialogTitle>
             <DialogDescription>
-              Guarde o contato para chamar de novo. Não gera folha, ponto nem acesso ao portal.
+              Guarde o contato para chamar de novo. Não gera ponto nem acesso ao portal.
             </DialogDescription>
           </DialogHeader>
           <div className="grid max-h-[65vh] gap-3 overflow-y-auto py-2 pr-1">
@@ -391,6 +403,12 @@ export default function DpPessoasApoio() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ColaboradorFormDialog
+        open={!!transformando}
+        onOpenChange={(o) => !o && setTransformando(null)}
+        pessoaApoioInicial={transformando}
+      />
     </DpPage>
   );
 }
