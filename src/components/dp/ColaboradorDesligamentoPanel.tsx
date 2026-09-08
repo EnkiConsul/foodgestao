@@ -231,8 +231,11 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
               <Button onClick={() => void handleEditar()} disabled={pending}>
                 {editar.isPending ? "Salvando..." : "Salvar alterações do desligamento"}
               </Button>
-              <Button variant="outline" onClick={() => setConfirmarReintegrar(true)} disabled={pending}>
-                <RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" /> Reintegrar colaborador
+              <Button variant="outline" onClick={() => setRecontratar(true)} disabled={pending}>
+                <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" /> Recontratar (novo vínculo)
+              </Button>
+              <Button variant="ghost" onClick={() => setConfirmarReintegrar(true)} disabled={pending}>
+                <RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" /> Reintegrar (desfazer desligamento)
               </Button>
             </>
           ) : (
