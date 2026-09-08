@@ -54,7 +54,7 @@ export default function DpColaboradoresLixeira() {
 
       <DpPageHeader
         icon={Trash2}
-        title="Lixeira de colaboradores"
+        title="Lixeira de Colaboradores"
         description="Cadastros excluídos ficam aqui por 7 dias e podem ser restaurados. Depois desse prazo são apagados definitivamente."
         actions={
           <Button variant="outline" className="rounded-full" asChild>

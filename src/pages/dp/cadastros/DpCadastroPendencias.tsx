@@ -63,7 +63,7 @@ export default function DpCadastroPendencias() {
       <Helmet><title>Pendências — Cadastro — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={BellRing}
-        title="Prazos de pendências"
+        title="Prazos de Pendências"
         description="Configure, por empresa, os prazos usados no quadro de pendências da home do DP."
       />
 
