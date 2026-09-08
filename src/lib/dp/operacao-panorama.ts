@@ -134,7 +134,11 @@ export interface PessoaAvulsaPanorama {
   unidade_id: string | null;
   cargo_id: string | null;
   cargo_nome: string | null;
+  /** Colaborador coberto pelo folguista, quando houver. */
+  cobre_colaborador_id?: string | null;
   cobre_nome: string | null;
+  /** Motivo operacional da cobertura (folga, falta, atestado, outro). */
+  cobre_motivo?: string | null;
   data_inicio: string;
   data_fim: string;
   entrada: string | null;
@@ -195,6 +199,8 @@ export interface PessoaPanorama {
   avulso_tipo?: PessoaAvulsaTipo;
   /** Nome do colaborador coberto, quando folguista. */
   cobre_nome?: string | null;
+  /** Motivo operacional da cobertura (folga, falta, atestado, outro). */
+  cobre_motivo?: string | null;
   observacao?: string | null;
 }
 
@@ -300,7 +306,16 @@ const OCORRENCIA_CATEGORIA: Partial<Record<OcorrenciaTipo, CategoriaDia>> = {
   previsao_atraso: "atrasado",
   saida_antecipada: "saida_antecipada",
   previsao_saida_antecipada: "saida_antecipada",
+  // Atestado/ausência justificada registrados como ocorrência operacional
+  // (ex.: motivo de uma cobertura) também tiram a pessoa do quadro do dia.
+  atestado: "atestado",
+  ausencia_justificada: "atestado",
 };
+
+/** Categorias que já representam a pessoa fora do trabalho no dia. */
+const CATS_AUSENCIA: CategoriaDia[] = ["ausente", "atestado", "ferias", "folga_padrao", "folga_extra"];
+/** Categorias de ocorrência que substituem a categoria de trabalho (não duplicam). */
+const CATS_OCORRENCIA_AUSENCIA: CategoriaDia[] = ["ausente", "atestado"];
 
 export function contarDia(input: ContarDiaInput): ResultadoDia {
   const { data, colaboradores, turnos } = input;
@@ -557,6 +572,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       avulso_id: a.id,
       avulso_tipo: a.tipo,
       cobre_nome: a.cobre_nome,
+      cobre_motivo: a.cobre_motivo ?? null,
       observacao: a.observacao,
     });
   }
@@ -577,12 +593,16 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     const principal = pessoaPrincipalPorColab.get(colabId);
     const colab = colabPorId.get(colabId);
     const categoriasTrabalho: CategoriaDia[] = ["fixo", "convocado_aceito", "convocado_pendente"];
-    const temAusente = ocorrencias.some((o) => OCORRENCIA_CATEGORIA[o.tipo] === "ausente");
+    // Falta e atestado/ausência justificada vencem a categoria de trabalho:
+    // quem faltou ou está afastado não conta como trabalhando.
+    const catAusencia = ocorrencias
+      .map((o) => OCORRENCIA_CATEGORIA[o.tipo])
+      .find((c) => c === "ausente" || c === "atestado");
 
-    if (principal && temAusente && categoriasTrabalho.includes(principal.categoria)) {
+    if (principal && catAusencia && categoriasTrabalho.includes(principal.categoria)) {
       contagens[principal.categoria] -= 1;
-      contagens.ausente += 1;
-      principal.categoria = "ausente";
+      contagens[catAusencia] += 1;
+      principal.categoria = catAusencia;
       principal.ocorrencias = ocorrencias;
       continue;
     }
@@ -594,9 +614,13 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     for (const o of ocorrencias) {
       const cat = OCORRENCIA_CATEGORIA[o.tipo];
       if (!cat) continue;
-      // Ausente já é representado pela pessoa principal quando a categoria de
+      // Ausência já é representada pela pessoa principal quando a categoria de
       // trabalho foi substituída. Para categorias sem pessoa, não contamos.
-      if (cat === "ausente" && (principal?.categoria === "ausente" || principal?.categoria === "ferias" || principal?.categoria === "atestado" || principal?.categoria === "folga_padrao" || principal?.categoria === "folga_extra")) continue;
+      if (
+        CATS_OCORRENCIA_AUSENCIA.includes(cat) &&
+        principal &&
+        CATS_AUSENCIA.includes(principal.categoria)
+      ) continue;
       if (principal) {
         pessoas.push({ ...principal, categoria: cat, ocorrencias: [o], ocorrencia_id: o.id });
         contagens[cat] += 1;
