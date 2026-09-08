@@ -600,7 +600,80 @@ describe("contarDia com ocorrências", () => {
     // Hanna não conta como trabalhando; Stefane entra no quadro.
     expect(r.trabalhando).toBe(1);
     expect(r.contagens.ausente).toBe(1);
+    expect(r.contagens.coberto).toBe(0);
     expect(r.contagens_avulsos.folguista).toBe(1);
+    expect(r.pessoas.filter((p) => p.colaborador_id === "a")).toHaveLength(1);
+  });
+
+  it.each([undefined, "outro", "folga"])(
+    "cobertura com motivo %s retira o coberto do quadro sem criar falta",
+    (motivo) => {
+      const r = contarDia({
+        data: SEGUNDA,
+        colaboradores: [fixo("a")],
+        turnos,
+        ...vazio,
+        avulsos: [
+          {
+            id: "av-sem-ocorrencia",
+            nome: "Stefane",
+            tipo: "folguista",
+            unidade_id: "u1",
+            cargo_id: "c1",
+            cargo_nome: "Auxiliar",
+            cobre_colaborador_id: "a",
+            cobre_nome: "Hanna",
+            cobre_motivo: motivo,
+            data_inicio: SEGUNDA,
+            data_fim: SEGUNDA,
+            entrada: "09:00",
+            saida: "18:00",
+            termina_no_dia_seguinte: false,
+            observacao: null,
+          },
+        ],
+      });
+
+      expect(r.trabalhando).toBe(1);
+      expect(r.contagens.fixo).toBe(1);
+      expect(r.contagens.coberto).toBe(1);
+      expect(r.contagens.ausente).toBe(0);
+      expect(r.pessoas.find((p) => p.colaborador_id === "a")).toMatchObject({
+        categoria: "coberto",
+        coberto_por_nome: "Stefane",
+      });
+    },
+  );
+
+  it("não cria ausência para intermitente coberto que não estava convocado", () => {
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [intermitente("a")],
+      turnos,
+      ...vazio,
+      avulsos: [
+        {
+          id: "av-intermitente",
+          nome: "Folguista",
+          tipo: "folguista",
+          unidade_id: "u1",
+          cargo_id: "c1",
+          cargo_nome: "Auxiliar",
+          cobre_colaborador_id: "a",
+          cobre_nome: "Intermitente",
+          data_inicio: SEGUNDA,
+          data_fim: SEGUNDA,
+          entrada: "09:00",
+          saida: "18:00",
+          termina_no_dia_seguinte: false,
+          observacao: null,
+        },
+      ],
+    });
+
+    expect(r.trabalhando).toBe(1);
+    expect(r.contagens.coberto).toBe(0);
+    expect(r.pessoas.some((p) => p.colaborador_id === "a")).toBe(false);
   });
 
   it("mantém atraso como trabalhando e cria card atrasado", () => {
