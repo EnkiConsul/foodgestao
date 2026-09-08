@@ -1148,6 +1148,43 @@ export default function DpColaboradores() {
         tipoInicial={apoioTipo}
       />
 
+      <PessoaApoioFormDialog
+        open={!!apoioEditando}
+        onOpenChange={(o) => !o && setApoioEditando(null)}
+        pessoa={apoioEditando}
+      />
+
+      <AlertDialog open={!!apoioAExcluir} onOpenChange={(o) => !o && setApoioAExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cadastro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {apoioAExcluir?.nome ?? "Esta pessoa"} sai do banco de folguistas e pessoas em teste. Essa ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={excluirApoio.isPending}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!apoioAExcluir) return;
+                try {
+                  await excluirApoio.mutateAsync(apoioAExcluir.id);
+                  toast.success("Cadastro excluído.");
+                  setApoioAExcluir(null);
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Não foi possível excluir.");
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <ColaboradorFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
