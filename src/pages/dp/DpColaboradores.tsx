@@ -1068,6 +1068,12 @@ export default function DpColaboradores() {
 
       
 
+      <ColaboradorCondicoesDialog
+        colaborador={condicoesDe}
+        open={!!condicoesDe}
+        onOpenChange={(o) => !o && setCondicoesDe(null)}
+      />
+
       <ColaboradorFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
