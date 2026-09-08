@@ -99,13 +99,15 @@ export default function DpMeuHistorico() {
       <DpPageHeader icon={History} title="Meu Histórico" description="Todos os eventos vinculados à sua conta." />
 
       <Tabs value={filtro} onValueChange={(v) => { setFiltro(v as any); setVisiveis(PAGE); }}>
-        <TabsList className="flex-wrap h-auto">
-          {TIPOS.map((t) => (
-            <TabsTrigger key={t} value={t}>
-              {t} <span className="ml-1 text-[10px] opacity-70">({counts[t] ?? 0})</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto px-1">
+          <TabsList className="w-max">
+            {TIPOS.map((t) => (
+              <TabsTrigger key={t} value={t} className="whitespace-nowrap">
+                {t} <span className="ml-1 text-[10px] opacity-70">({counts[t] ?? 0})</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
       </Tabs>
 
       <DpContentCard contentClassName="p-2">

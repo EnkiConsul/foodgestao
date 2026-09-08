@@ -324,10 +324,12 @@ export default function DpMeuDocumentos() {
       {/* Sub-tabs origem (quando tipo tem envio) */}
       {currentTab.hasEnvio && (
         <Tabs value={origem} onValueChange={(v) => setOrigem(v as any)} className="mt-2">
-          <TabsList>
-            <TabsTrigger value="dp">Recebidos do DP</TabsTrigger>
-            <TabsTrigger value="meu_envio">Meus envios</TabsTrigger>
-          </TabsList>
+          <div className="-mx-1 overflow-x-auto px-1">
+            <TabsList className="w-max">
+              <TabsTrigger value="dp" className="whitespace-nowrap">Recebidos do DP</TabsTrigger>
+              <TabsTrigger value="meu_envio" className="whitespace-nowrap">Meus envios</TabsTrigger>
+            </TabsList>
+          </div>
         </Tabs>
       )}
 
