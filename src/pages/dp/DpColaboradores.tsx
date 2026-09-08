@@ -24,7 +24,7 @@ import {
   useDpColaboradores, useDeleteDpColaborador, useReintegrarDpColaborador,
   type DpColaborador,
 } from "@/hooks/useDpColaboradores";
-import { useDpPessoasApoio, type PessoaApoio } from "@/hooks/useDpPessoasApoio";
+import { useDpPessoasApoio, useExcluirDpPessoaApoio, type PessoaApoio } from "@/hooks/useDpPessoasApoio";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
@@ -126,6 +126,28 @@ export default function DpColaboradores() {
   const [metodoOpen, setMetodoOpen] = useState(false);
   const [apoioOpen, setApoioOpen] = useState(false);
   const [apoioTipo, setApoioTipo] = useState<PessoaApoioTipo>("folguista");
+  const [apoioEditando, setApoioEditando] = useState<PessoaApoio | null>(null);
+  const [apoioAExcluir, setApoioAExcluir] = useState<PessoaApoio | null>(null);
+  const excluirApoio = useExcluirDpPessoaApoio();
+  /** Ações padrão de folguista / pessoa em teste, usadas na tabela e nos cards. */
+  const acoesApoio = (p: PessoaApoio) => [
+    { key: "editar", label: "Editar cadastro", icon: Pencil, onSelect: () => setApoioEditando(p) },
+    {
+      key: "transformar",
+      label: "Promover a Colaborador",
+      icon: UserPlus,
+      disabled: !!p.colaborador_id,
+      onSelect: () => setTransformando(p),
+    },
+    {
+      key: "remover",
+      label: "Excluir",
+      icon: Trash2,
+      destructive: true,
+      separatorBefore: true,
+      onSelect: () => setApoioAExcluir(p),
+    },
+  ];
   const escolherMetodo = (m: NovoCadastroMetodo) => {
     setMetodoOpen(false);
     if (m === "colaborador") return abrirCadastro(null);
@@ -512,7 +534,7 @@ export default function DpColaboradores() {
         }
         actionItems={[
           { key: "novo", label: "Novo colaborador", icon: Plus, primary: true, onSelect: () => setMetodoOpen(true) },
-          { key: "apoio", label: "Folguistas e testes", icon: UserPlus, to: "/dp/colaboradores/apoio" },
+          
           { key: "lixeira", label: "Lixeira", icon: Trash2, to: "/dp/colaboradores/lixeira" },
         ]}
       />
@@ -855,14 +877,27 @@ export default function DpColaboradores() {
                   </TableHeader>
                   <TableBody>
                     {pessoasApoioVisiveis.map((p) => (
-                      <TableRow key={p.id} className="hover:bg-muted/50 transition-colors">
+                      <TableRow
+                        key={p.id}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => setApoioEditando(p)}
+                      >
                         <TableCell className="align-top font-medium">{p.nome}</TableCell>
                         <TableCell className="align-top font-mono text-muted-foreground">{p.cpf ?? "—"}</TableCell>
                         <TableCell className="align-top">{nomeCargo(p.cargo_id)}</TableCell>
                         <TableCell className="align-top">{nomeUnidade(p.unidade_id)}</TableCell>
                         <TableCell className="align-top">{nomeSetorApoio(p.setor_id) ?? "—"}</TableCell>
                         <TableCell className="align-top">
-                          <div className="flex gap-0.5 justify-center">
+                          <div className="flex gap-0.5 justify-center" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              title="Editar cadastro"
+                              onClick={() => setApoioEditando(p)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
                             <Button
                               size="icon"
                               variant="ghost"
@@ -872,6 +907,15 @@ export default function DpColaboradores() {
                               onClick={() => setTransformando(p)}
                             >
                               <UserPlus className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive"
+                              title="Excluir"
+                              onClick={() => setApoioAExcluir(p)}
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -905,7 +949,12 @@ export default function DpColaboradores() {
               <DpListCard
                 key={p.id}
                 title={p.nome}
-                subtitle={<span className="font-mono">{p.cpf ?? "—"}</span>}
+                subtitle={
+                  <span className="font-mono">
+                    {p.cpf ?? "—"}
+                    {p.telefone ? <span className="font-sans"> • {p.telefone}</span> : null}
+                  </span>
+                }
                 meta={
                   <>
                     {nomeCargo(p.cargo_id)}
@@ -917,15 +966,8 @@ export default function DpColaboradores() {
                     {origem === "folguistas" ? "Folguista" : "Em Teste"}
                   </Badge>
                 }
-                actions={[
-                  {
-                    key: "transformar",
-                    label: "Promover a Colaborador",
-                    icon: UserPlus,
-                    disabled: !!p.colaborador_id,
-                    onSelect: () => setTransformando(p),
-                  },
-                ]}
+                onOpen={() => setApoioEditando(p)}
+                actions={acoesApoio(p)}
               />
             ))}
           </div>
@@ -971,13 +1013,20 @@ export default function DpColaboradores() {
                       }
                       const p = item.item;
                       return (
-                        <TableRow key={p.id} className="hover:bg-muted/50 transition-colors">
+                        <TableRow
+                          key={p.id}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => setApoioEditando(p)}
+                        >
                           <TableCell className="align-top font-medium">{p.nome}</TableCell>
                           <TableCell className="align-top"><Badge variant="outline" className="text-[11px] capitalize">{p.tipo === "folguista" ? "Folguista" : "Em Teste"}</Badge></TableCell>
                           <TableCell className="align-top">{nomeCargo(p.cargo_id)}{p.unidade_id ? <span className="text-muted-foreground"> • {nomeUnidade(p.unidade_id)}</span> : null}</TableCell>
                           <TableCell className="align-top">{p.ativo ? "Ativo" : "Inativo"}</TableCell>
                           <TableCell className="align-top">
-                            <div className="flex gap-0.5 justify-center">
+                            <div className="flex gap-0.5 justify-center" onClick={(e) => e.stopPropagation()}>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar cadastro" onClick={() => setApoioEditando(p)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -987,6 +1036,9 @@ export default function DpColaboradores() {
                                 onClick={() => setTransformando(p)}
                               >
                                 <UserPlus className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" title="Excluir" onClick={() => setApoioAExcluir(p)}>
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -1044,7 +1096,12 @@ export default function DpColaboradores() {
                 <DpListCard
                   key={p.id}
                   title={p.nome}
-                  subtitle={<span className="font-mono">{p.cpf ?? "—"}</span>}
+                  subtitle={
+                    <span className="font-mono">
+                      {p.cpf ?? "—"}
+                      {p.telefone ? <span className="font-sans"> • {p.telefone}</span> : null}
+                    </span>
+                  }
                   meta={
                     <>
                       {nomeCargo(p.cargo_id)}
@@ -1052,15 +1109,8 @@ export default function DpColaboradores() {
                     </>
                   }
                   badges={<Badge variant="outline" className="text-[11px] capitalize">{p.tipo === "folguista" ? "Folguista" : "Em Teste"}</Badge>}
-                  actions={[
-                    {
-                      key: "transformar",
-                      label: "Promover a Colaborador",
-                      icon: UserPlus,
-                      disabled: !!p.colaborador_id,
-                      onSelect: () => setTransformando(p),
-                    },
-                  ]}
+                  onOpen={() => setApoioEditando(p)}
+                  actions={acoesApoio(p)}
                 />
               );
             })}
@@ -1097,6 +1147,43 @@ export default function DpColaboradores() {
         onOpenChange={setApoioOpen}
         tipoInicial={apoioTipo}
       />
+
+      <PessoaApoioFormDialog
+        open={!!apoioEditando}
+        onOpenChange={(o) => !o && setApoioEditando(null)}
+        pessoa={apoioEditando}
+      />
+
+      <AlertDialog open={!!apoioAExcluir} onOpenChange={(o) => !o && setApoioAExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cadastro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {apoioAExcluir?.nome ?? "Esta pessoa"} sai do banco de folguistas e pessoas em teste. Essa ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={excluirApoio.isPending}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!apoioAExcluir) return;
+                try {
+                  await excluirApoio.mutateAsync(apoioAExcluir.id);
+                  toast.success("Cadastro excluído.");
+                  setApoioAExcluir(null);
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Não foi possível excluir.");
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ColaboradorFormDialog
         open={dialogOpen}

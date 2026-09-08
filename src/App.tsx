@@ -70,7 +70,6 @@ const DpHome = lazyWithRetry(() => import("./pages/dp/DpHome"));
 const DpColaboradores = lazyWithRetry(() => import("./pages/dp/DpColaboradores"));
 const DpColaboradoresLixeira = lazyWithRetry(() => import("./pages/dp/DpColaboradoresLixeira"));
 const DpFichaRegistroImportar = lazyWithRetry(() => import("./pages/dp/DpFichaRegistroImportar"));
-const DpPessoasApoio = lazyWithRetry(() => import("./pages/dp/DpPessoasApoio"));
 
 const DpDocumentosImportar = lazyWithRetry(() => import("./pages/dp/DpDocumentosImportar"));
 const DpFerias = lazyWithRetry(() => import("./pages/dp/DpFeriasHub"));
@@ -404,7 +403,6 @@ const AppRoutes = () => (
         <Route path="colaboradores" element={<DpColaboradores />} />
         <Route path="colaboradores/importar-ficha" element={<DpFichaRegistroImportar />} />
         <Route path="colaboradores/lixeira" element={<DpColaboradoresLixeira />} />
-        <Route path="colaboradores/apoio" element={<DpPessoasApoio />} />
 
         <Route path="solicitacoes" element={<Navigate to="/dp/folgas?aba=solicitacoes" replace />} />
         <Route path="folgas" element={<DpFolgasHub />} />
