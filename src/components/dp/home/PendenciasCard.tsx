@@ -1,42 +1,45 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff, Info, CalendarPlus, Settings } from "lucide-react";
+import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff, CalendarPlus, Settings, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { useDpPendencias, type Pendencia } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
-import { addDays, isAfter, format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { addDays, format } from "date-fns";
+import {
+  agruparPorColaborador,
+  agruparPorTipo,
+  filtrarAbertas,
+  urgenciaDe,
+  type GrupoPendencias,
+} from "@/lib/dp/pendencias";
 import { toast } from "sonner";
-
-function isPostponed(id: string, map: Record<string, string>) {
-  const until = map[id];
-  if (!until) return false;
-  return isAfter(new Date(until), new Date());
-}
 
 export function PendenciasCard() {
   const { data = [], isLoading } = useDpPendencias();
   const { prefs, save } = useDpUserPrefs();
-  const [detail, setDetail] = useState<Pendencia | null>(null);
+  const [grupoAberto, setGrupoAberto] = useState<GrupoPendencias<Pendencia> | null>(null);
 
-  const visible = useMemo(
-    () => data.filter((p) => !isPostponed(p.id, prefs.pendencias_adiadas)),
+  const abertas = useMemo(
+    () => filtrarAbertas(data, prefs.pendencias_adiadas),
     [data, prefs.pendencias_adiadas],
   );
 
+  const grupos = useMemo(() => agruparPorTipo(abertas), [abertas]);
+
   const counters = useMemo(() => {
     let atrasado = 0, hoje = 0, proximo = 0;
-    for (const p of visible) {
-      if (p.atrasoDias > 0) atrasado++;
-      else if (p.atrasoDias === 0) hoje++;
+    for (const p of abertas) {
+      const u = urgenciaDe(p);
+      if (u === "atrasada") atrasado++;
+      else if (u === "hoje") hoje++;
       else proximo++;
     }
     return { atrasado, hoje, proximo };
-  }, [visible]);
+  }, [abertas]);
 
   const adiar = (p: Pendencia, dias: number) => {
     const until = addDays(new Date(), dias).toISOString();
@@ -50,21 +53,27 @@ export function PendenciasCard() {
         <Bell className="h-5 w-5 text-primary shrink-0" />
         <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">Pendências do Sistema</h2>
         <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 shrink-0">
-          {visible.length}
+          {abertas.length}
         </Badge>
-        <Button
-          asChild
-          variant="ghost"
-          size="icon"
-          className="ml-auto h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
-          title="Configurar prazos das pendências"
-        >
-          <Link to="/dp/cadastros/pendencias" aria-label="Configurar prazos das pendências">
-            <Settings className="h-4 w-4" />
-          </Link>
-        </Button>
+        <div className="ml-auto flex items-center gap-1 shrink-0">
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            title="Configurar prazos das pendências"
+          >
+            <Link to="/dp/configuracoes/prazos-pendencias" aria-label="Configurar prazos das pendências">
+              <Settings className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground">
+            <Link to="/dp/cadastros/pendencias">
+              Ver todas <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
+            </Link>
+          </Button>
+        </div>
       </div>
-
 
       <div className="flex flex-wrap gap-2 mb-4">
         <UrgencyChip icon={AlarmClockOff} label="Atrasado" count={counters.atrasado} tone="destructive" />
@@ -74,104 +83,135 @@ export function PendenciasCard() {
 
       <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
         {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
-        {!isLoading && visible.length === 0 && (
-          <p className="text-sm text-muted-foreground py-8 text-center">Sem pendências. 🎉</p>
+        {!isLoading && abertas.length === 0 && (
+          <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma pendência aberta no momento. 🎉</p>
         )}
-        {visible.map((p) => (
-          <div
-            key={p.id}
-            className="flex items-start gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3 hover:shadow-sm transition-shadow"
+        {grupos.map((g) => (
+          <button
+            key={g.tipo}
+            type="button"
+            onClick={() => setGrupoAberto(g)}
+            className="w-full text-left flex items-start gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3 hover:shadow-sm transition-shadow"
           >
             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <p.icon className="h-4 w-4 text-primary" />
+              {(() => {
+                const Icon = g.itens[0]?.icon ?? Bell;
+                return <Icon className="h-4 w-4 text-primary" />;
+              })()}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-medium truncate">{p.titulo}</p>
-                {p.atrasoDias > 0 ? (
-                  <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive text-[10px] shrink-0">
-                    <Clock className="h-3 w-3 mr-1" />
-                    Atrasado {p.atrasoDias}d
-                  </Badge>
-                ) : p.atrasoDias === 0 ? (
-                  <Badge variant="outline" className="border-amber-300 bg-amber-100 text-amber-900 text-[10px] shrink-0">
-                    <Clock className="h-3 w-3 mr-1" />
-                    Vence hoje
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 text-[10px] shrink-0">
-                    <Clock className="h-3 w-3 mr-1" />
-                    Vence em {Math.abs(p.atrasoDias)}d
-                  </Badge>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold truncate">{g.tipo}</p>
+                <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-[11px] shrink-0">
+                  {g.total}
+                </Badge>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">
+                {g.atrasadas > 0 && <span className="text-destructive font-medium">{g.atrasadas} atrasada(s)</span>}
+                {g.hoje > 0 && <span className="text-amber-700 font-medium">{g.hoje} vence(m) hoje</span>}
+                {g.proximas > 0 && <span className="text-emerald-700">{g.proximas} próxima(s)</span>}
+                {g.colaboradores.length > 0 && (
+                  <span className="text-muted-foreground">
+                    {g.colaboradores.length} colaborador(es)
+                  </span>
+                )}
+                {g.unidades.length > 0 && (
+                  <span className="text-muted-foreground">
+                    {g.unidades.length} unidade(s)
+                  </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">{p.subtitulo}</p>
-              <div className="mt-2 grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
-                <Button asChild size="sm" variant="default" className="h-9 sm:h-7 text-xs w-full sm:w-auto">
-                  <Link to={p.url}>
-                    Resolver <ArrowRight className="h-3 w-3 ml-1" />
-                  </Link>
-                </Button>
-                <Button size="sm" variant="outline" className="h-9 sm:h-7 text-xs w-full sm:w-auto" onClick={() => setDetail(p)}>
-                  <Info className="h-3 w-3 mr-1" /> Detalhes
-                </Button>
-                <AdiarPopover onAdiar={(dias) => adiar(p, dias)} />
-              </div>
             </div>
-          </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-2.5" />
+          </button>
         ))}
       </div>
 
-
-      <Dialog open={!!detail} onOpenChange={(v) => { if (!v) setDetail(null); }}>
-        <DialogContent className="max-w-md">
-          {detail && (
+      {/* Detalhe do grupo: itens individuais preservados, agrupados por colaborador quando houver */}
+      <Dialog open={!!grupoAberto} onOpenChange={(v) => { if (!v) setGrupoAberto(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          {grupoAberto && (
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <detail.icon className="h-5 w-5 text-primary" />
-                  {detail.titulo}
+                  {grupoAberto.tipo}
+                  <Badge variant="secondary" className="rounded-full">{grupoAberto.total}</Badge>
                 </DialogTitle>
               </DialogHeader>
-              <div className="space-y-2 text-sm">
-                <p className="text-muted-foreground">{detail.subtitulo}</p>
-                {detail.vencimento && (
-                  <p>
-                    <span className="font-medium">Vencimento: </span>
-                    {format(new Date(detail.vencimento), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                  </p>
-                )}
-                {detail.atrasoDias > 0 ? (
-                  <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive">
-                    <Clock className="h-3 w-3 mr-1" /> Atrasado há {detail.atrasoDias} dia(s)
-                  </Badge>
-                ) : detail.atrasoDias === 0 ? (
-                  <Badge variant="outline" className="border-amber-300 bg-amber-100 text-amber-900">
-                    <Clock className="h-3 w-3 mr-1" /> Vence hoje
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800">
-                    <Clock className="h-3 w-3 mr-1" /> Vence em {Math.abs(detail.atrasoDias)} dia(s)
-                  </Badge>
-                )}
+              <div className="space-y-4">
+                {agruparPorColaborador(grupoAberto.itens).map((sub) => (
+                  <div key={sub.colaborador ?? "geral"} className="space-y-2">
+                    {sub.colaborador && (
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        {sub.colaborador} · {sub.itens.length} pendência(s)
+                      </p>
+                    )}
+                    {sub.itens.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-start gap-3 rounded-xl border border-[hsl(var(--dp-border))] bg-card p-3"
+                      >
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <p.icon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-medium break-words">{p.titulo}</p>
+                            <UrgenciaBadge atrasoDias={p.atrasoDias} />
+                          </div>
+                          <p className="text-xs text-muted-foreground break-words">{p.subtitulo}</p>
+                          {p.unidadeNome && (
+                            <p className="text-[11px] text-muted-foreground mt-0.5">Unidade: {p.unidadeNome}</p>
+                          )}
+                          {p.vencimento && (
+                            <p className="text-[11px] text-muted-foreground">
+                              Prazo: {format(new Date(`${p.vencimento}T12:00:00`), "dd/MM/yyyy")}
+                            </p>
+                          )}
+                          <div className="mt-2 grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
+                            <Button asChild size="sm" variant="default" className="h-9 sm:h-7 text-xs w-full sm:w-auto">
+                              <Link to={p.url} onClick={() => setGrupoAberto(null)}>
+                                Resolver <ArrowRight className="h-3 w-3 ml-1" />
+                              </Link>
+                            </Button>
+                            <AdiarPopover onAdiar={(dias) => adiar(p, dias)} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
-              <DialogFooter className="gap-2">
-                <AdiarPopover
-                  onAdiar={(dias) => { if (detail) { adiar(detail, dias); setDetail(null); } }}
-                  triggerVariant="ghost"
-                  triggerSize="default"
-                />
-                <Button asChild onClick={() => setDetail(null)}>
-                  <Link to={detail.url}>
-                    Resolver <ArrowRight className="h-4 w-4 ml-1" />
-                  </Link>
-                </Button>
-              </DialogFooter>
             </>
           )}
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export function UrgenciaBadge({ atrasoDias }: { atrasoDias: number }) {
+  if (atrasoDias > 0) {
+    return (
+      <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive text-[10px] shrink-0">
+        <Clock className="h-3 w-3 mr-1" />
+        Atrasado {atrasoDias}d
+      </Badge>
+    );
+  }
+  if (atrasoDias === 0) {
+    return (
+      <Badge variant="outline" className="border-amber-300 bg-amber-100 text-amber-900 text-[10px] shrink-0">
+        <Clock className="h-3 w-3 mr-1" />
+        Vence hoje
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 text-[10px] shrink-0">
+      <Clock className="h-3 w-3 mr-1" />
+      Vence em {Math.abs(atrasoDias)}d
+    </Badge>
   );
 }
 
@@ -192,7 +232,7 @@ function UrgencyChip({
 
 const PRESETS = [1, 3, 7, 15, 30];
 
-function AdiarPopover({
+export function AdiarPopover({
   onAdiar,
   triggerVariant = "ghost",
   triggerSize = "sm",
@@ -261,4 +301,3 @@ function AdiarPopover({
     </Popover>
   );
 }
-
