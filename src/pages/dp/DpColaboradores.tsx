@@ -868,7 +868,7 @@ export default function DpColaboradores() {
                               variant="ghost"
                               className="h-8 w-8"
                               disabled={!!p.colaborador_id}
-                              title={p.colaborador_id ? "Já transformado em colaborador" : "Transformar em colaborador"}
+                              title={p.colaborador_id ? "Já promovido a colaborador" : "Promover a Colaborador"}
                               onClick={() => setTransformando(p)}
                             >
                               <UserPlus className="h-4 w-4" />
@@ -920,7 +920,7 @@ export default function DpColaboradores() {
                 actions={[
                   {
                     key: "transformar",
-                    label: "Transformar em colaborador",
+                    label: "Promover a Colaborador",
                     icon: UserPlus,
                     disabled: !!p.colaborador_id,
                     onSelect: () => setTransformando(p),
@@ -983,7 +983,7 @@ export default function DpColaboradores() {
                                 variant="ghost"
                                 className="h-8 w-8"
                                 disabled={!!p.colaborador_id}
-                                title={p.colaborador_id ? "Já transformado em colaborador" : "Transformar em colaborador"}
+                                title={p.colaborador_id ? "Já promovido a colaborador" : "Promover a Colaborador"}
                                 onClick={() => setTransformando(p)}
                               >
                                 <UserPlus className="h-4 w-4" />
@@ -1055,7 +1055,7 @@ export default function DpColaboradores() {
                   actions={[
                     {
                       key: "transformar",
-                      label: "Transformar em colaborador",
+                      label: "Promover a Colaborador",
                       icon: UserPlus,
                       disabled: !!p.colaborador_id,
                       onSelect: () => setTransformando(p),

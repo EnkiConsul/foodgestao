@@ -213,8 +213,8 @@ export default function DpPessoasApoio() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setTransformando(p)}
-                        aria-label="Transformar em colaborador"
-                        title="Transformar em colaborador"
+                        aria-label="Promover a Colaborador"
+                        title="Promover a Colaborador"
                         disabled={!!p.colaborador_id}
                       >
                         <UserPlus className="h-4 w-4 text-primary" />
