@@ -5,15 +5,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -23,31 +15,16 @@ import { DpFilters } from "@/components/dp/DpFilters";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import {
-  useDpPessoasApoio, useExcluirDpPessoaApoio, useSalvarDpPessoaApoio,
+  useDpPessoasApoio, useExcluirDpPessoaApoio,
   type PessoaApoio, type PessoaApoioTipo,
 } from "@/hooks/useDpPessoasApoio";
-import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { useDpSetores } from "@/hooks/useDpSetores";
-import { pessoaApoioSchema, validateWithToast } from "@/lib/validations";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
+import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
 
 const TIPO_LABEL: Record<PessoaApoioTipo, string> = {
   folguista: "Folguista",
   teste: "Em teste",
-};
-
-const vazio = {
-  nome: "",
-  telefone: "",
-  tipo: "folguista" as PessoaApoioTipo,
-  cargo_id: "",
-  unidade_id: "",
-  setor_id: "",
-  cpf: "",
-  genero: "",
-  data_nascimento: "",
-  observacao: "",
-  ativo: true,
 };
 
 /**
@@ -58,14 +35,12 @@ export default function DpPessoasApoio() {
   const lista = useDpPessoasApoio();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
-  const salvar = useSalvarDpPessoaApoio();
   const excluir = useExcluirDpPessoaApoio();
   const { todos: todosSetores } = useDpSetores();
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editando, setEditando] = useState<PessoaApoio | null>(null);
-  const [form, setForm] = useState(vazio);
   const [aExcluir, setAExcluir] = useState<PessoaApoio | null>(null);
   const [transformando, setTransformando] = useState<PessoaApoio | null>(null);
 
@@ -82,58 +57,9 @@ export default function DpPessoasApoio() {
 
   const abrir = (p: PessoaApoio | null) => {
     setEditando(p);
-    setForm(
-      p
-        ? {
-            nome: p.nome,
-            telefone: p.telefone ?? "",
-            tipo: p.tipo,
-            cargo_id: p.cargo_id ?? "",
-            unidade_id: p.unidade_id ?? "",
-            setor_id: p.setor_id ?? "",
-            cpf: p.cpf ?? "",
-            genero: p.genero ?? "",
-            data_nascimento: p.data_nascimento ?? "",
-            observacao: p.observacao ?? "",
-            ativo: p.ativo,
-          }
-        : vazio,
-    );
     setDialogOpen(true);
   };
 
-  const gravar = async () => {
-    const candidato = {
-      nome: form.nome,
-      telefone: form.telefone || null,
-      tipo: form.tipo,
-      cargo_id: form.cargo_id || null,
-      unidade_id: form.unidade_id || null,
-      cpf: form.cpf || null,
-      genero: form.genero || null,
-      data_nascimento: form.data_nascimento || null,
-      observacao: form.observacao || null,
-      colaborador_id: null,
-    };
-    const parsed = validateWithToast(pessoaApoioSchema, candidato, (msg) =>
-      toast.error("Verifique os dados", { description: msg }),
-    );
-    if (!parsed) return;
-    try {
-      await salvar.mutateAsync({
-        ...candidato,
-        setor_id: form.setor_id || null,
-        ativo: form.ativo,
-        id: editando?.id,
-      });
-      toast.success(editando ? "Cadastro atualizado" : "Pessoa cadastrada");
-      setDialogOpen(false);
-    } catch (e) {
-      toast.error("Não foi possível salvar", {
-        description: e instanceof Error ? e.message : String(e),
-      });
-    }
-  };
 
   const remover = async () => {
     if (!aExcluir) return;
