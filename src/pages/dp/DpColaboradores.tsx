@@ -337,7 +337,7 @@ export default function DpColaboradores() {
       incompletos: colabs.filter((c) => c.ativo && faltantesDe(c).length > 0).length,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list.data, pessoasApoio.data, origem, mostrarSetor]);
+  }, [list.data, pessoasApoio.data, origem]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
