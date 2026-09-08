@@ -209,6 +209,16 @@ export default function DpPessoasApoio() {
                       {nomeSetor(p.setor_id) ? ` · ${nomeSetor(p.setor_id)}` : ""}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setTransformando(p)}
+                        aria-label="Transformar em colaborador"
+                        title="Transformar em colaborador"
+                        disabled={!!p.colaborador_id}
+                      >
+                        <UserPlus className="h-4 w-4 text-primary" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => abrir(p)} aria-label="Editar">
                         <Pencil className="h-4 w-4" />
                       </Button>
