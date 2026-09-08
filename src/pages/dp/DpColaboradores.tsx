@@ -29,6 +29,10 @@ import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpUnidades, useDpCargos } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
+import { NovoCadastroMetodoDialog, type NovoCadastroMetodo } from "@/components/dp/NovoCadastroMetodoDialog";
+import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
+import type { PessoaApoioTipo } from "@/hooks/useDpPessoasApoio";
+import { useNavigate } from "react-router-dom";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 import { Link } from "react-router-dom";
 import { ColaboradorFichaDialog } from "@/components/dp/ColaboradorFichaDialog";
@@ -118,8 +122,20 @@ export default function DpColaboradores() {
     setAbaInicial(aba);
     setDialogOpen(true);
   };
+  const navigate = useNavigate();
+  const [metodoOpen, setMetodoOpen] = useState(false);
+  const [apoioOpen, setApoioOpen] = useState(false);
+  const [apoioTipo, setApoioTipo] = useState<PessoaApoioTipo>("folguista");
+  const escolherMetodo = (m: NovoCadastroMetodo) => {
+    setMetodoOpen(false);
+    if (m === "colaborador") return abrirCadastro(null);
+    if (m === "importar") return navigate("/dp/colaboradores/importar-ficha");
+    setApoioTipo(m === "teste" ? "teste" : "folguista");
+    setApoioOpen(true);
+  };
   const [toDelete, setToDelete] = useState<DpColaborador | null>(null);
   const [condicoesDe, setCondicoesDe] = useState<DpColaborador | null>(null);
+
 
   type Origem = "todos" | "colaboradores" | "folguistas" | "teste";
   const ORIGENS: { key: Origem; label: string }[] = [
@@ -495,9 +511,8 @@ export default function DpColaboradores() {
           <DpSalvarLargurasButton screenKey="dp_colaboradores" colOrder={colOrder} colWidths={colWidths} />
         }
         actionItems={[
-          { key: "novo", label: "Novo colaborador", icon: Plus, primary: true, onSelect: () => abrirCadastro(null) },
+          { key: "novo", label: "Novo colaborador", icon: Plus, primary: true, onSelect: () => setMetodoOpen(true) },
           { key: "apoio", label: "Folguistas e testes", icon: UserPlus, to: "/dp/colaboradores/apoio" },
-          { key: "importar", label: "Importar ficha de registro", icon: FileText, to: "/dp/colaboradores/importar-ficha" },
           { key: "lixeira", label: "Lixeira", icon: Trash2, to: "/dp/colaboradores/lixeira" },
         ]}
       />
@@ -853,7 +868,7 @@ export default function DpColaboradores() {
                               variant="ghost"
                               className="h-8 w-8"
                               disabled={!!p.colaborador_id}
-                              title={p.colaborador_id ? "Já transformado em colaborador" : "Transformar em colaborador"}
+                              title={p.colaborador_id ? "Já promovido a colaborador" : "Promover a Colaborador"}
                               onClick={() => setTransformando(p)}
                             >
                               <UserPlus className="h-4 w-4" />
@@ -905,7 +920,7 @@ export default function DpColaboradores() {
                 actions={[
                   {
                     key: "transformar",
-                    label: "Transformar em colaborador",
+                    label: "Promover a Colaborador",
                     icon: UserPlus,
                     disabled: !!p.colaborador_id,
                     onSelect: () => setTransformando(p),
@@ -968,7 +983,7 @@ export default function DpColaboradores() {
                                 variant="ghost"
                                 className="h-8 w-8"
                                 disabled={!!p.colaborador_id}
-                                title={p.colaborador_id ? "Já transformado em colaborador" : "Transformar em colaborador"}
+                                title={p.colaborador_id ? "Já promovido a colaborador" : "Promover a Colaborador"}
                                 onClick={() => setTransformando(p)}
                               >
                                 <UserPlus className="h-4 w-4" />
@@ -1040,7 +1055,7 @@ export default function DpColaboradores() {
                   actions={[
                     {
                       key: "transformar",
-                      label: "Transformar em colaborador",
+                      label: "Promover a Colaborador",
                       icon: UserPlus,
                       disabled: !!p.colaborador_id,
                       onSelect: () => setTransformando(p),
@@ -1073,6 +1088,14 @@ export default function DpColaboradores() {
         colaborador={condicoesDe}
         open={!!condicoesDe}
         onOpenChange={(o) => !o && setCondicoesDe(null)}
+      />
+
+      <NovoCadastroMetodoDialog open={metodoOpen} onOpenChange={setMetodoOpen} onSelect={escolherMetodo} />
+
+      <PessoaApoioFormDialog
+        open={apoioOpen}
+        onOpenChange={setApoioOpen}
+        tipoInicial={apoioTipo}
       />
 
       <ColaboradorFormDialog

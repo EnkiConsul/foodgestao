@@ -5,15 +5,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -23,31 +15,16 @@ import { DpFilters } from "@/components/dp/DpFilters";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import {
-  useDpPessoasApoio, useExcluirDpPessoaApoio, useSalvarDpPessoaApoio,
+  useDpPessoasApoio, useExcluirDpPessoaApoio,
   type PessoaApoio, type PessoaApoioTipo,
 } from "@/hooks/useDpPessoasApoio";
-import { ColaboradorSetorField } from "@/components/dp/setores/ColaboradorSetorField";
 import { useDpSetores } from "@/hooks/useDpSetores";
-import { pessoaApoioSchema, validateWithToast } from "@/lib/validations";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
+import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
 
 const TIPO_LABEL: Record<PessoaApoioTipo, string> = {
   folguista: "Folguista",
   teste: "Em teste",
-};
-
-const vazio = {
-  nome: "",
-  telefone: "",
-  tipo: "folguista" as PessoaApoioTipo,
-  cargo_id: "",
-  unidade_id: "",
-  setor_id: "",
-  cpf: "",
-  genero: "",
-  data_nascimento: "",
-  observacao: "",
-  ativo: true,
 };
 
 /**
@@ -58,14 +35,12 @@ export default function DpPessoasApoio() {
   const lista = useDpPessoasApoio();
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
-  const salvar = useSalvarDpPessoaApoio();
   const excluir = useExcluirDpPessoaApoio();
   const { todos: todosSetores } = useDpSetores();
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editando, setEditando] = useState<PessoaApoio | null>(null);
-  const [form, setForm] = useState(vazio);
   const [aExcluir, setAExcluir] = useState<PessoaApoio | null>(null);
   const [transformando, setTransformando] = useState<PessoaApoio | null>(null);
 
@@ -82,58 +57,9 @@ export default function DpPessoasApoio() {
 
   const abrir = (p: PessoaApoio | null) => {
     setEditando(p);
-    setForm(
-      p
-        ? {
-            nome: p.nome,
-            telefone: p.telefone ?? "",
-            tipo: p.tipo,
-            cargo_id: p.cargo_id ?? "",
-            unidade_id: p.unidade_id ?? "",
-            setor_id: p.setor_id ?? "",
-            cpf: p.cpf ?? "",
-            genero: p.genero ?? "",
-            data_nascimento: p.data_nascimento ?? "",
-            observacao: p.observacao ?? "",
-            ativo: p.ativo,
-          }
-        : vazio,
-    );
     setDialogOpen(true);
   };
 
-  const gravar = async () => {
-    const candidato = {
-      nome: form.nome,
-      telefone: form.telefone || null,
-      tipo: form.tipo,
-      cargo_id: form.cargo_id || null,
-      unidade_id: form.unidade_id || null,
-      cpf: form.cpf || null,
-      genero: form.genero || null,
-      data_nascimento: form.data_nascimento || null,
-      observacao: form.observacao || null,
-      colaborador_id: null,
-    };
-    const parsed = validateWithToast(pessoaApoioSchema, candidato, (msg) =>
-      toast.error("Verifique os dados", { description: msg }),
-    );
-    if (!parsed) return;
-    try {
-      await salvar.mutateAsync({
-        ...candidato,
-        setor_id: form.setor_id || null,
-        ativo: form.ativo,
-        id: editando?.id,
-      });
-      toast.success(editando ? "Cadastro atualizado" : "Pessoa cadastrada");
-      setDialogOpen(false);
-    } catch (e) {
-      toast.error("Não foi possível salvar", {
-        description: e instanceof Error ? e.message : String(e),
-      });
-    }
-  };
 
   const remover = async () => {
     if (!aExcluir) return;
@@ -213,8 +139,8 @@ export default function DpPessoasApoio() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setTransformando(p)}
-                        aria-label="Transformar em colaborador"
-                        title="Transformar em colaborador"
+                        aria-label="Promover a Colaborador"
+                        title="Promover a Colaborador"
                         disabled={!!p.colaborador_id}
                       >
                         <UserPlus className="h-4 w-4 text-primary" />
@@ -234,160 +160,12 @@ export default function DpPessoasApoio() {
         )}
       </DpContentCard>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editando ? "Editar pessoa" : "Nova pessoa de apoio"}</DialogTitle>
-            <DialogDescription>
-              Guarde o contato para chamar de novo. Não gera ponto nem acesso ao portal.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid max-h-[65vh] gap-3 overflow-y-auto py-2 pr-1">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Nome *</Label>
-                <Input
-                  value={form.nome}
-                  maxLength={120}
-                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Telefone</Label>
-                <Input
-                  value={form.telefone}
-                  maxLength={20}
-                  inputMode="tel"
-                  placeholder="(62) 90000-0000"
-                  onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-                />
-              </div>
-            </div>
+      <PessoaApoioFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        pessoa={editando}
+      />
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Tipo *</Label>
-                <Select
-                  value={form.tipo}
-                  onValueChange={(v) => setForm({ ...form, tipo: v as PessoaApoioTipo })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="folguista">Folguista</SelectItem>
-                    <SelectItem value="teste">Em teste</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Nascimento</Label>
-                <Input
-                  type="date"
-                  value={form.data_nascimento}
-                  onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Cargo habitual</Label>
-                <Select
-                  value={form.cargo_id || "nenhum"}
-                  onValueChange={(v) => setForm({ ...form, cargo_id: v === "nenhum" ? "" : v })}
-                >
-                  <SelectTrigger><SelectValue placeholder="Não definido" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nenhum">Não definido</SelectItem>
-                    {(cargos.data ?? []).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Unidade habitual</Label>
-                <Select
-                  value={form.unidade_id || "nenhum"}
-                  onValueChange={(v) =>
-                    setForm({ ...form, unidade_id: v === "nenhum" ? "" : v, setor_id: "" })
-                  }
-                >
-                  <SelectTrigger><SelectValue placeholder="Não definida" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nenhum">Não definida</SelectItem>
-                    {(unidades.data ?? []).map((u) => (
-                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <ColaboradorSetorField
-              unidadeId={form.unidade_id || null}
-              value={form.setor_id || null}
-              onChange={(id) => setForm({ ...form, setor_id: id ?? "" })}
-            />
-
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>CPF</Label>
-                <Input
-                  value={form.cpf}
-                  maxLength={14}
-                  inputMode="numeric"
-                  onChange={(e) => setForm({ ...form, cpf: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Gênero</Label>
-                <Select
-                  value={form.genero || "nenhum"}
-                  onValueChange={(v) => setForm({ ...form, genero: v === "nenhum" ? "" : v })}
-                >
-                  <SelectTrigger><SelectValue placeholder="Não informar" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nenhum">Não informar</SelectItem>
-                    <SelectItem value="feminino">Feminino</SelectItem>
-                    <SelectItem value="masculino">Masculino</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label>Observação</Label>
-              <Textarea
-                rows={2}
-                maxLength={500}
-                placeholder="Como se saiu, disponibilidade, preferências..."
-                value={form.observacao}
-                onChange={(e) => setForm({ ...form, observacao: e.target.value })}
-              />
-            </div>
-
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div className="pr-3">
-                <Label className="text-sm">Disponível para chamar</Label>
-                <p className="text-xs text-muted-foreground">
-                  Desligue para tirar da lista de sugestões da rotina do dia.
-                </p>
-              </div>
-              <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={salvar.isPending}>
-              Cancelar
-            </Button>
-            <Button onClick={gravar} disabled={salvar.isPending}>
-              {salvar.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={!!aExcluir} onOpenChange={(v) => !v && setAExcluir(null)}>
         <AlertDialogContent>
