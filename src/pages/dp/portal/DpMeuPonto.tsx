@@ -198,6 +198,6 @@ export default function DpMeuPonto() {
           )}
         </>
       )}
-    </div>
+    </DpPage>
   );
 }
