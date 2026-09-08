@@ -270,26 +270,47 @@ export default function DpModelosMensagem() {
 
       <DpContentCard contentClassName="overflow-x-auto hidden md:block">
           {list.isLoading ? <TableSkeleton columns={5} headers={["Título", "Canal", "Variáveis", "Ativo", ""]} /> : (
-            <Table>
+            <Table className="table-fixed text-xs" style={{ width: "100%", minWidth: larguraTotal + MOD_ACOES_WIDTH }}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Canal</TableHead>
-                  <TableHead>Variáveis</TableHead>
-                  <TableHead className="w-20">Ativo</TableHead>
-                  <TableHead className="w-32"></TableHead>
+                  {visibleOrder.map((k) => (
+                    <DpTableColumnHeader
+                      key={k}
+                      label={COLS[k].label}
+                      width={colWidths[k]}
+                      sortAtivo={sortKey === COLS[k].sortKey && COLS[k].sortKey !== "padrao"}
+                      sortDir={sortDir}
+                      onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
+                      ativos={colFilters[k] ?? []}
+                      getOpcoes={() => opcoesColuna(k)}
+                      onToggle={(v) => toggleColValue(k, v)}
+                      onSelecionarTodos={() => setColFilters((p) => ({ ...p, [k]: opcoesColuna(k) }))}
+                      onLimpar={() => setColFilters((p) => ({ ...p, [k]: [] }))}
+                      arrastando={dragCol === k}
+                      onDragStart={() => setDragCol(k)}
+                      onDrop={() => soltarSobre(k)}
+                      onDragEnd={() => setDragCol(null)}
+                      onResize={(largura) => resize(k, largura)}
+                      onResetWidth={() => resetWidth(k)}
+                    />
+                  ))}
+                  <TableHead
+                    className="relative select-none text-right text-xs"
+                    style={{ width: MOD_ACOES_WIDTH, minWidth: MOD_ACOES_WIDTH, maxWidth: MOD_ACOES_WIDTH }}
+                  >
+                    Ações
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((m) => (
+                {linhas.map((m) => (
                   <TableRow key={m.id} className={!m.ativo ? "opacity-60" : ""}>
-                    <TableCell className="font-medium">{m.titulo}</TableCell>
-                    <TableCell><Badge variant="outline" className="uppercase">{m.canal}</Badge></TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{(m.variaveis ?? []).join(", ") || "—"}</TableCell>
-                    <TableCell>
-                      <Switch checked={m.ativo} onCheckedChange={(v) => toggleAtivo.mutate({ id: m.id, ativo: v })} />
-                    </TableCell>
-                    <TableCell>
+                    {visibleOrder.map((k) => (
+                      <TableCell key={k} className="overflow-hidden px-3" style={{ width: colWidths[k], maxWidth: colWidths[k] }}>
+                        {COLS[k].render(m)}
+                      </TableCell>
+                    ))}
+                    <TableCell className="px-3" style={{ width: MOD_ACOES_WIDTH, maxWidth: MOD_ACOES_WIDTH }}>
                       <div className="flex gap-1 justify-end">
                         <Button size="icon" variant="ghost" onClick={() => openPreview(m)} title="Preview"><Eye className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={() => openEdit(m)}><Pencil className="h-4 w-4" /></Button>
@@ -298,8 +319,12 @@ export default function DpModelosMensagem() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum modelo encontrado.</TableCell></TableRow>
+                {linhas.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={visibleOrder.length + 1} className="text-center text-muted-foreground py-8">
+                      {filtered.length === 0 ? "Nenhum modelo encontrado." : "Nenhum resultado para os filtros de coluna aplicados."}
+                    </TableCell>
+                  </TableRow>
                 )}
               </TableBody>
             </Table>
@@ -311,10 +336,10 @@ export default function DpModelosMensagem() {
         {list.isLoading && (
           <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Carregando…</div>
         )}
-        {!list.isLoading && filtered.length === 0 && (
+        {!list.isLoading && linhas.length === 0 && (
           <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">Nenhum modelo encontrado.</div>
         )}
-        {!list.isLoading && filtered.map((m) => (
+        {!list.isLoading && linhas.map((m) => (
           <div key={m.id} className={"rounded-2xl border border-border bg-card p-4 space-y-3 active:scale-[0.98] transition-transform " + (!m.ativo ? "opacity-60" : "")}>
             <div className="flex items-start justify-between gap-2">
               <div className="font-medium min-w-0 flex-1 truncate">{m.titulo}</div>
