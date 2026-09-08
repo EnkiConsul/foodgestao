@@ -12,6 +12,9 @@ import {
 } from "@/hooks/useDpFeriasConfig";
 import { useDpFeriasConfigUnidades } from "@/hooks/useDpFeriasConfigUnidades";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
+import {
+  FERIAS_SINALIZACAO_LABEL, type FeriasSinalizacaoCiclo,
+} from "@/lib/dp/ferias-direito";
 
 /** Antecedência do aviso de férias e política de adiantamento do 13º. */
 export function FeriasConfigCard() {
@@ -24,6 +27,9 @@ export function FeriasConfigCard() {
   const [fracMin, setFracMin] = useState(String(config.fracaoMinDias));
   const [fracMaior, setFracMaior] = useState(String(config.fracaoMaiorDias));
   const [controle, setControle] = useState(config.controleInicio ?? "");
+  const [sinalizacao, setSinalizacao] = useState<FeriasSinalizacaoCiclo>(
+    config.sinalizacaoCicloEncerrado,
+  );
 
   useEffect(() => {
     setDias(String(config.avisoAntecedenciaDias));
@@ -32,6 +38,7 @@ export function FeriasConfigCard() {
     setFracMin(String(config.fracaoMinDias));
     setFracMaior(String(config.fracaoMaiorDias));
     setControle(config.controleInicio ?? "");
+    setSinalizacao(config.sinalizacaoCicloEncerrado);
   }, [
     config.avisoAntecedenciaDias,
     config.adiantamento13,
@@ -39,6 +46,7 @@ export function FeriasConfigCard() {
     config.fracaoMinDias,
     config.fracaoMaiorDias,
     config.controleInicio,
+    config.sinalizacaoCicloEncerrado,
   ]);
 
   const alterado =
@@ -47,7 +55,8 @@ export function FeriasConfigCard() {
     Number(fracMax) !== config.fracionamentoMax ||
     Number(fracMin) !== config.fracaoMinDias ||
     Number(fracMaior) !== config.fracaoMaiorDias ||
-    (controle || null) !== (config.controleInicio ?? null);
+    (controle || null) !== (config.controleInicio ?? null) ||
+    sinalizacao !== config.sinalizacaoCicloEncerrado;
 
   return (
     <DpContentCard contentClassName="space-y-4 p-4">
@@ -212,6 +221,8 @@ export function FeriasConfigCard() {
               fracionamentoMax: Math.max(1, Math.min(3, Number(fracMax) || 1)),
               fracaoMinDias: Math.max(1, Math.min(30, Number(fracMin) || 1)),
               fracaoMaiorDias: Math.max(1, Math.min(30, Number(fracMaior) || 1)),
+              controleInicio: controle || null,
+              sinalizacaoCicloEncerrado: sinalizacao,
             })
           }
         >
