@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getMonthDays, ymd } from "@/lib/dp/folga-rules";
+import { DiasEmLista } from "@/components/dp/DiasEmLista";
 
 /**
  * Calendário mensal genérico. NÃO conhece regras de Folgas, DSR ou férias:
