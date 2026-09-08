@@ -247,8 +247,8 @@ export default function ContasContabeis() {
           >
             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </button>
-          <span className="font-mono text-[10px] md:text-xs text-muted-foreground w-14 md:w-24 shrink-0 truncate">{node.code}</span>
-          <span className="flex-1 text-xs md:text-sm truncate">{node.name}</span>
+          <span className="font-mono text-[10px] md:text-xs text-muted-foreground w-10 md:w-24 shrink-0 truncate">{node.code}</span>
+          <span className="flex-1 min-w-0 text-xs md:text-sm break-words md:truncate">{node.name}</span>
           <div className="hidden md:flex items-center gap-1">
             {node.short_code && <Badge variant="outline" className="text-[10px] font-mono">{node.short_code}</Badge>}
             {node.is_tax && <Badge variant="secondary" className="text-[10px]">Imposto</Badge>}
@@ -260,18 +260,22 @@ export default function ContasContabeis() {
             </Badge>
           </div>
           {!node.is_active && (
-            <Badge variant="destructive" className="md:hidden text-[9px] px-1 h-4">Inativa</Badge>
+            <span
+              className="md:hidden h-2 w-2 shrink-0 rounded-full bg-destructive"
+              title="Inativa"
+              aria-label="Conta inativa"
+            />
           )}
           <div className="flex items-center gap-0.5 md:gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
             {!node.allow_transactions && (
-              <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7" onClick={() => openNew(node.id)} title="Adicionar filha">
+              <Button variant="ghost" size="icon" className="h-7 w-7 md:h-7 md:w-7 shrink-0" onClick={() => openNew(node.id)} title="Adicionar filha">
                 <PlusCircle className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7" onClick={() => openEdit(node)} title="Editar">
+            <Button variant="ghost" size="icon" className="h-7 w-7 md:h-7 md:w-7 shrink-0" onClick={() => openEdit(node)} title="Editar">
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-7 md:w-7 text-destructive" onClick={() => setDeleteTarget(node)} title="Excluir">
+            <Button variant="ghost" size="icon" className="h-7 w-7 md:h-7 md:w-7 shrink-0 text-destructive" onClick={() => setDeleteTarget(node)} title="Excluir">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>

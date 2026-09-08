@@ -512,9 +512,9 @@ export default function Categorias() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Categorias</h1>
-        <p className="text-sm text-muted-foreground">
+      <div className="min-w-0 space-y-1">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Categorias</h1>
+        <p className="text-xs md:text-sm text-muted-foreground">
           Organize seu plano de contas por grupos e subcategorias.
         </p>
         {counts.total > 0 && (

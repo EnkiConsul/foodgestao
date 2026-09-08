@@ -178,10 +178,10 @@ export default function CartoesCredito() {
 
   return (
     <div className="p-4 md:p-6 space-y-4 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Cartões de Crédito</h1>
-          <p className="text-xs text-muted-foreground">Gerencie limites, faturas e pagamentos.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Cartões de Crédito</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Gerencie limites, faturas e pagamentos.</p>
         </div>
         <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2 min-h-[40px]">
           <Plus className="h-4 w-4" /> Novo Cartão

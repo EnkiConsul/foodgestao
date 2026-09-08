@@ -420,10 +420,10 @@ export default function ContasBancarias() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Contas Financeiras</h1>
-          <p className="text-sm text-muted-foreground">Gerencie suas contas e saldos</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Contas Financeiras</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Gerencie suas contas e saldos</p>
         </div>
         <div className="flex items-center gap-2">
           {contextType === "pj" && selectedCompanyId && (
@@ -487,24 +487,24 @@ export default function ContasBancarias() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3">
         <Card className="bg-primary text-primary-foreground shadow-md border-0">
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15">
               <Wallet className="h-5 w-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs opacity-80">Saldo Total</p>
-              <p className="text-lg font-bold">{maskBRL(totals.saldoTotal)}</p>
+              <p className="text-base sm:text-lg font-bold truncate tabular-nums">{maskBRL(totals.saldoTotal)}</p>
             </div>
           </CardContent>
         </Card>
         <Card className="bg-muted shadow-md border-0">
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
               <Landmark className="h-5 w-5 text-primary" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Contas Ativas</p>
-              <p className="text-lg font-bold text-foreground">{totals.activeCount}</p>
+              <p className="text-base sm:text-lg font-bold text-foreground truncate tabular-nums">{totals.activeCount}</p>
             </div>
           </CardContent>
         </Card>
