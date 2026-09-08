@@ -16,8 +16,8 @@
 4. **Ações completas na aba Todos**
    Hoje, na aba Todos, o colaborador só tem "Editar". Passa a ter as mesmas ações da aba Colaboradores: editar, acesso ao portal, registrar desligamento ou reintegração, alterar condições de trabalho e remover.
 
-5. **Remover o selo "Folha: Sim/Não" dos cards**
-   Os cards de colaborador exibem hoje o selo "Folha: Sim" ou "Folha: Não". Como folha e ponto não são gerados pelo sistema (vêm da contabilidade), o selo sai dos cards. Caso se opte por mantê-lo, ele deve ser renomeado para "Ponto: Sim/Não" para não confundir com folha de pagamento.
+5. **Renomear o selo "Folha: Sim/Não" para "Ponto: Sim/Não"**
+   O selo refere-se a ponto/folha de ponto, e não a folha de pagamento. Ele é mantido nos cards, mas renomeado para "Ponto: Sim/Não" para evitar confusão.
 
 6. **Lixeira fora do menu de 3 pontos**
    O atalho "Lixeira" hoje fica dentro do menu de ações ao lado do botão "Novo colaborador". Ele passa a ser um botão à parte, com ícone de lixeira sem tampa (para não parecer o mesmo botão de "Excluir" de um cadastro).
