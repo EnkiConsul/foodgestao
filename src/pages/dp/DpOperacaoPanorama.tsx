@@ -38,7 +38,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { SETOR_NAO_DEFINIDO_LABEL, origemSetorSufixo, traduzirErroSetor } from "@/lib/dp/setor-previsto";
+import { SETOR_NAO_DEFINIDO_LABEL, origemSetorSufixo, setorDiaDivergeDoHabitual, traduzirErroSetor } from "@/lib/dp/setor-previsto";
 import { AlterarSetorDiaDialog, type AlterarSetorAlvo } from "@/components/dp/setores/AlterarSetorDiaDialog";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import {
@@ -64,9 +64,22 @@ import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
+/** Rótulo curto do motivo operacional da cobertura. */
+const COBRE_MOTIVO_LABEL: Record<string, string> = {
+  folga: "Folga",
+  falta: "Falta",
+  atestado: "Atestado",
+  outro: "Outro",
+};
+
+/** Badge do folguista: com cobertura mostra quem; sem cobertura é "extra". */
+function rotuloFolguista(p: { cobre_nome?: string | null }): string {
+  return p.cobre_nome ? `Folguista · Cobrindo ${p.cobre_nome}` : "Folguista Extra";
+}
+
 function rotuloCategoriaPessoa(p: PessoaPanorama): string {
   if (p.origem === "avulso" || p.origem === "registro_manual") {
-    if (p.avulso_tipo === "folguista") return p.cobre_nome ? `Folguista · cobre ${p.cobre_nome}` : "Folguista";
+    if (p.avulso_tipo === "folguista") return rotuloFolguista(p);
     if (p.avulso_tipo === "teste") return "Em teste";
     if (p.origem === "registro_manual") return "Registro manual";
   }
