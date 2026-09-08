@@ -67,6 +67,7 @@ export default function DpPessoasApoio() {
   const [editando, setEditando] = useState<PessoaApoio | null>(null);
   const [form, setForm] = useState(vazio);
   const [aExcluir, setAExcluir] = useState<PessoaApoio | null>(null);
+  const [transformando, setTransformando] = useState<PessoaApoio | null>(null);
 
   const nomeCargo = (id: string | null) => (cargos.data ?? []).find((c) => c.id === id)?.nome ?? "—";
   const nomeUnidade = (id: string | null) => (unidades.data ?? []).find((u) => u.id === id)?.nome ?? "—";
