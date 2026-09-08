@@ -130,6 +130,25 @@ export function FeriasConfigCard() {
       </div>
 
       <div className="space-y-2 rounded-xl border p-3">
+        <p className="text-sm font-medium">Sinalizar férias de ciclos já encerrados</p>
+        <p className="text-xs text-muted-foreground">
+          Quando o ano de trabalho fecha e ninguém tirou as férias, o sistema pode avisar antes
+          do prazo legal terminar.
+        </p>
+        <Select
+          value={sinalizacao}
+          onValueChange={(v) => setSinalizacao(v as FeriasSinalizacaoCiclo)}
+        >
+          <SelectTrigger className="sm:w-96"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {(Object.keys(FERIAS_SINALIZACAO_LABEL) as FeriasSinalizacaoCiclo[]).map((k) => (
+              <SelectItem key={k} value={k}>{FERIAS_SINALIZACAO_LABEL[k]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2 rounded-xl border p-3">
         <p className="text-sm font-medium">Início do Controle de Férias</p>
         <p className="text-xs text-muted-foreground">
           Períodos que terminaram antes desta data ficam apenas como histórico, sem cobrança de
