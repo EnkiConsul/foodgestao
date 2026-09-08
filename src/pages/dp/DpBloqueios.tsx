@@ -93,7 +93,7 @@ export default function DpBloqueios() {
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-2">
             <Label className="text-xs font-bold uppercase text-muted-foreground">Ano</Label>
-            <Input type="number" value={anoFiltro} onChange={(e) => setAnoFiltro(Number(e.target.value))} className="w-[120px]" />
+            <Input type="number" value={anoFiltro} onChange={(e) => setAnoFiltro(Number(e.target.value))} className="w-full sm:w-[120px]" />
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-bold uppercase text-muted-foreground">Mês</Label>

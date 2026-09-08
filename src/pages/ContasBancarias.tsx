@@ -520,7 +520,7 @@ export default function ContasBancarias() {
           <Input placeholder="Buscar conta..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" maxLength={100} />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full max-w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os tipos</SelectItem>
             {Object.entries(accountTypeLabels).map(([value, label]) => (
@@ -529,7 +529,7 @@ export default function ContasBancarias() {
           </SelectContent>
         </Select>
         <Select value={filterNature} onValueChange={(v) => setFilterNature(v as typeof filterNature)}>
-          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full max-w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Contábil e não contábil</SelectItem>
             <SelectItem value="contabil">Somente contábeis</SelectItem>

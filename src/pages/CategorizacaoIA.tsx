@@ -225,7 +225,7 @@ export default function CategorizacaoIA() {
                   />
                 </div>
                 <Select value={scopeFilter} onValueChange={setScopeFilter}>
-                  <SelectTrigger className="w-[160px]"><SelectValue placeholder="Escopo" /></SelectTrigger>
+                  <SelectTrigger className="w-full max-w-full sm:w-[160px]"><SelectValue placeholder="Escopo" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos escopos</SelectItem>
                     <SelectItem value="system">Sistema</SelectItem>
@@ -234,7 +234,7 @@ export default function CategorizacaoIA() {
                   </SelectContent>
                 </Select>
                 <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Origem" /></SelectTrigger>
+                  <SelectTrigger className="w-full max-w-full sm:w-[180px]"><SelectValue placeholder="Origem" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas origens</SelectItem>
                     <SelectItem value="seed">Semente</SelectItem>
@@ -281,7 +281,7 @@ export default function CategorizacaoIA() {
                               value={r.category_id}
                               onValueChange={(v) => updateCategory.mutate({ id: r.id, category_id: v })}
                             >
-                              <SelectTrigger className="h-8 w-[200px]">
+                              <SelectTrigger className="h-8 w-full max-w-full sm:w-[200px]">
                                 <SelectValue>
                                   <span className="flex items-center gap-2">
                                     {cat?.color && <span className="w-2 h-2 rounded-full" style={{ background: cat.color }} />}
