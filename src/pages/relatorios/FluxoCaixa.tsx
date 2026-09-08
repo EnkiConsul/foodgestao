@@ -331,7 +331,7 @@ export default function RelatorioFluxoCaixa() {
           </p>
 
         </div>
-        <div className="flex items-center gap-2 print:hidden">
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
           <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1">
             <Download className="h-3.5 w-3.5" /> CSV
           </Button>
@@ -352,9 +352,9 @@ export default function RelatorioFluxoCaixa() {
         <CardContent className="flex flex-wrap items-center gap-2 p-3">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-2 font-normal">
-                <CalendarIcon className="h-3.5 w-3.5" />
-                {periodoLabel}
+              <Button variant="outline" size="sm" className="h-8 max-w-full gap-2 font-normal">
+                <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{periodoLabel}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -387,7 +387,7 @@ export default function RelatorioFluxoCaixa() {
 
 
           <Select value={basis} onValueChange={(v) => setBasis(v as DateBasis)}>
-            <SelectTrigger className="h-8 w-[178px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-full max-w-full sm:w-[178px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="pagamento">Data de Pagamento</SelectItem>
               <SelectItem value="vencimento">Data de Vencimento</SelectItem>
@@ -397,7 +397,7 @@ export default function RelatorioFluxoCaixa() {
           <FluxoCaixaFiltros filtros={filtros} onChange={setFiltros} opcoes={filtroOpcoes} />
 
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
             <div className="flex items-center gap-2">
               <Switch id="hide-empty" checked={hideEmpty} onCheckedChange={setHideEmpty} />
               <Label htmlFor="hide-empty" className="text-xs text-muted-foreground">Só com movimento</Label>
