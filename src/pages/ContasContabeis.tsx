@@ -260,7 +260,11 @@ export default function ContasContabeis() {
             </Badge>
           </div>
           {!node.is_active && (
-            <Badge variant="destructive" className="md:hidden text-[9px] px-1 h-4">Inativa</Badge>
+            <span
+              className="md:hidden h-2 w-2 shrink-0 rounded-full bg-destructive"
+              title="Inativa"
+              aria-label="Conta inativa"
+            />
           )}
           <div className="flex items-center gap-0.5 md:gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
             {!node.allow_transactions && (
