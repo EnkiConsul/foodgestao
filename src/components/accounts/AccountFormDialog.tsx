@@ -255,7 +255,7 @@ export function AccountFormDialog({ open, onOpenChange, onSaved, account }: Prop
           {showBankFields && (
             <section className="space-y-3">
               <h3 className="text-sm font-semibold text-foreground">Dados bancários <span className="font-normal text-muted-foreground">(opcional)</span></h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="agency">Agência</Label>
                   <Input id="agency" value={agency} onChange={(e) => setAgency(e.target.value)} placeholder="0001" maxLength={20} />

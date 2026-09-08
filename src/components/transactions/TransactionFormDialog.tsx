@@ -1323,7 +1323,7 @@ export function TransactionFormDialog({ open, onOpenChange, onCreated, transacti
 
               {isInstallment && (
                 <div className="space-y-3 pl-6 border-l-2 border-muted">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label>Nº de parcelas</Label>
                       <Input
