@@ -68,46 +68,77 @@ export function FeriasCalendarioPanel() {
       {gozosLoading ? (
         <p className="py-10 text-center text-muted-foreground">Carregando…</p>
       ) : (
-        <div className="grid grid-cols-7 gap-1 text-xs">
-          {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
-            <div key={d} className="pb-1 text-center font-bold uppercase text-muted-foreground">
-              {d}
-            </div>
-          ))}
-          {Array.from({ length: espacos }).map((_, i) => (
-            <div key={`vazio-${i}`} />
-          ))}
-          {dias.map((d) => {
-            const chave = format(d, "yyyy-MM-dd");
-            const pessoas = porDia.get(chave) ?? [];
-            return (
-              <div
-                key={chave}
-                className="min-h-20 rounded-lg border border-border p-1 align-top"
-              >
-                <span className="text-[11px] font-semibold text-muted-foreground">
-                  {format(d, "d")}
-                </span>
-                <div className="mt-1 space-y-0.5">
-                  {pessoas.slice(0, 3).map((p, i) => (
-                    <div
+        <>
+          {/* Mobile: 1 dia = 1 linha */}
+          <div className="md:hidden">
+            <DiasEmLista
+              dias={dias.map((d) => {
+                const chave = format(d, "yyyy-MM-dd");
+                const pessoas = porDia.get(chave) ?? [];
+                return {
+                  iso: chave,
+                  resumo:
+                    pessoas.length === 0 ? (
+                      <span className="text-muted-foreground">Ninguém de férias</span>
+                    ) : (
+                      <span>
+                        <span className="font-semibold">{pessoas.length}</span> de férias
+                      </span>
+                    ),
+                  chips: pessoas.map((p, i) => (
+                    <span
                       key={`${chave}-${i}`}
-                      className={`truncate rounded px-1 py-0.5 ${TONE[p.status] ?? "bg-muted"}`}
-                      title={p.nome}
+                      className={`max-w-full truncate rounded-full px-2 py-0.5 text-[11px] font-medium ${TONE[p.status] ?? "bg-muted"}`}
                     >
                       {p.nome}
-                    </div>
-                  ))}
-                  {pessoas.length > 3 && (
-                    <div className="px-1 text-[10px] text-muted-foreground">
-                      +{pessoas.length - 3}
-                    </div>
-                  )}
-                </div>
+                    </span>
+                  )),
+                };
+              })}
+            />
+          </div>
+
+          <div className="hidden grid-cols-7 gap-1 text-xs md:grid">
+            {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
+              <div key={d} className="pb-1 text-center font-bold uppercase text-muted-foreground">
+                {d}
               </div>
-            );
-          })}
-        </div>
+            ))}
+            {Array.from({ length: espacos }).map((_, i) => (
+              <div key={`vazio-${i}`} />
+            ))}
+            {dias.map((d) => {
+              const chave = format(d, "yyyy-MM-dd");
+              const pessoas = porDia.get(chave) ?? [];
+              return (
+                <div
+                  key={chave}
+                  className="min-h-20 rounded-lg border border-border p-1 align-top"
+                >
+                  <span className="text-[11px] font-semibold text-muted-foreground">
+                    {format(d, "d")}
+                  </span>
+                  <div className="mt-1 space-y-0.5">
+                    {pessoas.slice(0, 3).map((p, i) => (
+                      <div
+                        key={`${chave}-${i}`}
+                        className={`truncate rounded px-1 py-0.5 ${TONE[p.status] ?? "bg-muted"}`}
+                        title={p.nome}
+                      >
+                        {p.nome}
+                      </div>
+                    ))}
+                    {pessoas.length > 3 && (
+                      <div className="px-1 text-[10px] text-muted-foreground">
+                        +{pessoas.length - 3}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </DpContentCard>
   );
