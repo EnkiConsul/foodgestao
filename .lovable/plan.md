@@ -21,7 +21,7 @@ Causa raiz: o feriado é dia comum para a Rotina — nem entra no cálculo do pa
 - Três funções gravadas no banco chamam a versão de um argumento (confirmado lendo a definição atual no banco):
   - `public.dp_operacao_alerta_dispensar(...)` → `private.is_company_admin_or_owner(p_company)`
   - `public.dp_operacao_alerta_reverter(...)` → `private.is_company_admin_or_owner(p_company)`
-  - `public.dp_pessoa_avulsa_definir_setor_dia(...)` → `private.is_company_admion_or_owner(v_reg.company_id)`
+  - `public.dp_pessoa_avulsa_definir_setor_dia(...)` → `private.is_company_admin_or_owner(v_reg.company_id)`
 - Origem: migration `supabase/migrations/20260907224739_...sql` (linhas 84, 137, 200).
 
 Causa raiz: chamada com aridade errada. Como o erro estoura antes do UPDATE/INSERT, hoje "marcar o dia como resolvido", "reabrir o alerta" e "definir setor do dia da pessoa avulsa" falham sempre, para qualquer usuário.
