@@ -691,7 +691,7 @@ export default function DpColaboradores() {
                                   )}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => setCondicoesDe(c)}>
-                                  <History className="h-4 w-4 mr-2" /> Alterar condições de trabalho
+                                  <HistoryIcon className="h-4 w-4 mr-2" /> Alterar condições de trabalho
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => setToDelete(c)}>
                                   <Trash2 className="h-4 w-4 mr-2 text-destructive" /> Remover
