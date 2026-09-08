@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.dp_guard_company_owner_transfer() FROM PUBLIC, anon, authenticated;
