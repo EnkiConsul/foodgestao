@@ -531,7 +531,7 @@ function DetalheDiaOperacao({
                             ) : null}
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
+                          <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:flex-nowrap">
                             {usaSetores && (
                               <Badge
                                 variant="outline"
@@ -552,7 +552,7 @@ function DetalheDiaOperacao({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 px-2 text-xs"
+                                className="min-h-9 px-2 text-xs sm:min-h-7"
                                 onClick={() => onAlterarSetor(p, data)}
                               >
                                 Alterar setor
@@ -563,7 +563,10 @@ function DetalheDiaOperacao({
                                 Sócio
                               </Badge>
                             )}
-                            <Badge variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}>
+                            <Badge
+                              variant={p.categoria === "convocado_pendente" ? "outline" : "secondary"}
+                              className="max-w-full whitespace-normal text-left leading-tight"
+                            >
                               {rotuloCategoriaPessoa(p)}
                             </Badge>
                           </div>
@@ -625,7 +628,7 @@ function DetalheDiaOperacao({
                   {a.observacao && <p className="text-xs text-muted-foreground">{a.observacao}</p>}
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" className="max-w-full whitespace-normal text-left leading-tight">
                     {a.tipo === "teste"
                       ? "Em teste"
                       : a.tipo === "folguista"
@@ -661,7 +664,7 @@ function DetalheDiaOperacao({
           <ul className="divide-y">
             {foraDaOperacao.map((p) => (
               <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
-                <span className="truncate text-sm">{p.nome}</span>
+                <span className="w-full truncate text-sm sm:w-auto">{p.nome}</span>
                 <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
                   {tagSocio(p) && (
                     <Badge variant="outline" className="border-primary/40 text-primary">
@@ -1424,7 +1427,7 @@ export default function DpOperacaoPanorama() {
           <ul className="max-h-[60vh] divide-y overflow-y-auto">
             {sociosDoDialogo.map((p) => (
               <li key={p.ocorrencia_id ?? p.colaborador_id} className="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2">
-                <span className="truncate text-sm">{p.nome}</span>
+                <span className="w-full truncate text-sm sm:w-auto">{p.nome}</span>
                 <Badge variant="outline">{p.categoria === "ferias" ? "Férias" : "Folga"}</Badge>
               </li>
             ))}
@@ -1449,7 +1452,7 @@ export default function DpOperacaoPanorama() {
                   {tagSocio(p) && (
                     <Badge variant="outline" className="border-primary/40 text-primary">Folga sócio</Badge>
                   )}
-                  <span className="text-xs text-muted-foreground">
+                  <span className="whitespace-nowrap text-xs text-muted-foreground">
                     {p.entrada ? `${p.entrada} às ${p.saida ?? "--:--"}` : "—"}
                   </span>
                 </div>
@@ -1478,7 +1481,7 @@ export default function DpOperacaoPanorama() {
                       : ""}
                   </span>
                 </div>
-                <Badge variant="secondary">
+                <Badge variant="secondary" className="max-w-full whitespace-normal text-left leading-tight">
                   {p.avulso_tipo === "teste" ? "Em teste" : rotuloFolguista(p)}
                 </Badge>
               </li>
