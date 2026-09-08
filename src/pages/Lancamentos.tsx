@@ -843,6 +843,11 @@ export default function Lancamentos() {
 
   return (
     <div className="space-y-4">
+      <div className="min-w-0">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Lançamentos</h1>
+        <p className="text-xs md:text-sm text-muted-foreground">Contas a pagar e a receber, transferências e movimentações</p>
+      </div>
+
       {/* Top action bar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
