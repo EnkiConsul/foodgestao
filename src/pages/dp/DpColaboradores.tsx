@@ -1096,7 +1096,12 @@ export default function DpColaboradores() {
                 <DpListCard
                   key={p.id}
                   title={p.nome}
-                  subtitle={<span className="font-mono">{p.cpf ?? "—"}</span>}
+                  subtitle={
+                    <span className="font-mono">
+                      {p.cpf ?? "—"}
+                      {p.telefone ? <span className="font-sans"> • {p.telefone}</span> : null}
+                    </span>
+                  }
                   meta={
                     <>
                       {nomeCargo(p.cargo_id)}
@@ -1104,15 +1109,8 @@ export default function DpColaboradores() {
                     </>
                   }
                   badges={<Badge variant="outline" className="text-[11px] capitalize">{p.tipo === "folguista" ? "Folguista" : "Em Teste"}</Badge>}
-                  actions={[
-                    {
-                      key: "transformar",
-                      label: "Promover a Colaborador",
-                      icon: UserPlus,
-                      disabled: !!p.colaborador_id,
-                      onSelect: () => setTransformando(p),
-                    },
-                  ]}
+                  onOpen={() => setApoioEditando(p)}
+                  actions={acoesApoio(p)}
                 />
               );
             })}
