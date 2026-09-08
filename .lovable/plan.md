@@ -22,6 +22,9 @@
 6. **Lixeira fora do menu de 3 pontos**
    O atalho "Lixeira" hoje fica dentro do menu de ações ao lado do botão "Novo colaborador". Ele passa a ser um botão à parte, com ícone de lixeira sem tampa (para não parecer o mesmo botão de "Excluir" de um cadastro).
 
+7. **Ver abre visualização nos apoios**
+   Hoje, ao clicar em "Ver" em um card de Folguista ou Em Teste, o sistema abre a edição. Passa a abrir o card de visualização primeiro, igual ao comportamento dos colaboradores. A edição fica acessível pelo menu de ações do card.
+
 ## Detalhes técnicos
 
 - Arquivo: `src/pages/dp/DpColaboradores.tsx` (apenas apresentação; sem mudanças de banco).
@@ -31,3 +34,4 @@
 - Extrair o trecho de selos Ativo/Desligado (com `fmtDate(c.data_desligamento)`) em um helper local e usá-lo nos cards/linhas da aba Todos e nas listas de apoio.
 - Reutilizar o mesmo array de ações da aba Colaboradores para as linhas/cards de colaborador na aba Todos.
 - No `DpPageHeader`, mover o item "Lixeira" do menu de ações para um botão secundário ao lado do botão principal, usando um ícone de lixeira sem tampa (ex.: `Trash` do `lucide-react` ou outro que represente a lixeira em vez de exclusão imediata).
+- Para Folguistas e Em Teste, o `onOpen` do `DpListCard` e o clique na linha da tabela abrem a visualização (`ApoioViewDialog` ou o equivalente usado para colaboradores); a ação "Editar cadastro" abre o formulário de edição. Se a visualização não existir, começar com o card de leitura simples e abrir edição apenas pelo menu.
