@@ -26,3 +26,4 @@
 - [x] Fase 6 — padrão global de tabelas
 - [x] Fase 7 — demais tabelas e listas
 - [x] Fase 8 — revisão final de consistência (tabelas padronizadas, sem transbordo em 360/768/1280)
+- [x] Fase 9 — validação visual das telas novas (1366x768 e 360 px, 10 rotas, sem overflow, menu Colunas e diálogos verificados)
