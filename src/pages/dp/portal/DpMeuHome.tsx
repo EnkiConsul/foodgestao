@@ -210,7 +210,7 @@ export default function DpMeuHome() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <AniversariantesCard />
+        <AniversariantesCard variant="portal" />
       </div>
 
 
