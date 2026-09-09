@@ -12,10 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useDpPendencias, type Pendencia } from "@/hooks/useDpPendencias";
+import { useDpPendencias } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
-import { addDays } from "date-fns";
-import { toast } from "sonner";
+import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
+import { PendenciaAcoes } from "@/components/dp/pendencias/PendenciaAcoes";
 import {
   agruparPorColaborador,
   filtrarAbertas,
@@ -23,7 +23,7 @@ import {
   urgenciaDe,
   type PendenciaUrgencia,
 } from "@/lib/dp/pendencias";
-import { AdiarPopover, UrgenciaBadge } from "@/components/dp/home/PendenciasCard";
+import { UrgenciaBadge } from "@/components/dp/home/PendenciasCard";
 
 type Filtro = {
   tipo: string;
