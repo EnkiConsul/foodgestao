@@ -114,9 +114,10 @@ export function agruparPorTipo<T extends PendenciaLike>(itens: T[]): GrupoPenden
     });
   }
 
+  // Mais antigas/atrasadas primeiro.
   return grupos.sort((a, b) => {
+    if (a.maiorAtraso !== b.maiorAtraso) return b.maiorAtraso - a.maiorAtraso;
     if (a.atrasadas !== b.atrasadas) return b.atrasadas - a.atrasadas;
-    if (a.hoje !== b.hoje) return b.hoje - a.hoje;
     if (a.total !== b.total) return b.total - a.total;
     return a.tipo.localeCompare(b.tipo, "pt-BR");
   });
