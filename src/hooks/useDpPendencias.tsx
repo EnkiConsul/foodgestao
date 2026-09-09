@@ -223,9 +223,64 @@ export function useDpPendencias() {
         console.warn("pendencias/colabs-unidade:", e);
       }
 
+      // Histórico de solicitações de adiantamento (ativar/cancelar com data) —
+      // decide se a competência estava com adiantamento ativo, não o flag atual.
+      const solicitacoesPorColab = new Map<string, AdiantamentoSolicitacao[]>();
+      try {
+        const { data: sols } = await supabase
+          .from("dp_adiantamento_solicitacoes" as any)
+          .select("id, colaborador_id, tipo, data_solicitacao, competencia_efeito, origem, created_at")
+          .eq("company_id", selectedCompanyId!);
+        (sols ?? []).forEach((s: any) => {
+          if (!solicitacoesPorColab.has(s.colaborador_id)) solicitacoesPorColab.set(s.colaborador_id, []);
+          solicitacoesPorColab.get(s.colaborador_id)!.push(s as AdiantamentoSolicitacao);
+        });
+      } catch (e) {
+        console.warn("pendencias/adiantamento-solicitacoes:", e);
+      }
+
+      // Confirmações do gestor sobre o intermitente (trabalhou / não trabalhou).
+      const confirmacaoIntermitente = new Map<string, boolean>();
+      try {
+        const { data: confs } = await supabase
+          .from("dp_intermitente_competencia_confirmacoes" as any)
+          .select("colaborador_id, competencia, trabalhou")
+          .eq("company_id", selectedCompanyId!);
+        (confs ?? []).forEach((c: any) => {
+          confirmacaoIntermitente.set(`${c.colaborador_id}:${c.competencia}`, c.trabalhou === true);
+        });
+      } catch (e) {
+        console.warn("pendencias/intermitente-confirmacoes:", e);
+      }
+
       const hojeISO = ymd(today);
       const compVigente = competenciaDe(hojeISO);
       const compAnterior = somarMeses(compVigente, -1);
+
+      // Evidência de trabalho do intermitente: marcações de ponto na competência.
+      // (Convocação aceita/escala entram pelo próprio registro de ponto.)
+      const intermitentesIds = colaboradoresDocs
+        .filter((c) => String(c.regime ?? "").toLowerCase() === "intermitente")
+        .map((c) => c.id);
+      const pontoIntermitente = new Set<string>(); // `${colab}:${comp}`
+      if (intermitentesIds.length > 0) {
+        try {
+          const { data: pts } = await supabase
+            .from("dp_pontos")
+            .select("colaborador_id, data")
+            .eq("company_id", selectedCompanyId!)
+            .in("colaborador_id", intermitentesIds)
+            .gte("data", `${somarMeses(compVigente, -24)}-01`)
+            .lte("data", hojeISO);
+          (pts ?? []).forEach((p: any) => {
+            if (p.colaborador_id && p.data) {
+              pontoIntermitente.add(`${p.colaborador_id}:${String(p.data).slice(0, 7)}`);
+            }
+          });
+        } catch (e) {
+          console.warn("pendencias/intermitente-pontos:", e);
+        }
+      }
 
       // Documentos por tipo — 1 query por tipo cobrindo todo o intervalo.
       // Chave por colaborador: `${colaboradorId}:${competencia}`
