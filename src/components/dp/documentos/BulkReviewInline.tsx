@@ -844,7 +844,11 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                     </SelectContent>
                   </Select>
                   <NovoColaboradorInlineDialog
-                    defaultNome={current.matched_nome ?? extrairNomePessoa(current.ocr_text ?? "") ?? ""}
+                    defaultNome={
+                      (current.matched_nome && !pareceRazaoSocial(current.matched_nome)
+                        ? current.matched_nome
+                        : extrairNomePessoa(current.ocr_text ?? "")) ?? ""
+                    }
                     defaultCpf={
                       isCpfValido(current.matched_cpf ?? "")
                         ? String(current.matched_cpf)
