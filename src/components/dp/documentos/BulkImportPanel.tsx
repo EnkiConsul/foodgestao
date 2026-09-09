@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Upload, Loader2, Check, X, ChevronDown, ChevronRight, RefreshCw, ExternalLink, AlertTriangle, Eye, Trash2, Info,
@@ -82,6 +82,26 @@ export function BulkImportPanel({
   useEffect(() => {
     if (loteAbertoId) setExpanded((s) => ({ ...s, [loteAbertoId]: true }));
   }, [loteAbertoId]);
+
+  /** Âncoras para levar o usuário até o lote em processamento e de volta ao envio. */
+  const uploadCardRef = useRef<HTMLDivElement | null>(null);
+  const lotesRef = useRef<HTMLDivElement | null>(null);
+  const loteNovoRef = useRef<string | null>(null);
+
+  const rolarAte = useCallback((el: HTMLElement | null) => {
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+
+  /** Volta ao estado inicial do formulário quando o lote termina de ser importado. */
+  const reiniciarEnvio = useCallback((batchId: string) => {
+    setExpanded((s) => ({ ...s, [batchId]: false }));
+    setFile(null);
+    setTipo(tipoFixed ?? tipoInicial ?? AUTO_TIPO);
+    setReferencia(referenciaFixed ?? referenciaInicial ?? "");
+    rolarAte(uploadCardRef.current);
+  }, [tipoFixed, tipoInicial, referenciaFixed, referenciaInicial, rolarAte]);
   useEffect(() => {
     if (!selectedCompanyId) return;
     supabase.functions.invoke("dp-doc-bulk-discard", {
@@ -111,6 +131,20 @@ export function BulkImportPanel({
       return data as any[];
     },
   });
+
+  /**
+   * Depois de enviar, o lote novo entra na lista de forma assíncrona: rolamos
+   * assim que ele aparece na tela, para o usuário ver que já está processando.
+   */
+  useEffect(() => {
+    const id = loteNovoRef.current;
+    if (!id) return;
+    const el = document.getElementById(`lote-${id}`);
+    if (!el) return;
+    loteNovoRef.current = null;
+    rolarAte(el);
+  }, [batches.dataUpdatedAt, rolarAte]);
+
 
   const filteredBatches = useMemo(() => {
     return (batches.data ?? []).filter((b) => statusFilter === "all" ? true : b.status === statusFilter);
@@ -181,6 +215,9 @@ export function BulkImportPanel({
 
       // Auto-expande o lote novo para o usuário ver o progresso em tempo real
       setExpanded((s) => ({ ...s, [batch.id]: true }));
+      // ...e marca para a tela rolar até ele assim que aparecer na lista
+      loteNovoRef.current = batch.id;
+      rolarAte(lotesRef.current);
 
       // Dispara a Edge Function; ela retorna 202 imediatamente e processa em background.
       // Não bloqueamos aqui — o polling atualiza a UI.
@@ -291,6 +328,7 @@ export function BulkImportPanel({
 
   return (
     <div className="space-y-4">
+      <div ref={uploadCardRef}>
       <DpFilterCard>
         <div className="space-y-3">
           <h2 className="text-base font-semibold">{title}</h2>
@@ -362,8 +400,9 @@ export function BulkImportPanel({
           </Button>
         </div>
       </DpFilterCard>
+      </div>
 
-      <Card className="dp-content-card">
+      <Card className="dp-content-card" ref={lotesRef}>
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="text-base">Lotes recentes</CardTitle>
           <div className="flex items-center gap-2">
@@ -398,7 +437,7 @@ export function BulkImportPanel({
             const isProcessing = b.status === "processing";
             const canDiscard = importadas === 0 && b.status !== "imported" && b.status !== "partially_imported";
             return (
-              <div key={b.id} className="border rounded-md">
+              <div key={b.id} id={`lote-${b.id}`} className="border rounded-md scroll-mt-20">
                 <button
                   type="button"
                   className="w-full flex items-start justify-between gap-2 p-3 text-left hover:bg-muted/50"
@@ -503,6 +542,7 @@ export function BulkImportPanel({
                       batchId={b.id}
                       batchName={b.source_file_name}
                       onOpenFullscreen={() => setReviewBatch({ id: b.id, name: b.source_file_name })}
+                      onConcluido={() => reiniciarEnvio(b.id)}
                     />
                   </div>
                 )}

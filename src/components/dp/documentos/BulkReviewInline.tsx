@@ -5,6 +5,7 @@ import {
   ExternalLink, RotateCcw, ZoomIn, ZoomOut, CheckCircle2, PenLine, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { loteConcluido } from "@/lib/dp/bulk-import-conclusao";
 import * as pdfjsLib from "pdfjs-dist";
 import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
 import { Button } from "@/components/ui/button";
@@ -51,9 +52,11 @@ export interface BulkReviewInlineProps {
   batchId: string;
   batchName?: string;
   onOpenFullscreen?: () => void;
+  /** Disparado quando o lote não tem mais páginas vinculadas aguardando decisão. */
+  onConcluido?: () => void;
 }
 
-export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkReviewInlineProps) {
+export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcluido }: BulkReviewInlineProps) {
   const qc = useQueryClient();
   const { data: colaboradores = [] } = useDpColaboradores();
   const { data: unidades = [] } = useDpUnidades();
@@ -353,6 +356,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen }: BulkR
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
+      if (okc + rep > 0 && loteConcluido(rows as any[], item_ids)) onConcluido?.();
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao aprovar");
     } finally {

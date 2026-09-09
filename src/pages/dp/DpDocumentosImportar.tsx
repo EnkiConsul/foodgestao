@@ -95,14 +95,14 @@ export default function DpDocumentosImportar() {
         </Alert>
       )}
 
-      <DocConsistenciaPanel />
-
       <BulkImportPanel
         title="Importação em Massa (PDF com Várias Páginas)"
         tipoInicial={tipo ?? undefined}
         referenciaInicial={competencia ? `${competencia}-01` : undefined}
         loteAbertoId={lote ?? undefined}
       />
+
+      <DocConsistenciaPanel />
     </DpPage>
   );
 }
