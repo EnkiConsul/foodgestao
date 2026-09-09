@@ -380,24 +380,26 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
             <div className="flex items-center justify-between gap-1 px-2 sm:px-3 py-2 border-b bg-background/60">
               <Button
                 size="sm" variant="ghost"
+                className="px-2 shrink-0"
                 disabled={currentIdx <= 0}
                 onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
               >
-                <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                <ChevronLeft className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Anterior</span>
               </Button>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground text-center min-w-0 truncate">
                 Página <b>{current?.page_index ?? "-"}</b> ({currentIdx + 1}/{rows.length})
               </div>
-              <div className="flex items-center gap-1">
-                <Button size="sm" variant="ghost" onClick={openInNewTab} title="Abrir em nova aba">
+              <div className="flex items-center gap-1 shrink-0">
+                <Button size="sm" variant="ghost" className="px-2" onClick={openInNewTab} title="Abrir em nova aba">
                   <ExternalLink className="h-4 w-4" />
                 </Button>
                 <Button
                   size="sm" variant="ghost"
+                  className="px-2"
                   disabled={currentIdx >= rows.length - 1}
                   onClick={() => setCurrentIdx((i) => Math.min(rows.length - 1, i + 1))}
                 >
-                  Próxima <ChevronRight className="h-4 w-4 ml-1" />
+                  <span className="hidden sm:inline">Próxima</span> <ChevronRight className="h-4 w-4 sm:ml-1" />
                 </Button>
               </div>
             </div>
@@ -418,8 +420,9 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           </div>
 
           {/* RIGHT: Item list + edit panel */}
-          <div className="flex flex-col min-h-0">
-            <ScrollArea className="flex-1">
+          <div className="contents lg:flex lg:flex-col lg:min-h-0 lg:order-2">
+            <ScrollArea className="order-1 lg:order-none max-h-[32vh] lg:max-h-none lg:flex-1 border-b lg:border-b-0">
+
               <div className="p-3 space-y-2">
                 {rows.length === 0 && (
                   <p className="text-sm text-muted-foreground flex items-center gap-2">
