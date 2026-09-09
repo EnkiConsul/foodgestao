@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Building2, ListChecks, Users, Search, Store, Scale } from "lucide-react";
@@ -48,6 +49,28 @@ export default function DpUnidades() {
     setAbaForm(aba);
     setOpen(true);
   };
+
+  /**
+   * Atalho das pendências: /dp/cadastros/unidades?editar=<id>&aba=sindicato abre
+   * a unidade já na aba onde a pendência é resolvida.
+   */
+  const [params, setParams] = useSearchParams();
+  const abertoPorLink = useRef(false);
+  useEffect(() => {
+    const id = params.get("editar");
+    if (!id || abertoPorLink.current) return;
+    const alvo = (list.data ?? []).find((u) => u.id === id);
+    if (!alvo) return;
+    abertoPorLink.current = true;
+    const aba = params.get("aba") as UnidadeAba | null;
+    const abasValidas: UnidadeAba[] = ["dados", "setores", "funcionamento", "feriados", "sindicato"];
+    openEdit(alvo, aba && abasValidas.includes(aba) ? aba : "dados");
+    const next = new URLSearchParams(params);
+    next.delete("editar");
+    next.delete("aba");
+    setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, list.data]);
 
   const openView = (u: DpUnidadeWithCounts) => {
     setViewing(u);
