@@ -16,6 +16,7 @@ import { PUBLIC_SITE_ORIGIN } from "@/lib/siteOrigin";
 import {
   MODELO_ACESSO_PORTAL_TITULO,
   MODELO_NOVA_SENHA_TITULO,
+  PORTAL_COLABORADOR_PATH,
 } from "@/lib/dp/modelosPortal";
 
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
