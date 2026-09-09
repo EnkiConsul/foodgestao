@@ -171,6 +171,9 @@ const TRIAL_EXPIRED_WHITELIST = [
   "/checkout",
   "/faturas",
   "/admin",
+  "/bem-vindo",
+  "/convite",
+  "/onboarding",
 ];
 
 function isWhitelistedForExpiredTrial(pathname: string) {
@@ -181,16 +184,23 @@ function isWhitelistedForExpiredTrial(pathname: string) {
 
 function SubscriptionGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { data: sub, isLoading } = useCurrentSubscription();
   const { isSuperAdmin, loading: roleLoading } = useSuperAdmin();
+  const { loading, hasCompanies, blocked } = useCompanyAccess();
 
-  if (isLoading || roleLoading) return <>{children}</>;
+  if (loading || roleLoading) return <>{children}</>;
   if (isSuperAdmin) return <>{children}</>;
-  if (!sub?.isBlocked) return <>{children}</>;
   if (isWhitelistedForExpiredTrial(location.pathname)) return <>{children}</>;
+
+  // Sem nenhuma empresa (própria ou por convite): a entrada é a tela de
+  // boas-vindas, com convites pendentes e a opção de criar empresa.
+  if (!hasCompanies) return <Navigate to="/bem-vindo" replace />;
+
+  // Com empresa: o bloqueio depende da assinatura do DONO da empresa ativa.
+  if (!blocked) return <>{children}</>;
 
   return <Navigate to="/trial-expirado" replace />;
 }
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
