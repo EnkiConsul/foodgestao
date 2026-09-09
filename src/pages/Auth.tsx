@@ -22,6 +22,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
 import logoMarinho from "@/assets/aveto360-logo.png.asset.json";
+import logoClaro from "@/assets/aveto360-horizontal-light.png.asset.json";
 
 // Login identifier: e-mail OR CPF (11 digits with or without punctuation)
 const loginSchema = z.object({
