@@ -117,6 +117,8 @@ export function NovoColaboradorInlineDialog({
         .select("id, nome")
         .single();
       if (error) throw error;
+      // A lista da tela precisa conter o novo cadastro antes de vincular a página.
+      await qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
       toast.success("Colaborador cadastrado");
       onCreated?.(data.id as string, data.nome as string);
       setFormOpen(false);
@@ -174,7 +176,7 @@ export function NovoColaboradorInlineDialog({
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div className="space-y-1">
               <Label>Cargo</Label>
-              <Select value={cargo} onValueChange={setCargo}>
+              <Select value={cargo} onValueChange={escolherCargo}>
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent>
                   {(cargos.data ?? []).map((c: any) => (
@@ -197,7 +199,7 @@ export function NovoColaboradorInlineDialog({
           </div>
           <div className="space-y-1">
             <Label>Vínculo</Label>
-            <Select value={vinculo} onValueChange={setVinculo}>
+            <Select value={vinculo} onValueChange={(v) => { setVinculoTocado(true); setVinculo(v); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="CLT">CLT efetivo</SelectItem><SelectItem value="Intermitente">CLT intermitente</SelectItem>
