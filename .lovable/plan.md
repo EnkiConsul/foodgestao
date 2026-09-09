@@ -30,5 +30,7 @@ Para evitar pedidos e cancelamentos em sequência, o pedido feito **pelo portal 
 
 - `src/lib/dp/pendencias-documentos.ts`: no ramo `tipo === "adiantamento"` de `elegivelDocumento`, adicionar a checagem de `data_admissao` na competência contra `opts.diaAdiantamento` (espelhando a regra atual de `data_desligamento`).
 - `src/components/dp/documentos/DocConsistenciaPanel.tsx`: garantir que o `diaAdiantamento` da unidade é repassado no check mensal (hoje o painel monta os checks localmente).
-- `src/test/unit/*`: casos de teste para admissão antes, no dia e depois do dia do pagamento, e regressão do caso de desligamento.
+- `src/lib/dp/adiantamento-opcao.ts`: `competenciaEfeito` ganha a origem (`gestor` | `portal`); no portal o cálculo usa `data + 30 dias` antes de aplicar a regra do dia de pagamento. `efeitoHint` e a validação do portal passam a refletir essa carência.
+- `src/hooks/useDpAdiantamentoSolicitacoes.tsx` e `src/pages/dp/portal/DpMeuSolicitacoes.tsx`: usar a competência com carência e exibir o aviso; o painel do gestor (`src/components/dp/AdiantamentoSolicitacoesPanel.tsx`) segue sem carência.
+- `src/test/unit/adiantamentoOpcao.test.ts`: casos de admissão antes/no dia/depois do dia do pagamento, carência de 30 dias no portal e regressão do desligamento.
 - Sem mudanças de banco de dados.
