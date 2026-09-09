@@ -18,6 +18,8 @@ export interface CoverageArgs {
   colaboradores: CoverageColaborador[];
   /** ids de colaboradores já vinculados a alguma página do lote */
   vinculados: Set<string>;
+  /** ids de colaboradores que já têm o documento salvo (outra importação) */
+  jaImportados?: Set<string> | null;
   /** "YYYY-MM" — competência predominante do lote */
   competencia: string | null;
   /** unidades identificadas no lote (CNPJ, colaboradores vinculados ou vínculo manual) */
@@ -33,7 +35,13 @@ export interface CoverageResult {
   cobertos: number;
   /** true quando nenhuma unidade pôde ser identificada para o lote */
   unidadeIndefinida: boolean;
+  /**
+   * false para documentos pontuais (rescisão, atestado, contrato, outros): não
+   * existe "lote da unidade", então nunca se cobra dos demais colaboradores.
+   */
+  tipoColetivo: boolean;
 }
+
 
 /** Primeiro e último dia da competência "YYYY-MM". */
 export function competenciaRange(competencia: string): { inicio: string; fim: string } | null {
@@ -115,12 +123,48 @@ export function desligadoNaCompetencia(
 
 const TIPOS_RESCISAO = new Set(["trct", "demonstrativo_rescisorio", "rescisao"]);
 
+/**
+ * Documentos coletivos mensais: a unidade recebe um por colaborador elegível na
+ * competência, então faz sentido cobrar dos demais e falar em "lote completo".
+ * Qualquer outro tipo (rescisão, atestado, contrato, exames, outros) é pontual.
+ */
+export const TIPOS_COLETIVOS = new Set([
+  "contracheque",
+  "contracheque_13",
+  "contracheque_ferias",
+  "pro_labore",
+  "adiantamento",
+  "ponto",
+]);
+
+export function tipoColetivoDoc(tipo?: string | null): boolean {
+  return !!tipo && TIPOS_COLETIVOS.has(tipo);
+}
+
+/** Tipos gravados em dp_documentos equivalentes ao tipo do lote. */
+export function tiposEquivalentes(tipo?: string | null): string[] {
+  if (!tipo) return [];
+  if (tipo === "rescisao") return ["trct", "demonstrativo_rescisorio"];
+  return [tipo];
+}
+
 export function computeCoverage({
-  colaboradores, vinculados, competencia, unidadeIds, tipo, exigirContrachequeMesDesligamento,
+  colaboradores, vinculados, jaImportados, competencia, unidadeIds, tipo,
+  exigirContrachequeMesDesligamento,
 }: CoverageArgs): CoverageResult {
+  // Documento pontual: nada a cobrar dos outros colaboradores da unidade.
+  if (!tipoColetivoDoc(tipo)) {
+    return {
+      esperados: [], faltantes: [], cobertos: 0,
+      unidadeIndefinida: false, tipoColetivo: false,
+    };
+  }
   const escopo = (unidadeIds ?? []).filter(Boolean);
   if (escopo.length === 0) {
-    return { esperados: [], faltantes: [], cobertos: 0, unidadeIndefinida: true };
+    return {
+      esperados: [], faltantes: [], cobertos: 0,
+      unidadeIndefinida: true, tipoColetivo: true,
+    };
   }
   const escopoSet = new Set(escopo);
   const esperados = colaboradores.filter((c) => {
@@ -140,15 +184,17 @@ export function computeCoverage({
     return ativoNaCompetencia(c, competencia);
   });
   const faltantes = esperados
-    .filter((c) => !vinculados.has(c.id))
+    .filter((c) => !vinculados.has(c.id) && !(jaImportados?.has(c.id) ?? false))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   return {
     esperados,
     faltantes,
     cobertos: esperados.length - faltantes.length,
     unidadeIndefinida: false,
+    tipoColetivo: true,
   };
 }
+
 
 /** Competência predominante entre os itens do lote. */
 export function competenciaPredominante(

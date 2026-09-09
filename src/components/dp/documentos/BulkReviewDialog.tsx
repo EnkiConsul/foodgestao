@@ -26,6 +26,7 @@ import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
 import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@/lib/dp/bulk-coverage";
 import { VincularUnidadeLote } from "./VincularUnidadeLote";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpDocsJaImportados } from "@/hooks/useDpDocsJaImportados";
 import { cn } from "@/lib/utils";
 import { extrairCpfValido, extrairNomePessoa, isCpfValido, pareceRazaoSocial } from "@/lib/dp/doc-pessoa";
 import { tipoCanonicoPorVinculo } from "@/lib/dp/documento-tipo-por-vinculo";
@@ -343,9 +344,11 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     unidades: unidades as any,
     manualUnidadeId: (batchInfo.data as any)?.unidade_id ?? null,
   });
+  const jaImportados = useDpDocsJaImportados(competenciaLote, (batchInfo.data as any)?.tipo ?? null);
   const coverage = computeCoverage({
     colaboradores: colaboradores as any,
     vinculados: new Set(rows.map((r: any) => r.matched_colaborador_id).filter(Boolean)),
+    jaImportados,
     competencia: competenciaLote,
     unidadeIds: unidadesLote,
     tipo: (batchInfo.data as any)?.tipo ?? null,

@@ -280,7 +280,12 @@ export function useDpPendencias() {
             }) && ativoNaCompetencia(c as any, comp),
         );
         const faltantes = elegiveis.filter((c) => !docs.has(`${c.id}:${comp}`));
-        return { elegiveis, faltantes, completo: elegiveis.length > 0 && faltantes.length === elegiveis.length };
+        // Só é "lote completo" com mais de um elegível; com um só, informar o nome.
+        return {
+          elegiveis,
+          faltantes,
+          completo: elegiveis.length > 1 && faltantes.length === elegiveis.length,
+        };
       };
 
       // Competências esperadas por unidade (a partir de 1 mês antes do cadastro)
