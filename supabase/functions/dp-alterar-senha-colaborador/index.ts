@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const colaboradorId = body?.colaborador_id;
     const novaSenha = body?.nova_senha;
+    const exigirTroca = body?.exigir_troca === undefined ? true : body.exigir_troca === true;
 
     if (!colaboradorId || typeof colaboradorId !== "string") {
       return json({ error: "colaborador_id obrigatório" }, 400);
