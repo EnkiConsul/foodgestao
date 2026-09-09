@@ -42,7 +42,18 @@ Hoje o cadastro só tem uma chave liga/desliga ("Opta por Adiantamento Salarial"
 - Documento já importado de competência com opção ativa deixa de ser marcado como inconsistente e continua visível no portal do colaborador.
 - Continuam valendo as regras já existentes: admissão depois do dia do adiantamento e desligamento antes desse dia não geram pendência; sócio, PJ e intermitente ficam fora.
 
+## Frente 5 — Ignorar (com justificativa) ou adiar pendências de documentos
+
+Hoje só existe "adiar" na tela inicial, guardado como preferência do próprio usuário, sem justificativa e sem opção de ignorar.
+
+- Cada pendência de documento ganha as ações "Adiar" (7/15/30 dias) e "Ignorar", com justificativa obrigatória no caso de ignorar.
+- A decisão passa a ser da empresa, não do usuário: quem registrou, quando, o motivo e até quando ficam guardados e visíveis para os demais gestores.
+- Ignorada e adiada saem das listas por padrão, com um botão para exibi-las e para reverter a decisão.
+- A mesma decisão vale nos três lugares: pendências do Início, lista completa de pendências e conferência na tela de importar documentos.
+- Ação e justificativa ficam registradas na auditoria.
+
 ## Detalhes técnicos
+
 
 - `src/lib/dp/pendencias-documentos.ts`: `ElegibilidadeOpts` ganha `temDiasNaCompetencia?: boolean` (intermitente sem dias → `ponto` e `contracheque` = false) e `optanteNaCompetencia?: boolean` consultado no histórico em vez do booleano do cadastro.
 - `src/lib/dp/bulk-coverage.ts`: `CoverageArgs` recebe `comDiasTrabalhados?: Set<string>` e `optantesNaCompetencia?: Set<string>`; `computeCoverage` filtra os esperados por eles.
