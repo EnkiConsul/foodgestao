@@ -744,6 +744,34 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
               </div>
             </div>
 
+            {/* Decisão de duplicidade desta página */}
+            {dupMap.has(current.id) && (
+              <div className="px-3 py-2 border-b bg-amber-50/60 dark:bg-amber-950/20 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-muted-foreground min-w-0">
+                  Já existe {docTipoLabel(dupMap.get(current.id)!.tipo ?? "")} de{" "}
+                  {dupMap.get(current.id)!.competencia_label} para {dupMap.get(current.id)!.colaborador_nome}.
+                </div>
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant={decisoesDup[current.id] === "skip" ? "default" : "outline"}
+                    className="h-9"
+                    onClick={() => setDecisoesDup((d) => ({ ...d, [current.id]: "skip" }))}
+                  >
+                    Ignorar esta página
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={decisoesDup[current.id] === "replace" ? "default" : "outline"}
+                    className="h-9"
+                    onClick={() => setDecisoesDup((d) => ({ ...d, [current.id]: "replace" }))}
+                  >
+                    Substituir o existente
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Preview grande do PDF */}
             <div
               ref={previewBoxRef}
