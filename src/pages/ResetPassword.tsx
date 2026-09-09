@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const schema = z
   .object({
