@@ -2,8 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Store, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { DpPage } from "@/components/dp/DpPage";
-import { DpFilterCard } from "@/components/dp/DpFilterCard";
+import { DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -64,15 +63,16 @@ export default function DpMeuRotinaLoja() {
   }, [escala.data]);
 
   return (
-    <DpPage
-      icon={Store}
-      title="Rotina da loja"
-      description={
-        vinculo?.unidadeNome
-          ? `Equipe escalada em ${vinculo.unidadeNome}`
-          : "Equipe escalada na sua unidade"
-      }
-    >
+    <DpPage>
+      <DpPageHeader
+        icon={Store}
+        title="Rotina da loja"
+        description={
+          vinculo?.unidadeNome
+            ? `Equipe escalada em ${vinculo.unidadeNome}`
+            : "Equipe escalada na sua unidade"
+        }
+      />
       <DpFilterCard>
         <div className="max-w-xs">
           <Label className="text-xs">Dia</Label>
