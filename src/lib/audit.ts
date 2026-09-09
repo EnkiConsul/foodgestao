@@ -11,6 +11,7 @@ export async function logAudit(
   entityType: string,
   entityId?: string | null,
   details?: Record<string, unknown>,
+  companyId?: string | null,
 ): Promise<void> {
   try {
     await supabase.rpc("insert_audit_log", {
@@ -18,6 +19,7 @@ export async function logAudit(
       _entity_type: entityType,
       _entity_id: entityId ?? null,
       _details: (details ?? null) as never,
+      _company_id: companyId ?? null,
     });
   } catch {
     // silencioso por design
@@ -28,5 +30,6 @@ export async function logAudit(
 export const ACCESS_ACTIONS = [
   "user_signed_in",
   "user_signed_out",
+  "user_session_resumed",
   "user_password_changed",
 ] as const;

@@ -41,12 +41,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Registra a retomada de sessão (usuário volta ao sistema já logado) uma
+    // única vez por aba, para a aba "Acessos" da Auditoria.
+    const logResumeOnce = (session: Session | null) => {
+      if (!session?.user) return;
+      const key = `audit_resume_${session.user.id}`;
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+      void logAudit("user_session_resumed", "auth");
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       applySession(session);
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+        setTimeout(() => logResumeOnce(session), 0);
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       applySession(session);
+      logResumeOnce(session);
     });
 
     return () => subscription.unsubscribe();
