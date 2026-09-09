@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Filter } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Filter, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
