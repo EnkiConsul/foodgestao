@@ -16,8 +16,10 @@ Retomada do plano anterior (7 frentes), com uma frente nova sobre a alteração 
 ## Frente 3 — Falsa falta de documentos
 
 - A conferência passa a somar os documentos já salvos (unidade + competência + tipo), não só o lote em processamento — corrige os casos de Karine, Cristiane e da folha de ponto 07/2026 da Garavelo.
-- "Lote completo" só quando faltar de todos os elegíveis. Caso contrário, mostra a quantidade; com um único pendente, mostra o nome.
+- "Lote completo" só existe para documentos coletivos mensais (contracheque, adiantamento, folha de ponto) e só quando faltar de todos os elegíveis. Caso contrário, mostra a quantidade; com um único pendente, mostra o nome.
+- Rescisão e documentos pontuais (por pessoa, sem competência coletiva) nunca são tratados como lote nem agrupados por unidade: a pendência é sempre nominal, do colaborador.
 - Documento que não é de tipo coletivo nunca gera falta para os demais colaboradores.
+
 
 ## Frente 4 — Adiantamento salarial
 
