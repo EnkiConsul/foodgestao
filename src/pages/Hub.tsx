@@ -103,6 +103,8 @@ export default function Hub() {
         <meta name="description" content="Acesse os módulos contratados: Financeiro e Pessoas." />
       </Helmet>
 
+      <PendingInvitesAlert />
+
       <div className="mb-6 md:mb-8">
         <p className="text-xs md:text-sm text-muted-foreground mb-1">{contextLabel}</p>
         <h1 className="text-xl md:text-3xl font-bold">Hub de Módulos</h1>
@@ -110,6 +112,7 @@ export default function Hub() {
           Selecione um módulo para começar. Cada módulo é uma contratação independente.
         </p>
       </div>
+
 
       <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-3">
         {visibleModules.map((def) => (
