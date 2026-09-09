@@ -70,23 +70,9 @@ export default function DpMeuHome() {
     },
   });
 
-  // Próxima folga confirmada / agendada.
-  const proximaFolga = useQuery({
-    queryKey: ["dp_meu_proxima_folga", colabId.data],
-    enabled: !!colabId.data,
-    queryFn: async () => {
-      const hoje = new Date().toISOString().slice(0, 10);
-      const { data } = await supabase
-        .from("dp_folgas")
-        .select("id, data, status")
-        .eq("colaborador_id", colabId.data!)
-        .gte("data", hoje)
-        .order("data", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-  });
+  // Próxima folga de qualquer motivo (lançada, escala ou folga semanal fixa).
+  const { folga: proximaFolga, hoje: hojeISO } = useMinhaProximaFolga(colabId.data);
+
 
   // Últimos 3 documentos direcionados ao colaborador.
   const ultimosDocs = useQuery({
