@@ -212,13 +212,14 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
             </p>
           </div>
         )}
-        <button
-          onClick={signOut}
-          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-sidebar-primary hover:bg-sidebar-accent rounded-lg transition-colors font-medium"
-        >
-          <LogOut className="h-4 w-4" />
-          {!collapsed && <span>Sair</span>}
-        </button>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={signOut} tooltip="Sair">
+              <LogOut className="h-4 w-4 shrink-0" />
+              <span>Sair</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
