@@ -83,6 +83,12 @@ export default function GestaoUsuarios() {
   const activeCompanyId = selectedCompanyId || companies[0]?.id || "";
   const userRole = companies.find((c: any) => c.id === activeCompanyId)?.role;
   const isAdminOrOwner = userRole === "owner" || userRole === "admin";
+  const isOwner = userRole === "owner";
+  // Alinhado às policies de company_members: dono gerencia qualquer membro
+  // (inclusive outro dono); admin gerencia apenas quem não é dono. Ninguém
+  // altera/remove a si mesmo.
+  const canManageMember = (member: any) =>
+    !!member && member.user_id !== user?.id && (isOwner || member.role !== "owner");
 
   // Fetch members
   const { data: members = [], isLoading: loadingMembers } = useQuery({
@@ -254,7 +260,7 @@ export default function GestaoUsuarios() {
                     </TableCell>
                     {isAdminOrOwner && (
                       <TableCell className="text-right">
-                        {member.role !== "owner" && member.user_id !== user?.id && (
+                        {canManageMember(member) && (
                           <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"
@@ -309,7 +315,7 @@ export default function GestaoUsuarios() {
               <p className="text-sm text-muted-foreground text-center py-4">Nenhum membro</p>
             ) : (
               members.map((member: any) => {
-                const canManage = isAdminOrOwner && member.role !== "owner" && member.user_id !== user?.id;
+                const canManage = isAdminOrOwner && canManageMember(member);
                 return (
                   <div key={member.id} className="rounded-md border p-3 space-y-2">
                     <div className="flex items-start justify-between gap-2">
