@@ -187,7 +187,6 @@ export function PendenciaAcoes({
               {decidir.isPending ? "Salvando…" : "Ignorar pendência"}
             </Button>
           </DialogFooter>
-        </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
