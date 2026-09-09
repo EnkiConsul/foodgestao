@@ -37,6 +37,20 @@ describe("extração da pessoa do documento", () => {
     expect(extrairNomePessoa(FOLHA_SEM_CPF)).toBe("MARIA DAS DORES OLIVEIRA");
   });
 
+  it("lê o nome na linha abaixo do rótulo isolado", () => {
+    expect(extrairNomePessoa(FOLHA_ROTULO_ABAIXO)).toBe("ANA PAULA FERREIRA COSTA");
+  });
+
+  it("nunca usa a razão social do cabeçalho", () => {
+    expect(extrairNomePessoa(`PAKERE COMERCIO DE ALIMENTOS LTDA\nCNPJ: 12.345.678/0001-95\nNome: PAKERE COMERCIO DE ALIMENTOS LTDA\nCOMPETENCIA: 07/2026`))
+      .toBeNull();
+  });
+
+  it("rejeita PESSOA com razão social e cai para o rótulo do funcionário", () => {
+    expect(extrairNomePessoa(`PESSOA: PAKERE ALIMENTOS LTDA\n${FOLHA_ROTULO_ABAIXO}`))
+      .toBe("ANA PAULA FERREIRA COSTA");
+  });
+
   it("valida dígitos verificadores", () => {
     expect(isCpfValido("529.982.247-25")).toBe(true);
     expect(isCpfValido("12345678901")).toBe(false);
