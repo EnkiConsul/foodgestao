@@ -224,27 +224,29 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
   );
 }
 
-function DpLink({ item, collapsed }: { item: Extract<Item, { kind: "link" }>; collapsed: boolean }) {
+function DpLink({ item }: { item: Extract<Item, { kind: "link" }> }) {
   const isActiveRoute = useDpIsActive();
   const isActive = isActiveRoute(item.url);
   return (
     <SidebarMenuItem>
-      <NavLink
-        to={item.url}
-        end={item.end}
-        className={
-          cn(
-            "flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
-            "transition-all duration-200 hover:translate-x-1",
-            isActive
-              ? "bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
-              : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-          )
-        }
-      >
-        <item.icon className="h-4 w-4 shrink-0" />
-        {!collapsed && <span>{toTitleCase(item.title)}</span>}
-      </NavLink>
+      <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
+        <NavLink
+          to={item.url}
+          end={item.end}
+          className={
+            cn(
+              "flex items-center gap-2 rounded-md transition-colors",
+              "transition-all duration-200 hover:translate-x-1",
+              isActive
+                ? "bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+            )
+          }
+        >
+          <item.icon className="h-4 w-4 shrink-0" />
+          <span>{toTitleCase(item.title)}</span>
+        </NavLink>
+      </SidebarMenuButton>
     </SidebarMenuItem>
   );
 }
