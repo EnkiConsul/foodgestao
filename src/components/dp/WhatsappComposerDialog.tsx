@@ -100,6 +100,12 @@ export function WhatsappComposerDialog({
                 ))}
               </SelectContent>
             </Select>
+            {modelos.length === 0 && (
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Nenhum modelo de WhatsApp cadastrado.{" "}
+                <a href="/dp/modelos-mensagem" className="underline">Cadastrar modelo</a>
+              </p>
+            )}
           </div>
           <div>
             <Label className="text-xs">Mensagem</Label>
