@@ -15,11 +15,15 @@ import {
   competenciaDe,
   competenciaLabel,
   competenciasParaCobrar,
+  elegivelDocumento,
   intervaloCompetencia,
   limiteMesSeguinte,
   limiteNoMes,
   somarMeses,
+  type ColabElegibilidade,
+  type DocTipoColaborador,
 } from "@/lib/dp/pendencias-documentos";
+import { ativoNaCompetencia } from "@/lib/dp/bulk-coverage";
 
 export type Pendencia = {
   id: string;
@@ -193,15 +197,20 @@ export function useDpPendencias() {
       }
 
       // Colaboradores por unidade — 1 query só (evita N+1 por unidade).
+      // Inclui desligados: a elegibilidade é por competência (ativoNaCompetencia).
       const unidadeDoColab = new Map<string, string>();
+      let colaboradoresDocs: Array<ColabElegibilidade & { nome: string; unidade_id: string | null }> = [];
       try {
         const { data: colabsU } = await supabase
           .from("dp_colaboradores")
-          .select("id, unidade_id")
+          .select(
+            "id, nome, unidade_id, ativo, regime, vinculo_label, possui_folha_ponto, optante_adiantamento, data_admissao, data_desligamento",
+          )
           .eq("company_id", selectedCompanyId!);
         (colabsU ?? []).forEach((c: any) => {
           if (c.unidade_id) unidadeDoColab.set(c.id, c.unidade_id);
         });
+        colaboradoresDocs = (colabsU ?? []) as any;
       } catch (e) {
         console.warn("pendencias/colabs-unidade:", e);
       }
@@ -211,10 +220,10 @@ export function useDpPendencias() {
       const compAnterior = somarMeses(compVigente, -1);
 
       // Documentos por tipo — 1 query por tipo cobrindo todo o intervalo.
-      // Chave: `${unidadeId}:${competencia}`
+      // Chave por colaborador: `${colaboradorId}:${competencia}`
       const importados = new Map<string, Set<string>>();
       const carregarTipo = async (
-        tipo: "contracheque" | "adiantamento" | "ponto",
+        tipo: DocTipoColaborador,
         inicio: string,
         fim: string,
       ): Promise<Set<string>> => {
@@ -230,14 +239,41 @@ export function useDpPendencias() {
             .gte("referencia_data", inicio)
             .lte("referencia_data", fim);
           (data ?? []).forEach((d: any) => {
-            const u = unidadeDoColab.get(d.colaborador_id);
-            if (u && d.referencia_data) set.add(`${u}:${String(d.referencia_data).slice(0, 7)}`);
+            if (d.colaborador_id && d.referencia_data) {
+              set.add(`${d.colaborador_id}:${String(d.referencia_data).slice(0, 7)}`);
+            }
           });
         } catch (e) {
           console.warn(`pendencias/docs-${tipo}:`, e);
         }
         importados.set(tipo, set);
         return set;
+      };
+
+      const colabsPorUnidade = new Map<string, typeof colaboradoresDocs>();
+      colaboradoresDocs.forEach((c) => {
+        if (!c.unidade_id) return;
+        if (!colabsPorUnidade.has(c.unidade_id)) colabsPorUnidade.set(c.unidade_id, []);
+        colabsPorUnidade.get(c.unidade_id)!.push(c);
+      });
+
+      /**
+       * Quem está devendo o documento na unidade/competência.
+       * Falta de todos → 1 pendência da unidade; falta parcial → 1 por pessoa.
+       */
+      const faltantesDocumento = (
+        tipo: DocTipoColaborador,
+        docs: Set<string>,
+        unidade: { id: string; possui_relogio_ponto: boolean | null },
+        comp: string,
+      ) => {
+        const elegiveis = (colabsPorUnidade.get(unidade.id) ?? []).filter(
+          (c) =>
+            elegivelDocumento(tipo, c, { unidadeTemRelogio: unidade.possui_relogio_ponto === true }) &&
+            ativoNaCompetencia(c as any, comp),
+        );
+        const faltantes = elegiveis.filter((c) => !docs.has(`${c.id}:${comp}`));
+        return { elegiveis, faltantes, completo: elegiveis.length > 0 && faltantes.length === elegiveis.length };
       };
 
       // Competências esperadas por unidade (a partir de 1 mês antes do cadastro)
@@ -253,74 +289,96 @@ export function useDpPendencias() {
       const rangeInicio = intervaloCompetencia(menorComp).inicio;
       const rangeFim = intervaloCompetencia(compVigente).fim;
 
-      // 3. Contracheque não importado — uma pendência por unidade + competência
-      {
-        const docs = await carregarTipo("contracheque", rangeInicio, rangeFim);
+      // 3-5. Documentos do colaborador (contracheque, adiantamento, folha de ponto).
+      // Falta de todos os elegíveis → 1 pendência da unidade; falta parcial → 1 por pessoa.
+      const emitirDocumentos = async (opts: {
+        tipo: DocTipoColaborador;
+        rotuloTipo: string;
+        titulo: string;
+        icon: LucideIcon;
+        idPrefix: string;
+        icludeUnidade: (u: (typeof unidades)[number]) => boolean;
+        comps: (u: (typeof unidades)[number]) => string[];
+        vencimentoDe: (u: (typeof unidades)[number], comp: string) => string;
+      }) => {
+        const docs = await carregarTipo(opts.tipo, rangeInicio, rangeFim);
         for (const u of unidades) {
-          for (const comp of compsPorUnidade.get(u.id)?.ateAnterior ?? []) {
-            if (docs.has(`${u.id}:${comp}`)) continue;
-            const vencimento = limiteMesSeguinte(comp, cfg.alerta_contracheque_dia_mes);
-            results.push({
-              id: `contracheque-${u.id}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
-              icon: FileText,
-              titulo: "Contracheque não importado",
-              subtitulo: `${u.nome} — ${competenciaLabel(comp)}`,
-              tipo: "Contracheque",
-              unidadeNome: u.nome,
-              vencimento,
-              atrasoDias: atrasoEmDias(vencimento, hojeISO),
-              url: `/dp/documentos?tipo=contracheque&competencia=${comp}&unidade=${u.id}`,
-            });
+          if (!opts.icludeUnidade(u)) continue;
+          for (const comp of opts.comps(u)) {
+            const { faltantes, completo } = faltantesDocumento(opts.tipo, docs, u, comp);
+            if (faltantes.length === 0) continue;
+            const vencimento = opts.vencimentoDe(u, comp);
+            const atrasoDias = atrasoEmDias(vencimento, hojeISO);
+            const url = `/dp/documentos?tipo=${opts.tipo}&competencia=${comp}&unidade=${u.id}`;
+            const compId = `${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`;
+            if (completo) {
+              results.push({
+                id: `${opts.idPrefix}-${u.id}-${compId}`,
+                icon: opts.icon,
+                titulo: opts.titulo,
+                subtitulo: `${u.nome} — ${competenciaLabel(comp)}`,
+                tipo: opts.rotuloTipo,
+                unidadeNome: u.nome,
+                vencimento,
+                atrasoDias,
+                url,
+              });
+              continue;
+            }
+            for (const c of faltantes) {
+              const desligado = c.data_desligamento
+                ? ` · desligado em ${format(new Date(`${String(c.data_desligamento).slice(0, 10)}T12:00:00`), "dd/MM")}`
+                : "";
+              results.push({
+                id: `${opts.idPrefix}-${c.id}-${compId}`,
+                icon: opts.icon,
+                titulo: opts.titulo,
+                subtitulo: `${c.nome} · ${u.nome} — ${competenciaLabel(comp)}${desligado}`,
+                tipo: opts.rotuloTipo,
+                colaboradorNome: c.nome,
+                unidadeNome: u.nome,
+                vencimento,
+                atrasoDias,
+                url,
+              });
+            }
           }
         }
-      }
+      };
 
-      // 4. Adiantamento não importado — unidades que pagam adiantamento
-      {
-        const docs = await carregarTipo("adiantamento", rangeInicio, rangeFim);
-        for (const u of unidades) {
-          if (!u.tem_adiantamento || !u.dia_adiantamento) continue;
-          const diaLimite = u.dia_adiantamento + cfg.alerta_adiantamento_offset;
-          for (const comp of compsPorUnidade.get(u.id)?.ateVigente ?? []) {
-            if (docs.has(`${u.id}:${comp}`)) continue;
-            const vencimento = limiteNoMes(comp, diaLimite);
-            results.push({
-              id: `adiantamento-${u.id}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
-              icon: Coins,
-              titulo: "Adiantamento não importado",
-              subtitulo: `${u.nome} — ${competenciaLabel(comp)}`,
-              tipo: "Adiantamento",
-              unidadeNome: u.nome,
-              vencimento,
-              atrasoDias: atrasoEmDias(vencimento, hojeISO),
-              url: `/dp/documentos?tipo=adiantamento&competencia=${comp}&unidade=${u.id}`,
-            });
-          }
-        }
-      }
+      await emitirDocumentos({
+        tipo: "contracheque",
+        rotuloTipo: "Contracheque",
+        titulo: "Contracheque não importado",
+        icon: FileText,
+        idPrefix: "contracheque",
+        icludeUnidade: () => true,
+        comps: (u) => compsPorUnidade.get(u.id)?.ateAnterior ?? [],
+        vencimentoDe: (_u, comp) => limiteMesSeguinte(comp, cfg.alerta_contracheque_dia_mes),
+      });
 
-      // 5. Folha de ponto não importada — unidades com relógio de ponto
-      {
-        const docs = await carregarTipo("ponto", rangeInicio, rangeFim);
-        for (const u of unidades) {
-          if (!u.possui_relogio_ponto) continue;
-          for (const comp of compsPorUnidade.get(u.id)?.ateAnterior ?? []) {
-            if (docs.has(`${u.id}:${comp}`)) continue;
-            const vencimento = limiteMesSeguinte(comp, cfg.alerta_folha_ponto_dia_mes);
-            results.push({
-              id: `folha_ponto-${u.id}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
-              icon: Clock,
-              titulo: "Folha de ponto não importada",
-              subtitulo: `${u.nome} — ${competenciaLabel(comp)}`,
-              tipo: "Folha de Ponto",
-              unidadeNome: u.nome,
-              vencimento,
-              atrasoDias: atrasoEmDias(vencimento, hojeISO),
-              url: `/dp/documentos?tipo=ponto&competencia=${comp}&unidade=${u.id}`,
-            });
-          }
-        }
-      }
+      await emitirDocumentos({
+        tipo: "adiantamento",
+        rotuloTipo: "Adiantamento",
+        titulo: "Adiantamento não importado",
+        icon: Coins,
+        idPrefix: "adiantamento",
+        icludeUnidade: (u) => !!u.tem_adiantamento && !!u.dia_adiantamento,
+        comps: (u) => compsPorUnidade.get(u.id)?.ateVigente ?? [],
+        vencimentoDe: (u, comp) =>
+          limiteNoMes(comp, (u.dia_adiantamento ?? 0) + cfg.alerta_adiantamento_offset),
+      });
+
+      await emitirDocumentos({
+        tipo: "ponto",
+        rotuloTipo: "Folha de Ponto",
+        titulo: "Folha de ponto não importada",
+        icon: Clock,
+        idPrefix: "folha_ponto",
+        icludeUnidade: (u) => !!u.possui_relogio_ponto,
+        comps: (u) => compsPorUnidade.get(u.id)?.ateAnterior ?? [],
+        vencimentoDe: (_u, comp) => limiteMesSeguinte(comp, cfg.alerta_folha_ponto_dia_mes),
+      });
 
 
       // 6. Negociação coletiva pendente — por unidade + sindicato laboral
