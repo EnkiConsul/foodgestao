@@ -16,9 +16,21 @@ type Props = {
   colaboradorId: string | null;
   nome: string;
   contexto?: Record<string, string>;
+  /** Títulos de modelo preferidos, em ordem de prioridade. */
+  titulosPreferidos?: string[];
 };
 
-export function WhatsappComposerDialog({ open, onClose, colaboradorId, nome, contexto = {} }: Props) {
+const norm = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/gi, " ").trim().toLowerCase();
+
+export function WhatsappComposerDialog({
+  open,
+  onClose,
+  colaboradorId,
+  nome,
+  contexto = {},
+  titulosPreferidos = [],
+}: Props) {
   const { data: modelos = [] } = useDpModelosMensagem("whatsapp");
   const [modeloId, setModeloId] = useState<string>("");
   const [texto, setTexto] = useState("");
@@ -40,10 +52,20 @@ export function WhatsappComposerDialog({ open, onClose, colaboradorId, nome, con
     if (!open) { setModeloId(""); setTexto(""); }
   }, [open]);
 
+  // Pré-seleciona o modelo cadastrado pela empresa conforme o título preferido
+  useEffect(() => {
+    if (!open || modeloId || modelos.length === 0 || titulosPreferidos.length === 0) return;
+    for (const titulo of titulosPreferidos) {
+      const alvo = norm(titulo);
+      const achado = modelos.find((m) => norm(m.titulo) === alvo) ?? modelos.find((m) => norm(m.titulo).includes(alvo));
+      if (achado) { setModeloId(achado.id); return; }
+    }
+  }, [open, modeloId, modelos, titulosPreferidos]);
+
   useEffect(() => {
     if (!modeloId) return;
     const m = modelos.find((x) => x.id === modeloId);
-    if (m) setTexto(applyModeloVars(m.corpo, { ...contexto, nome }));
+    if (m) setTexto(applyModeloVars(m.corpo, { nome, ...contexto }));
   }, [modeloId, modelos, contexto, nome]);
 
   const phone = (colab?.whatsapp || colab?.telefone || "").replace(/\D+/g, "");
