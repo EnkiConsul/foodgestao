@@ -594,10 +594,22 @@ export function BulkImportPanel({
       <MobileDetailsSheet
         open={!!detailsBatch}
         onOpenChange={(o) => !o && setDetailsBatch(null)}
-        title={detailsBatch?.source_file_name ?? detailsBatch?.id?.slice(0, 8) ?? "Lote"}
+        title={detailsBatch
+          ? loteAssunto(detailsBatch, (items.data ?? []).filter((i) => i.batch_id === detailsBatch.id))
+          : "Lote"}
         description="Detalhes do lote de importação"
         meta={detailsBatch ? [
-          { label: "Tipo", value: detailsBatch.tipo ?? "—" },
+          { label: "Tipo", value: detailsBatch.deteccao_automatica ? "Lote misto" : docTipoLabel(detailsBatch.tipo) },
+          {
+            label: "Competência",
+            value: formatCompetenciaLabel(
+              competenciaPredominante(
+                (items.data ?? []).filter((i) => i.batch_id === detailsBatch.id).map((i: any) => i.detected_competencia),
+                detailsBatch.referencia_data,
+              ),
+            ) ?? "—",
+          },
+          { label: "Arquivo", value: detailsBatch.source_file_name ?? "—" },
           { label: "Status", value: statusLabel(detailsBatch.status) },
           { label: "Páginas", value: `${detailsBatch.processed_pages ?? 0}/${detailsBatch.total_pages ?? 0}` },
           { label: "Vinculadas", value: detailsBatch.matched_count ?? 0 },
