@@ -467,6 +467,39 @@ export function useDpPendencias() {
         vencimentoDe: (_u, comp) => limiteMesSeguinte(comp, cfg.alerta_folha_ponto_dia_mes),
       });
 
+      // 5a. Intermitente sem nenhum registro na competência: ALERTA (não falta).
+      // O gestor responde "trabalhou" (vira cobrança de ponto/contracheque) ou
+      // "não trabalhou" (a competência fica quietinha, sem pendência).
+      for (const u of unidades) {
+        for (const comp of compsPorUnidade.get(u.id)?.ateAnterior ?? []) {
+          for (const c of colabsPorUnidade.get(u.id) ?? []) {
+            if (String(c.regime ?? "").toLowerCase() !== "intermitente") continue;
+            if (!ativoNaCompetencia(c as any, comp)) continue;
+            if (pontoIntermitente.has(`${c.id}:${comp}`)) continue; // há evidência
+            if (confirmacaoIntermitente.has(`${c.id}:${comp}`)) continue; // já respondido
+            const cobraria =
+              elegibilidadeDe("contracheque", { ...c, regime: "clt" }, u, comp) ||
+              elegibilidadeDe("ponto", { ...c, regime: "clt" }, u, comp);
+            if (!cobraria) continue;
+            const vencimento = limiteMesSeguinte(comp, cfg.alerta_folha_ponto_dia_mes);
+            results.push({
+              id: `intermitente-${c.id}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
+              icon: Clock,
+              titulo: "Confirmar trabalho de intermitente",
+              subtitulo: `${c.nome} · ${u.nome} — ${competenciaLabel(comp)}: nenhum registro de trabalho. Trabalhou no mês?`,
+              tipo: "Intermitente",
+              colaboradorNome: c.nome,
+              colaboradorId: c.id,
+              competencia: comp,
+              unidadeNome: u.nome,
+              vencimento,
+              atrasoDias: atrasoEmDias(vencimento, hojeISO),
+              url: "/dp/cadastros/pendencias",
+            });
+          }
+        }
+      }
+
       // 5b. Rescisão não importada — pessoa desligada na competência sem TRCT/demonstrativo.
       // Prazo legal do acerto: 10 dias corridos após o desligamento.
       {
