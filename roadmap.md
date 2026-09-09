@@ -7,12 +7,9 @@
 - [x] `src/hooks/useDpPendenciasDecisoes.tsx` — ignorar (justificativa) / adiar compartilhados
 - [x] `pendencias-documentos.ts` — `optanteNaCompetencia`, `intermitenteSemRegistros`/`intermitenteTrabalho`
 - [x] `useDpPendencias.tsx` — adiantamento por histórico; alerta "Confirmar trabalho de intermitente"; férias adquiridas/a vencer/vencidas (exceto sócio e desligado)
-
-## Pendente
-- [ ] Responder o alerta do intermitente na UI (botões "Trabalhou"/"Não trabalhou" em PendenciasCard e DpCadastroPendenciasLista, upsert em `dp_intermitente_competencia_confirmacoes`)
-- [ ] Ligar decisões (ignorar/adiar) em PendenciasCard e DpCadastroPendenciasLista (filtrar ignoradas, mesclar adiadas)
-- [ ] `DocConsistenciaPanel.tsx` — remover bloco de férias; adiantamento por histórico; respeitar intermitente
-- [ ] `ColaboradorFormDialog.tsx` — substituir chave de adiantamento por solicitações datadas (gestor pode retroativo)
-- [ ] Portal (`src/pages/dp/portal`) — colaborador pede ativa/cancela adiantamento (hoje/futuro, 5 dias de antecedência)
-- [ ] Testes: adiantamento-opcao, intermitente, decisões
-- [ ] Typecheck + suíte DP
+- [x] Alerta do intermitente respondido na UI ("Trabalhou"/"Não trabalhou") via `PendenciaAcoes` + `useDpIntermitenteConfirmacoes`
+- [x] Ignorar/adiar ligados em `PendenciasCard` e `DpCadastroPendenciasLista`
+- [x] `DocConsistenciaPanel.tsx` — sem bloco de férias; adiantamento por histórico; intermitente sem ponto não gera cobrança
+- [x] `ColaboradorFormDialog.tsx` — histórico de solicitações datadas (gestor pode retroativo)
+- [x] Portal: solicitação de ativar/cancelar adiantamento em `DpMeuSolicitacoes` (hoje/futuro, 5 dias de antecedência)
+- [x] Testes de `adiantamento-opcao` + typecheck e suíte DP
