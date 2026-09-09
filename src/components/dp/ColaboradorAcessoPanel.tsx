@@ -252,7 +252,8 @@ export function ColaboradorAcessoPanel({
             {resultado.kind === "created" ? "Acesso criado" : "Senha definida"} — informe ao colaborador
           </div>
           <p className="text-xs text-muted-foreground">
-            O login no portal é feito pelo CPF. Esta senha aparece apenas agora.
+            O login no portal é feito pelo CPF. Esta senha é provisória: o colaborador precisa criar uma nova no
+            primeiro acesso. Ela aparece apenas agora.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             {[
@@ -276,7 +277,32 @@ export function ColaboradorAcessoPanel({
               </div>
             ))}
           </div>
+          <Button type="button" size="sm" onClick={() => setWaOpen(true)}>
+            <MessageSquare className="mr-2 h-4 w-4" aria-hidden="true" />
+            Enviar no WhatsApp
+          </Button>
         </div>
+      )}
+
+      {resultado && (
+        <WhatsappComposerDialog
+          open={waOpen}
+          onClose={() => setWaOpen(false)}
+          colaboradorId={colaborador.id}
+          nome={colaborador.nome ?? ""}
+          titulosPreferidos={
+            resultado.kind === "created"
+              ? [MODELO_ACESSO_PORTAL_TITULO]
+              : [MODELO_NOVA_SENHA_TITULO, MODELO_ACESSO_PORTAL_TITULO]
+          }
+          contexto={{
+            nome: colaborador.nome ?? "",
+            empresa: empresaNome,
+            link: `${PUBLIC_SITE_ORIGIN}${PORTAL_COLABORADOR_PATH}`,
+            usuario: resultado.cpf ? maskCpf(resultado.cpf) : "",
+            senha: resultado.password,
+          }}
+        />
       )}
     </div>
   );
