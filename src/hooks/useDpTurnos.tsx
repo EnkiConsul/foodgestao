@@ -56,7 +56,7 @@ export function turnoParaForm(t: DpTurnoRow): DpTurnoForm {
 
 function camposTurno(form: DpTurnoForm) {
   return {
-    nome: form.nome.trim(),
+    nome: toUpperCadastro(form.nome),
     descricao: form.descricao,
     unidade_id: form.unidade_id,
     entrada: form.entrada,
