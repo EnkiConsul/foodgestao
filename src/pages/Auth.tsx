@@ -375,7 +375,17 @@ export default function Auth() {
               });
             } else {
               toast.success("Cadastro realizado!");
-              navigate("/onboarding");
+              const consumed = await consumePendingInviteToken();
+              if (consumed.accepted) {
+                toast.success("Convite aceito!", {
+                  description: consumed.companyName
+                    ? `Você já tem acesso a ${consumed.companyName}.`
+                    : undefined,
+                });
+                navigate("/hub", { replace: true });
+              } else {
+                navigate("/onboarding");
+              }
             }
           }
         } catch (thrown) {
