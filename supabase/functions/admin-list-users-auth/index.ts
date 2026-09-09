@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,8 +24,13 @@ Deno.serve(async (req) => {
     const adminAuth = createClient(SUPABASE_URL, SERVICE_ROLE);
     // Valida via claims (compatível com signing keys). Fallback para getUser.
     let callerId: string | null = null;
-    const { data: claimsData } = await adminAuth.auth.getClaims(token);
-    callerId = (claimsData?.claims?.sub as string | undefined) ?? null;
+    const authApi = adminAuth.auth as unknown as {
+      getClaims?: (t: string) => Promise<{ data?: { claims?: { sub?: string } } }>;
+    };
+    if (typeof authApi.getClaims === "function") {
+      const { data: claimsData } = await authApi.getClaims(token);
+      callerId = claimsData?.claims?.sub ?? null;
+    }
     if (!callerId) {
       const { data: userData } = await adminAuth.auth.getUser(token);
       callerId = userData?.user?.id ?? null;
