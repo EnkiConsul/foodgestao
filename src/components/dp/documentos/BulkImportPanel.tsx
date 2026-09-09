@@ -26,6 +26,7 @@ import { BulkReviewDialog } from "./BulkReviewDialog";
 import { BulkReviewInline } from "./BulkReviewInline";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 import { DP_DOC_TIPOS_IMPORTAVEIS, docTipoLabel } from "@/lib/dp/documentoTipos";
+import { competenciaPredominante } from "@/lib/dp/bulk-coverage";
 
 const AUTO_TIPO = "__auto";
 
@@ -464,9 +465,13 @@ export function BulkImportPanel({
                   <div className="flex items-start gap-2 min-w-0 flex-1">
                     {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 mt-0.5" /> : <ChevronRight className="h-4 w-4 shrink-0 mt-0.5" />}
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium truncate">{b.source_file_name ?? b.id.slice(0, 8)}</div>
+                      <div className="text-sm font-medium break-words">
+                        {loteAssunto(b, bItems)}
+                      </div>
                       <div className="text-xs text-muted-foreground truncate">
-                        {b.deteccao_automatica ? "Misto (detecção automática)" : docTipoLabel(b.tipo)} ·{" "}
+                        {b.source_file_name ?? b.id.slice(0, 8)}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
                         {isProcessing && totalPag > 0
                           ? `OCR ${processed}/${totalPag}`
                           : `${totalPag} pág · ${b.matched_count ?? 0} vinc.`}
@@ -589,10 +594,22 @@ export function BulkImportPanel({
       <MobileDetailsSheet
         open={!!detailsBatch}
         onOpenChange={(o) => !o && setDetailsBatch(null)}
-        title={detailsBatch?.source_file_name ?? detailsBatch?.id?.slice(0, 8) ?? "Lote"}
+        title={detailsBatch
+          ? loteAssunto(detailsBatch, (items.data ?? []).filter((i) => i.batch_id === detailsBatch.id))
+          : "Lote"}
         description="Detalhes do lote de importação"
         meta={detailsBatch ? [
-          { label: "Tipo", value: detailsBatch.tipo ?? "—" },
+          { label: "Tipo", value: detailsBatch.deteccao_automatica ? "Lote misto" : docTipoLabel(detailsBatch.tipo) },
+          {
+            label: "Competência",
+            value: formatCompetenciaLabel(
+              competenciaPredominante(
+                (items.data ?? []).filter((i) => i.batch_id === detailsBatch.id).map((i: any) => i.detected_competencia),
+                detailsBatch.referencia_data,
+              ),
+            ) ?? "—",
+          },
+          { label: "Arquivo", value: detailsBatch.source_file_name ?? "—" },
           { label: "Status", value: statusLabel(detailsBatch.status) },
           { label: "Páginas", value: `${detailsBatch.processed_pages ?? 0}/${detailsBatch.total_pages ?? 0}` },
           { label: "Vinculadas", value: detailsBatch.matched_count ?? 0 },
@@ -630,6 +647,20 @@ export function BulkImportPanel({
       />
     </div>
   );
+}
+
+function formatCompetenciaLabel(value?: string | null): string | null {
+  const m = String(value ?? "").match(/^(20\d{2})-(0[1-9]|1[0-2])/);
+  return m ? `${m[2]}/${m[1]}` : null;
+}
+
+/** Assunto do lote: tipo do documento + competência (ex.: "Contracheque · 08/2026"). */
+function loteAssunto(b: any, bItems: Array<{ detected_competencia?: string | null }>): string {
+  const tipo = b?.deteccao_automatica ? "Lote misto" : docTipoLabel(b?.tipo);
+  const comp = formatCompetenciaLabel(
+    competenciaPredominante(bItems.map((i) => i.detected_competencia), b?.referencia_data),
+  );
+  return comp ? `${tipo} · ${comp}` : tipo;
 }
 
 function competenciaToDate(value: string): string | null {

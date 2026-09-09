@@ -324,11 +324,11 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[1400px] h-[92vh] p-0 flex flex-col">
-        <DialogHeader className="p-4 pb-2 border-b">
-          <DialogTitle className="text-base">
-            Revisar importação {batchName ? `— ${batchName}` : ""}
-            <span className="ml-2 text-xs text-muted-foreground font-normal">
+      <DialogContent className="w-screen max-w-[100vw] h-[100dvh] rounded-none sm:rounded-lg sm:max-w-[95vw] sm:w-[1400px] sm:h-[92vh] p-0 flex flex-col overflow-hidden">
+        <DialogHeader className="p-4 pb-2 border-b shrink-0">
+          <DialogTitle className="text-base break-words pr-8">
+            <span className="block">Revisar importação {batchName ? `— ${batchName}` : ""}</span>
+            <span className="block sm:inline sm:ml-2 text-xs text-muted-foreground font-normal">
               {rows.length} página(s) · {pendingCount} pronta(s) p/ aprovar
             </span>
           </DialogTitle>
@@ -374,30 +374,32 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
             }
           />
         </div>
-        <div className="flex-1 min-h-0 grid grid-cols-[1fr_420px] gap-0 overflow-hidden">
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-0 overflow-y-auto lg:overflow-hidden">
           {/* LEFT: PDF preview */}
-          <div className="bg-muted/20 border-r flex flex-col min-h-0">
-            <div className="flex items-center justify-between px-3 py-2 border-b bg-background/60">
+          <div className="order-2 lg:order-1 bg-muted/20 border-t lg:border-t-0 lg:border-r flex flex-col min-h-[45vh] lg:min-h-0">
+            <div className="flex items-center justify-between gap-1 px-2 sm:px-3 py-2 border-b bg-background/60">
               <Button
                 size="sm" variant="ghost"
+                className="px-2 shrink-0"
                 disabled={currentIdx <= 0}
                 onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
               >
-                <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                <ChevronLeft className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Anterior</span>
               </Button>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground text-center min-w-0 truncate">
                 Página <b>{current?.page_index ?? "-"}</b> ({currentIdx + 1}/{rows.length})
               </div>
-              <div className="flex items-center gap-1">
-                <Button size="sm" variant="ghost" onClick={openInNewTab} title="Abrir em nova aba">
+              <div className="flex items-center gap-1 shrink-0">
+                <Button size="sm" variant="ghost" className="px-2" onClick={openInNewTab} title="Abrir em nova aba">
                   <ExternalLink className="h-4 w-4" />
                 </Button>
                 <Button
                   size="sm" variant="ghost"
+                  className="px-2"
                   disabled={currentIdx >= rows.length - 1}
                   onClick={() => setCurrentIdx((i) => Math.min(rows.length - 1, i + 1))}
                 >
-                  Próxima <ChevronRight className="h-4 w-4 ml-1" />
+                  <span className="hidden sm:inline">Próxima</span> <ChevronRight className="h-4 w-4 sm:ml-1" />
                 </Button>
               </div>
             </div>
@@ -418,8 +420,9 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           </div>
 
           {/* RIGHT: Item list + edit panel */}
-          <div className="flex flex-col min-h-0">
-            <ScrollArea className="flex-1">
+          <div className="contents lg:flex lg:flex-col lg:min-h-0 lg:order-2">
+            <ScrollArea className="order-1 lg:order-none max-h-[32vh] lg:max-h-none lg:flex-1 border-b lg:border-b-0">
+
               <div className="p-3 space-y-2">
                 {rows.length === 0 && (
                   <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -472,7 +475,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
 
             {/* Edit current item */}
             {current && (
-              <div className="border-t p-3 space-y-3 bg-muted/10">
+              <div className="order-3 lg:order-none border-t p-3 space-y-3 bg-muted/10 min-w-0">
                 <div className="text-xs font-medium text-muted-foreground">
                   Editar página {current.page_index}
                 </div>
@@ -532,7 +535,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           </div>
         </div>
 
-        <DialogFooter className="p-3 border-t bg-background gap-2">
+        <DialogFooter className="p-3 border-t bg-background gap-2 shrink-0 flex-col-reverse sm:flex-row">
           <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Fechar</Button>
           <Button
             className="w-full sm:w-auto h-11 sm:h-10"
