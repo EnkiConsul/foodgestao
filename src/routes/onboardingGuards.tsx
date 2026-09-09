@@ -100,7 +100,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     };
   }, [setContext, selectedCompanyId, user?.id]);
 
-  if (loading || checkingOnboarding || mfaChecking) {
+  const portal = usePortalOnlyUser(user?.id, onboardingCompleted === false);
+
+  if (loading || checkingOnboarding || mfaChecking || portal.checking) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -116,7 +118,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const redirect = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/auth?redirect=${redirect}`} replace />;
   }
-  if (onboardingCompleted === false) return <Navigate to="/onboarding" replace />;
+  if (onboardingCompleted === false) {
+    if (portal.isPortalOnly) return <Navigate to={PORTAL_PATH} replace />;
+    return <Navigate to="/onboarding" replace />;
+  }
 
   return <>{children}</>;
 }
