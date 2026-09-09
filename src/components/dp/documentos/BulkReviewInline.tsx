@@ -802,6 +802,9 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
         )}
       </div>
 
+      {/* Navigation bar (rodapé) — evita rolar até o topo para trocar de página */}
+      {rows.length > 1 && pageNav("border-t")}
+
       {/* Rodapé de aprovação */}
       {stats.total > 0 && (
         <div className="px-3 sm:px-4 py-3 border-t bg-muted/10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
