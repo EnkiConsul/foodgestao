@@ -43,7 +43,7 @@ Hoje o cadastro só tem uma chave liga/desliga, sem data nem histórico. Rosâng
   - data anterior ao dia do pagamento → vale já na competência da própria data;
   - data igual ou posterior ao dia do pagamento → vale a partir da competência seguinte.
 - A tela mostra a conclusão antes de salvar: "Solicitado em 18/07/2026, depois do pagamento (dia 15): passa a valer em agosto/2026". O mesmo texto vale para cancelamento.
-- Data retroativa só o gestor pode informar, para reconstruir o histórico. No portal do colaborador só é aceita a data de hoje ou futura.
+- Data retroativa só o gestor pode informar, para reconstruir o histórico. No portal do colaborador só é aceita a data de hoje ou futura, e com pelo menos **5 dias de antecedência** ao próximo pagamento do adiantamento (o gestor precisa de tempo para ver); dentro dessa janela o portal bloqueia e explica, sugerindo já a próxima competência.
 - Histórico na ficha: tipo, data da solicitação, competência em que passou a valer, origem (gestor ou portal), quem registrou e observação, com a situação atual calculada a partir dele.
 - A cobrança de adiantamento passa a olhar esse histórico: só gera pendência nas competências em que a opção estava ativa; competências inativas não geram pendência nem acusam documento indevido — e documentos já importados de competências ativas param de aparecer como inconsistentes.
 - O colaborador pode registrar a solicitação de ativar ou cancelar pelo próprio portal, quando a unidade oferece adiantamento; gera apenas notificação de ciência ao gestor, sem etapa de aprovação.
