@@ -13,17 +13,21 @@ Em fundo escuro (menu lateral, tema escuro) continua a versão atual, para não 
 
 ## 2. Pendências que não apareciam
 
-Diagnóstico confirmado: as pendências de **Contracheque**, **Folha de ponto** e **Adiantamento** existem e funcionam, mas só começam a aparecer a partir da data limite configurada — dia 10 para contracheque e folha de ponto, e dia do adiantamento + 5 (dia 20 na sua empresa). Como hoje é dia 9, nada aparecia.
+Dois problemas confirmados nos seus dados:
 
-Mudança aprovada: passam a aparecer **desde o dia 1**, assim:
+**a) Só avisava a partir da data limite.** Contracheque e folha de ponto começam no dia 10 e adiantamento no dia do adiantamento + 5 (dia 20 na sua empresa). Como hoje é dia 9, nada aparecia.
 
-- Antes da data limite: aparecem como pendência **próxima** ("a importar"), sem alarme de atraso.
-- Na data limite: **vence hoje**.
-- Depois: **atrasada**, com a contagem de dias, como já acontece.
+**b) Só o mês anterior era verificado.** O sistema olhava apenas uma competência: contracheque/ponto do mês anterior e adiantamento do mês vigente. Nas suas unidades os últimos envios foram contracheque 05 e 06, adiantamento 06 e folha de ponto 05 — ou seja, contracheque 07, folha de ponto 06 e 07 e adiantamento 07 e 08 estão em falta e nunca eram cobrados.
+
+Como fica:
+
+- Cada competência em falta gera sua própria pendência, por unidade: "Contracheque não importado — Pakerê T-63 — julho/2026", e assim por diante.
+- A verificação passa a cobrir as competências dos últimos 6 meses, nunca antes do início do controle da unidade no sistema.
+- A competência atual aparece desde o dia 1 como **a importar** (próxima), vira **vence hoje** na data limite e depois **atrasada** com a contagem de dias.
+- Os meses já vencidos aparecem como **atrasados**, com o mais antigo em primeiro.
 
 Regras mantidas:
 
-- Contracheque e folha de ponto seguem se referindo à competência do mês anterior; adiantamento ao mês vigente.
 - Folha de ponto só é cobrada de unidades que registram ponto; adiantamento só de unidades que pagam adiantamento (com o dia informado).
 - Se o documento da competência já foi importado, a pendência não aparece.
 - As datas limite continuam configuráveis em Prazos e pendências.
@@ -31,6 +35,9 @@ Regras mantidas:
 ## Detalhes técnicos
 
 - Novo asset `src/assets/aveto360-horizontal-light.png.asset.json` criado via `lovable-assets create` a partir do upload; `src/components/Logo.tsx` ganha resolução por tema/fundo (nova variante para fundo claro) e `src/pages/Auth.tsx` + `src/components/onboarding/food/OnboardingShell.tsx` passam a usá-la. Varredura em templates de impressão/PDF (holerite, TRCT, recibos) para aplicar a mesma versão onde houver logo.
-- `src/hooks/useDpPendencias.tsx`: remover os gates `if (diaHoje >= cfg.alerta_contracheque_dia_mes)` e `if (diaHoje >= cfg.alerta_folha_ponto_dia_mes)`, e o `if (diaHoje < diaLimite) continue` do adiantamento. O `vencimento` continua sendo a data limite configurada e o `atrasoDias` negativo já é classificado como `proxima` por `urgenciaDe` em `src/lib/dp/pendencias.ts` — nenhuma mudança em agrupamento, KPI ou tela.
+- `src/hooks/useDpPendencias.tsx`: remover os gates `if (diaHoje >= cfg.alerta_contracheque_dia_mes)`, `if (diaHoje >= cfg.alerta_folha_ponto_dia_mes)` e `if (diaHoje < diaLimite) continue`; trocar a checagem de competência única por um laço sobre as últimas 6 competências, com uma única consulta em `dp_documentos` por tipo cobrindo todo o intervalo (agrupando por unidade + competência, sem N+1). `id` da pendência continua `tipo-unidade-ano-mes`, então adiamentos já registrados seguem válidos.
+- Novo módulo puro `src/lib/dp/pendencias-documentos.ts` com o cálculo de competências esperadas, data limite por competência e classificação, para poder ser testado sem banco; o hook passa a consumi-lo.
+- `atrasoDias` negativo já é classificado como `proxima` por `urgenciaDe` em `src/lib/dp/pendencias.ts` — nenhuma mudança em agrupamento, KPI ou tela.
 - Nenhuma alteração de banco, RLS, permissões ou multiempresa.
-- Testes: casos em `src/lib/dp/__tests__` cobrindo classificação antes/na/depois da data limite, unidade sem relógio de ponto e unidade sem adiantamento; typecheck e suíte DP.
+- Testes em `src/lib/dp/__tests__`: competência atual antes/na/depois da data limite, meses anteriores em falta gerando uma pendência cada, competência já importada não gerando pendência, unidade sem relógio de ponto e unidade sem adiantamento; typecheck e suíte DP.
+
