@@ -41,6 +41,8 @@ export function NovoColaboradorInlineDialog({
   const [unidade, setUnidade] = useState<string>(defaultUnidadeId ?? "");
   const [vinculo, setVinculo] = useState("CLT");
   const [socioRemuneracao, setSocioRemuneracao] = useState("pro_labore");
+  // Só sugere vínculo pelo cargo enquanto o usuário não escolher o vínculo à mão.
+  const [vinculoTocado, setVinculoTocado] = useState(false);
   const [saving, setSaving] = useState(false);
   const [existing, setExisting] = useState<{ id: string; nome: string; ativo: boolean } | null>(null);
 
