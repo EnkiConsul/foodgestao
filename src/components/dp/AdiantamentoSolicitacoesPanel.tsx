@@ -82,7 +82,7 @@ export function AdiantamentoSolicitacoesPanel({
         colaborador_id: colaboradorId,
         tipo,
         data_solicitacao: data,
-        competencia_efeito: competenciaEfeito(data, diaPagamento),
+        competencia_efeito: competenciaEfeito(data, diaPagamento, origem),
         origem,
         criado_por: auth.user?.id ?? null,
       } as any);
@@ -93,7 +93,7 @@ export function AdiantamentoSolicitacoesPanel({
       qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_consistencia_janela"] });
       toast.success(
-        `${tipo === "ativar" ? "Adiantamento ativado" : "Adiantamento cancelado"} — ${efeitoHint(data, diaPagamento)}`,
+        `${tipo === "ativar" ? "Adiantamento ativado" : "Adiantamento cancelado"} — ${efeitoHint(data, diaPagamento, origem)}`,
       );
     },
     onError: (e: any) => toast.error(e?.message ?? "Não foi possível registrar a solicitação."),
@@ -141,10 +141,10 @@ export function AdiantamentoSolicitacoesPanel({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        {data ? efeitoHint(data, diaPagamento) : "Escolha a data da solicitação."}{" "}
+        {data ? efeitoHint(data, diaPagamento, origem) : "Escolha a data da solicitação."}{" "}
         {origem === "portal"
-          ? "No portal, a data precisa ser hoje ou futura e com pelo menos 5 dias de antecedência ao pagamento."
-          : "O gestor pode registrar datas passadas para completar o histórico."}
+          ? "No portal, a data precisa ser hoje ou futura e o pedido passa a valer somente na competência de 30 dias à frente."
+          : "O gestor pode registrar datas passadas para completar o histórico, sem carência."}
       </p>
 
       <div className="space-y-1">
