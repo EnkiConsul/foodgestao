@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const schema = z
   .object({
@@ -67,6 +68,7 @@ export default function ResetPassword() {
       return;
     }
     toast.success("Senha redefinida com sucesso");
+    await logAudit("user_password_changed", "auth");
     await supabase.auth.signOut();
     navigate("/auth", { replace: true });
   };
