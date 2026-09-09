@@ -211,6 +211,8 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -221,6 +223,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -231,6 +235,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -244,6 +250,8 @@ export type Database = {
       audit_logs_2025_09: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -254,6 +262,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -264,6 +274,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -277,6 +289,8 @@ export type Database = {
       audit_logs_2025_10: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -287,6 +301,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -297,6 +313,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -310,6 +328,8 @@ export type Database = {
       audit_logs_2025_11: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -320,6 +340,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -330,6 +352,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -343,6 +367,8 @@ export type Database = {
       audit_logs_2025_12: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -353,6 +379,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -363,6 +391,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -376,6 +406,8 @@ export type Database = {
       audit_logs_2026_01: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -386,6 +418,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -396,6 +430,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -409,6 +445,8 @@ export type Database = {
       audit_logs_2026_02: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -419,6 +457,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -429,6 +469,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -442,6 +484,8 @@ export type Database = {
       audit_logs_2026_03: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -452,6 +496,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -462,6 +508,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -475,6 +523,8 @@ export type Database = {
       audit_logs_2026_04: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -485,6 +535,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -495,6 +547,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -508,6 +562,8 @@ export type Database = {
       audit_logs_2026_05: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -518,6 +574,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -528,6 +586,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -541,6 +601,8 @@ export type Database = {
       audit_logs_2026_06: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -551,6 +613,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -561,6 +625,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -574,6 +640,8 @@ export type Database = {
       audit_logs_2026_07: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -584,6 +652,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -594,6 +664,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -607,6 +679,8 @@ export type Database = {
       audit_logs_2026_08: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -617,6 +691,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -627,6 +703,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -640,6 +718,8 @@ export type Database = {
       audit_logs_2026_09: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -650,6 +730,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -660,6 +742,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -673,6 +757,8 @@ export type Database = {
       audit_logs_2026_10: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -683,6 +769,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -693,6 +781,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -706,6 +796,8 @@ export type Database = {
       audit_logs_2026_11: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -716,6 +808,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -726,6 +820,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -739,6 +835,8 @@ export type Database = {
       audit_logs_2026_12: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -749,6 +847,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -759,6 +859,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -772,6 +874,8 @@ export type Database = {
       audit_logs_default: {
         Row: {
           action: string
+          actor_kind: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -782,6 +886,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -792,6 +898,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_kind?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -15238,6 +15346,7 @@ export type Database = {
       insert_audit_log: {
         Args: {
           _action: string
+          _company_id?: string
           _details?: Json
           _entity_id?: string
           _entity_type: string
