@@ -61,7 +61,7 @@ export default function DpFerias() {
   const embedded = useDpEmbedded();
   const [params, setParams] = useSearchParams();
   const { data: colaboradores = [] } = useDpColaboradores();
-  const [colabFilter, setColabFilter] = useState("todos");
+  const [colabFilter, setColabFilter] = useState(() => params.get("colaborador") ?? "todos");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<FeriasGozo | null>(null);

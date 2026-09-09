@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -48,7 +49,12 @@ export default function DpEscalas() {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
 
-  const [competencia, setCompetencia] = useState(competenciaAtual);
+  /** Atalho das pendências: /dp/escalas?mes=YYYY-MM já abre o mês cobrado. */
+  const [params] = useSearchParams();
+  const [competencia, setCompetencia] = useState(() => {
+    const mes = params.get("mes");
+    return mes && /^\d{4}-\d{2}$/.test(mes) ? mes : competenciaAtual();
+  });
   const [unidade, setUnidade] = useState("todas");
   const [resultado, setResultado] = useState<{ propostas: EscalaProposta[]; alertas: EscalaAlerta[] } | null>(null);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
