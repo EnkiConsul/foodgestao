@@ -256,6 +256,14 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           u.possui_relogio_ponto === true,
         ]),
       );
+      // Dia do adiantamento por unidade — decide a elegibilidade de quem foi
+      // admitido (ou desligado) no meio da competência.
+      const diaAdiantamentoMap = new Map(
+        (unidadesRes.data ?? []).map((u: any) => [
+          u.id as string,
+          (u.dia_adiantamento as number | null) ?? null,
+        ]),
+      );
 
       const importados = new Set(
         (docsRes.data ?? []).map((d: any) => {
@@ -351,6 +359,19 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
             comp,
             c.optante_adiantamento === true,
           );
+          const diaAdiantamento = c.unidade_id
+            ? diaAdiantamentoMap.get(c.unidade_id) ?? null
+            : null;
+          // Mesma regra das pendências (fonte única): admitido depois do dia
+          // do pagamento não tem adiantamento na competência; desligado antes
+          // do dia do pagamento também não.
+          const cobraAdiantamento =
+            !intermitenteSemTrabalho &&
+            elegivelDocumento("adiantamento", c as any, {
+              competencia: comp,
+              diaAdiantamento,
+              optanteNaCompetencia: optanteAdiantamento,
+            });
 
           const checks: Array<[Tipo, boolean]> = socio
             ? [["pro_labore", socioProLabore]]
