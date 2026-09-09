@@ -4,6 +4,40 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { resolveOnboardingStatus } from "@/lib/onboardingStatus";
+import { resolveLandingTarget, PORTAL_PATH } from "@/lib/auth/landing";
+
+/**
+ * Colaborador (sem ser dono/administrador) nunca deve ver o assistente de
+ * cadastro de empresa: o destino dele é sempre o portal do colaborador.
+ */
+function usePortalOnlyUser(userId: string | undefined, enabled: boolean) {
+  const [state, setState] = useState<{ checking: boolean; isPortalOnly: boolean }>({
+    checking: !!userId && enabled,
+    isPortalOnly: false,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!userId || !enabled) {
+      setState({ checking: false, isPortalOnly: false });
+      return;
+    }
+    setState({ checking: true, isPortalOnly: false });
+    resolveLandingTarget(userId)
+      .then((landing) => {
+        if (cancelled) return;
+        setState({ checking: false, isPortalOnly: landing.kind === "portal" });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ checking: false, isPortalOnly: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, enabled]);
+
+  return state;
+}
 
 /**
  * Guarda de rotas privadas.
