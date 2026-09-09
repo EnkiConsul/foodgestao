@@ -52,7 +52,18 @@ export function NovoColaboradorInlineDialog({
     setCpf(defaultCpf.replace(/\D/g, ""));
     setUnidade(defaultUnidadeId ?? "");
     setExisting(null);
+    setVinculoTocado(false);
   }, [defaultCpf, defaultNome, defaultUnidadeId, formOpen]);
+
+  /** Cargo de sócio sugere o vínculo Sócio com pró-labore. */
+  const escolherCargo = (id: string) => {
+    setCargo(id);
+    const nomeCargo = (cargos.data ?? []).find((c: any) => c.id === id)?.nome;
+    if (!vinculoTocado && cargoSugereVinculoSocio(nomeCargo)) {
+      setVinculo("Socio");
+      setSocioRemuneracao("pro_labore");
+    }
+  };
 
   const cargos = useQuery({
     queryKey: ["dp_cargos_min", selectedCompanyId],
