@@ -204,6 +204,7 @@ type CardMesKey = (typeof CARDS_MES)[number];
 const PREFS_KEY = "operacao_cards";
 const AGRUP_KEY = "operacao_agrupamento";
 const UNIDADE_KEY = "operacao_unidade";
+const ZERADOS_KEY = "operacao_cards_zerados";
 
 /** Card arrastável: o conteúdo é o DpStatCard normal com um handle discreto. */
 function CardArrastavel({ id, children }: { id: string; children: React.ReactNode }) {
