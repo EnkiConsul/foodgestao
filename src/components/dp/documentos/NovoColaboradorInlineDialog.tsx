@@ -31,6 +31,7 @@ export function NovoColaboradorInlineDialog({
   trigger,
 }: NovoColaboradorInlineDialogProps) {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
   const [choiceOpen, setChoiceOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
