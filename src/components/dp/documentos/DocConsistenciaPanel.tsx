@@ -425,30 +425,12 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       const ativosSet = new Set(
         ((colabsRes.data ?? []) as any[]).filter((c) => c.ativo !== false).map((c) => c.id as string),
       );
-      const ferias: FeriasAlerta[] = ((periodosRes.data ?? []) as any[])
-        .filter(
-          (p) =>
-            nomePorColab.has(p.colaborador_id) &&
-            ativosSet.has(p.colaborador_id) &&
-            !comAgendamento.has(p.colaborador_id) &&
-            !sociosSet.has(p.colaborador_id),
-        )
-        .map((p) => ({
-          colaborador_id: p.colaborador_id as string,
-          nome: nomePorColab.get(p.colaborador_id as string) ?? "Colaborador",
-          limite: String(p.limite_concessivo),
-          dias: Number(p.dias_saldo ?? 0),
-          vencido: String(p.limite_concessivo) < hoje,
-        }))
-        .sort((a, b) => a.limite.localeCompare(b.limite));
-
       return {
         alertas,
         elegiveis,
         avisos: Array.from(avisosMap.values()).sort((a, b) =>
           a.competencia < b.competencia ? -1 : 1,
         ),
-        ferias,
         unidadesMap,
         janela: { inicio, fim },
       };
