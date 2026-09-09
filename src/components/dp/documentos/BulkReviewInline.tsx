@@ -29,7 +29,7 @@ import { VincularUnidadeLote } from "./VincularUnidadeLote";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { cn } from "@/lib/utils";
 import { DP_DOC_GRUPOS, docTipoLabel, assinaturaDocumento } from "@/lib/dp/documentoTipos";
-import { extrairCpfValido, extrairNomePessoa, isCpfValido } from "@/lib/dp/doc-pessoa";
+import { extrairCpfValido, extrairNomePessoa, isCpfValido, pareceRazaoSocial } from "@/lib/dp/doc-pessoa";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -844,7 +844,11 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                     </SelectContent>
                   </Select>
                   <NovoColaboradorInlineDialog
-                    defaultNome={current.matched_nome ?? extrairNomePessoa(current.ocr_text ?? "") ?? ""}
+                    defaultNome={
+                      (current.matched_nome && !pareceRazaoSocial(current.matched_nome)
+                        ? current.matched_nome
+                        : extrairNomePessoa(current.ocr_text ?? "")) ?? ""
+                    }
                     defaultCpf={
                       isCpfValido(current.matched_cpf ?? "")
                         ? String(current.matched_cpf)

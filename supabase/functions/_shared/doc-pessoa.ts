@@ -51,7 +51,26 @@ const PALAVRAS_NAO_NOME = [
   "TOTAL", "LIQUIDO", "LÍQUIDO", "SALARIO", "SALÁRIO", "EMPRESA", "FOLHA",
   "RECIBO", "CONTRACHEQUE", "DEMONSTRATIVO", "COMPETENCIA", "COMPETÊNCIA",
   "CNPJ", "CPF", "ADMISSAO", "ADMISSÃO", "CARGO", "FUNCAO", "FUNÇÃO",
+  "NOME", "PAGAMENTO", "REFERENCIA", "REFERÊNCIA", "VENCIMENTO", "DESCONTO",
+  "PROVENTO", "BASE", "PERIODO", "PERÍODO", "MATRICULA", "MATRÍCULA",
 ];
+
+/** Marcas de razão social: nunca podem ser aceitas como nome de pessoa. */
+const MARCAS_EMPRESA = [
+  /\bLTDA\b/i, /\bEIRELI\b/i, /\bMEI\b/i, /\bEPP\b/i, /\bS\.?\/?A\b/i,
+  /\bME\b/, /\bCIA\b/i, /&/, /\bCOMERCIO\b/i, /\bCOMÉRCIO\b/i,
+  /\bALIMENTOS\b/i, /\bRESTAURANTE\b/i, /\bLANCHONETE\b/i, /\bBAR\b/i,
+  /\bMATRIZ\b/i, /\bFILIAL\b/i, /\bINDUSTRIA\b/i, /\bINDÚSTRIA\b/i,
+  /\bSERVICOS\b/i, /\bSERVIÇOS\b/i, /\bEMPREENDIMENTOS\b/i, /\bPARTICIPACOES\b/i,
+  /\bPARTICIPAÇÕES\b/i, /\bDISTRIBUIDORA\b/i, /\bSUPERMERCADO\b/i,
+  /\bTRANSPORTES\b/i, /\bCONSTRUCOES\b/i, /\bCONSTRUÇÕES\b/i,
+];
+
+export function pareceRazaoSocial(v: string): boolean {
+  const texto = (v ?? "").trim();
+  if (!texto) return false;
+  return MARCAS_EMPRESA.some((re) => re.test(texto));
+}
 
 function limparNome(bruto: string): string | null {
   let nome = (bruto ?? "")
@@ -64,37 +83,73 @@ function limparNome(bruto: string): string | null {
   const upper = nome.toUpperCase();
   if (PALAVRAS_NAO_NOME.some((p) => upper.startsWith(p))) return null;
   if (!/^[A-Za-zÀ-ÿ' ]+$/.test(nome)) return null;
+  if (pareceRazaoSocial(nome)) return null;
   nome = partes.slice(0, 8).join(" ");
   return nome;
 }
 
+const RE_ROTULO_PESSOA =
+  /(?:NOME\s+(?:DO|DA)\s+)?(?:FUNCION[AÁ]RIO|COLABORADOR|EMPREGADO|S[OÓ]CIO|BENEFICI[AÁ]RIO)\b/i;
+const RE_ROTULO_NOME = /\bNOME\b/i;
+
+/**
+ * Procura o nome a partir de um rótulo: primeiro no restante da mesma linha e,
+ * quando o rótulo está isolado (cabeçalho de coluna), nas próximas linhas úteis.
+ */
+function nomeAPartirDoRotulo(linhas: string[], idx: number, resto: string): string | null {
+  const mesmaLinha = limparNome(resto.replace(/^[^A-Za-zÀ-ÿ]{0,10}/, ""));
+  if (mesmaLinha) return mesmaLinha;
+
+  let vistas = 0;
+  for (let i = idx + 1; i < linhas.length && vistas < 3; i++) {
+    const linha = linhas[i].trim();
+    if (!linha) continue;
+    vistas++;
+    if (/CNPJ/i.test(linha)) continue;
+    const limpo = limparNome(linha);
+    if (limpo) return limpo;
+  }
+  return null;
+}
+
 /**
  * Nome da pessoa do documento. Prioriza a linha `PESSOA:` emitida pela leitura
- * e cai para rótulos usuais de folha/contracheque.
+ * (descartando razão social), depois rótulos específicos do funcionário — na
+ * mesma linha ou na linha abaixo, quando o rótulo é cabeçalho de coluna — e só
+ * em último recurso o rótulo genérico "Nome".
  */
 export function extrairNomePessoa(ocr: string): string | null {
   const texto = ocr ?? "";
+  const linhas = texto.split(/\r?\n/);
 
   const ia = texto.match(/PESSOA:\s*(.+)/i);
   if (ia) {
     const v = ia[1].trim();
-    if (v && !/^DESCONHECID/i.test(v)) {
+    if (v && !/^DESCONHECID/i.test(v) && !pareceRazaoSocial(v)) {
       const limpo = limparNome(v);
       if (limpo) return limpo;
     }
   }
 
-  const rotulos = [
-    /NOME\s+DO\s+(?:FUNCIONARIO|FUNCIONÁRIO|COLABORADOR|EMPREGADO|SOCIO|SÓCIO)[^A-Za-zÀ-ÿ]{0,10}([A-Za-zÀ-ÿ' ]{5,80})/i,
-    /(?:FUNCIONARIO|FUNCIONÁRIO|COLABORADOR|EMPREGADO)[^A-Za-zÀ-ÿ]{0,10}([A-Za-zÀ-ÿ' ]{5,80})/i,
-    /NOME[^A-Za-zÀ-ÿ]{0,10}([A-Za-zÀ-ÿ' ]{5,80})/i,
-  ];
-  for (const re of rotulos) {
-    const m = texto.match(re);
-    if (m) {
-      const limpo = limparNome(m[1]);
-      if (limpo) return limpo;
-    }
+  for (let i = 0; i < linhas.length; i++) {
+    const linha = linhas[i];
+    if (/CNPJ/i.test(linha)) continue;
+    const m = linha.match(RE_ROTULO_PESSOA);
+    if (!m) continue;
+    const resto = linha.slice((m.index ?? 0) + m[0].length);
+    const nome = nomeAPartirDoRotulo(linhas, i, resto);
+    if (nome) return nome;
   }
+
+  for (let i = 0; i < linhas.length; i++) {
+    const linha = linhas[i];
+    if (/CNPJ/i.test(linha)) continue;
+    const m = linha.match(RE_ROTULO_NOME);
+    if (!m) continue;
+    const resto = linha.slice((m.index ?? 0) + m[0].length);
+    const nome = nomeAPartirDoRotulo(linhas, i, resto);
+    if (nome) return nome;
+  }
+
   return null;
 }
