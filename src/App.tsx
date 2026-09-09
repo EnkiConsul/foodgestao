@@ -22,6 +22,7 @@ import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
+import { useCompanyAccess } from "@/hooks/useCompanyAccess";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { ProtectedRoute, OnboardingGuard } from "@/routes/onboardingGuards";
 import { resolveLandingTarget } from "@/lib/auth/landing";
@@ -190,16 +191,15 @@ function SubscriptionGuard({ children }: { children: React.ReactNode }) {
   if (loading || roleLoading) return <>{children}</>;
   if (isSuperAdmin) return <>{children}</>;
   if (isWhitelistedForExpiredTrial(location.pathname)) return <>{children}</>;
-
-  // Sem nenhuma empresa (própria ou por convite): a entrada é a tela de
-  // boas-vindas, com convites pendentes e a opção de criar empresa.
-  if (!hasCompanies) return <Navigate to="/bem-vindo" replace />;
-
-  // Com empresa: o bloqueio depende da assinatura do DONO da empresa ativa.
   if (!blocked) return <>{children}</>;
+
+  // Bloqueado e sem nenhuma empresa (própria ou por convite): a entrada é a
+  // tela de boas-vindas, com convites pendentes e a opção de criar empresa.
+  if (!hasCompanies) return <Navigate to="/bem-vindo" replace />;
 
   return <Navigate to="/trial-expirado" replace />;
 }
+
 
 
 const queryClient = new QueryClient({
