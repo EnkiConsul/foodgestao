@@ -49,15 +49,34 @@ export function dataPagamentoNoMes(iso: string, diaPagamento: number): string {
   return `${iso.slice(0, 7)}-${pad(Math.min(Math.max(diaPagamento, 1), ultimoDia))}`;
 }
 
+/** Carência do pedido feito pelo próprio colaborador (portal). */
+export const CARENCIA_PORTAL_DIAS = 30;
+
+/** Soma dias a uma data ISO (yyyy-mm-dd). */
+export function somaDias(iso: string, dias: number): string {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + dias);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 /**
  * Competência em que a solicitação passa a valer.
  * Solicitada no dia do pagamento ou depois → próxima competência.
+ *
+ * Origem "portal": o pedido do colaborador tem carência de 30 dias (evita
+ * ativar/cancelar em sequência) — a regra do dia de pagamento é aplicada
+ * sobre a data do pedido + 30 dias.
  */
-export function competenciaEfeito(dataSolicitacao: string, diaPagamento: number | null | undefined): string {
-  const comp = competenciaDeData(dataSolicitacao);
+export function competenciaEfeito(
+  dataSolicitacao: string,
+  diaPagamento: number | null | undefined,
+  origem: "gestor" | "portal" = "gestor",
+): string {
+  const base = origem === "portal" ? somaDias(dataSolicitacao, CARENCIA_PORTAL_DIAS) : dataSolicitacao;
+  const comp = competenciaDeData(base);
   const dia = diaPagamento && diaPagamento > 0 ? diaPagamento : 15;
-  const pagamento = dataPagamentoNoMes(dataSolicitacao, dia);
-  return dataSolicitacao >= pagamento ? proximaCompetencia(comp) : comp;
+  const pagamento = dataPagamentoNoMes(base, dia);
+  return base >= pagamento ? proximaCompetencia(comp) : comp;
 }
 
 /**
