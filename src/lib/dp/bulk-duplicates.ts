@@ -13,6 +13,10 @@ export interface DuplicateHit {
   item_id: string;
   colaborador_nome: string;
   competencia_label: string;
+  /** Natureza do documento já existente (para o selo na conferência). */
+  tipo?: string | null;
+  /** referencia_data (YYYY-MM-DD) do documento já existente. */
+  referencia_data?: string | null;
 }
 
 /**
