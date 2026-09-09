@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { isSocio } from "@/lib/dp/contrato-policy";
-import { ativoNaCompetencia } from "@/lib/dp/bulk-coverage";
+import { ativoNaCompetencia, tipoColetivoDoc } from "@/lib/dp/bulk-coverage";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -481,7 +481,13 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         .map((a) => ({ nome: a.nome, desligamento: a.desligamento }))
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
       const total = elegiveis[`${competencia}::${tipo}::${uid}`] ?? 0;
-      const completo = problema === "faltando" && total > 0 && nomes.length >= total;
+      // "Lote completo" só existe em documento coletivo mensal. Rescisão e
+      // documentos pontuais são sempre nominais, mesmo que só falte de um.
+      const completo =
+        problema === "faltando" &&
+        tipoColetivoDoc(tipo) &&
+        total > 1 &&
+        nomes.length >= total;
       out.push({
         key,
         tipo,

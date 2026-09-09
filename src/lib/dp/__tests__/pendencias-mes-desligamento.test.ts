@@ -63,14 +63,16 @@ describe("cobertura do lote no mês do desligamento", () => {
     expect(r.esperados).toHaveLength(0);
   });
 
-  it("TRCT de julho espera a pessoa desligada no mês", () => {
+  it("TRCT é documento pontual: não cobra o lote da unidade", () => {
     const r = computeCoverage({ ...args, competencia: "2026-07", tipo: "trct" });
-    expect(r.esperados.map((c) => c.id)).toEqual(["k1"]);
-    expect(r.faltantes.map((c) => c.id)).toEqual(["k1"]);
+    expect(r.tipoColetivo).toBe(false);
+    expect(r.esperados).toHaveLength(0);
+    expect(r.faltantes).toHaveLength(0);
   });
 
   it("TRCT de junho não espera ninguém", () => {
     const r = computeCoverage({ ...args, competencia: "2026-06", tipo: "trct" });
     expect(r.esperados).toHaveLength(0);
   });
+
 });
