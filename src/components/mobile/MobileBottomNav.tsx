@@ -54,8 +54,13 @@ export function MobileBottomNav() {
         ? { kind: "link", item: shortcutC, longPressSlot: "c" }
         : mostraHub
           ? { kind: "link", item: { icon: LayoutGrid, label: "Hub", to: config.hubTo, end: true } }
-          : { kind: "link", item: shortcutC ?? shortcutA, longPressSlot: "c" },
-    [isHubModule, hasSlotC, shortcutC, shortcutA, mostraHub, config.hubTo],
+          : {
+              kind: "link",
+              item:
+                options.find((o) => o.to !== shortcutA?.to && o.to !== shortcutB?.to) ??
+                shortcutA,
+            },
+    [isHubModule, hasSlotC, shortcutC, shortcutA, shortcutB, options, mostraHub, config.hubTo],
   );
 
   const slots: SlotDef[] = useMemo(
