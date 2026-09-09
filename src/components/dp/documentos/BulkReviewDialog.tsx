@@ -380,7 +380,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           }
           if (isSaving) {
             return (
-              <div className="flex-1 flex items-center justify-center p-8">
+              <div ref={savingBannerRef} className="flex-1 flex items-center justify-center p-8 scroll-mt-20">
                 <div className="w-full max-w-md">
                   <BulkProgressBanner phase="saving" current={approvedCount} total={savingTotal} />
                 </div>

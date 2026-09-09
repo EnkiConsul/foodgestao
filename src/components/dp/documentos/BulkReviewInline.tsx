@@ -674,7 +674,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
 
       {/* Enquanto salvando, também bloqueamos a UI de revisão. */}
       {!ocrInProgress && isSaving && (
-        <div className="p-4">
+        <div ref={savingBannerRef} className="p-4 scroll-mt-20">
           <BulkProgressBanner phase="saving" current={approvedCount} total={savingTotal} />
         </div>
       )}
