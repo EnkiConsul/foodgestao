@@ -112,6 +112,7 @@ const DpMeuFerias = lazyWithRetry(() => import("./pages/dp/portal/DpMeuFerias"))
 const DpMeuTrocas = lazyWithRetry(() => import("./pages/dp/portal/DpMeuTrocas"));
 const DpMeuCalendario = lazyWithRetry(() => import("./pages/dp/portal/DpMeuCalendario"));
 const DpMeuEscala = lazyWithRetry(() => import("./pages/dp/portal/DpMeuEscala"));
+const DpMeuRotinaLoja = lazyWithRetry(() => import("./pages/dp/portal/DpMeuRotinaLoja"));
 const DpMinhasConvocacoes = lazyWithRetry(() => import("./pages/dp/portal/DpMinhasConvocacoes"));
 const DpMeuHistorico = lazyWithRetry(() => import("./pages/dp/portal/DpMeuHistorico"));
 
@@ -313,6 +314,7 @@ const AppRoutes = () => (
         <Route path="ferias" element={<DpMeuFerias />} />
         <Route path="calendario" element={<DpMeuCalendario />} />
         <Route path="escala" element={<DpMeuEscala />} />
+        <Route path="rotina" element={<DpMeuRotinaLoja />} />
         <Route path="convocacoes" element={<DpMinhasConvocacoes />} />
         <Route path="ponto" element={<Navigate to="/dp/meu" replace />} />
         <Route path="contracheque" element={<Navigate to="/dp/meu/documentos?tipo=contracheque" replace />} />

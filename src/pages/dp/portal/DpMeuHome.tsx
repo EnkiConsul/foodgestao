@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bell, FileText, ClipboardList, Megaphone, User, Calendar,
+  Bell, FileText, ClipboardList, User, Calendar,
   ArrowRight, Inbox, MessageSquare,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,10 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
 import { MinhasPendenciasCard } from "@/components/dp/home/MinhasPendenciasCard";
-import { MinhasNotificacoesCard } from "@/components/dp/home/MinhasNotificacoesCard";
+import { AvisosNotificacoesCard } from "@/components/dp/home/AvisosNotificacoesCard";
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { DpPage } from "@/components/dp/DpPage";
 import { MinhaJornadaAcoesCard } from "@/components/dp/ocorrencias/MinhaJornadaAcoesCard";
+import { useMinhaProximaFolga } from "@/hooks/useMinhaProximaFolga";
+import { textoProximaFolga } from "@/lib/dp/proxima-folga";
 
 
 export default function DpMeuHome() {
@@ -45,48 +47,11 @@ export default function DpMeuHome() {
     },
   });
 
-  // Avisos com marcação de lido/não-lido cruzando dp_avisos_leituras.
-  const avisos = useQuery({
-    queryKey: ["dp_meu_avisos", user?.id],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      const { data: rows } = await supabase
-        .from("dp_avisos")
-        .select("id, titulo, conteudo, prioridade, publicado_em, fixado")
-        .order("fixado", { ascending: false })
-        .order("publicado_em", { ascending: false })
-        .limit(4);
-      const ids = (rows ?? []).map((r) => r.id);
-      let readIds = new Set<string>();
-      if (ids.length) {
-        const { data: leituras } = await supabase
-          .from("dp_avisos_leituras")
-          .select("aviso_id")
-          .in("aviso_id", ids)
-          .eq("user_id", user!.id);
-        readIds = new Set((leituras ?? []).map((l) => l.aviso_id));
-      }
-      return (rows ?? []).map((r) => ({ ...r, lido: readIds.has(r.id) }));
-    },
-  });
+  // Mural e notificações agora vivem juntos em <AvisosNotificacoesCard />.
 
-  // Próxima folga confirmada / agendada.
-  const proximaFolga = useQuery({
-    queryKey: ["dp_meu_proxima_folga", colabId.data],
-    enabled: !!colabId.data,
-    queryFn: async () => {
-      const hoje = new Date().toISOString().slice(0, 10);
-      const { data } = await supabase
-        .from("dp_folgas")
-        .select("id, data, status")
-        .eq("colaborador_id", colabId.data!)
-        .gte("data", hoje)
-        .order("data", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-  });
+  // Próxima folga de qualquer motivo (lançada, escala ou folga semanal fixa).
+  const { folga: proximaFolga, hoje: hojeISO } = useMinhaProximaFolga(colabId.data);
+
 
   // Últimos 3 documentos direcionados ao colaborador.
   const ultimosDocs = useQuery({
@@ -124,12 +89,8 @@ export default function DpMeuHome() {
   const firstName =
     meu?.nome?.split(" ")[0] ?? user?.email?.split("@")[0]?.split(".")[0] ?? "";
 
-  const proximaFolgaDias = (() => {
-    if (!proximaFolga.data?.data) return null;
-    const d = new Date(proximaFolga.data.data + "T00:00:00");
-    const diff = Math.round((d.getTime() - new Date(new Date().toDateString()).getTime()) / 86400000);
-    return diff;
-  })();
+  const folgaTexto = textoProximaFolga(proximaFolga, hojeISO);
+
 
   return (
     <DpPage>
@@ -152,19 +113,20 @@ export default function DpMeuHome() {
         </div>
       </header>
 
+      {/* Pendências em destaque, logo depois da saudação. */}
+      <MinhasPendenciasCard />
+
       {/* Resumo compacto: próxima folga · últimos docs · mensagens */}
       <div className="grid gap-4 md:grid-cols-3">
         <ResumoCard
           icon={Calendar}
           label="Próxima folga"
-          value={
-            proximaFolgaDias == null
-              ? "—"
-              : proximaFolgaDias === 0
-                ? "Hoje"
-                : `Em ${proximaFolgaDias} ${proximaFolgaDias === 1 ? "dia" : "dias"}`
+          value={folgaTexto}
+          hint={
+            proximaFolga
+              ? `${new Date(proximaFolga.data + "T00:00:00").toLocaleDateString("pt-BR")} · ${proximaFolga.label}`
+              : "Sem folga prevista"
           }
-          hint={proximaFolga.data?.data ? new Date(proximaFolga.data.data + "T00:00:00").toLocaleDateString("pt-BR") : "Sem folga agendada"}
           to="/dp/meu/calendario"
         />
         <ResumoCard
@@ -221,43 +183,13 @@ export default function DpMeuHome() {
           </Button>
         </section>
 
-        <section className="rounded-2xl border-2 border-[hsl(var(--dp-birthday-border))] bg-[hsl(var(--dp-birthday-bg))] p-5 flex flex-col">
-          <div className="flex items-center gap-2 mb-4">
-            <Megaphone className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Últimos Avisos</h2>
-          </div>
-          <div className="space-y-3 max-h-[380px] overflow-y-auto flex-1">
-            {(avisos.data?.length ?? 0) === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
-                <Megaphone className="h-8 w-8 opacity-40" />
-                <p className="text-sm">Sem avisos no momento.</p>
-              </div>
-            ) : avisos.data!.map((a: any) => (
-                <div
-                  key={a.id}
-                  className={`rounded-xl bg-card border p-3 ${
-                    a.lido ? "border-[hsl(var(--dp-border))]" : "border-primary/40 ring-1 ring-primary/20"
-                  }`}
-                >
-                <div className="flex items-center justify-between mb-1 gap-2">
-                  <p className="text-sm font-medium truncate">{a.titulo}</p>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {!a.lido && <Badge className="bg-primary text-primary-foreground text-[10px]">Novo</Badge>}
-                    <Badge variant="outline" className="text-[10px] capitalize">{a.prioridade}</Badge>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">{a.conteudo}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+        <AvisosNotificacoesCard />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <MinhasNotificacoesCard />
-        <MinhasPendenciasCard />
-        <AniversariantesCard />
+        <AniversariantesCard variant="portal" />
       </div>
+
 
       <AtalhosFavoritos />
 

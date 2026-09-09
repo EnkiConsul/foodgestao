@@ -9,6 +9,7 @@ export type AnivItem = {
   nome: string;
   cargo: string | null;
   unidade: string | null;
+  unidadeId: string | null;
   tipo: "nascimento" | "contratacao";
   data: Date;
   diaMes: string; // "15/07"
@@ -34,7 +35,7 @@ export function useDpAniversariantes30d() {
     queryFn: async (): Promise<AnivItem[]> => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("id, nome, cargo, data_nascimento, data_admissao, dp_unidades(nome)")
+        .select("id, nome, cargo, unidade_id, data_nascimento, data_admissao, dp_unidades(nome)")
         .eq("company_id", selectedCompanyId!)
         .eq("ativo", true);
       if (error) throw error;
@@ -57,6 +58,7 @@ export function useDpAniversariantes30d() {
             nome: c.nome,
             cargo: c.cargo,
             unidade: c.dp_unidades?.nome ?? null,
+            unidadeId: c.unidade_id ?? null,
             tipo,
             data: next,
             diaMes: `${String(day).padStart(2, "0")}/${String(month + 1).padStart(2, "0")}`,

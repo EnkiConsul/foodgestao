@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { tituloDocumento } from "@/lib/dp/documento-titulo";
 
 export type UnifiedTipo =
   | "contracheque"
@@ -26,6 +27,8 @@ export type UnifiedDoc = {
   tipo_key: UnifiedTipo;
   tipo_label: string;
   titulo: string;
+  /** Nome original do arquivo anexado — informação secundária. */
+  arquivo_nome?: string | null;
   competencia_label: string; // MM/YYYY or —
   competencia_sort: string; // YYYY-MM or ""
   status_key: string;
@@ -119,7 +122,7 @@ export function useMeusDocumentos() {
       const { data: docs } = await supabase
         .from("dp_documentos")
         .select(
-          "id, titulo, tipo, referencia_data, file_path, mime_type, aprovacao_status, motivo_recusao, submetido_por_colaborador, descricao, created_at, exige_aceite"
+          "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, motivo_recusao, submetido_por_colaborador, descricao, created_at, exige_aceite"
         )
         .eq("colaborador_id", colab.id)
         .order("created_at", { ascending: false });
@@ -149,7 +152,15 @@ export function useMeusDocumentos() {
           origem,
           tipo_key: tipo,
           tipo_label: TIPO_LABEL[tipo],
-          titulo: d.titulo || TIPO_LABEL[tipo],
+          titulo:
+            origem === "dp"
+              ? tituloDocumento({
+                  tipoLabel: TIPO_LABEL[tipo],
+                  competenciaLabel: comp.label,
+                  createdAt: d.created_at,
+                })
+              : d.titulo || TIPO_LABEL[tipo],
+          arquivo_nome: d.file_name ?? null,
           competencia_label: comp.label,
           competencia_sort: comp.sort,
           status_key,

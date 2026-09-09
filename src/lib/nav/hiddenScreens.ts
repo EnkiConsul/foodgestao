@@ -72,3 +72,15 @@ export function filterLeaves<T extends LeafLike>(leaves: T[], hidden: Set<string
   if (hidden.size === 0) return leaves;
   return leaves.filter((l) => !itemHidden(l.to, hidden));
 }
+
+/**
+ * Telas do Portal do Colaborador que não fazem sentido para o vínculo da pessoa.
+ * Ex.: quem é colaborador fixo não é convocado, então "Convocações" some do menu.
+ * Isso só esconde do menu — não bloqueia a rota nem altera permissões.
+ */
+export function portalRoutesForaDoVinculo(vinculo: {
+  podeSerConvocado?: boolean | null;
+} | null | undefined): string[] {
+  if (!vinculo) return [];
+  return vinculo.podeSerConvocado ? [] : ["/dp/meu/convocacoes"];
+}

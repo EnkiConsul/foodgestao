@@ -181,11 +181,8 @@ const dpHome: NavLeaf = toLeaf(DP_ADMIN_NAV.home);
 const dpShortcuts: NavLeaf[] = surfaceShortcuts(DP_ADMIN_NAV).map(toShortcutLeaf);
 
 const portalHome: NavLeaf = toLeaf(DP_PORTAL_NAV.home);
-const portalShortcuts: NavLeaf[] = [
-  { icon: Home, label: "Financeiro", to: "/dashboard" },
-  { icon: Users, label: "Pessoas", to: "/dp" },
-  ...surfaceShortcuts(DP_PORTAL_NAV).map(toShortcutLeaf),
-];
+/** O portal é do colaborador: nada de atalhos para áreas da empresa. */
+const portalShortcuts: NavLeaf[] = surfaceShortcuts(DP_PORTAL_NAV).map(toShortcutLeaf);
 
 
 // ── Hub ──────────────────────────────────────────────────────────────────
@@ -233,7 +230,7 @@ const GLOBAL_SHORTCUT_DEFAULTS: Record<
 > = {
   financeiro: { A: "/lancamentos", B: "/contas-bancarias" },
   dp:         { A: "/dp/folgas", B: "/dp/documentos" },
-  portal_colaborador: { A: "/dashboard", B: "/dp" },
+  portal_colaborador: { A: "/dp/meu/documentos", B: "/dp/meu/rotina" },
   hub:        { A: "/dashboard", B: "/dp", C: "/buscar" },
   admin:      { A: "/admin/clientes", B: "/admin/assinaturas" },
   conta:      { A: "/empresas", B: "/gestao-usuarios" },

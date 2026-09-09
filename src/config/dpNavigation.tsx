@@ -29,6 +29,7 @@ import {
   Settings,
   ShieldAlert,
   ShieldCheck,
+  Store,
   Upload,
   User,
   Users,
@@ -202,6 +203,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
     matchPrefixes: [
       "/dp/meu/calendario",
       "/dp/meu/escala",
+      "/dp/meu/rotina",
       "/dp/meu/convocacoes",
       "/dp/meu/trocas",
       "/dp/meu/ferias",
@@ -211,6 +213,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
     items: [
       { label: "Calendário", to: "/dp/meu/calendario", icon: Calendar, shortcut: true },
       { label: "Minha Escala", to: "/dp/meu/escala", icon: CalendarRange, shortcut: true },
+      { label: "Rotina da Loja", to: "/dp/meu/rotina", icon: Store, shortcut: true, shortLabel: "Rotina" },
       { label: "Convocações", to: "/dp/meu/convocacoes", icon: BellRing, shortcut: true },
       { label: "Trocas", to: "/dp/meu/trocas", icon: Repeat, shortcut: true },
       { label: "Minhas Férias", to: "/dp/meu/ferias", icon: Palmtree, shortcut: true, shortLabel: "Férias" },

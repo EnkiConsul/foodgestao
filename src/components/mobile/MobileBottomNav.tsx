@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { LayoutGrid, MoreHorizontal, Sliders } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useActiveModule, type ActiveModule } from "@/hooks/useActiveModule";
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { MODULE_NAV, type NavLeaf } from "@/config/mobileNav";
 import { useModuleShortcuts, type ShortcutSlot } from "@/hooks/useModuleShortcut";
 import { BottomNavShape } from "./BottomNavShape";
@@ -42,14 +43,24 @@ export function MobileBottomNav() {
   }, []);
 
   const isHubModule = activeModule === "hub";
+  // No Portal do Colaborador o Hub só aparece para quem administra a empresa.
+  const { role } = useCompanyPermissions();
+  const mostraHub = activeModule !== "portal_colaborador" || role === "owner" || role === "admin";
 
   // Slot 1: no Hub vira o 3º atalho personalizável (C); fora do Hub, botão "Hub".
   const slot1Def: SlotDef = useMemo(
     () =>
       isHubModule && hasSlotC
         ? { kind: "link", item: shortcutC, longPressSlot: "c" }
-        : { kind: "link", item: { icon: LayoutGrid, label: "Hub", to: config.hubTo, end: true } },
-    [isHubModule, hasSlotC, shortcutC, config.hubTo],
+        : mostraHub
+          ? { kind: "link", item: { icon: LayoutGrid, label: "Hub", to: config.hubTo, end: true } }
+          : {
+              kind: "link",
+              item:
+                options.find((o) => o.to !== shortcutA?.to && o.to !== shortcutB?.to) ??
+                shortcutA,
+            },
+    [isHubModule, hasSlotC, shortcutC, shortcutA, shortcutB, options, mostraHub, config.hubTo],
   );
 
   const slots: SlotDef[] = useMemo(

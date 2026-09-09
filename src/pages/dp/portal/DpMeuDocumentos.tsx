@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpEmptyState, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
@@ -222,7 +223,9 @@ export default function DpMeuDocumentos() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Recebimento confirmado com data, hora e dispositivo");
+      toast.success("Documento confirmado", {
+        description: "Registramos data, hora e dispositivo. Isso não confirma valores nem pagamento.",
+      });
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao registrar o aceite"),
@@ -307,8 +310,6 @@ export default function DpMeuDocumentos() {
       />
 
       {/* Tabs por tipo */}
-      <ColaboradorDocumentosPanel colaboradorId={colaborador?.id ?? null} somenteEnvio ocultarConfig />
-
       <Tabs value={tab} onValueChange={changeTab}>
         <DpFilterCard>
           <div className="-mx-1 overflow-x-auto">
@@ -406,15 +407,25 @@ export default function DpMeuDocumentos() {
                         )}
                         {d.aceite === false && (
                           <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">
-                            <Clock className="h-3 w-3 mr-1" /> Aguardando seu aceite
+                            <Clock className="h-3 w-3 mr-1" /> Aguardando sua confirmação de leitura
                           </Badge>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         <span className="capitalize">{d.tipo_label}</span> · Competência {d.competencia_label}
                       </p>
+                      {d.arquivo_nome && (
+                        <p className="text-[11px] text-muted-foreground/80 mt-0.5 truncate">
+                          Arquivo: {d.arquivo_nome}
+                        </p>
+                      )}
                       {d.motivo_recusao && (
                         <p className="text-xs text-destructive mt-1">Recusado: {d.motivo_recusao}</p>
+                      )}
+                      {d.aceite === false && (
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {DOCUMENTO_CONFIRMACAO_TEXTO}
+                        </p>
                       )}
                       {d.observacao && !d.motivo_recusao && (
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{d.observacao}</p>
@@ -433,7 +444,7 @@ export default function DpMeuDocumentos() {
                             disabled={aceitar.isPending}
                             className="min-h-9 flex-1 sm:flex-none"
                           >
-                            <PenLine className="h-4 w-4 mr-1" /> Confirmar Recebimento
+                            <PenLine className="h-4 w-4 mr-1" /> Confirmar Documento
                           </Button>
                         )}
                         {d.origem === "meu_envio" && d.status_key === "pendente" && (
@@ -456,6 +467,11 @@ export default function DpMeuDocumentos() {
           })}
         </div>
       )}
+
+      {/* Meus documentos pessoais (envio e pendências) vêm depois dos documentos da empresa. */}
+      <div className="mt-6">
+        <ColaboradorDocumentosPanel colaboradorId={colaborador?.id ?? null} somenteEnvio ocultarConfig />
+      </div>
 
       <DocumentPreview
         open={!!preview}
