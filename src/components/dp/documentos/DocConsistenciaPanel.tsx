@@ -515,12 +515,8 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
   const faltando = grupos.filter((g) => g.problema === "faltando");
   const inconsistentes = grupos.filter((g) => g.problema === "inconsistente");
   const avisos = query.data?.avisos ?? [];
-  const ferias = query.data?.ferias ?? [];
   const tudoOk =
-    faltando.length === 0 &&
-    inconsistentes.length === 0 &&
-    avisos.length === 0 &&
-    ferias.length === 0;
+    faltando.length === 0 && inconsistentes.length === 0 && avisos.length === 0;
 
   const renderGrupo = (g: Grupo) => {
     const expandido = !!aberto[g.key];
@@ -597,8 +593,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
    * No celular o quadro começa recolhido: o envio do PDF é a ação principal da
    * tela e não pode ficar empurrado para baixo por uma lista longa de pendências.
    */
-  const totalPendencias =
-    faltando.length + avisos.length + ferias.length + inconsistentes.length;
+  const totalPendencias = faltando.length + avisos.length + inconsistentes.length;
   const isMobile = useIsMobile();
   const [abertaManual, setAbertaManual] = useState<boolean | null>(null);
   const aberta = abertaManual ?? !isMobile;
@@ -681,32 +676,6 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           </div>
         )}
 
-        {ferias.length > 0 && (
-          <div className="rounded-md border border-orange-500/40 bg-orange-500/5 p-3 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-medium text-orange-700 dark:text-orange-300">
-              <CalendarClock className="h-4 w-4" /> Férias Vencidas Sem Agendamento (
-              {ferias.length})
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Período aquisitivo com saldo e limite concessivo vencido ou próximo, sem férias
-              agendadas.{" "}
-              <Link to="/dp/ferias" className="text-primary underline underline-offset-2">
-                Abrir Férias
-              </Link>
-            </p>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {ferias.map((f) => (
-                <Badge
-                  key={`${f.colaborador_id}-${f.limite}`}
-                  variant="outline"
-                  className="text-[11px]"
-                >
-                  {f.nome} · {f.vencido ? "vencido" : "vence"} {labelData(f.limite)} · {f.dias}d
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
 
         {inconsistentes.length > 0 && (
           <div className="rounded-md border border-rose-500/40 bg-rose-500/5 p-3 space-y-2">
