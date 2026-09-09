@@ -328,7 +328,20 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   const semUnidadeOkRef = useRef(false);
   const [confirmSemUnidade, setConfirmSemUnidade] = useState(false);
 
-  async function runApprove(item_ids: string[], on_duplicate: "skip" | "replace") {
+  /** Marca páginas duplicadas como ignoradas para elas saírem da fila de aprovação. */
+  async function ignorarDuplicados(ids: string[]) {
+    if (!ids.length) return;
+    const { error } = await supabase.from("dp_bulk_import_items" as any)
+      .update({ status: "rejected", decided_at: new Date().toISOString() })
+      .in("id", ids);
+    if (error) toast.error(error.message ?? "Falha ao ignorar duplicados");
+  }
+
+  async function runApprove(
+    item_ids: string[],
+    on_duplicate: "skip" | "replace",
+    ignorados: string[] = [],
+  ) {
     if (item_ids.length === 0) {
       toast.error("Nenhuma página elegível");
       return;
