@@ -9,7 +9,7 @@ import { useDpMeuResumo } from "@/hooks/useDpMeuResumo";
 import {
   Sidebar, SidebarContent, SidebarHeader, SidebarFooter,
   SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem,
-  useSidebar,
+  SidebarMenuButton, useSidebar,
 } from "@/components/ui/sidebar";
 import { SidebarToggleButton } from "@/components/layout/SidebarToggleButton";
 import { cn } from "@/lib/utils";
