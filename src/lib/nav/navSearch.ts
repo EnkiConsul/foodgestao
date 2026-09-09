@@ -21,7 +21,7 @@ export const normalizeTerm = (s: string) =>
 /** Sinônimos por rota: palavras que a pessoa digita e que não estão no rótulo. */
 const SYNONYMS: Record<string, string[]> = {
   "/dp/colaboradores": ["funcionario", "funcionarios", "empregado", "equipe", "pessoal", "time", "gente"],
-  "/dp/colaboradores/importar-ficha": ["ficha", "registro", "pdf", "importacao", "admissao"],
+  
   "/dp/cadastros/cargos": ["salario", "piso", "funcao", "remuneracao"],
   "/dp/cadastros/unidades": ["loja", "filial", "restaurante", "estabelecimento"],
   "/dp/cadastros/beneficios": ["vale", "va", "vt", "transporte", "alimentacao", "plano de saude"],
