@@ -1,35 +1,18 @@
-- [x] Quantidade por dia com escolha de cargos
-- [x] Cabeçalho fixo na janela Editar Regras de Folgas
-- [x] Folgas: dias/ocupação por item no plano, preferência pelo fim do mês, sem contingência acima do limite (escolha manual com contagem), Registrar Ausência na Operação, remarcar/cancelar folga efetivada ou solicitada sem manter o dia cancelado no calendário
-- [x] Rotina do dia: cards de folguista/teste, dia destacado no calendário, horário sugerido no cadastro de pessoa avulsa, botão "Adicionar Pessoa" no topo e diálogo de listagem por tipo
-- [x] Férias etapa 1: direito por faltas, alertas de prazo e painel com abas
-- [x] Férias etapa 2: pedido do colaborador, aprovação/recusa, cancelamento com motivo, ciência e antecedência do aviso
-- [x] Férias etapa 3: feriados por unidade, 13º por unidade e resumo para contabilidade
-- [x] Férias etapa 4: bloqueio de folga/convocação em férias, sugestão de cobertura e fracionamento
-- [x] Feriados: replicar lista de feriados entre unidades
-- [x] Ocorrências etapa 1: tela /dp/ocorrencias, registro pelo colaborador e gestor, estados/análise/impactos
-- [x] Ocorrências etapa 2: rotina do dia, coberturas (Mão de Obra Extra) e central de pendências
-- [x] Ocorrências etapa 3: atestado automático, histórico no perfil, indicadores e auditoria
+# Roadmap — Pessoas 360° (plano aprovado 09/2026)
 
-## Disponibilidade de intermitentes/freelancers
-- [x] Fase 1 — diagnóstico
-- [x] Fase 2 — regras do período mensal + portal (janela, alteração tardia, lembrete)
-- [x] Fase 3 — Convocações > Disponibilidade (visão do gestor)
-- [x] Fase 4 — integração com Folgas
-- [ ] Fase 5 — conflitos e previsão de ausência
-- [ ] Fase 6 — Planejamento
-- [ ] Fase 7 — automação (se prevista)
+## Feito
+- [x] Migração: `dp_intermitente_competencia_confirmacoes`, `dp_adiantamento_solicitacoes`, `dp_pendencias_decisoes` (RLS, triggers, backfill de optantes)
+- [x] `src/lib/dp/adiantamento-opcao.ts` — efeito por competência, última solicitação válida, regra dos 5 dias no portal
+- [x] `src/hooks/useDpAdiantamentoSolicitacoes.tsx` — listar/registrar (gestor e portal) + notificação ao gestor
+- [x] `src/hooks/useDpPendenciasDecisoes.tsx` — ignorar (justificativa) / adiar compartilhados
+- [x] `pendencias-documentos.ts` — `optanteNaCompetencia`, `intermitenteSemRegistros`/`intermitenteTrabalho`
+- [x] `useDpPendencias.tsx` — adiantamento por histórico; alerta "Confirmar trabalho de intermitente"; férias adquiridas/a vencer/vencidas (exceto sócio e desligado)
 
-- [x] Alterar Condições de Trabalho com vigência e histórico na ficha do colaborador
-
-## Plano mestre UX/UI
-- [x] Fase 6 — padrão global de tabelas
-- [x] Fase 7 — demais tabelas e listas
-- [x] Fase 8 — revisão final de consistência (tabelas padronizadas, sem transbordo em 360/768/1280)
-- [x] Fase 9 — validação visual das telas novas (1366x768 e 360 px, 10 rotas, sem overflow, menu Colunas e diálogos verificados)
-- [x] Fase 10 — regressão final (typecheck ok, 1147 verificações automáticas ok, checagem de segurança sem novos avisos)
-
-## Importação de documentos
-- [x] Corrigir cadastro de colaborador pela conferência e reaproveitar nome, CPF e unidade lidos
-- [x] Rolar até o quadro de salvamento ao aprovar documentos
-- [x] Pendência de documento de quem foi desligado no meio da competência
+## Pendente
+- [ ] Responder o alerta do intermitente na UI (botões "Trabalhou"/"Não trabalhou" em PendenciasCard e DpCadastroPendenciasLista, upsert em `dp_intermitente_competencia_confirmacoes`)
+- [ ] Ligar decisões (ignorar/adiar) em PendenciasCard e DpCadastroPendenciasLista (filtrar ignoradas, mesclar adiadas)
+- [ ] `DocConsistenciaPanel.tsx` — remover bloco de férias; adiantamento por histórico; respeitar intermitente
+- [ ] `ColaboradorFormDialog.tsx` — substituir chave de adiantamento por solicitações datadas (gestor pode retroativo)
+- [ ] Portal (`src/pages/dp/portal`) — colaborador pede ativa/cancela adiantamento (hoje/futuro, 5 dias de antecedência)
+- [ ] Testes: adiantamento-opcao, intermitente, decisões
+- [ ] Typecheck + suíte DP

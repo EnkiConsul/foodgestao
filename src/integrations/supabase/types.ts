@@ -2686,6 +2686,70 @@ export type Database = {
           },
         ]
       }
+      dp_adiantamento_solicitacoes: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          competencia_efeito: string
+          created_at: string
+          criado_por: string | null
+          data_solicitacao: string
+          id: string
+          observacao: string | null
+          origem: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          competencia_efeito: string
+          created_at?: string
+          criado_por?: string | null
+          data_solicitacao: string
+          id?: string
+          observacao?: string | null
+          origem?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          competencia_efeito?: string
+          created_at?: string
+          criado_por?: string | null
+          data_solicitacao?: string
+          id?: string
+          observacao?: string | null
+          origem?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_adiantamento_solicitacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_adiantamento_solicitacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_adiantamento_solicitacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_adicionais_tempo_servico: {
         Row: {
           acumula: boolean
@@ -8144,6 +8208,64 @@ export type Database = {
           },
         ]
       }
+      dp_intermitente_competencia_confirmacoes: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          competencia: string
+          created_at: string
+          id: string
+          observacao: string | null
+          respondido_por: string | null
+          trabalhou: boolean
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          competencia: string
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          respondido_por?: string | null
+          trabalhou: boolean
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          competencia?: string
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          respondido_por?: string | null
+          trabalhou?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_intermitente_competencia_confirmacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_intermitente_competencia_confirmacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_intermitente_competencia_confirmacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_jornada_horarios: {
         Row: {
           ativo: boolean
@@ -9154,6 +9276,59 @@ export type Database = {
             foreignKeyName: "dp_pendencias_config_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_pendencias_decisoes: {
+        Row: {
+          acao: string
+          adiada_ate: string | null
+          colaborador_id: string | null
+          company_id: string
+          competencia: string | null
+          created_at: string
+          criado_por: string | null
+          id: string
+          justificativa: string | null
+          pendencia_id: string
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          acao: string
+          adiada_ate?: string | null
+          colaborador_id?: string | null
+          company_id: string
+          competencia?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          justificativa?: string | null
+          pendencia_id: string
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acao?: string
+          adiada_ate?: string | null
+          colaborador_id?: string | null
+          company_id?: string
+          competencia?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          justificativa?: string | null
+          pendencia_id?: string
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_pendencias_decisoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },

@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.dp_adiantamento_solicitacao_guard() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.dp_adiantamento_sync_optante() FROM PUBLIC, anon, authenticated;

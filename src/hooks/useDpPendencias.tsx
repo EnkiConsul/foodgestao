@@ -25,6 +25,10 @@ import {
   type DocTipoColaborador,
 } from "@/lib/dp/pendencias-documentos";
 import { ativoNaCompetencia } from "@/lib/dp/bulk-coverage";
+import {
+  optanteNaCompetencia,
+  type AdiantamentoSolicitacao,
+} from "@/lib/dp/adiantamento-opcao";
 
 export type Pendencia = {
   id: string;
@@ -38,6 +42,9 @@ export type Pendencia = {
   /** Preenchidos somente quando o dado realmente existe na fonte. */
   colaboradorNome?: string | null;
   unidadeNome?: string | null;
+  /** Preenchidos em pendências por colaborador/competência (ex.: alerta do intermitente). */
+  colaboradorId?: string | null;
+  competencia?: string | null;
 };
 
 const MES_NOME = [
@@ -216,9 +223,64 @@ export function useDpPendencias() {
         console.warn("pendencias/colabs-unidade:", e);
       }
 
+      // Histórico de solicitações de adiantamento (ativar/cancelar com data) —
+      // decide se a competência estava com adiantamento ativo, não o flag atual.
+      const solicitacoesPorColab = new Map<string, AdiantamentoSolicitacao[]>();
+      try {
+        const { data: sols } = await supabase
+          .from("dp_adiantamento_solicitacoes" as any)
+          .select("id, colaborador_id, tipo, data_solicitacao, competencia_efeito, origem, created_at")
+          .eq("company_id", selectedCompanyId!);
+        (sols ?? []).forEach((s: any) => {
+          if (!solicitacoesPorColab.has(s.colaborador_id)) solicitacoesPorColab.set(s.colaborador_id, []);
+          solicitacoesPorColab.get(s.colaborador_id)!.push(s as AdiantamentoSolicitacao);
+        });
+      } catch (e) {
+        console.warn("pendencias/adiantamento-solicitacoes:", e);
+      }
+
+      // Confirmações do gestor sobre o intermitente (trabalhou / não trabalhou).
+      const confirmacaoIntermitente = new Map<string, boolean>();
+      try {
+        const { data: confs } = await supabase
+          .from("dp_intermitente_competencia_confirmacoes" as any)
+          .select("colaborador_id, competencia, trabalhou")
+          .eq("company_id", selectedCompanyId!);
+        (confs ?? []).forEach((c: any) => {
+          confirmacaoIntermitente.set(`${c.colaborador_id}:${c.competencia}`, c.trabalhou === true);
+        });
+      } catch (e) {
+        console.warn("pendencias/intermitente-confirmacoes:", e);
+      }
+
       const hojeISO = ymd(today);
       const compVigente = competenciaDe(hojeISO);
       const compAnterior = somarMeses(compVigente, -1);
+
+      // Evidência de trabalho do intermitente: marcações de ponto na competência.
+      // (Convocação aceita/escala entram pelo próprio registro de ponto.)
+      const intermitentesIds = colaboradoresDocs
+        .filter((c) => String(c.regime ?? "").toLowerCase() === "intermitente")
+        .map((c) => c.id);
+      const pontoIntermitente = new Set<string>(); // `${colab}:${comp}`
+      if (intermitentesIds.length > 0) {
+        try {
+          const { data: pts } = await supabase
+            .from("dp_pontos")
+            .select("colaborador_id, data")
+            .eq("company_id", selectedCompanyId!)
+            .in("colaborador_id", intermitentesIds)
+            .gte("data", `${somarMeses(compVigente, -24)}-01`)
+            .lte("data", hojeISO);
+          (pts ?? []).forEach((p: any) => {
+            if (p.colaborador_id && p.data) {
+              pontoIntermitente.add(`${p.colaborador_id}:${String(p.data).slice(0, 7)}`);
+            }
+          });
+        } catch (e) {
+          console.warn("pendencias/intermitente-pontos:", e);
+        }
+      }
 
       // Documentos por tipo — 1 query por tipo cobrindo todo o intervalo.
       // Chave por colaborador: `${colaboradorId}:${competencia}`
@@ -264,6 +326,25 @@ export function useDpPendencias() {
        * Quem está devendo o documento na unidade/competência.
        * Falta de todos → 1 pendência da unidade; falta parcial → 1 por pessoa.
        */
+      const elegibilidadeDe = (
+        tipo: DocTipoColaborador,
+        c: ColabElegibilidade,
+        unidade: { possui_relogio_ponto: boolean | null; dia_adiantamento?: number | null },
+        comp: string,
+      ) =>
+        elegivelDocumento(tipo, c, {
+          competencia: comp,
+          unidadeTemRelogio: unidade.possui_relogio_ponto === true,
+          diaAdiantamento: unidade.dia_adiantamento ?? null,
+          exigirContrachequeMesDesligamento: cfg.exigir_contracheque_mes_desligamento,
+          optanteNaCompetencia:
+            tipo === "adiantamento"
+              ? optanteNaCompetencia(solicitacoesPorColab.get(c.id), comp, c.optante_adiantamento)
+              : undefined,
+          intermitenteSemRegistros: !pontoIntermitente.has(`${c.id}:${comp}`),
+          intermitenteTrabalho: confirmacaoIntermitente.get(`${c.id}:${comp}`) ?? null,
+        });
+
       const faltantesDocumento = (
         tipo: DocTipoColaborador,
         docs: Set<string>,
@@ -271,13 +352,7 @@ export function useDpPendencias() {
         comp: string,
       ) => {
         const elegiveis = (colabsPorUnidade.get(unidade.id) ?? []).filter(
-          (c) =>
-            elegivelDocumento(tipo, c, {
-              competencia: comp,
-              unidadeTemRelogio: unidade.possui_relogio_ponto === true,
-              diaAdiantamento: unidade.dia_adiantamento ?? null,
-              exigirContrachequeMesDesligamento: cfg.exigir_contracheque_mes_desligamento,
-            }) && ativoNaCompetencia(c as any, comp),
+          (c) => elegibilidadeDe(tipo, c, unidade, comp) && ativoNaCompetencia(c as any, comp),
         );
         const faltantes = elegiveis.filter((c) => !docs.has(`${c.id}:${comp}`));
         // Só é "lote completo" com mais de um elegível; com um só, informar o nome.
@@ -391,6 +466,39 @@ export function useDpPendencias() {
         comps: (u) => compsPorUnidade.get(u.id)?.ateAnterior ?? [],
         vencimentoDe: (_u, comp) => limiteMesSeguinte(comp, cfg.alerta_folha_ponto_dia_mes),
       });
+
+      // 5a. Intermitente sem nenhum registro na competência: ALERTA (não falta).
+      // O gestor responde "trabalhou" (vira cobrança de ponto/contracheque) ou
+      // "não trabalhou" (a competência fica quietinha, sem pendência).
+      for (const u of unidades) {
+        for (const comp of compsPorUnidade.get(u.id)?.ateAnterior ?? []) {
+          for (const c of colabsPorUnidade.get(u.id) ?? []) {
+            if (String(c.regime ?? "").toLowerCase() !== "intermitente") continue;
+            if (!ativoNaCompetencia(c as any, comp)) continue;
+            if (pontoIntermitente.has(`${c.id}:${comp}`)) continue; // há evidência
+            if (confirmacaoIntermitente.has(`${c.id}:${comp}`)) continue; // já respondido
+            const cobraria =
+              elegibilidadeDe("contracheque", { ...c, regime: "clt" }, u, comp) ||
+              elegibilidadeDe("ponto", { ...c, regime: "clt" }, u, comp);
+            if (!cobraria) continue;
+            const vencimento = limiteMesSeguinte(comp, cfg.alerta_folha_ponto_dia_mes);
+            results.push({
+              id: `intermitente-${c.id}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
+              icon: Clock,
+              titulo: "Confirmar trabalho de intermitente",
+              subtitulo: `${c.nome} · ${u.nome} — ${competenciaLabel(comp)}: nenhum registro de trabalho. Trabalhou no mês?`,
+              tipo: "Intermitente",
+              colaboradorNome: c.nome,
+              colaboradorId: c.id,
+              competencia: comp,
+              unidadeNome: u.nome,
+              vencimento,
+              atrasoDias: atrasoEmDias(vencimento, hojeISO),
+              url: "/dp/cadastros/pendencias",
+            });
+          }
+        }
+      }
 
       // 5b. Rescisão não importada — pessoa desligada na competência sem TRCT/demonstrativo.
       // Prazo legal do acerto: 10 dias corridos após o desligamento.
@@ -596,21 +704,31 @@ export function useDpPendencias() {
         limite.setDate(limite.getDate() + cfg.alerta_ferias_dias);
         const { data: periodos } = await supabase
           .from("dp_ferias_periodos")
-          .select("id, colaborador_id, limite_concessivo, dias_saldo, dp_colaboradores(nome)")
+          .select("id, colaborador_id, fim_aquisitivo, limite_concessivo, dias_saldo, dp_colaboradores(nome, vinculo_label, ativo)")
           .eq("company_id", selectedCompanyId!)
           .eq("controle_externo", false)
           .gt("dias_saldo", 0)
-          .lte("limite_concessivo", ymd(limite))
+          .or(`limite_concessivo.lte.${ymd(limite)},fim_aquisitivo.lte.${hojeISO}`)
           .order("limite_concessivo", { ascending: true })
-          .limit(30);
+          .limit(60);
         (periodos ?? []).forEach((p: any) => {
+          // Sócio não tem férias legais; desligado não agenda férias.
+          const vinculo = String(p.dp_colaboradores?.vinculo_label ?? "").toLowerCase();
+          if (vinculo.includes("sóci")) return;
+          if (p.dp_colaboradores?.ativo === false) return;
           const vencimento = new Date(`${p.limite_concessivo}T00:00:00`);
           const dias = differenceInCalendarDays(today, vencimento);
           const jaVenceu = dias > 0;
+          const adquirida = String(p.fim_aquisitivo ?? "") <= hojeISO;
+          const titulo = jaVenceu
+            ? "Férias vencidas"
+            : adquirida && dias > cfg.alerta_ferias_dias
+              ? "Férias adquiridas — agendar"
+              : "Férias a vencer";
           results.push({
             id: `ferias-${p.id}`,
             icon: Palmtree,
-            titulo: jaVenceu ? "Férias vencidas" : "Férias a vencer",
+            titulo,
             subtitulo: `${p.dp_colaboradores?.nome ?? "Colaborador"} — ${p.dias_saldo} dia(s) de saldo · limite ${format(vencimento, "dd/MM/yyyy")}`,
             tipo: "Férias",
             colaboradorNome: p.dp_colaboradores?.nome ?? null,

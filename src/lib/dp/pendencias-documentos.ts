@@ -152,7 +152,32 @@ export type ElegibilidadeOpts = {
   diaAdiantamento?: number | null;
   /** Empresa que emite contracheque separado também no mês do desligamento. */
   exigirContrachequeMesDesligamento?: boolean;
+  /**
+   * Adiantamento: optante NA COMPETÊNCIA segundo o histórico de solicitações
+   * (ativar/cancelar com data). Quando informado, sobrepõe o flag do cadastro.
+   */
+  optanteNaCompetencia?: boolean | null;
+  /**
+   * Intermitente: o gestor confirmou que a pessoa trabalhou na competência?
+   * null = sem resposta; true = trabalhou; false = não trabalhou.
+   */
+  intermitenteTrabalho?: boolean | null;
+  /** Intermitente sem nenhum registro de trabalho na competência
+   * (ponto, convocação aceita ou escala publicada). */
+  intermitenteSemRegistros?: boolean;
 };
+
+/** Intermitente sem evidência de trabalho e sem confirmação do gestor. */
+export function intermitenteIncertoNaCompetencia(
+  c: ColabElegibilidade,
+  opts: ElegibilidadeOpts,
+): boolean {
+  return (
+    String(c.regime ?? "").toLowerCase() === "intermitente" &&
+    opts.intermitenteSemRegistros === true &&
+    opts.intermitenteTrabalho !== true
+  );
+}
 
 /**
  * O colaborador deve ter este documento nesta competência?
@@ -174,12 +199,18 @@ export function elegivelDocumento(
   if (tipo === "rescisao") {
     return assalariado && desligadoNoMes;
   }
+  // Intermitente sem registro de trabalho na competência: não cobra ponto nem
+  // contracheque até o gestor confirmar que trabalhou (alerta separado).
+  const intermitenteIncerto = intermitenteIncertoNaCompetencia(c, opts);
+
   if (tipo === "contracheque") {
+    if (intermitenteIncerto) return false;
     if (desligadoNoMes && !opts.exigirContrachequeMesDesligamento) return false;
     return assalariado;
   }
   if (tipo === "adiantamento") {
-    if (c.optante_adiantamento !== true) return false;
+    const optante = opts.optanteNaCompetencia ?? c.optante_adiantamento;
+    if (optante !== true) return false;
     // Desligado antes do dia do adiantamento não recebe adiantamento no mês.
     const dia = opts.diaAdiantamento ?? null;
     const desligamento = String(c.data_desligamento ?? "").slice(0, 10);
@@ -188,5 +219,6 @@ export function elegivelDocumento(
     }
     return true;
   }
+  if (intermitenteIncerto) return false;
   return opts.unidadeTemRelogio === true && c.possui_folha_ponto !== false;
 }
