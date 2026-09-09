@@ -8,9 +8,9 @@ Ao gerar o acesso ao portal ou redefinir a senha de um colaborador, o gestor con
 
 1. Depois de gerar acesso, redefinir a senha ou definir uma senha específica, aparece o botão **Enviar no WhatsApp** na aba de acesso da ficha.
 2. O texto vem do modelo cadastrado pela empresa (canal WhatsApp). Nada de texto fixo no sistema: para mudar a mensagem, basta editar o modelo.
-   - Novo acesso: usa o modelo intitulado "Acesso ao Portal do Colaborador" quando existir; senão a empresa escolhe o modelo na hora.
-   - Reset/nova senha: usa o modelo "Nova Senha do Portal" quando existir; senão cai no modelo de acesso e, na falta dos dois, o gestor escolhe qualquer modelo da lista.
-   - Se nenhum modelo estiver cadastrado, um aviso na tela leva para Modelos de Mensagem.
+   - Novo acesso: usa o modelo "Texto padrão — novo acesso Portal Colaborador".
+   - Reset/nova senha: usa o modelo "Texto padrão — nova senha Portal Colaborador"; se ele não existir, cai no modelo de novo acesso.
+   - Sem nenhum dos dois, o gestor escolhe qualquer modelo da lista; sem modelo algum, um aviso leva para Modelos de Mensagem.
 3. As variáveis do modelo aceitam o formato que você já usa com nome amigável, além do formato técnico atual:
    `{Nome do Colaborador}`, `{Nome da Empresa}`, `{Link do Portal}`, `{Usuário}`, `{Senha}`, `{{nome}}`, `{{senha}}` etc. Variável que o sistema não conhece continua no texto, em vez de virar espaço vazio.
 4. O modelo pode ser revisado no próprio diálogo antes de abrir o WhatsApp; se o colaborador não tiver WhatsApp/telefone no cadastro, o botão fica desabilitado explicando o motivo.
