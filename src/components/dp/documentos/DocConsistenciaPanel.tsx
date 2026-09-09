@@ -291,8 +291,24 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           const ini = primeiroDia(comp);
           const fimComp = ultimoDia(comp);
           // Só considera competências em que o colaborador estava no quadro.
+          // Mesma regra da conferência do lote (ativoNaCompetencia).
+          if (
+            !ativoNaCompetencia(
+              {
+                id: c.id,
+                nome: c.nome,
+                ativo: c.ativo,
+                data_admissao: admissao,
+                data_desligamento: desligamento,
+              },
+              comp,
+            )
+          ) {
+            continue;
+          }
           if (admissao && admissao > fimComp) continue;
           if (desligamento && desligamento < ini) continue;
+
 
           const prazoDecimo = prazo13(comp);
           const decimoNoPrazo = !!prazoDecimo && hoje <= prazoDecimo;
