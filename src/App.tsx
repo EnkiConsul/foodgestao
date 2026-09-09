@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { ProtectedRoute, OnboardingGuard } from "@/routes/onboardingGuards";
+import { resolveLandingTarget } from "@/lib/auth/landing";
 import { PageSpinner } from "@/components/PageSpinner";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
