@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { PresenceTracker } from "@/hooks/usePresence";
 import { PrivacyProvider } from "@/hooks/usePrivacy";
 import { CompanyContextProvider } from "@/hooks/useCompanyContext";
 import { AppLayout } from "@/components/layout/AppLayout";
