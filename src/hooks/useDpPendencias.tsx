@@ -25,6 +25,10 @@ import {
   type DocTipoColaborador,
 } from "@/lib/dp/pendencias-documentos";
 import { ativoNaCompetencia } from "@/lib/dp/bulk-coverage";
+import {
+  optanteNaCompetencia,
+  type AdiantamentoSolicitacao,
+} from "@/lib/dp/adiantamento-opcao";
 
 export type Pendencia = {
   id: string;
@@ -38,6 +42,9 @@ export type Pendencia = {
   /** Preenchidos somente quando o dado realmente existe na fonte. */
   colaboradorNome?: string | null;
   unidadeNome?: string | null;
+  /** Preenchidos em pendências por colaborador/competência (ex.: alerta do intermitente). */
+  colaboradorId?: string | null;
+  competencia?: string | null;
 };
 
 const MES_NOME = [
