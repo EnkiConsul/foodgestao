@@ -118,9 +118,9 @@ export default function DpColaboradores() {
   const [viewingApoio, setViewingApoio] = useState<PessoaApoio | null>(null);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [transformando, setTransformando] = useState<PessoaApoio | null>(null);
-  /** Aba aberta ao abrir o cadastro pelas ações da lista. */
-  const [abaInicial, setAbaInicial] = useState<"dados" | "acesso" | "desligamento">("dados");
-  const abrirCadastro = (c: DpColaborador | null, aba: "dados" | "acesso" | "desligamento" = "dados") => {
+  /** Aba aberta ao abrir o cadastro pelas ações da lista e pelos atalhos de pendências. */
+  const [abaInicial, setAbaInicial] = useState<AbaCadastro>("dados");
+  const abrirCadastro = (c: DpColaborador | null, aba: AbaCadastro = "dados") => {
     setEditing(c);
     setAbaInicial(aba);
     setDialogOpen(true);
