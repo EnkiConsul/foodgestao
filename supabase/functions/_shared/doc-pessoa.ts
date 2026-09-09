@@ -39,8 +39,9 @@ export function extrairCpfValido(ocr: string): string | null {
 
   const re = /CPF[^0-9A-Za-z]{0,20}(\d{3}\.?\s?\d{3}\.?\s?\d{3}\s?-?\s?\d{2})/gi;
   for (const m of texto.matchAll(re)) {
-    const antes = texto.slice(Math.max(0, (m.index ?? 0) - 24), m.index ?? 0).toUpperCase();
-    if (ROTULOS_PROIBIDOS.some((r) => antes.includes(r + "/") || antes.endsWith(r))) continue;
+    const antes = texto.slice(Math.max(0, (m.index ?? 0) - 12), m.index ?? 0).toUpperCase();
+    // Só rejeita quando o rótulo "CPF" vem colado a outro rótulo (ex.: "PIS/CPF").
+    if (ROTULOS_PROIBIDOS.some((r) => new RegExp(`${r}\\s*[/-]\\s*$`).test(antes))) continue;
     if (isCpfValido(m[1])) return onlyDigits(m[1]);
   }
   return null;
