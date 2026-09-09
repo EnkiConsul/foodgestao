@@ -26,6 +26,7 @@ import { BulkReviewDialog } from "./BulkReviewDialog";
 import { BulkReviewInline } from "./BulkReviewInline";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 import { DP_DOC_TIPOS_IMPORTAVEIS, docTipoLabel } from "@/lib/dp/documentoTipos";
+import { competenciaPredominante } from "@/lib/dp/bulk-coverage";
 
 const AUTO_TIPO = "__auto";
 
