@@ -29,6 +29,7 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { cn } from "@/lib/utils";
 import { extrairCpfValido, extrairNomePessoa, isCpfValido, pareceRazaoSocial } from "@/lib/dp/doc-pessoa";
 import { tipoCanonicoPorVinculo } from "@/lib/dp/documento-tipo-por-vinculo";
+import { useNormalizarTipoPorVinculo } from "./useNormalizarTipoPorVinculo";
 
 // Setup pdfjs worker once
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -108,6 +109,14 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
 
   const rows = items.data ?? [];
   const current = rows[currentIdx];
+
+  // Páginas vinculadas antes da regra de vínculo: corrige a natureza ao abrir.
+  useNormalizarTipoPorVinculo({
+    batchId,
+    rows,
+    colaboradores,
+    batchTipo: (batchInfo.data as any)?.tipo ?? null,
+  });
 
   // Observa largura disponível para renderizar a página ajustada à largura
   useEffect(() => {

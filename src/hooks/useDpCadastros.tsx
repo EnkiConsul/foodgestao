@@ -1,3 +1,4 @@
+import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -92,7 +93,7 @@ export function useUpsertDpUnidade() {
   return useMutation({
     mutationFn: async (input: Partial<DpUnidadeInsert> & { id?: string; nome: string; company_id: string }): Promise<DpUnidade> => {
       if (!input.company_id) throw new Error("Empresa é obrigatória");
-      const payload = { ...input } as DpUnidadeInsert;
+      const payload = { ...input, nome: toUpperCadastro(input.nome) } as DpUnidadeInsert;
       if (input.id) {
         const { data, error } = await supabase
           .from("dp_unidades")
@@ -166,7 +167,7 @@ export function useUpsertDpCargo() {
   return useMutation({
     mutationFn: async (input: Partial<DpCargoInsert> & { id?: string; nome: string }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const payload = { ...input, company_id: selectedCompanyId } as DpCargoInsert;
+      const payload = { ...input, nome: toUpperCadastro(input.nome), company_id: selectedCompanyId } as DpCargoInsert;
       if (input.id) {
         const { data, error } = await supabase
           .from("dp_cargos")
@@ -244,7 +245,7 @@ export function useUpsertDpSindicato() {
   return useMutation({
     mutationFn: async (input: Partial<DpSindicatoInsert> & { id?: string; nome: string }): Promise<string> => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const payload = { ...input, company_id: selectedCompanyId } as DpSindicatoInsert;
+      const payload = { ...input, nome: toUpperCadastro(input.nome), company_id: selectedCompanyId } as DpSindicatoInsert;
       if (input.id) {
         const { error } = await supabase.from("dp_sindicatos").update(payload).eq("id", input.id);
         if (error) throw error;

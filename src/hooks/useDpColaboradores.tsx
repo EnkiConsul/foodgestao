@@ -1,3 +1,4 @@
+import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -40,7 +41,14 @@ export function useUpsertDpColaborador() {
   return useMutation({
     mutationFn: async (input: Partial<DpColaboradorInsert> & { id?: string; nome: string }) => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
-      const payload = { ...input, company_id: selectedCompanyId } as DpColaboradorInsert;
+      // Cadastro estrutural: nomes gravados em CAIXA ALTA (padrão da ficha).
+      const payload = {
+        ...input,
+        nome: toUpperCadastro(input.nome),
+        ...(input.nome_mae !== undefined ? { nome_mae: toUpperCadastro(input.nome_mae) } : {}),
+        ...(input.nome_pai !== undefined ? { nome_pai: toUpperCadastro(input.nome_pai) } : {}),
+        company_id: selectedCompanyId,
+      } as DpColaboradorInsert;
       if (input.id) {
         const { error } = await supabase.from("dp_colaboradores").update(payload).eq("id", input.id);
         if (error) throw error;

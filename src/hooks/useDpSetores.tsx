@@ -1,3 +1,4 @@
+import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -99,7 +100,7 @@ export function useUpsertDpSetor() {
     mutationFn: async (input: SetorInput): Promise<DpSetor> => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       if (!input.unidade_id) throw new Error("O setor precisa estar ligado a uma unidade.");
-      const nome = input.nome.trim();
+      const nome = toUpperCadastro(input.nome);
       if (!nome) throw new Error("Informe o nome do setor.");
 
       const { data: userData } = await supabase.auth.getUser();
