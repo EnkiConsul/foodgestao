@@ -27,6 +27,7 @@ import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@
 import { VincularUnidadeLote } from "./VincularUnidadeLote";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { cn } from "@/lib/utils";
+import { extrairCpfValido, extrairNomePessoa, isCpfValido } from "@/lib/dp/doc-pessoa";
 
 // Setup pdfjs worker once
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
