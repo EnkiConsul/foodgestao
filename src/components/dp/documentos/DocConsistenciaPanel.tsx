@@ -419,7 +419,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         alertas,
         elegiveis,
         avisos: Array.from(avisosMap.values()).sort((a, b) =>
-          a.competencia < b.competencia ? 1 : -1,
+          a.competencia < b.competencia ? -1 : 1,
         ),
         ferias,
         unidadesMap,
