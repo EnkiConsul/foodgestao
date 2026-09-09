@@ -18,6 +18,15 @@ MATRICULA INSS: 12345678901
 COMPETENCIA: 07/2026
 `;
 
+const FOLHA_ROTULO_ABAIXO = `
+PAKERE COMERCIO DE ALIMENTOS LTDA
+CNPJ: 12.345.678/0001-95
+Nome do Funcionario
+ANA PAULA FERREIRA COSTA
+Cargo: SOCIO
+COMPETENCIA: 07/2026
+`;
+
 describe("extração da pessoa do documento", () => {
   it("ignora PIS/NIT e usa o CPF rotulado", () => {
     expect(extrairCpfValido(FOLHA_COM_PIS)).toBe("52998224725");
