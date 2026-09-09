@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { PresenceTracker } from "@/hooks/usePresence";
 import { PrivacyProvider } from "@/hooks/usePrivacy";
 import { CompanyContextProvider } from "@/hooks/useCompanyContext";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -132,6 +133,7 @@ const AdminPluggyStatus = lazyWithRetry(() => import("./pages/admin/PluggyStatus
 const AdminPerfisAcesso = lazyWithRetry(() => import("./pages/admin/PerfisAcesso"));
 const AdminDonosEmpresas = lazyWithRetry(() => import("./pages/admin/DonosEmpresas"));
 const AdminAuditoria = lazyWithRetry(() => import("./pages/admin/Auditoria"));
+const AdminConectados = lazyWithRetry(() => import("./pages/admin/Conectados"));
 const AdminResetarDados = lazyWithRetry(() => import("./pages/admin/ResetarDados"));
 const AdminCadastros = lazyWithRetry(() => import("./pages/admin/Cadastros"));
 const AdminCategoriasPadrao = lazyWithRetry(() => import("./pages/admin/CategoriasPadrao"));
@@ -304,6 +306,7 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
 const AppRoutes = () => (
   <ErrorBoundary scope="rota">
+    <PresenceTracker />
     <Suspense fallback={<PageSpinner />}>
       <Routes>
 
@@ -491,6 +494,7 @@ const AppRoutes = () => (
         <Route path="/admin/perfis-acesso" element={<AdminPerfisAcesso />} />
         <Route path="/admin/donos" element={<AdminDonosEmpresas />} />
         <Route path="/admin/auditoria" element={<AdminAuditoria />} />
+        <Route path="/admin/conectados" element={<AdminConectados />} />
         <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
         <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
         <Route path="/admin/bancos" element={<AdminBancos />} />
