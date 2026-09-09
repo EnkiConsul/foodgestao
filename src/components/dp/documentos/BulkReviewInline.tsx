@@ -505,11 +505,14 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
         decisoes: decisoesDup,
       });
       if (res.pendentes.length > 0) {
-        const pend = new Set(res.pendentes);
+        // Sobrou colisão sem decisão: o diálogo decide de uma vez todas as
+        // colisões que não foram marcadas para ignorar.
+        const naoIgnoradas = new Set([...res.pendentes, ...res.substituir]);
+        await ignorarDuplicados(res.ignorar);
         setConfirmDup({
-          collisions: hits.filter((h) => pend.has(h.item_id)),
-          allIds,
-          nonDupIds: allIds.filter((id) => !pend.has(id) && !res.ignorar.includes(id)),
+          collisions: hits.filter((h) => naoIgnoradas.has(h.item_id)),
+          allIds: allIds.filter((id) => !res.ignorar.includes(id)),
+          nonDupIds: res.aprovar,
         });
         return;
       }
