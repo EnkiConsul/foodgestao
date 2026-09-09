@@ -788,8 +788,23 @@ export function ColaboradorFormDialog({
 
   /** Vincula o cargo criado/escolhido pelos diálogos auxiliares. */
   const selecionarCargo = (cargo: DpCargo) => {
-    setForm((f) => ({ ...f, cargo_id: cargo.id }));
+    setForm((f) => ({ ...f, cargo_id: cargo.id, ...sugestaoVinculoCargo(cargo.nome) }));
     cargoResolvido.current = true;
+  };
+
+  /**
+   * Cargo de sócio sugere o vínculo "Socio". É apenas padrão: se o usuário já
+   * escolheu o vínculo à mão, nada é sobrescrito.
+   */
+  const sugestaoVinculoCargo = (nomeCargo?: string | null) =>
+    !vinculoTocado.current && cargoSugereVinculoSocio(nomeCargo)
+      ? { tipo_vinculo: "Socio" }
+      : {};
+
+  /** Aplica o cargo escolhido no seletor, com a sugestão de vínculo. */
+  const escolherCargoId = (id: string) => {
+    const nomeCargo = (cargos.data ?? []).find((c) => c.id === id)?.nome;
+    setForm((f) => ({ ...f, cargo_id: id, ...sugestaoVinculoCargo(nomeCargo) }));
   };
 
 
