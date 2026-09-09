@@ -193,15 +193,20 @@ export function useDpPendencias() {
       }
 
       // Colaboradores por unidade — 1 query só (evita N+1 por unidade).
+      // Inclui desligados: a elegibilidade é por competência (ativoNaCompetencia).
       const unidadeDoColab = new Map<string, string>();
+      let colaboradoresDocs: Array<ColabElegibilidade & { nome: string; unidade_id: string | null }> = [];
       try {
         const { data: colabsU } = await supabase
           .from("dp_colaboradores")
-          .select("id, unidade_id")
+          .select(
+            "id, nome, unidade_id, ativo, regime, vinculo_label, possui_folha_ponto, optante_adiantamento, data_admissao, data_desligamento",
+          )
           .eq("company_id", selectedCompanyId!);
         (colabsU ?? []).forEach((c: any) => {
           if (c.unidade_id) unidadeDoColab.set(c.id, c.unidade_id);
         });
+        colaboradoresDocs = (colabsU ?? []) as any;
       } catch (e) {
         console.warn("pendencias/colabs-unidade:", e);
       }
@@ -211,10 +216,10 @@ export function useDpPendencias() {
       const compAnterior = somarMeses(compVigente, -1);
 
       // Documentos por tipo — 1 query por tipo cobrindo todo o intervalo.
-      // Chave: `${unidadeId}:${competencia}`
+      // Chave por colaborador: `${colaboradorId}:${competencia}`
       const importados = new Map<string, Set<string>>();
       const carregarTipo = async (
-        tipo: "contracheque" | "adiantamento" | "ponto",
+        tipo: DocTipoColaborador,
         inicio: string,
         fim: string,
       ): Promise<Set<string>> => {
@@ -230,14 +235,41 @@ export function useDpPendencias() {
             .gte("referencia_data", inicio)
             .lte("referencia_data", fim);
           (data ?? []).forEach((d: any) => {
-            const u = unidadeDoColab.get(d.colaborador_id);
-            if (u && d.referencia_data) set.add(`${u}:${String(d.referencia_data).slice(0, 7)}`);
+            if (d.colaborador_id && d.referencia_data) {
+              set.add(`${d.colaborador_id}:${String(d.referencia_data).slice(0, 7)}`);
+            }
           });
         } catch (e) {
           console.warn(`pendencias/docs-${tipo}:`, e);
         }
         importados.set(tipo, set);
         return set;
+      };
+
+      const colabsPorUnidade = new Map<string, typeof colaboradoresDocs>();
+      colaboradoresDocs.forEach((c) => {
+        if (!c.unidade_id) return;
+        if (!colabsPorUnidade.has(c.unidade_id)) colabsPorUnidade.set(c.unidade_id, []);
+        colabsPorUnidade.get(c.unidade_id)!.push(c);
+      });
+
+      /**
+       * Quem está devendo o documento na unidade/competência.
+       * Falta de todos → 1 pendência da unidade; falta parcial → 1 por pessoa.
+       */
+      const faltantesDocumento = (
+        tipo: DocTipoColaborador,
+        docs: Set<string>,
+        unidade: { id: string; possui_relogio_ponto: boolean | null },
+        comp: string,
+      ) => {
+        const elegiveis = (colabsPorUnidade.get(unidade.id) ?? []).filter(
+          (c) =>
+            elegivelDocumento(tipo, c, { unidadeTemRelogio: unidade.possui_relogio_ponto === true }) &&
+            ativoNaCompetencia(c as any, comp),
+        );
+        const faltantes = elegiveis.filter((c) => !docs.has(`${c.id}:${comp}`));
+        return { elegiveis, faltantes, completo: elegiveis.length > 0 && faltantes.length === elegiveis.length };
       };
 
       // Competências esperadas por unidade (a partir de 1 mês antes do cadastro)
