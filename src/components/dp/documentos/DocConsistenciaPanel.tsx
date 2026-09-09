@@ -11,6 +11,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { ativoNaCompetencia, tipoColetivoDoc } from "@/lib/dp/bulk-coverage";
+import { elegivelDocumento } from "@/lib/dp/pendencias-documentos";
 import {
   optanteNaCompetencia,
   type AdiantamentoSolicitacao,
@@ -221,7 +222,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           .in("tipo", TIPOS_DOC_QUERY as any),
         supabase
           .from("dp_unidades")
-          .select("id, nome, possui_relogio_ponto")
+          .select("id, nome, possui_relogio_ponto, dia_adiantamento")
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true),
         supabase
@@ -254,6 +255,14 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         (unidadesRes.data ?? []).map((u: any) => [
           u.id as string,
           u.possui_relogio_ponto === true,
+        ]),
+      );
+      // Dia do adiantamento por unidade — decide a elegibilidade de quem foi
+      // admitido (ou desligado) no meio da competência.
+      const diaAdiantamentoMap = new Map(
+        (unidadesRes.data ?? []).map((u: any) => [
+          u.id as string,
+          (u.dia_adiantamento as number | null) ?? null,
         ]),
       );
 
@@ -351,6 +360,19 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
             comp,
             c.optante_adiantamento === true,
           );
+          const diaAdiantamento = c.unidade_id
+            ? diaAdiantamentoMap.get(c.unidade_id) ?? null
+            : null;
+          // Mesma regra das pendências (fonte única): admitido depois do dia
+          // do pagamento não tem adiantamento na competência; desligado antes
+          // do dia do pagamento também não.
+          const cobraAdiantamento =
+            !intermitenteSemTrabalho &&
+            elegivelDocumento("adiantamento", c as any, {
+              competencia: comp,
+              diaAdiantamento,
+              optanteNaCompetencia: optanteAdiantamento,
+            });
 
           const checks: Array<[Tipo, boolean]> = socio
             ? [["pro_labore", socioProLabore]]
@@ -366,7 +388,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
                   "ponto",
                   temRelogio && c.possui_folha_ponto === true && !intermitenteSemTrabalho,
                 ],
-                ["adiantamento", optanteAdiantamento && !intermitenteSemTrabalho],
+                ["adiantamento", cobraAdiantamento],
               ];
 
           // 13º dentro do prazo legal: aviso informativo, não pendência.

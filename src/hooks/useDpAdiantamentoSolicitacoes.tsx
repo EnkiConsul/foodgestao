@@ -57,7 +57,7 @@ export function useDpAdiantamentoSolicitacoes(colaboradorId?: string | null) {
         const erro = validarSolicitacaoPortal(args.dataSolicitacao, args.diaPagamento, hojeISO());
         if (erro) throw new Error(erro);
       }
-      const efeito = competenciaEfeito(args.dataSolicitacao, args.diaPagamento);
+      const efeito = competenciaEfeito(args.dataSolicitacao, args.diaPagamento, args.origem);
       const { data: auth } = await supabase.auth.getUser();
       const { error } = await supabase.from("dp_adiantamento_solicitacoes" as any).insert({
         company_id: selectedCompanyId!,
