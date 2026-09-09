@@ -413,18 +413,6 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         }
       }
 
-      const sociosSet = new Set(
-        ((colabsRes.data ?? []) as any[])
-          .filter((c) => isSocio(c.vinculo_label))
-          .map((c) => c.id as string),
-      );
-      const nomePorColab = new Map(
-        ((colabsRes.data ?? []) as any[]).map((c) => [c.id as string, c.nome as string]),
-      );
-      // Alerta de férias só faz sentido para quem continua no quadro.
-      const ativosSet = new Set(
-        ((colabsRes.data ?? []) as any[]).filter((c) => c.ativo !== false).map((c) => c.id as string),
-      );
       return {
         alertas,
         elegiveis,
