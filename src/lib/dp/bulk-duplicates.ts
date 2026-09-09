@@ -13,6 +13,10 @@ export interface DuplicateHit {
   item_id: string;
   colaborador_nome: string;
   competencia_label: string;
+  /** Natureza do documento já existente (para o selo na conferência). */
+  tipo?: string | null;
+  /** referencia_data (YYYY-MM-DD) do documento já existente. */
+  referencia_data?: string | null;
 }
 
 /**
@@ -52,6 +56,8 @@ export async function detectDuplicates(params: {
       item_id: i.item_id,
       colaborador_nome: i.colaborador_nome,
       competencia_label: formatRef(i.referencia_data!),
+      tipo: i.tipo || tipo,
+      referencia_data: i.referencia_data,
     }));
 }
 

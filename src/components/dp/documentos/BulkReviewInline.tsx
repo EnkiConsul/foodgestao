@@ -21,7 +21,8 @@ import { BulkProgressBanner } from "./BulkProgressBanner";
 import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./ConfirmarSubstituicaoDialog";
 import { ConfirmarFaltantesDialog } from "./ConfirmarFaltantesDialog";
 import { ConfirmarSemUnidadeDialog } from "./ConfirmarSemUnidadeDialog";
-import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
+import { detectDuplicates, type DuplicateHit } from "@/lib/dp/bulk-duplicates";
+import { resolverDecisoesDup } from "@/lib/dp/bulk-duplicate-decisoes";
 import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
 import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@/lib/dp/bulk-coverage";
 import { VincularUnidadeLote } from "./VincularUnidadeLote";
@@ -125,6 +126,51 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
 
   const rows = items.data ?? [];
   const current = rows[currentIdx];
+
+  /**
+   * Checagem prévia de duplicidade: mostra na conferência, antes de aprovar,
+   * quais páginas já possuem documento salvo (colaborador + tipo + competência).
+   */
+  const elegiveisDup = useMemo(
+    () => rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id),
+    [rows],
+  );
+  const dupSignature = useMemo(
+    () => elegiveisDup
+      .map((r: any) => `${r.id}:${r.matched_colaborador_id}:${r.tipo_detectado ?? ""}:${r.detected_competencia ?? ""}`)
+      .join("|"),
+    [elegiveisDup],
+  );
+  const dupCheck = useQuery({
+    queryKey: ["dp_bulk_dups", batchId, dupSignature],
+    enabled: !!batchId && elegiveisDup.length > 0 && !!(batchInfo.data as any)?.company_id && !!(batchInfo.data as any)?.tipo,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const bInfo = batchInfo.data as any;
+      return await detectDuplicates({
+        company_id: bInfo.company_id,
+        tipo: bInfo.tipo,
+        itens: elegiveisDup.map((r: any) => {
+          const colab = colaboradores.find((c: any) => c.id === r.matched_colaborador_id);
+          return {
+            item_id: r.id,
+            colaborador_id: r.matched_colaborador_id,
+            colaborador_nome: colab?.nome ?? "(colaborador)",
+            tipo: r.tipo_detectado ?? bInfo.tipo,
+            referencia_data: normalizeRefDate(r.detected_competencia) ?? bInfo?.referencia_data ?? null,
+          };
+        }),
+      });
+    },
+  });
+  const dupHits = dupCheck.data ?? [];
+  const dupMap = useMemo(() => {
+    const m = new Map<string, DuplicateHit>();
+    dupHits.forEach((h) => m.set(h.item_id, h));
+    return m;
+  }, [dupHits]);
+  const [decisoesDup, setDecisoesDup] = useState<Record<string, "skip" | "replace">>({});
+  const dupSemDecisao = dupHits.filter((h) => !decisoesDup[h.item_id]).length;
 
   // Clamp currentIdx quando o número de linhas muda
   useEffect(() => {
@@ -452,12 +498,38 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
         await runApprove(allIds, "skip");
         return;
       }
-      const dupIds = new Set(hits.map((h) => h.item_id));
-      setConfirmDup({
-        collisions: hits,
-        allIds,
-        nonDupIds: allIds.filter((id) => !dupIds.has(id)),
+      // Respeita o que o usuário já decidiu página por página na conferência.
+      const res = resolverDecisoesDup({
+        elegiveis: allIds,
+        duplicados: hits.map((h) => h.item_id),
+        decisoes: decisoesDup,
       });
+      if (res.pendentes.length > 0) {
+        // Sobrou colisão sem decisão: o diálogo decide de uma vez todas as
+        // colisões que não foram marcadas para ignorar.
+        const naoIgnoradas = new Set([...res.pendentes, ...res.substituir]);
+        await ignorarDuplicados(res.ignorar);
+        setConfirmDup({
+          collisions: hits.filter((h) => naoIgnoradas.has(h.item_id)),
+          allIds: allIds.filter((id) => !res.ignorar.includes(id)),
+          nonDupIds: res.aprovar,
+        });
+        return;
+      }
+      await ignorarDuplicados(res.ignorar);
+      if (res.substituir.length > 0) {
+        await runApprove(res.substituir, "replace", res.ignorar);
+      }
+      if (res.aprovar.length > 0) {
+        await runApprove(res.aprovar, "skip", res.substituir.length ? [] : res.ignorar);
+      }
+      if (res.substituir.length === 0 && res.aprovar.length === 0 && res.ignorar.length > 0) {
+        toast.success(`${res.ignorar.length} duplicado(s) ignorado(s)`);
+        qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+        qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
+        qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+        if (loteConcluido(rows as any[], [], res.ignorar)) onConcluido?.();
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao verificar duplicidade");
     } finally {
@@ -579,6 +651,31 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
 
       {!ocrInProgress && !isSaving && (
       <>
+      {/* Resumo de duplicidade — avisa antes de aprovar */}
+      {dupHits.length > 0 && (
+        <div className="mx-2 sm:mx-3 mt-2 rounded-md border border-amber-500/40 bg-amber-50/60 dark:bg-amber-950/20 px-3 py-2 text-sm flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2 min-w-0">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+            <span className="min-w-0">
+              {dupHits.length} de {elegiveisDup.length} página(s) já existem no sistema
+              {dupSemDecisao > 0 ? ` — ${dupSemDecisao} sem decisão.` : " — decisões registradas."}
+            </span>
+          </div>
+          {dupSemDecisao > 0 && (
+            <Button
+              size="sm" variant="outline" className="h-9 shrink-0"
+              onClick={() => {
+                const first = dupHits.find((h) => !decisoesDup[h.item_id]);
+                const idx = rows.findIndex((r: any) => r.id === first?.item_id);
+                if (idx >= 0) setCurrentIdx(idx);
+              }}
+            >
+              Ver primeira
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Navigation bar (topo) */}
       {pageNav("border-b")}
 
@@ -619,7 +716,21 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                   </Badge>
                 )}
                 {current.duplicate_of && (
-                  <Badge variant="destructive" className="text-[10px]">Duplicado</Badge>
+                  <Badge variant="destructive" className="text-[10px]">Duplicado no PDF</Badge>
+                )}
+                {dupMap.has(current.id) && (
+                  <Badge
+                    className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 text-[10px]"
+                    title={`Já existe ${docTipoLabel(dupMap.get(current.id)!.tipo ?? "")} de ${dupMap.get(current.id)!.competencia_label} para ${dupMap.get(current.id)!.colaborador_nome}`}
+                  >
+                    Já existe documento desta competência
+                  </Badge>
+                )}
+                {decisoesDup[current.id] === "skip" && (
+                  <Badge variant="outline" className="text-[10px]">Será ignorada</Badge>
+                )}
+                {decisoesDup[current.id] === "replace" && (
+                  <Badge variant="outline" className="text-[10px]">Vai substituir o existente</Badge>
                 )}
                 <Badge variant="outline" className="text-[10px] whitespace-nowrap">
                   {docTipoLabel(current.tipo_detectado ?? (batchInfo.data as any)?.tipo)}
@@ -658,6 +769,34 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                 </Button>
               </div>
             </div>
+
+            {/* Decisão de duplicidade desta página */}
+            {dupMap.has(current.id) && (
+              <div className="px-3 py-2 border-b bg-amber-50/60 dark:bg-amber-950/20 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-muted-foreground min-w-0">
+                  Já existe {docTipoLabel(dupMap.get(current.id)!.tipo ?? "")} de{" "}
+                  {dupMap.get(current.id)!.competencia_label} para {dupMap.get(current.id)!.colaborador_nome}.
+                </div>
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant={decisoesDup[current.id] === "skip" ? "default" : "outline"}
+                    className="h-9"
+                    onClick={() => setDecisoesDup((d) => ({ ...d, [current.id]: "skip" }))}
+                  >
+                    Ignorar esta página
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={decisoesDup[current.id] === "replace" ? "default" : "outline"}
+                    className="h-9"
+                    onClick={() => setDecisoesDup((d) => ({ ...d, [current.id]: "replace" }))}
+                  >
+                    Substituir o existente
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Preview grande do PDF */}
             <div

@@ -57,6 +57,8 @@ export interface BulkImportPanelProps {
    * competência e rola a tela até o cartão de envio.
    */
   foco?: { tipo?: string | null; competencia?: string | null; nonce: number } | null;
+  /** Disparado quando um lote é concluído (usado para limpar o aviso do atalho). */
+  onLoteConcluido?: () => void;
 }
 
 export function BulkImportPanel({
@@ -68,6 +70,7 @@ export function BulkImportPanel({
   referenciaInicial,
   loteAbertoId,
   foco,
+  onLoteConcluido,
 }: BulkImportPanelProps) {
   const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
@@ -590,7 +593,7 @@ export function BulkImportPanel({
                       batchId={b.id}
                       batchName={b.source_file_name}
                       onOpenFullscreen={() => setReviewBatch({ id: b.id, name: b.source_file_name })}
-                      onConcluido={() => reiniciarEnvio(b.id)}
+                      onConcluido={() => { reiniciarEnvio(b.id); onLoteConcluido?.(); }}
                     />
                   </div>
                 )}

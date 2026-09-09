@@ -33,8 +33,7 @@ function competenciaLabel(comp: string | null) {
  * unidade vêm na URL e aparecem num aviso, além de pré-preencherem o formulário.
  */
 export default function DpDocumentosImportar() {
-  const [params] = useSearchParams();
-  const [avisoAberto, setAvisoAberto] = useState(true);
+  const [params, setParams] = useSearchParams();
   const [foco, setFoco] = useState<{ tipo: string; competencia: string; nonce: number } | null>(null);
   const unidades = useDpUnidades();
 
@@ -42,6 +41,23 @@ export default function DpDocumentosImportar() {
   const competencia = params.get("competencia");
   const unidadeId = params.get("unidade");
   const lote = params.get("lote");
+
+  // Pré-preenchimento capturado uma única vez: sobrevive à limpeza do aviso.
+  const [inicial] = useState(() => ({
+    tipo: params.get("tipo") ?? undefined,
+    competencia: params.get("competencia") ?? undefined,
+    lote: params.get("lote") ?? undefined,
+  }));
+
+  /**
+   * O aviso vive na URL (veio do atalho "Resolver"). Fechá-lo precisa apagar os
+   * parâmetros, senão ele reaparece ao recarregar ou voltar para a tela.
+   */
+  const limparContexto = () => {
+    const next = new URLSearchParams(params);
+    ["tipo", "competencia", "unidade", "lote"].forEach((k) => next.delete(k));
+    setParams(next, { replace: true });
+  };
 
   const unidadeNome =
     (unidades.data ?? []).find((u) => u.id === unidadeId)?.nome ?? null;
@@ -52,7 +68,7 @@ export default function DpDocumentosImportar() {
     unidadeNome,
   ].filter(Boolean) as string[];
 
-  const mostrarAviso = avisoAberto && (partes.length > 0 || !!lote);
+  const mostrarAviso = partes.length > 0 || !!lote;
 
   return (
     <DpPage>
@@ -88,7 +104,7 @@ export default function DpDocumentosImportar() {
           <button
             type="button"
             aria-label="Fechar aviso"
-            onClick={() => setAvisoAberto(false)}
+            onClick={limparContexto}
             className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground hover:bg-muted"
           >
             <X className="h-4 w-4" />
@@ -104,10 +120,11 @@ export default function DpDocumentosImportar() {
 
       <BulkImportPanel
         title="Importação em Massa (PDF com Várias Páginas)"
-        tipoInicial={tipo ?? undefined}
-        referenciaInicial={competencia ? `${competencia}-01` : undefined}
-        loteAbertoId={lote ?? undefined}
+        tipoInicial={inicial.tipo}
+        referenciaInicial={inicial.competencia ? `${inicial.competencia}-01` : undefined}
+        loteAbertoId={inicial.lote}
         foco={foco}
+        onLoteConcluido={limparContexto}
       />
     </DpPage>
   );
