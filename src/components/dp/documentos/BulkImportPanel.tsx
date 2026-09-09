@@ -51,6 +51,11 @@ export interface BulkImportPanelProps {
   referenciaInicial?: string;
   /** Abre automaticamente as páginas de um lote específico. */
   loteAbertoId?: string;
+  /**
+   * Foco de envio vindo da conferência: cada novo `nonce` preenche o tipo e a
+   * competência e rola a tela até o cartão de envio.
+   */
+  foco?: { tipo?: string | null; competencia?: string | null; nonce: number } | null;
 }
 
 export function BulkImportPanel({
@@ -61,6 +66,7 @@ export function BulkImportPanel({
   tipoInicial,
   referenciaInicial,
   loteAbertoId,
+  foco,
 }: BulkImportPanelProps) {
   const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
@@ -92,6 +98,18 @@ export function BulkImportPanel({
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
+
+  /**
+   * Clique num pendente da conferência: já deixa o formulário preenchido e
+   * traz o usuário até o campo de escolher o arquivo.
+   */
+  useEffect(() => {
+    if (!foco?.nonce) return;
+    if (!tipoFixed && foco.tipo) setTipo(foco.tipo);
+    if (!referenciaFixed && foco.competencia) setReferencia(`${foco.competencia}-01`);
+    requestAnimationFrame(() => rolarAte(uploadCardRef.current));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foco?.nonce]);
 
 
   /** Volta ao estado inicial do formulário quando o lote termina de ser importado. */
@@ -328,7 +346,7 @@ export function BulkImportPanel({
 
   return (
     <div className="space-y-4">
-      <div ref={uploadCardRef}>
+      <div ref={uploadCardRef} className="scroll-mt-20">
       <DpFilterCard>
         <div className="space-y-3">
           <h2 className="text-base font-semibold">{title}</h2>
