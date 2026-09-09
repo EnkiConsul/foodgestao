@@ -1,23 +1,29 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, CalendarIcon, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, CalendarIcon, X, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatDate } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
+import { useUserNames } from "@/hooks/useUserNames";
+import { ACCESS_ACTIONS } from "@/lib/audit";
 
 const actionLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   user_activated: { label: "Usuário Ativado", variant: "default" },
   user_deactivated: { label: "Usuário Desativado", variant: "destructive" },
+  user_signed_in: { label: "Entrada no Sistema", variant: "default" },
+  user_signed_out: { label: "Saída do Sistema", variant: "outline" },
+  user_password_changed: { label: "Senha Alterada", variant: "secondary" },
   company_created: { label: "Empresa Criada", variant: "default" },
   company_updated: { label: "Empresa Atualizada", variant: "secondary" },
   company_deleted: { label: "Empresa Excluída", variant: "destructive" },
@@ -34,10 +40,71 @@ const actionLabels: Record<string, { label: string; variant: "default" | "second
   category_updated: { label: "Categoria Atualizada", variant: "secondary" },
   category_deleted: { label: "Categoria Excluída", variant: "destructive" },
   bill_created: { label: "Conta a Pagar Criada", variant: "default" },
+  dp_colaboradores_created: { label: "Colaborador Criado", variant: "default" },
+  dp_colaboradores_updated: { label: "Colaborador Atualizado", variant: "secondary" },
+  dp_colaboradores_deleted: { label: "Colaborador Excluído", variant: "destructive" },
+  dp_cargos_created: { label: "Cargo Criado", variant: "default" },
+  dp_cargos_updated: { label: "Cargo Atualizado", variant: "secondary" },
+  dp_cargos_deleted: { label: "Cargo Excluído", variant: "destructive" },
+  dp_setores_created: { label: "Setor Criado", variant: "default" },
+  dp_setores_updated: { label: "Setor Atualizado", variant: "secondary" },
+  dp_setores_deleted: { label: "Setor Excluído", variant: "destructive" },
+  dp_unidades_created: { label: "Unidade Criada", variant: "default" },
+  dp_unidades_updated: { label: "Unidade Atualizada", variant: "secondary" },
+  dp_unidades_deleted: { label: "Unidade Excluída", variant: "destructive" },
+  dp_turnos_created: { label: "Turno Criado", variant: "default" },
+  dp_turnos_updated: { label: "Turno Atualizado", variant: "secondary" },
+  dp_turnos_deleted: { label: "Turno Excluído", variant: "destructive" },
+  dp_jornadas_created: { label: "Jornada Criada", variant: "default" },
+  dp_jornadas_updated: { label: "Jornada Atualizada", variant: "secondary" },
+  dp_jornadas_deleted: { label: "Jornada Excluída", variant: "destructive" },
+  dp_sindicatos_created: { label: "Sindicato Criado", variant: "default" },
+  dp_sindicatos_updated: { label: "Sindicato Atualizado", variant: "secondary" },
+  dp_sindicatos_deleted: { label: "Sindicato Excluído", variant: "destructive" },
+  dp_documentos_created: { label: "Documento Enviado", variant: "default" },
+  dp_documentos_updated: { label: "Documento Atualizado", variant: "secondary" },
+  dp_documentos_deleted: { label: "Documento Excluído", variant: "destructive" },
+  dp_folgas_created: { label: "Folga Criada", variant: "default" },
+  dp_folgas_updated: { label: "Folga Atualizada", variant: "secondary" },
+  dp_folgas_deleted: { label: "Folga Excluída", variant: "destructive" },
+  dp_ferias_gozos_created: { label: "Férias Agendadas", variant: "default" },
+  dp_ferias_gozos_updated: { label: "Férias Atualizadas", variant: "secondary" },
+  dp_ferias_gozos_deleted: { label: "Férias Excluídas", variant: "destructive" },
+  dp_trocas_created: { label: "Troca Criada", variant: "default" },
+  dp_trocas_updated: { label: "Troca Atualizada", variant: "secondary" },
+  dp_convocacoes_created: { label: "Convocação Criada", variant: "default" },
+  dp_convocacoes_updated: { label: "Convocação Atualizada", variant: "secondary" },
+  dp_escalas_created: { label: "Escala Criada", variant: "default" },
+  dp_escalas_updated: { label: "Escala Atualizada", variant: "secondary" },
+  company_invites_created: { label: "Convite Enviado", variant: "default" },
+  company_invites_updated: { label: "Convite Atualizado", variant: "secondary" },
+  company_invites_deleted: { label: "Convite Excluído", variant: "destructive" },
+  company_members_created: { label: "Membro Adicionado", variant: "default" },
+  company_members_updated: { label: "Permissões Alteradas", variant: "secondary" },
+  company_members_deleted: { label: "Membro Removido", variant: "destructive" },
+  company_modules_created: { label: "Módulo Contratado", variant: "default" },
+  company_modules_updated: { label: "Módulo Atualizado", variant: "secondary" },
+  credit_cards_created: { label: "Cartão Criado", variant: "default" },
+  credit_cards_updated: { label: "Cartão Atualizado", variant: "secondary" },
+  credit_cards_deleted: { label: "Cartão Excluído", variant: "destructive" },
+  budgets_created: { label: "Orçamento Criado", variant: "default" },
+  budgets_updated: { label: "Orçamento Atualizado", variant: "secondary" },
+  budgets_deleted: { label: "Orçamento Excluído", variant: "destructive" },
+  cost_centers_created: { label: "Centro de Custo Criado", variant: "default" },
+  cost_centers_updated: { label: "Centro de Custo Atualizado", variant: "secondary" },
+  cost_centers_deleted: { label: "Centro de Custo Excluído", variant: "destructive" },
+  payment_methods_created: { label: "Forma de Pagamento Criada", variant: "default" },
+  payment_methods_updated: { label: "Forma de Pagamento Atualizada", variant: "secondary" },
+  payment_methods_deleted: { label: "Forma de Pagamento Excluída", variant: "destructive" },
+  tags_created: { label: "Etiqueta Criada", variant: "default" },
+  tags_updated: { label: "Etiqueta Atualizada", variant: "secondary" },
+  tags_deleted: { label: "Etiqueta Excluída", variant: "destructive" },
 };
 
 const ALL_ACTIONS = "all";
+const ALL_USERS = "all";
 const PAGE_SIZE = 20;
+const ACCESS_LIST = [...ACCESS_ACTIONS] as string[];
 
 /** Rótulo legível para ações sem tradução cadastrada (snake_case → Texto). */
 function humanizeAction(action: string) {
@@ -53,12 +120,15 @@ function actionInfoOf(action: string) {
 }
 
 export function AdminAuditLogs() {
+  const [tab, setTab] = useState<"acoes" | "acessos">("acoes");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState(ALL_ACTIONS);
+  const [userFilter, setUserFilter] = useState(ALL_USERS);
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [page, setPage] = useState(0);
+  const { realName } = useUserNames();
 
   // Debounce do campo de busca (evita 1 query a cada tecla)
   useEffect(() => {
@@ -70,25 +140,49 @@ export function AdminAuditLogs() {
   }, [searchInput]);
 
   // Ações existentes no banco (para não limitar o filtro a uma lista fixa)
-  const { data: actionOptions } = useQuery({
-    queryKey: ["admin-audit-log-actions"],
+  const { data: recent } = useQuery({
+    queryKey: ["admin-audit-log-facets"],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("audit_logs")
-        .select("action")
+        .select("action, user_id, user_name")
         .order("created_at", { ascending: false })
         .limit(2000);
       if (error) throw error;
-      const set = new Set<string>([...Object.keys(actionLabels), ...(data ?? []).map((r) => r.action)]);
-      return Array.from(set).sort((a, b) => actionInfoOf(a).label.localeCompare(actionInfoOf(b).label, "pt-BR"));
+      return data ?? [];
     },
   });
 
+  const actionOptions = useMemo(() => {
+    const set = new Set<string>([...Object.keys(actionLabels), ...(recent ?? []).map((r) => r.action)]);
+    return Array.from(set)
+      .filter((a) => (tab === "acessos" ? ACCESS_LIST.includes(a) : !ACCESS_LIST.includes(a)))
+      .sort((a, b) => actionInfoOf(a).label.localeCompare(actionInfoOf(b).label, "pt-BR"));
+  }, [recent, tab]);
+
+  const userOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of recent ?? []) {
+      if (!r.user_id) continue;
+      if (!map.has(r.user_id)) {
+        map.set(r.user_id, realName(r.user_id) || r.user_name || `${r.user_id.slice(0, 8)}…`);
+      }
+    }
+    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
+  }, [recent, realName]);
 
   const queryKey = [
     "admin-audit-logs",
-    { page, search, actionFilter, dateFrom: dateFrom?.toISOString(), dateTo: dateTo?.toISOString() },
+    {
+      tab,
+      page,
+      search,
+      actionFilter,
+      userFilter,
+      dateFrom: dateFrom?.toISOString(),
+      dateTo: dateTo?.toISOString(),
+    },
   ];
 
   const { data, isLoading, isFetching } = useQuery({
@@ -97,12 +191,19 @@ export function AdminAuditLogs() {
     queryFn: async () => {
       let q = supabase
         .from("audit_logs")
-        .select("id, created_at, user_name, action, entity_type, entity_id, details", { count: "exact" })
+        .select("id, created_at, user_id, user_name, action, entity_type, entity_id, details", { count: "exact" })
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
 
       if (actionFilter !== ALL_ACTIONS) {
         q = q.eq("action", actionFilter);
+      } else if (tab === "acessos") {
+        q = q.in("action", ACCESS_LIST);
+      } else {
+        q = q.not("action", "in", `(${ACCESS_LIST.join(",")})`);
+      }
+      if (userFilter !== ALL_USERS) {
+        q = q.eq("user_id", userFilter);
       }
       if (dateFrom) {
         q = q.gte("created_at", startOfDay(dateFrom).toISOString());
@@ -111,7 +212,7 @@ export function AdminAuditLogs() {
         q = q.lte("created_at", endOfDay(dateTo).toISOString());
       }
       if (search) {
-        // busca em user_name, action e entity_type
+        // busca em user_name, ação, entidade e id da entidade
         const term = `%${search}%`;
         q = q.or(
           `user_name.ilike.${term},action.ilike.${term},entity_type.ilike.${term},entity_id.ilike.${term}`,
@@ -129,19 +230,45 @@ export function AdminAuditLogs() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
 
-  const hasFilters = search || actionFilter !== ALL_ACTIONS || dateFrom || dateTo;
+  const hasFilters = search || actionFilter !== ALL_ACTIONS || userFilter !== ALL_USERS || dateFrom || dateTo;
 
   const clearFilters = () => {
     setSearchInput("");
     setSearch("");
     setActionFilter(ALL_ACTIONS);
+    setUserFilter(ALL_USERS);
     setDateFrom(undefined);
     setDateTo(undefined);
     setPage(0);
   };
 
+  /** Nome de quem agiu: nome atual do cadastro, com o registrado como reserva. */
+  const whoOf = (log: { user_id: string; user_name: string | null }) =>
+    realName(log.user_id) || log.user_name || `${log.user_id.slice(0, 8)}…`;
+
   return (
     <div className="space-y-4">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => {
+          setTab(v as "acoes" | "acessos");
+          setActionFilter(ALL_ACTIONS);
+          setPage(0);
+        }}
+      >
+        <TabsList>
+          <TabsTrigger value="acoes">Ações</TabsTrigger>
+          <TabsTrigger value="acessos">Acessos</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <p className="flex items-start gap-2 text-xs text-muted-foreground">
+        <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+        {tab === "acoes"
+          ? "A lista mostra as ações registradas no sistema. Rotinas automáticas do servidor aparecem sem responsável."
+          : "Entradas e saídas do sistema e trocas de senha registradas a partir de agora."}
+      </p>
+
       <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-2 sm:gap-3">
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -153,13 +280,25 @@ export function AdminAuditLogs() {
           />
         </div>
 
+        <Select value={userFilter} onValueChange={(v) => { setUserFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue placeholder="Usuário" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_USERS}>Todos os usuários</SelectItem>
+            {userOptions.map(([id, name]) => (
+              <SelectItem key={id} value={id}>{name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select value={actionFilter} onValueChange={(v) => { setActionFilter(v); setPage(0); }}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Tipo de ação" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL_ACTIONS}>Todas as ações</SelectItem>
-            {(actionOptions ?? Object.keys(actionLabels)).map((action) => (
+            {actionOptions.map((action) => (
               <SelectItem key={action} value={action}>
                 {actionInfoOf(action).label}
               </SelectItem>
@@ -224,7 +363,7 @@ export function AdminAuditLogs() {
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  Nenhum log encontrado
+                  Nenhum registro encontrado
                 </TableCell>
               </TableRow>
             ) : (
@@ -236,7 +375,7 @@ export function AdminAuditLogs() {
                     <TableCell className="text-muted-foreground whitespace-nowrap">
                       {formatDate(log.created_at, "dd/MM/yyyy HH:mm")}
                     </TableCell>
-                    <TableCell className="font-medium">{log.user_name || "—"}</TableCell>
+                    <TableCell className="font-medium">{whoOf(log)}</TableCell>
                     <TableCell>
                       <Badge variant={actionInfo.variant}>{actionInfo.label}</Badge>
                     </TableCell>
@@ -259,7 +398,7 @@ export function AdminAuditLogs() {
             <div key={i} className="rounded-md border p-3"><Skeleton className="h-16 w-full" /></div>
           ))
         ) : rows.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">Nenhum log encontrado</p>
+          <p className="text-center text-sm text-muted-foreground py-8">Nenhum registro encontrado</p>
         ) : (
           rows.map((log) => {
             const actionInfo = actionInfoOf(log.action);
@@ -272,7 +411,7 @@ export function AdminAuditLogs() {
                     {formatDate(log.created_at, "dd/MM/yy HH:mm")}
                   </span>
                 </div>
-                <p className="text-sm font-medium truncate">{log.user_name || "—"}</p>
+                <p className="text-sm font-medium truncate">{whoOf(log)}</p>
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                   <span className="capitalize">{log.entity_type}</span>
                   <span className="truncate ml-2 max-w-[60%] text-right">{details?.target_name || log.entity_id || "—"}</span>
