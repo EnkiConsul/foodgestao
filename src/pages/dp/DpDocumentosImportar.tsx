@@ -35,6 +35,7 @@ function competenciaLabel(comp: string | null) {
 export default function DpDocumentosImportar() {
   const [params] = useSearchParams();
   const [avisoAberto, setAvisoAberto] = useState(true);
+  const [foco, setFoco] = useState<{ tipo: string; competencia: string; nonce: number } | null>(null);
   const unidades = useDpUnidades();
 
   const tipo = params.get("tipo");
@@ -95,14 +96,19 @@ export default function DpDocumentosImportar() {
         </Alert>
       )}
 
+      <DocConsistenciaPanel
+        onImportar={(t, comp) =>
+          setFoco((f) => ({ tipo: t, competencia: comp, nonce: (f?.nonce ?? 0) + 1 }))
+        }
+      />
+
       <BulkImportPanel
         title="Importação em Massa (PDF com Várias Páginas)"
         tipoInicial={tipo ?? undefined}
         referenciaInicial={competencia ? `${competencia}-01` : undefined}
         loteAbertoId={lote ?? undefined}
+        foco={foco}
       />
-
-      <DocConsistenciaPanel />
     </DpPage>
   );
 }

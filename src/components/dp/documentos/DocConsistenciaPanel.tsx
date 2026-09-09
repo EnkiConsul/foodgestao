@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, Clock, ShieldAlert } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, Clock, ShieldAlert, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -149,7 +150,12 @@ type Grupo = {
  * adiantamento) foram importados. Não há filtro de competência: pendências
  * antigas continuam visíveis.
  */
-export function DocConsistenciaPanel() {
+export interface DocConsistenciaPanelProps {
+  /** Leva o usuário ao envio já com a natureza e a competência preenchidas. */
+  onImportar?: (tipo: string, competencia: string) => void;
+}
+
+export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps = {}) {
   const { selectedCompanyId } = useCompanyContext();
   const [aberto, setAberto] = useState<Record<string, boolean>>({});
 
@@ -503,6 +509,20 @@ export function DocConsistenciaPanel() {
               </button>
             )}
           </div>
+        )}
+
+        {onImportar && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs"
+            onClick={() => {
+              if (isMobile) setAbertaManual(false);
+              onImportar(g.tipo, g.competencia);
+            }}
+          >
+            <Upload className="mr-1 h-3.5 w-3.5" /> Importar este
+          </Button>
         )}
       </div>
     );
