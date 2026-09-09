@@ -21,7 +21,8 @@ import { BulkProgressBanner } from "./BulkProgressBanner";
 import { ConfirmarSubstituicaoDialog, type DuplicateCollision } from "./ConfirmarSubstituicaoDialog";
 import { ConfirmarFaltantesDialog } from "./ConfirmarFaltantesDialog";
 import { ConfirmarSemUnidadeDialog } from "./ConfirmarSemUnidadeDialog";
-import { detectDuplicates } from "@/lib/dp/bulk-duplicates";
+import { detectDuplicates, type DuplicateHit } from "@/lib/dp/bulk-duplicates";
+import { resolverDecisoesDup } from "@/lib/dp/bulk-duplicate-decisoes";
 import { ColaboradoresFaltantesPanel } from "./ColaboradoresFaltantesPanel";
 import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@/lib/dp/bulk-coverage";
 import { VincularUnidadeLote } from "./VincularUnidadeLote";
@@ -164,7 +165,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   });
   const dupHits = dupCheck.data ?? [];
   const dupMap = useMemo(() => {
-    const m = new Map<string, DuplicateCollision>();
+    const m = new Map<string, DuplicateHit>();
     dupHits.forEach((h) => m.set(h.item_id, h));
     return m;
   }, [dupHits]);
