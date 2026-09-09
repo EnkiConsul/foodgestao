@@ -278,16 +278,18 @@ function DpGroup({
   if (collapsed) {
     return (
       <SidebarMenuItem>
-        <NavLink
-          to={item.hubUrl ?? item.items[0].url}
-          className={cn(
-            "flex items-center justify-center px-3 py-2.5 rounded-lg transition-colors",
-            active ? "bg-sidebar-accent text-sidebar-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent",
-          )}
-          aria-label={item.title}
-        >
-          <item.icon className="h-4 w-4" />
-        </NavLink>
+        <SidebarMenuButton asChild tooltip={item.title} isActive={active}>
+          <NavLink
+            to={item.hubUrl ?? item.items[0].url}
+            className={cn(
+              "flex items-center justify-center rounded-md transition-colors",
+              active ? "bg-sidebar-accent text-sidebar-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent",
+            )}
+            aria-label={item.title}
+          >
+            <item.icon className="h-4 w-4" />
+          </NavLink>
+        </SidebarMenuButton>
       </SidebarMenuItem>
     );
   }
