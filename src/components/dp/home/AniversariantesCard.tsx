@@ -6,10 +6,21 @@ import { Button } from "@/components/ui/button";
 import { useDpAniversariantes30d, type AnivItem } from "@/hooks/useDpAniversariantes30d";
 import { WhatsappComposerDialog } from "@/components/dp/WhatsappComposerDialog";
 import { cn } from "@/lib/utils";
+import { toProperName } from "@/lib/text/properName";
+import { filtrarAniversariantesPortal } from "@/lib/dp/aniversariantes-portal";
+import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
-export function AniversariantesCard() {
-  const { data = [] } = useDpAniversariantes30d();
+export function AniversariantesCard({ variant = "admin" }: { variant?: "admin" | "portal" }) {
+  const { data: todos = [] } = useDpAniversariantes30d();
+  const { data: eu } = useMeuVinculoPortal();
   const [target, setTarget] = useState<AnivItem | null>(null);
+  const portal = variant === "portal";
+  const data = portal
+    ? filtrarAniversariantesPortal(todos, {
+        colaboradorId: eu?.colaboradorId ?? null,
+        unidadeId: eu?.unidadeId ?? null,
+      })
+    : todos;
 
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-birthday-border))] bg-[hsl(var(--dp-birthday-bg))] p-5">
@@ -20,7 +31,9 @@ export function AniversariantesCard() {
           {data.length}
         </Badge>
       </div>
-      <p className="text-xs text-muted-foreground mb-4">Nascimento e Contratação</p>
+      <p className="text-xs text-muted-foreground mb-4">
+        {portal ? "Colegas da sua unidade e seu tempo de casa" : "Nascimento e Contratação"}
+      </p>
 
       <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
         {data.length === 0 && (
@@ -43,7 +56,7 @@ export function AniversariantesCard() {
               <span className="opacity-70">{a.diaMes.slice(3)}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{a.nome}</p>
+              <p className="text-sm font-medium truncate">{toProperName(a.nome)}</p>
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 <Badge
                   variant="outline"
@@ -69,6 +82,7 @@ export function AniversariantesCard() {
                 <p className="text-[11px] text-muted-foreground mt-0.5">🏢 {a.unidade}</p>
               )}
             </div>
+            {!portal && (
             <div className="flex flex-col gap-1 shrink-0">
               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTarget(a)}>
                 <MessageSquare className="h-3 w-3 mr-1" />
@@ -81,6 +95,7 @@ export function AniversariantesCard() {
                 </Link>
               </Button>
             </div>
+            )}
           </div>
         ))}
       </div>
