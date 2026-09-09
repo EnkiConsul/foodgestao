@@ -17,6 +17,7 @@ import { describeTurnstileError, currentHostname } from "@/lib/auth/turnstileErr
 import { unifiedSignIn } from "@/lib/authUnified";
 import { sanitizeRedirect } from "@/lib/safeRedirect";
 import { resolveLandingTarget, landingPathFor } from "@/lib/auth/landing";
+import { consumePendingInviteToken } from "@/lib/auth/invite";
 
 import { z } from "zod";
 import { toast } from "sonner";
@@ -195,6 +196,25 @@ export default function Auth() {
     const { data } = await supabase.auth.getSession();
     const uid = data.session?.user?.id;
     if (!uid) return requested;
+
+    // Convite aberto pelo link do e-mail antes do login: aceita direto.
+    try {
+      const consumed = await consumePendingInviteToken();
+      if (consumed.accepted) {
+        toast.success("Convite aceito!", {
+          description: consumed.companyName
+            ? `Você já tem acesso a ${consumed.companyName}.`
+            : undefined,
+        });
+        return "/hub";
+      }
+      if (consumed.error) {
+        toast.error("Não foi possível aceitar o convite", { description: consumed.error });
+      }
+    } catch {
+      /* segue o fluxo normal de login */
+    }
+
     try {
       const landing = await resolveLandingTarget(uid);
       return landingPathFor(landing, requested);
@@ -202,6 +222,7 @@ export default function Auth() {
       return requested;
     }
   };
+
 
   const checkMfaAndRedirect = async () => {
     const { needsAal2 } = await checkMfaState();
