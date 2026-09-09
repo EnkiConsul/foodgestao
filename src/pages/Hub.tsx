@@ -9,6 +9,7 @@ import { useCompanyModules } from "@/hooks/useCompanyModules";
 import { useModulosCatalogo } from "@/hooks/useModulosCatalogo";
 import { MODULES, isModuleUsable, statusLabel, type ModuleDefinition, type ModuleStatus } from "@/lib/modules";
 import { cn } from "@/lib/utils";
+import { PendingInvitesAlert } from "@/components/invites/PendingInvitesAlert";
 
 function statusBadge(status: ModuleStatus, available: boolean) {
   if (!available) {
