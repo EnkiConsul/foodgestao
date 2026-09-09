@@ -67,6 +67,7 @@ export default function ResetPassword() {
       return;
     }
     toast.success("Senha redefinida com sucesso");
+    await logAudit("user_password_changed", "auth");
     await supabase.auth.signOut();
     navigate("/auth", { replace: true });
   };
