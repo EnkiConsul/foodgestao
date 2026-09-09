@@ -106,3 +106,44 @@ export const MES_NOME = [
 export function competenciaLabel(comp: Competencia): string {
   return `${MES_NOME[Number(comp.slice(5, 7)) - 1]}/${comp.slice(0, 4)}`;
 }
+
+// ---------------------------------------------------------------------------
+// Elegibilidade de documentos por colaborador/competência.
+// Fonte única compartilhada entre a Conferência de Documentos e as pendências.
+// ---------------------------------------------------------------------------
+
+export const REGIMES_ASSALARIADOS = new Set(["clt", "intermitente", "temporario", "aprendiz"]);
+
+export type DocTipoColaborador = "contracheque" | "adiantamento" | "ponto";
+
+export type ColabElegibilidade = {
+  id: string;
+  regime?: string | null;
+  ativo?: boolean | null;
+  vinculo_label?: string | null;
+  possui_folha_ponto?: boolean | null;
+  optante_adiantamento?: boolean | null;
+  data_admissao?: string | null;
+  data_desligamento?: string | null;
+};
+
+/** Sócio não recebe contracheque (recebe recibo de pró-labore). */
+export function isSocio(c: ColabElegibilidade): boolean {
+  return String(c.vinculo_label ?? "").toLowerCase().includes("sócio");
+}
+
+/**
+ * O colaborador deve ter este documento nesta competência?
+ * Não considera datas de admissão/desligamento — combine com `ativoNaCompetencia`.
+ */
+export function elegivelDocumento(
+  tipo: DocTipoColaborador,
+  c: ColabElegibilidade,
+  opts: { unidadeTemRelogio?: boolean } = {},
+): boolean {
+  if (tipo === "contracheque") {
+    return REGIMES_ASSALARIADOS.has(String(c.regime ?? "").toLowerCase()) && !isSocio(c);
+  }
+  if (tipo === "adiantamento") return c.optante_adiantamento === true;
+  return opts.unidadeTemRelogio === true && c.possui_folha_ponto !== false;
+}
