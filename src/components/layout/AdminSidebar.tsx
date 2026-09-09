@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   Activity,
   Crown,
+  Wifi,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";

@@ -492,6 +492,7 @@ const AppRoutes = () => (
         <Route path="/admin/perfis-acesso" element={<AdminPerfisAcesso />} />
         <Route path="/admin/donos" element={<AdminDonosEmpresas />} />
         <Route path="/admin/auditoria" element={<AdminAuditoria />} />
+        <Route path="/admin/conectados" element={<AdminConectados />} />
         <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
         <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
         <Route path="/admin/bancos" element={<AdminBancos />} />
