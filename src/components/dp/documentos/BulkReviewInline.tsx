@@ -75,6 +75,8 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
 
   const [savingTotal, setSavingTotal] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  /** Âncora do quadro "Salvando documentos": a tela desce até ele ao aprovar. */
+  const savingBannerRef = useRef<HTMLDivElement | null>(null);
 
   const batchInfo = useQuery({
     queryKey: ["dp_bulk_batch_info", batchId],
