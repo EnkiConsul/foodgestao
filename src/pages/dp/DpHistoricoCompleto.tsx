@@ -290,7 +290,7 @@ export default function DpHistoricoCompleto() {
     defaultWidths: DEFAULT_COL_WIDTHS,
     essentialKeys: ["colaborador"],
     acoesWidth: ACOES_WIDTH,
-    defaultSortKey: "data",
+    defaultSortKey: "default",
     defaultSortDir: "desc",
   });
 
