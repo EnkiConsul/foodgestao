@@ -374,10 +374,10 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
             }
           />
         </div>
-        <div className="flex-1 min-h-0 grid grid-cols-[1fr_420px] gap-0 overflow-hidden">
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-0 overflow-y-auto lg:overflow-hidden">
           {/* LEFT: PDF preview */}
-          <div className="bg-muted/20 border-r flex flex-col min-h-0">
-            <div className="flex items-center justify-between px-3 py-2 border-b bg-background/60">
+          <div className="order-2 lg:order-1 bg-muted/20 border-t lg:border-t-0 lg:border-r flex flex-col min-h-[45vh] lg:min-h-0">
+            <div className="flex items-center justify-between gap-1 px-2 sm:px-3 py-2 border-b bg-background/60">
               <Button
                 size="sm" variant="ghost"
                 disabled={currentIdx <= 0}
