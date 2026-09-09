@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useDpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { ativoNaCompetencia } from "@/lib/dp/bulk-coverage";
 import { Badge } from "@/components/ui/badge";
@@ -77,7 +78,8 @@ type Tipo =
   | "contracheque_ferias"
   | "ponto"
   | "adiantamento"
-  | "pro_labore";
+  | "pro_labore"
+  | "rescisao";
 
 const TIPO_LABEL: Record<Tipo, string> = {
   contracheque: "Contracheque",
@@ -86,6 +88,7 @@ const TIPO_LABEL: Record<Tipo, string> = {
   ponto: "Folha de Ponto",
   adiantamento: "Adiantamento Salarial",
   pro_labore: "Recibo de Pró-Labore",
+  rescisao: "Rescisão (TRCT / Demonstrativo)",
 };
 
 const TIPO_ORDEM: Tipo[] = [
@@ -95,7 +98,17 @@ const TIPO_ORDEM: Tipo[] = [
   "ponto",
   "adiantamento",
   "pro_labore",
+  "rescisao",
 ];
+
+/** Documentos gravados que satisfazem a pendência de rescisão. */
+const TIPOS_RESCISAO_DB = ["trct", "demonstrativo_rescisorio"] as const;
+
+/** Tipos consultados em dp_documentos (rescisão é lógica). */
+const TIPOS_DOC_QUERY = [
+  ...TIPO_ORDEM.filter((t) => t !== "rescisao"),
+  ...TIPOS_RESCISAO_DB,
+] as string[];
 
 /** Prazo legal de cada parcela do 13º dentro do ano da competência. */
 function prazo13(competencia: string): string | null {
@@ -162,10 +175,16 @@ export interface DocConsistenciaPanelProps {
 
 export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps = {}) {
   const { selectedCompanyId } = useCompanyContext();
+  const { config } = useDpPendenciasConfig();
+  const exigirContrachequeMesDesligamento = config.exigir_contracheque_mes_desligamento;
   const [aberto, setAberto] = useState<Record<string, boolean>>({});
 
   const query = useQuery({
-    queryKey: ["dp_doc_consistencia_janela", selectedCompanyId],
+    queryKey: [
+      "dp_doc_consistencia_janela",
+      selectedCompanyId,
+      exigirContrachequeMesDesligamento,
+    ],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
       const fim = competenciaAnterior();
@@ -215,7 +234,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           .eq("company_id", selectedCompanyId!)
           .gte("referencia_data", primeiroDia(inicio))
           .lte("referencia_data", ultimoDia(fim))
-          .in("tipo", TIPO_ORDEM),
+          .in("tipo", TIPOS_DOC_QUERY as any),
         supabase
           .from("dp_unidades")
           .select("id, nome, possui_relogio_ponto")
@@ -251,9 +270,10 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       );
 
       const importados = new Set(
-        (docsRes.data ?? []).map(
-          (d: any) => `${d.colaborador_id}::${d.tipo}::${String(d.referencia_data).slice(0, 7)}`,
-        ),
+        (docsRes.data ?? []).map((d: any) => {
+          const tipo = (TIPOS_RESCISAO_DB as readonly string[]).includes(d.tipo) ? "rescisao" : d.tipo;
+          return `${d.colaborador_id}::${tipo}::${String(d.referencia_data).slice(0, 7)}`;
+        }),
       );
 
       // Competências em que houve gozo de férias (pagamento de férias esperado).
@@ -314,10 +334,17 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           const prazoDecimo = prazo13(comp);
           const decimoNoPrazo = !!prazoDecimo && hoje <= prazoDecimo;
 
+          // Mês do desligamento: por padrão o pagamento vem no acerto da
+          // rescisão, então cobra-se TRCT/demonstrativo e não o contracheque.
+          const desligadoNoMes = !!desligamento && desligamento.slice(0, 7) === comp;
+          const cobraContracheque =
+            assalariado && (!desligadoNoMes || exigirContrachequeMesDesligamento);
+
           const checks: Array<[Tipo, boolean]> = socio
             ? [["pro_labore", socioProLabore]]
             : [
-                ["contracheque", assalariado],
+                ["contracheque", cobraContracheque],
+                ["rescisao", assalariado && desligadoNoMes],
                 ["contracheque_13", assalariado && !!prazoDecimo && !decimoNoPrazo],
                 ["contracheque_ferias", !!gozos?.has(comp)],
                 ["ponto", temRelogio && c.possui_folha_ponto === true],

@@ -2,9 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
-import { differenceInCalendarDays, format } from "date-fns";
+import { addDays, differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, FileCheck2, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap, UserCog } from "lucide-react";
+import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap, UserCog } from "lucide-react";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
@@ -15,6 +15,7 @@ import {
   competenciaDe,
   competenciaLabel,
   competenciasParaCobrar,
+  DOC_TIPOS_RESCISAO,
   elegivelDocumento,
   intervaloCompetencia,
   limiteMesSeguinte,
@@ -230,12 +231,14 @@ export function useDpPendencias() {
         const cache = importados.get(tipo);
         if (cache) return cache;
         const set = new Set<string>();
+        // A pendência de rescisão é satisfeita por TRCT ou demonstrativo rescisório.
+        const tiposDb = tipo === "rescisao" ? [...DOC_TIPOS_RESCISAO] : [tipo];
         try {
           const { data } = await supabase
             .from("dp_documentos")
             .select("colaborador_id, referencia_data")
             .eq("company_id", selectedCompanyId!)
-            .eq("tipo", tipo)
+            .in("tipo", tiposDb as any)
             .gte("referencia_data", inicio)
             .lte("referencia_data", fim);
           (data ?? []).forEach((d: any) => {
@@ -264,13 +267,17 @@ export function useDpPendencias() {
       const faltantesDocumento = (
         tipo: DocTipoColaborador,
         docs: Set<string>,
-        unidade: { id: string; possui_relogio_ponto: boolean | null },
+        unidade: { id: string; possui_relogio_ponto: boolean | null; dia_adiantamento?: number | null },
         comp: string,
       ) => {
         const elegiveis = (colabsPorUnidade.get(unidade.id) ?? []).filter(
           (c) =>
-            elegivelDocumento(tipo, c, { unidadeTemRelogio: unidade.possui_relogio_ponto === true }) &&
-            ativoNaCompetencia(c as any, comp),
+            elegivelDocumento(tipo, c, {
+              competencia: comp,
+              unidadeTemRelogio: unidade.possui_relogio_ponto === true,
+              diaAdiantamento: unidade.dia_adiantamento ?? null,
+              exigirContrachequeMesDesligamento: cfg.exigir_contracheque_mes_desligamento,
+            }) && ativoNaCompetencia(c as any, comp),
         );
         const faltantes = elegiveis.filter((c) => !docs.has(`${c.id}:${comp}`));
         return { elegiveis, faltantes, completo: elegiveis.length > 0 && faltantes.length === elegiveis.length };
@@ -379,6 +386,37 @@ export function useDpPendencias() {
         comps: (u) => compsPorUnidade.get(u.id)?.ateAnterior ?? [],
         vencimentoDe: (_u, comp) => limiteMesSeguinte(comp, cfg.alerta_folha_ponto_dia_mes),
       });
+
+      // 5b. Rescisão não importada — pessoa desligada na competência sem TRCT/demonstrativo.
+      // Prazo legal do acerto: 10 dias corridos após o desligamento.
+      {
+        const docs = await carregarTipo("rescisao", rangeInicio, rangeFim);
+        for (const u of unidades) {
+          for (const comp of compsPorUnidade.get(u.id)?.ateVigente ?? []) {
+            const { faltantes } = faltantesDocumento("rescisao", docs, u, comp);
+            for (const c of faltantes) {
+              const desligamento = String(c.data_desligamento ?? "").slice(0, 10);
+              if (!desligamento) continue;
+              const vencimento = ymd(addDays(new Date(`${desligamento}T12:00:00`), 10));
+              results.push({
+                id: `rescisao-${c.id}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
+                icon: FileMinus,
+                titulo: "Rescisão não importada",
+                subtitulo: `${c.nome} · ${u.nome} — ${competenciaLabel(comp)} · desligado em ${format(
+                  new Date(`${desligamento}T12:00:00`),
+                  "dd/MM",
+                )}`,
+                tipo: "Rescisão",
+                colaboradorNome: c.nome,
+                unidadeNome: u.nome,
+                vencimento,
+                atrasoDias: atrasoEmDias(vencimento, hojeISO),
+                url: `/dp/documentos?tipo=trct&competencia=${comp}&unidade=${u.id}`,
+              });
+            }
+          }
+        }
+      }
 
 
       // 6. Negociação coletiva pendente — por unidade + sindicato laboral
