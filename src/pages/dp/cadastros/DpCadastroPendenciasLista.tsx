@@ -41,7 +41,8 @@ const URGENCIA_OP: { value: Filtro["urgencia"]; label: string }[] = [
 
 export default function DpCadastroPendenciasLista() {
   const { data = [], isLoading } = useDpPendencias();
-  const { prefs, save } = useDpUserPrefs();
+  const { prefs } = useDpUserPrefs();
+  const { ignoradas, adiadas, decisaoDe } = useDpPendenciasDecisoes();
   const [mostrarAdiadas, setMostrarAdiadas] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>({
     tipo: "todos",
@@ -51,10 +52,14 @@ export default function DpCadastroPendenciasLista() {
   });
   const [busca, setBusca] = useState("");
 
+  const adiamentos = useMemo(
+    () => ({ ...prefs.pendencias_adiadas, ...adiadas }),
+    [prefs.pendencias_adiadas, adiadas],
+  );
+
   const base = useMemo(() => {
-    const visiveis = mostrarAdiadas
-      ? data
-      : filtrarAbertas(data, prefs.pendencias_adiadas);
+    const semIgnoradas = mostrarAdiadas ? data : data.filter((p) => !ignoradas.has(p.id));
+    const visiveis = mostrarAdiadas ? semIgnoradas : filtrarAbertas(semIgnoradas, adiamentos);
     const termo = busca.trim().toLowerCase();
     return visiveis.filter((p) => {
       if (filtro.tipo !== "todos" && p.tipo !== filtro.tipo) return false;
@@ -64,26 +69,13 @@ export default function DpCadastroPendenciasLista() {
       if (termo && !`${p.titulo} ${p.subtitulo}`.toLowerCase().includes(termo)) return false;
       return true;
     });
-  }, [data, mostrarAdiadas, prefs.pendencias_adiadas, filtro, busca]);
+  }, [data, mostrarAdiadas, adiamentos, ignoradas, filtro, busca]);
 
   const opcoes = useMemo(() => opcoesFiltro(data), [data]);
   const grupos = useMemo(
     () => agruparPorColaborador(base, { ordenarPorAtraso: true }),
     [base],
   );
-
-  const adiar = (p: Pendencia, dias: number) => {
-    const until = addDays(new Date(), dias).toISOString();
-    save({ pendencias_adiadas: { ...prefs.pendencias_adiadas, [p.id]: until } });
-    toast.success(`Adiada por ${dias} ${dias === 1 ? "dia" : "dias"}`);
-  };
-
-  const limparAdiamento = (p: Pendencia) => {
-    const next = { ...prefs.pendencias_adiadas };
-    delete next[p.id];
-    save({ pendencias_adiadas: next });
-    toast.success("Adiamento removido");
-  };
 
   return (
     <DpPage>
