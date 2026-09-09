@@ -38,16 +38,22 @@ export function useMinhaProximaFolga(colaboradorId: string | null | undefined) {
           .order("data"),
         supabase
           .from("dp_colaborador_config_trabalho")
-          .select("id, dias:dp_colaborador_config_dias(dow, trabalha)")
+          .select("id, folga_fixa_dow, dias:dp_colaborador_config_dias(dow, trabalha)")
           .eq("colaborador_id", colaboradorId!)
-          .order("created_at", { ascending: false })
+          .order("vigencia_inicio", { ascending: false })
           .limit(1),
       ]);
 
       const folgas = (folgasRes.data ?? []) as FolgaLancada[];
       const escala = (escalaRes.data ?? []) as ItemEscalaFolga[];
-      const configDias = ((configRes.data?.[0] as { dias?: ConfigDia[] } | undefined)?.dias ??
-        []) as ConfigDia[];
+      const cfg = configRes.data?.[0] as
+        | { folga_fixa_dow: number | null; dias?: ConfigDia[] }
+        | undefined;
+      const configDias: ConfigDia[] = cfg?.dias?.length
+        ? cfg.dias
+        : cfg?.folga_fixa_dow != null
+          ? [{ dow: cfg.folga_fixa_dow, trabalha: false }]
+          : [];
 
       return calcularProximaFolga({ hoje, folgas, escala, configDias });
     },
