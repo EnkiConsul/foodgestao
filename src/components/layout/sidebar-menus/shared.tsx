@@ -24,17 +24,17 @@ export type MenuItem = { title: string; url: string; icon: LucideIcon; end?: boo
 export function SidebarNavItem({ item }: { item: MenuItem }) {
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild>
+      <SidebarMenuButton asChild tooltip={item.title}>
         <NavLink
           to={item.url}
           end={item.end}
-          className="flex items-center gap-3 px-5 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg mx-2 transition-all duration-200 hover:translate-x-1"
+          className="flex items-center gap-2 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-md transition-all duration-200 hover:translate-x-1"
           activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
         >
           <item.icon className="h-4 w-4 shrink-0" />
           <span className="truncate">{item.title}</span>
           {item.badge && (
-            <span className="ml-auto shrink-0 rounded-full bg-sidebar-accent px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-sidebar-foreground/70">
+            <span className="ml-auto shrink-0 rounded-full bg-sidebar-accent px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
               {item.badge}
             </span>
           )}

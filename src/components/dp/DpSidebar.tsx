@@ -9,7 +9,7 @@ import { useDpMeuResumo } from "@/hooks/useDpMeuResumo";
 import {
   Sidebar, SidebarContent, SidebarHeader, SidebarFooter,
   SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem,
-  useSidebar,
+  SidebarMenuButton, useSidebar,
 } from "@/components/ui/sidebar";
 import { SidebarToggleButton } from "@/components/layout/SidebarToggleButton";
 import { cn } from "@/lib/utils";
@@ -147,7 +147,7 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
             <SidebarMenu className="gap-1">
               {items.map((it) => {
                 if (it.kind === "link") {
-                  return <DpLink key={it.url} item={it} collapsed={collapsed} />;
+                  return <DpLink key={it.url} item={it} />;
                 }
                 return (
                   <DpGroup
@@ -212,39 +212,42 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
             </p>
           </div>
         )}
-        <button
-          onClick={signOut}
-          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-sidebar-primary hover:bg-sidebar-accent rounded-lg transition-colors font-medium"
-        >
-          <LogOut className="h-4 w-4" />
-          {!collapsed && <span>Sair</span>}
-        </button>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={signOut} tooltip="Sair">
+              <LogOut className="h-4 w-4 shrink-0" />
+              <span>Sair</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
 }
 
-function DpLink({ item, collapsed }: { item: Extract<Item, { kind: "link" }>; collapsed: boolean }) {
+function DpLink({ item }: { item: Extract<Item, { kind: "link" }> }) {
   const isActiveRoute = useDpIsActive();
   const isActive = isActiveRoute(item.url);
   return (
     <SidebarMenuItem>
-      <NavLink
-        to={item.url}
-        end={item.end}
-        className={
-          cn(
-            "flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors",
-            "transition-all duration-200 hover:translate-x-1",
-            isActive
-              ? "bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
-              : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-          )
-        }
-      >
-        <item.icon className="h-4 w-4 shrink-0" />
-        {!collapsed && <span>{toTitleCase(item.title)}</span>}
-      </NavLink>
+      <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
+        <NavLink
+          to={item.url}
+          end={item.end}
+          className={
+            cn(
+              "flex items-center gap-2 rounded-md transition-colors",
+              "transition-all duration-200 hover:translate-x-1",
+              isActive
+                ? "bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+            )
+          }
+        >
+          <item.icon className="h-4 w-4 shrink-0" />
+          <span>{toTitleCase(item.title)}</span>
+        </NavLink>
+      </SidebarMenuButton>
     </SidebarMenuItem>
   );
 }
@@ -276,16 +279,18 @@ function DpGroup({
   if (collapsed) {
     return (
       <SidebarMenuItem>
-        <NavLink
-          to={item.hubUrl ?? item.items[0].url}
-          className={cn(
-            "flex items-center justify-center px-3 py-2.5 rounded-lg transition-colors",
-            active ? "bg-sidebar-accent text-sidebar-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent",
-          )}
-          aria-label={item.title}
-        >
-          <item.icon className="h-4 w-4" />
-        </NavLink>
+        <SidebarMenuButton asChild tooltip={item.title} isActive={active}>
+          <NavLink
+            to={item.hubUrl ?? item.items[0].url}
+            className={cn(
+              "flex items-center justify-center rounded-md transition-colors",
+              active ? "bg-sidebar-accent text-sidebar-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent",
+            )}
+            aria-label={item.title}
+          >
+            <item.icon className="h-4 w-4" />
+          </NavLink>
+        </SidebarMenuButton>
       </SidebarMenuItem>
     );
   }
