@@ -1,53 +1,29 @@
-# Mensagem de WhatsApp para acesso ao portal e nova senha
+# WhatsApp do acesso ao portal + senha provisória
 
 ## Objetivo
 
-Quando o gestor gerar o acesso ao portal ou redefinir a senha de um colaborador, o sistema deve oferecer, na mesma tela, o envio da mensagem pronta no WhatsApp, com link do portal, CPF de login e senha temporária.
+Ao gerar o acesso ao portal ou redefinir a senha de um colaborador, o gestor consegue enviar a mensagem no WhatsApp usando o modelo já cadastrado em Modelos de Mensagem, e a senha entregue vale como provisória: no primeiro login o colaborador é obrigado a criar a própria senha.
 
 ## O que muda na prática
 
-1. Dois modelos de mensagem passam a existir por padrão em cada empresa (editáveis em Pessoas 360° > Modelos de Mensagem):
-   - **Acesso ao Portal do Colaborador** (novo acesso)
-   - **Nova Senha do Portal** (redefinição)
-2. Depois de gerar acesso ou redefinir/definir senha, o painel de acesso da ficha mostra o botão **Enviar no WhatsApp**, já com o modelo correspondente selecionado e os dados preenchidos.
-3. Se o colaborador não tiver WhatsApp/telefone no cadastro, o botão fica desabilitado com o aviso do motivo.
-4. As variáveis suportadas na mensagem passam a aceitar tanto `{{nome}}` quanto o formato com nome amigável usado hoje nos modelos (`{Nome do Colaborador}`, `{Nome da Empresa}`, `{Link do Portal}`, `{Usuário}`, `{Senha}`), sem quebrar os modelos já cadastrados.
-5. A senha só aparece na mensagem no momento da geração/redefinição — recarregar a tela não recupera a senha.
-
-### Texto padrão — novo acesso
-
-```text
-Oii {Nome do Colaborador}! 👋
-
-Seu acesso ao Portal do Colaborador da {Nome da Empresa} está liberado.
-
-🔗 Link: {Link do Portal}
-👤 Usuário (CPF): {Usuário}
-🔑 Senha temporária: {Senha}
-
-Por segurança, troque a senha no primeiro acesso.
-```
-
-### Texto padrão — nova senha
-
-```text
-Olá {Nome do Colaborador}!
-
-A senha do seu acesso ao Portal do Colaborador da {Nome da Empresa} foi redefinida.
-
-🔗 Link: {Link do Portal}
-👤 Usuário (CPF): {Usuário}
-🔑 Nova senha: {Senha}
-
-Recomendamos trocar a senha assim que entrar.
-```
+1. Depois de gerar acesso, redefinir a senha ou definir uma senha específica, aparece o botão **Enviar no WhatsApp** na aba de acesso da ficha.
+2. O texto vem do modelo cadastrado pela empresa (canal WhatsApp). Nada de texto fixo no sistema: para mudar a mensagem, basta editar o modelo.
+   - Novo acesso: usa o modelo intitulado "Acesso ao Portal do Colaborador" quando existir; senão a empresa escolhe o modelo na hora.
+   - Reset/nova senha: usa o modelo "Nova Senha do Portal" quando existir; senão cai no modelo de acesso e, na falta dos dois, o gestor escolhe qualquer modelo da lista.
+   - Se nenhum modelo estiver cadastrado, um aviso na tela leva para Modelos de Mensagem.
+3. As variáveis do modelo aceitam o formato que você já usa com nome amigável, além do formato técnico atual:
+   `{Nome do Colaborador}`, `{Nome da Empresa}`, `{Link do Portal}`, `{Usuário}`, `{Senha}`, `{{nome}}`, `{{senha}}` etc. Variável que o sistema não conhece continua no texto, em vez de virar espaço vazio.
+4. O modelo pode ser revisado no próprio diálogo antes de abrir o WhatsApp; se o colaborador não tiver WhatsApp/telefone no cadastro, o botão fica desabilitado explicando o motivo.
+5. Senha provisória: tanto a senha do primeiro acesso quanto a do reset passam a exigir troca no primeiro login. Ao entrar, o colaborador é levado direto para a tela de criação de senha e só usa o portal depois de definir a nova senha. Quando o gestor define uma senha específica, existe a opção "exigir troca no primeiro acesso", marcada por padrão.
 
 ## Detalhes técnicos
 
-- `dp_modelos_mensagem`: migração que insere os dois modelos (`tipo` = `acesso_portal` e `reset_senha`, canal `whatsapp`) para todas as empresas que ainda não os têm, com `ON CONFLICT`/guard por título+tipo. Nada é sobrescrito quando a empresa já editou o texto.
-- `applyModeloVars` em `src/hooks/useDpModelosMensagem.tsx`: aceitar `{{chave}}` e `{Rótulo Amigável}`, com um mapa de sinônimos (`nome`, `empresa`, `link`, `usuario`, `senha`) e normalização sem acento/caixa. Chaves desconhecidas ficam intactas em vez de virarem vazio.
-- `src/components/dp/WhatsappComposerDialog.tsx`: aceitar props `tipoPreferido` e `modeloIdInicial` para pré-selecionar o modelo, e usar o contexto recebido na primeira renderização.
-- `src/components/dp/ColaboradorAcessoPanel.tsx`: no bloco de resultado, adicionar o botão que abre o composer com contexto `{ nome, empresa, link, usuario: cpf, senha }`; `link` = `${window.location.origin}/dp/meu` (rota do portal). Tipo escolhido conforme `resultado.kind`.
-- Nome da empresa vem de `useCompanyContext` / lista de empresas já usada nas telas de DP.
-- Testes: unitários de `applyModeloVars` (formato duplo, sinônimos, acento, chave desconhecida) e de montagem do texto final a partir do modelo padrão.
-- Verificação: gerar acesso e redefinir senha no preview, conferindo o link `wa.me` gerado (sem enviar).
+- `applyModeloVars` (`src/hooks/useDpModelosMensagem.tsx`): passa a resolver `{{chave}}` e `{Rótulo}`, normalizando caixa/acentos e aceitando sinônimos (`nome`/`nome do colaborador`, `empresa`/`nome da empresa`, `link`/`link do portal`, `usuario`/`cpf`, `senha`). Chave desconhecida é mantida literal.
+- `WhatsappComposerDialog`: novas props `tituloPreferido?: string[]` e `contexto` aplicado na abertura; pré-seleciona o primeiro modelo cujo título casa (comparação sem acento/caixa) e mantém o seletor livre. Vazio → aviso com link para `/dp/modelos-mensagem`.
+- `ColaboradorAcessoPanel`: no bloco de resultado, botão que abre o composer com `{ nome, empresa, link, usuario, senha }`; `link` = `${PUBLIC_SITE_ORIGIN}/dp/meu` (`src/lib/siteOrigin.ts`) e empresa vinda de `useCompanyContext`. Checkbox "Exigir troca no primeiro acesso" no bloco de senha específica.
+- Senha provisória (infra já existe: `auth_user_security_state.must_change_password`, `/primeiro-acesso`, e `unifiedSignIn` já devolve `passwordChangeRequired`):
+  - `dp-criar-acesso-colaborador`: após criar o usuário, upsert em `auth_user_security_state` com `must_change_password = true`.
+  - `dp-reset-password`: mesmo upsert após atualizar a senha.
+  - `dp-alterar-senha-colaborador`: aceita `exigir_troca?: boolean` (default `true`) e grava o flag conforme.
+  - As três funções são reimplantadas depois da alteração.
+- Testes: unitários de `applyModeloVars` (formatos duplos, sinônimos, acento, chave desconhecida) e da escolha de modelo por título; verificação no preview gerando acesso e reset, conferindo o link `wa.me` e o desvio para a tela de nova senha.
