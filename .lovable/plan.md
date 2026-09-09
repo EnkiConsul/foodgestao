@@ -20,10 +20,10 @@ Verificado no código: a pendência de contracheque do painel de Início é gera
 ## Detalhes técnicos
 
 - `src/hooks/useDpPendencias.tsx`
-  - A consulta de colaboradores passa a trazer `nome, regime, ativo, data_admissao, data_desligamento` (já traz `unidade_id`).
-  - `carregarTipo("contracheque")` passa a indexar por `colaborador_id:competencia` além de `unidade:competencia`.
-  - Elegibilidade por competência via `ativoNaCompetencia` (`src/lib/dp/bulk-coverage.ts`) + regimes assalariados (mesma lista do `DocConsistenciaPanel`), sem duplicar regra: extrair o predicado para `src/lib/dp/pendencias-documentos.ts` se necessário.
-  - Se nenhum elegível da unidade tem o documento → 1 item por unidade (id atual preservado). Se parcial → 1 item por colaborador com id `contracheque-<colaborador>-<comp>`, `colaboradorNome` e `unidadeNome` preenchidos.
+  - A consulta de colaboradores passa a trazer `nome, regime, ativo, data_admissao, data_desligamento, possui_folha_ponto, optante_adiantamento` (já traz `unidade_id`).
+  - `carregarTipo` (contracheque, adiantamento, ponto) passa a indexar por `colaborador_id:competencia` além de `unidade:competencia`.
+  - Elegibilidade por competência via `ativoNaCompetencia` (`src/lib/dp/bulk-coverage.ts`) + regras por tipo (regimes assalariados para contracheque, `optante_adiantamento`, `possui_folha_ponto` + relógio na unidade), reaproveitando a mesma lógica do `DocConsistenciaPanel` em helper compartilhado em `src/lib/dp/pendencias-documentos.ts`.
+  - Para cada tipo e competência: se nenhum elegível da unidade tem o documento → 1 item por unidade (id atual preservado); se parcial → 1 item por colaborador com id `<tipo>-<colaborador>-<comp>`, `colaboradorNome` e `unidadeNome` preenchidos.
 - `src/lib/dp/pendencias.ts`: `agruparPorTipo` ordena grupos por `maiorAtraso` desc (depois total e nome); `agruparPorColaborador` mantém itens por atraso desc; nova ordenação exposta para a lista completa.
 - `src/pages/dp/cadastros/DpCadastroPendenciasLista.tsx`: aplicar ordenação por `atrasoDias` desc antes de renderizar.
 - `src/components/dp/documentos/DocConsistenciaPanel.tsx`: inverter o comparador de `competencia` nos grupos e nos avisos.
