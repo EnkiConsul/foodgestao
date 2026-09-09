@@ -42,7 +42,18 @@ Hoje o cadastro só tem uma chave liga/desliga ("Opta por Adiantamento Salarial"
 - Documento já importado de competência com opção ativa deixa de ser marcado como inconsistente e continua visível no portal do colaborador.
 - Continuam valendo as regras já existentes: admissão depois do dia do adiantamento e desligamento antes desse dia não geram pendência; sócio, PJ e intermitente ficam fora.
 
+## Frente 5 — Ignorar (com justificativa) ou adiar pendências de documentos
+
+Hoje só existe "adiar" na tela inicial, guardado como preferência do próprio usuário, sem justificativa e sem opção de ignorar.
+
+- Cada pendência de documento ganha as ações "Adiar" (7/15/30 dias) e "Ignorar", com justificativa obrigatória no caso de ignorar.
+- A decisão passa a ser da empresa, não do usuário: quem registrou, quando, o motivo e até quando ficam guardados e visíveis para os demais gestores.
+- Ignorada e adiada saem das listas por padrão, com um botão para exibi-las e para reverter a decisão.
+- A mesma decisão vale nos três lugares: pendências do Início, lista completa de pendências e conferência na tela de importar documentos.
+- Ação e justificativa ficam registradas na auditoria.
+
 ## Detalhes técnicos
+
 
 - `src/lib/dp/pendencias-documentos.ts`: `ElegibilidadeOpts` ganha `temDiasNaCompetencia?: boolean` (intermitente sem dias → `ponto` e `contracheque` = false) e `optanteNaCompetencia?: boolean` consultado no histórico em vez do booleano do cadastro.
 - `src/lib/dp/bulk-coverage.ts`: `CoverageArgs` recebe `comDiasTrabalhados?: Set<string>` e `optantesNaCompetencia?: Set<string>`; `computeCoverage` filtra os esperados por eles.
@@ -50,4 +61,5 @@ Hoje o cadastro só tem uma chave liga/desliga ("Opta por Adiantamento Salarial"
 - Migração: tabela `dp_adiantamento_opcoes` (`company_id`, `colaborador_id`, `decisao` aceite/recusa, `data_solicitacao`, `vigencia_inicio`, `vigencia_fim`, `observacao`) com GRANTs, RLS por empresa, trigger de `updated_at` e trigger que encerra a vigência anterior ao inserir nova; backfill do estado atual de `optante_adiantamento` como registro aberto. Novo hook `useDpAdiantamentoOpcoes.tsx` e bloco de histórico em `ColaboradorFormDialog.tsx`/`ColaboradorFichaDialog.tsx`.
 - Férias: `src/hooks/useDpPendencias.tsx` passa a buscar períodos com saldo e `fim_aquisitivo <= hoje` (sem filtro de `limite_concessivo`), classificando em a agendar / prazo próximo / vencida via helper novo em `src/lib/dp/ferias-direito.ts`; excluir quem tem gozo agendado, sócio e `controle_externo`.
 - `src/components/dp/documentos/DocConsistenciaPanel.tsx`: remover a consulta de `dp_ferias_periodos`/`dp_ferias_gozos` e o bloco de férias, ajustando as contagens do resumo.
-- Testes em `src/lib/dp/__tests__`: Wanderson (agosto/2026 sem dias → sem ponto, com rescisão), intermitente com um dia voltando a exigir folha, classificação de férias (Rosângela/Alessandra/Sara como "a agendar", período com limite estourado como "vencida") e elegibilidade de adiantamento por competência conforme o histórico.
+- Migração: tabela `dp_pendencias_decisoes` (`company_id`, `pendencia_id` texto, `tipo`, `colaborador_id`, `competencia`, `acao` ignorar/adiar, `justificativa`, `adiada_ate`, `criado_por`, timestamps) com GRANTs, RLS por empresa e índice único por empresa+`pendencia_id`. Novo hook `useDpPendenciasDecisoes.tsx`; `filtrarAbertas` em `src/lib/dp/pendencias.ts` passa a considerar as decisões da empresa (mantendo o adiamento pessoal existente); ações reaproveitando `AdiarPopover` em `PendenciasCard.tsx`, `DpCadastroPendenciasLista.tsx` e `DocConsistenciaPanel.tsx`, com diálogo de justificativa; registro via `src/lib/audit.ts`.
+- Testes em `src/lib/dp/__tests__`: Wanderson (agosto/2026 sem dias → sem ponto, com rescisão), intermitente com um dia voltando a exigir folha, classificação de férias (Rosângela/Alessandra/Sara como "a agendar", período com limite estourado como "vencida"), elegibilidade de adiantamento por competência conforme o histórico e filtro de pendências ignoradas/adiadas.
