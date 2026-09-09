@@ -17,6 +17,15 @@ Isso vale igualmente para as três telas que usam a mesma fonte: pendências da 
 
 Contracheque e folha de ponto do mês da admissão continuam sendo cobrados (o salário proporcional e o ponto do período existem).
 
+## Carência de 30 dias no pedido feito pelo colaborador
+
+Para evitar pedidos e cancelamentos em sequência, o pedido feito **pelo portal do colaborador** passa a valer somente na competência compatível com a data de hoje + 30 dias:
+
+- O sistema soma 30 dias à data do pedido e, sobre essa data, aplica a regra do dia de pagamento: se ela cair antes do dia do adiantamento, vale naquela competência; se cair no dia ou depois, vale na competência seguinte.
+- A tela mostra claramente a competência em que o pedido passa a valer, antes de confirmar.
+- Isso vale tanto para ativar quanto para cancelar pelo portal.
+- Pedidos registrados **pelo gestor** continuam sem carência, inclusive com data retroativa.
+
 ## Detalhes técnicos
 
 - `src/lib/dp/pendencias-documentos.ts`: no ramo `tipo === "adiantamento"` de `elegivelDocumento`, adicionar a checagem de `data_admissao` na competência contra `opts.diaAdiantamento` (espelhando a regra atual de `data_desligamento`).
