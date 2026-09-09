@@ -625,6 +625,31 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
 
       {!ocrInProgress && !isSaving && (
       <>
+      {/* Resumo de duplicidade — avisa antes de aprovar */}
+      {dupHits.length > 0 && (
+        <div className="mx-2 sm:mx-3 mt-2 rounded-md border border-amber-500/40 bg-amber-50/60 dark:bg-amber-950/20 px-3 py-2 text-sm flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2 min-w-0">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+            <span className="min-w-0">
+              {dupHits.length} de {elegiveisDup.length} página(s) já existem no sistema
+              {dupSemDecisao > 0 ? ` — ${dupSemDecisao} sem decisão.` : " — decisões registradas."}
+            </span>
+          </div>
+          {dupSemDecisao > 0 && (
+            <Button
+              size="sm" variant="outline" className="h-9 shrink-0"
+              onClick={() => {
+                const first = dupHits.find((h) => !decisoesDup[h.item_id]);
+                const idx = rows.findIndex((r: any) => r.id === first?.item_id);
+                if (idx >= 0) setCurrentIdx(idx);
+              }}
+            >
+              Ver primeira
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Navigation bar (topo) */}
       {pageNav("border-b")}
 
