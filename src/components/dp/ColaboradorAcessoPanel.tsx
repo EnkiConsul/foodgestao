@@ -129,7 +129,7 @@ export function ColaboradorAcessoPanel({
     setBusy("senha");
     try {
       const { data, error } = await supabase.functions.invoke("dp-alterar-senha-colaborador", {
-        body: { colaborador_id: colaborador.id, nova_senha: novaSenha },
+        body: { colaborador_id: colaborador.id, nova_senha: novaSenha, exigir_troca: exigirTroca },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
