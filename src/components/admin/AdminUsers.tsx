@@ -164,6 +164,7 @@ export function AdminUsers() {
                   <TableRow key={user.id} className={!user.is_active ? "opacity-60" : ""}>
                     <TableCell className="font-medium">{user.full_name || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{user.auth?.email ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.phone || user.auth?.phone || "—"}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">{user.profile_type}</Badge>
                     </TableCell>
