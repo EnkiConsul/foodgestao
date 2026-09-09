@@ -412,11 +412,19 @@ export default function Auth() {
         <CardHeader className="text-center space-y-3">
           <CardTitle className="sr-only">Aveto 360</CardTitle>
           <img
-            src={logoMarinho.url}
+            src={logoClaro.url}
             alt="Aveto 360"
-            className="mx-auto h-16 w-auto select-none"
+            className="mx-auto h-16 w-auto select-none dark:hidden"
             draggable={false}
           />
+          <img
+            src={logoMarinho.url}
+            alt=""
+            aria-hidden
+            className="mx-auto hidden h-16 w-auto select-none dark:block"
+            draggable={false}
+          />
+
           <CardDescription>
             {mfaRequired
               ? "Verificação em duas etapas"
