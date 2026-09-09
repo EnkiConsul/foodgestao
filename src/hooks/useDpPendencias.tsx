@@ -10,6 +10,16 @@ import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-co
 import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
+import {
+  atrasoEmDias,
+  competenciaDe,
+  competenciaLabel,
+  competenciasParaCobrar,
+  intervaloCompetencia,
+  limiteMesSeguinte,
+  limiteNoMes,
+  somarMeses,
+} from "@/lib/dp/pendencias-documentos";
 
 export type Pendencia = {
   id: string;
