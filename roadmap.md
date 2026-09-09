@@ -30,4 +30,4 @@
 - [x] Fase 10 — regressão final (typecheck ok, 1147 verificações automáticas ok, checagem de segurança sem novos avisos)
 
 ## Importação de documentos
-- [ ] Corrigir cadastro de colaborador pela conferência e reaproveitar nome, CPF e unidade lidos
+- [x] Corrigir cadastro de colaborador pela conferência e reaproveitar nome, CPF e unidade lidos
