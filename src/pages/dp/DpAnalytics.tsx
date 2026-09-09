@@ -42,6 +42,7 @@ import { useAnalyticsEquipe } from "@/hooks/dp/analytics/useAnalyticsEquipe";
 import { useAnalyticsOperacao } from "@/hooks/dp/analytics/useAnalyticsOperacao";
 import { useAnalyticsAusencias } from "@/hooks/dp/analytics/useAnalyticsAusencias";
 import { useAnalyticsFerias } from "@/hooks/dp/analytics/useAnalyticsFerias";
+import { isSocio } from "@/lib/dp/contrato-policy";
 import { useAnalyticsConvocacoes } from "@/hooks/dp/analytics/useAnalyticsConvocacoes";
 import { periodoPorMeses, textoVariacao, type PeriodoAnalytics } from "@/lib/dp/analytics/periodo";
 import { FILTROS_PADRAO, normalizarFiltros, TODOS, type AnalyticsFiltros } from "@/lib/dp/analytics/filtros";
@@ -200,11 +201,19 @@ export default function DpAnalytics() {
     nomes: cadastro.nomes,
     enabled: aba === "visao" || aba === "ausencias",
   });
+  const socioIds = useMemo(
+    () =>
+      new Set(
+        cadastro.colaboradores.filter((c) => isSocio(c.vinculo_label)).map((c) => c.id),
+      ),
+    [cadastro.colaboradores],
+  );
   const ferias = useAnalyticsFerias({
     periodo,
     colabIds: cadastro.colabIds,
     dimensao: dimensaoPorId,
     nomes: cadastro.nomes,
+    socioIds,
     enabled: aba === "visao" || aba === "ferias",
   });
   const convocacoes = useAnalyticsConvocacoes({

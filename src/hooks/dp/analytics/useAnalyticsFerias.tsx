@@ -24,6 +24,8 @@ interface Opts {
   colabIds: Set<string>;
   dimensao: (id: string) => { unidade_id: string | null; cargo_id: string | null } | undefined;
   nomes: { unidade: (id: string | null) => string; cargo: (id: string | null) => string };
+  /** Sócios: sem férias legais, ficam fora de todos os números de férias. */
+  socioIds?: Set<string>;
   enabled?: boolean;
 }
 
@@ -31,7 +33,14 @@ const GOZO_VALIDO = new Set(["planejado", "aprovado", "em_gozo", "concluido"]);
 const GOZO_PROGRAMADO = new Set(["planejado", "aprovado"]);
 
 /** Situação das férias: saldo, prazo, programação e distribuição. Sem valores. */
-export function useAnalyticsFerias({ periodo, colabIds, dimensao, nomes, enabled = true }: Opts) {
+export function useAnalyticsFerias({
+  periodo,
+  colabIds,
+  dimensao,
+  nomes,
+  socioIds,
+  enabled = true,
+}: Opts) {
   const { selectedCompanyId } = useCompanyContext();
   const ativo = enabled && !!selectedCompanyId;
   const hoje = isoDe(new Date());
@@ -72,11 +81,13 @@ export function useAnalyticsFerias({ periodo, colabIds, dimensao, nomes, enabled
   const dados = query.data;
 
   return useMemo(() => {
-    const periodos = (dados?.periodos ?? []).filter((p) => colabIds.has(p.colaborador_id));
+    // Sócio não tem férias legais: nada dele entra nos números desta aba.
+    const conta = (id: string) => colabIds.has(id) && !socioIds?.has(id);
+    const periodos = (dados?.periodos ?? []).filter((p) => conta(p.colaborador_id));
     const gozos = (dados?.gozos ?? []).filter(
-      (g) => colabIds.has(g.colaborador_id) && GOZO_VALIDO.has(g.status),
+      (g) => conta(g.colaborador_id) && GOZO_VALIDO.has(g.status),
     );
-    const pendentes = (dados?.pendentes ?? []).filter((s) => colabIds.has(s.colaborador_id));
+    const pendentes = (dados?.pendentes ?? []).filter((s) => conta(s.colaborador_id));
 
     const comSaldo = periodos.filter((p) => (p.dias_saldo ?? 0) > 0 && p.status !== "concluido");
     const programadosPor = new Set(
@@ -144,5 +155,5 @@ export function useAnalyticsFerias({ periodo, colabIds, dimensao, nomes, enabled
         }),
       ),
     };
-  }, [dados, colabIds, periodo, hoje, limite30, dimensao, nomes, query.isLoading, query.isError, query.refetch]);
+  }, [dados, colabIds, socioIds, periodo, hoje, limite30, dimensao, nomes, query.isLoading, query.isError, query.refetch]);
 }

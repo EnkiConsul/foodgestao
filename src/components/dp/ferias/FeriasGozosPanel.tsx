@@ -9,6 +9,7 @@ import { useDpFerias, type FeriasGozo } from "@/hooks/useDpFerias";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { FeriasCancelarDialog } from "@/components/dp/ferias/FeriasCancelarDialog";
 import { FeriasCoberturaDialog } from "@/components/dp/ferias/FeriasCoberturaDialog";
+import { FERIAS_SOCIO_META } from "@/lib/dp/ferias-direito";
 
 const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
@@ -74,6 +75,7 @@ export function FeriasGozosPanel({ status, vazio }: Props) {
               const periodo = periodoPorId.get(g.periodo_id);
               const nome = nomes.get(g.colaborador_id) ?? periodo?.colaborador_nome ?? "Colaborador";
               const podeCancelar = g.status === "aprovado" || g.status === "em_gozo";
+              const socio = !!periodo?.socio;
               return (
                 <div key={g.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
                   <div className="min-w-0">
@@ -100,6 +102,9 @@ export function FeriasGozosPanel({ status, vazio }: Props) {
                       <Badge variant="outline" className="text-emerald-600">
                         <CheckCircle2 className="mr-1 size-3.5" /> Ciente
                       </Badge>
+                    )}
+                    {socio && (
+                      <Badge className={FERIAS_SOCIO_META.tone}>{FERIAS_SOCIO_META.label}</Badge>
                     )}
                     <Badge className={GOZO_TONE[g.status]}>{GOZO_LABEL[g.status] ?? g.status}</Badge>
                     {(g.status === "aprovado" || g.status === "em_gozo") && (

@@ -91,8 +91,11 @@ export function nivelVencimentoPeriodo(args: {
   diasSaldo: number | null | undefined;
   hojeISO: string;
   politica?: FeriasSinalizacaoCiclo;
+  /** Sócio não tem férias legais: nunca é cobrado por prazo. */
+  socio?: boolean | null;
 }): NivelVencimento {
   const { fimAquisitivo, limiteConcessivo, hojeISO } = args;
+  if (args.socio) return "normal";
   const politica = args.politica ?? "a_conceder";
   const saldo = args.diasSaldo ?? 0;
   const diasRestantes = diffDias(limiteConcessivo, hojeISO);
@@ -219,6 +222,8 @@ export type PeriodoRisco = {
   dias_saldo: number | null | undefined;
   status: string;
   controle_externo?: boolean | null;
+  /** Sócio fica fora do controle legal: nunca gera risco de dobra. */
+  socio?: boolean | null;
 };
 
 export type RiscoAcumulo = {
@@ -235,9 +240,18 @@ export type RiscoAcumulo = {
 /** Um período conta como "em aberto" quando ainda há dias a conceder. */
 export function periodoEmAberto(p: PeriodoRisco): boolean {
   if (p.controle_externo) return false;
+  if (p.socio) return false;
   if ((p.dias_saldo ?? 0) <= 0) return false;
   return p.status !== "em_aquisicao" && p.status !== "concluido";
 }
+
+/** Selo do registro de descanso de sócio (fora do controle legal de férias). */
+export const FERIAS_SOCIO_META = {
+  label: "Descanso de sócio",
+  tone: "bg-muted text-muted-foreground",
+  explicacao:
+    "Sócio não tem férias por lei: este registro serve apenas para marcar a ausência, sem saldo, prazo ou cobrança.",
+} as const;
 
 /** Situação de acúmulo de férias de uma pessoa. */
 export function riscoAcumulo(args: { periodos: PeriodoRisco[]; hojeISO: string }): RiscoAcumulo {

@@ -202,3 +202,38 @@ describe("risco de pagamento em dobro", () => {
     expect(textoRiscoAcumulo(mapa.get("c2")!)).toBeNull();
   });
 });
+
+describe("sócio fica fora do controle legal de férias", () => {
+  const base = {
+    fimAquisitivo: "2025-09-30",
+    limiteConcessivo: "2026-09-30",
+    diasSaldo: 30,
+    hojeISO: "2026-10-05",
+  };
+
+  it("nunca é sinalizado por prazo, mesmo com o limite estourado", () => {
+    expect(nivelVencimentoPeriodo({ ...base, socio: true })).toBe("normal");
+    expect(nivelVencimentoPeriodo(base)).toBe("vencido");
+  });
+
+  it("não entra no risco de pagamento em dobro", () => {
+    const p = (id: string, ini: string, fim: string, limite: string) => ({
+      id,
+      inicio_aquisitivo: ini,
+      fim_aquisitivo: fim,
+      limite_concessivo: limite,
+      dias_saldo: 30,
+      status: "disponivel",
+      socio: true,
+    });
+    const r = riscoAcumulo({
+      periodos: [
+        p("a", "2024-10-01", "2025-09-30", "2026-09-30"),
+        p("b", "2025-10-01", "2026-09-30", "2027-09-30"),
+      ],
+      hojeISO: "2026-09-08",
+    });
+    expect(r.emRisco).toBe(false);
+    expect(r.periodosAbertos).toHaveLength(0);
+  });
+});
