@@ -68,7 +68,7 @@ export default function DpDocumentosImportar() {
     unidadeNome,
   ].filter(Boolean) as string[];
 
-  const mostrarAviso = avisoAberto && (partes.length > 0 || !!lote);
+  const mostrarAviso = partes.length > 0 || !!lote;
 
   return (
     <DpPage>
@@ -104,7 +104,7 @@ export default function DpDocumentosImportar() {
           <button
             type="button"
             aria-label="Fechar aviso"
-            onClick={() => setAvisoAberto(false)}
+            onClick={limparContexto}
             className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground hover:bg-muted"
           >
             <X className="h-4 w-4" />
@@ -120,10 +120,11 @@ export default function DpDocumentosImportar() {
 
       <BulkImportPanel
         title="Importação em Massa (PDF com Várias Páginas)"
-        tipoInicial={tipo ?? undefined}
-        referenciaInicial={competencia ? `${competencia}-01` : undefined}
-        loteAbertoId={lote ?? undefined}
+        tipoInicial={inicial.tipo}
+        referenciaInicial={inicial.competencia ? `${inicial.competencia}-01` : undefined}
+        loteAbertoId={inicial.lote}
         foco={foco}
+        onLoteConcluido={limparContexto}
       />
     </DpPage>
   );
