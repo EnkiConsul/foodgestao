@@ -636,6 +636,20 @@ export function BulkImportPanel({
   );
 }
 
+function formatCompetenciaLabel(value?: string | null): string | null {
+  const m = String(value ?? "").match(/^(20\d{2})-(0[1-9]|1[0-2])/);
+  return m ? `${m[2]}/${m[1]}` : null;
+}
+
+/** Assunto do lote: tipo do documento + competência (ex.: "Contracheque · 08/2026"). */
+function loteAssunto(b: any, bItems: Array<{ detected_competencia?: string | null }>): string {
+  const tipo = b?.deteccao_automatica ? "Lote misto" : docTipoLabel(b?.tipo);
+  const comp = formatCompetenciaLabel(
+    competenciaPredominante(bItems.map((i) => i.detected_competencia), b?.referencia_data),
+  );
+  return comp ? `${tipo} · ${comp}` : tipo;
+}
+
 function competenciaToDate(value: string): string | null {
   if (!value) return null;
   if (/^20\d{2}-(0[1-9]|1[0-2])$/.test(value)) return `${value}-01`;
