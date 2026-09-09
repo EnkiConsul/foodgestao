@@ -15,7 +15,7 @@ export function cargoSugereVinculoSocio(nomeCargo?: string | null): boolean {
     .toLowerCase()
     .trim();
   if (!n) return false;
-  return /(^|[^a-z])socio(a|s|as)?([^a-z]|$)/.test(n);
+  return /(^|[^a-z])soci[oa]s?([^a-z]|$)/.test(n);
 }
 
 export interface CargoRef {
