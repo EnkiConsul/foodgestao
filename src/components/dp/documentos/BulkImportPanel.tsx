@@ -132,6 +132,20 @@ export function BulkImportPanel({
     },
   });
 
+  /**
+   * Depois de enviar, o lote novo entra na lista de forma assíncrona: rolamos
+   * assim que ele aparece na tela, para o usuário ver que já está processando.
+   */
+  useEffect(() => {
+    const id = loteNovoRef.current;
+    if (!id) return;
+    const el = document.getElementById(`lote-${id}`);
+    if (!el) return;
+    loteNovoRef.current = null;
+    rolarAte(el);
+  }, [batches.dataUpdatedAt, rolarAte]);
+
+
   const filteredBatches = useMemo(() => {
     return (batches.data ?? []).filter((b) => statusFilter === "all" ? true : b.status === statusFilter);
   }, [batches.data, statusFilter]);
