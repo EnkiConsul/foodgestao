@@ -129,7 +129,10 @@ export type SubgrupoColaborador<T extends PendenciaLike = PendenciaLike> = {
   itens: T[];
 };
 
-export function agruparPorColaborador<T extends PendenciaLike>(itens: T[]): SubgrupoColaborador<T>[] {
+export function agruparPorColaborador<T extends PendenciaLike>(
+  itens: T[],
+  opts: { ordenarPorAtraso?: boolean } = {},
+): SubgrupoColaborador<T>[] {
   const mapa = new Map<string, T[]>();
   const SEM = "\u0000sem";
   for (const p of itens) {
@@ -141,6 +144,17 @@ export function agruparPorColaborador<T extends PendenciaLike>(itens: T[]): Subg
     colaborador: k === SEM ? null : k,
     itens: [...lista].sort((a, b) => b.atrasoDias - a.atrasoDias),
   }));
+  if (opts.ordenarPorAtraso) {
+    // Mais antigas/atrasadas primeiro.
+    return grupos.sort((a, b) => {
+      const ma = Math.max(...a.itens.map((i) => i.atrasoDias));
+      const mb = Math.max(...b.itens.map((i) => i.atrasoDias));
+      if (ma !== mb) return mb - ma;
+      if (a.colaborador === null) return 1;
+      if (b.colaborador === null) return -1;
+      return a.colaborador.localeCompare(b.colaborador, "pt-BR");
+    });
+  }
   return grupos.sort((a, b) => {
     if (a.colaborador === null) return 1;
     if (b.colaborador === null) return -1;
