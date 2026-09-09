@@ -15,11 +15,15 @@ import {
   competenciaDe,
   competenciaLabel,
   competenciasParaCobrar,
+  elegivelDocumento,
   intervaloCompetencia,
   limiteMesSeguinte,
   limiteNoMes,
   somarMeses,
+  type ColabElegibilidade,
+  type DocTipoColaborador,
 } from "@/lib/dp/pendencias-documentos";
+import { ativoNaCompetencia } from "@/lib/dp/bulk-coverage";
 
 export type Pendencia = {
   id: string;
