@@ -358,18 +358,35 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           // Mês do desligamento: por padrão o pagamento vem no acerto da
           // rescisão, então cobra-se TRCT/demonstrativo e não o contracheque.
           const desligadoNoMes = !!desligamento && desligamento.slice(0, 7) === comp;
+          // Intermitente sem marcação de ponto no mês: pode simplesmente não
+          // ter sido convocado — nada de cobrança, só o alerta em Pendências.
+          const intermitenteSemTrabalho =
+            regime === "intermitente" && !pontoNaComp.has(`${c.id}::${comp}`);
           const cobraContracheque =
-            assalariado && (!desligadoNoMes || exigirContrachequeMesDesligamento);
+            assalariado &&
+            !intermitenteSemTrabalho &&
+            (!desligadoNoMes || exigirContrachequeMesDesligamento);
+          const optanteAdiantamento = optanteNaCompetencia(
+            solsPorColab.get(c.id as string),
+            comp,
+            c.optante_adiantamento === true,
+          );
 
           const checks: Array<[Tipo, boolean]> = socio
             ? [["pro_labore", socioProLabore]]
             : [
                 ["contracheque", cobraContracheque],
                 ["rescisao", assalariado && desligadoNoMes],
-                ["contracheque_13", assalariado && !!prazoDecimo && !decimoNoPrazo],
+                [
+                  "contracheque_13",
+                  assalariado && !intermitenteSemTrabalho && !!prazoDecimo && !decimoNoPrazo,
+                ],
                 ["contracheque_ferias", !!gozos?.has(comp)],
-                ["ponto", temRelogio && c.possui_folha_ponto === true],
-                ["adiantamento", c.optante_adiantamento === true],
+                [
+                  "ponto",
+                  temRelogio && c.possui_folha_ponto === true && !intermitenteSemTrabalho,
+                ],
+                ["adiantamento", optanteAdiantamento && !intermitenteSemTrabalho],
               ];
 
           // 13º dentro do prazo legal: aviso informativo, não pendência.
