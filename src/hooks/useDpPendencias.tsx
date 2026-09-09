@@ -166,6 +166,7 @@ export function useDpPendencias() {
       let unidades: Array<{
         id: string;
         nome: string;
+        created_at: string;
         possui_relogio_ponto: boolean | null;
         tem_adiantamento: boolean | null;
         dia_adiantamento: number | null;
@@ -173,7 +174,7 @@ export function useDpPendencias() {
       try {
         const { data } = await supabase
           .from("dp_unidades")
-          .select("id, nome, possui_relogio_ponto, tem_adiantamento, dia_adiantamento")
+          .select("id, nome, created_at, possui_relogio_ponto, tem_adiantamento, dia_adiantamento")
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true);
         unidades = (data ?? []) as any;
@@ -195,119 +196,122 @@ export function useDpPendencias() {
         console.warn("pendencias/colabs-unidade:", e);
       }
 
-      // Documentos por tipo no período — 1 query por tipo; resolve a unidade em JS.
-      const unidadesComDoc = new Map<string, Set<string>>(); // tipo -> unidadeIds com doc
-      const carregarDocsTipo = async (
+      const hojeISO = ymd(today);
+      const compVigente = competenciaDe(hojeISO);
+      const compAnterior = somarMeses(compVigente, -1);
+
+      // Documentos por tipo — 1 query por tipo cobrindo todo o intervalo.
+      // Chave: `${unidadeId}:${competencia}`
+      const importados = new Map<string, Set<string>>();
+      const carregarTipo = async (
         tipo: "contracheque" | "adiantamento" | "ponto",
         inicio: string,
         fim: string,
       ): Promise<Set<string>> => {
-        const cache = unidadesComDoc.get(`${tipo}:${inicio}:${fim}`);
+        const cache = importados.get(tipo);
         if (cache) return cache;
-        const { data } = await supabase
-          .from("dp_documentos")
-          .select("colaborador_id")
-          .eq("company_id", selectedCompanyId!)
-          .eq("tipo", tipo)
-          .gte("referencia_data", inicio)
-          .lte("referencia_data", fim);
         const set = new Set<string>();
-        (data ?? []).forEach((d: any) => {
-          const u = unidadeDoColab.get(d.colaborador_id);
-          if (u) set.add(u);
-        });
-        unidadesComDoc.set(`${tipo}:${inicio}:${fim}`, set);
+        try {
+          const { data } = await supabase
+            .from("dp_documentos")
+            .select("colaborador_id, referencia_data")
+            .eq("company_id", selectedCompanyId!)
+            .eq("tipo", tipo)
+            .gte("referencia_data", inicio)
+            .lte("referencia_data", fim);
+          (data ?? []).forEach((d: any) => {
+            const u = unidadeDoColab.get(d.colaborador_id);
+            if (u && d.referencia_data) set.add(`${u}:${String(d.referencia_data).slice(0, 7)}`);
+          });
+        } catch (e) {
+          console.warn(`pendencias/docs-${tipo}:`, e);
+        }
+        importados.set(tipo, set);
         return set;
       };
-      const hasDocsForUnidade = async (
-        tipo: "contracheque" | "adiantamento" | "ponto",
-        unidadeId: string,
-        inicio: string,
-        fim: string,
-      ): Promise<boolean> => (await carregarDocsTipo(tipo, inicio, fim)).has(unidadeId);
 
-      // 3. Contracheque não importado (mês anterior) — por unidade
-      if (diaHoje >= cfg.alerta_contracheque_dia_mes) {
-        try {
-          const compIni = `${anoAnterior}-${String(mesAnterior).padStart(2, "0")}-01`;
-          const compFim = ymd(new Date(anoAnterior, mesAnterior, 0));
-          const vencimento = new Date(anoVigente, mesVigente - 1, cfg.alerta_contracheque_dia_mes);
-          const dias = differenceInCalendarDays(today, vencimento);
-          for (const u of unidades) {
-            const importado = await hasDocsForUnidade("contracheque", u.id, compIni, compFim);
-            if (importado) continue;
+      // Competências esperadas por unidade (a partir de 1 mês antes do cadastro)
+      const compsPorUnidade = new Map<string, { ateAnterior: string[]; ateVigente: string[] }>();
+      unidades.forEach((u) => {
+        compsPorUnidade.set(u.id, {
+          ateAnterior: competenciasParaCobrar({ cadastroISO: u.created_at, ultima: compAnterior }),
+          ateVigente: competenciasParaCobrar({ cadastroISO: u.created_at, ultima: compVigente }),
+        });
+      });
+      const todasComps = Array.from(compsPorUnidade.values()).flatMap((c) => c.ateVigente);
+      const menorComp = todasComps.length ? todasComps.slice().sort()[0] : compVigente;
+      const rangeInicio = intervaloCompetencia(menorComp).inicio;
+      const rangeFim = intervaloCompetencia(compVigente).fim;
+
+      // 3. Contracheque não importado — uma pendência por unidade + competência
+      {
+        const docs = await carregarTipo("contracheque", rangeInicio, rangeFim);
+        for (const u of unidades) {
+          for (const comp of compsPorUnidade.get(u.id)?.ateAnterior ?? []) {
+            if (docs.has(`${u.id}:${comp}`)) continue;
+            const vencimento = limiteMesSeguinte(comp, cfg.alerta_contracheque_dia_mes);
             results.push({
-              id: `contracheque-${u.id}-${anoAnterior}-${mesAnterior}`,
+              id: `contracheque-${u.id}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
               icon: FileText,
               titulo: "Contracheque não importado",
-              subtitulo: `${u.nome} — ${MES_NOME[mesAnterior - 1]}/${anoAnterior}`,
+              subtitulo: `${u.nome} — ${competenciaLabel(comp)}`,
               tipo: "Contracheque",
               unidadeNome: u.nome,
-              vencimento: ymd(vencimento),
-              atrasoDias: dias,
+              vencimento,
+              atrasoDias: atrasoEmDias(vencimento, hojeISO),
               url: "/dp/documentos/historico?tipo=contracheque",
             });
           }
-        } catch (e) {
-          console.warn("pendencias/contracheque:", e);
         }
       }
 
-      // 4. Adiantamento não importado (mês vigente) — por unidade que exige adiantamento
-      try {
-        const compIni = `${anoVigente}-${String(mesVigente).padStart(2, "0")}-01`;
-        const compFim = ymd(new Date(anoVigente, mesVigente, 0));
+      // 4. Adiantamento não importado — unidades que pagam adiantamento
+      {
+        const docs = await carregarTipo("adiantamento", rangeInicio, rangeFim);
         for (const u of unidades) {
           if (!u.tem_adiantamento || !u.dia_adiantamento) continue;
           const diaLimite = u.dia_adiantamento + cfg.alerta_adiantamento_offset;
-          if (diaHoje < diaLimite) continue;
-          const importado = await hasDocsForUnidade("adiantamento", u.id, compIni, compFim);
-          if (importado) continue;
-          const vencimento = new Date(anoVigente, mesVigente - 1, diaLimite);
-          const dias = differenceInCalendarDays(today, vencimento);
-          results.push({
-            id: `adiantamento-${u.id}-${anoVigente}-${mesVigente}`,
-            icon: Coins,
-            titulo: "Adiantamento não importado",
-            subtitulo: `${u.nome} — ${MES_NOME[mesVigente - 1]}/${anoVigente}`,
-            tipo: "Adiantamento",
-            unidadeNome: u.nome,
-            vencimento: ymd(vencimento),
-            atrasoDias: dias,
-            url: "/dp/documentos/adiantamento",
-          });
+          for (const comp of compsPorUnidade.get(u.id)?.ateVigente ?? []) {
+            if (docs.has(`${u.id}:${comp}`)) continue;
+            const vencimento = limiteNoMes(comp, diaLimite);
+            results.push({
+              id: `adiantamento-${u.id}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
+              icon: Coins,
+              titulo: "Adiantamento não importado",
+              subtitulo: `${u.nome} — ${competenciaLabel(comp)}`,
+              tipo: "Adiantamento",
+              unidadeNome: u.nome,
+              vencimento,
+              atrasoDias: atrasoEmDias(vencimento, hojeISO),
+              url: "/dp/documentos/adiantamento",
+            });
+          }
         }
-      } catch (e) {
-        console.warn("pendencias/adiantamento:", e);
       }
 
-      // 5. Folha de ponto não importada (mês anterior) — por unidade com relógio
-      if (diaHoje >= cfg.alerta_folha_ponto_dia_mes) {
-        try {
-          const inicio = `${anoAnterior}-${String(mesAnterior).padStart(2, "0")}-01`;
-          const fim = ymd(new Date(anoAnterior, mesAnterior, 0));
-          const vencimento = new Date(anoVigente, mesVigente - 1, cfg.alerta_folha_ponto_dia_mes);
-          const dias = differenceInCalendarDays(today, vencimento);
-          for (const u of unidades) {
-            if (!u.possui_relogio_ponto) continue;
-            const importado = await hasDocsForUnidade("ponto", u.id, inicio, fim);
-            if (importado) continue;
+      // 5. Folha de ponto não importada — unidades com relógio de ponto
+      {
+        const docs = await carregarTipo("ponto", rangeInicio, rangeFim);
+        for (const u of unidades) {
+          if (!u.possui_relogio_ponto) continue;
+          for (const comp of compsPorUnidade.get(u.id)?.ateAnterior ?? []) {
+            if (docs.has(`${u.id}:${comp}`)) continue;
+            const vencimento = limiteMesSeguinte(comp, cfg.alerta_folha_ponto_dia_mes);
             results.push({
-              id: `folha_ponto-${u.id}-${anoAnterior}-${mesAnterior}`,
+              id: `folha_ponto-${u.id}-${comp.slice(0, 4)}-${Number(comp.slice(5, 7))}`,
               icon: Clock,
               titulo: "Folha de ponto não importada",
-              subtitulo: `${u.nome} — ${MES_NOME[mesAnterior - 1]}/${anoAnterior}`,
+              subtitulo: `${u.nome} — ${competenciaLabel(comp)}`,
               tipo: "Folha de Ponto",
               unidadeNome: u.nome,
-              vencimento: ymd(vencimento),
-              atrasoDias: dias,
+              vencimento,
+              atrasoDias: atrasoEmDias(vencimento, hojeISO),
               url: "/dp/documentos/ponto",
             });
           }
-        } catch (e) {
-          console.warn("pendencias/folha_ponto:", e);
         }
       }
+
 
       // 6. Negociação coletiva pendente — por unidade + sindicato laboral
       try {
