@@ -324,11 +324,11 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[1400px] h-[92vh] p-0 flex flex-col">
-        <DialogHeader className="p-4 pb-2 border-b">
-          <DialogTitle className="text-base">
-            Revisar importação {batchName ? `— ${batchName}` : ""}
-            <span className="ml-2 text-xs text-muted-foreground font-normal">
+      <DialogContent className="w-screen max-w-[100vw] h-[100dvh] rounded-none sm:rounded-lg sm:max-w-[95vw] sm:w-[1400px] sm:h-[92vh] p-0 flex flex-col overflow-hidden">
+        <DialogHeader className="p-4 pb-2 border-b shrink-0">
+          <DialogTitle className="text-base break-words pr-8">
+            <span className="block">Revisar importação {batchName ? `— ${batchName}` : ""}</span>
+            <span className="block sm:inline sm:ml-2 text-xs text-muted-foreground font-normal">
               {rows.length} página(s) · {pendingCount} pronta(s) p/ aprovar
             </span>
           </DialogTitle>
