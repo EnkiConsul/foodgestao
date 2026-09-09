@@ -16,6 +16,7 @@ import { useTurnstileConfig } from "@/hooks/useTurnstileSiteKey";
 import { describeTurnstileError, currentHostname } from "@/lib/auth/turnstileErrors";
 import { unifiedSignIn } from "@/lib/authUnified";
 import { sanitizeRedirect } from "@/lib/safeRedirect";
+import { resolveLandingTarget, landingPathFor } from "@/lib/auth/landing";
 
 import { z } from "zod";
 import { toast } from "sonner";
@@ -431,7 +432,7 @@ export default function Auth() {
         {mfaRequired ? (
           <CardContent>
             <MfaChallenge
-              onSuccess={() => goTo(getRedirectTarget())}
+              onSuccess={() => { void resolveTargetForUser().then(goTo); }}
               onCancel={() => setMfaRequired(false)}
             />
           </CardContent>
