@@ -132,6 +132,7 @@ const AdminPluggyStatus = lazyWithRetry(() => import("./pages/admin/PluggyStatus
 const AdminPerfisAcesso = lazyWithRetry(() => import("./pages/admin/PerfisAcesso"));
 const AdminDonosEmpresas = lazyWithRetry(() => import("./pages/admin/DonosEmpresas"));
 const AdminAuditoria = lazyWithRetry(() => import("./pages/admin/Auditoria"));
+const AdminConectados = lazyWithRetry(() => import("./pages/admin/Conectados"));
 const AdminResetarDados = lazyWithRetry(() => import("./pages/admin/ResetarDados"));
 const AdminCadastros = lazyWithRetry(() => import("./pages/admin/Cadastros"));
 const AdminCategoriasPadrao = lazyWithRetry(() => import("./pages/admin/CategoriasPadrao"));
