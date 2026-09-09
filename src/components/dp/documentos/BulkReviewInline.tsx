@@ -420,6 +420,10 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
     }
     setSavingTotal(item_ids.length);
     setIsSaving(true);
+    // O quadro de progresso fica acima do botão: trazemos ele para a vista.
+    requestAnimationFrame(() =>
+      savingBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
     try {
       const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
         body: { item_ids, on_duplicate, sem_unidade_confirmado: semUnidadeOkRef.current },

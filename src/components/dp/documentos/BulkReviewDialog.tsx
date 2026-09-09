@@ -54,6 +54,8 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   const [rendering, setRendering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savingTotal, setSavingTotal] = useState(0);
+  /** Âncora do quadro "Salvando documentos": a tela desce até ele ao aprovar. */
+  const savingBannerRef = useRef<HTMLDivElement | null>(null);
 
   const batchInfo = useQuery({
     queryKey: ["dp_bulk_batch_info", batchId],
