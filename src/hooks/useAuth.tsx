@@ -84,9 +84,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (!error) {
       // registra a entrada no sistema na Auditoria (aba Acessos)
+      if (data.user?.id) sessionStorage.setItem(`audit_resume_${data.user.id}`, "1");
       void logAudit("user_signed_in", "auth", null, { method: "password" });
     }
     return { error: error as Error | null };
