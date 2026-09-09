@@ -6,8 +6,10 @@ import {
   EMPTY_HIDDEN,
   effectiveHiddenRoutes,
   isRouteHidden,
+  portalRoutesForaDoVinculo,
   type HiddenScreensConfig,
 } from "@/lib/nav/hiddenScreens";
+import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
 const QUERY_KEY = ["app_hidden_screens"];
 
@@ -35,8 +37,16 @@ export function useHiddenScreens() {
     },
   });
 
+  const { data: vinculo } = useMeuVinculoPortal();
+
   const config = data ?? EMPTY_HIDDEN;
-  const hidden = useMemo(() => effectiveHiddenRoutes(config), [config]);
+  const globais = useMemo(() => effectiveHiddenRoutes(config), [config]);
+  /** Telas globais em desenvolvimento + telas do portal que não cabem no vínculo. */
+  const hidden = useMemo(() => {
+    const set = new Set(globais);
+    for (const r of portalRoutesForaDoVinculo(vinculo)) set.add(r);
+    return set;
+  }, [globais, vinculo]);
 
   const salvar = useMutation({
     mutationFn: async (next: Partial<HiddenScreensConfig>) => {
@@ -70,7 +80,7 @@ export function useHiddenScreens() {
     /** Rotas efetivamente ocultas agora. */
     hidden,
     isHidden: (to: string) => hidden.has(to),
-    isPathHidden: (pathname: string) => isRouteHidden(pathname, hidden),
+    isPathHidden: (pathname: string) => isRouteHidden(pathname, globais),
     loading: isLoading,
     saving: salvar.isPending,
     setEnabled: (enabled: boolean) => salvar.mutate({ enabled }),
