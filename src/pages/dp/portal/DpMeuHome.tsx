@@ -16,6 +16,8 @@ import { MinhasNotificacoesCard } from "@/components/dp/home/MinhasNotificacoesC
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { DpPage } from "@/components/dp/DpPage";
 import { MinhaJornadaAcoesCard } from "@/components/dp/ocorrencias/MinhaJornadaAcoesCard";
+import { useMinhaProximaFolga } from "@/hooks/useMinhaProximaFolga";
+import { textoProximaFolga } from "@/lib/dp/proxima-folga";
 
 
 export default function DpMeuHome() {
@@ -110,12 +112,8 @@ export default function DpMeuHome() {
   const firstName =
     meu?.nome?.split(" ")[0] ?? user?.email?.split("@")[0]?.split(".")[0] ?? "";
 
-  const proximaFolgaDias = (() => {
-    if (!proximaFolga.data?.data) return null;
-    const d = new Date(proximaFolga.data.data + "T00:00:00");
-    const diff = Math.round((d.getTime() - new Date(new Date().toDateString()).getTime()) / 86400000);
-    return diff;
-  })();
+  const folgaTexto = textoProximaFolga(proximaFolga, hojeISO);
+
 
   return (
     <DpPage>
