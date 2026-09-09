@@ -108,6 +108,8 @@ function prazo13(competencia: string): string | null {
 type Alerta = {
   colaborador_id: string;
   nome: string;
+  /** Data de desligamento, quando a pessoa já saiu do quadro. */
+  desligamento: string | null;
   tipo: Tipo;
   problema: "faltando" | "inconsistente";
   unidade_id: string | null;
@@ -132,6 +134,8 @@ type FeriasAlerta = {
 
 const MAX_NOMES = 6;
 
+type Pessoa = { nome: string; desligamento: string | null };
+
 type Grupo = {
   key: string;
   tipo: Tipo;
@@ -139,7 +143,7 @@ type Grupo = {
   unidade_id: string | null;
   nome_unidade: string | null;
   competencia: string;
-  nomes: string[];
+  nomes: Pessoa[];
   total: number;
   completo: boolean;
 };
