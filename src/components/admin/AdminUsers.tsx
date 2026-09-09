@@ -109,6 +109,7 @@ export function AdminUsers() {
       (u.full_name?.toLowerCase().includes(term) ?? false) ||
       (u.document?.toLowerCase().includes(term) ?? false) ||
       (u.phone?.toLowerCase().includes(term) ?? false) ||
+      (u.auth?.phone?.toLowerCase().includes(term) ?? false) ||
       (u.auth?.email?.toLowerCase().includes(term) ?? false)
     );
   });
