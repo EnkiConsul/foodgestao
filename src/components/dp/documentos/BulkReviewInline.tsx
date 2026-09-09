@@ -498,12 +498,35 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
         await runApprove(allIds, "skip");
         return;
       }
-      const dupIds = new Set(hits.map((h) => h.item_id));
-      setConfirmDup({
-        collisions: hits,
-        allIds,
-        nonDupIds: allIds.filter((id) => !dupIds.has(id)),
+      // Respeita o que o usuário já decidiu página por página na conferência.
+      const res = resolverDecisoesDup({
+        elegiveis: allIds,
+        duplicados: hits.map((h) => h.item_id),
+        decisoes: decisoesDup,
       });
+      if (res.pendentes.length > 0) {
+        const pend = new Set(res.pendentes);
+        setConfirmDup({
+          collisions: hits.filter((h) => pend.has(h.item_id)),
+          allIds,
+          nonDupIds: allIds.filter((id) => !pend.has(id) && !res.ignorar.includes(id)),
+        });
+        return;
+      }
+      await ignorarDuplicados(res.ignorar);
+      if (res.substituir.length > 0) {
+        await runApprove(res.substituir, "replace", res.ignorar);
+      }
+      if (res.aprovar.length > 0) {
+        await runApprove(res.aprovar, "skip", res.substituir.length ? [] : res.ignorar);
+      }
+      if (res.substituir.length === 0 && res.aprovar.length === 0 && res.ignorar.length > 0) {
+        toast.success(`${res.ignorar.length} duplicado(s) ignorado(s)`);
+        qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+        qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
+        qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+        if (loteConcluido(rows as any[], [], res.ignorar)) onConcluido?.();
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao verificar duplicidade");
     } finally {
