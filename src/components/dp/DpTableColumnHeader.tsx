@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Filter } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Filter, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,6 +24,8 @@ export function DpTableColumnHeader(props: {
   sortAtivo: boolean;
   sortDir: "asc" | "desc";
   onSort: (dir: "asc" | "desc") => void;
+  /** Volta à ordenação padrão da tela (sort composto). */
+  onResetSort?: () => void;
   ativos: string[];
   getOpcoes: () => string[];
   onToggle: (v: string) => void;
@@ -96,6 +98,11 @@ export function DpTableColumnHeader(props: {
             <DropdownMenuItem onClick={() => props.onSort("desc")}>
               <ArrowDown className="mr-2 h-3.5 w-3.5" /> Ordenar Decrescente
             </DropdownMenuItem>
+            {props.onResetSort && (
+              <DropdownMenuItem onClick={() => props.onResetSort()}>
+                <RotateCcw className="mr-2 h-3.5 w-3.5" /> Ordenação Padrão
+              </DropdownMenuItem>
+            )}
           </div>
           <DropdownMenuSeparator />
           <div className="p-2 space-y-2">

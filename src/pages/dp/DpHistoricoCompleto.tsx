@@ -91,7 +91,7 @@ function tipoBadgeClass(key: string) {
 }
 
 type ColKey = "colaborador" | "tipo" | "competencia" | "unidade" | "aceite";
-type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "aceite_label" | "data";
+type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "aceite_label" | "data" | "default";
 
 const COL_ORDER_STORAGE = "dp_historico_col_order_v2";
 const COL_WIDTH_STORAGE = "dp_historico_col_width_v1";
@@ -290,7 +290,7 @@ export default function DpHistoricoCompleto() {
     defaultWidths: DEFAULT_COL_WIDTHS,
     essentialKeys: ["colaborador"],
     acoesWidth: ACOES_WIDTH,
-    defaultSortKey: "data",
+    defaultSortKey: "default",
     defaultSortDir: "desc",
   });
 
@@ -536,6 +536,25 @@ export default function DpHistoricoCompleto() {
   // ---------------- Ordenação ----------------
   const sorted = useMemo(() => {
     const arr = [...filtered];
+    if (sortKey === "default") {
+      arr.sort((a, b) => {
+        // 1) competência decrescente
+        const compA = a.competencia_sort || "";
+        const compB = b.competencia_sort || "";
+        if (compA !== compB) return compB.localeCompare(compA, "pt-BR");
+        // 2) unidade crescente
+        const unidA = a.unidade_nome || "";
+        const unidB = b.unidade_nome || "";
+        if (unidA !== unidB) return unidA.localeCompare(unidB, "pt-BR");
+        // 3) colaborador crescente
+        const nomeA = a.colaborador_nome || "";
+        const nomeB = b.colaborador_nome || "";
+        if (nomeA !== nomeB) return nomeA.localeCompare(nomeB, "pt-BR");
+        // 4) tipo crescente
+        return a.tipo_label.localeCompare(b.tipo_label, "pt-BR");
+      });
+      return arr;
+    }
     const get = (r: UnifiedDoc) => (sortKey === "aceite_label" ? aceiteLabel(r) : ((r as any)[sortKey] ?? ""));
     arr.sort((a, b) => {
       const av = get(a);
@@ -638,6 +657,7 @@ export default function DpHistoricoCompleto() {
       sortAtivo={sortKey === COLS[k].sortKey}
       sortDir={sortDir}
       onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
+      onResetSort={() => aplicarSort("default", "desc")}
       ativos={colFilters[k]}
       getOpcoes={() => opcoesColuna(k)}
       onToggle={(v) => toggleColValue(k, v)}
