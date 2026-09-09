@@ -58,5 +58,6 @@ export function landingPathFor(target: LandingTarget, requested?: string | null)
   if (target.kind === "portal") {
     return requested && requested.startsWith(PORTAL_PATH) ? requested : PORTAL_PATH;
   }
+  if (target.kind === "convites") return CONVITES_PATH;
   return requested || EMPRESA_PATH;
 }
