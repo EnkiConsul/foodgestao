@@ -394,10 +394,15 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       const nomePorColab = new Map(
         ((colabsRes.data ?? []) as any[]).map((c) => [c.id as string, c.nome as string]),
       );
+      // Alerta de férias só faz sentido para quem continua no quadro.
+      const ativosSet = new Set(
+        ((colabsRes.data ?? []) as any[]).filter((c) => c.ativo !== false).map((c) => c.id as string),
+      );
       const ferias: FeriasAlerta[] = ((periodosRes.data ?? []) as any[])
         .filter(
           (p) =>
             nomePorColab.has(p.colaborador_id) &&
+            ativosSet.has(p.colaborador_id) &&
             !comAgendamento.has(p.colaborador_id) &&
             !sociosSet.has(p.colaborador_id),
         )
