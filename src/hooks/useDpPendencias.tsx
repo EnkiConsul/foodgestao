@@ -722,7 +722,11 @@ export function useDpPendencias() {
         const porId = new Map(
           (deps ?? []).map((d: any) => [d.id as string, d.dp_colaboradores?.nome ?? "Colaborador"]),
         );
+        const colabDoDep = new Map(
+          (deps ?? []).map((d: any) => [d.id as string, d.colaborador_id as string]),
+        );
         alertasDependentes((deps ?? []) as any, ymd(today)).forEach((a) => {
+          const colabId = colabDoDep.get(a.dependenteId);
           results.push({
             id: `dependente-${a.dependenteId}-${a.tipo}`,
             icon: Users,
@@ -732,7 +736,9 @@ export function useDpPendencias() {
             colaboradorNome: porId.get(a.dependenteId) ?? null,
             vencimento: null,
             atrasoDias: a.severidade === "alta" ? 1 : 0,
-            url: "/dp/colaboradores",
+            url: colabId
+              ? `/dp/colaboradores?editar=${colabId}&aba=dependentes`
+              : "/dp/colaboradores",
           });
         });
       } catch (e) {
