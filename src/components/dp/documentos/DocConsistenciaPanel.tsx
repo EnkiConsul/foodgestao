@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { isSocio } from "@/lib/dp/contrato-policy";
+import { ativoNaCompetencia } from "@/lib/dp/bulk-coverage";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -355,6 +356,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
               alertas.push({
                 colaborador_id: c.id,
                 nome: c.nome,
+                desligamento,
                 tipo,
                 problema: "faltando",
                 unidade_id: c.unidade_id ?? null,
@@ -372,6 +374,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
                 alertas.push({
                   colaborador_id: c.id,
                   nome: c.nome,
+                  desligamento,
                   tipo,
                   problema: "inconsistente",
                   unidade_id: c.unidade_id ?? null,
