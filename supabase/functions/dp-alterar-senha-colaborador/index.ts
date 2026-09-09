@@ -94,6 +94,18 @@ Deno.serve(async (req) => {
       return json({ error: "Não foi possível concluir a operação." }, 500);
     }
 
+    // Senha provisória quando o gestor pede troca no primeiro acesso
+    const { error: secErr } = await admin.from("auth_user_security_state").upsert(
+      {
+        user_id: colab.user_id,
+        must_change_password: exigirTroca,
+        provisional_password_issued_at: exigirTroca ? new Date().toISOString() : null,
+        password_changed_by: callerId,
+      },
+      { onConflict: "user_id" },
+    );
+    if (secErr) console.error("[dp-alterar-senha-colaborador] security_state:", secErr.message);
+
     // Audit log (never store the password itself)
     await admin.from("audit_logs").insert({
       user_id: callerId,
