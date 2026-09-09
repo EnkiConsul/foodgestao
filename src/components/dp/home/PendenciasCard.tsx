@@ -169,14 +169,7 @@ export function PendenciasCard() {
                               Prazo: {format(new Date(`${p.vencimento}T12:00:00`), "dd/MM/yyyy")}
                             </p>
                           )}
-                          <div className="mt-2 grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
-                            <Button asChild size="sm" variant="default" className="h-9 sm:h-7 text-xs w-full sm:w-auto">
-                              <Link to={p.url} onClick={() => setGrupoAberto(null)}>
-                                Resolver <ArrowRight className="h-3 w-3 ml-1" />
-                              </Link>
-                            </Button>
-                            <AdiarPopover onAdiar={(dias) => adiar(p, dias)} />
-                          </div>
+                          <PendenciaAcoes pendencia={p} onNavigate={() => setGrupoAberto(null)} />
                         </div>
                       </div>
                     ))}
