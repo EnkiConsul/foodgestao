@@ -13760,6 +13760,16 @@ export type Database = {
           payables: number
         }[]
       }
+      company_access_status: {
+        Args: { _company_id: string }
+        Returns: {
+          blocked: boolean
+          company_id: string
+          is_owner: boolean
+          status: string
+          trial_ends_at: string
+        }[]
+      }
       consume_recovery_reset: {
         Args: { p_challenge_id: string; p_reset_token_hash: string }
         Returns: string
