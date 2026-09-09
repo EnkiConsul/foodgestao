@@ -204,7 +204,11 @@ async function processPage(args: {
     }
 
     // Extrações
-    const cpfs = extractCPFs(ocr);
+    // Casamento por CPF continua tolerante (qualquer CPF válido do texto);
+    // já o CPF sugerido no cadastro exige rótulo "CPF" + dígitos verificadores.
+    const cpfs = extractCPFs(ocr).filter((c) => isCpfValido(c));
+    const cpfPessoa = extrairCpfValido(ocr);
+    const nomePessoa = extrairNomePessoa(ocr);
     const cnpjs = extractCNPJs(ocr);
     const competencia =
       extractPeriodo(ocr) ??
@@ -308,8 +312,8 @@ async function processPage(args: {
       page_index: pageNum,
       page_file_path: pagePath,
       ocr_text: ocr.slice(0, 8000),
-      matched_cpf: matchedCpf ?? (cpfs[0] ?? null),
-      matched_nome: matchedNome,
+      matched_cpf: matchedCpf ?? cpfPessoa,
+      matched_nome: matchedNome ?? nomePessoa,
       matched_colaborador_id: match?.id ?? null,
       matched_colaborador_ativo: match ? match.ativo : null,
       detected_cnpj: cnpjs[0] ?? null,
