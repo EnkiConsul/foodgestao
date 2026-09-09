@@ -468,9 +468,9 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       });
     }
 
-    // Competência mais recente primeiro; depois problema, tipo e unidade.
+    // Competência mais antiga primeiro; depois problema, tipo e unidade.
     return out.sort((a, b) => {
-      if (a.competencia !== b.competencia) return a.competencia < b.competencia ? 1 : -1;
+      if (a.competencia !== b.competencia) return a.competencia < b.competencia ? -1 : 1;
       if (a.problema !== b.problema) return a.problema === "faltando" ? -1 : 1;
       if (a.tipo !== b.tipo) return TIPO_ORDEM.indexOf(a.tipo) - TIPO_ORDEM.indexOf(b.tipo);
       const nomeA = a.nome_unidade ?? "Sem unidade";
