@@ -112,36 +112,35 @@ export function situacaoAtual(
 
 /**
  * Valida uma solicitação feita pelo PORTAL do colaborador.
- * Retorna a mensagem de erro ou null quando está ok.
+ * Só a data importa: hoje ou futura. A carência de 30 dias é aplicada no
+ * cálculo da competência de efeito (não bloqueia o pedido).
  */
 export function validarSolicitacaoPortal(
   dataISO: string,
-  diaPagamento: number | null | undefined,
+  _diaPagamento: number | null | undefined,
   hojeISO: string,
 ): string | null {
   if (!dataISO) return "Informe a data da solicitação.";
   if (dataISO < hojeISO) {
     return "No portal, a data da solicitação não pode ser retroativa. Fale com o gestor para datas passadas.";
   }
-  const dia = diaPagamento && diaPagamento > 0 ? diaPagamento : 15;
-  const pagamento = dataPagamentoNoMes(dataISO, dia);
-  // Janela de corte: 5 dias antes do pagamento até o dia do pagamento.
-  const limite = new Date(`${pagamento}T12:00:00`);
-  limite.setDate(limite.getDate() - 4);
-  const limiteISO = `${limite.getFullYear()}-${pad(limite.getMonth() + 1)}-${pad(limite.getDate())}`;
-  if (dataISO >= limiteISO && dataISO <= pagamento) {
-    return "Faltam menos de 5 dias para o pagamento. A solicitação valerá a partir da próxima competência — fale com o gestor se for urgente.";
-  }
   return null;
 }
 
-/** Texto de ajuda: em qual competência a solicitação de hoje passa a valer. */
-export function efeitoHint(dataISO: string, diaPagamento: number | null | undefined): string {
-  const comp = competenciaEfeito(dataISO, diaPagamento);
+/** Texto de ajuda: em qual competência a solicitação passa a valer. */
+export function efeitoHint(
+  dataISO: string,
+  diaPagamento: number | null | undefined,
+  origem: "gestor" | "portal" = "gestor",
+): string {
+  const comp = competenciaEfeito(dataISO, diaPagamento, origem);
   const meses = [
     "janeiro", "fevereiro", "março", "abril", "maio", "junho",
     "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
   ];
   const label = `${meses[Number(comp.slice(5, 7)) - 1]}/${comp.slice(0, 4)}`;
+  if (origem === "portal") {
+    return `Vale a partir de ${label} (pedido pelo portal tem carência de ${CARENCIA_PORTAL_DIAS} dias).`;
+  }
   return `Vale a partir de ${label}.`;
 }
