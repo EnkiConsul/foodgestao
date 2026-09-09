@@ -99,7 +99,7 @@ import {
   gruposDivergentesClassificados, gruposAlteracao, quemPerdeBeneficio,
   type GrupoPadrao, type PadraoAlcance, type PadraoEscopo,
 } from "@/lib/dp/beneficiosPadrao";
-import { compararRiscoCargo, textoRisco, type DivergenciaRisco } from "@/lib/dp/cargos";
+import { cargoSugereVinculoSocio, compararRiscoCargo, textoRisco, type DivergenciaRisco } from "@/lib/dp/cargos";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -311,6 +311,8 @@ export function ColaboradorFormDialog({
   >(null);
   /** Regras de cargo/salário já resolvidas para este salvamento. */
   const cargoResolvido = useRef(false);
+  /** Vínculo escolhido à mão: bloqueia a sugestão automática pelo cargo. */
+  const vinculoTocado = useRef(false);
   // Ciência do risco jurídico do vínculo sem registro, válida para este salvamento.
   const cienciaConfirmada = useRef<{ justificativa: string } | null>(null);
 
