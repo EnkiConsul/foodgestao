@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
 import { MinhasPendenciasCard } from "@/components/dp/home/MinhasPendenciasCard";
-import { MinhasNotificacoesCard } from "@/components/dp/home/MinhasNotificacoesCard";
+import { AvisosNotificacoesCard } from "@/components/dp/home/AvisosNotificacoesCard";
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { DpPage } from "@/components/dp/DpPage";
 import { MinhaJornadaAcoesCard } from "@/components/dp/ocorrencias/MinhaJornadaAcoesCard";
@@ -135,6 +135,9 @@ export default function DpMeuHome() {
           </Button>
         </div>
       </header>
+
+      {/* Pendências em destaque, logo depois da saudação. */}
+      <MinhasPendenciasCard />
 
       {/* Resumo compacto: próxima folga · últimos docs · mensagens */}
       <div className="grid gap-4 md:grid-cols-3">
