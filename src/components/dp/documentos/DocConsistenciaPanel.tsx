@@ -623,6 +623,8 @@ export function DocConsistenciaPanel() {
           </div>
         )}
       </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }
