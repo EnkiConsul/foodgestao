@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useDpAniversariantes30d, type AnivItem } from "@/hooks/useDpAniversariantes30d";
 import { WhatsappComposerDialog } from "@/components/dp/WhatsappComposerDialog";
 import { cn } from "@/lib/utils";
-import { toProperName } from "@/lib/text/properName";
+import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { filtrarAniversariantesPortal } from "@/lib/dp/aniversariantes-portal";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
@@ -56,7 +56,7 @@ export function AniversariantesCard({ variant = "admin" }: { variant?: "admin" |
               <span className="opacity-70">{a.diaMes.slice(3)}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{toProperName(a.nome)}</p>
+              <p className="text-sm font-medium truncate">{toUpperCadastro(a.nome)}</p>
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 <Badge
                   variant="outline"

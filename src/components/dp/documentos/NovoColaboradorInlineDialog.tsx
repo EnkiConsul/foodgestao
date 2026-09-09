@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { toProperName } from "@/lib/text/properName";
+import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { cargoSugereVinculoSocio } from "@/lib/dp/cargos";
 
 export interface NovoColaboradorInlineDialogProps {
@@ -35,7 +35,7 @@ export function NovoColaboradorInlineDialog({
   const { selectedCompanyId } = useCompanyContext();
   const [choiceOpen, setChoiceOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-  const [nome, setNome] = useState(() => toProperName(defaultNome));
+  const [nome, setNome] = useState(() => toUpperCadastro(defaultNome));
   const [cpf, setCpf] = useState(() => defaultCpf.replace(/\D/g, ""));
   const [cargo, setCargo] = useState<string>("");
   const [unidade, setUnidade] = useState<string>(defaultUnidadeId ?? "");
@@ -48,7 +48,7 @@ export function NovoColaboradorInlineDialog({
 
   useEffect(() => {
     if (!formOpen) return;
-    setNome(toProperName(defaultNome));
+    setNome(toUpperCadastro(defaultNome));
     setCpf(defaultCpf.replace(/\D/g, ""));
     setUnidade(defaultUnidadeId ?? "");
     setExisting(null);
@@ -104,7 +104,7 @@ export function NovoColaboradorInlineDialog({
         }
       }
       const payload: any = {
-        nome: toProperName(nome),
+        nome: toUpperCadastro(nome),
         cpf: cpfNormalizado || null,
         cargo_id: cargo || null,
         unidade_id: unidade || null,

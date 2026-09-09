@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
-import { toProperName } from "@/lib/text/properName";
+import { toUpperCadastro } from "@/lib/text/upperCadastro";
 
 type Pessoa = { id: string; nome: string; cargo: string; entrada: string | null; saida: string | null };
 
@@ -42,7 +42,7 @@ export default function DpMeuRotinaLoja() {
         vistos.add(c.id);
         out.push({
           id: c.id,
-          nome: toProperName(c.nome ?? ""),
+          nome: toUpperCadastro(c.nome ?? ""),
           cargo: c.cargo || "Sem função definida",
           entrada: hhmm(i.entrada),
           saida: hhmm(i.saida),

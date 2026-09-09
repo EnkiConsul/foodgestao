@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 import { regimeRisco } from "@/lib/dp/regime-riscos";
 import { RegimeRiscoDialog } from "@/components/dp/RegimeRiscoDialog";
-import { toProperName } from "@/lib/text/properName";
+import { toUpperCadastro } from "@/lib/text/upperCadastro";
 
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -1594,8 +1594,8 @@ export function ColaboradorFormDialog({
               <div className="flex items-start justify-between gap-2">
                 <DialogTitle className="min-w-0 truncate pr-6 text-base sm:text-lg">
                   {isEdit
-                    ? `Editar: ${toProperName(form.nome.trim()) || "Colaborador"}`
-                    : `Cadastrar: ${toProperName(form.nome.trim()) || "Novo Colaborador"}`}
+                    ? `Editar: ${toUpperCadastro(form.nome) || "Colaborador"}`
+                    : `Cadastrar: ${toUpperCadastro(form.nome) || "Novo Colaborador"}`}
                 </DialogTitle>
                 {(isEdit || criadoId) && (
                   <Button
