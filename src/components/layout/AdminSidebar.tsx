@@ -20,6 +20,7 @@ import {
   UserCog,
   AlertTriangle,
   Activity,
+  Crown,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
@@ -65,6 +66,7 @@ const tenantItems = [
   { title: "Contas Contábeis Padrão", url: "/admin/contas-contabeis-padrao", icon: FileText },
   { title: "Formas de Pagamento Padrão", url: "/admin/formas-pagamento-padrao", icon: CreditCard },
   { title: "Perfis de Acesso", url: "/admin/perfis-acesso", icon: Building2 },
+  { title: "Donos das Empresas", url: "/admin/donos", icon: Crown },
   { title: "Módulos", url: "/admin/modulos", icon: Sparkles },
   { title: "Telas em Desenvolvimento", url: "/admin/telas", icon: EyeOff },
 

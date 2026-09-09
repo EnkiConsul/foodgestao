@@ -130,6 +130,7 @@ const AdminWebhooksAsaasPage = lazyWithRetry(() => import("./pages/admin/Webhook
 const AdminPluggyWebhook = lazyWithRetry(() => import("./pages/admin/PluggyWebhook"));
 const AdminPluggyStatus = lazyWithRetry(() => import("./pages/admin/PluggyStatus"));
 const AdminPerfisAcesso = lazyWithRetry(() => import("./pages/admin/PerfisAcesso"));
+const AdminDonosEmpresas = lazyWithRetry(() => import("./pages/admin/DonosEmpresas"));
 const AdminAuditoria = lazyWithRetry(() => import("./pages/admin/Auditoria"));
 const AdminResetarDados = lazyWithRetry(() => import("./pages/admin/ResetarDados"));
 const AdminCadastros = lazyWithRetry(() => import("./pages/admin/Cadastros"));
@@ -488,6 +489,7 @@ const AppRoutes = () => (
         <Route path="/admin/pluggy-webhook" element={<AdminPluggyWebhook />} />
         <Route path="/admin/pluggy-status" element={<AdminPluggyStatus />} />
         <Route path="/admin/perfis-acesso" element={<AdminPerfisAcesso />} />
+        <Route path="/admin/donos" element={<AdminDonosEmpresas />} />
         <Route path="/admin/auditoria" element={<AdminAuditoria />} />
         <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
         <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
