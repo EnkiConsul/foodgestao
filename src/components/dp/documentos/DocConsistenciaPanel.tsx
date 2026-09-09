@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { AlertTriangle, CalendarClock, CheckCircle2, Clock, ShieldAlert } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, Clock, ShieldAlert } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { isSocio } from "@/lib/dp/contrato-policy";
