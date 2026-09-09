@@ -24,6 +24,8 @@ export function DpTableColumnHeader(props: {
   sortAtivo: boolean;
   sortDir: "asc" | "desc";
   onSort: (dir: "asc" | "desc") => void;
+  /** Volta à ordenação padrão da tela (sort composto). */
+  onResetSort?: () => void;
   ativos: string[];
   getOpcoes: () => string[];
   onToggle: (v: string) => void;
