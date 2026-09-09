@@ -527,6 +527,7 @@ const AppRoutes = () => (
       <Route path="/checkout/pagamento/:invoiceId" element={<ProtectedRoute><CheckoutPagamento /></ProtectedRoute>} />
       <Route path="/faturas" element={<ProtectedRoute><Faturas /></ProtectedRoute>} />
       <Route path="/trial-expirado" element={<ProtectedRoute><TrialExpired /></ProtectedRoute>} />
+      <Route path="/bem-vindo" element={<ProtectedRoute><BemVindo /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
