@@ -20,6 +20,21 @@ export type ComparacaoCargo =
 /** Tolerância de centavos para comparar valores monetários. */
 const TOL = 0.005;
 
+/**
+ * A reconciliação "um cargo = um salário" (piso do cargo) só faz sentido para
+ * empregados vinculados a uma unidade: o piso vem da convenção do sindicato
+ * patronal da unidade. Sócio (pró-labore ou lucros) e cadastro sem unidade
+ * específica ficam fora da regra.
+ */
+export function deveReconciliarPisoCargo(ctx: {
+  socio?: boolean;
+  unidadeId?: string | null;
+}): boolean {
+  if (ctx.socio) return false;
+  return !!ctx.unidadeId;
+}
+
+
 /** Salário de referência do cargo (null quando ainda não foi definido). */
 export function salarioReferencia(cargo: CargoRef | null | undefined): number | null {
   const v = cargo?.salario_base;

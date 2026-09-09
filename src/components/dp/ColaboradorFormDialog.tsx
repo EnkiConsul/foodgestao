@@ -70,7 +70,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { compararSalarioCargo, moedaBR, salarioReferencia, sugerirNomeVariacao } from "@/lib/dp/cargos";
+import { compararSalarioCargo, deveReconciliarPisoCargo, moedaBR, salarioReferencia, sugerirNomeVariacao } from "@/lib/dp/cargos";
 import {
   RemuneracaoFields,
   remuneracaoBlank,
@@ -1322,6 +1322,12 @@ export function ColaboradorFormDialog({
         Math.abs(numeroBR(rem.salario_base) - salarioCargo) <= 0.009;
       if (salarioTravadoNoCargo) cargoResolvido.current = true;
 
+      // Piso é convenção patronal de empregado vinculado a uma unidade: sócio e
+      // cadastro sem unidade específica não entram na reconciliação.
+      if (!deveReconciliarPisoCargo({ socio: socioSelecionado, unidadeId: form.unidade_id })) {
+        cargoResolvido.current = true;
+      }
+
       // Um cargo = um salário: reconcilia o cargo antes de gravar o colaborador.
       if (!cargoResolvido.current) {
         const comparacao = compararSalarioCargo(cargoParaComparacao, baseSalarialInformada());
@@ -2127,7 +2133,11 @@ export function ColaboradorFormDialog({
                 regime={regimeSelecionado}
                 socio={socioSelecionado}
                 socioRemuneracao={socioRem}
-                onSocioRemuneracaoChange={setSocioRem}
+                onSocioRemuneracaoChange={(v) => {
+                  setSocioRem(v);
+                  // Só lucros não tem retirada fixa: limpa resíduo de valor anterior.
+                  if (v === "somente_lucros") setRem((r) => ({ ...r, salario_base: "", base_salarial: "" }));
+                }}
                 beneficios={beneficios}
                 onNovoBeneficio={() => {
                   setBeneficioEditando(null);
@@ -2408,7 +2418,9 @@ export function ColaboradorFormDialog({
               O cargo {cargoSelecionado?.nome ?? ""} ainda não tem piso cadastrado
               {patronalUnidade?.nome
                 ? ` no sindicato patronal ${patronalUnidade.nome}`
-                : ` para ${unidadeSelecionada?.nome ?? "esta unidade"}`}
+                : unidadeSelecionada?.nome
+                  ? ` para ${unidadeSelecionada.nome}`
+                  : ""}
               . Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como piso, valendo para
               todas as unidades com esse mesmo patronal?
             </AlertDialogDescription>
