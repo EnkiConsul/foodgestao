@@ -464,9 +464,13 @@ export function BulkImportPanel({
                   <div className="flex items-start gap-2 min-w-0 flex-1">
                     {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 mt-0.5" /> : <ChevronRight className="h-4 w-4 shrink-0 mt-0.5" />}
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium truncate">{b.source_file_name ?? b.id.slice(0, 8)}</div>
+                      <div className="text-sm font-medium break-words">
+                        {loteAssunto(b, bItems)}
+                      </div>
                       <div className="text-xs text-muted-foreground truncate">
-                        {b.deteccao_automatica ? "Misto (detecção automática)" : docTipoLabel(b.tipo)} ·{" "}
+                        {b.source_file_name ?? b.id.slice(0, 8)}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
                         {isProcessing && totalPag > 0
                           ? `OCR ${processed}/${totalPag}`
                           : `${totalPag} pág · ${b.matched_count ?? 0} vinc.`}
