@@ -20,12 +20,17 @@ import { toast } from "sonner";
 
 export function PendenciasCard() {
   const { data = [], isLoading } = useDpPendencias();
-  const { prefs, save } = useDpUserPrefs();
+  const { prefs } = useDpUserPrefs();
+  const { ignoradas, adiadas } = useDpPendenciasDecisoes();
   const [grupoAberto, setGrupoAberto] = useState<GrupoPendencias<Pendencia> | null>(null);
 
   const abertas = useMemo(
-    () => filtrarAbertas(data, prefs.pendencias_adiadas),
-    [data, prefs.pendencias_adiadas],
+    () =>
+      filtrarAbertas(
+        data.filter((p) => !ignoradas.has(p.id)),
+        { ...prefs.pendencias_adiadas, ...adiadas },
+      ),
+    [data, prefs.pendencias_adiadas, ignoradas, adiadas],
   );
 
   const grupos = useMemo(() => agruparPorTipo(abertas), [abertas]);
@@ -40,12 +45,6 @@ export function PendenciasCard() {
     }
     return { atrasado, hoje, proximo };
   }, [abertas]);
-
-  const adiar = (p: Pendencia, dias: number) => {
-    const until = addDays(new Date(), dias).toISOString();
-    save({ pendencias_adiadas: { ...prefs.pendencias_adiadas, [p.id]: until } });
-    toast.success(`Adiada por ${dias} ${dias === 1 ? "dia" : "dias"}`);
-  };
 
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-5">
