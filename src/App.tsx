@@ -22,7 +22,6 @@ import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyAccess } from "@/hooks/useCompanyAccess";
-import { useCompanyAccess } from "@/hooks/useCompanyAccess";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { ProtectedRoute, OnboardingGuard } from "@/routes/onboardingGuards";
 import { resolveLandingTarget } from "@/lib/auth/landing";
