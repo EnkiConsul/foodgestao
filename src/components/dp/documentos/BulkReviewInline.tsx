@@ -664,7 +664,21 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                   </Badge>
                 )}
                 {current.duplicate_of && (
-                  <Badge variant="destructive" className="text-[10px]">Duplicado</Badge>
+                  <Badge variant="destructive" className="text-[10px]">Duplicado no PDF</Badge>
+                )}
+                {dupMap.has(current.id) && (
+                  <Badge
+                    className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 text-[10px]"
+                    title={`Já existe ${docTipoLabel(dupMap.get(current.id)!.tipo ?? "")} de ${dupMap.get(current.id)!.competencia_label} para ${dupMap.get(current.id)!.colaborador_nome}`}
+                  >
+                    Já existe documento desta competência
+                  </Badge>
+                )}
+                {decisoesDup[current.id] === "skip" && (
+                  <Badge variant="outline" className="text-[10px]">Será ignorada</Badge>
+                )}
+                {decisoesDup[current.id] === "replace" && (
+                  <Badge variant="outline" className="text-[10px]">Vai substituir o existente</Badge>
                 )}
                 <Badge variant="outline" className="text-[10px] whitespace-nowrap">
                   {docTipoLabel(current.tipo_detectado ?? (batchInfo.data as any)?.tipo)}
