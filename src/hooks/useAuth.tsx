@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isAlreadyRegisteredSignup } from "@/lib/authSignupSignals";
+import { logAudit } from "@/lib/audit";
 
 interface AuthContextType {
   session: Session | null;
