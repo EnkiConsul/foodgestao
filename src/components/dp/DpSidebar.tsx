@@ -147,7 +147,7 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
             <SidebarMenu className="gap-1">
               {items.map((it) => {
                 if (it.kind === "link") {
-                  return <DpLink key={it.url} item={it} collapsed={collapsed} />;
+                  return <DpLink key={it.url} item={it} />;
                 }
                 return (
                   <DpGroup
