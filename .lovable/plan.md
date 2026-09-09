@@ -51,7 +51,8 @@ Revisão do portal (`/dp/meu`) para priorizar o que a empresa envia, deixar tít
 
 - Nomes de pessoas passam a ser exibidos em "Primeira Letra Maiúscula", com preposições em minúsculas, reaproveitando a função de nomes próprios já usada no financeiro. Aplica-se à saudação, listas, aniversariantes, rotina da loja e cabeçalhos do portal. Os dados gravados não mudam.
 
-## 10. Pente fino nas demais telas do portal
+
+
 
 
 ## 11. Card "Próxima folga" com qualquer folga
