@@ -852,8 +852,12 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
           totalItems={confirmDup.allIds.length}
           onSkip={() => {
             const ids = confirmDup.nonDupIds;
+            const dupIds = confirmDup.collisions.map((c) => c.item_id);
             setConfirmDup(null);
-            runApprove(ids, "skip");
+            void (async () => {
+              await ignorarDuplicados(dupIds);
+              await runApprove(ids, "skip", dupIds);
+            })();
           }}
           onReplace={() => {
             const ids = confirmDup.allIds;
