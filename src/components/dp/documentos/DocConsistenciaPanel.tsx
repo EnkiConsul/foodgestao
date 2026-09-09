@@ -200,13 +200,14 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       for (let c = inicio; c <= fim; c = addMeses(c, 1)) competencias.push(c);
 
       const [colabsRes, docsRes, unidadesRes, gozosRes, periodosRes] = await Promise.all([
+        // Inclui desligados: quem saiu no meio do mês continua devendo o
+        // documento daquela competência (a elegibilidade é por competência).
         supabase
           .from("dp_colaboradores")
           .select(
-            "id, nome, regime, possui_folha_ponto, optante_adiantamento, unidade_id, data_admissao, data_desligamento, vinculo_label, socio_remuneracao",
+            "id, nome, ativo, regime, possui_folha_ponto, optante_adiantamento, unidade_id, data_admissao, data_desligamento, vinculo_label, socio_remuneracao",
           )
-          .eq("company_id", selectedCompanyId!)
-          .eq("ativo", true),
+          .eq("company_id", selectedCompanyId!),
         supabase
           .from("dp_documentos")
           .select("colaborador_id, tipo, referencia_data")
