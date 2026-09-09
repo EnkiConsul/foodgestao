@@ -550,32 +550,9 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
 
       {!ocrInProgress && !isSaving && (
       <>
-      {/* Navigation bar */}
-      <div className="flex items-center justify-between gap-2 px-2 sm:px-3 py-2 border-b bg-muted/20">
-        <Button
-          size="sm" variant="outline"
-          className="h-10 px-2 sm:px-3 shrink-0"
-          disabled={currentIdx <= 0}
-          onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
-          aria-label="Página anterior"
-        >
-          <ChevronLeft className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Anterior</span>
-        </Button>
-        <div className="text-sm text-muted-foreground text-center truncate">
-          {rows.length > 0
-            ? <><span className="hidden sm:inline">Página </span><b className="text-foreground">{currentIdx + 1}</b><span className="sm:hidden"> / </span><span className="hidden sm:inline"> de </span>{rows.length}</>
-            : "—"}
-        </div>
-        <Button
-          size="sm" variant="outline"
-          className="h-10 px-2 sm:px-3 shrink-0"
-          disabled={currentIdx >= rows.length - 1}
-          onClick={() => setCurrentIdx((i) => Math.min(rows.length - 1, i + 1))}
-          aria-label="Próxima página"
-        >
-          <span className="hidden sm:inline">Próximo</span> <ChevronRight className="h-4 w-4 sm:ml-1" />
-        </Button>
-      </div>
+      {/* Navigation bar (topo) */}
+      {pageNav("border-b")}
+
 
       {/* Card com preview */}
       <div className="p-2 sm:p-3">
