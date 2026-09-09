@@ -1,4 +1,4 @@
-# Pendência individual de contracheque + ordenação por atraso
+# Pendência individual de documentos + ordenação por atraso
 
 ## 1. Por que a Karine não aparece no Início
 
@@ -6,11 +6,10 @@ Verificado no código: a pendência de contracheque do painel de Início é gera
 
 ## 2. O que muda
 
-**Contracheque passa a ser conferido pessoa a pessoa** no painel de Início, com a mesma regra já usada na Conferência de Documentos (quem estava no quadro na competência, incluindo desligados no meio do mês, e apenas regimes assalariados):
+**Todos os documentos do colaborador passam a ser conferidos pessoa a pessoa** no painel de Início — contracheque, adiantamento e folha de ponto — já que podem ser enviados em lote ou individualmente. Vale a mesma regra da Conferência de Documentos (quem estava no quadro na competência, incluindo desligados no meio do mês; contracheque só para regimes assalariados; adiantamento só para quem é optante; folha de ponto só em unidade com relógio e para quem tem folha de ponto marcada):
 
-- Falta para todos da unidade no mês → uma pendência única "Contracheque não importado — <unidade> — <mês>" (como hoje).
-- Falta só para algumas pessoas → uma pendência por pessoa: "Contracheque não importado" com o nome do colaborador e a unidade, com selo de desligamento quando for o caso.
-- Adiantamento e folha de ponto continuam por unidade (são documentos do lote da unidade, não individuais).
+- Falta para todos os elegíveis da unidade no mês → uma pendência única "… não importado — <unidade> — <mês>" (como hoje).
+- Falta só para algumas pessoas → uma pendência por pessoa, com nome do colaborador, unidade e selo de desligamento quando for o caso.
 
 **Ordenação por atraso (mais antigo primeiro)** em todos os lugares:
 
