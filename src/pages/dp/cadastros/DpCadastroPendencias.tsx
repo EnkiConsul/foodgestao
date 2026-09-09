@@ -7,14 +7,19 @@ import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   useDpPendenciasConfig,
   DP_PENDENCIAS_CONFIG_DEFAULT,
   type DpPendenciasConfig,
 } from "@/hooks/useDpPendenciasConfig";
 
+type PrazoKey = {
+  [K in keyof DpPendenciasConfig]: DpPendenciasConfig[K] extends number ? K : never;
+}[keyof DpPendenciasConfig];
+
 const PRAZO_FIELDS: Array<{
-  key: keyof DpPendenciasConfig;
+  key: PrazoKey;
   label: string;
   helper: string;
   min: number;
@@ -96,6 +101,23 @@ export default function DpCadastroPendencias() {
               <p className="text-[11px] text-muted-foreground">{f.helper}</p>
             </div>
           ))}
+        </div>
+
+        <div className="mt-6 flex items-start justify-between gap-4 rounded-md border p-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Exigir contracheque no mês do desligamento</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Por padrão desligado: no mês da saída o pagamento vem no acerto da rescisão, então o
+              sistema cobra o TRCT/demonstrativo rescisório e não o contracheque. Ligue se a empresa
+              também emite recibo de pagamento dos dias trabalhados nesse mês.
+            </p>
+          </div>
+          <Switch
+            checked={form.exigir_contracheque_mes_desligamento}
+            onCheckedChange={(v) =>
+              setForm({ ...form, exigir_contracheque_mes_desligamento: v })
+            }
+          />
         </div>
 
         <div className="mt-6 flex justify-end">

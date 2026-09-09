@@ -16,6 +16,8 @@ export type DpPendenciasConfig = {
   alerta_epi_dias: number;
   alerta_treinamento_dias: number;
   dias_carencia_portal: number;
+  /** Empresa emite contracheque separado também no mês do desligamento. */
+  exigir_contracheque_mes_desligamento: boolean;
 };
 
 export const DP_PENDENCIAS_CONFIG_DEFAULT: DpPendenciasConfig = {
@@ -31,6 +33,7 @@ export const DP_PENDENCIAS_CONFIG_DEFAULT: DpPendenciasConfig = {
   alerta_epi_dias: 15,
   alerta_treinamento_dias: 30,
   dias_carencia_portal: 30,
+  exigir_contracheque_mes_desligamento: false,
 };
 
 
@@ -45,7 +48,7 @@ export function useDpPendenciasConfig() {
       const { data, error } = await supabase
         .from("dp_pendencias_config")
         .select(
-          "alerta_solicitacao_dias, alerta_troca_dias, alerta_ocorrencia_horas, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, alerta_ferias_dias, alerta_aso_dias, alerta_epi_dias, alerta_treinamento_dias, dias_carencia_portal",
+          "alerta_solicitacao_dias, alerta_troca_dias, alerta_ocorrencia_horas, alerta_contracheque_dia_mes, alerta_adiantamento_offset, alerta_folha_ponto_dia_mes, alerta_negociacao_dias, alerta_ferias_dias, alerta_aso_dias, alerta_epi_dias, alerta_treinamento_dias, dias_carencia_portal, exigir_contracheque_mes_desligamento",
         )
         .eq("company_id", selectedCompanyId!)
         .maybeSingle();
@@ -70,6 +73,9 @@ export function useDpPendenciasConfig() {
           (data as any).alerta_treinamento_dias ?? DP_PENDENCIAS_CONFIG_DEFAULT.alerta_treinamento_dias,
         dias_carencia_portal:
           (data as any).dias_carencia_portal ?? DP_PENDENCIAS_CONFIG_DEFAULT.dias_carencia_portal,
+        exigir_contracheque_mes_desligamento:
+          (data as any).exigir_contracheque_mes_desligamento ??
+          DP_PENDENCIAS_CONFIG_DEFAULT.exigir_contracheque_mes_desligamento,
       };
     },
   });

@@ -4787,6 +4787,7 @@ export type Database = {
           domingos_por_mes: number
           domingos_por_mes_mulher: number
           exige_validacao_menor: boolean
+          exigir_contracheque_mes_desligamento: boolean
           ferias_adiantamento_13: string
           ferias_aviso_antecedencia_dias: number
           ferias_controle_inicio: string | null
@@ -4849,6 +4850,7 @@ export type Database = {
           domingos_por_mes?: number
           domingos_por_mes_mulher?: number
           exige_validacao_menor?: boolean
+          exigir_contracheque_mes_desligamento?: boolean
           ferias_adiantamento_13?: string
           ferias_aviso_antecedencia_dias?: number
           ferias_controle_inicio?: string | null
@@ -4911,6 +4913,7 @@ export type Database = {
           domingos_por_mes?: number
           domingos_por_mes_mulher?: number
           exige_validacao_menor?: boolean
+          exigir_contracheque_mes_desligamento?: boolean
           ferias_adiantamento_13?: string
           ferias_aviso_antecedencia_dias?: number
           ferias_controle_inicio?: string | null
@@ -8999,6 +9002,7 @@ export type Database = {
           company_id: string
           created_at: string
           dias_carencia_portal: number
+          exigir_contracheque_mes_desligamento: boolean
           updated_at: string
         }
         Insert: {
@@ -9016,6 +9020,7 @@ export type Database = {
           company_id: string
           created_at?: string
           dias_carencia_portal?: number
+          exigir_contracheque_mes_desligamento?: boolean
           updated_at?: string
         }
         Update: {
@@ -9033,6 +9038,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           dias_carencia_portal?: number
+          exigir_contracheque_mes_desligamento?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -13881,6 +13887,7 @@ export type Database = {
           domingos_por_mes: number
           domingos_por_mes_mulher: number
           exige_validacao_menor: boolean
+          exigir_contracheque_mes_desligamento: boolean
           ferias_adiantamento_13: string
           ferias_aviso_antecedencia_dias: number
           ferias_controle_inicio: string | null

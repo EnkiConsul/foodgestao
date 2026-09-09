@@ -114,7 +114,10 @@ export function competenciaLabel(comp: Competencia): string {
 
 export const REGIMES_ASSALARIADOS = new Set(["clt", "intermitente", "temporario", "aprendiz"]);
 
-export type DocTipoColaborador = "contracheque" | "adiantamento" | "ponto";
+export type DocTipoColaborador = "contracheque" | "adiantamento" | "ponto" | "rescisao";
+
+/** Tipos gravados em dp_documentos que satisfazem a pendência de rescisão. */
+export const DOC_TIPOS_RESCISAO = ["trct", "demonstrativo_rescisorio"] as const;
 
 export type ColabElegibilidade = {
   id: string;
@@ -132,18 +135,58 @@ export function isSocio(c: ColabElegibilidade): boolean {
   return String(c.vinculo_label ?? "").toLowerCase().includes("sóci");
 }
 
+/** Competência do desligamento ("YYYY-MM"), quando houver data. */
+export function competenciaDoDesligamento(c: ColabElegibilidade): Competencia | null {
+  const d = String(c.data_desligamento ?? "").slice(0, 10);
+  return d ? competenciaDe(d) : null;
+}
+
+/** Foi desligado dentro da competência informada. */
+export function desligadoNaCompetencia(c: ColabElegibilidade, comp: Competencia): boolean {
+  return competenciaDoDesligamento(c) === comp;
+}
+
+export type ElegibilidadeOpts = {
+  unidadeTemRelogio?: boolean;
+  /** Dia do adiantamento da unidade (quando ela paga adiantamento). */
+  diaAdiantamento?: number | null;
+  /** Empresa que emite contracheque separado também no mês do desligamento. */
+  exigirContrachequeMesDesligamento?: boolean;
+};
+
 /**
  * O colaborador deve ter este documento nesta competência?
- * Não considera datas de admissão/desligamento — combine com `ativoNaCompetencia`.
+ * Não considera admissão/desligamento fora da competência — combine com
+ * `ativoNaCompetencia`.
+ *
+ * Mês do desligamento: por padrão o pagamento vem no acerto da rescisão, então
+ * o contracheque não é cobrado e a rescisão (TRCT/demonstrativo) passa a ser.
  */
 export function elegivelDocumento(
   tipo: DocTipoColaborador,
   c: ColabElegibilidade,
-  opts: { unidadeTemRelogio?: boolean } = {},
+  opts: ElegibilidadeOpts & { competencia?: Competencia | null } = {},
 ): boolean {
-  if (tipo === "contracheque") {
-    return REGIMES_ASSALARIADOS.has(String(c.regime ?? "").toLowerCase()) && !isSocio(c);
+  const comp = opts.competencia ?? null;
+  const desligadoNoMes = comp ? desligadoNaCompetencia(c, comp) : false;
+  const assalariado = REGIMES_ASSALARIADOS.has(String(c.regime ?? "").toLowerCase()) && !isSocio(c);
+
+  if (tipo === "rescisao") {
+    return assalariado && desligadoNoMes;
   }
-  if (tipo === "adiantamento") return c.optante_adiantamento === true;
+  if (tipo === "contracheque") {
+    if (desligadoNoMes && !opts.exigirContrachequeMesDesligamento) return false;
+    return assalariado;
+  }
+  if (tipo === "adiantamento") {
+    if (c.optante_adiantamento !== true) return false;
+    // Desligado antes do dia do adiantamento não recebe adiantamento no mês.
+    const dia = opts.diaAdiantamento ?? null;
+    const desligamento = String(c.data_desligamento ?? "").slice(0, 10);
+    if (desligadoNoMes && dia && desligamento) {
+      return Number(desligamento.slice(8, 10)) >= dia;
+    }
+    return true;
+  }
   return opts.unidadeTemRelogio === true && c.possui_folha_ponto !== false;
 }

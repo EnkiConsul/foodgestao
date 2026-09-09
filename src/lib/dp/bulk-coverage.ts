@@ -23,6 +23,8 @@ export interface CoverageArgs {
   /** unidades identificadas no lote (CNPJ, colaboradores vinculados ou vínculo manual) */
   unidadeIds?: string[] | null;
   tipo?: string | null;
+  /** Empresa que emite contracheque separado também no mês do desligamento. */
+  exigirContrachequeMesDesligamento?: boolean;
 }
 
 export interface CoverageResult {
@@ -101,8 +103,20 @@ export function resolveUnidadesLote({
   return [...porColab];
 }
 
+/** Desligado dentro da competência "YYYY-MM". */
+export function desligadoNaCompetencia(
+  c: CoverageColaborador,
+  competencia: string | null,
+): boolean {
+  if (!competencia) return false;
+  const d = String(c.data_desligamento ?? "").slice(0, 7);
+  return !!d && d === competencia;
+}
+
+const TIPOS_RESCISAO = new Set(["trct", "demonstrativo_rescisorio", "rescisao"]);
+
 export function computeCoverage({
-  colaboradores, vinculados, competencia, unidadeIds, tipo,
+  colaboradores, vinculados, competencia, unidadeIds, tipo, exigirContrachequeMesDesligamento,
 }: CoverageArgs): CoverageResult {
   const escopo = (unidadeIds ?? []).filter(Boolean);
   if (escopo.length === 0) {
@@ -113,6 +127,16 @@ export function computeCoverage({
     if (!c.unidade_id || !escopoSet.has(c.unidade_id)) return false;
     if (tipo === "ponto" && c.possui_folha_ponto === false) return false;
     if (tipo === "adiantamento" && c.optante_adiantamento !== true) return false;
+    // Mês do desligamento: o pagamento vem no acerto da rescisão, não no contracheque.
+    if (
+      tipo === "contracheque" &&
+      !exigirContrachequeMesDesligamento &&
+      desligadoNaCompetencia(c, competencia)
+    ) {
+      return false;
+    }
+    // Documentos de rescisão só são esperados de quem foi desligado na competência.
+    if (tipo && TIPOS_RESCISAO.has(tipo) && !desligadoNaCompetencia(c, competencia)) return false;
     return ativoNaCompetencia(c, competencia);
   });
   const faltantes = esperados
