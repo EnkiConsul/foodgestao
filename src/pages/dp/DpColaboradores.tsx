@@ -278,9 +278,13 @@ export default function DpColaboradores() {
   }, [list.data, pessoasApoio.data, search, unidadeFilter, cargoFilter, statusFilter]);
 
   /**
-   * Atalho de outras telas (ex.: Rotina): /dp/colaboradores?editar=<id> abre o
-   * cadastro da pessoa direto, sem o gestor precisar procurar na lista.
+   * Atalho de outras telas (ex.: Rotina, Pendências):
+   * /dp/colaboradores?editar=<id>&aba=documentos abre o cadastro da pessoa já na
+   * aba onde a pendência é realmente resolvida.
    */
+  const ABAS_CADASTRO: AbaCadastro[] = [
+    "dados", "acesso", "desligamento", "jornada", "remuneracao", "dependentes", "documentos",
+  ];
   const [params, setParams] = useSearchParams();
   const abertoPorLink = useRef(false);
   useEffect(() => {
@@ -289,7 +293,8 @@ export default function DpColaboradores() {
     const alvo = (list.data ?? []).find((c) => c.id === id);
     if (!alvo) return;
     abertoPorLink.current = true;
-    abrirCadastro(alvo, "dados");
+    const abaParam = params.get("aba") as AbaCadastro | null;
+    abrirCadastro(alvo, abaParam && ABAS_CADASTRO.includes(abaParam) ? abaParam : "dados");
     const next = new URLSearchParams(params);
     next.delete("editar");
     next.delete("aba");
