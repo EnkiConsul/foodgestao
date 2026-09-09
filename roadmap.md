@@ -28,3 +28,6 @@
 - [x] Fase 8 — revisão final de consistência (tabelas padronizadas, sem transbordo em 360/768/1280)
 - [x] Fase 9 — validação visual das telas novas (1366x768 e 360 px, 10 rotas, sem overflow, menu Colunas e diálogos verificados)
 - [x] Fase 10 — regressão final (typecheck ok, 1147 verificações automáticas ok, checagem de segurança sem novos avisos)
+
+## Importação de documentos
+- [x] Corrigir cadastro de colaborador pela conferência e reaproveitar nome, CPF e unidade lidos

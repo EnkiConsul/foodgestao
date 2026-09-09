@@ -501,7 +501,9 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
                       </SelectContent>
                     </Select>
                     <NovoColaboradorInlineDialog
+                      defaultNome={current.matched_nome ?? ""}
                       defaultCpf={current.matched_cpf ?? ""}
+                      defaultUnidadeId={current.detected_unidade_id ?? batchInfo.data?.unidade_id ?? null}
                       onCreated={(id) => setColab.mutate({ id: current.id, colaborador_id: id })}
                     />
                   </div>
