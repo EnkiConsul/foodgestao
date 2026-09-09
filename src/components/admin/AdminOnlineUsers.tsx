@@ -52,7 +52,9 @@ function groupByUser(entries: PresenceEntry[]): OnlineUser[] {
 }
 
 export function AdminOnlineUsers() {
-  const { entries, connected } = useOnlineUsers();
+  const { entries, connected: channelConnected } = useOnlineUsers();
+  // já recebendo presenças conta como conectado
+  const connected = channelConnected || entries.length > 0;
   const { realName } = useUserNames();
   const [search, setSearch] = useState("");
   const [, setTick] = useState(0);
