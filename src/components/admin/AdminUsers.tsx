@@ -109,6 +109,7 @@ export function AdminUsers() {
       (u.full_name?.toLowerCase().includes(term) ?? false) ||
       (u.document?.toLowerCase().includes(term) ?? false) ||
       (u.phone?.toLowerCase().includes(term) ?? false) ||
+      (u.auth?.phone?.toLowerCase().includes(term) ?? false) ||
       (u.auth?.email?.toLowerCase().includes(term) ?? false)
     );
   });
@@ -132,6 +133,7 @@ export function AdminUsers() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>E-mail</TableHead>
+              <TableHead>WhatsApp</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Plano / Isenção</TableHead>
               <TableHead>Onboarding</TableHead>
@@ -144,14 +146,14 @@ export function AdminUsers() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 8 }).map((_, j) => (
+                  {Array.from({ length: 9 }).map((_, j) => (
                     <TableCell key={j}><Skeleton className="h-4 w-24" /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   Nenhum usuário encontrado
                 </TableCell>
               </TableRow>
@@ -163,6 +165,7 @@ export function AdminUsers() {
                   <TableRow key={user.id} className={!user.is_active ? "opacity-60" : ""}>
                     <TableCell className="font-medium">{user.full_name || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{user.auth?.email ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.phone || user.auth?.phone || "—"}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">{user.profile_type}</Badge>
                     </TableCell>
@@ -249,6 +252,7 @@ export function AdminUsers() {
                   <div className="min-w-0">
                     <p className="font-medium truncate">{user.full_name || "—"}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{user.auth?.email ?? "—"}</p>
+                    <p className="text-[11px] text-muted-foreground">{user.phone || user.auth?.phone || "—"}</p>
                     <p className="text-[11px] text-muted-foreground">{formatDate(user.created_at, "dd/MM/yyyy")}</p>
                   </div>
                   <DropdownMenu>
