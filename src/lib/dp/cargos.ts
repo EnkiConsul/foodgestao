@@ -4,6 +4,20 @@
 // porta de entrada; o cargo é criado/completado a partir dele.
 // ------------------------------------------------------------------
 
+/**
+ * Cargo de sócio: quando escolhido, o vínculo padrão do cadastro deve ser
+ * "Socio" (sugestão; a escolha manual do usuário sempre prevalece).
+ */
+export function cargoSugereVinculoSocio(nomeCargo?: string | null): boolean {
+  const n = String(nomeCargo ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+  if (!n) return false;
+  return /(^|[^a-z])socio(a|s|as)?([^a-z]|$)/.test(n);
+}
+
 export interface CargoRef {
   id: string;
   nome: string;
