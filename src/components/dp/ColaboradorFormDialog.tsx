@@ -99,7 +99,7 @@ import {
   gruposDivergentesClassificados, gruposAlteracao, quemPerdeBeneficio,
   type GrupoPadrao, type PadraoAlcance, type PadraoEscopo,
 } from "@/lib/dp/beneficiosPadrao";
-import { compararRiscoCargo, textoRisco, type DivergenciaRisco } from "@/lib/dp/cargos";
+import { cargoSugereVinculoSocio, compararRiscoCargo, textoRisco, type DivergenciaRisco } from "@/lib/dp/cargos";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -311,6 +311,8 @@ export function ColaboradorFormDialog({
   >(null);
   /** Regras de cargo/salário já resolvidas para este salvamento. */
   const cargoResolvido = useRef(false);
+  /** Vínculo escolhido à mão: bloqueia a sugestão automática pelo cargo. */
+  const vinculoTocado = useRef(false);
   // Ciência do risco jurídico do vínculo sem registro, válida para este salvamento.
   const cienciaConfirmada = useRef<{ justificativa: string } | null>(null);
 
@@ -544,6 +546,7 @@ export function ColaboradorFormDialog({
       possui_folha_ponto: false,
       optante_adiantamento: false,
     });
+    vinculoTocado.current = false;
     setRem({ ...remuneracaoBlank, forma_pagamento: formaPagamentoPadrao("clt") });
     setCriadoId(null);
   }, [open, pessoaApoioInicial, colaborador?.id]);
@@ -683,6 +686,8 @@ export function ColaboradorFormDialog({
       possui_folha_ponto: c.possui_folha_ponto ?? false,
       optante_adiantamento: c.optante_adiantamento ?? false,
     });
+    // Cadastro existente: o vínculo já gravado não é sobrescrito pelo cargo.
+    vinculoTocado.current = true;
     setSocioRem(((c as any).socio_remuneracao as SocioRemuneracao) ?? "pro_labore");
     setResetKey((k) => k + 1);
   }, [open, colaborador, atribuicoes]);
@@ -788,8 +793,23 @@ export function ColaboradorFormDialog({
 
   /** Vincula o cargo criado/escolhido pelos diálogos auxiliares. */
   const selecionarCargo = (cargo: DpCargo) => {
-    setForm((f) => ({ ...f, cargo_id: cargo.id }));
+    setForm((f) => ({ ...f, cargo_id: cargo.id, ...sugestaoVinculoCargo(cargo.nome) }));
     cargoResolvido.current = true;
+  };
+
+  /**
+   * Cargo de sócio sugere o vínculo "Socio". É apenas padrão: se o usuário já
+   * escolheu o vínculo à mão, nada é sobrescrito.
+   */
+  const sugestaoVinculoCargo = (nomeCargo?: string | null) =>
+    !vinculoTocado.current && cargoSugereVinculoSocio(nomeCargo)
+      ? { tipo_vinculo: "Socio" }
+      : {};
+
+  /** Aplica o cargo escolhido no seletor, com a sugestão de vínculo. */
+  const escolherCargoId = (id: string) => {
+    const nomeCargo = (cargos.data ?? []).find((c) => c.id === id)?.nome;
+    setForm((f) => ({ ...f, cargo_id: id, ...sugestaoVinculoCargo(nomeCargo) }));
   };
 
 
@@ -1717,7 +1737,7 @@ export function ColaboradorFormDialog({
           <div className="space-y-2">
             <Label>Cargo *</Label>
             <div className="flex gap-2">
-              <Select value={form.cargo_id} onValueChange={(v) => setForm({ ...form, cargo_id: v })}>
+              <Select value={form.cargo_id} onValueChange={escolherCargoId}>
                 <SelectTrigger {...marca("cargo_id", "flex-1")}><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                 <SelectContent>
                   {(cargos.data ?? []).map((c) => {
@@ -1874,7 +1894,7 @@ export function ColaboradorFormDialog({
             <Label>Tipo de Vínculo</Label>
             <Select
               value={form.tipo_vinculo}
-              onValueChange={(v) => setForm({ ...form, tipo_vinculo: v })}
+              onValueChange={(v) => { vinculoTocado.current = true; setForm({ ...form, tipo_vinculo: v }); }}
             >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>

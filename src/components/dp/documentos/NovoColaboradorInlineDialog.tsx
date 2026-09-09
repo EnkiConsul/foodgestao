@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toProperName } from "@/lib/text/properName";
+import { cargoSugereVinculoSocio } from "@/lib/dp/cargos";
 
 export interface NovoColaboradorInlineDialogProps {
   defaultNome?: string;
@@ -30,6 +31,7 @@ export function NovoColaboradorInlineDialog({
   trigger,
 }: NovoColaboradorInlineDialogProps) {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
   const [choiceOpen, setChoiceOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -39,6 +41,8 @@ export function NovoColaboradorInlineDialog({
   const [unidade, setUnidade] = useState<string>(defaultUnidadeId ?? "");
   const [vinculo, setVinculo] = useState("CLT");
   const [socioRemuneracao, setSocioRemuneracao] = useState("pro_labore");
+  // Só sugere vínculo pelo cargo enquanto o usuário não escolher o vínculo à mão.
+  const [vinculoTocado, setVinculoTocado] = useState(false);
   const [saving, setSaving] = useState(false);
   const [existing, setExisting] = useState<{ id: string; nome: string; ativo: boolean } | null>(null);
 
@@ -48,7 +52,18 @@ export function NovoColaboradorInlineDialog({
     setCpf(defaultCpf.replace(/\D/g, ""));
     setUnidade(defaultUnidadeId ?? "");
     setExisting(null);
+    setVinculoTocado(false);
   }, [defaultCpf, defaultNome, defaultUnidadeId, formOpen]);
+
+  /** Cargo de sócio sugere o vínculo Sócio com pró-labore. */
+  const escolherCargo = (id: string) => {
+    setCargo(id);
+    const nomeCargo = (cargos.data ?? []).find((c: any) => c.id === id)?.nome;
+    if (!vinculoTocado && cargoSugereVinculoSocio(nomeCargo)) {
+      setVinculo("Socio");
+      setSocioRemuneracao("pro_labore");
+    }
+  };
 
   const cargos = useQuery({
     queryKey: ["dp_cargos_min", selectedCompanyId],
@@ -102,6 +117,8 @@ export function NovoColaboradorInlineDialog({
         .select("id, nome")
         .single();
       if (error) throw error;
+      // A lista da tela precisa conter o novo cadastro antes de vincular a página.
+      await qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
       toast.success("Colaborador cadastrado");
       onCreated?.(data.id as string, data.nome as string);
       setFormOpen(false);
@@ -159,7 +176,7 @@ export function NovoColaboradorInlineDialog({
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div className="space-y-1">
               <Label>Cargo</Label>
-              <Select value={cargo} onValueChange={setCargo}>
+              <Select value={cargo} onValueChange={escolherCargo}>
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent>
                   {(cargos.data ?? []).map((c: any) => (
@@ -182,7 +199,7 @@ export function NovoColaboradorInlineDialog({
           </div>
           <div className="space-y-1">
             <Label>Vínculo</Label>
-            <Select value={vinculo} onValueChange={setVinculo}>
+            <Select value={vinculo} onValueChange={(v) => { setVinculoTocado(true); setVinculo(v); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="CLT">CLT efetivo</SelectItem><SelectItem value="Intermitente">CLT intermitente</SelectItem>

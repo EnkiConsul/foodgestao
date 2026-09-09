@@ -30,6 +30,7 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { cn } from "@/lib/utils";
 import { DP_DOC_GRUPOS, docTipoLabel, assinaturaDocumento } from "@/lib/dp/documentoTipos";
 import { extrairCpfValido, extrairNomePessoa, isCpfValido, pareceRazaoSocial } from "@/lib/dp/doc-pessoa";
+import { tipoCanonicoPorVinculo } from "@/lib/dp/documento-tipo-por-vinculo";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -259,12 +260,25 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
 
   const setColab = useMutation({
     mutationFn: async ({ id, colaborador_id }: { id: string; colaborador_id: string | null }) => {
-      const { error } = await supabase.from("dp_bulk_import_items" as any).update({
+      const patch: Record<string, unknown> = {
         matched_colaborador_id: colaborador_id,
         manual_override: true,
         confidence: colaborador_id ? 1.0 : 0,
         status: "pending",
-      }).eq("id", id);
+      };
+      // Sócio com pró-labore não recebe contracheque: a natureza segue o vínculo.
+      if (colaborador_id) {
+        const colab = colaboradores.find((c: any) => c.id === colaborador_id);
+        const row = (items.data ?? []).find((r: any) => r.id === id) as any;
+        const tipoAtual = row?.tipo_detectado ?? (batchInfo.data as any)?.tipo;
+        const tipoNovo = tipoAtual ? tipoCanonicoPorVinculo(tipoAtual, colab as any) : null;
+        if (tipoNovo && tipoNovo !== row?.tipo_detectado) {
+          patch.tipo_detectado = tipoNovo;
+          patch.tipo_confidence = 1;
+          patch.tipo_origem = "vinculo";
+        }
+      }
+      const { error } = await supabase.from("dp_bulk_import_items" as any).update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
