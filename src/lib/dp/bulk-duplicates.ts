@@ -56,6 +56,8 @@ export async function detectDuplicates(params: {
       item_id: i.item_id,
       colaborador_nome: i.colaborador_nome,
       competencia_label: formatRef(i.referencia_data!),
+      tipo: i.tipo || tipo,
+      referencia_data: i.referencia_data,
     }));
 }
 
