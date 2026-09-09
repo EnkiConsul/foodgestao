@@ -166,7 +166,8 @@ export default function DpCadastroPendenciasLista() {
             )}
             <div className="grid gap-2 lg:grid-cols-2">
               {sub.itens.map((p) => {
-                const adiada = !filtrarAbertas([p], prefs.pendencias_adiadas).length;
+                const adiada = !filtrarAbertas([p], adiamentos).length;
+                const decisao = decisaoDe.get(p.id);
                 return (
                   <div
                     key={p.id}
@@ -184,24 +185,18 @@ export default function DpCadastroPendenciasLista() {
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
                         <span>{p.tipo}</span>
                         {p.unidadeNome && <span>Unidade: {p.unidadeNome}</span>}
-                        {adiada && (
-                          <span className="text-amber-700 font-medium">Adiada até {new Date(prefs.pendencias_adiadas[p.id]).toLocaleDateString("pt-BR")}</span>
+                        {adiada && adiamentos[p.id] && (
+                          <span className="text-amber-700 font-medium">
+                            Adiada até {new Date(adiamentos[p.id]).toLocaleDateString("pt-BR")}
+                          </span>
+                        )}
+                        {decisao?.acao === "ignorar" && (
+                          <span className="text-muted-foreground font-medium">
+                            Ignorada: {decisao.justificativa}
+                          </span>
                         )}
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <Button asChild size="sm" variant="default" className="h-9 sm:h-7 text-xs">
-                          <Link to={p.url}>
-                            Resolver <ArrowRight className="h-3 w-3 ml-1" />
-                          </Link>
-                        </Button>
-                        {adiada ? (
-                          <Button size="sm" variant="outline" className="h-9 sm:h-7 text-xs" onClick={() => limparAdiamento(p)}>
-                            Remover adiamento
-                          </Button>
-                        ) : (
-                          <AdiarPopover onAdiar={(dias) => adiar(p, dias)} triggerVariant="outline" />
-                        )}
-                      </div>
+                      <PendenciaAcoes pendencia={p} />
                     </div>
                   </div>
                 );
