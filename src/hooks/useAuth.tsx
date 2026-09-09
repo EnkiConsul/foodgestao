@@ -70,10 +70,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      // registra a entrada no sistema na Auditoria (aba Acessos)
+      void logAudit("user_signed_in", "auth", null, { method: "password" });
+    }
     return { error: error as Error | null };
   };
 
   const signOut = async () => {
+    await logAudit("user_signed_out", "auth");
     await supabase.auth.signOut();
     queryClient.clear();
     navigate("/auth", { replace: true });
