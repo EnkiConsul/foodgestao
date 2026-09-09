@@ -2,11 +2,11 @@
 
 Na conferência da folha do Garavelo 07/2026, duas páginas ficaram sem colaborador (são sócios). O atalho "+" para cadastrar ali falhou ao salvar e, além disso, pede tudo do zero mesmo já tendo lido nome e CPF na página.
 
-## 1. Descobrir e corrigir o erro ao salvar
+## 1. Corrigir o erro ao salvar
 
-O motivo exato do erro ainda não está confirmado — o cadastro rápido hoje mostra apenas uma mensagem genérica. Primeiro passo: reproduzir o cadastro pela conferência e capturar a mensagem real do banco, e passar a exibi-la ao usuário em vez de um texto genérico.
+A imagem confirmou a causa exata: o cadastro rápido tenta gravar `created_by`, mas essa coluna não existe em colaboradores. O envio desse campo será removido; a identificação de quem executou a ação continuará pelas regras de acesso já existentes, sem criar uma coluna nova.
 
-Já foram identificados dois problemas certos no mesmo formulário, que serão corrigidos junto:
+Também serão corrigidos dois problemas no mesmo formulário:
 
 - O CPF é gravado exatamente como digitado (com pontos e traço), mas no sistema o CPF é guardado só com números. Isso cria cadastro duplicado invisível e impede o reconhecimento automático da pessoa nas próximas importações. Passa a gravar apenas números.
 - Se a empresa não estiver definida no momento, o salvamento vai ao banco sem empresa e falha. Passa a bloquear com aviso claro.
@@ -30,7 +30,7 @@ A opção de folguista / em teste não aparece aqui: quem tem contracheque ou pr
 
 ## Detalhes técnicos
 
-- `src/components/dp/documentos/NovoColaboradorInlineDialog.tsx`: normalizar CPF (só dígitos) antes do insert, guard de `selectedCompanyId`, checagem prévia em `dp_colaboradores` por `(company_id, cpf)` com opção de vincular, superfície do `error.message`/`code` real (tratando `23505` do índice `dp_colaboradores_company_id_cpf_key`), campos `vinculo_label` e `socio_remuneracao` (constraint aceita `pro_labore` | `somente_lucros`; a trigger `dp_socio_remuneracao_guard` já normaliza), `properName` no nome.
+- `src/components/dp/documentos/NovoColaboradorInlineDialog.tsx`: remover `created_by` do insert, normalizar CPF (só dígitos), guard de `selectedCompanyId`, checagem prévia em `dp_colaboradores` por `(company_id, cpf)` com opção de vincular, superfície do `error.message`/`code` real (tratando `23505` do índice `dp_colaboradores_company_id_cpf_key`), campos `vinculo_label` e `socio_remuneracao` (constraint aceita `pro_labore` | `somente_lucros`; a trigger `dp_socio_remuneracao_guard` já normaliza), `properName` no nome.
 - `src/components/dp/documentos/BulkReviewInline.tsx` e `BulkReviewDialog.tsx`: passar `defaultNome={current.matched_nome ?? extraído do OCR}` e `defaultUnidadeId={current.detected_unidade_id}`; trocar o botão "+" por um seletor de método (componente novo `NovoPessoaDocMetodoDialog.tsx`, espelhando `NovoCadastroMetodoDialog.tsx`, com apenas duas opções); rota de importar ficha continua `/dp/colaboradores/importar-ficha`.
 - Sem migração de banco, sem mudança de RLS, permissões, isolamento por empresa ou regras de classificação de documento.
 - Validar com typecheck, testes de `src/lib/dp` e reprodução autenticada da conferência (Playwright) para confirmar o salvamento.
