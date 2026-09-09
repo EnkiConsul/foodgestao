@@ -40,5 +40,5 @@ Regras mantidas:
 - Novo módulo puro `src/lib/dp/pendencias-documentos.ts` com o cálculo de competências esperadas por unidade, data limite por competência e classificação, para poder ser testado sem banco; o hook passa a consumi-lo.
 - `atrasoDias` negativo já é classificado como `proxima` por `urgenciaDe` em `src/lib/dp/pendencias.ts` — nenhuma mudança em agrupamento, KPI ou tela.
 - Nenhuma alteração de banco, RLS, permissões ou multiempresa.
-- Testes em `src/lib/dp/__tests__`: competência atual antes/na/depois da data limite, meses anteriores em falta gerando uma pendência cada, competência já importada não gerando pendência, unidade sem relógio de ponto e unidade sem adiantamento; typecheck e suíte DP.
+- Testes em `src/lib/dp/__tests__`: competência atual antes/na/depois da data limite, meses anteriores em falta gerando uma pendência cada, início do intervalo respeitando a competência de cadastro da unidade menos 1 mês, competência já importada não gerando pendência, unidade sem relógio de ponto e unidade sem adiantamento; typecheck e suíte DP.
 
