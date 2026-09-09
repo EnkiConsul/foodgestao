@@ -429,12 +429,14 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
               });
             } else if (!esperado && temDoc) {
               // Inconsistência só faz sentido quando o cadastro nega o documento.
+              // Documento de intermitente que trabalhou não é inconsistência.
               const inconsistente =
-                tipo === "ponto" ||
-                tipo === "adiantamento" ||
-                ((tipo === "contracheque" || tipo === "contracheque_13") &&
-                  !assalariado &&
-                  !socioProLabore);
+                !intermitenteSemTrabalho &&
+                (tipo === "ponto" ||
+                  tipo === "adiantamento" ||
+                  ((tipo === "contracheque" || tipo === "contracheque_13") &&
+                    !assalariado &&
+                    !socioProLabore));
               if (inconsistente) {
                 alertas.push({
                   colaborador_id: c.id,
