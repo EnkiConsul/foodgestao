@@ -4,6 +4,40 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { resolveOnboardingStatus } from "@/lib/onboardingStatus";
+import { resolveLandingTarget, PORTAL_PATH } from "@/lib/auth/landing";
+
+/**
+ * Colaborador (sem ser dono/administrador) nunca deve ver o assistente de
+ * cadastro de empresa: o destino dele é sempre o portal do colaborador.
+ */
+function usePortalOnlyUser(userId: string | undefined, enabled: boolean) {
+  const [state, setState] = useState<{ checking: boolean; isPortalOnly: boolean }>({
+    checking: !!userId && enabled,
+    isPortalOnly: false,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!userId || !enabled) {
+      setState({ checking: false, isPortalOnly: false });
+      return;
+    }
+    setState({ checking: true, isPortalOnly: false });
+    resolveLandingTarget(userId)
+      .then((landing) => {
+        if (cancelled) return;
+        setState({ checking: false, isPortalOnly: landing.kind === "portal" });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ checking: false, isPortalOnly: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, enabled]);
+
+  return state;
+}
 
 /**
  * Guarda de rotas privadas.
@@ -66,7 +100,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     };
   }, [setContext, selectedCompanyId, user?.id]);
 
-  if (loading || checkingOnboarding || mfaChecking) {
+  const portal = usePortalOnlyUser(user?.id, onboardingCompleted === false);
+
+  if (loading || checkingOnboarding || mfaChecking || portal.checking) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -82,7 +118,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const redirect = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/auth?redirect=${redirect}`} replace />;
   }
-  if (onboardingCompleted === false) return <Navigate to="/onboarding" replace />;
+  if (onboardingCompleted === false) {
+    if (portal.isPortalOnly) return <Navigate to={PORTAL_PATH} replace />;
+    return <Navigate to="/onboarding" replace />;
+  }
 
   return <>{children}</>;
 }
@@ -128,7 +167,9 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
     };
   }, [setContext, selectedCompanyId, user?.id]);
 
-  if (loading || checking) {
+  const portal = usePortalOnlyUser(user?.id, !!user && !completed);
+
+  if (loading || checking || portal.checking) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -137,5 +178,6 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   }
   if (!user) return <Navigate to="/auth" replace />;
   if (completed) return <Navigate to="/hub" replace />;
+  if (portal.isPortalOnly) return <Navigate to={PORTAL_PATH} replace />;
   return <>{children}</>;
 }
