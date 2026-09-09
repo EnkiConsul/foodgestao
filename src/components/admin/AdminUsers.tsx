@@ -132,6 +132,7 @@ export function AdminUsers() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>E-mail</TableHead>
+              <TableHead>WhatsApp</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Plano / Isenção</TableHead>
               <TableHead>Onboarding</TableHead>
