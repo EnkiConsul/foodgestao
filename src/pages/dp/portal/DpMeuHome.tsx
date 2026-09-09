@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bell, FileText, ClipboardList, Megaphone, User, Calendar,
+  Bell, FileText, ClipboardList, User, Calendar,
   ArrowRight, Inbox, MessageSquare,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
