@@ -843,8 +843,12 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                     </SelectContent>
                   </Select>
                   <NovoColaboradorInlineDialog
-                    defaultNome={current.matched_nome ?? ""}
-                    defaultCpf={current.matched_cpf ?? ""}
+                    defaultNome={current.matched_nome ?? extrairNomePessoa(current.ocr_text ?? "") ?? ""}
+                    defaultCpf={
+                      isCpfValido(current.matched_cpf ?? "")
+                        ? String(current.matched_cpf)
+                        : (extrairCpfValido(current.ocr_text ?? "") ?? "")
+                    }
                     defaultUnidadeId={current.detected_unidade_id ?? batchInfo.data?.unidade_id ?? null}
                     onCreated={(id) => setColab.mutate({ id: current.id, colaborador_id: id })}
                     trigger={
