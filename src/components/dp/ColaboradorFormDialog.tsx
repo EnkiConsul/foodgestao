@@ -2418,7 +2418,9 @@ export function ColaboradorFormDialog({
               O cargo {cargoSelecionado?.nome ?? ""} ainda não tem piso cadastrado
               {patronalUnidade?.nome
                 ? ` no sindicato patronal ${patronalUnidade.nome}`
-                : ` para ${unidadeSelecionada?.nome ?? "esta unidade"}`}
+                : unidadeSelecionada?.nome
+                  ? ` para ${unidadeSelecionada.nome}`
+                  : ""}
               . Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como piso, valendo para
               todas as unidades com esse mesmo patronal?
             </AlertDialogDescription>
