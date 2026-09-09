@@ -657,6 +657,7 @@ export default function DpHistoricoCompleto() {
       sortAtivo={sortKey === COLS[k].sortKey}
       sortDir={sortDir}
       onSort={(dir) => aplicarSort(COLS[k].sortKey, dir)}
+      onResetSort={() => aplicarSort("default", "desc")}
       ativos={colFilters[k]}
       getOpcoes={() => opcoesColuna(k)}
       onToggle={(v) => toggleColValue(k, v)}
