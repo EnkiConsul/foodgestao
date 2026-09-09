@@ -536,6 +536,25 @@ export default function DpHistoricoCompleto() {
   // ---------------- Ordenação ----------------
   const sorted = useMemo(() => {
     const arr = [...filtered];
+    if (sortKey === "default") {
+      arr.sort((a, b) => {
+        // 1) competência decrescente
+        const compA = a.competencia_sort || "";
+        const compB = b.competencia_sort || "";
+        if (compA !== compB) return compB.localeCompare(compA, "pt-BR");
+        // 2) unidade crescente
+        const unidA = a.unidade_nome || "";
+        const unidB = b.unidade_nome || "";
+        if (unidA !== unidB) return unidA.localeCompare(unidB, "pt-BR");
+        // 3) colaborador crescente
+        const nomeA = a.colaborador_nome || "";
+        const nomeB = b.colaborador_nome || "";
+        if (nomeA !== nomeB) return nomeA.localeCompare(nomeB, "pt-BR");
+        // 4) tipo crescente
+        return a.tipo_label.localeCompare(b.tipo_label, "pt-BR");
+      });
+      return arr;
+    }
     const get = (r: UnifiedDoc) => (sortKey === "aceite_label" ? aceiteLabel(r) : ((r as any)[sortKey] ?? ""));
     arr.sort((a, b) => {
       const av = get(a);
