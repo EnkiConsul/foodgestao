@@ -360,7 +360,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       const other = results.filter((x) => !x.ok && x.error !== "duplicate").length;
       const parts = [`${okc} importado(s)`];
       if (rep) parts.push(`${rep} substituído(s)`);
-      if (dup) parts.push(`${dup} duplicado(s) ignorado(s)`);
+      if (dup + ignorados.length) parts.push(`${dup + ignorados.length} duplicado(s) ignorado(s)`);
       if (other) parts.push(`${other} falha(s)`);
       toast.success(parts.join(", "));
       qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
@@ -369,7 +369,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
-      if (okc + rep > 0 && loteConcluido(rows as any[], item_ids)) onConcluido?.();
+      if (okc + rep > 0 && loteConcluido(rows as any[], item_ids, ignorados)) onConcluido?.();
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao aprovar");
     } finally {
