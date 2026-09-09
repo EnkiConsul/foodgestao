@@ -67,7 +67,10 @@ export default function DpCadastroPendenciasLista() {
   }, [data, mostrarAdiadas, prefs.pendencias_adiadas, filtro, busca]);
 
   const opcoes = useMemo(() => opcoesFiltro(data), [data]);
-  const grupos = useMemo(() => agruparPorColaborador(base), [base]);
+  const grupos = useMemo(
+    () => agruparPorColaborador(base, { ordenarPorAtraso: true }),
+    [base],
+  );
 
   const adiar = (p: Pendencia, dias: number) => {
     const until = addDays(new Date(), dias).toISOString();
