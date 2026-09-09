@@ -4,8 +4,9 @@
 
 Verificado: Wanderson é intermitente, desligado em 01/08/2026, e em agosto/2026 não tem nenhum dia de escala, nenhuma convocação e nenhuma marcação de ponto. Mesmo assim o sistema cobra folha de ponto, porque hoje só olha se a unidade tem relógio e se o cadastro está marcado com folha de ponto.
 
-- Para intermitentes, folha de ponto e contracheque passam a ser cobrados só nas competências com trabalho: dia de escala publicada, convocação aceita ou marcação de ponto no mês.
-- Sem nenhum desses registros no mês, não aparece pendência nem alerta de falta — no Início, na Conferência de Documentos e na conferência do lote importado.
+- Para intermitentes, folha de ponto e contracheque deixam de ser cobrados como falta nas competências sem nenhum registro de trabalho (dia de escala publicada, convocação aceita ou marcação de ponto).
+- No lugar da falta, entra uma pendência do tipo **alerta**: "Confirmar se houve trabalho em agosto/2026" — porque o gestor pode ter convocado por fora do sistema. O alerta não conta como documento faltando e traz duas respostas: "Não trabalhou" (encerra o alerta) ou "Trabalhou" (passa a cobrar folha de ponto e contracheque da competência).
+- A resposta do gestor fica registrada com autor e data, e o alerta desaparece das listas depois de respondido.
 - A rescisão continua sendo cobrada na competência do desligamento.
 - CLT, temporário e aprendiz seguem como hoje.
 
@@ -32,14 +33,18 @@ O que muda:
 
 - O bloco "Férias Vencidas Sem Agendamento" deixa de aparecer na tela de importar documentos; o assunto fica só na tela de Férias e nas pendências do Início.
 
-## Frente 4 — Histórico da opção de adiantamento salarial (caso Rosângela)
+## Frente 4 — Opção de adiantamento salarial: data da solicitação e histórico (caso Rosângela)
 
-Hoje o cadastro só tem uma chave liga/desliga ("Opta por Adiantamento Salarial"), sem data nem histórico. Rosângela está com a opção desligada, então a importação de julho acusou documento sem opção habilitada — mesmo tendo havido solicitação naquela competência.
+Hoje o cadastro só tem uma chave liga/desliga, sem data nem histórico. Rosângela está com a opção desligada, então a importação de julho acusou documento sem opção habilitada — mesmo tendo havido solicitação naquela competência.
 
-- Novo histórico da opção no cadastro do colaborador: cada registro com data da solicitação, decisão (aceite ou recusa), início e fim da vigência e observação.
-- Ao ligar ou desligar a chave, o sistema pede a data da solicitação e grava o registro; o histórico fica visível na ficha, com possibilidade de lançar períodos passados.
-- A cobrança de adiantamento passa a olhar o histórico: só gera pendência nas competências em que a opção estava ativa; competências com a opção desligada não geram pendência e não acusam documento indevido.
-- Documento já importado de competência com opção ativa deixa de ser marcado como inconsistente e continua visível no portal do colaborador.
+- Ao ligar ou desligar a opção, o gestor informa obrigatoriamente a **data da solicitação** do colaborador, que pode ser retroativa.
+- Regra da competência de início/fim, comparando a data informada com o dia de pagamento do adiantamento da unidade:
+  - data anterior ao dia do pagamento → vale já na competência da própria data;
+  - data igual ou posterior ao dia do pagamento → vale a partir da competência seguinte.
+- A tela mostra essa conclusão antes de salvar, em texto claro: "Solicitado em 18/07/2026, depois do pagamento (dia 15): passa a valer em agosto/2026". O mesmo vale para o cancelamento.
+- Histórico completo na ficha do colaborador: data da solicitação, se foi ativação ou cancelamento, competência de início/fim do efeito, quem registrou e observação. É possível lançar solicitações passadas para reconstruir o histórico.
+- A cobrança de adiantamento passa a olhar o histórico: só gera pendência nas competências em que a opção estava ativa; competências desligadas não geram pendência nem acusam documento indevido — e documentos já importados de competências ativas param de aparecer como inconsistentes.
+- O colaborador pode solicitar (ou cancelar) o adiantamento pelo próprio portal, quando a unidade oferece adiantamento. O pedido registra a data automaticamente, entra no histórico e gera apenas uma notificação de ciência para o gestor — sem etapa de aprovação.
 - Continuam valendo as regras já existentes: admissão depois do dia do adiantamento e desligamento antes desse dia não geram pendência; sócio, PJ e intermitente ficam fora.
 
 ## Frente 5 — Ignorar (com justificativa) ou adiar pendências de documentos
@@ -55,11 +60,11 @@ Hoje só existe "adiar" na tela inicial, guardado como preferência do próprio 
 ## Detalhes técnicos
 
 
-- `src/lib/dp/pendencias-documentos.ts`: `ElegibilidadeOpts` ganha `temDiasNaCompetencia?: boolean` (intermitente sem dias → `ponto` e `contracheque` = false) e `optanteNaCompetencia?: boolean` consultado no histórico em vez do booleano do cadastro.
-- `src/lib/dp/bulk-coverage.ts`: `CoverageArgs` recebe `comDiasTrabalhados?: Set<string>` e `optantesNaCompetencia?: Set<string>`; `computeCoverage` filtra os esperados por eles.
-- Novo hook `src/hooks/useDpDiasTrabalhados.tsx`: por empresa/competência, conjunto de `colaborador_id` com registro em `dp_escala_itens`, `dp_pontos` ou convocação aceita no intervalo — consultado só para intermitentes.
-- Migração: tabela `dp_adiantamento_opcoes` (`company_id`, `colaborador_id`, `decisao` aceite/recusa, `data_solicitacao`, `vigencia_inicio`, `vigencia_fim`, `observacao`) com GRANTs, RLS por empresa, trigger de `updated_at` e trigger que encerra a vigência anterior ao inserir nova; backfill do estado atual de `optante_adiantamento` como registro aberto. Novo hook `useDpAdiantamentoOpcoes.tsx` e bloco de histórico em `ColaboradorFormDialog.tsx`/`ColaboradorFichaDialog.tsx`.
+- `src/lib/dp/pendencias-documentos.ts`: `ElegibilidadeOpts` ganha `temDiasNaCompetencia?: boolean | null` (`null` = indefinido → gera alerta em vez de falta) e `optanteNaCompetencia?: boolean` derivado do histórico; novo tipo de pendência `intermitente_confirmar_trabalho` que não entra nas contagens de documento faltando.
+- `src/lib/dp/bulk-coverage.ts`: `CoverageArgs` recebe `comDiasTrabalhados?: Set<string>`, `semDiasConfirmado?: Set<string>` e `optantesNaCompetencia?: Set<string>`; intermitente sem confirmação sai dos esperados e vira aviso.
+- Novo hook `src/hooks/useDpDiasTrabalhados.tsx`: por empresa/competência, conjunto de `colaborador_id` com registro em `dp_escala_itens`, `dp_pontos` ou convocação aceita — consultado só para intermitentes. Migração de tabela `dp_intermitente_competencia_confirmacoes` (`company_id`, `colaborador_id`, `competencia`, `trabalhou` boolean, `respondido_por`, timestamps) com GRANTs e RLS por empresa.
+- Migração: tabela `dp_adiantamento_opcoes` (`company_id`, `colaborador_id`, `decisao` ativar/cancelar, `data_solicitacao`, `origem` gestor/portal, `competencia_efeito`, `vigencia_inicio`, `vigencia_fim`, `observacao`, `criado_por`) com GRANTs, RLS por empresa e política que permite ao próprio colaborador inserir seu pedido; trigger de `updated_at` e trigger que encerra a vigência anterior; backfill do `optante_adiantamento` atual. Helper novo `src/lib/dp/adiantamento-opcao.ts` com `competenciaEfeito(dataSolicitacao, diaPagamento)` e `optanteNaCompetencia(historico, competencia)`; hook `useDpAdiantamentoOpcoes.tsx`; UI no `ColaboradorFormDialog.tsx`/ficha e no portal (`src/pages/dp/portal/`), com notificação ao gestor via `dp_notificacoes`.
 - Férias: `src/hooks/useDpPendencias.tsx` passa a buscar períodos com saldo e `fim_aquisitivo <= hoje` (sem filtro de `limite_concessivo`), classificando em a agendar / prazo próximo / vencida via helper novo em `src/lib/dp/ferias-direito.ts`; excluir quem tem gozo agendado, sócio e `controle_externo`.
 - `src/components/dp/documentos/DocConsistenciaPanel.tsx`: remover a consulta de `dp_ferias_periodos`/`dp_ferias_gozos` e o bloco de férias, ajustando as contagens do resumo.
-- Migração: tabela `dp_pendencias_decisoes` (`company_id`, `pendencia_id` texto, `tipo`, `colaborador_id`, `competencia`, `acao` ignorar/adiar, `justificativa`, `adiada_ate`, `criado_por`, timestamps) com GRANTs, RLS por empresa e índice único por empresa+`pendencia_id`. Novo hook `useDpPendenciasDecisoes.tsx`; `filtrarAbertas` em `src/lib/dp/pendencias.ts` passa a considerar as decisões da empresa (mantendo o adiamento pessoal existente); ações reaproveitando `AdiarPopover` em `PendenciasCard.tsx`, `DpCadastroPendenciasLista.tsx` e `DocConsistenciaPanel.tsx`, com diálogo de justificativa; registro via `src/lib/audit.ts`.
-- Testes em `src/lib/dp/__tests__`: Wanderson (agosto/2026 sem dias → sem ponto, com rescisão), intermitente com um dia voltando a exigir folha, classificação de férias (Rosângela/Alessandra/Sara como "a agendar", período com limite estourado como "vencida"), elegibilidade de adiantamento por competência conforme o histórico e filtro de pendências ignoradas/adiadas.
+- Migração: tabela `dp_pendencias_decisoes` (`company_id`, `pendencia_id` texto, `tipo`, `colaborador_id`, `competencia`, `acao` ignorar/adiar, `justificativa`, `adiada_ate`, `criado_por`, timestamps) com GRANTs, RLS por empresa e índice único por empresa+`pendencia_id`. Novo hook `useDpPendenciasDecisoes.tsx`; `filtrarAbertas` em `src/lib/dp/pendencias.ts` passa a considerar as decisões da empresa (mantendo o adiamento pessoal existente); ações reaproveitando `AdiarPopover` em `PendenciasCard.tsx`, `DpCadastroPendenciasLista.tsx` e `DocConsistenciaPanel.tsx`, com `MotivoDialog` para a justificativa; registro via `src/lib/audit.ts`.
+- Testes em `src/lib/dp/__tests__`: Wanderson (agosto/2026 sem registros → alerta, sem falta; respondido "trabalhou" → volta a exigir folha), intermitente com dia trabalhado, classificação de férias (Rosângela/Alessandra/Sara como "a agendar"), `competenciaEfeito` antes/depois do dia de pagamento, elegibilidade de adiantamento por competência e filtro de pendências ignoradas/adiadas.
