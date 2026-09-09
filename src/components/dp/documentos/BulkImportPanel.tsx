@@ -435,7 +435,7 @@ export function BulkImportPanel({
             const isProcessing = b.status === "processing";
             const canDiscard = importadas === 0 && b.status !== "imported" && b.status !== "partially_imported";
             return (
-              <div key={b.id} className="border rounded-md">
+              <div key={b.id} id={`lote-${b.id}`} className="border rounded-md scroll-mt-20">
                 <button
                   type="button"
                   className="w-full flex items-start justify-between gap-2 p-3 text-left hover:bg-muted/50"
