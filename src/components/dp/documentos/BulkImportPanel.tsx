@@ -93,18 +93,6 @@ export function BulkImportPanel({
     el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
-  /**
-   * Depois de enviar, o lote novo entra na lista de forma assíncrona: rolamos
-   * assim que ele aparece na tela, para o usuário ver que já está processando.
-   */
-  useEffect(() => {
-    const id = loteNovoRef.current;
-    if (!id) return;
-    const el = document.getElementById(`lote-${id}`);
-    if (!el) return;
-    loteNovoRef.current = null;
-    rolarAte(el);
-  }, [batches.dataUpdatedAt, rolarAte]);
 
   /** Volta ao estado inicial do formulário quando o lote termina de ser importado. */
   const reiniciarEnvio = useCallback((batchId: string) => {
