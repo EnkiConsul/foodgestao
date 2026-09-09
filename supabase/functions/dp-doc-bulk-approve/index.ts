@@ -9,6 +9,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireCompanyAccess, requireUser } from "../_shared/authz.ts";
 import { z } from "npm:zod@3";
 import { DOC_TIPO_EXIGE_ACEITE, DOC_TIPO_LABEL } from "../_shared/doc-tipos.ts";
+import { tipoCanonicoPorVinculo } from "../_shared/doc-tipo-vinculo.ts";
 
 const SRC_BUCKET = "dp-bulk-import";
 const DST_BUCKET = "dp-documentos";
@@ -92,6 +93,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Vínculo dos colaboradores das páginas: sócio com pró-labore não recebe
+    // contracheque, então o tipo do documento é corrigido antes de gravar.
+    const colabIds = [
+      ...new Set((items as any[]).map((i) => i.matched_colaborador_id).filter((v): v is string => !!v)),
+    ];
+    const vinculoPorColab = new Map<string, { vinculo_label: string | null; socio_remuneracao: string | null }>();
+    if (colabIds.length) {
+      const { data: colabs } = await svc
+        .from("dp_colaboradores")
+        .select("id, vinculo_label, socio_remuneracao")
+        .in("id", colabIds);
+      (colabs ?? []).forEach((c: any) =>
+        vinculoPorColab.set(c.id, { vinculo_label: c.vinculo_label, socio_remuneracao: c.socio_remuneracao }),
+      );
+    }
+
     let processedSoFar = 0;
     for (const it of items as any[]) {
       try {
@@ -108,7 +125,10 @@ Deno.serve(async (req) => {
 
         const referenciaData = normalizeReferenciaData(it.detected_competencia) ?? batch.referencia_data ?? null;
         // Natureza efetiva: a escolhida/detectada por página tem prioridade.
-        const tipoDoc: string = it.tipo_detectado ?? batch.tipo;
+        const tipoDoc: string = tipoCanonicoPorVinculo(
+          it.tipo_detectado ?? batch.tipo,
+          vinculoPorColab.get(it.matched_colaborador_id) ?? null,
+        );
 
         // Duplicidade: já existe documento para (colaborador, tipo, referencia_data)?
         let replacedFlag = false;

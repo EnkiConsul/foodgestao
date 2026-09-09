@@ -312,7 +312,14 @@ export function DocConsistenciaPanel() {
           }
 
           for (const [tipo, esperado] of checks) {
-            const temDoc = importados.has(`${c.id}::${tipo}::${comp}`);
+            // Sócio com pró-labore: o recibo de pagamento importado como
+            // contracheque é o mesmo documento — vale como pró-labore do mês.
+            const temDoc =
+              importados.has(`${c.id}::${tipo}::${comp}`) ||
+              (tipo === "pro_labore" &&
+                socioProLabore &&
+                (importados.has(`${c.id}::contracheque::${comp}`) ||
+                  importados.has(`${c.id}::contracheque_13::${comp}`)));
             if (esperado) {
               const key = `${comp}::${tipo}::${uid}`;
               elegiveis[key] = (elegiveis[key] ?? 0) + 1;
@@ -331,7 +338,9 @@ export function DocConsistenciaPanel() {
               const inconsistente =
                 tipo === "ponto" ||
                 tipo === "adiantamento" ||
-                ((tipo === "contracheque" || tipo === "contracheque_13") && !assalariado);
+                ((tipo === "contracheque" || tipo === "contracheque_13") &&
+                  !assalariado &&
+                  !socioProLabore);
               if (inconsistente) {
                 alertas.push({
                   colaborador_id: c.id,

@@ -2,6 +2,7 @@
 
 export type DocTipo =
   | "contracheque"
+  | "pro_labore"
   | "adiantamento"
   | "contracheque_13"
   | "contracheque_ferias"
@@ -31,6 +32,7 @@ export type DocTipo =
 
 export const DOC_TIPO_LABEL: Record<string, string> = {
   contracheque: "Contracheque Mensal",
+  pro_labore: "Recibo de Pró-Labore",
   adiantamento: "Adiantamento Salarial",
   contracheque_13: "13º Salário",
   contracheque_ferias: "Férias (Pagamento)",
