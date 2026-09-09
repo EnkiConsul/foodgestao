@@ -227,6 +227,14 @@ export function ColaboradorAcessoPanel({
               />
             </div>
           </div>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Checkbox
+              checked={exigirTroca}
+              onCheckedChange={(v) => setExigirTroca(v === true)}
+              aria-label="Exigir troca no primeiro acesso"
+            />
+            Exigir que o colaborador troque a senha no primeiro acesso
+          </label>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={gerarSenhaAleatoria} disabled={busy !== null}>
               Gerar senha forte
