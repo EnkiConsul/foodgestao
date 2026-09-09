@@ -21,7 +21,7 @@ import { CanonicalUrl } from "@/components/seo/CanonicalUrl";
 import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
+import { useCompanyAccess } from "@/hooks/useCompanyAccess";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { ProtectedRoute, OnboardingGuard } from "@/routes/onboardingGuards";
 import { resolveLandingTarget } from "@/lib/auth/landing";
@@ -160,6 +160,7 @@ const EncarregadoDados = lazyWithRetry(() => import("./pages/legal/EncarregadoDa
 const DasMei = lazyWithRetry(() => import("./pages/guias/DasMei"));
 const Buscar = lazyWithRetry(() => import("./pages/Buscar"));
 const TrialExpired = lazyWithRetry(() => import("./pages/TrialExpired"));
+const BemVindo = lazyWithRetry(() => import("./pages/BemVindo"));
 
 
 
@@ -171,6 +172,9 @@ const TRIAL_EXPIRED_WHITELIST = [
   "/checkout",
   "/faturas",
   "/admin",
+  "/bem-vindo",
+  "/convite",
+  "/onboarding",
 ];
 
 function isWhitelistedForExpiredTrial(pathname: string) {
@@ -181,16 +185,22 @@ function isWhitelistedForExpiredTrial(pathname: string) {
 
 function SubscriptionGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { data: sub, isLoading } = useCurrentSubscription();
   const { isSuperAdmin, loading: roleLoading } = useSuperAdmin();
+  const { loading, hasCompanies, blocked } = useCompanyAccess();
 
-  if (isLoading || roleLoading) return <>{children}</>;
+  if (loading || roleLoading) return <>{children}</>;
   if (isSuperAdmin) return <>{children}</>;
-  if (!sub?.isBlocked) return <>{children}</>;
   if (isWhitelistedForExpiredTrial(location.pathname)) return <>{children}</>;
+  if (!blocked) return <>{children}</>;
+
+  // Bloqueado e sem nenhuma empresa (própria ou por convite): a entrada é a
+  // tela de boas-vindas, com convites pendentes e a opção de criar empresa.
+  if (!hasCompanies) return <Navigate to="/bem-vindo" replace />;
 
   return <Navigate to="/trial-expirado" replace />;
 }
+
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -517,6 +527,7 @@ const AppRoutes = () => (
       <Route path="/checkout/pagamento/:invoiceId" element={<ProtectedRoute><CheckoutPagamento /></ProtectedRoute>} />
       <Route path="/faturas" element={<ProtectedRoute><Faturas /></ProtectedRoute>} />
       <Route path="/trial-expirado" element={<ProtectedRoute><TrialExpired /></ProtectedRoute>} />
+      <Route path="/bem-vindo" element={<ProtectedRoute><BemVindo /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

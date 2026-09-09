@@ -5,18 +5,25 @@ import { AlertTriangle, CheckCircle2, LogOut } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
+import { useCompanyAccess } from "@/hooks/useCompanyAccess";
 
 export default function TrialExpired() {
   const navigate = useNavigate();
   const { data: sub } = useCurrentSubscription();
+  const { access } = useCompanyAccess();
+
+  // Convidado (não é dono da empresa ativa): informa e não oferece pagamento.
+  const isGuest = access !== null && access.isOwner === false;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth", { replace: true });
   };
 
-  const headline =
-    sub?.status === "canceled"
+  const status = isGuest ? access?.status : sub?.status;
+  const headline = isGuest
+    ? "O acesso desta empresa está suspenso"
+    : status === "canceled"
       ? "Sua assinatura foi cancelada"
       : "Seu período de teste gratuito terminou";
 
@@ -36,32 +43,42 @@ export default function TrialExpired() {
               <div className="space-y-1">
                 <h1 className="text-2xl font-bold tracking-tight">{headline}</h1>
                 <p className="text-muted-foreground">
-                  Para continuar acessando o Aveto 360 e seus dados, escolha um plano que melhor atenda seu negócio.
+                  {isGuest
+                    ? "A mensalidade desta empresa está pendente. Fale com o responsável pela empresa para liberar o acesso novamente."
+                    : "Para continuar acessando o Aveto 360 e seus dados, escolha um plano que melhor atenda seu negócio."}
                 </p>
               </div>
             </div>
 
-            <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
-              <p className="text-sm font-medium">O que você terá ao assinar:</p>
-              <ul className="space-y-1.5 text-sm text-muted-foreground">
-                {[
-                  "Lançamentos ilimitados (contas a pagar e receber)",
-                  "Relatórios completos e exportação PDF/CSV",
-                  "Múltiplas empresas e usuários (planos pagos)",
-                  "Suporte e atualizações contínuas",
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {!isGuest && (
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+                <p className="text-sm font-medium">O que você terá ao assinar:</p>
+                <ul className="space-y-1.5 text-sm text-muted-foreground">
+                  {[
+                    "Lançamentos ilimitados (contas a pagar e receber)",
+                    "Relatórios completos e exportação PDF/CSV",
+                    "Múltiplas empresas e usuários (planos pagos)",
+                    "Suporte e atualizações contínuas",
+                  ].map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button asChild size="lg" className="flex-1">
-                <Link to="/planos">Escolher um plano</Link>
-              </Button>
+              {isGuest ? (
+                <Button asChild size="lg" className="flex-1">
+                  <Link to="/bem-vindo">Ver minhas empresas e convites</Link>
+                </Button>
+              ) : (
+                <Button asChild size="lg" className="flex-1">
+                  <Link to="/planos">Escolher um plano</Link>
+                </Button>
+              )}
               <Button variant="outline" size="lg" onClick={handleLogout} className="sm:w-auto">
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair
@@ -80,3 +97,4 @@ export default function TrialExpired() {
     </div>
   );
 }
+

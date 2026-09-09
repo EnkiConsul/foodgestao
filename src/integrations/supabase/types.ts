@@ -13760,6 +13760,16 @@ export type Database = {
           payables: number
         }[]
       }
+      company_access_status: {
+        Args: { _company_id: string }
+        Returns: {
+          blocked: boolean
+          company_id: string
+          is_owner: boolean
+          status: string
+          trial_ends_at: string
+        }[]
+      }
       consume_recovery_reset: {
         Args: { p_challenge_id: string; p_reset_token_hash: string }
         Returns: string
@@ -15248,6 +15258,18 @@ export type Database = {
           _of_account_id: string
         }
         Returns: string
+      }
+      my_pending_invites: {
+        Args: never
+        Returns: {
+          company_id: string
+          company_name: string
+          created_at: string
+          expires_at: string
+          id: string
+          role: string
+          token: string
+        }[]
       }
       open_finance_sync_health: { Args: { _company_id: string }; Returns: Json }
       pay_credit_card_invoice: {
