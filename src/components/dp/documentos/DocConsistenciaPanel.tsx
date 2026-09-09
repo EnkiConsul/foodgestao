@@ -445,9 +445,9 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
     for (const [key, alertasGrupo] of porChave) {
       const { problema, tipo, competencia } = alertasGrupo[0];
       const uid = alertasGrupo[0].unidade_id ?? "sem-unidade";
-      const nomes = alertasGrupo
-        .map((a) => a.nome)
-        .sort((a, b) => a.localeCompare(b, "pt-BR"));
+      const nomes: Pessoa[] = alertasGrupo
+        .map((a) => ({ nome: a.nome, desligamento: a.desligamento }))
+        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
       const total = elegiveis[`${competencia}::${tipo}::${uid}`] ?? 0;
       const completo = problema === "faltando" && total > 0 && nomes.length >= total;
       out.push({
@@ -509,9 +509,12 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
 
         {!g.completo && (
           <div className="flex flex-wrap items-center gap-1.5">
-            {visiveis.map((nome) => (
-              <Badge key={nome} variant="outline" className="text-[11px]">
-                {nome}
+            {visiveis.map((p) => (
+              <Badge key={p.nome} variant="outline" className="text-[11px]">
+                {p.nome}
+                {p.desligamento
+                  ? ` · desligado em ${p.desligamento.slice(8, 10)}/${p.desligamento.slice(5, 7)}`
+                  : ""}
               </Badge>
             ))}
             {restantes > 0 && (
