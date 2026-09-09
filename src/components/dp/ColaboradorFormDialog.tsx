@@ -546,6 +546,7 @@ export function ColaboradorFormDialog({
       possui_folha_ponto: false,
       optante_adiantamento: false,
     });
+    vinculoTocado.current = false;
     setRem({ ...remuneracaoBlank, forma_pagamento: formaPagamentoPadrao("clt") });
     setCriadoId(null);
   }, [open, pessoaApoioInicial, colaborador?.id]);
@@ -685,6 +686,8 @@ export function ColaboradorFormDialog({
       possui_folha_ponto: c.possui_folha_ponto ?? false,
       optante_adiantamento: c.optante_adiantamento ?? false,
     });
+    // Cadastro existente: o vínculo já gravado não é sobrescrito pelo cargo.
+    vinculoTocado.current = true;
     setSocioRem(((c as any).socio_remuneracao as SocioRemuneracao) ?? "pro_labore");
     setResetKey((k) => k + 1);
   }, [open, colaborador, atribuicoes]);
