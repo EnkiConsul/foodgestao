@@ -14,6 +14,7 @@ import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { z } from "npm:zod@3";
 import { extractPeriodo, extractPeriodoFromFilename } from "../_shared/competencia.ts";
 import { detectTipoFromText, parseNaturezaLine, assinaturaDocumento, detectarAssinatura, DOC_TIPO_EXIGE_ACEITE, type DocTipo } from "../_shared/doc-tipos.ts";
+import { tipoCanonicoPorVinculo } from "../_shared/doc-tipo-vinculo.ts";
 
 const BUCKET = "dp-bulk-import";
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -34,6 +35,8 @@ type Colab = {
   ativo: boolean;
   unidade_id: string | null;
   possui_folha_ponto: boolean | null;
+  vinculo_label: string | null;
+  socio_remuneracao: string | null;
 };
 
 Deno.serve(async (req) => {
@@ -120,7 +123,7 @@ async function processBatchAsync({ svc, aiKey, batch }: { svc: any; aiKey: strin
     // 2) Colaboradores da empresa (inclui inativos para permitir sinalizar)
     const { data: colabs } = await svc
       .from("dp_colaboradores")
-      .select("id, nome, cpf, matricula, ativo, unidade_id, possui_folha_ponto")
+      .select("id, nome, cpf, matricula, ativo, unidade_id, possui_folha_ponto, vinculo_label, socio_remuneracao")
       .eq("company_id", batch.company_id);
     const colabList = (colabs ?? []) as Colab[];
 
@@ -273,6 +276,12 @@ async function processPage(args: {
       }
     }
 
+    /**
+     * Sócio remunerado por pró-labore: o recibo mensal é impresso igual ao de
+     * um empregado, então a natureza só pode ser resolvida depois do vínculo.
+     */
+    const tipoFinal = tipoCanonicoPorVinculo(tipoEfetivo, match ?? null) as DocTipo;
+
     // Duplicidade: mesmo colaborador+tipo+referência (YYYY-MM-01)
     let duplicateOf: string | null = null;
     if (match && (competencia || batch.referencia_data)) {
@@ -280,7 +289,7 @@ async function processPage(args: {
         ? `${competencia}-01`
         : String(batch.referencia_data);
       const { data: dup } = await svc.from("dp_documentos")
-        .select("id").eq("colaborador_id", match.id).eq("tipo", tipoEfetivo)
+        .select("id").eq("colaborador_id", match.id).eq("tipo", tipoFinal)
         .eq("referencia_data", ref).limit(1).maybeSingle();
       if (dup?.id) duplicateOf = dup.id as string;
     }
@@ -288,7 +297,7 @@ async function processPage(args: {
     // Assinatura do colaborador na página: se já vier assinado, o padrão é
     // dispensar a validação digital (o usuário confirma na revisão).
     const assin = detectarAssinatura(ocr);
-    const exigeAceiteTipo = DOC_TIPO_EXIGE_ACEITE[tipoEfetivo] ?? false;
+    const exigeAceiteTipo = DOC_TIPO_EXIGE_ACEITE[tipoFinal] ?? false;
     const exigirLote = batch.exigir_aceite !== false;
     const exigeAceite = exigirLote && exigeAceiteTipo && !assin.detectada;
 
@@ -305,7 +314,7 @@ async function processPage(args: {
       detected_cnpj: cnpjs[0] ?? null,
       detected_unidade_id: unidadeDetectada,
       detected_competencia: competencia,
-      tipo_detectado: tipoEfetivo,
+      tipo_detectado: tipoFinal,
       tipo_confidence: tipoAprendido ? 1 : tipoDetectado ? 0.9 : 0,
       tipo_origem: tipoOrigem,
       tipo_assinatura: assinatura || null,
