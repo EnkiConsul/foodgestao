@@ -8,7 +8,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Input } from "@/components/ui/input";
 import { useDpPendencias, type Pendencia } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
-import { addDays, format } from "date-fns";
+import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
+import { PendenciaAcoes } from "@/components/dp/pendencias/PendenciaAcoes";
+import { format } from "date-fns";
 import {
   agruparPorColaborador,
   agruparPorTipo,
