@@ -167,7 +167,9 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
     };
   }, [setContext, selectedCompanyId, user?.id]);
 
-  if (loading || checking) {
+  const portal = usePortalOnlyUser(user?.id, !!user && !completed);
+
+  if (loading || checking || portal.checking) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -176,5 +178,6 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   }
   if (!user) return <Navigate to="/auth" replace />;
   if (completed) return <Navigate to="/hub" replace />;
+  if (portal.isPortalOnly) return <Navigate to={PORTAL_PATH} replace />;
   return <>{children}</>;
 }
