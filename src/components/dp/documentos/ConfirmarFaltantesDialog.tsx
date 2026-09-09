@@ -38,7 +38,10 @@ export function ConfirmarFaltantesDialog({
                 ))}
                 {faltantes.length > 30 && <li>… e mais {faltantes.length - 30}</li>}
               </ul>
-              <p>Deseja aprovar assim mesmo?</p>
+              <p>
+                Deseja aprovar assim mesmo? As faltas continuam registradas como
+                pendência na Conferência de Documentos até serem importadas.
+              </p>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>

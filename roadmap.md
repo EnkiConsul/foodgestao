@@ -31,3 +31,5 @@
 
 ## Importação de documentos
 - [x] Corrigir cadastro de colaborador pela conferência e reaproveitar nome, CPF e unidade lidos
+- [x] Rolar até o quadro de salvamento ao aprovar documentos
+- [x] Pendência de documento de quem foi desligado no meio da competência

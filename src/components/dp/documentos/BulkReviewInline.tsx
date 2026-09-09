@@ -75,6 +75,8 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
 
   const [savingTotal, setSavingTotal] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  /** Âncora do quadro "Salvando documentos": a tela desce até ele ao aprovar. */
+  const savingBannerRef = useRef<HTMLDivElement | null>(null);
 
   const batchInfo = useQuery({
     queryKey: ["dp_bulk_batch_info", batchId],
@@ -418,6 +420,10 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
     }
     setSavingTotal(item_ids.length);
     setIsSaving(true);
+    // O quadro de progresso fica acima do botão: trazemos ele para a vista.
+    requestAnimationFrame(() =>
+      savingBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
     try {
       const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
         body: { item_ids, on_duplicate, sem_unidade_confirmado: semUnidadeOkRef.current },
@@ -668,7 +674,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
 
       {/* Enquanto salvando, também bloqueamos a UI de revisão. */}
       {!ocrInProgress && isSaving && (
-        <div className="p-4">
+        <div ref={savingBannerRef} className="p-4 scroll-mt-20">
           <BulkProgressBanner phase="saving" current={approvedCount} total={savingTotal} />
         </div>
       )}

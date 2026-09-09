@@ -54,6 +54,8 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
   const [rendering, setRendering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savingTotal, setSavingTotal] = useState(0);
+  /** Âncora do quadro "Salvando documentos": a tela desce até ele ao aprovar. */
+  const savingBannerRef = useRef<HTMLDivElement | null>(null);
 
   const batchInfo = useQuery({
     queryKey: ["dp_bulk_batch_info", batchId],
@@ -239,6 +241,9 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     }
     setSavingTotal(item_ids.length);
     setIsSaving(true);
+    requestAnimationFrame(() =>
+      savingBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
     try {
       const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
         body: { item_ids, on_duplicate, sem_unidade_confirmado: semUnidadeOkRef.current },
@@ -375,7 +380,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           }
           if (isSaving) {
             return (
-              <div className="flex-1 flex items-center justify-center p-8">
+              <div ref={savingBannerRef} className="flex-1 flex items-center justify-center p-8 scroll-mt-20">
                 <div className="w-full max-w-md">
                   <BulkProgressBanner phase="saving" current={approvedCount} total={savingTotal} />
                 </div>

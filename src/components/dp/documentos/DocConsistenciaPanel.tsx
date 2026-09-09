@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { isSocio } from "@/lib/dp/contrato-policy";
+import { ativoNaCompetencia } from "@/lib/dp/bulk-coverage";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -108,6 +109,8 @@ function prazo13(competencia: string): string | null {
 type Alerta = {
   colaborador_id: string;
   nome: string;
+  /** Data de desligamento, quando a pessoa já saiu do quadro. */
+  desligamento: string | null;
   tipo: Tipo;
   problema: "faltando" | "inconsistente";
   unidade_id: string | null;
@@ -132,6 +135,8 @@ type FeriasAlerta = {
 
 const MAX_NOMES = 6;
 
+type Pessoa = { nome: string; desligamento: string | null };
+
 type Grupo = {
   key: string;
   tipo: Tipo;
@@ -139,7 +144,7 @@ type Grupo = {
   unidade_id: string | null;
   nome_unidade: string | null;
   competencia: string;
-  nomes: string[];
+  nomes: Pessoa[];
   total: number;
   completo: boolean;
 };
@@ -196,13 +201,14 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       for (let c = inicio; c <= fim; c = addMeses(c, 1)) competencias.push(c);
 
       const [colabsRes, docsRes, unidadesRes, gozosRes, periodosRes] = await Promise.all([
+        // Inclui desligados: quem saiu no meio do mês continua devendo o
+        // documento daquela competência (a elegibilidade é por competência).
         supabase
           .from("dp_colaboradores")
           .select(
-            "id, nome, regime, possui_folha_ponto, optante_adiantamento, unidade_id, data_admissao, data_desligamento, vinculo_label, socio_remuneracao",
+            "id, nome, ativo, regime, possui_folha_ponto, optante_adiantamento, unidade_id, data_admissao, data_desligamento, vinculo_label, socio_remuneracao",
           )
-          .eq("company_id", selectedCompanyId!)
-          .eq("ativo", true),
+          .eq("company_id", selectedCompanyId!),
         supabase
           .from("dp_documentos")
           .select("colaborador_id, tipo, referencia_data")
@@ -286,8 +292,24 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           const ini = primeiroDia(comp);
           const fimComp = ultimoDia(comp);
           // Só considera competências em que o colaborador estava no quadro.
+          // Mesma regra da conferência do lote (ativoNaCompetencia).
+          if (
+            !ativoNaCompetencia(
+              {
+                id: c.id,
+                nome: c.nome,
+                ativo: c.ativo,
+                data_admissao: admissao,
+                data_desligamento: desligamento,
+              },
+              comp,
+            )
+          ) {
+            continue;
+          }
           if (admissao && admissao > fimComp) continue;
           if (desligamento && desligamento < ini) continue;
+
 
           const prazoDecimo = prazo13(comp);
           const decimoNoPrazo = !!prazoDecimo && hoje <= prazoDecimo;
@@ -334,6 +356,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
               alertas.push({
                 colaborador_id: c.id,
                 nome: c.nome,
+                desligamento,
                 tipo,
                 problema: "faltando",
                 unidade_id: c.unidade_id ?? null,
@@ -351,6 +374,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
                 alertas.push({
                   colaborador_id: c.id,
                   nome: c.nome,
+                  desligamento,
                   tipo,
                   problema: "inconsistente",
                   unidade_id: c.unidade_id ?? null,
@@ -370,10 +394,15 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       const nomePorColab = new Map(
         ((colabsRes.data ?? []) as any[]).map((c) => [c.id as string, c.nome as string]),
       );
+      // Alerta de férias só faz sentido para quem continua no quadro.
+      const ativosSet = new Set(
+        ((colabsRes.data ?? []) as any[]).filter((c) => c.ativo !== false).map((c) => c.id as string),
+      );
       const ferias: FeriasAlerta[] = ((periodosRes.data ?? []) as any[])
         .filter(
           (p) =>
             nomePorColab.has(p.colaborador_id) &&
+            ativosSet.has(p.colaborador_id) &&
             !comAgendamento.has(p.colaborador_id) &&
             !sociosSet.has(p.colaborador_id),
         )
@@ -421,9 +450,9 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
     for (const [key, alertasGrupo] of porChave) {
       const { problema, tipo, competencia } = alertasGrupo[0];
       const uid = alertasGrupo[0].unidade_id ?? "sem-unidade";
-      const nomes = alertasGrupo
-        .map((a) => a.nome)
-        .sort((a, b) => a.localeCompare(b, "pt-BR"));
+      const nomes: Pessoa[] = alertasGrupo
+        .map((a) => ({ nome: a.nome, desligamento: a.desligamento }))
+        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
       const total = elegiveis[`${competencia}::${tipo}::${uid}`] ?? 0;
       const completo = problema === "faltando" && total > 0 && nomes.length >= total;
       out.push({
@@ -485,9 +514,12 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
 
         {!g.completo && (
           <div className="flex flex-wrap items-center gap-1.5">
-            {visiveis.map((nome) => (
-              <Badge key={nome} variant="outline" className="text-[11px]">
-                {nome}
+            {visiveis.map((p) => (
+              <Badge key={p.nome} variant="outline" className="text-[11px]">
+                {p.nome}
+                {p.desligamento
+                  ? ` · desligado em ${p.desligamento.slice(8, 10)}/${p.desligamento.slice(5, 7)}`
+                  : ""}
               </Badge>
             ))}
             {restantes > 0 && (
