@@ -213,46 +213,21 @@ function safeRedirect(value: string | null): string {
   return value;
 }
 
-function useIsDpColaborador() {
-  const { user } = useAuth();
-  const [is, setIs] = useState<boolean | null>(null);
-  useEffect(() => {
-    if (!user) { setIs(false); return; }
-    supabase.rpc("is_dp_colaborador", { _user_id: user.id }).then(({ data }) => setIs(!!data));
-  }, [user?.id]);
-  return is;
-}
-
-function useIsAdminOrOwner() {
-  const { user } = useAuth();
-  const [is, setIs] = useState<boolean | null>(null);
-  useEffect(() => {
-    if (!user) { setIs(false); return; }
-    (async () => {
-      const [roleRes, ownerRes, memberRes] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "super_admin").maybeSingle(),
-        supabase.from("companies").select("id").eq("user_id", user.id).limit(1),
-        supabase.from("company_members").select("role").eq("user_id", user.id).in("role", ["owner", "admin"]).limit(1),
-      ]);
-      const hasSuper = !!roleRes.data;
-      const hasOwn = !!(ownerRes.data && ownerRes.data.length > 0);
-      const hasAdminMember = !!(memberRes.data && memberRes.data.length > 0);
-      setIs(hasSuper || hasOwn || hasAdminMember);
-    })();
-  }, [user?.id]);
-  return is;
-}
-
 function RootGate() {
   const { user, loading } = useAuth();
-  const isColab = useIsDpColaborador();
-  const isAdminOrOwner = useIsAdminOrOwner();
-  if (loading || (user && (isColab === null || isAdminOrOwner === null))) {
-    return <PageSpinner />;
-  }
-  if (user && isAdminOrOwner) return <Navigate to="/hub" replace />;
-  if (user && isColab) return <Navigate to="/dp/meu" replace />;
-  if (user) return <Navigate to="/hub" replace />;
+  const [target, setTarget] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) { setTarget(null); return; }
+    resolveLandingTarget(user.id)
+      .then((landing) => { if (!cancelled) setTarget(landing.path); })
+      .catch(() => { if (!cancelled) setTarget("/hub"); });
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  if (loading || (user && !target)) return <PageSpinner />;
+  if (user && target) return <Navigate to={target} replace />;
   return <Auth />;
 }
 
