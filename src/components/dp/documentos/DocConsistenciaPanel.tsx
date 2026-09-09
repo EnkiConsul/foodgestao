@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, Clock, ShieldAlert, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, Clock, ShieldAlert, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -23,9 +23,6 @@ const JANELA_MESES = 6;
 
 /** Regimes que recebem contracheque mensal. */
 const REGIMES_ASSALARIADOS = new Set(["clt", "intermitente", "temporario", "aprendiz"]);
-
-/** Dias de antecedência para alertar período de férias prestes a vencer. */
-const FERIAS_ALERTA_DIAS = 60;
 
 /** YYYY-MM do mês anterior (competência usual de importação). */
 function competenciaAnterior(): string {
@@ -59,14 +56,6 @@ function labelCompetencia(competencia: string) {
 
 function hojeISO() {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate(),
-  ).padStart(2, "0")}`;
-}
-
-function somaDias(iso: string, dias: number) {
-  const d = new Date(`${iso}T00:00:00`);
-  d.setDate(d.getDate() + dias);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
     d.getDate(),
   ).padStart(2, "0")}`;
@@ -142,14 +131,6 @@ type Aviso = {
   total: number;
 };
 
-type FeriasAlerta = {
-  colaborador_id: string;
-  nome: string;
-  limite: string;
-  dias: number;
-  vencido: boolean;
-};
-
 const MAX_NOMES = 6;
 
 type Pessoa = { nome: string; desligamento: string | null };
@@ -199,7 +180,6 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         alertas: [] as Alerta[],
         elegiveis: {} as Record<string, number>,
         avisos: [] as Aviso[],
-        ferias: [] as FeriasAlerta[],
         unidadesMap: new Map<string, string>(),
         janela: { inicio: inicioJanela, fim },
       };
