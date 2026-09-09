@@ -141,14 +141,12 @@ export default function DpMeuHome() {
         <ResumoCard
           icon={Calendar}
           label="Próxima folga"
-          value={
-            proximaFolgaDias == null
-              ? "—"
-              : proximaFolgaDias === 0
-                ? "Hoje"
-                : `Em ${proximaFolgaDias} ${proximaFolgaDias === 1 ? "dia" : "dias"}`
+          value={folgaTexto}
+          hint={
+            proximaFolga
+              ? `${new Date(proximaFolga.data + "T00:00:00").toLocaleDateString("pt-BR")} · ${proximaFolga.label}`
+              : "Sem folga prevista"
           }
-          hint={proximaFolga.data?.data ? new Date(proximaFolga.data.data + "T00:00:00").toLocaleDateString("pt-BR") : "Sem folga agendada"}
           to="/dp/meu/calendario"
         />
         <ResumoCard
