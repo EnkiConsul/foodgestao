@@ -118,6 +118,8 @@ export default function DpColaboradores() {
   const [viewingApoio, setViewingApoio] = useState<PessoaApoio | null>(null);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [transformando, setTransformando] = useState<PessoaApoio | null>(null);
+  type AbaCadastro =
+    | "dados" | "acesso" | "desligamento" | "jornada" | "remuneracao" | "dependentes" | "documentos";
   /** Aba aberta ao abrir o cadastro pelas ações da lista e pelos atalhos de pendências. */
   const [abaInicial, setAbaInicial] = useState<AbaCadastro>("dados");
   const abrirCadastro = (c: DpColaborador | null, aba: AbaCadastro = "dados") => {
