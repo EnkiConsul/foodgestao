@@ -219,7 +219,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       const competencias: string[] = [];
       for (let c = inicio; c <= fim; c = addMeses(c, 1)) competencias.push(c);
 
-      const [colabsRes, docsRes, unidadesRes, gozosRes, periodosRes] = await Promise.all([
+      const [colabsRes, docsRes, unidadesRes, gozosRes, solsRes, pontosRes] = await Promise.all([
         // Inclui desligados: quem saiu no meio do mês continua devendo o
         // documento daquela competência (a elegibilidade é por competência).
         supabase
@@ -245,19 +245,23 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           .select("colaborador_id, data_inicio, data_fim, status")
           .eq("company_id", selectedCompanyId!)
           .in("status", ["aprovado", "em_gozo", "concluido", "planejado"]),
+        // Histórico datado de adiantamento (ativar/cancelar) — decide a competência.
         supabase
-          .from("dp_ferias_periodos")
-          .select("colaborador_id, limite_concessivo, dias_saldo")
+          .from("dp_adiantamento_solicitacoes" as any)
+          .select("colaborador_id, tipo, competencia_efeito, created_at")
+          .eq("company_id", selectedCompanyId!),
+        // Evidência de trabalho (usada para o intermitente).
+        supabase
+          .from("dp_pontos")
+          .select("colaborador_id, data")
           .eq("company_id", selectedCompanyId!)
-          .eq("controle_externo", false)
-          .gt("dias_saldo", 0)
-          .lte("limite_concessivo", somaDias(hoje, FERIAS_ALERTA_DIAS)),
+          .gte("data", primeiroDia(inicio))
+          .lte("data", ultimoDia(fim)),
       ]);
       if (colabsRes.error) throw colabsRes.error;
       if (docsRes.error) throw docsRes.error;
       if (unidadesRes.error) throw unidadesRes.error;
       if (gozosRes.error) throw gozosRes.error;
-      if (periodosRes.error) throw periodosRes.error;
 
       const unidadesMap = new Map(
         (unidadesRes.data ?? []).map((u: any) => [u.id as string, u.nome as string]),
