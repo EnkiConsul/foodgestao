@@ -326,6 +326,25 @@ export function useDpPendencias() {
        * Quem está devendo o documento na unidade/competência.
        * Falta de todos → 1 pendência da unidade; falta parcial → 1 por pessoa.
        */
+      const elegibilidadeDe = (
+        tipo: DocTipoColaborador,
+        c: ColabElegibilidade,
+        unidade: { possui_relogio_ponto: boolean | null; dia_adiantamento?: number | null },
+        comp: string,
+      ) =>
+        elegivelDocumento(tipo, c, {
+          competencia: comp,
+          unidadeTemRelogio: unidade.possui_relogio_ponto === true,
+          diaAdiantamento: unidade.dia_adiantamento ?? null,
+          exigirContrachequeMesDesligamento: cfg.exigir_contracheque_mes_desligamento,
+          optanteNaCompetencia:
+            tipo === "adiantamento"
+              ? optanteNaCompetencia(solicitacoesPorColab.get(c.id), comp, c.optante_adiantamento)
+              : undefined,
+          intermitenteSemRegistros: !pontoIntermitente.has(`${c.id}:${comp}`),
+          intermitenteTrabalho: confirmacaoIntermitente.get(`${c.id}:${comp}`) ?? null,
+        });
+
       const faltantesDocumento = (
         tipo: DocTipoColaborador,
         docs: Set<string>,
@@ -333,13 +352,7 @@ export function useDpPendencias() {
         comp: string,
       ) => {
         const elegiveis = (colabsPorUnidade.get(unidade.id) ?? []).filter(
-          (c) =>
-            elegivelDocumento(tipo, c, {
-              competencia: comp,
-              unidadeTemRelogio: unidade.possui_relogio_ponto === true,
-              diaAdiantamento: unidade.dia_adiantamento ?? null,
-              exigirContrachequeMesDesligamento: cfg.exigir_contracheque_mes_desligamento,
-            }) && ativoNaCompetencia(c as any, comp),
+          (c) => elegibilidadeDe(tipo, c, unidade, comp) && ativoNaCompetencia(c as any, comp),
         );
         const faltantes = elegiveis.filter((c) => !docs.has(`${c.id}:${comp}`));
         // Só é "lote completo" com mais de um elegível; com um só, informar o nome.
