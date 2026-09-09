@@ -118,9 +118,11 @@ export default function DpColaboradores() {
   const [viewingApoio, setViewingApoio] = useState<PessoaApoio | null>(null);
   const [editing, setEditing] = useState<DpColaborador | null>(null);
   const [transformando, setTransformando] = useState<PessoaApoio | null>(null);
-  /** Aba aberta ao abrir o cadastro pelas ações da lista. */
-  const [abaInicial, setAbaInicial] = useState<"dados" | "acesso" | "desligamento">("dados");
-  const abrirCadastro = (c: DpColaborador | null, aba: "dados" | "acesso" | "desligamento" = "dados") => {
+  type AbaCadastro =
+    | "dados" | "acesso" | "desligamento" | "jornada" | "remuneracao" | "dependentes" | "documentos";
+  /** Aba aberta ao abrir o cadastro pelas ações da lista e pelos atalhos de pendências. */
+  const [abaInicial, setAbaInicial] = useState<AbaCadastro>("dados");
+  const abrirCadastro = (c: DpColaborador | null, aba: AbaCadastro = "dados") => {
     setEditing(c);
     setAbaInicial(aba);
     setDialogOpen(true);
@@ -276,9 +278,13 @@ export default function DpColaboradores() {
   }, [list.data, pessoasApoio.data, search, unidadeFilter, cargoFilter, statusFilter]);
 
   /**
-   * Atalho de outras telas (ex.: Rotina): /dp/colaboradores?editar=<id> abre o
-   * cadastro da pessoa direto, sem o gestor precisar procurar na lista.
+   * Atalho de outras telas (ex.: Rotina, Pendências):
+   * /dp/colaboradores?editar=<id>&aba=documentos abre o cadastro da pessoa já na
+   * aba onde a pendência é realmente resolvida.
    */
+  const ABAS_CADASTRO: AbaCadastro[] = [
+    "dados", "acesso", "desligamento", "jornada", "remuneracao", "dependentes", "documentos",
+  ];
   const [params, setParams] = useSearchParams();
   const abertoPorLink = useRef(false);
   useEffect(() => {
@@ -287,7 +293,8 @@ export default function DpColaboradores() {
     const alvo = (list.data ?? []).find((c) => c.id === id);
     if (!alvo) return;
     abertoPorLink.current = true;
-    abrirCadastro(alvo, "dados");
+    const abaParam = params.get("aba") as AbaCadastro | null;
+    abrirCadastro(alvo, abaParam && ABAS_CADASTRO.includes(abaParam) ? abaParam : "dados");
     const next = new URLSearchParams(params);
     next.delete("editar");
     next.delete("aba");

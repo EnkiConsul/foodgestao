@@ -1,5 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -36,7 +37,11 @@ function VencimentoBadge({ data, janela = 30 }: { data?: string | null; janela?:
 
 export default function DpConformidade() {
   const { data: colaboradores = [] } = useDpColaboradores();
-  const [colabFilter, setColabFilter] = useState("todos");
+  /** Atalho das pendências: /dp/conformidade?aba=aso&colaborador=<id>. */
+  const [params] = useSearchParams();
+  const abaParam = params.get("aba");
+  const abaInicial = abaParam === "epis" || abaParam === "treinamentos" ? abaParam : "aso";
+  const [colabFilter, setColabFilter] = useState(() => params.get("colaborador") ?? "todos");
 
   const c = useDpConformidade(colabFilter);
 
@@ -106,7 +111,7 @@ export default function DpConformidade() {
 
       {c.isError && <DpErrorState onRetry={c.refetchAll} className="mb-3" />}
 
-      <Tabs defaultValue="aso">
+      <Tabs defaultValue={abaInicial}>
         <TabsList className="flex w-full overflow-x-auto sm:w-auto">
           <TabsTrigger value="aso" className="flex-1 sm:flex-none">Exames (ASO)</TabsTrigger>
           <TabsTrigger value="epis" className="flex-1 sm:flex-none">EPIs</TabsTrigger>

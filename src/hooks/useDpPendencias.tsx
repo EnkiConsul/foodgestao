@@ -269,7 +269,7 @@ export function useDpPendencias() {
               unidadeNome: u.nome,
               vencimento,
               atrasoDias: atrasoEmDias(vencimento, hojeISO),
-              url: "/dp/documentos/historico?tipo=contracheque",
+              url: `/dp/documentos?tipo=contracheque&competencia=${comp}&unidade=${u.id}`,
             });
           }
         }
@@ -293,7 +293,7 @@ export function useDpPendencias() {
               unidadeNome: u.nome,
               vencimento,
               atrasoDias: atrasoEmDias(vencimento, hojeISO),
-              url: "/dp/documentos/adiantamento",
+              url: `/dp/documentos?tipo=adiantamento&competencia=${comp}&unidade=${u.id}`,
             });
           }
         }
@@ -316,7 +316,7 @@ export function useDpPendencias() {
               unidadeNome: u.nome,
               vencimento,
               atrasoDias: atrasoEmDias(vencimento, hojeISO),
-              url: "/dp/documentos/ponto",
+              url: `/dp/documentos?tipo=ponto&competencia=${comp}&unidade=${u.id}`,
             });
           }
         }
@@ -419,7 +419,7 @@ export function useDpPendencias() {
                 unidadeNome,
                 vencimento: ymd(today),
                 atrasoDias: 0,
-                url: "/dp/cadastros/unidades",
+                url: `/dp/cadastros/unidades?editar=${unidadeId}&aba=sindicato`,
               });
               continue;
             }
@@ -443,7 +443,7 @@ export function useDpPendencias() {
                 unidadeNome,
                 vencimento: ymd(vencimento),
                 atrasoDias: dias,
-                url: "/dp/cadastros/unidades",
+                url: `/dp/cadastros/unidades?editar=${unidadeId}&aba=sindicato`,
               });
             }
           }
@@ -480,7 +480,7 @@ export function useDpPendencias() {
               tipo: "Regras",
               unidadeNome: u.nome,
               atrasoDias: 0,
-              url: "/dp/folgas?aba=regras",
+              url: `/dp/folgas?aba=regras&unidade=${u.id}`,
             });
           });
         }
@@ -515,7 +515,7 @@ export function useDpPendencias() {
             colaboradorNome: p.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
-            url: "/dp/ferias",
+            url: `/dp/ferias?colaborador=${p.colaborador_id}`,
           });
         });
       } catch (e) {
@@ -528,7 +528,7 @@ export function useDpPendencias() {
         limiteAso.setDate(limiteAso.getDate() + cfg.alerta_aso_dias);
         const { data: exames } = await supabase
           .from("dp_exames_aso")
-          .select("id, data_vencimento, tipo, dp_colaboradores(nome)")
+          .select("id, colaborador_id, data_vencimento, tipo, dp_colaboradores(nome)")
           .eq("company_id", selectedCompanyId!)
           .not("data_vencimento", "is", null)
           .lte("data_vencimento", ymd(limiteAso))
@@ -546,7 +546,7 @@ export function useDpPendencias() {
             colaboradorNome: e.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
-            url: "/dp/conformidade",
+            url: `/dp/conformidade?aba=aso&colaborador=${e.colaborador_id}`,
           });
         });
 
@@ -554,7 +554,7 @@ export function useDpPendencias() {
         limiteEpi.setDate(limiteEpi.getDate() + cfg.alerta_epi_dias);
         const { data: entregas } = await supabase
           .from("dp_epis_entregas")
-          .select("id, data_troca_prevista, dp_colaboradores(nome), dp_epis(nome)")
+          .select("id, colaborador_id, data_troca_prevista, dp_colaboradores(nome), dp_epis(nome)")
           .eq("company_id", selectedCompanyId!)
           .is("data_devolucao", null)
           .not("data_troca_prevista", "is", null)
@@ -573,7 +573,7 @@ export function useDpPendencias() {
             colaboradorNome: e.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
-            url: "/dp/conformidade",
+            url: `/dp/conformidade?aba=epis&colaborador=${e.colaborador_id}`,
           });
         });
 
@@ -581,7 +581,7 @@ export function useDpPendencias() {
         limiteTre.setDate(limiteTre.getDate() + cfg.alerta_treinamento_dias);
         const { data: parts } = await supabase
           .from("dp_treinamentos_participacoes")
-          .select("id, data_vencimento, dp_colaboradores(nome), dp_treinamentos(nome)")
+          .select("id, colaborador_id, data_vencimento, dp_colaboradores(nome), dp_treinamentos(nome)")
           .eq("company_id", selectedCompanyId!)
           .not("data_vencimento", "is", null)
           .lte("data_vencimento", ymd(limiteTre))
@@ -599,7 +599,7 @@ export function useDpPendencias() {
             colaboradorNome: p.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
-            url: "/dp/conformidade",
+            url: `/dp/conformidade?aba=treinamentos&colaborador=${p.colaborador_id}`,
           });
         });
       } catch (e) {
@@ -638,7 +638,7 @@ export function useDpPendencias() {
               tipo: "Escala",
               vencimento: ymd(prazo),
               atrasoDias: differenceInCalendarDays(today, prazo),
-              url: "/dp/escalas",
+              url: `/dp/escalas?mes=${inicioProx.getFullYear()}-${String(inicioProx.getMonth() + 1).padStart(2, "0")}`,
             });
           }
         }
@@ -667,7 +667,7 @@ export function useDpPendencias() {
             tipo: "Importação",
             vencimento: ymd(vencimento),
             atrasoDias: differenceInCalendarDays(today, vencimento),
-            url: "/dp/documentos",
+            url: `/dp/documentos?lote=${l.id}`,
           });
         });
       } catch (e) {
@@ -722,7 +722,11 @@ export function useDpPendencias() {
         const porId = new Map(
           (deps ?? []).map((d: any) => [d.id as string, d.dp_colaboradores?.nome ?? "Colaborador"]),
         );
+        const colabDoDep = new Map(
+          (deps ?? []).map((d: any) => [d.id as string, d.colaborador_id as string]),
+        );
         alertasDependentes((deps ?? []) as any, ymd(today)).forEach((a) => {
+          const colabId = colabDoDep.get(a.dependenteId);
           results.push({
             id: `dependente-${a.dependenteId}-${a.tipo}`,
             icon: Users,
@@ -732,7 +736,9 @@ export function useDpPendencias() {
             colaboradorNome: porId.get(a.dependenteId) ?? null,
             vencimento: null,
             atrasoDias: a.severidade === "alta" ? 1 : 0,
-            url: "/dp/colaboradores",
+            url: colabId
+              ? `/dp/colaboradores?editar=${colabId}&aba=dependentes`
+              : "/dp/colaboradores",
           });
         });
       } catch (e) {
@@ -800,7 +806,7 @@ export function useDpPendencias() {
                 colaboradorNome: c.nome,
                 vencimento: null,
                 atrasoDias: 1,
-                url: "/dp/colaboradores",
+                url: `/dp/colaboradores?editar=${c.id}&aba=documentos`,
               });
             }
             if (resumo.aguardandoAprovacao.length > 0) {
@@ -813,7 +819,7 @@ export function useDpPendencias() {
                 colaboradorNome: c.nome,
                 vencimento: null,
                 atrasoDias: 0,
-                url: "/dp/colaboradores",
+                url: `/dp/colaboradores?editar=${c.id}&aba=documentos`,
               });
             }
             if (resumo.vencendo.length > 0) {
@@ -826,7 +832,7 @@ export function useDpPendencias() {
                 colaboradorNome: c.nome,
                 vencimento: null,
                 atrasoDias: 0,
-                url: "/dp/colaboradores",
+                url: `/dp/colaboradores?editar=${c.id}&aba=documentos`,
               });
             }
           }

@@ -45,6 +45,12 @@ export interface BulkImportPanelProps {
   filterByTipo?: boolean;
   /** Título do card de upload. */
   title?: string;
+  /** Sugere o tipo do lote (seletor continua editável). */
+  tipoInicial?: string;
+  /** Sugere a referência (input continua editável). */
+  referenciaInicial?: string;
+  /** Abre automaticamente as páginas de um lote específico. */
+  loteAbertoId?: string;
 }
 
 export function BulkImportPanel({
@@ -52,6 +58,9 @@ export function BulkImportPanel({
   referenciaFixed,
   filterByTipo = !!tipoFixed,
   title = "Importação em massa (PDF com várias páginas)",
+  tipoInicial,
+  referenciaInicial,
+  loteAbertoId,
 }: BulkImportPanelProps) {
   const qc = useQueryClient();
   const { selectedCompanyId } = useCompanyContext();
@@ -59,8 +68,8 @@ export function BulkImportPanel({
 
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [tipo, setTipo] = useState<string>(tipoFixed ?? AUTO_TIPO);
-  const [referencia, setReferencia] = useState<string>(referenciaFixed ?? "");
+  const [tipo, setTipo] = useState<string>(tipoFixed ?? tipoInicial ?? AUTO_TIPO);
+  const [referencia, setReferencia] = useState<string>(referenciaFixed ?? referenciaInicial ?? "");
   const [uploading, setUploading] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -70,6 +79,9 @@ export function BulkImportPanel({
 
   useEffect(() => { if (tipoFixed) setTipo(tipoFixed); }, [tipoFixed]);
   useEffect(() => { if (referenciaFixed) setReferencia(referenciaFixed); }, [referenciaFixed]);
+  useEffect(() => {
+    if (loteAbertoId) setExpanded((s) => ({ ...s, [loteAbertoId]: true }));
+  }, [loteAbertoId]);
   useEffect(() => {
     if (!selectedCompanyId) return;
     supabase.functions.invoke("dp-doc-bulk-discard", {
