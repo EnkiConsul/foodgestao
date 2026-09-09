@@ -305,6 +305,7 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
 const AppRoutes = () => (
   <ErrorBoundary scope="rota">
+    <PresenceTracker />
     <Suspense fallback={<PageSpinner />}>
       <Routes>
 
