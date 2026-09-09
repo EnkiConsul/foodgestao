@@ -475,7 +475,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
 
             {/* Edit current item */}
             {current && (
-              <div className="border-t p-3 space-y-3 bg-muted/10">
+              <div className="order-3 lg:order-none border-t p-3 space-y-3 bg-muted/10 min-w-0">
                 <div className="text-xs font-medium text-muted-foreground">
                   Editar página {current.page_index}
                 </div>
