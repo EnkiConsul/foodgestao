@@ -129,6 +129,14 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   const rows = items.data ?? [];
   const current = rows[currentIdx];
 
+  // Páginas vinculadas antes da regra de vínculo: corrige a natureza ao abrir.
+  useNormalizarTipoPorVinculo({
+    batchId,
+    rows,
+    colaboradores,
+    batchTipo: (batchInfo.data as any)?.tipo ?? null,
+  });
+
   /**
    * Checagem prévia de duplicidade: mostra na conferência, antes de aprovar,
    * quais páginas já possuem documento salvo (colaborador + tipo + competência).
