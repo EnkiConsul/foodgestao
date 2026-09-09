@@ -10,9 +10,13 @@ export interface LinhaLote {
   matched_colaborador_id?: string | null;
 }
 
-export function loteConcluido(linhas: LinhaLote[], aprovados: string[]): boolean {
-  const enviados = new Set(aprovados);
+export function loteConcluido(
+  linhas: LinhaLote[],
+  aprovados: string[],
+  ignorados: string[] = [],
+): boolean {
+  const decididos = new Set([...aprovados, ...ignorados]);
   return !linhas.some(
-    (l) => l.status === "pending" && !!l.matched_colaborador_id && !enviados.has(l.id),
+    (l) => l.status === "pending" && !!l.matched_colaborador_id && !decididos.has(l.id),
   );
 }

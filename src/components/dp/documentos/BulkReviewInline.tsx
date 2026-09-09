@@ -328,7 +328,20 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   const semUnidadeOkRef = useRef(false);
   const [confirmSemUnidade, setConfirmSemUnidade] = useState(false);
 
-  async function runApprove(item_ids: string[], on_duplicate: "skip" | "replace") {
+  /** Marca páginas duplicadas como ignoradas para elas saírem da fila de aprovação. */
+  async function ignorarDuplicados(ids: string[]) {
+    if (!ids.length) return;
+    const { error } = await supabase.from("dp_bulk_import_items" as any)
+      .update({ status: "rejected", decided_at: new Date().toISOString() })
+      .in("id", ids);
+    if (error) toast.error(error.message ?? "Falha ao ignorar duplicados");
+  }
+
+  async function runApprove(
+    item_ids: string[],
+    on_duplicate: "skip" | "replace",
+    ignorados: string[] = [],
+  ) {
     if (item_ids.length === 0) {
       toast.error("Nenhuma página elegível");
       return;
@@ -347,7 +360,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       const other = results.filter((x) => !x.ok && x.error !== "duplicate").length;
       const parts = [`${okc} importado(s)`];
       if (rep) parts.push(`${rep} substituído(s)`);
-      if (dup) parts.push(`${dup} duplicado(s) ignorado(s)`);
+      if (dup + ignorados.length) parts.push(`${dup + ignorados.length} duplicado(s) ignorado(s)`);
       if (other) parts.push(`${other} falha(s)`);
       toast.success(parts.join(", "));
       qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
@@ -356,7 +369,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
-      if (okc + rep > 0 && loteConcluido(rows as any[], item_ids)) onConcluido?.();
+      if (okc + rep > 0 && loteConcluido(rows as any[], item_ids, ignorados)) onConcluido?.();
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao aprovar");
     } finally {
@@ -365,6 +378,35 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   }
 
   const [confirmFaltantes, setConfirmFaltantes] = useState(false);
+
+  /** Barra de navegação entre páginas — usada no topo e no rodapé da revisão. */
+  const pageNav = (extraClass?: string) => (
+    <div className={cn("flex items-center justify-between gap-2 px-2 sm:px-3 py-2 bg-muted/20", extraClass)}>
+      <Button
+        size="sm" variant="outline"
+        className="h-10 px-2 sm:px-3 shrink-0"
+        disabled={currentIdx <= 0}
+        onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
+        aria-label="Página anterior"
+      >
+        <ChevronLeft className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Anterior</span>
+      </Button>
+      <div className="text-sm text-muted-foreground text-center truncate">
+        {rows.length > 0
+          ? <><span className="hidden sm:inline">Página </span><b className="text-foreground">{currentIdx + 1}</b><span className="sm:hidden"> / </span><span className="hidden sm:inline"> de </span>{rows.length}</>
+          : "—"}
+      </div>
+      <Button
+        size="sm" variant="outline"
+        className="h-10 px-2 sm:px-3 shrink-0"
+        disabled={currentIdx >= rows.length - 1}
+        onClick={() => setCurrentIdx((i) => Math.min(rows.length - 1, i + 1))}
+        aria-label="Próxima página"
+      >
+        <span className="hidden sm:inline">Próximo</span> <ChevronRight className="h-4 w-4 sm:ml-1" />
+      </Button>
+    </div>
+  );
 
   function handleApproveClick() {
     if (coverage.unidadeIndefinida && !semUnidadeOkRef.current) {
@@ -537,32 +579,9 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
 
       {!ocrInProgress && !isSaving && (
       <>
-      {/* Navigation bar */}
-      <div className="flex items-center justify-between gap-2 px-2 sm:px-3 py-2 border-b bg-muted/20">
-        <Button
-          size="sm" variant="outline"
-          className="h-10 px-2 sm:px-3 shrink-0"
-          disabled={currentIdx <= 0}
-          onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
-          aria-label="Página anterior"
-        >
-          <ChevronLeft className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Anterior</span>
-        </Button>
-        <div className="text-sm text-muted-foreground text-center truncate">
-          {rows.length > 0
-            ? <><span className="hidden sm:inline">Página </span><b className="text-foreground">{currentIdx + 1}</b><span className="sm:hidden"> / </span><span className="hidden sm:inline"> de </span>{rows.length}</>
-            : "—"}
-        </div>
-        <Button
-          size="sm" variant="outline"
-          className="h-10 px-2 sm:px-3 shrink-0"
-          disabled={currentIdx >= rows.length - 1}
-          onClick={() => setCurrentIdx((i) => Math.min(rows.length - 1, i + 1))}
-          aria-label="Próxima página"
-        >
-          <span className="hidden sm:inline">Próximo</span> <ChevronRight className="h-4 w-4 sm:ml-1" />
-        </Button>
-      </div>
+      {/* Navigation bar (topo) */}
+      {pageNav("border-b")}
+
 
       {/* Card com preview */}
       <div className="p-2 sm:p-3">
@@ -783,6 +802,9 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
         )}
       </div>
 
+      {/* Navigation bar (rodapé) — evita rolar até o topo para trocar de página */}
+      {rows.length > 1 && pageNav("border-t")}
+
       {/* Rodapé de aprovação */}
       {stats.total > 0 && (
         <div className="px-3 sm:px-4 py-3 border-t bg-muted/10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -839,8 +861,20 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
           totalItems={confirmDup.allIds.length}
           onSkip={() => {
             const ids = confirmDup.nonDupIds;
+            const dupIds = confirmDup.collisions.map((c) => c.item_id);
             setConfirmDup(null);
-            runApprove(ids, "skip");
+            void (async () => {
+              await ignorarDuplicados(dupIds);
+              if (ids.length === 0) {
+                toast.success(`${dupIds.length} duplicado(s) ignorado(s)`);
+                qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+                qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
+                qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+                if (loteConcluido(rows as any[], [], dupIds)) onConcluido?.();
+                return;
+              }
+              await runApprove(ids, "skip", dupIds);
+            })();
           }}
           onReplace={() => {
             const ids = confirmDup.allIds;

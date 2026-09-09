@@ -361,7 +361,11 @@ export function BulkImportPanel({
             }}
             className={cn(
               "block cursor-pointer rounded-xl border-2 border-dashed transition-colors px-6 py-10 text-center",
-              dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+              dragOver
+                ? "border-primary bg-primary/5"
+                : file
+                  ? "border-green-500/60 bg-green-50 dark:bg-green-950/20"
+                  : "border-border hover:border-primary/50",
             )}
           >
             <input
@@ -370,13 +374,34 @@ export function BulkImportPanel({
               className="hidden"
               onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
             />
-            <Upload className="size-8 mx-auto text-muted-foreground" />
+            {file && !dragOver ? (
+              <Check className="size-8 mx-auto text-green-600 dark:text-green-400" />
+            ) : (
+              <Upload className="size-8 mx-auto text-muted-foreground" />
+            )}
             <div className="mt-3 text-sm">
-              {file ? <span className="font-medium">{file.name}</span> : "Arraste um PDF ou clique para selecionar"}
+              {file
+                ? <span className="font-medium break-words">{file.name}</span>
+                : "Arraste um PDF ou clique para selecionar"}
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              PDF até {MAX_SIZE_MB}MB · máx. 60 páginas por lote · OCR via IA
-            </div>
+            {file ? (
+              <div className="mt-1 flex flex-wrap items-center justify-center gap-2 text-xs">
+                <span className="text-green-700 dark:text-green-400 font-medium">
+                  Arquivo pronto para processar
+                </span>
+                <button
+                  type="button"
+                  className="underline text-muted-foreground hover:text-foreground"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFile(null); }}
+                >
+                  Trocar arquivo
+                </button>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground mt-1">
+                PDF até {MAX_SIZE_MB}MB · máx. 60 páginas por lote · OCR via IA
+              </div>
+            )}
           </label>
 
           <div className={cn(
