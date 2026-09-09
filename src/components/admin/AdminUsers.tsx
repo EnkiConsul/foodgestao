@@ -17,6 +17,28 @@ import { isExempt, exemptionLabel } from "@/lib/billing";
 import { useRemoveExemption } from "@/hooks/useBilling";
 import { ExemptSubscriptionDialog } from "./ExemptSubscriptionDialog";
 
+type AdminUserRow = {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  document: string | null;
+  phone: string | null;
+  profile_type: string;
+  currency: string;
+  timezone: string;
+  onboarding_completed: boolean;
+  onboarding_data: any;
+  is_active: boolean;
+  created_at: string;
+  auth: {
+    email: string | null;
+    phone: string | null;
+    email_confirmed_at: string | null;
+    last_sign_in_at: string | null;
+    created_at: string | null;
+  } | null;
+};
+
 export function AdminUsers() {
   const [search, setSearch] = useState("");
   const [exemptTarget, setExemptTarget] = useState<{ userId: string; planId: string | null } | null>(null);
@@ -27,13 +49,13 @@ export function AdminUsers() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) throw new Error("Sessão expirada. Entre novamente.");
+      const { data, error } = await supabase.functions.invoke("admin-list-users-auth");
       if (error) throw error;
-      return data;
+      return (data as { users: AdminUserRow[] }).users;
     },
+    retry: false,
   });
 
   const { data: subs = [] } = useQuery({
@@ -86,7 +108,8 @@ export function AdminUsers() {
     return (
       (u.full_name?.toLowerCase().includes(term) ?? false) ||
       (u.document?.toLowerCase().includes(term) ?? false) ||
-      (u.phone?.toLowerCase().includes(term) ?? false)
+      (u.phone?.toLowerCase().includes(term) ?? false) ||
+      (u.auth?.email?.toLowerCase().includes(term) ?? false)
     );
   });
 
@@ -95,7 +118,7 @@ export function AdminUsers() {
       <div className="relative w-full sm:max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por nome, documento ou telefone..."
+          placeholder="Buscar por nome, e-mail, documento ou telefone..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -108,6 +131,7 @@ export function AdminUsers() {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
+              <TableHead>E-mail</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Plano / Isenção</TableHead>
               <TableHead>Onboarding</TableHead>
@@ -120,14 +144,14 @@ export function AdminUsers() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
+                  {Array.from({ length: 8 }).map((_, j) => (
                     <TableCell key={j}><Skeleton className="h-4 w-24" /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Nenhum usuário encontrado
                 </TableCell>
               </TableRow>
@@ -138,6 +162,7 @@ export function AdminUsers() {
                 return (
                   <TableRow key={user.id} className={!user.is_active ? "opacity-60" : ""}>
                     <TableCell className="font-medium">{user.full_name || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.auth?.email ?? "—"}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">{user.profile_type}</Badge>
                     </TableCell>
@@ -223,6 +248,7 @@ export function AdminUsers() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-medium truncate">{user.full_name || "—"}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{user.auth?.email ?? "—"}</p>
                     <p className="text-[11px] text-muted-foreground">{formatDate(user.created_at, "dd/MM/yyyy")}</p>
                   </div>
                   <DropdownMenu>
