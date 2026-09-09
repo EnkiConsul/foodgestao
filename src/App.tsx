@@ -21,7 +21,7 @@ import { CanonicalUrl } from "@/components/seo/CanonicalUrl";
 import { SuperAdminRoute } from "@/components/admin/SuperAdminRoute";
 import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useCurrentSubscription } from "@/hooks/useCurrentSubscription";
+import { useCompanyAccess } from "@/hooks/useCompanyAccess";
 import { useCompanyAccess } from "@/hooks/useCompanyAccess";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { ProtectedRoute, OnboardingGuard } from "@/routes/onboardingGuards";
@@ -161,6 +161,7 @@ const EncarregadoDados = lazyWithRetry(() => import("./pages/legal/EncarregadoDa
 const DasMei = lazyWithRetry(() => import("./pages/guias/DasMei"));
 const Buscar = lazyWithRetry(() => import("./pages/Buscar"));
 const TrialExpired = lazyWithRetry(() => import("./pages/TrialExpired"));
+const BemVindo = lazyWithRetry(() => import("./pages/BemVindo"));
 
 
 
