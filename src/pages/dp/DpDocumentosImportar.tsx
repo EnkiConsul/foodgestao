@@ -33,8 +33,7 @@ function competenciaLabel(comp: string | null) {
  * unidade vêm na URL e aparecem num aviso, além de pré-preencherem o formulário.
  */
 export default function DpDocumentosImportar() {
-  const [params] = useSearchParams();
-  const [avisoAberto, setAvisoAberto] = useState(true);
+  const [params, setParams] = useSearchParams();
   const [foco, setFoco] = useState<{ tipo: string; competencia: string; nonce: number } | null>(null);
   const unidades = useDpUnidades();
 
@@ -42,6 +41,23 @@ export default function DpDocumentosImportar() {
   const competencia = params.get("competencia");
   const unidadeId = params.get("unidade");
   const lote = params.get("lote");
+
+  // Pré-preenchimento capturado uma única vez: sobrevive à limpeza do aviso.
+  const [inicial] = useState(() => ({
+    tipo: params.get("tipo") ?? undefined,
+    competencia: params.get("competencia") ?? undefined,
+    lote: params.get("lote") ?? undefined,
+  }));
+
+  /**
+   * O aviso vive na URL (veio do atalho "Resolver"). Fechá-lo precisa apagar os
+   * parâmetros, senão ele reaparece ao recarregar ou voltar para a tela.
+   */
+  const limparContexto = () => {
+    const next = new URLSearchParams(params);
+    ["tipo", "competencia", "unidade", "lote"].forEach((k) => next.delete(k));
+    setParams(next, { replace: true });
+  };
 
   const unidadeNome =
     (unidades.data ?? []).find((u) => u.id === unidadeId)?.nome ?? null;
