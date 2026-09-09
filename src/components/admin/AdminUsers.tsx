@@ -251,6 +251,7 @@ export function AdminUsers() {
                   <div className="min-w-0">
                     <p className="font-medium truncate">{user.full_name || "—"}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{user.auth?.email ?? "—"}</p>
+                    <p className="text-[11px] text-muted-foreground">{user.phone || user.auth?.phone || "—"}</p>
                     <p className="text-[11px] text-muted-foreground">{formatDate(user.created_at, "dd/MM/yyyy")}</p>
                   </div>
                   <DropdownMenu>
