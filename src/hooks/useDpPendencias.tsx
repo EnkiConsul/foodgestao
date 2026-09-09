@@ -704,21 +704,31 @@ export function useDpPendencias() {
         limite.setDate(limite.getDate() + cfg.alerta_ferias_dias);
         const { data: periodos } = await supabase
           .from("dp_ferias_periodos")
-          .select("id, colaborador_id, limite_concessivo, dias_saldo, dp_colaboradores(nome)")
+          .select("id, colaborador_id, fim_aquisitivo, limite_concessivo, dias_saldo, dp_colaboradores(nome, vinculo_label, ativo)")
           .eq("company_id", selectedCompanyId!)
           .eq("controle_externo", false)
           .gt("dias_saldo", 0)
-          .lte("limite_concessivo", ymd(limite))
+          .or(`limite_concessivo.lte.${ymd(limite)},fim_aquisitivo.lte.${hojeISO}`)
           .order("limite_concessivo", { ascending: true })
-          .limit(30);
+          .limit(60);
         (periodos ?? []).forEach((p: any) => {
+          // Sócio não tem férias legais; desligado não agenda férias.
+          const vinculo = String(p.dp_colaboradores?.vinculo_label ?? "").toLowerCase();
+          if (vinculo.includes("sóci")) return;
+          if (p.dp_colaboradores?.ativo === false) return;
           const vencimento = new Date(`${p.limite_concessivo}T00:00:00`);
           const dias = differenceInCalendarDays(today, vencimento);
           const jaVenceu = dias > 0;
+          const adquirida = String(p.fim_aquisitivo ?? "") <= hojeISO;
+          const titulo = jaVenceu
+            ? "Férias vencidas"
+            : adquirida && dias > cfg.alerta_ferias_dias
+              ? "Férias adquiridas — agendar"
+              : "Férias a vencer";
           results.push({
             id: `ferias-${p.id}`,
             icon: Palmtree,
-            titulo: jaVenceu ? "Férias vencidas" : "Férias a vencer",
+            titulo,
             subtitulo: `${p.dp_colaboradores?.nome ?? "Colaborador"} — ${p.dias_saldo} dia(s) de saldo · limite ${format(vencimento, "dd/MM/yyyy")}`,
             tipo: "Férias",
             colaboradorNome: p.dp_colaboradores?.nome ?? null,
