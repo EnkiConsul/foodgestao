@@ -843,7 +843,9 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                     </SelectContent>
                   </Select>
                   <NovoColaboradorInlineDialog
+                    defaultNome={current.matched_nome ?? ""}
                     defaultCpf={current.matched_cpf ?? ""}
+                    defaultUnidadeId={current.detected_unidade_id ?? batchInfo.data?.unidade_id ?? null}
                     onCreated={(id) => setColab.mutate({ id: current.id, colaborador_id: id })}
                     trigger={
                       <Button size="icon" variant="outline" className="h-10 w-10 shrink-0" title="Cadastrar novo colaborador">
