@@ -593,7 +593,7 @@ export function BulkImportPanel({
                       batchId={b.id}
                       batchName={b.source_file_name}
                       onOpenFullscreen={() => setReviewBatch({ id: b.id, name: b.source_file_name })}
-                      onConcluido={() => reiniciarEnvio(b.id)}
+                      onConcluido={() => { reiniciarEnvio(b.id); onLoteConcluido?.(); }}
                     />
                   </div>
                 )}
