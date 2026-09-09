@@ -129,7 +129,7 @@ export type ColabElegibilidade = {
 
 /** Sócio não recebe contracheque (recebe recibo de pró-labore). */
 export function isSocio(c: ColabElegibilidade): boolean {
-  return String(c.vinculo_label ?? "").toLowerCase().includes("sócio");
+  return String(c.vinculo_label ?? "").toLowerCase().includes("sóci");
 }
 
 /**
