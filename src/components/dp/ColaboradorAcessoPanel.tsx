@@ -1,14 +1,23 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, Copy, Eye, EyeOff, KeyRound, Lock, ShieldCheck } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, KeyRound, Lock, MessageSquare, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { maskCpf } from "@/lib/cpf";
 import type { DpColaborador } from "@/hooks/useDpColaboradores";
 import { acessoPortalAtivo, diasRestantesCarencia } from "@/lib/dp/desligamento";
+import { WhatsappComposerDialog } from "@/components/dp/WhatsappComposerDialog";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { PUBLIC_SITE_ORIGIN } from "@/lib/siteOrigin";
+import {
+  MODELO_ACESSO_PORTAL_TITULO,
+  MODELO_NOVA_SENHA_TITULO,
+  PORTAL_COLABORADOR_PATH,
+} from "@/lib/dp/modelosPortal";
 
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 
@@ -29,6 +38,11 @@ export function ColaboradorAcessoPanel({
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmSenha, setConfirmSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [exigirTroca, setExigirTroca] = useState(true);
+  const [waOpen, setWaOpen] = useState(false);
+  const { companies, selectedCompanyId } = useCompanyContext();
+  const empresaNome =
+    (companies ?? []).find((c: any) => c.id === selectedCompanyId)?.name ?? "";
 
   if (!colaborador?.id) {
     return (
@@ -116,7 +130,7 @@ export function ColaboradorAcessoPanel({
     setBusy("senha");
     try {
       const { data, error } = await supabase.functions.invoke("dp-alterar-senha-colaborador", {
-        body: { colaborador_id: colaborador.id, nova_senha: novaSenha },
+        body: { colaborador_id: colaborador.id, nova_senha: novaSenha, exigir_troca: exigirTroca },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -214,6 +228,14 @@ export function ColaboradorAcessoPanel({
               />
             </div>
           </div>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Checkbox
+              checked={exigirTroca}
+              onCheckedChange={(v) => setExigirTroca(v === true)}
+              aria-label="Exigir troca no primeiro acesso"
+            />
+            Exigir que o colaborador troque a senha no primeiro acesso
+          </label>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={gerarSenhaAleatoria} disabled={busy !== null}>
               Gerar senha forte
@@ -231,7 +253,8 @@ export function ColaboradorAcessoPanel({
             {resultado.kind === "created" ? "Acesso criado" : "Senha definida"} — informe ao colaborador
           </div>
           <p className="text-xs text-muted-foreground">
-            O login no portal é feito pelo CPF. Esta senha aparece apenas agora.
+            O login no portal é feito pelo CPF. Esta senha é provisória: o colaborador precisa criar uma nova no
+            primeiro acesso. Ela aparece apenas agora.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             {[
@@ -255,7 +278,32 @@ export function ColaboradorAcessoPanel({
               </div>
             ))}
           </div>
+          <Button type="button" size="sm" onClick={() => setWaOpen(true)}>
+            <MessageSquare className="mr-2 h-4 w-4" aria-hidden="true" />
+            Enviar no WhatsApp
+          </Button>
         </div>
+      )}
+
+      {resultado && (
+        <WhatsappComposerDialog
+          open={waOpen}
+          onClose={() => setWaOpen(false)}
+          colaboradorId={colaborador.id}
+          nome={colaborador.nome ?? ""}
+          titulosPreferidos={
+            resultado.kind === "created"
+              ? [MODELO_ACESSO_PORTAL_TITULO]
+              : [MODELO_NOVA_SENHA_TITULO, MODELO_ACESSO_PORTAL_TITULO]
+          }
+          contexto={{
+            nome: colaborador.nome ?? "",
+            empresa: empresaNome,
+            link: `${PUBLIC_SITE_ORIGIN}${PORTAL_COLABORADOR_PATH}`,
+            usuario: resultado.cpf ? maskCpf(resultado.cpf) : "",
+            senha: resultado.password,
+          }}
+        />
       )}
     </div>
   );

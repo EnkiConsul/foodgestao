@@ -82,9 +82,63 @@ export function modeloDisplayName(m: DpModeloMensagem): string {
   return m.titulo;
 }
 
+/** Normaliza a chave da variável: sem acento, minúscula, sem espaços extras. */
+function normalizeVarKey(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+/** Sinônimos amigáveis usados nos modelos cadastrados pelas empresas. */
+const VAR_SYNONYMS: Record<string, string> = {
+  nome: "nome",
+  "nome do colaborador": "nome",
+  colaborador: "nome",
+  empresa: "empresa",
+  "nome da empresa": "empresa",
+  link: "link",
+  "link do portal": "link",
+  portal: "link",
+  usuario: "usuario",
+  "usuario (cpf)": "usuario",
+  login: "usuario",
+  cpf: "usuario",
+  senha: "senha",
+  "senha temporaria": "senha",
+  "senha provisoria": "senha",
+  "nova senha": "senha",
+  data: "data",
+  unidade: "unidade",
+  cargo: "cargo",
+};
+
+/**
+ * Substitui variáveis do modelo. Aceita `{{chave}}` e `{Rótulo Amigável}`,
+ * comparando sem acento/caixa. Chave desconhecida permanece literal para o
+ * gestor perceber e ajustar o modelo.
+ */
 export function applyModeloVars(corpo: string, ctx: Record<string, string | number | null | undefined>): string {
-  return corpo.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
-    const v = ctx[key];
-    return v == null ? "" : String(v);
-  });
+  const map = new Map<string, string>();
+  for (const [k, v] of Object.entries(ctx)) {
+    if (v == null || v === "") continue;
+    const norm = normalizeVarKey(k);
+    map.set(norm, String(v));
+    const canon = VAR_SYNONYMS[norm];
+    if (canon && !map.has(canon)) map.set(canon, String(v));
+  }
+
+  const lookup = (raw: string): string | null => {
+    const norm = normalizeVarKey(raw);
+    if (map.has(norm)) return map.get(norm)!;
+    const canon = VAR_SYNONYMS[norm];
+    if (canon && map.has(canon)) return map.get(canon)!;
+    return null;
+  };
+
+  return corpo
+    .replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (full, key: string) => lookup(key) ?? full)
+    .replace(/\{\s*([^{}]+?)\s*\}/g, (full, key: string) => lookup(key) ?? full);
 }
