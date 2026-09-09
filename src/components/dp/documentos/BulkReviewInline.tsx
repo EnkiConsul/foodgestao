@@ -856,6 +856,14 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
             setConfirmDup(null);
             void (async () => {
               await ignorarDuplicados(dupIds);
+              if (ids.length === 0) {
+                toast.success(`${dupIds.length} duplicado(s) ignorado(s)`);
+                qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+                qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
+                qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+                if (loteConcluido(rows as any[], [], dupIds)) onConcluido?.();
+                return;
+              }
               await runApprove(ids, "skip", dupIds);
             })();
           }}
