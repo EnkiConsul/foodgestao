@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
+import { isSocio } from "@/lib/dp/contrato-policy";
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +11,8 @@ import type { Database } from "@/integrations/supabase/types";
 export type FeriasPeriodo = Database["public"]["Tables"]["dp_ferias_periodos"]["Row"] & {
   colaborador_nome?: string | null;
   unidade_id?: string | null;
+  /** Sócio: registro fica apenas como ausência, fora do controle legal. */
+  socio?: boolean;
 };
 export type FeriasGozo = Database["public"]["Tables"]["dp_ferias_gozos"]["Row"];
 export type FeriasPeriodoStatus = Database["public"]["Enums"]["dp_ferias_periodo_status"];
@@ -47,7 +50,7 @@ export function useDpFerias(colaboradorFilter: string) {
     queryFn: async () => {
       let q = supabase
         .from("dp_ferias_periodos")
-        .select("*, dp_colaboradores(nome, unidade_id)")
+        .select("*, dp_colaboradores(nome, unidade_id, vinculo_label)")
         .eq("company_id", selectedCompanyId!)
         .order("inicio_aquisitivo", { ascending: false });
       if (colaboradorFilter !== "todos") q = q.eq("colaborador_id", colaboradorFilter);
@@ -57,6 +60,7 @@ export function useDpFerias(colaboradorFilter: string) {
         ...r,
         colaborador_nome: r.dp_colaboradores?.nome ?? null,
         unidade_id: r.dp_colaboradores?.unidade_id ?? null,
+        socio: isSocio(r.dp_colaboradores?.vinculo_label),
       })) as FeriasPeriodo[];
     },
   });

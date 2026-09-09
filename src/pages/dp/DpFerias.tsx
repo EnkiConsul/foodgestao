@@ -22,6 +22,7 @@ import { FeriasSaldoInicialDialog } from "@/components/dp/ferias/FeriasSaldoInic
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { FeriasRestricoesAviso } from "@/components/dp/ferias/FeriasRestricoesAviso";
 import {
+  FERIAS_SOCIO_META,
   NIVEL_VENCIMENTO_META,
   RISCO_DOBRA_META,
   nivelVencimentoPeriodo,
@@ -139,7 +140,7 @@ export default function DpFerias() {
   const hoje = new Date();
   const hojeISO = format(hoje, "yyyy-MM-dd");
   const alertaLimite = (p: FeriasPeriodo) => {
-    if (p.status === "concluido" || p.controle_externo) return null;
+    if (p.status === "concluido" || p.controle_externo || p.socio) return null;
     const dias = differenceInCalendarDays(parseISO(p.limite_concessivo), hoje);
     const nivel = nivelVencimentoPeriodo({
       fimAquisitivo: p.fim_aquisitivo,
@@ -147,6 +148,7 @@ export default function DpFerias() {
       diasSaldo: p.dias_saldo,
       hojeISO,
       politica: feriasConfig.sinalizacaoCicloEncerrado,
+      socio: p.socio,
     });
     if (nivel === "normal") return null;
     const meta = NIVEL_VENCIMENTO_META[nivel];
@@ -250,7 +252,8 @@ export default function DpFerias() {
               const lista = gozosByPeriodo.get(p.id) ?? [];
               const faltas = p.faltas_injustificadas;
               const encerrado = parseISO(p.fim_aquisitivo) <= hoje;
-              const externo = !!p.controle_externo;
+              const socio = !!p.socio;
+              const externo = !!p.controle_externo || socio;
               const risco = riscoPorColab.get(p.colaborador_id);
               const emRisco = !externo && risco?.emRisco === true &&
                 risco.periodosAbertos.some((a) => a.id === p.id);
@@ -274,7 +277,11 @@ export default function DpFerias() {
                       )}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      {externo ? (
+                      {socio ? (
+                        <Badge className={FERIAS_SOCIO_META.tone}>
+                          <History className="mr-1 size-3.5" /> {FERIAS_SOCIO_META.label}
+                        </Badge>
+                      ) : externo ? (
                         <Badge className="bg-muted text-muted-foreground">
                           <History className="mr-1 size-3.5" /> Controle externo
                         </Badge>
@@ -305,8 +312,9 @@ export default function DpFerias() {
 
                   {externo ? (
                     <p className="text-xs text-muted-foreground">
-                      Período anterior ao início do controle no sistema — fica apenas como
-                      histórico, sem cobrança de prazo nem alertas.
+                      {socio
+                        ? FERIAS_SOCIO_META.explicacao
+                        : "Período anterior ao início do controle no sistema — fica apenas como histórico, sem cobrança de prazo nem alertas."}
                     </p>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2 text-sm">

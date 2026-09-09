@@ -34,9 +34,11 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
   const politica = feriasConfig.sinalizacaoCicloEncerrado;
 
   const { kpis, atencoes, riscoPorColab } = useMemo(() => {
+    // Sócio não tem férias legais: fica fora de saldo, prazo e indicadores.
     const comSaldo = periodos.filter(
       (p) =>
         !p.controle_externo &&
+        !p.socio &&
         (p.dias_saldo ?? 0) > 0 &&
         p.status !== "em_aquisicao" &&
         p.status !== "concluido",
@@ -50,6 +52,7 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
         diasSaldo: p.dias_saldo,
         hojeISO,
         politica,
+        socio: p.socio,
       });
 
     const riscos = riscoAcumuloPorColaborador(periodos as any[], hojeISO);
