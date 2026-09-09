@@ -388,7 +388,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
                   "ponto",
                   temRelogio && c.possui_folha_ponto === true && !intermitenteSemTrabalho,
                 ],
-                ["adiantamento", optanteAdiantamento && !intermitenteSemTrabalho],
+                ["adiantamento", cobraAdiantamento],
               ];
 
           // 13º dentro do prazo legal: aviso informativo, não pendência.
