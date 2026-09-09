@@ -90,6 +90,21 @@ export default function DpMeuSolicitacoes() {
     },
   });
 
+  // Regra de adiantamento da unidade (dia do pagamento) para o painel do portal.
+  const minhaUnidade = useQuery({
+    queryKey: ["dp_meu_sol_unidade", meRef.data?.unidade_id],
+    enabled: !!meRef.data?.unidade_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("dp_unidades")
+        .select("id, tem_adiantamento, dia_adiantamento")
+        .eq("id", meRef.data!.unidade_id!)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+
   const list = useQuery({
     queryKey: ["dp_meu_sol", meRef.data?.id],
     enabled: !!meRef.data?.id,
