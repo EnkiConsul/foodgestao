@@ -47,30 +47,7 @@ export default function DpMeuHome() {
     },
   });
 
-  // Avisos com marcação de lido/não-lido cruzando dp_avisos_leituras.
-  const avisos = useQuery({
-    queryKey: ["dp_meu_avisos", user?.id],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      const { data: rows } = await supabase
-        .from("dp_avisos")
-        .select("id, titulo, conteudo, prioridade, publicado_em, fixado")
-        .order("fixado", { ascending: false })
-        .order("publicado_em", { ascending: false })
-        .limit(4);
-      const ids = (rows ?? []).map((r) => r.id);
-      let readIds = new Set<string>();
-      if (ids.length) {
-        const { data: leituras } = await supabase
-          .from("dp_avisos_leituras")
-          .select("aviso_id")
-          .in("aviso_id", ids)
-          .eq("user_id", user!.id);
-        readIds = new Set((leituras ?? []).map((l) => l.aviso_id));
-      }
-      return (rows ?? []).map((r) => ({ ...r, lido: readIds.has(r.id) }));
-    },
-  });
+  // Mural e notificações agora vivem juntos em <AvisosNotificacoesCard />.
 
   // Próxima folga de qualquer motivo (lançada, escala ou folga semanal fixa).
   const { folga: proximaFolga, hoje: hojeISO } = useMinhaProximaFolga(colabId.data);
