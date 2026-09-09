@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { DP_DOC_GRUPOS, docTipoLabel, assinaturaDocumento } from "@/lib/dp/documentoTipos";
 import { extrairCpfValido, extrairNomePessoa, isCpfValido, pareceRazaoSocial } from "@/lib/dp/doc-pessoa";
 import { tipoCanonicoPorVinculo } from "@/lib/dp/documento-tipo-por-vinculo";
+import { useNormalizarTipoPorVinculo } from "./useNormalizarTipoPorVinculo";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
