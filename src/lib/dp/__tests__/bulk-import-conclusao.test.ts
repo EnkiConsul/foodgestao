@@ -29,4 +29,21 @@ describe("loteConcluido", () => {
   it("lote vazio conta como concluído", () => {
     expect(loteConcluido([], [])).toBe(true);
   });
+
+  it("conclui quando o que sobra é duplicado ignorado", () => {
+    const linhas = [
+      { id: "a", status: "pending", matched_colaborador_id: "c1" },
+      { id: "b", status: "pending", matched_colaborador_id: "c2" },
+    ];
+    expect(loteConcluido(linhas, ["a"], ["b"])).toBe(true);
+  });
+
+  it("não conclui se o duplicado ignorado não cobre todas as pendentes", () => {
+    const linhas = [
+      { id: "a", status: "pending", matched_colaborador_id: "c1" },
+      { id: "b", status: "pending", matched_colaborador_id: "c2" },
+      { id: "c", status: "pending", matched_colaborador_id: "c3" },
+    ];
+    expect(loteConcluido(linhas, ["a"], ["b"])).toBe(false);
+  });
 });
