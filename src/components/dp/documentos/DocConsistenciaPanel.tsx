@@ -496,16 +496,48 @@ export function DocConsistenciaPanel() {
     );
   };
 
+  /**
+   * No celular o quadro começa recolhido: o envio do PDF é a ação principal da
+   * tela e não pode ficar empurrado para baixo por uma lista longa de pendências.
+   */
+  const totalPendencias =
+    faltando.length + avisos.length + ferias.length + inconsistentes.length;
+  const isMobile = useIsMobile();
+  const [abertaManual, setAbertaManual] = useState<boolean | null>(null);
+  const aberta = abertaManual ?? !isMobile;
+
   return (
     <Card className="dp-content-card">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-base">Conferência de Documentos</CardTitle>
-        {janelaLabel && (
-          <p className="text-xs text-muted-foreground">
-            Competências analisadas: {janelaLabel}
-          </p>
-        )}
-      </CardHeader>
+      <Collapsible open={aberta} onOpenChange={(v) => setAbertaManual(v)}>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full items-start justify-between gap-2 rounded-t-xl p-6 text-left"
+          >
+            <CardHeader className="space-y-1 p-0">
+              <CardTitle className="text-base">
+                Conferência de Documentos
+                {totalPendencias > 0 && (
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    ({totalPendencias} ponto{totalPendencias === 1 ? "" : "s"} de atenção)
+                  </span>
+                )}
+              </CardTitle>
+              {janelaLabel && (
+                <p className="text-xs text-muted-foreground">
+                  Competências analisadas: {janelaLabel}
+                </p>
+              )}
+            </CardHeader>
+            <ChevronDown
+              className={cn(
+                "mt-1 size-5 shrink-0 text-muted-foreground transition-transform",
+                aberta && "rotate-180",
+              )}
+            />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
       <CardContent className="space-y-3">
         {query.isLoading && <p className="text-sm text-muted-foreground">Conferindo…</p>}
 
