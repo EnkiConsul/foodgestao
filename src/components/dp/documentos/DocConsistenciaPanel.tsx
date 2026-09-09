@@ -11,6 +11,10 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { ativoNaCompetencia, tipoColetivoDoc } from "@/lib/dp/bulk-coverage";
+import {
+  optanteNaCompetencia,
+  type AdiantamentoSolicitacao,
+} from "@/lib/dp/adiantamento-opcao";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
