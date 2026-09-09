@@ -390,6 +390,17 @@ export default function DpMeuSolicitacoes() {
         }
       />
 
+      {minhaUnidade.data?.tem_adiantamento && meRef.data?.company_id && meRef.data?.id && (
+        <AdiantamentoSolicitacoesPanel
+          companyId={meRef.data.company_id as string}
+          colaboradorId={meRef.data.id as string}
+          diaPagamento={minhaUnidade.data.dia_adiantamento ?? null}
+          origem="portal"
+        />
+      )}
+
+
+
       <Tabs value={tab} onValueChange={(v) => setTab(v as StatusTab)}>
         <div className="-mx-1 overflow-x-auto">
           <TabsList className="w-max">
