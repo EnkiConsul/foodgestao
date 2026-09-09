@@ -91,7 +91,7 @@ function tipoBadgeClass(key: string) {
 }
 
 type ColKey = "colaborador" | "tipo" | "competencia" | "unidade" | "aceite";
-type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "aceite_label" | "data";
+type SortKey = "colaborador_nome" | "tipo_label" | "competencia_sort" | "unidade_nome" | "aceite_label" | "data" | "default";
 
 const COL_ORDER_STORAGE = "dp_historico_col_order_v2";
 const COL_WIDTH_STORAGE = "dp_historico_col_width_v1";
