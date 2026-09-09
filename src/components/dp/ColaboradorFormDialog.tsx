@@ -2133,7 +2133,11 @@ export function ColaboradorFormDialog({
                 regime={regimeSelecionado}
                 socio={socioSelecionado}
                 socioRemuneracao={socioRem}
-                onSocioRemuneracaoChange={setSocioRem}
+                onSocioRemuneracaoChange={(v) => {
+                  setSocioRem(v);
+                  // Só lucros não tem retirada fixa: limpa resíduo de valor anterior.
+                  if (v === "somente_lucros") setRem((r) => ({ ...r, salario_base: "", base_salarial: "" }));
+                }}
                 beneficios={beneficios}
                 onNovoBeneficio={() => {
                   setBeneficioEditando(null);
