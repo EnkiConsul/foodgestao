@@ -1,19 +1,33 @@
-# Resolver pendência de documento abre a tela de Importar
+# Botão "Resolver" das pendências: abrir sempre a tela certa
 
-## O que está acontecendo
+## O problema
 
-As pendências de contracheque, folha de ponto e adiantamento apontam para o Histórico de documentos (`/dp/documentos/historico?tipo=...`). O botão "Resolver" leva a uma tela de consulta, não à tela onde o documento é enviado (`/dp/documentos`, "Importar").
+Ao clicar em "Resolver" na pendência do contracheque, abre o **Histórico de documentos** (tela de consulta) e não a tela **Importar**, onde o documento é realmente enviado. Revisando todas as pendências, várias levam apenas à tela geral do assunto, deixando o gestor procurar o item.
 
-## Como fica
+## Destinos revisados
 
-- O botão "Resolver" dessas três pendências passa a abrir a tela **Importar**, já com a natureza e a competência da pendência indicadas no endereço (ex.: contracheque de julho/2026).
-- A tela Importar mostra um aviso curto no topo: "Importando: Contracheque · julho/2026 · Pakerê T-63", para o gestor confirmar que está enviando o mês certo. O aviso pode ser fechado e não bloqueia nada.
-- O Histórico continua acessível pelo atalho já existente na própria tela Importar; nada é removido.
-- Demais pendências (férias, folgas, cadastro etc.) seguem com os destinos atuais.
+| Pendência | Hoje | Passa a abrir |
+|---|---|---|
+| Contracheque / Folha de ponto / Adiantamento não importado | Histórico de documentos | Tela **Importar**, com natureza, competência e unidade indicadas |
+| Unidade não identificada no lote | Importar (genérico) | Importar já com o lote em revisão aberto |
+| Documentos obrigatórios / aguardando aprovação / vencendo de um colaborador | Lista de colaboradores | Ficha do colaborador na aba **Documentos** |
+| Adicional/dependente do colaborador | Lista de colaboradores | Ficha do colaborador na aba correspondente |
+| Completar cadastro | Ficha na aba Dados | Mantido (já correto) |
+| Férias vencidas / a vencer | Tela de Férias | Férias com o colaborador filtrado |
+| ASO / EPI / Treinamento | Conformidade | Conformidade já na aba certa (exames, EPIs ou treinamentos) e com busca pelo colaborador |
+| Negociação coletiva pendente | Lista de unidades | Cadastro da unidade aberto na aba de sindicato/negociação |
+| Regras de folgas | Folgas, aba Regras | Mantido; quando for de uma unidade, já com a unidade selecionada |
+| Solicitações / Trocas | Folgas nas abas certas | Mantido (já correto) |
+| Escala do próximo mês | Escalas | Escalas já no mês seguinte |
+| Ocorrências | Ocorrências | Mantido (já aceita colaborador e data) |
+| Salário-família | Cargos, aba Complementos | Mantido (já correto) |
+
+Na tela de Importar aparece um aviso curto no topo ("Importando: Contracheque · julho/2026 · Pakerê T-63"), que pode ser fechado e não bloqueia nada. Nenhuma regra, permissão ou cálculo muda — só o destino do botão.
 
 ## Detalhes técnicos
 
-- `src/hooks/useDpPendencias.tsx`: trocar as três `url` de `/dp/documentos/historico?tipo=X` (e `/dp/documentos/adiantamento`, `/dp/documentos/ponto`, que redirecionam para o histórico) por `/dp/documentos?tipo=X&competencia=YYYY-MM&unidade=<id>`.
-- `src/pages/dp/DpDocumentosImportar.tsx`: ler os parâmetros com `useSearchParams` e renderizar um alerta informativo acima do painel de importação (rótulo da natureza via `src/lib/dp/documentoTipos.ts`, nome da unidade via hook de unidades já usado no módulo). Nenhuma mudança no motor de importação, no `BulkImportPanel` nem nas edge functions.
-- Sem alteração de rotas existentes, banco, RLS ou permissões.
-- Testes: caso unitário garantindo que as pendências de documento apontam para `/dp/documentos` com natureza e competência; typecheck e suíte DP.
+- `src/hooks/useDpPendencias.tsx`: ajustar as `url` conforme a tabela, sempre com parâmetros de consulta (`?tipo=&competencia=&unidade=`, `?editar=<id>&aba=documentos`, `?colaborador=<id>`, `?aba=<tab>&editar=<id>`, `?mes=YYYY-MM`, `?lote=<id>`). Nenhuma mudança na geração, agrupamento ou urgência das pendências.
+- `src/pages/dp/DpDocumentosImportar.tsx`: ler `tipo`, `competencia`, `unidade` e `lote` via `useSearchParams`; exibir o aviso informativo (rótulo da natureza de `src/lib/dp/documentoTipos.ts`, nome da unidade pelo hook de unidades já usado) e, com `lote`, abrir a revisão do lote correspondente no `BulkImportPanel` via prop opcional. Motor de importação e edge functions inalterados.
+- Telas que ainda não leem parâmetros: `DpUnidades.tsx` (aceitar `editar` e `aba`), `DpConformidade.tsx` (aceitar `aba` e `colaborador`), `DpEscalas.tsx` (aceitar `mes`). `DpFerias.tsx`, `DpColaboradores.tsx` e `DpFolgasHub.tsx` já usam `useSearchParams` — apenas estender para os novos parâmetros (`colaborador`, `aba=documentos`, `unidade`).
+- Sem alteração de rotas existentes (redirects legados permanecem), banco, RLS, permissões ou multiempresa.
+- Testes: caso unitário verificando os destinos gerados por tipo de pendência (documentos → `/dp/documentos` com natureza+competência; colaborador → `editar=<id>&aba=documentos`; férias/conformidade com colaborador); typecheck e suíte DP.
