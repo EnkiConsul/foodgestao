@@ -282,15 +282,28 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
 
       // Competências em que houve gozo de férias (pagamento de férias esperado).
       const gozosPorColab = new Map<string, Set<string>>();
-      // Colaboradores com férias já agendadas (para o alerta de período vencido).
-      const comAgendamento = new Set<string>();
       for (const g of (gozosRes.data ?? []) as any[]) {
-        const cid = g.colaborador_id as string;
-        if (g.status !== "cancelado") comAgendamento.add(cid);
         if (g.status === "planejado") continue;
+        const cid = g.colaborador_id as string;
         const comp = String(g.data_inicio).slice(0, 7);
         if (!gozosPorColab.has(cid)) gozosPorColab.set(cid, new Set());
         gozosPorColab.get(cid)!.add(comp);
+      }
+
+      // Adiantamento: vale o histórico datado da competência, não o flag atual.
+      const solsPorColab = new Map<string, AdiantamentoSolicitacao[]>();
+      for (const s of (solsRes.data ?? []) as any[]) {
+        if (!solsPorColab.has(s.colaborador_id)) solsPorColab.set(s.colaborador_id, []);
+        solsPorColab.get(s.colaborador_id)!.push(s as AdiantamentoSolicitacao);
+      }
+
+      // Intermitente sem nenhuma marcação na competência: não se cobra
+      // contracheque nem folha de ponto (o alerta fica nas Pendências).
+      const pontoNaComp = new Set<string>();
+      for (const p of (pontosRes.data ?? []) as any[]) {
+        if (p.colaborador_id && p.data) {
+          pontoNaComp.add(`${p.colaborador_id}::${String(p.data).slice(0, 7)}`);
+        }
       }
 
       const alertas: Alerta[] = [];
