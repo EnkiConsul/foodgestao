@@ -221,7 +221,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           .in("tipo", TIPOS_DOC_QUERY as any),
         supabase
           .from("dp_unidades")
-          .select("id, nome, possui_relogio_ponto")
+          .select("id, nome, possui_relogio_ponto, dia_adiantamento")
           .eq("company_id", selectedCompanyId!)
           .eq("ativo", true),
         supabase
