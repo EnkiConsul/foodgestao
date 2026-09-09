@@ -241,6 +241,9 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
     }
     setSavingTotal(item_ids.length);
     setIsSaving(true);
+    requestAnimationFrame(() =>
+      savingBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
     try {
       const { data, error } = await supabase.functions.invoke("dp-doc-bulk-approve", {
         body: { item_ids, on_duplicate, sem_unidade_confirmado: semUnidadeOkRef.current },
