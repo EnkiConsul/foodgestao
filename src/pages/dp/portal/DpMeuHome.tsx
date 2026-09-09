@@ -203,43 +203,13 @@ export default function DpMeuHome() {
           </Button>
         </section>
 
-        <section className="rounded-2xl border-2 border-[hsl(var(--dp-birthday-border))] bg-[hsl(var(--dp-birthday-bg))] p-5 flex flex-col">
-          <div className="flex items-center gap-2 mb-4">
-            <Megaphone className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Últimos Avisos</h2>
-          </div>
-          <div className="space-y-3 max-h-[380px] overflow-y-auto flex-1">
-            {(avisos.data?.length ?? 0) === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
-                <Megaphone className="h-8 w-8 opacity-40" />
-                <p className="text-sm">Sem avisos no momento.</p>
-              </div>
-            ) : avisos.data!.map((a: any) => (
-                <div
-                  key={a.id}
-                  className={`rounded-xl bg-card border p-3 ${
-                    a.lido ? "border-[hsl(var(--dp-border))]" : "border-primary/40 ring-1 ring-primary/20"
-                  }`}
-                >
-                <div className="flex items-center justify-between mb-1 gap-2">
-                  <p className="text-sm font-medium truncate">{a.titulo}</p>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {!a.lido && <Badge className="bg-primary text-primary-foreground text-[10px]">Novo</Badge>}
-                    <Badge variant="outline" className="text-[10px] capitalize">{a.prioridade}</Badge>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">{a.conteudo}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+        <AvisosNotificacoesCard />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <MinhasNotificacoesCard />
-        <MinhasPendenciasCard />
         <AniversariantesCard />
       </div>
+
 
       <AtalhosFavoritos />
 
