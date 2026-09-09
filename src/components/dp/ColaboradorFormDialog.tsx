@@ -46,6 +46,7 @@ import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
 import { ColaboradorAcessoPanel } from "./ColaboradorAcessoPanel";
+import { AdiantamentoSolicitacoesPanel } from "@/components/dp/AdiantamentoSolicitacoesPanel";
 import { Trash2 } from "lucide-react";
 import { DIA_PAGAMENTO_PADRAO, DIAS_CORTE_PADRAO, REGRAS_DESCONTO_PADRAO } from "@/lib/dp/va-calculo";
 
@@ -2194,18 +2195,30 @@ export function ColaboradorFormDialog({
 
               {/* Adiantamento — apenas para contratos com salário mensal em folha */}
               {socioSelecionado ? null : permiteAdiantamento ? (
-                <div className="md:col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-border p-3">
-                  <Switch
-                    id="optante_adiantamento"
-                    checked={form.optante_adiantamento}
-                    onCheckedChange={(v) => setForm({ ...form, optante_adiantamento: v })}
-                  />
-                  <Label htmlFor="optante_adiantamento" className="cursor-pointer">Opta por Adiantamento Salarial</Label>
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {unidadeSelecionada?.tem_adiantamento && unidadeSelecionada?.dia_adiantamento
-                      ? `Dia do adiantamento: ${unidadeSelecionada.dia_adiantamento}`
-                      : "Adiantamento não configurado"}
-                  </span>
+                <div className="md:col-span-2 space-y-2">
+                  {(colaborador?.id ?? criadoId) ? (
+                    <AdiantamentoSolicitacoesPanel
+                      companyId={(colaborador?.company_id as string | undefined) ?? selectedCompanyId ?? ""}
+                      colaboradorId={(colaborador?.id ?? criadoId) as string}
+                      diaPagamento={unidadeSelecionada?.dia_adiantamento ?? null}
+                      origem="gestor"
+                      fallbackOptante={colaborador?.optante_adiantamento ?? null}
+                    />
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border p-3">
+                      <Switch
+                        id="optante_adiantamento"
+                        checked={form.optante_adiantamento}
+                        onCheckedChange={(v) => setForm({ ...form, optante_adiantamento: v })}
+                      />
+                      <Label htmlFor="optante_adiantamento" className="cursor-pointer">Opta por Adiantamento Salarial</Label>
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {unidadeSelecionada?.tem_adiantamento && unidadeSelecionada?.dia_adiantamento
+                          ? `Dia do adiantamento: ${unidadeSelecionada.dia_adiantamento}`
+                          : "Adiantamento não configurado"}
+                      </span>
+                    </div>
+                  )}
                   {unidadeSelecionada && <Button type="button" size="sm" variant="outline" onClick={() => setAdiantamentoOpen(true)}>
                     Editar regra da unidade
                   </Button>}

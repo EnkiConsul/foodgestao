@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, Clock, ShieldAlert, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, Clock, ShieldAlert, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -11,6 +11,10 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { ativoNaCompetencia, tipoColetivoDoc } from "@/lib/dp/bulk-coverage";
+import {
+  optanteNaCompetencia,
+  type AdiantamentoSolicitacao,
+} from "@/lib/dp/adiantamento-opcao";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -19,9 +23,6 @@ const JANELA_MESES = 6;
 
 /** Regimes que recebem contracheque mensal. */
 const REGIMES_ASSALARIADOS = new Set(["clt", "intermitente", "temporario", "aprendiz"]);
-
-/** Dias de antecedência para alertar período de férias prestes a vencer. */
-const FERIAS_ALERTA_DIAS = 60;
 
 /** YYYY-MM do mês anterior (competência usual de importação). */
 function competenciaAnterior(): string {
@@ -55,14 +56,6 @@ function labelCompetencia(competencia: string) {
 
 function hojeISO() {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate(),
-  ).padStart(2, "0")}`;
-}
-
-function somaDias(iso: string, dias: number) {
-  const d = new Date(`${iso}T00:00:00`);
-  d.setDate(d.getDate() + dias);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
     d.getDate(),
   ).padStart(2, "0")}`;
@@ -138,14 +131,6 @@ type Aviso = {
   total: number;
 };
 
-type FeriasAlerta = {
-  colaborador_id: string;
-  nome: string;
-  limite: string;
-  dias: number;
-  vencido: boolean;
-};
-
 const MAX_NOMES = 6;
 
 type Pessoa = { nome: string; desligamento: string | null };
@@ -195,7 +180,6 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         alertas: [] as Alerta[],
         elegiveis: {} as Record<string, number>,
         avisos: [] as Aviso[],
-        ferias: [] as FeriasAlerta[],
         unidadesMap: new Map<string, string>(),
         janela: { inicio: inicioJanela, fim },
       };
@@ -219,7 +203,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
       const competencias: string[] = [];
       for (let c = inicio; c <= fim; c = addMeses(c, 1)) competencias.push(c);
 
-      const [colabsRes, docsRes, unidadesRes, gozosRes, periodosRes] = await Promise.all([
+      const [colabsRes, docsRes, unidadesRes, gozosRes, solsRes, pontosRes] = await Promise.all([
         // Inclui desligados: quem saiu no meio do mês continua devendo o
         // documento daquela competência (a elegibilidade é por competência).
         supabase
@@ -245,19 +229,23 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           .select("colaborador_id, data_inicio, data_fim, status")
           .eq("company_id", selectedCompanyId!)
           .in("status", ["aprovado", "em_gozo", "concluido", "planejado"]),
+        // Histórico datado de adiantamento (ativar/cancelar) — decide a competência.
         supabase
-          .from("dp_ferias_periodos")
-          .select("colaborador_id, limite_concessivo, dias_saldo")
+          .from("dp_adiantamento_solicitacoes" as any)
+          .select("colaborador_id, tipo, competencia_efeito, created_at")
+          .eq("company_id", selectedCompanyId!),
+        // Evidência de trabalho (usada para o intermitente).
+        supabase
+          .from("dp_pontos")
+          .select("colaborador_id, data")
           .eq("company_id", selectedCompanyId!)
-          .eq("controle_externo", false)
-          .gt("dias_saldo", 0)
-          .lte("limite_concessivo", somaDias(hoje, FERIAS_ALERTA_DIAS)),
+          .gte("data", primeiroDia(inicio))
+          .lte("data", ultimoDia(fim)),
       ]);
       if (colabsRes.error) throw colabsRes.error;
       if (docsRes.error) throw docsRes.error;
       if (unidadesRes.error) throw unidadesRes.error;
       if (gozosRes.error) throw gozosRes.error;
-      if (periodosRes.error) throw periodosRes.error;
 
       const unidadesMap = new Map(
         (unidadesRes.data ?? []).map((u: any) => [u.id as string, u.nome as string]),
@@ -278,15 +266,28 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
 
       // Competências em que houve gozo de férias (pagamento de férias esperado).
       const gozosPorColab = new Map<string, Set<string>>();
-      // Colaboradores com férias já agendadas (para o alerta de período vencido).
-      const comAgendamento = new Set<string>();
       for (const g of (gozosRes.data ?? []) as any[]) {
-        const cid = g.colaborador_id as string;
-        if (g.status !== "cancelado") comAgendamento.add(cid);
         if (g.status === "planejado") continue;
+        const cid = g.colaborador_id as string;
         const comp = String(g.data_inicio).slice(0, 7);
         if (!gozosPorColab.has(cid)) gozosPorColab.set(cid, new Set());
         gozosPorColab.get(cid)!.add(comp);
+      }
+
+      // Adiantamento: vale o histórico datado da competência, não o flag atual.
+      const solsPorColab = new Map<string, AdiantamentoSolicitacao[]>();
+      for (const s of (solsRes.data ?? []) as any[]) {
+        if (!solsPorColab.has(s.colaborador_id)) solsPorColab.set(s.colaborador_id, []);
+        solsPorColab.get(s.colaborador_id)!.push(s as AdiantamentoSolicitacao);
+      }
+
+      // Intermitente sem nenhuma marcação na competência: não se cobra
+      // contracheque nem folha de ponto (o alerta fica nas Pendências).
+      const pontoNaComp = new Set<string>();
+      for (const p of (pontosRes.data ?? []) as any[]) {
+        if (p.colaborador_id && p.data) {
+          pontoNaComp.add(`${p.colaborador_id}::${String(p.data).slice(0, 7)}`);
+        }
       }
 
       const alertas: Alerta[] = [];
@@ -337,18 +338,35 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           // Mês do desligamento: por padrão o pagamento vem no acerto da
           // rescisão, então cobra-se TRCT/demonstrativo e não o contracheque.
           const desligadoNoMes = !!desligamento && desligamento.slice(0, 7) === comp;
+          // Intermitente sem marcação de ponto no mês: pode simplesmente não
+          // ter sido convocado — nada de cobrança, só o alerta em Pendências.
+          const intermitenteSemTrabalho =
+            regime === "intermitente" && !pontoNaComp.has(`${c.id}::${comp}`);
           const cobraContracheque =
-            assalariado && (!desligadoNoMes || exigirContrachequeMesDesligamento);
+            assalariado &&
+            !intermitenteSemTrabalho &&
+            (!desligadoNoMes || exigirContrachequeMesDesligamento);
+          const optanteAdiantamento = optanteNaCompetencia(
+            solsPorColab.get(c.id as string),
+            comp,
+            c.optante_adiantamento === true,
+          );
 
           const checks: Array<[Tipo, boolean]> = socio
             ? [["pro_labore", socioProLabore]]
             : [
                 ["contracheque", cobraContracheque],
                 ["rescisao", assalariado && desligadoNoMes],
-                ["contracheque_13", assalariado && !!prazoDecimo && !decimoNoPrazo],
+                [
+                  "contracheque_13",
+                  assalariado && !intermitenteSemTrabalho && !!prazoDecimo && !decimoNoPrazo,
+                ],
                 ["contracheque_ferias", !!gozos?.has(comp)],
-                ["ponto", temRelogio && c.possui_folha_ponto === true],
-                ["adiantamento", c.optante_adiantamento === true],
+                [
+                  "ponto",
+                  temRelogio && c.possui_folha_ponto === true && !intermitenteSemTrabalho,
+                ],
+                ["adiantamento", optanteAdiantamento && !intermitenteSemTrabalho],
               ];
 
           // 13º dentro do prazo legal: aviso informativo, não pendência.
@@ -391,12 +409,14 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
               });
             } else if (!esperado && temDoc) {
               // Inconsistência só faz sentido quando o cadastro nega o documento.
+              // Documento de intermitente que trabalhou não é inconsistência.
               const inconsistente =
-                tipo === "ponto" ||
-                tipo === "adiantamento" ||
-                ((tipo === "contracheque" || tipo === "contracheque_13") &&
-                  !assalariado &&
-                  !socioProLabore);
+                !intermitenteSemTrabalho &&
+                (tipo === "ponto" ||
+                  tipo === "adiantamento" ||
+                  ((tipo === "contracheque" || tipo === "contracheque_13") &&
+                    !assalariado &&
+                    !socioProLabore));
               if (inconsistente) {
                 alertas.push({
                   colaborador_id: c.id,
@@ -413,42 +433,12 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         }
       }
 
-      const sociosSet = new Set(
-        ((colabsRes.data ?? []) as any[])
-          .filter((c) => isSocio(c.vinculo_label))
-          .map((c) => c.id as string),
-      );
-      const nomePorColab = new Map(
-        ((colabsRes.data ?? []) as any[]).map((c) => [c.id as string, c.nome as string]),
-      );
-      // Alerta de férias só faz sentido para quem continua no quadro.
-      const ativosSet = new Set(
-        ((colabsRes.data ?? []) as any[]).filter((c) => c.ativo !== false).map((c) => c.id as string),
-      );
-      const ferias: FeriasAlerta[] = ((periodosRes.data ?? []) as any[])
-        .filter(
-          (p) =>
-            nomePorColab.has(p.colaborador_id) &&
-            ativosSet.has(p.colaborador_id) &&
-            !comAgendamento.has(p.colaborador_id) &&
-            !sociosSet.has(p.colaborador_id),
-        )
-        .map((p) => ({
-          colaborador_id: p.colaborador_id as string,
-          nome: nomePorColab.get(p.colaborador_id as string) ?? "Colaborador",
-          limite: String(p.limite_concessivo),
-          dias: Number(p.dias_saldo ?? 0),
-          vencido: String(p.limite_concessivo) < hoje,
-        }))
-        .sort((a, b) => a.limite.localeCompare(b.limite));
-
       return {
         alertas,
         elegiveis,
         avisos: Array.from(avisosMap.values()).sort((a, b) =>
           a.competencia < b.competencia ? -1 : 1,
         ),
-        ferias,
         unidadesMap,
         janela: { inicio, fim },
       };
@@ -515,12 +505,8 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
   const faltando = grupos.filter((g) => g.problema === "faltando");
   const inconsistentes = grupos.filter((g) => g.problema === "inconsistente");
   const avisos = query.data?.avisos ?? [];
-  const ferias = query.data?.ferias ?? [];
   const tudoOk =
-    faltando.length === 0 &&
-    inconsistentes.length === 0 &&
-    avisos.length === 0 &&
-    ferias.length === 0;
+    faltando.length === 0 && inconsistentes.length === 0 && avisos.length === 0;
 
   const renderGrupo = (g: Grupo) => {
     const expandido = !!aberto[g.key];
@@ -597,8 +583,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
    * No celular o quadro começa recolhido: o envio do PDF é a ação principal da
    * tela e não pode ficar empurrado para baixo por uma lista longa de pendências.
    */
-  const totalPendencias =
-    faltando.length + avisos.length + ferias.length + inconsistentes.length;
+  const totalPendencias = faltando.length + avisos.length + inconsistentes.length;
   const isMobile = useIsMobile();
   const [abertaManual, setAbertaManual] = useState<boolean | null>(null);
   const aberta = abertaManual ?? !isMobile;
@@ -681,32 +666,6 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
           </div>
         )}
 
-        {ferias.length > 0 && (
-          <div className="rounded-md border border-orange-500/40 bg-orange-500/5 p-3 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-medium text-orange-700 dark:text-orange-300">
-              <CalendarClock className="h-4 w-4" /> Férias Vencidas Sem Agendamento (
-              {ferias.length})
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Período aquisitivo com saldo e limite concessivo vencido ou próximo, sem férias
-              agendadas.{" "}
-              <Link to="/dp/ferias" className="text-primary underline underline-offset-2">
-                Abrir Férias
-              </Link>
-            </p>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {ferias.map((f) => (
-                <Badge
-                  key={`${f.colaborador_id}-${f.limite}`}
-                  variant="outline"
-                  className="text-[11px]"
-                >
-                  {f.nome} · {f.vencido ? "vencido" : "vence"} {labelData(f.limite)} · {f.dias}d
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
 
         {inconsistentes.length > 0 && (
           <div className="rounded-md border border-rose-500/40 bg-rose-500/5 p-3 space-y-2">

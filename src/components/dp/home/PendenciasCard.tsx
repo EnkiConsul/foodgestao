@@ -8,7 +8,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Input } from "@/components/ui/input";
 import { useDpPendencias, type Pendencia } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
-import { addDays, format } from "date-fns";
+import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
+import { PendenciaAcoes } from "@/components/dp/pendencias/PendenciaAcoes";
+import { format } from "date-fns";
 import {
   agruparPorColaborador,
   agruparPorTipo,
@@ -20,12 +22,17 @@ import { toast } from "sonner";
 
 export function PendenciasCard() {
   const { data = [], isLoading } = useDpPendencias();
-  const { prefs, save } = useDpUserPrefs();
+  const { prefs } = useDpUserPrefs();
+  const { ignoradas, adiadas } = useDpPendenciasDecisoes();
   const [grupoAberto, setGrupoAberto] = useState<GrupoPendencias<Pendencia> | null>(null);
 
   const abertas = useMemo(
-    () => filtrarAbertas(data, prefs.pendencias_adiadas),
-    [data, prefs.pendencias_adiadas],
+    () =>
+      filtrarAbertas(
+        data.filter((p) => !ignoradas.has(p.id)),
+        { ...prefs.pendencias_adiadas, ...adiadas },
+      ),
+    [data, prefs.pendencias_adiadas, ignoradas, adiadas],
   );
 
   const grupos = useMemo(() => agruparPorTipo(abertas), [abertas]);
@@ -40,12 +47,6 @@ export function PendenciasCard() {
     }
     return { atrasado, hoje, proximo };
   }, [abertas]);
-
-  const adiar = (p: Pendencia, dias: number) => {
-    const until = addDays(new Date(), dias).toISOString();
-    save({ pendencias_adiadas: { ...prefs.pendencias_adiadas, [p.id]: until } });
-    toast.success(`Adiada por ${dias} ${dias === 1 ? "dia" : "dias"}`);
-  };
 
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-5">
@@ -168,14 +169,7 @@ export function PendenciasCard() {
                               Prazo: {format(new Date(`${p.vencimento}T12:00:00`), "dd/MM/yyyy")}
                             </p>
                           )}
-                          <div className="mt-2 grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
-                            <Button asChild size="sm" variant="default" className="h-9 sm:h-7 text-xs w-full sm:w-auto">
-                              <Link to={p.url} onClick={() => setGrupoAberto(null)}>
-                                Resolver <ArrowRight className="h-3 w-3 ml-1" />
-                              </Link>
-                            </Button>
-                            <AdiarPopover onAdiar={(dias) => adiar(p, dias)} />
-                          </div>
+                          <PendenciaAcoes pendencia={p} onNavigate={() => setGrupoAberto(null)} />
                         </div>
                       </div>
                     ))}

@@ -12,10 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useDpPendencias, type Pendencia } from "@/hooks/useDpPendencias";
+import { useDpPendencias } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
-import { addDays } from "date-fns";
-import { toast } from "sonner";
+import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
+import { PendenciaAcoes } from "@/components/dp/pendencias/PendenciaAcoes";
 import {
   agruparPorColaborador,
   filtrarAbertas,
@@ -23,7 +23,7 @@ import {
   urgenciaDe,
   type PendenciaUrgencia,
 } from "@/lib/dp/pendencias";
-import { AdiarPopover, UrgenciaBadge } from "@/components/dp/home/PendenciasCard";
+import { UrgenciaBadge } from "@/components/dp/home/PendenciasCard";
 
 type Filtro = {
   tipo: string;
@@ -41,7 +41,8 @@ const URGENCIA_OP: { value: Filtro["urgencia"]; label: string }[] = [
 
 export default function DpCadastroPendenciasLista() {
   const { data = [], isLoading } = useDpPendencias();
-  const { prefs, save } = useDpUserPrefs();
+  const { prefs } = useDpUserPrefs();
+  const { ignoradas, adiadas, decisaoDe } = useDpPendenciasDecisoes();
   const [mostrarAdiadas, setMostrarAdiadas] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>({
     tipo: "todos",
@@ -51,10 +52,14 @@ export default function DpCadastroPendenciasLista() {
   });
   const [busca, setBusca] = useState("");
 
+  const adiamentos = useMemo(
+    () => ({ ...prefs.pendencias_adiadas, ...adiadas }),
+    [prefs.pendencias_adiadas, adiadas],
+  );
+
   const base = useMemo(() => {
-    const visiveis = mostrarAdiadas
-      ? data
-      : filtrarAbertas(data, prefs.pendencias_adiadas);
+    const semIgnoradas = mostrarAdiadas ? data : data.filter((p) => !ignoradas.has(p.id));
+    const visiveis = mostrarAdiadas ? semIgnoradas : filtrarAbertas(semIgnoradas, adiamentos);
     const termo = busca.trim().toLowerCase();
     return visiveis.filter((p) => {
       if (filtro.tipo !== "todos" && p.tipo !== filtro.tipo) return false;
@@ -64,26 +69,13 @@ export default function DpCadastroPendenciasLista() {
       if (termo && !`${p.titulo} ${p.subtitulo}`.toLowerCase().includes(termo)) return false;
       return true;
     });
-  }, [data, mostrarAdiadas, prefs.pendencias_adiadas, filtro, busca]);
+  }, [data, mostrarAdiadas, adiamentos, ignoradas, filtro, busca]);
 
   const opcoes = useMemo(() => opcoesFiltro(data), [data]);
   const grupos = useMemo(
     () => agruparPorColaborador(base, { ordenarPorAtraso: true }),
     [base],
   );
-
-  const adiar = (p: Pendencia, dias: number) => {
-    const until = addDays(new Date(), dias).toISOString();
-    save({ pendencias_adiadas: { ...prefs.pendencias_adiadas, [p.id]: until } });
-    toast.success(`Adiada por ${dias} ${dias === 1 ? "dia" : "dias"}`);
-  };
-
-  const limparAdiamento = (p: Pendencia) => {
-    const next = { ...prefs.pendencias_adiadas };
-    delete next[p.id];
-    save({ pendencias_adiadas: next });
-    toast.success("Adiamento removido");
-  };
 
   return (
     <DpPage>
@@ -174,7 +166,8 @@ export default function DpCadastroPendenciasLista() {
             )}
             <div className="grid gap-2 lg:grid-cols-2">
               {sub.itens.map((p) => {
-                const adiada = !filtrarAbertas([p], prefs.pendencias_adiadas).length;
+                const adiada = !filtrarAbertas([p], adiamentos).length;
+                const decisao = decisaoDe.get(p.id);
                 return (
                   <div
                     key={p.id}
@@ -192,24 +185,18 @@ export default function DpCadastroPendenciasLista() {
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
                         <span>{p.tipo}</span>
                         {p.unidadeNome && <span>Unidade: {p.unidadeNome}</span>}
-                        {adiada && (
-                          <span className="text-amber-700 font-medium">Adiada até {new Date(prefs.pendencias_adiadas[p.id]).toLocaleDateString("pt-BR")}</span>
+                        {adiada && adiamentos[p.id] && (
+                          <span className="text-amber-700 font-medium">
+                            Adiada até {new Date(adiamentos[p.id]).toLocaleDateString("pt-BR")}
+                          </span>
+                        )}
+                        {decisao?.acao === "ignorar" && (
+                          <span className="text-muted-foreground font-medium">
+                            Ignorada: {decisao.justificativa}
+                          </span>
                         )}
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <Button asChild size="sm" variant="default" className="h-9 sm:h-7 text-xs">
-                          <Link to={p.url}>
-                            Resolver <ArrowRight className="h-3 w-3 ml-1" />
-                          </Link>
-                        </Button>
-                        {adiada ? (
-                          <Button size="sm" variant="outline" className="h-9 sm:h-7 text-xs" onClick={() => limparAdiamento(p)}>
-                            Remover adiamento
-                          </Button>
-                        ) : (
-                          <AdiarPopover onAdiar={(dias) => adiar(p, dias)} triggerVariant="outline" />
-                        )}
-                      </div>
+                      <PendenciaAcoes pendencia={p} />
                     </div>
                   </div>
                 );

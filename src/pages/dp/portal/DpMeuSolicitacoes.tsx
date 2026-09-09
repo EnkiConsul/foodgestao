@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { AdiantamentoSolicitacoesPanel } from "@/components/dp/AdiantamentoSolicitacoesPanel";
 import { cn } from "@/lib/utils";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas } from "@/lib/dp/dsr-rules";
@@ -88,6 +89,21 @@ export default function DpMeuSolicitacoes() {
       return c;
     },
   });
+
+  // Regra de adiantamento da unidade (dia do pagamento) para o painel do portal.
+  const minhaUnidade = useQuery({
+    queryKey: ["dp_meu_sol_unidade", meRef.data?.unidade_id],
+    enabled: !!meRef.data?.unidade_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("dp_unidades")
+        .select("id, tem_adiantamento, dia_adiantamento")
+        .eq("id", meRef.data!.unidade_id!)
+        .maybeSingle();
+      return data;
+    },
+  });
+
 
   const list = useQuery({
     queryKey: ["dp_meu_sol", meRef.data?.id],
@@ -389,6 +405,17 @@ export default function DpMeuSolicitacoes() {
           </Dialog>
         }
       />
+
+      {minhaUnidade.data?.tem_adiantamento && meRef.data?.company_id && meRef.data?.id && (
+        <AdiantamentoSolicitacoesPanel
+          companyId={meRef.data.company_id as string}
+          colaboradorId={meRef.data.id as string}
+          diaPagamento={minhaUnidade.data.dia_adiantamento ?? null}
+          origem="portal"
+        />
+      )}
+
+
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as StatusTab)}>
         <div className="-mx-1 overflow-x-auto">
