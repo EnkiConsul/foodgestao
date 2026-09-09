@@ -33,18 +33,20 @@ O que muda:
 
 - O bloco "Férias Vencidas Sem Agendamento" deixa de aparecer na tela de importar documentos; o assunto fica só na tela de Férias e nas pendências do Início.
 
-## Frente 4 — Opção de adiantamento salarial: data da solicitação e histórico (caso Rosângela)
+## Frente 4 — Adiantamento salarial por solicitações datadas (caso Rosângela)
 
 Hoje o cadastro só tem uma chave liga/desliga, sem data nem histórico. Rosângela está com a opção desligada, então a importação de julho acusou documento sem opção habilitada — mesmo tendo havido solicitação naquela competência.
 
-- Ao ligar ou desligar a opção, o gestor informa obrigatoriamente a **data da solicitação** do colaborador, que pode ser retroativa.
-- Regra da competência de início/fim, comparando a data informada com o dia de pagamento do adiantamento da unidade:
+- A chave liga/desliga sai do cadastro. No lugar entra um registro de solicitações: **tipo** (ativar ou cancelar) + **data da solicitação**.
+- O sistema não guarda mais um "ligado/desligado" fixo: para cada competência ele lê a última solicitação válida até ali e conclui se o adiantamento estava ativo ou não.
+- Regra do efeito, comparando a data da solicitação com o dia de pagamento do adiantamento da unidade:
   - data anterior ao dia do pagamento → vale já na competência da própria data;
   - data igual ou posterior ao dia do pagamento → vale a partir da competência seguinte.
-- A tela mostra essa conclusão antes de salvar, em texto claro: "Solicitado em 18/07/2026, depois do pagamento (dia 15): passa a valer em agosto/2026". O mesmo vale para o cancelamento.
-- Histórico completo na ficha do colaborador: data da solicitação, se foi ativação ou cancelamento, competência de início/fim do efeito, quem registrou e observação. É possível lançar solicitações passadas para reconstruir o histórico.
-- A cobrança de adiantamento passa a olhar o histórico: só gera pendência nas competências em que a opção estava ativa; competências desligadas não geram pendência nem acusam documento indevido — e documentos já importados de competências ativas param de aparecer como inconsistentes.
-- O colaborador pode solicitar (ou cancelar) o adiantamento pelo próprio portal, quando a unidade oferece adiantamento. O pedido registra a data automaticamente, entra no histórico e gera apenas uma notificação de ciência para o gestor — sem etapa de aprovação.
+- A tela mostra a conclusão antes de salvar: "Solicitado em 18/07/2026, depois do pagamento (dia 15): passa a valer em agosto/2026". O mesmo texto vale para cancelamento.
+- Data retroativa só o gestor pode informar, para reconstruir o histórico. No portal do colaborador só é aceita a data de hoje ou futura.
+- Histórico na ficha: tipo, data da solicitação, competência em que passou a valer, origem (gestor ou portal), quem registrou e observação, com a situação atual calculada a partir dele.
+- A cobrança de adiantamento passa a olhar esse histórico: só gera pendência nas competências em que a opção estava ativa; competências inativas não geram pendência nem acusam documento indevido — e documentos já importados de competências ativas param de aparecer como inconsistentes.
+- O colaborador pode registrar a solicitação de ativar ou cancelar pelo próprio portal, quando a unidade oferece adiantamento; gera apenas notificação de ciência ao gestor, sem etapa de aprovação.
 - Continuam valendo as regras já existentes: admissão depois do dia do adiantamento e desligamento antes desse dia não geram pendência; sócio, PJ e intermitente ficam fora.
 
 ## Frente 5 — Ignorar (com justificativa) ou adiar pendências de documentos
