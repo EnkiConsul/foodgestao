@@ -22,7 +22,8 @@ Dois problemas confirmados nos seus dados:
 Como fica:
 
 - Cada competência em falta gera sua própria pendência, por unidade: "Contracheque não importado — Pakerê T-63 — julho/2026", e assim por diante.
-- A verificação passa a cobrir as competências dos últimos 6 meses, nunca antes do início do controle da unidade no sistema.
+- A verificação começa **uma competência antes do mês em que a unidade foi cadastrada** no sistema e vai até a competência atual. Importar algo mais antigo que isso continua livre, mas o sistema não cobra.
+- Nas unidades da Pakerê (cadastradas em junho/2026), a cobrança vai de maio/2026 até agora: contracheque de julho e agosto, folha de ponto de junho a agosto (só na unidade com relógio) e adiantamento de maio, julho e agosto passam a aparecer como atrasados.
 - A competência atual aparece desde o dia 1 como **a importar** (próxima), vira **vence hoje** na data limite e depois **atrasada** com a contagem de dias.
 - Os meses já vencidos aparecem como **atrasados**, com o mais antigo em primeiro.
 
