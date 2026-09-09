@@ -101,7 +101,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ success: true, password: newPassword }), {
+    // Senha provisória: o colaborador precisa trocar no próximo login
+    const { error: secErr } = await admin.from("auth_user_security_state").upsert(
+      {
+        user_id: colab.user_id,
+        must_change_password: true,
+        provisional_password_issued_at: new Date().toISOString(),
+        password_changed_by: callerId,
+      },
+      { onConflict: "user_id" },
+    );
+    if (secErr) console.error("[dp-reset-password] security_state:", secErr.message);
+
+    return new Response(JSON.stringify({ success: true, password: newPassword, provisoria: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

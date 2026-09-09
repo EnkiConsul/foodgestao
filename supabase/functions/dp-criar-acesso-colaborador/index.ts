@@ -132,6 +132,18 @@ Deno.serve(async (req) => {
       { onConflict: "user_id,role" },
     );
 
+    // Senha provisória: força a troca no primeiro acesso
+    const { error: secErr } = await admin.from("auth_user_security_state").upsert(
+      {
+        user_id: targetUserId,
+        must_change_password: true,
+        provisional_password_issued_at: new Date().toISOString(),
+        password_changed_by: callerId,
+      },
+      { onConflict: "user_id" },
+    );
+    if (secErr) console.error("[dp-criar-acesso-colaborador] security_state:", secErr.message);
+
     return new Response(JSON.stringify({
       success: true,
       user_id: targetUserId,
