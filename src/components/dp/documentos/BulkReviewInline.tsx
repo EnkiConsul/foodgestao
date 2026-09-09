@@ -126,6 +126,51 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   const rows = items.data ?? [];
   const current = rows[currentIdx];
 
+  /**
+   * Checagem prévia de duplicidade: mostra na conferência, antes de aprovar,
+   * quais páginas já possuem documento salvo (colaborador + tipo + competência).
+   */
+  const elegiveisDup = useMemo(
+    () => rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id),
+    [rows],
+  );
+  const dupSignature = useMemo(
+    () => elegiveisDup
+      .map((r: any) => `${r.id}:${r.matched_colaborador_id}:${r.tipo_detectado ?? ""}:${r.detected_competencia ?? ""}`)
+      .join("|"),
+    [elegiveisDup],
+  );
+  const dupCheck = useQuery({
+    queryKey: ["dp_bulk_dups", batchId, dupSignature],
+    enabled: !!batchId && elegiveisDup.length > 0 && !!(batchInfo.data as any)?.company_id && !!(batchInfo.data as any)?.tipo,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const bInfo = batchInfo.data as any;
+      return await detectDuplicates({
+        company_id: bInfo.company_id,
+        tipo: bInfo.tipo,
+        itens: elegiveisDup.map((r: any) => {
+          const colab = colaboradores.find((c: any) => c.id === r.matched_colaborador_id);
+          return {
+            item_id: r.id,
+            colaborador_id: r.matched_colaborador_id,
+            colaborador_nome: colab?.nome ?? "(colaborador)",
+            tipo: r.tipo_detectado ?? bInfo.tipo,
+            referencia_data: normalizeRefDate(r.detected_competencia) ?? bInfo?.referencia_data ?? null,
+          };
+        }),
+      });
+    },
+  });
+  const dupHits = dupCheck.data ?? [];
+  const dupMap = useMemo(() => {
+    const m = new Map<string, DuplicateCollision>();
+    dupHits.forEach((h) => m.set(h.item_id, h));
+    return m;
+  }, [dupHits]);
+  const [decisoesDup, setDecisoesDup] = useState<Record<string, "skip" | "replace">>({});
+  const dupSemDecisao = dupHits.filter((h) => !decisoesDup[h.item_id]).length;
+
   // Clamp currentIdx quando o número de linhas muda
   useEffect(() => {
     if (rows.length && currentIdx >= rows.length) setCurrentIdx(rows.length - 1);
