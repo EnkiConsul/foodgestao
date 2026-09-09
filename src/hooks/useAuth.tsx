@@ -95,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await logAudit("user_signed_out", "auth");
+    if (user?.id) sessionStorage.removeItem(`audit_resume_${user.id}`);
     await supabase.auth.signOut();
     queryClient.clear();
     navigate("/auth", { replace: true });
