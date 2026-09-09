@@ -1,3 +1,4 @@
+import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";

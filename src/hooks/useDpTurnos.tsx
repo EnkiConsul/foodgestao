@@ -1,3 +1,4 @@
+import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
