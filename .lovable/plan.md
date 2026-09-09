@@ -4,8 +4,9 @@
 
 Verificado: Wanderson é intermitente, desligado em 01/08/2026, e em agosto/2026 não tem nenhum dia de escala, nenhuma convocação e nenhuma marcação de ponto. Mesmo assim o sistema cobra folha de ponto, porque hoje só olha se a unidade tem relógio e se o cadastro está marcado com folha de ponto.
 
-- Para intermitentes, folha de ponto e contracheque passam a ser cobrados só nas competências com trabalho: dia de escala publicada, convocação aceita ou marcação de ponto no mês.
-- Sem nenhum desses registros no mês, não aparece pendência nem alerta de falta — no Início, na Conferência de Documentos e na conferência do lote importado.
+- Para intermitentes, folha de ponto e contracheque deixam de ser cobrados como falta nas competências sem nenhum registro de trabalho (dia de escala publicada, convocação aceita ou marcação de ponto).
+- No lugar da falta, entra uma pendência do tipo **alerta**: "Confirmar se houve trabalho em agosto/2026" — porque o gestor pode ter convocado por fora do sistema. O alerta não conta como documento faltando e traz duas respostas: "Não trabalhou" (encerra o alerta) ou "Trabalhou" (passa a cobrar folha de ponto e contracheque da competência).
+- A resposta do gestor fica registrada com autor e data, e o alerta desaparece das listas depois de respondido.
 - A rescisão continua sendo cobrada na competência do desligamento.
 - CLT, temporário e aprendiz seguem como hoje.
 
