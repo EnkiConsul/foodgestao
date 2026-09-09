@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 /** Canal único de presença da plataforma. */
-const PRESENCE_CHANNEL = "presence:online-users";
+const PRESENCE_TOPIC = "presence:online-users";
 /** Sem interação por mais que isso → "ausente". */
 const IDLE_MS = 5 * 60 * 1000;
 /** Intervalo mínimo entre atualizações enviadas ao canal. */
@@ -24,6 +25,51 @@ export interface PresenceEntry {
   last_activity: string;
 }
 
+// --- Canal compartilhado (uma única inscrição por aba) -----------------------
+
+type Listener = (entries: PresenceEntry[], connected: boolean) => void;
+
+let channel: RealtimeChannel | null = null;
+let entriesCache: PresenceEntry[] = [];
+let connectedCache = false;
+const listeners = new Set<Listener>();
+
+function notify() {
+  listeners.forEach((l) => l(entriesCache, connectedCache));
+}
+
+function ensureChannel(presenceKey: string): RealtimeChannel {
+  if (channel) return channel;
+  const ch = supabase.channel(PRESENCE_TOPIC, {
+    config: { presence: { key: presenceKey } },
+  });
+  const sync = () => {
+    const state = ch.presenceState<PresenceEntry>();
+    entriesCache = (Object.values(state).flat() as unknown as PresenceEntry[]).filter(
+      (r) => r && typeof r.user_id === "string",
+    );
+    notify();
+  };
+  ch.on("presence", { event: "sync" }, sync)
+    .on("presence", { event: "join" }, sync)
+    .on("presence", { event: "leave" }, sync)
+    .subscribe((status) => {
+      connectedCache = status === "SUBSCRIBED";
+      notify();
+    });
+  channel = ch;
+  return ch;
+}
+
+function teardownChannel() {
+  if (channel && listeners.size === 0) {
+    void supabase.removeChannel(channel);
+    channel = null;
+    entriesCache = [];
+    connectedCache = false;
+  }
+}
+
 /**
  * Publica a presença do usuário logado no canal compartilhado.
  * Deve ser montado uma única vez, dentro do AuthProvider e do Router.
@@ -33,7 +79,10 @@ export function usePresenceTracker() {
   const location = useLocation();
   const lastActivityRef = useRef<number>(Date.now());
   const sinceRef = useRef<string>(new Date().toISOString());
+  const routeRef = useRef<string>(location.pathname);
   const trackRef = useRef<(() => void) | null>(null);
+
+  routeRef.current = location.pathname;
 
   useEffect(() => {
     if (!user) return;
@@ -43,19 +92,15 @@ export function usePresenceTracker() {
       user.email?.split("@")[0] ||
       "Usuário";
 
-    const channel = supabase.channel(PRESENCE_CHANNEL, {
-      config: { presence: { key: `${user.id}:${sinceRef.current}` } },
-    });
-
-    let currentRoute = location.pathname;
+    const ch = ensureChannel(`${user.id}:${sinceRef.current}`);
 
     const track = () => {
       const idle = Date.now() - lastActivityRef.current > IDLE_MS;
-      void channel.track({
+      void ch.track({
         user_id: user.id,
         name,
         email: user.email ?? null,
-        route: currentRoute,
+        route: routeRef.current,
         status: idle ? "ausente" : "online",
         since: sinceRef.current,
         last_activity: new Date(lastActivityRef.current).toISOString(),
@@ -63,9 +108,11 @@ export function usePresenceTracker() {
     };
     trackRef.current = track;
 
-    channel.subscribe((status) => {
-      if (status === "SUBSCRIBED") track();
-    });
+    const listener: Listener = (_e, connected) => {
+      if (connected) track();
+    };
+    listeners.add(listener);
+    if (connectedCache) track();
 
     const markActivity = () => {
       lastActivityRef.current = Date.now();
@@ -78,11 +125,11 @@ export function usePresenceTracker() {
     return () => {
       clearInterval(interval);
       events.forEach((e) => window.removeEventListener(e, markActivity));
+      listeners.delete(listener);
       trackRef.current = null;
-      void supabase.removeChannel(channel);
+      void ch.untrack();
+      teardownChannel();
     };
-    // route é enviado por um efeito separado para não recriar o canal
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   // Atualiza a rota atual sem recriar a inscrição
@@ -100,28 +147,20 @@ export function PresenceTracker() {
 
 /** Lê, em tempo real, quem está conectado agora. */
 export function useOnlineUsers() {
-  const [entries, setEntries] = useState<PresenceEntry[]>([]);
-  const [connected, setConnected] = useState(false);
+  const [entries, setEntries] = useState<PresenceEntry[]>(entriesCache);
+  const [connected, setConnected] = useState(connectedCache);
 
   useEffect(() => {
-    const channel = supabase.channel(PRESENCE_CHANNEL);
-
-    const sync = () => {
-      const state = channel.presenceState<PresenceEntry>();
-      const rows = Object.values(state).flat() as unknown as PresenceEntry[];
-      setEntries(
-        rows.filter((r) => r && typeof r.user_id === "string"),
-      );
+    const listener: Listener = (e, c) => {
+      setEntries(e);
+      setConnected(c);
     };
-
-    channel
-      .on("presence", { event: "sync" }, sync)
-      .on("presence", { event: "join" }, sync)
-      .on("presence", { event: "leave" }, sync)
-      .subscribe((status) => setConnected(status === "SUBSCRIBED"));
-
+    listeners.add(listener);
+    setEntries(entriesCache);
+    setConnected(connectedCache);
     return () => {
-      void supabase.removeChannel(channel);
+      listeners.delete(listener);
+      teardownChannel();
     };
   }, []);
 

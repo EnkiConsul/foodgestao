@@ -145,9 +145,11 @@ export function AdminOnlineUsers() {
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
-              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                {connected ? "Ninguém conectado neste momento" : "Carregando..."}
-              </TableCell>
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  {connected ? "Ninguém conectado neste momento" : "Carregando..."}
+                </TableCell>
+              </TableRow>
             ) : (
               filtered.map((u) => (
                 <TableRow key={u.user_id}>
