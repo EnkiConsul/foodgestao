@@ -67,7 +67,7 @@ export function AvisosNotificacoesCard() {
         texto: a.conteudo,
         data: a.publicado_em ?? new Date().toISOString(),
         lido: lidos.has(a.id),
-        to: "/dp/meu/avisos",
+        to: "/dp/avisos",
         origemLabel: "Mural da empresa",
       }));
 
