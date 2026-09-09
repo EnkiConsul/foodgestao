@@ -47,10 +47,13 @@ export default function AdminCadastros() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-cadastros"],
     queryFn: async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) throw new Error("Sessão expirada. Entre novamente.");
       const { data, error } = await supabase.functions.invoke("admin-list-users-auth");
       if (error) throw error;
       return (data as { users: Row[] }).users;
     },
+    retry: false,
   });
 
   const filtered = useMemo(() => {
