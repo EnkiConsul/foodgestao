@@ -73,11 +73,11 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild tooltip="Hub de Módulos">
                     <NavLink
                       to="/hub"
                       end
-                      className="flex items-center gap-3 px-5 py-2.5 text-sm text-primary hover:bg-sidebar-accent rounded-lg mx-2 transition-all duration-200 hover:translate-x-1 font-medium"
+                      className="flex items-center gap-2 text-primary hover:bg-sidebar-accent rounded-md transition-all duration-200 hover:translate-x-1 font-medium"
                       activeClassName="bg-sidebar-accent translate-x-1"
                     >
                       <LayoutGrid className="h-4 w-4 shrink-0" />
