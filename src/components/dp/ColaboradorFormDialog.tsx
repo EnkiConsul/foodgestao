@@ -1734,7 +1734,7 @@ export function ColaboradorFormDialog({
           <div className="space-y-2">
             <Label>Cargo *</Label>
             <div className="flex gap-2">
-              <Select value={form.cargo_id} onValueChange={(v) => setForm({ ...form, cargo_id: v })}>
+              <Select value={form.cargo_id} onValueChange={escolherCargoId}>
                 <SelectTrigger {...marca("cargo_id", "flex-1")}><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                 <SelectContent>
                   {(cargos.data ?? []).map((c) => {
@@ -1891,7 +1891,7 @@ export function ColaboradorFormDialog({
             <Label>Tipo de Vínculo</Label>
             <Select
               value={form.tipo_vinculo}
-              onValueChange={(v) => setForm({ ...form, tipo_vinculo: v })}
+              onValueChange={(v) => { vinculoTocado.current = true; setForm({ ...form, tipo_vinculo: v }); }}
             >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
