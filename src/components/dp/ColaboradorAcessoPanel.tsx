@@ -1,14 +1,22 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, Copy, Eye, EyeOff, KeyRound, Lock, ShieldCheck } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, KeyRound, Lock, MessageSquare, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { maskCpf } from "@/lib/cpf";
 import type { DpColaborador } from "@/hooks/useDpColaboradores";
 import { acessoPortalAtivo, diasRestantesCarencia } from "@/lib/dp/desligamento";
+import { WhatsappComposerDialog } from "@/components/dp/WhatsappComposerDialog";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { PUBLIC_SITE_ORIGIN } from "@/lib/siteOrigin";
+import {
+  MODELO_ACESSO_PORTAL_TITULO,
+  MODELO_NOVA_SENHA_TITULO,
+} from "@/lib/dp/modelosPortal";
 
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 
@@ -29,6 +37,11 @@ export function ColaboradorAcessoPanel({
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmSenha, setConfirmSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [exigirTroca, setExigirTroca] = useState(true);
+  const [waOpen, setWaOpen] = useState(false);
+  const { companies, selectedCompanyId } = useCompanyContext();
+  const empresaNome =
+    (companies ?? []).find((c: any) => c.id === selectedCompanyId)?.name ?? "";
 
   if (!colaborador?.id) {
     return (
