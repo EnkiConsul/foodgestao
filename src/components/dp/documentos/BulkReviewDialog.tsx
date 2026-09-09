@@ -535,7 +535,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
           </div>
         </div>
 
-        <DialogFooter className="p-3 border-t bg-background gap-2">
+        <DialogFooter className="p-3 border-t bg-background gap-2 shrink-0 flex-col-reverse sm:flex-row">
           <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Fechar</Button>
           <Button
             className="w-full sm:w-auto h-11 sm:h-10"
