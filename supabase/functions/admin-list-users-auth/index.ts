@@ -22,14 +22,20 @@ Deno.serve(async (req) => {
 
     const token = authHeader.replace(/^Bearer\s+/i, "");
     const adminAuth = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const { data: userData, error: userErr } = await adminAuth.auth.getUser(token);
-    if (userErr || !userData?.user?.id) {
+    // Valida via claims (compatível com signing keys). Fallback para getUser.
+    let callerId: string | null = null;
+    const { data: claimsData } = await adminAuth.auth.getClaims(token);
+    callerId = (claimsData?.claims?.sub as string | undefined) ?? null;
+    if (!callerId) {
+      const { data: userData } = await adminAuth.auth.getUser(token);
+      callerId = userData?.user?.id ?? null;
+    }
+    if (!callerId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const callerId = userData.user.id;
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
     const { data: isSuper, error: roleErr } = await admin.rpc("is_super_admin", {
