@@ -29,6 +29,7 @@ import { VincularUnidadeLote } from "./VincularUnidadeLote";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { cn } from "@/lib/utils";
 import { DP_DOC_GRUPOS, docTipoLabel, assinaturaDocumento } from "@/lib/dp/documentoTipos";
+import { extrairCpfValido, extrairNomePessoa, isCpfValido } from "@/lib/dp/doc-pessoa";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -843,8 +844,12 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                     </SelectContent>
                   </Select>
                   <NovoColaboradorInlineDialog
-                    defaultNome={current.matched_nome ?? ""}
-                    defaultCpf={current.matched_cpf ?? ""}
+                    defaultNome={current.matched_nome ?? extrairNomePessoa(current.ocr_text ?? "") ?? ""}
+                    defaultCpf={
+                      isCpfValido(current.matched_cpf ?? "")
+                        ? String(current.matched_cpf)
+                        : (extrairCpfValido(current.ocr_text ?? "") ?? "")
+                    }
                     defaultUnidadeId={current.detected_unidade_id ?? batchInfo.data?.unidade_id ?? null}
                     onCreated={(id) => setColab.mutate({ id: current.id, colaborador_id: id })}
                     trigger={

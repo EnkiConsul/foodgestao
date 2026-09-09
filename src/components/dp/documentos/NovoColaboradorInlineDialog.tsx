@@ -150,6 +150,11 @@ export function NovoColaboradorInlineDialog({
           <div className="space-y-1">
             <Label>CPF</Label>
             <Input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" />
+            {!cpf && (
+              <p className="text-xs text-muted-foreground">
+                O documento não informa o CPF. Você pode preencher agora ou depois, na ficha.
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div className="space-y-1">

@@ -27,6 +27,7 @@ import { competenciaPredominante, computeCoverage, resolveUnidadesLote } from "@
 import { VincularUnidadeLote } from "./VincularUnidadeLote";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { cn } from "@/lib/utils";
+import { extrairCpfValido, extrairNomePessoa, isCpfValido } from "@/lib/dp/doc-pessoa";
 
 // Setup pdfjs worker once
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -501,8 +502,12 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
                       </SelectContent>
                     </Select>
                     <NovoColaboradorInlineDialog
-                      defaultNome={current.matched_nome ?? ""}
-                      defaultCpf={current.matched_cpf ?? ""}
+                      defaultNome={current.matched_nome ?? extrairNomePessoa(current.ocr_text ?? "") ?? ""}
+                      defaultCpf={
+                        isCpfValido(current.matched_cpf ?? "")
+                          ? String(current.matched_cpf)
+                          : (extrairCpfValido(current.ocr_text ?? "") ?? "")
+                      }
                       defaultUnidadeId={current.detected_unidade_id ?? batchInfo.data?.unidade_id ?? null}
                       onCreated={(id) => setColab.mutate({ id: current.id, colaborador_id: id })}
                     />
