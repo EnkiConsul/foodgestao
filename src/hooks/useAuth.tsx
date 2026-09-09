@@ -41,12 +41,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Registra a retomada de sessão (usuário volta ao sistema já logado) uma
+    // única vez por aba, para a aba "Acessos" da Auditoria.
+    const logResumeOnce = (session: Session | null) => {
+      if (!session?.user) return;
+      const key = `audit_resume_${session.user.id}`;
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+      void logAudit("user_session_resumed", "auth");
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       applySession(session);
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+        setTimeout(() => logResumeOnce(session), 0);
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       applySession(session);
+      logResumeOnce(session);
     });
 
     return () => subscription.unsubscribe();
@@ -70,9 +84,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (!error) {
       // registra a entrada no sistema na Auditoria (aba Acessos)
+      if (data.user?.id) sessionStorage.setItem(`audit_resume_${data.user.id}`, "1");
       void logAudit("user_signed_in", "auth", null, { method: "password" });
     }
     return { error: error as Error | null };
@@ -80,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await logAudit("user_signed_out", "auth");
+    if (user?.id) sessionStorage.removeItem(`audit_resume_${user.id}`);
     await supabase.auth.signOut();
     queryClient.clear();
     navigate("/auth", { replace: true });
