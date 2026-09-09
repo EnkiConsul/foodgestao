@@ -187,14 +187,27 @@ export default function Auth() {
     }, 800);
   };
 
+  /** Destino ajustado ao tipo de acesso: colaborador sempre vai ao portal. */
+  const resolveTargetForUser = async () => {
+    const requested = getRedirectTarget();
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id;
+    if (!uid) return requested;
+    try {
+      const landing = await resolveLandingTarget(uid);
+      return landingPathFor(landing, requested);
+    } catch {
+      return requested;
+    }
+  };
+
   const checkMfaAndRedirect = async () => {
-    const target = getRedirectTarget();
     const { needsAal2 } = await checkMfaState();
     if (needsAal2) {
       setMfaRequired(true);
-    } else {
-      goTo(target);
+      return;
     }
+    goTo(await resolveTargetForUser());
   };
 
 
