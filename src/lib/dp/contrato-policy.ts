@@ -74,6 +74,12 @@ export interface ContratoPolicy {
   remuneracaoSocietaria: boolean;
   /** Mensagem da ciência jurídica exibida no cadastro. */
   cienciaLegalMensagem: string | null;
+  /**
+   * Vínculo formalizado (registro em carteira/contrato celetista). Contratos
+   * formais só podem migrar para outros contratos formais: sair da formalidade
+   * exige desligamento, nunca uma simples mudança de vigência.
+   */
+  formalizado: boolean;
 }
 
 /** Formas de pagamento do banco, repetidas aqui para evitar ciclo de import. */
@@ -88,6 +94,7 @@ export type FormaPagamentoRegime =
 const CLT_LIKE: ContratoPolicy = {
   regime: "clt",
   label: "CLT",
+  formalizado: true,
   jornadaComoDisponibilidade: false,
   validaCargaSemanal: true,
   exigeFolgaSemanal: true,
@@ -114,6 +121,7 @@ const CLT_LIKE: ContratoPolicy = {
 const INTERMITENTE: ContratoPolicy = {
   regime: "intermitente",
   label: "Intermitente",
+  formalizado: true,
   jornadaComoDisponibilidade: true,
   validaCargaSemanal: false,
   exigeFolgaSemanal: false,
@@ -144,6 +152,7 @@ const INTERMITENTE: ContratoPolicy = {
 const FREELANCER: ContratoPolicy = {
   regime: "freelancer",
   label: "Freelancer (sem registro)",
+  formalizado: false,
   jornadaComoDisponibilidade: true,
   validaCargaSemanal: false,
   exigeFolgaSemanal: false,
@@ -177,6 +186,7 @@ const FREELANCER: ContratoPolicy = {
 const PJ_LIKE: ContratoPolicy = {
   regime: "pj",
   label: "PJ",
+  formalizado: false,
   jornadaComoDisponibilidade: false,
   validaCargaSemanal: false,
   exigeFolgaSemanal: false,
@@ -277,4 +287,49 @@ export function formaPagamentoValida(
   return permitidas.includes(forma as FormaPagamentoRegime)
     ? (forma as FormaPagamentoRegime)
     : permitidas[0];
+}
+
+/** Ordem de exibição dos vínculos formais (registro em carteira). */
+const REGIMES_FORMAIS: RegimeTrabalho[] = ["clt", "intermitente", "estagio", "temporario"];
+/** Vínculos sem registro formal (acerto avulso/contrato civil). */
+const REGIMES_INFORMAIS: RegimeTrabalho[] = ["freelancer", "pj", "mei"];
+
+/** O vínculo é formalizado (registro em carteira/contrato celetista)? */
+export function regimeFormalizado(regime?: string | null): boolean {
+  return contratoPolicy(regime).formalizado;
+}
+
+/**
+ * Vínculos que a tela de condições de trabalho pode oferecer a partir do vínculo
+ * atual. Contrato formal só muda para outro formal; contrato informal pode ser
+ * efetivado (formal) ou trocado por outro informal.
+ */
+export function regimesPermitidosNaMudanca(regimeAtual?: string | null): RegimeTrabalho[] {
+  return regimeFormalizado(regimeAtual)
+    ? [...REGIMES_FORMAIS]
+    : [...REGIMES_FORMAIS, ...REGIMES_INFORMAIS];
+}
+
+/**
+ * Valida a troca de vínculo pela tela de condições. Sair da formalidade
+ * (CLT/intermitente/estágio/temporário → freelancer/PJ/MEI) exige desligamento.
+ */
+export function mudancaRegimePermitida(
+  de?: string | null,
+  para?: string | null,
+): { ok: boolean; motivo: string | null } {
+  if (!para || de === para) return { ok: true, motivo: null };
+  if (regimeFormalizado(de) && !regimeFormalizado(para)) {
+    return {
+      ok: false,
+      motivo:
+        "Não é possível mudar de um vínculo formal para um vínculo sem registro nesta tela. Faça o desligamento do contrato atual e, depois, cadastre a pessoa no novo vínculo aproveitando os dados do colaborador inativo.",
+    };
+  }
+  return { ok: true, motivo: null };
+}
+
+/** Efetivação (informal → formal) sempre inicia um novo contrato. */
+export function exigeNovoContrato(de?: string | null, para?: string | null): boolean {
+  return !!de && !!para && !regimeFormalizado(de) && regimeFormalizado(para);
 }

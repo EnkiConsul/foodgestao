@@ -4,6 +4,10 @@ import {
   isIntermitente,
   formasPagamentoDoRegime,
   formaPagamentoValida,
+  regimeFormalizado,
+  regimesPermitidosNaMudanca,
+  mudancaRegimePermitida,
+  exigeNovoContrato,
 } from "@/lib/dp/contrato-policy";
 
 describe("contratoPolicy", () => {
@@ -89,5 +93,48 @@ describe("formas de pagamento por regime", () => {
   it("CLT mantém mensalista como padrão e entra em folha", () => {
     expect(formaPagamentoValida("clt", "mensalista")).toBe("mensalista");
     expect(contratoPolicy("clt").entraEmFolha).toBe(true);
+  });
+});
+
+describe("transição de vínculo", () => {
+  it("vínculos com registro são formalizados; freelancer/PJ/MEI não", () => {
+    for (const r of ["clt", "intermitente", "estagio", "temporario"]) {
+      expect(regimeFormalizado(r)).toBe(true);
+    }
+    for (const r of ["freelancer", "pj", "mei"]) {
+      expect(regimeFormalizado(r)).toBe(false);
+    }
+  });
+
+  it("contrato formal só oferece outros vínculos formais", () => {
+    expect(regimesPermitidosNaMudanca("clt")).toEqual([
+      "clt",
+      "intermitente",
+      "estagio",
+      "temporario",
+    ]);
+    expect(regimesPermitidosNaMudanca("intermitente")).not.toContain("freelancer");
+  });
+
+  it("contrato informal pode ser efetivado e também trocar de informal", () => {
+    const opts = regimesPermitidosNaMudanca("freelancer");
+    expect(opts).toContain("clt");
+    expect(opts).toContain("intermitente");
+    expect(opts).toContain("pj");
+  });
+
+  it("recusa formal → informal e aceita as demais", () => {
+    expect(mudancaRegimePermitida("clt", "freelancer").ok).toBe(false);
+    expect(mudancaRegimePermitida("clt", "freelancer").motivo).toContain("desligamento");
+    expect(mudancaRegimePermitida("intermitente", "clt").ok).toBe(true);
+    expect(mudancaRegimePermitida("freelancer", "clt").ok).toBe(true);
+    expect(mudancaRegimePermitida("freelancer", "pj").ok).toBe(true);
+    expect(mudancaRegimePermitida("clt", "clt").ok).toBe(true);
+  });
+
+  it("efetivação exige novo contrato; mudanças dentro da formalidade não", () => {
+    expect(exigeNovoContrato("freelancer", "clt")).toBe(true);
+    expect(exigeNovoContrato("intermitente", "clt")).toBe(false);
+    expect(exigeNovoContrato("clt", "clt")).toBe(false);
   });
 });

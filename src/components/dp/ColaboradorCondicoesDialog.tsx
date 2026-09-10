@@ -30,14 +30,19 @@ import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpCargoPadrao } from "@/hooks/useDpCargoPadrao";
 import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
-import { contratoPolicy, formasPagamentoDoRegime } from "@/lib/dp/contrato-policy";
+import {
+  contratoPolicy,
+  formasPagamentoDoRegime,
+  regimeFormalizado,
+  regimesPermitidosNaMudanca,
+  mudancaRegimePermitida,
+  exigeNovoContrato,
+} from "@/lib/dp/contrato-policy";
 import { salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
 import { salarioProporcional, baseHorasMesSugerida } from "@/lib/dp/jornadaParcial";
 import { sugerirModoContinuidade, type ModoContinuidade } from "@/lib/dp/cargoPadrao";
 import { DOW_LABEL, diasPadrao, normalizarDias, type DiaConfig } from "@/lib/dp/config-trabalho";
 import type { DpColaborador } from "@/hooks/useDpColaboradores";
-
-const REGIMES = ["clt", "intermitente", "estagio", "temporario", "freelancer", "pj", "mei"] as const;
 
 const FORMA_LABEL: Record<string, string> = {
   mensalista: "Mensalista (salário do mês)",
@@ -196,6 +201,10 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     setBeneficiosValor(valores);
   }, [open, atribuicoes]);
 
+  const regimeAtual = colaborador?.regime ?? null;
+  /** Só é possível mudar dentro da formalidade; sair dela exige desligamento. */
+  const regimesDisponiveis = useMemo(() => regimesPermitidosNaMudanca(regimeAtual), [regimeAtual]);
+  const bloqueiaInformal = regimeFormalizado(regimeAtual);
   const policy = useMemo(() => contratoPolicy(regime), [regime]);
   const formasPermitidas = useMemo(() => formasPagamentoDoRegime(regime), [regime]);
 
@@ -374,6 +383,12 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
       setAba("contrato");
       return;
     }
+    const transicao = mudancaRegimePermitida(regimeAtual, regime);
+    if (!transicao.ok) {
+      toast.error(transicao.motivo ?? "Mudança de vínculo não permitida.");
+      setAba("contrato");
+      return;
+    }
     if (justificativa.trim().length < 5) {
       toast.error("Explique brevemente o motivo da mudança.");
       setAba("contrato");
@@ -440,16 +455,32 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                   onValueChange={(v) => {
                     marcarTocado("regime");
                     setRegime(v);
-                    setModo(sugerirModoContinuidade(colaborador?.regime ?? null, v));
+                    setModo(
+                      exigeNovoContrato(regimeAtual, v)
+                        ? "novo_contrato"
+                        : sugerirModoContinuidade(regimeAtual, v),
+                    );
                   }}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {REGIMES.map((r) => (
+                    {regimesDisponiveis.map((r) => (
                       <SelectItem key={r} value={r}>{contratoPolicy(r).label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {bloqueiaInformal ? (
+                  <p className="text-xs text-muted-foreground">
+                    Só é possível mudar entre vínculos com registro. Para passar a um vínculo sem
+                    registro (freelancer, PJ, MEI), faça o desligamento e cadastre a pessoa de novo
+                    aproveitando os dados do colaborador inativo.
+                  </p>
+                ) : exigeNovoContrato(regimeAtual, regime) ? (
+                  <p className="text-xs text-muted-foreground">
+                    Efetivação de vínculo sem registro: entra como novo contrato, com a contagem de
+                    férias, 13º e tempo de casa começando na data informada.
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-1.5">
                 <Label>Cargo</Label>
