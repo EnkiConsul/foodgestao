@@ -1,9 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { History, Calculator } from "lucide-react";
+import { History, Calculator, Lock } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,9 +28,12 @@ import { useDpSetores } from "@/hooks/useDpSetores";
 import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
+import { useDpCargoPadrao } from "@/hooks/useDpCargoPadrao";
+import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
 import { contratoPolicy, formasPagamentoDoRegime } from "@/lib/dp/contrato-policy";
 import { salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
 import { salarioProporcional, baseHorasMesSugerida } from "@/lib/dp/jornadaParcial";
+import { sugerirModoContinuidade, type ModoContinuidade } from "@/lib/dp/cargoPadrao";
 import { DOW_LABEL, diasPadrao, normalizarDias, type DiaConfig } from "@/lib/dp/config-trabalho";
 import type { DpColaborador } from "@/hooks/useDpColaboradores";
 
@@ -36,6 +43,16 @@ const FORMA_LABEL: Record<string, string> = {
   mensalista: "Mensalista (salário do mês)",
   horista: "Horista (valor da hora)",
   diarista: "Diarista (valor do dia)",
+};
+
+/** Abas em que há algo para salvar, na ordem em que o gestor avança. */
+const ABAS_EDITAVEIS = ["contrato", "jornada", "remuneracao", "beneficios"] as const;
+type AbaEditavel = (typeof ABAS_EDITAVEIS)[number];
+
+const abaSeguinte = (aba: string): string | null => {
+  const i = ABAS_EDITAVEIS.indexOf(aba as AbaEditavel);
+  if (i < 0) return null;
+  return (ABAS_EDITAVEIS[i + 1] as string | undefined) ?? "historico";
 };
 
 const hoje = () => new Date().toISOString().slice(0, 10);
@@ -49,6 +66,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }
+
 
 /**
  * Alterar Condições de Trabalho: tudo que é contrato do colaborador (vínculo,
@@ -89,6 +107,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   const [beneficiosSel, setBeneficiosSel] = useState<Record<string, boolean>>({});
   const [beneficiosValor, setBeneficiosValor] = useState<Record<string, string>>({});
   const [justificativa, setJustificativa] = useState("");
+  const [modo, setModo] = useState<ModoContinuidade>("continuidade");
+  const [confirmarNovoContrato, setConfirmarNovoContrato] = useState(false);
+  /** Campos que o gestor já mexeu à mão: o padrão do cargo não os sobrescreve. */
+  const tocados = useRef<Set<string>>(new Set());
+  const intencao = useRef<"stay" | "close">("close");
+  const marcarTocado = (campo: string) => tocados.current.add(campo);
+
 
   const configAberta = useMemo(
     () => (configs.data ?? []).find((c) => !c.vigencia_fim) ?? (configs.data ?? [])[0] ?? null,
@@ -118,7 +143,10 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
         : "",
     );
     setJustificativa("");
+    setModo("continuidade");
+    tocados.current = new Set();
   }, [open, colaborador]);
+
 
   // Jornada e equipe vêm da configuração de trabalho vigente.
   useEffect(() => {
@@ -201,6 +229,17 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     [pisosCargo.data, unidadeId, patronalUnidade?.id, vigencia],
   );
 
+  // O sindicato do colaborador vem do cargo (enquadramento laboral).
+  const enquadramento = useSindicatoDoCargo(cargoId || null, unidadeId || null);
+  const sindicatoDoCargo = enquadramento.data?.laboral ?? null;
+  const sindicatoTravado = !!cargoId && !!sindicatoDoCargo;
+
+  useEffect(() => {
+    if (sindicatoTravado && sindicatoDoCargo && sindicatoId !== sindicatoDoCargo.id) {
+      setSindicatoId(sindicatoDoCargo.id);
+    }
+  }, [sindicatoTravado, sindicatoDoCargo, sindicatoId]);
+
   const proporcional = useMemo(
     () =>
       salarioProporcional({
@@ -211,6 +250,51 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
       }),
     [salarioCargo, cargaSemanal, cargoSelecionado?.carga_horaria_semanal, baseHoras],
   );
+
+  // Com salário do cargo cadastrado na unidade, o valor não é digitado aqui.
+  const salarioTravado = !!cargoId && salarioCargo != null && forma === "mensalista";
+
+  useEffect(() => {
+    if (salarioTravado && salarioCargo != null) {
+      const alvo = String(proporcional.salario ?? salarioCargo);
+      if (salario !== alvo) setSalario(alvo);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [salarioTravado, salarioCargo, proporcional.salario]);
+
+
+  // Padrão praticado pelos colaboradores já cadastrados nesse cargo.
+  const cargoPadrao = useDpCargoPadrao(cargoId || null, unidadeId || null, colaborador?.id ?? null);
+
+  useEffect(() => {
+    const p = cargoPadrao.data;
+    if (!open || !p || p.base === 0) return;
+    const t = tocados.current;
+    if (!t.has("regime") && p.regime) setRegime(p.regime);
+    if (!t.has("setor") && p.setor_id) setSetorId(p.setor_id);
+    if (!t.has("forma") && p.forma_pagamento) setForma(p.forma_pagamento);
+    if (!t.has("turno") && p.turno_padrao_id) setTurnoPadraoId(p.turno_padrao_id);
+    if (!t.has("carga") && p.carga_semanal_horas != null) {
+      setCargaSemanal(String(p.carga_semanal_horas));
+      if (!t.has("baseHoras")) setBaseHoras(String(baseHorasMesSugerida(p.carga_semanal_horas)));
+    }
+    if (!t.has("folga") && p.folga_variavel != null) setFolgaVariavel(p.folga_variavel);
+    if (!t.has("dias") && p.dias && p.dias.length > 0) setDias(normalizarDias(p.dias, null));
+    if (!t.has("beneficios") && p.beneficios.length > 0) {
+      const sel: Record<string, boolean> = {};
+      const val: Record<string, string> = {};
+      p.beneficios.forEach((b) => {
+        sel[b.beneficio_id] = true;
+        if (b.valor != null) val[b.beneficio_id] = String(b.valor);
+      });
+      setBeneficiosSel((s) => ({ ...s, ...sel }));
+      setBeneficiosValor((s) => ({ ...val, ...s }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, cargoPadrao.data]);
+
+
+
 
   /** Preenche remuneração e base mensal com o resultado proporcional. */
   const aplicarProporcional = () => {
@@ -230,15 +314,7 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   const nome = (lista: { id: string; nome: string }[], id?: string | null) =>
     lista.find((i) => i.id === id)?.nome ?? null;
 
-  const salvar = async () => {
-    if (!vigencia) {
-      toast.error("Informe a data em que a mudança passa a valer.");
-      return;
-    }
-    if (justificativa.trim().length < 5) {
-      toast.error("Explique brevemente o motivo da mudança.");
-      return;
-    }
+  const executar = async () => {
     const beneficiosPayload: CondicaoBeneficioInput[] = beneficios.map((b) => ({
       beneficio_id: b.id,
       ativo: !!beneficiosSel[b.id],
@@ -274,13 +350,42 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
         })),
         beneficios: beneficiosPayload,
         justificativa: justificativa.trim(),
+        modo_continuidade: modo,
       });
-      toast.success(`Novas condições valendo a partir de ${fmtDate(vigencia)}.`);
-      onOpenChange(false);
+
+      if (intencao.current === "close") {
+        toast.success(`Novas condições valendo a partir de ${fmtDate(vigencia)}.`);
+        onOpenChange(false);
+        return;
+      }
+      const proxima = abaSeguinte(aba);
+      toast.success("Alterações salvas.");
+      if (proxima) setAba(proxima);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível registrar a mudança.");
     }
   };
+
+  /** Salvar continuando nas abas ("stay") ou concluindo ("close"). */
+  const salvar = async (alvo: "stay" | "close") => {
+    intencao.current = alvo;
+    if (!vigencia) {
+      toast.error("Informe a data em que a mudança passa a valer.");
+      setAba("contrato");
+      return;
+    }
+    if (justificativa.trim().length < 5) {
+      toast.error("Explique brevemente o motivo da mudança.");
+      setAba("contrato");
+      return;
+    }
+    if (modo === "novo_contrato") {
+      setConfirmarNovoContrato(true);
+      return;
+    }
+    await executar();
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -330,7 +435,14 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
             <TabsContent value="contrato" className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Tipo de vínculo</Label>
-                <Select value={regime} onValueChange={setRegime}>
+                <Select
+                  value={regime}
+                  onValueChange={(v) => {
+                    marcarTocado("regime");
+                    setRegime(v);
+                    setModo(sugerirModoContinuidade(colaborador?.regime ?? null, v));
+                  }}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {REGIMES.map((r) => (
@@ -349,6 +461,12 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                     ))}
                   </SelectContent>
                 </Select>
+                {cargoId && (cargoPadrao.data?.base ?? 0) > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Campos preenchidos pelo padrão de {cargoPadrao.data?.base} colaborador(es) neste cargo
+                    {cargoPadrao.data?.daUnidade ? " nesta unidade" : " na empresa"}. Você pode ajustar.
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-1.5">
                 <Label>Unidade</Label>
@@ -369,7 +487,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
               </div>
               <div className="space-y-1.5">
                 <Label>Setor habitual</Label>
-                <Select value={setorId} onValueChange={setSetorId}>
+                <Select
+                  value={setorId}
+                  onValueChange={(v) => {
+                    marcarTocado("setor");
+                    setSetorId(v);
+                  }}
+                >
                   <SelectTrigger><SelectValue placeholder="Sem setor definido" /></SelectTrigger>
                   <SelectContent>
                     {setoresDaUnidade.map((s) => (
@@ -380,15 +504,41 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
               </div>
               <div className="space-y-1.5">
                 <Label>Sindicato</Label>
-                <Select value={sindicatoId} onValueChange={setSindicatoId}>
-                  <SelectTrigger><SelectValue placeholder="Sem sindicato" /></SelectTrigger>
+                {sindicatoTravado ? (
+                  <>
+                    <Input value={sindicatoDoCargo?.nome ?? ""} readOnly className="bg-muted/50" />
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Lock className="h-3 w-3" aria-hidden="true" />
+                      Vem do cadastro do cargo. Para trocar, altere o cargo ou o cadastro dele.
+                    </p>
+                  </>
+                ) : (
+                  <Select value={sindicatoId} onValueChange={setSindicatoId}>
+                    <SelectTrigger><SelectValue placeholder="Sem sindicato" /></SelectTrigger>
+                    <SelectContent>
+                      {sindicatos.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div className="space-y-2 rounded-md border p-3 sm:col-span-2">
+                <p className="text-sm font-medium">Férias, 13º e tempo de casa</p>
+                <Select value={modo} onValueChange={(v) => setModo(v as ModoContinuidade)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {sindicatos.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
-                    ))}
+                    <SelectItem value="continuidade">Continuidade do contrato</SelectItem>
+                    <SelectItem value="novo_contrato">Novo contrato (recomeça a contagem)</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {modo === "continuidade"
+                    ? "Tudo continua contando desde a admissão original: férias, 13º, tempo de casa e adicional por tempo de serviço."
+                    : `O vínculo anterior é encerrado em ${fmtDate(vigencia)} e a contagem recomeça nessa data. O período anterior fica guardado no histórico e o colaborador segue com acesso aos documentos antigos.`}
+                </p>
               </div>
+
               <div className="flex items-center justify-between gap-3 rounded-md border p-3 sm:col-span-2">
                 <div>
                   <p className="text-sm font-medium">Faz parte da equipe habitual da unidade</p>
@@ -405,7 +555,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
                   <Label>Turno padrão</Label>
-                  <Select value={turnoPadraoId} onValueChange={setTurnoPadraoId}>
+                  <Select
+                    value={turnoPadraoId}
+                    onValueChange={(v) => {
+                      marcarTocado("turno");
+                      setTurnoPadraoId(v);
+                    }}
+                  >
                     <SelectTrigger><SelectValue placeholder="Sem turno padrão" /></SelectTrigger>
                     <SelectContent>
                       {turnos.map((t) => (
@@ -425,6 +581,8 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                     step="0.5"
                     value={cargaSemanal}
                     onChange={(e) => {
+                      marcarTocado("carga");
+                      marcarTocado("baseHoras");
                       setCargaSemanal(e.target.value);
                       const sugerida = baseHorasMesSugerida(num(e.target.value));
                       setBaseHoras(String(sugerida));
@@ -437,8 +595,15 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                     <p className="text-sm font-medium">Folga variável</p>
                     <p className="text-xs text-muted-foreground">Sem dia fixo de folga</p>
                   </div>
-                  <Switch checked={folgaVariavel} onCheckedChange={setFolgaVariavel} />
+                  <Switch
+                    checked={folgaVariavel}
+                    onCheckedChange={(v) => {
+                      marcarTocado("folga");
+                      setFolgaVariavel(v);
+                    }}
+                  />
                 </div>
+
               </div>
 
               <Separator />
@@ -517,7 +682,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Forma de pagamento</Label>
-                  <Select value={forma} onValueChange={setForma}>
+                  <Select
+                    value={forma}
+                    onValueChange={(v) => {
+                      marcarTocado("forma");
+                      setForma(v);
+                    }}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {formasPermitidas.map((f) => (
@@ -537,11 +708,25 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                       min="0"
                       step="0.01"
                       value={salario}
+                      readOnly={salarioTravado}
+                      className={salarioTravado ? "bg-muted/50" : undefined}
                       onChange={(e) => setSalario(e.target.value)}
                       placeholder="0,00"
                     />
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                      {salarioTravado ? (
+                        <>
+                          <Lock className="h-3 w-3" aria-hidden="true" />
+                          Vem do salário do cargo nesta unidade
+                          {proporcional.parcial ? ", proporcional à jornada" : ""}. Para mudar, altere o cadastro do cargo.
+                        </>
+                      ) : (
+                        "Sem salário cadastrado para este cargo na unidade: informe o valor manualmente."
+                      )}
+                    </p>
                   </div>
                 ) : (
+
                   <div className="space-y-1.5">
                     <Label htmlFor="cond-hora">
                       {forma === "diarista" ? "Valor do dia" : "Valor da hora"}
@@ -622,11 +807,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                     </div>
                     <Switch
                       checked={!!beneficiosSel[b.id]}
-                      onCheckedChange={(v) =>
-                        setBeneficiosSel((s) => ({ ...s, [b.id]: v }))
-                      }
+                      onCheckedChange={(v) => {
+                        marcarTocado("beneficios");
+                        setBeneficiosSel((s) => ({ ...s, [b.id]: v }));
+                      }}
                       aria-label={`Conceder ${b.nome}`}
                     />
+
                     <Input
                       type="number"
                       min="0"
@@ -689,11 +876,50 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
           <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button className="flex-1 sm:flex-none" onClick={salvar} disabled={aplicar.isPending}>
+          {ABAS_EDITAVEIS.includes(aba as AbaEditavel) ? (
+            <Button
+              variant="secondary"
+              className="flex-1 sm:flex-none"
+              onClick={() => void salvar("stay")}
+              disabled={aplicar.isPending}
+            >
+              {aplicar.isPending ? "Salvando…" : "Salvar e continuar"}
+            </Button>
+          ) : null}
+          <Button
+            className="flex-1 sm:flex-none"
+            onClick={() => void salvar("close")}
+            disabled={aplicar.isPending}
+          >
             {aplicar.isPending ? "Salvando…" : "Aplicar mudança"}
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={confirmarNovoContrato} onOpenChange={setConfirmarNovoContrato}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Recomeçar a contagem como novo contrato?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O vínculo atual de {colaborador?.nome ?? "o colaborador"} será encerrado em {fmtDate(vigencia)} e
+              férias, 13º e tempo de casa passam a contar dessa data. O histórico e os documentos anteriores
+              continuam disponíveis para consulta.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmarNovoContrato(false);
+                void executar();
+              }}
+            >
+              Confirmar novo contrato
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
+
   );
 }

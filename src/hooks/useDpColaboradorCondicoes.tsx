@@ -47,7 +47,10 @@ export interface AplicarCondicaoInput {
   compoe_equipe_habitual?: boolean | null;
   dias?: CondicaoDiaInput[] | null;
   beneficios?: CondicaoBeneficioInput[] | null;
+  /** "continuidade" mantém a contagem; "novo_contrato" recomeça férias/13º/tempo de casa. */
+  modo_continuidade?: "continuidade" | "novo_contrato";
 }
+
 
 /**
  * Histórico de condições de trabalho do colaborador (vínculo, cargo, unidade,
@@ -98,7 +101,9 @@ export function useDpColaboradorCondicoes(colaboradorId?: string | null) {
         p_compoe_equipe_habitual: input.compoe_equipe_habitual ?? null,
         p_dias: (input.dias ?? null) as never,
         p_beneficios: (input.beneficios ?? null) as never,
+        p_modo_continuidade: input.modo_continuidade ?? "continuidade",
       } as never);
+
       if (error) throw error;
       return data as string;
     },
@@ -112,6 +117,10 @@ export function useDpColaboradorCondicoes(colaboradorId?: string | null) {
         "dp_beneficios",
         "dp_escala_itens",
         "dp_operacao_panorama",
+        "dp_cargo_padrao",
+        "dp_ferias",
+        "dp_ferias_periodos",
+
       ].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
     },
   });

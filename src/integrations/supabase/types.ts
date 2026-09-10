@@ -4356,6 +4356,7 @@ export type Database = {
             | null
           id: string
           justificativa: string | null
+          modo_continuidade: string
           observacoes: string | null
           regime: Database["public"]["Enums"]["dp_regime_trabalho"] | null
           salario_base: number | null
@@ -4387,6 +4388,7 @@ export type Database = {
             | null
           id?: string
           justificativa?: string | null
+          modo_continuidade?: string
           observacoes?: string | null
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"] | null
           salario_base?: number | null
@@ -4418,6 +4420,7 @@ export type Database = {
             | null
           id?: string
           justificativa?: string | null
+          modo_continuidade?: string
           observacoes?: string | null
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"] | null
           salario_base?: number | null
@@ -4599,6 +4602,7 @@ export type Database = {
           ctps_serie: string | null
           ctps_uf: string | null
           data_admissao: string | null
+          data_base_contagem: string | null
           data_desligamento: string | null
           data_nascimento: string | null
           deficiencia: string | null
@@ -4722,6 +4726,7 @@ export type Database = {
           ctps_serie?: string | null
           ctps_uf?: string | null
           data_admissao?: string | null
+          data_base_contagem?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
           deficiencia?: string | null
@@ -4845,6 +4850,7 @@ export type Database = {
           ctps_serie?: string | null
           ctps_uf?: string | null
           data_admissao?: string | null
+          data_base_contagem?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
           deficiencia?: string | null
@@ -14185,6 +14191,7 @@ export type Database = {
           p_folga_variavel?: boolean
           p_forma_pagamento: string
           p_justificativa: string
+          p_modo_continuidade?: string
           p_observacoes: string
           p_regime: string
           p_salario_base: number
