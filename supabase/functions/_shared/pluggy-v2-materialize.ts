@@ -1,6 +1,7 @@
 // V2 — Materialização isolada de item Pluggy em pluggy_v2_*
 // Nenhuma leitura/escrita nas tabelas V1.
 import { getItem, listAccounts, listTransactionsV2 } from "./pluggy-client.ts";
+import { readNextPointer } from "./pluggy-cursor.ts";
 
 // Máscara simples para dados sensíveis
 function maskAccountNumber(n?: string): string | null {
