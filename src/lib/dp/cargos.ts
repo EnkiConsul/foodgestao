@@ -35,16 +35,15 @@ export type ComparacaoCargo =
 const TOL = 0.005;
 
 /**
- * A reconciliação "um cargo = um salário" (piso do cargo) só faz sentido para
- * empregados vinculados a uma unidade: o piso vem da convenção do sindicato
- * patronal da unidade. Sócio (pró-labore ou lucros) e cadastro sem unidade
- * específica ficam fora da regra.
+ * A reconciliação "um cargo = um salário" (piso do cargo) exige uma unidade:
+ * o valor de referência é resolvido por unidade. Para empregados o piso vem da
+ * convenção do sindicato patronal; para sócio a referência é da própria empresa
+ * (pró-labore do cargo de sócio naquela unidade), sem sindicato envolvido.
  */
 export function deveReconciliarPisoCargo(ctx: {
   socio?: boolean;
   unidadeId?: string | null;
 }): boolean {
-  if (ctx.socio) return false;
   return !!ctx.unidadeId;
 }
 

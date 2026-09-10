@@ -112,6 +112,7 @@ function foraDaClt(regime?: string | null): boolean {
  */
 export function verificarAlertasClt(input: EntradaAlertasClt): AlertaClt[] {
   const out: AlertaClt[] = [];
+  if (input.socio) return out;
   const dias = input.dias.filter(temHorario);
   if (dias.length === 0) return out;
 
