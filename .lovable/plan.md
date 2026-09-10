@@ -1,26 +1,27 @@
-# Data de início do adiantamento por unidade
+# Zerar pendências de adiantamento da Pakerê antes de 07/2026 (somente dados)
 
-## Problema
+## Objetivo
 
-Na Pakerê o adiantamento quinzenal só passou a valer a partir de **07/2026**. Hoje a elegibilidade só considera cadastro da unidade, admissão, desligamento e opção do colaborador — então competências anteriores a 07/2026 podem gerar pendência de adiantamento indevida.
+Na Pakerê o adiantamento quinzenal só começou em **07/2026**. Sem criar nenhuma funcionalidade, registrar no banco que as pendências de adiantamento de competências anteriores (até 06/2026) ficam **ignoradas**, com justificativa — usando o mecanismo já existente de ignorar pendências (`dp_pendencias_decisoes`).
 
-## Solução
+## O que será feito (apenas banco, via SQL)
 
-Criar o campo **"Adiantamento a partir de"** (mês/ano) na configuração de adiantamento da unidade:
+1. Localizar a empresa Pakerê (`companies.nome ilike '%paker%'`) e suas unidades com adiantamento ativo.
+2. Para cada unidade, gerar as competências desde o início da cobrança (mês anterior ao cadastro da unidade) até **06/2026**.
+3. Para cada colaborador elegível naquela competência (vínculo assalariado, não sócio, ativo na competência, optante de adiantamento) inserir em `dp_pendencias_decisoes`:
+   - `pendencia_id`: `adiantamento-<id do colaborador>-<AAAA-M>` (mesmo formato gerado pela tela);
+   - `acao`: `ignorar`;
+   - `justificativa`: "Adiantamento implantado na empresa a partir de 07/2026";
+   - `company_id`, `colaborador_id`, `competencia` preenchidos.
+4. Cobrir também o caso de pendência de "lote completo" (`adiantamento-<id da unidade>-<AAAA-M>`), quando todos os elegíveis da unidade estavam pendentes naquela competência.
+5. `ON CONFLICT (company_id, pendencia_id) DO NOTHING` para não duplicar.
 
-- Competências **anteriores** ao mês informado **nunca** geram pendência de adiantamento (mesmo para optantes).
-- A partir do mês informado, valem as regras atuais (optante na competência, admissão, desligamento).
-- Campo opcional: vazio = sem restrição (comportamento atual).
-- Configurado no diálogo "Adiantamento da unidade" junto do dia de pagamento.
+## Efeito esperado
 
-## Preenchimento inicial
-
-Na mesma alteração de banco, todas as unidades da empresa Pakerê (localizada pelo nome) recebem o início **07/2026**, eliminando retroativamente pendências de adiantamento de competências anteriores.
+- Pendências de adiantamento anteriores a 07/2026 deixam de aparecer como cobrança na tela inicial, na lista de pendências e na importação de documentos (passam a constar como ignoradas, com a justificativa visível).
+- Nada muda para 07/2026 em diante nem para contracheque, folha de ponto ou rescisão.
 
 ## Detalhes técnicos
 
-- Migração: `dp_unidades` ganha a coluna `adiantamento_inicio_competencia` (texto "YYYY-MM", nula por padrão); update definindo `'2026-07'` nas unidades da empresa cujo nome contenha "paker" (case-insensitive). Regenera os types.
-- `src/lib/dp/pendencias-documentos.ts`: `ElegibilidadeOpts` ganha `adiantamentoInicioCompetencia`; no ramo `adiantamento` de `elegivelDocumento`, retorna `false` quando a competência for anterior ao início configurado.
-- Chamadores repassam o valor da unidade (mesmo ponto onde já passam `diaAdiantamento`): `src/hooks/useDpPendencias.tsx`, `src/pages/dp/cadastros/DpCadastroPendencias.tsx` e `src/components/dp/documentos/DocConsistenciaPanel.tsx`.
-- `src/components/dp/UnidadeAdiantamentoDialog.tsx` e `src/hooks/useDpCadastros.tsx` (payload de `useUpsertDpUnidade`): novo campo "Adiantamento a partir de" (seletor mês/ano), gravado junto com a regra.
-- `src/test/unit/adiantamentoOpcao.test.ts`: casos de competência anterior/igual/posterior ao início configurado.
+- Uma única execução SQL (run_sql), sem migração de estrutura e sem alteração de código.
+- A conferência respeita o formato de id usado em `src/hooks/useDpPendencias.tsx` (`compId` sem zero à esquerda no mês) e verifica se as telas de pendências do cadastro e da conferência de documentos leem as mesmas decisões.
