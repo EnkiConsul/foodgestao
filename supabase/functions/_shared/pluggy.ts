@@ -110,29 +110,6 @@ export async function listAccounts(itemId: string) {
   return j.results ?? [];
 }
 
-/**
- * Normaliza o ponteiro de próxima página devolvido pela Pluggy.
- * A API pode responder `next` como caminho completo (`/v2/transactions?...`),
- * como query string (`?pageCursor=...`) ou apenas o valor do cursor. Enviar o
- * caminho inteiro em `after=` gera 400 "Invalid cursor".
- */
-export function nextTransactionsPath(next: string | null | undefined): string | null {
-  if (!next) return null;
-  const raw = String(next).trim();
-  if (!raw) return null;
-  if (raw.startsWith("/")) return raw;
-  if (raw.startsWith("?")) return `/v2/transactions${raw}`;
-  if (raw.startsWith("http")) {
-    try {
-      const u = new URL(raw);
-      return `${u.pathname}${u.search}`;
-    } catch {
-      return null;
-    }
-  }
-  return `/v2/transactions?pageCursor=${encodeURIComponent(raw)}`;
-}
-
 export async function listTransactions(accountId: string, from: string, to: string) {
   // Paginação por cursor do /v2/transactions. A primeira página filtra por data;
   // as seguintes seguem exatamente o ponteiro devolvido pela API.
@@ -147,7 +124,7 @@ export async function listTransactions(accountId: string, from: string, to: stri
     const rows = j.results ?? [];
     all.push(...rows);
     if (rows.length === 0) break;
-    path = nextTransactionsPath(j.next ?? j.nextCursor ?? null);
+    path = readNextPointer(j);
     if (++safety > 200) break; // hard safety cap
   }
   return all;
