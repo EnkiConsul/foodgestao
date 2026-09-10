@@ -2628,16 +2628,31 @@ export function ColaboradorFormDialog({
       <AlertDialog open={!!cargoSemSalario} onOpenChange={(v) => { if (!v) setCargoSemSalario(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cadastrar o piso salarial deste cargo?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {socioSelecionado
+                ? "Usar este valor como referência do cargo nesta unidade?"
+                : "Cadastrar o piso salarial deste cargo?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              O cargo {cargoSelecionado?.nome ?? ""} ainda não tem piso cadastrado
-              {patronalUnidade?.nome
-                ? ` no sindicato patronal ${patronalUnidade.nome}`
-                : unidadeSelecionada?.nome
-                  ? ` para ${unidadeSelecionada.nome}`
-                  : ""}
-              . Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como piso, valendo para
-              todas as unidades com esse mesmo patronal?
+              {socioSelecionado ? (
+                <>
+                  O cargo {cargoSelecionado?.nome ?? ""} ainda não tem valor de referência
+                  {unidadeSelecionada?.nome ? ` em ${unidadeSelecionada.nome}` : ""}. Sócio não tem
+                  piso de sindicato: quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como
+                  referência da empresa para este cargo nesta unidade?
+                </>
+              ) : (
+                <>
+                  O cargo {cargoSelecionado?.nome ?? ""} ainda não tem piso cadastrado
+                  {patronalUnidade?.nome
+                    ? ` no sindicato patronal ${patronalUnidade.nome}`
+                    : unidadeSelecionada?.nome
+                      ? ` para ${unidadeSelecionada.nome}`
+                      : ""}
+                  . Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como piso, valendo para
+                  todas as unidades com esse mesmo patronal?
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2648,10 +2663,13 @@ export function ColaboradorFormDialog({
                 void submit();
               }}
             >
-              Só para este colaborador
+              Só para este {socioSelecionado ? "sócio" : "colaborador"}
             </AlertDialogCancel>
-            {/* O piso é do sindicato patronal: unidades com o mesmo patronal compartilham. */}
-            {patronalUnidade?.id && (
+            {/*
+              Empregado: o piso é do sindicato patronal e vale para todas as unidades dele.
+              Sócio: o valor é referência da própria empresa, gravada na unidade.
+            */}
+            {(socioSelecionado ? !!form.unidade_id : !!patronalUnidade?.id) && (
               <AlertDialogAction
                 disabled={salvandoPiso || upsertCargoSalario.isPending}
                 onClick={async (e) => {
@@ -2663,17 +2681,22 @@ export function ColaboradorFormDialog({
                   try {
                     await upsertCargoSalario.mutateAsync({
                       cargo_id: form.cargo_id,
-                      unidade_id: null,
-                      sindicato_patronal_id: patronalUnidade.id,
+                      unidade_id: socioSelecionado ? form.unidade_id : null,
+                      sindicato_patronal_id: socioSelecionado ? null : patronalUnidade!.id,
                       salario_base: pendente.salarioInformado,
                       vigencia_inicio: form.data_admissao || new Date().toISOString().slice(0, 10),
                     });
                     await queryClient.refetchQueries({ queryKey: ["dp_cargo_salarios"] });
                   } catch (err) {
                     setCargoSemSalario(pendente);
-                    toast.error("Não foi possível gravar o piso do sindicato patronal", {
-                      description: `${mensagemErroPiso(err)} Você pode usar “Só para este colaborador” para salvar o cadastro agora.`,
-                    });
+                    toast.error(
+                      socioSelecionado
+                        ? "Não foi possível gravar a referência do cargo na unidade"
+                        : "Não foi possível gravar o piso do sindicato patronal",
+                      {
+                        description: `${mensagemErroPiso(err)} Você pode usar “Só para este ${socioSelecionado ? "sócio" : "colaborador"}” para salvar o cadastro agora.`,
+                      },
+                    );
                     setSalvandoPiso(false);
                     return;
                   }
@@ -2682,13 +2705,18 @@ export function ColaboradorFormDialog({
                   await submit();
                 }}
               >
-                {salvandoPiso ? "Salvando..." : "Definir piso do patronal"}
+                {salvandoPiso
+                  ? "Salvando..."
+                  : socioSelecionado
+                    ? "Definir referência da unidade"
+                    : "Definir piso do patronal"}
               </AlertDialogAction>
             )}
 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       <UnidadeAdiantamentoDialog
         unidade={unidadeSelecionada ?? null}
