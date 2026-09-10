@@ -96,7 +96,8 @@ function SyncInfo({ connection: c }: { connection: Connection }) {
   const nextLabel = c.next_sync_at
     ? formatDistanceToNow(new Date(c.next_sync_at), { locale: ptBR, addSuffix: true })
     : null;
-  const failed = c.last_sync_status && c.last_sync_status !== "success";
+  const motivo = motivoAmigavel(c);
+  const failed = !!motivo;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -105,13 +106,14 @@ function SyncInfo({ connection: c }: { connection: Connection }) {
           <TooltipTrigger asChild>
             <span className={failed ? "text-warning" : ""}>
               Última sincronização: {lastLabel}
-              {failed && c.last_sync_error ? ` (${c.last_sync_error})` : ""}
+              {motivo ? ` — ${motivo}` : ""}
             </span>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-xs text-xs">
             <p>Última sincronização: {fmtDateTime(lastAt) ?? "—"}</p>
             {c.next_sync_at && <p>Próxima programada: {fmtDateTime(c.next_sync_at) ?? "—"}</p>}
-            {c.last_sync_status && <p>Status: {c.last_sync_status}</p>}
+            {motivo && <p>{motivo}</p>}
+            {c.last_sync_error && <p className="text-muted-foreground">{c.last_sync_error}</p>}
           </TooltipContent>
         </Tooltip>
         {nextLabel && (
