@@ -314,10 +314,70 @@ export function DpPessoaAvulsaDialog({
     }));
   };
 
+  /** Colaborador escolhido no tipo "Colaborador", com vínculo e datas. */
+  const selecionado = useMemo(
+    () => (manual && form.colaborador_id
+      ? colaboradores.find((c) => c.id === form.colaborador_id) ?? null
+      : null),
+    [manual, form.colaborador_id, colaboradores],
+  );
+
+  /** Trocar a data pode tornar inválida a pessoa escolhida (ex.: antes da admissão). */
+  useEffect(() => {
+    if (!open || !manual || !selecionado || !form.data_inicio) return;
+    if (colaboradorElegivelNoDia(selecionado, form.data_inicio)) return;
+    toast.info("Pessoa removida da seleção", {
+      description: `${selecionado.nome} não tinha vínculo válido em ${form.data_inicio.split("-").reverse().join("/")}.`,
+    });
+    setForm((f) => ({ ...f, colaborador_id: "" }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, manual, selecionado?.id, form.data_inicio]);
+
+  /** O que a pessoa já tem previsto no dia lançado (escala, jornada, convocação, outro extra). */
+  const previsoes = useMemo(
+    () =>
+      selecionado && previsaoDoDia && form.data_inicio
+        ? previsaoDoDia(form.data_inicio, selecionado.id, registro?.id ?? null)
+        : [],
+    [selecionado, previsaoDoDia, form.data_inicio, registro?.id],
+  );
+
+  const conflito = useMemo(
+    () => conflitoDeHorario(previsoes, form.entrada, form.saida, form.termina_no_dia_seguinte),
+    [previsoes, form.entrada, form.saida, form.termina_no_dia_seguinte],
+  );
+
+  const horarioSugeridoLivre = useMemo(
+    () => sugerirHorarioLivre(previsoes, form.entrada, form.saida, form.termina_no_dia_seguinte),
+    [previsoes, form.entrada, form.saida, form.termina_no_dia_seguinte],
+  );
+
+  const regimeSelecionado = selecionado?.regime ?? null;
+  const selecionadoSocio = !!selecionado?.socio;
+  const selecionadoConvocavel =
+    regimeSelecionado === "intermitente" || regimeSelecionado === "freelancer";
+  /** CLT formal (não sócio, não intermitente): dia extra tem risco legal a sinalizar. */
+  const selecionadoRiscoClt =
+    !!selecionado &&
+    !selecionadoSocio &&
+    regimeSelecionado !== "intermitente" &&
+    regimeFormalizado(regimeSelecionado);
+
+  const aplicarHorarioSugerido = () => {
+    if (!horarioSugeridoLivre) return;
+    setHorarioTocado(true);
+    setForm((f) => ({
+      ...f,
+      entrada: horarioSugeridoLivre.entrada,
+      saida: horarioSugeridoLivre.saida,
+      termina_no_dia_seguinte: horarioSugeridoLivre.termina_no_dia_seguinte,
+    }));
+  };
+
   const salvar = async () => {
-    if (manual && form.data_fim > hoje) {
-      toast.error("Data futura não permitida", {
-        description: "Para dias futuros use a convocação ou a escala.",
+    if (conflito) {
+      toast.error("Horário em conflito", {
+        description: "Ajuste o horário para um período livre antes de salvar.",
       });
       return;
     }
