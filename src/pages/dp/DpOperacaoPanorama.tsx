@@ -967,6 +967,41 @@ export default function DpOperacaoPanorama() {
         toast.error(traduzirErroSetor(e as { message?: string }), { id: "rotina-avulsa-salvar" }),
     });
 
+  /** Horários que a pessoa já tem previstos no dia — alimenta o alerta de conflito. */
+  const previsaoDoDia = useCallback(
+    (data: string, colaboradorId: string, ignorarAvulsoId?: string | null): PrevisaoNoDia[] =>
+      previsaoNoDia(
+        panorama.dias.find((d) => d.data === data) ?? null,
+        colaboradorId,
+        ignorarAvulsoId,
+      ),
+    [panorama.dias],
+  );
+
+  /**
+   * Intermitente/freelancer lançado manualmente: atalho para a convocação já
+   * preenchida. Fecha o diálogo atual e navega com a pessoa pré-selecionada.
+   */
+  const irParaConvocacao = (alvo: {
+    unidadeId: string;
+    cargoId: string;
+    data: string;
+    colaboradorId: string;
+  }) => {
+    setAvulsaOpen(false);
+    setAvulsaEditando(null);
+    navigate("/dp/escalas/convocacoes", {
+      state: {
+        nova: {
+          unidadeId: alvo.unidadeId,
+          cargoId: alvo.cargoId,
+          datas: [alvo.data],
+          colaboradorId: alvo.colaboradorId,
+        },
+      },
+    });
+  };
+
   const excluirAvulsa = (registro: PessoaAvulsaPanorama) =>
     panorama.excluirAvulsa.mutate(registro.id, {
       onSuccess: () => toast.success("Pessoa removida do dia.", { id: "rotina-avulsa-remover" }),
