@@ -353,6 +353,128 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, cargoPadrao.data]);
 
+  // ---- Copiar horário de outro colaborador (sócio nunca é fonte para CLT) ----
+  const excluirSocios = !isSocio(colaborador?.vinculo_label);
+  const { modelos: modelosHorario } = useDpModelosHorario(
+    unidadeId || null,
+    colaborador?.id ?? null,
+    excluirSocios,
+  );
+
+  /** Até 4 colegas: mesmo cargo primeiro, sem repetir o mesmo horário. */
+  const atalhosColegas = useMemo(() => {
+    const ordenados = [...modelosHorario].sort((a, b) => {
+      const aCargo = (a.cargo_id ?? null) === (cargoId || null) ? 1 : 0;
+      const bCargo = (b.cargo_id ?? null) === (cargoId || null) ? 1 : 0;
+      return bCargo - aCargo || (b.usado_em ?? "").localeCompare(a.usado_em ?? "");
+    });
+    const vistos = new Set<string>();
+    return ordenados
+      .filter((m) => {
+        const s = assinaturaSemana(m);
+        if (vistos.has(s)) return false;
+        vistos.add(s);
+        return true;
+      })
+      .slice(0, 4);
+  }, [modelosHorario, cargoId]);
+
+  /** Copia a semana do colega: folgas, horários e o turno padrão da unidade. */
+  const aplicarConfigCopiada = (cfg: ConfigCopiada) => {
+    marcarTocado("dias");
+    marcarTocado("folga");
+    const turnoOk =
+      cfg.turno_padrao_id && turnosResolvidos.some((t) => t.id === cfg.turno_padrao_id)
+        ? cfg.turno_padrao_id
+        : "";
+    if (turnoOk) {
+      marcarTocado("turno");
+      setTurnoPadraoId(turnoOk);
+    }
+    setFolgaVariavel(cfg.folga_variavel);
+    setDias(normalizarDias(cfg.dias.map((d) => ({ ...d, turno_id: null })), null));
+  };
+
+  const copiarSemanaDoColega = (m: ModeloHorarioColaborador) => {
+    aplicarConfigCopiada({
+      turno_padrao_id: m.turno_padrao_id,
+      folga_variavel: m.folga_variavel,
+      dias: m.dias,
+      horario: m.horario,
+    });
+    toast.success(`Horário de ${m.colaborador_nome} copiado.`);
+  };
+
+  // ---- VA/VT/assiduidade: padrão da empresa/unidade/cargo -----------------
+  const padraoAplicavel = useMemo(() => {
+    const linhas = padroesBeneficios.data ?? [];
+    return (
+      linhas.find((p) => p.cargo_id === (cargoId || null) && p.unidade_id === (unidadeId || null)) ??
+      linhas.find((p) => p.cargo_id === (cargoId || null) && !p.unidade_id) ??
+      linhas.find((p) => !p.cargo_id && p.unidade_id === (unidadeId || null)) ??
+      linhas.find((p) => !p.cargo_id && !p.unidade_id) ??
+      null
+    );
+  }, [padroesBeneficios.data, cargoId, unidadeId]);
+
+  /**
+   * VA/VT/assiduidade abrem com o que já está no cadastro; quando o campo nunca
+   * foi definido, cai no padrão da empresa/unidade/cargo. Inicializa uma vez por
+   * abertura para não pisar em edições do gestor.
+   */
+  useEffect(() => {
+    if (!open) {
+      fixosInitRef.current = false;
+      return;
+    }
+    if (fixosInitRef.current || !colaborador) return;
+    fixosInitRef.current = true;
+    const c = colaborador as unknown as Record<string, unknown>;
+    const p = padraoAplicavel?.payload ?? null;
+    const bool = (v: unknown) => v === true;
+    setFixosSel({
+      va: c.vale_alimentacao != null ? bool(c.vale_alimentacao) : !!p?.vale_alimentacao,
+      vt: c.vale_transporte != null ? bool(c.vale_transporte) : !!p?.vale_transporte,
+      assiduidade: c.premio_assiduidade != null ? bool(c.premio_assiduidade) : !!p?.premio_assiduidade,
+    });
+    const str = (v: unknown) => (v == null ? "" : String(v));
+    setFixosValor({
+      va: str(c.vale_alimentacao_valor ?? p?.vale_alimentacao_valor),
+      vt: str(c.vale_transporte_valor_dia ?? p?.vale_transporte_valor_dia),
+      assiduidade: str(c.premio_assiduidade_valor ?? p?.premio_assiduidade_valor),
+    });
+  }, [open, colaborador, padraoAplicavel]);
+
+  /** Reaplica exatamente os benefícios que o colaborador já tem hoje. */
+  const manterBeneficiosAtuais = () => {
+    const ativos: Record<string, boolean> = {};
+    const valores: Record<string, string> = {};
+    atribuicoes
+      .filter((a) => a.ativo !== false && !a.data_fim)
+      .forEach((a) => {
+        ativos[a.beneficio_id] = true;
+        valores[a.beneficio_id] = a.valor != null ? String(a.valor) : "";
+      });
+    setBeneficiosSel(ativos);
+    setBeneficiosValor(valores);
+    const c = (colaborador ?? {}) as unknown as Record<string, unknown>;
+    setFixosSel({
+      va: c.vale_alimentacao === true,
+      vt: c.vale_transporte === true,
+      assiduidade: c.premio_assiduidade === true,
+    });
+    const str = (v: unknown) => (v == null ? "" : String(v));
+    setFixosValor({
+      va: str(c.vale_alimentacao_valor),
+      vt: str(c.vale_transporte_valor_dia),
+      assiduidade: str(c.premio_assiduidade_valor),
+    });
+    marcarTocado("beneficios");
+    toast.success("Benefícios atuais reaplicados.");
+  };
+
+
+
 
 
 
