@@ -269,23 +269,29 @@ export async function listTransactions(params: {
 /**
  * V2 — /v2/transactions com paginação por cursor.
  * Docs: https://docs.pluggy.ai/reference/get-transactions-v2
+ *
+ * A próxima página deve seguir exatamente o ponteiro devolvido pela API
+ * (`next`), normalizado em `_shared/pluggy-cursor.ts`. Ler apenas `nextCursor`
+ * ou remontar a query manualmente fazia a leitura parar na primeira página.
  */
 export async function listTransactionsV2(params: {
   accountId: string;
   from?: string;
   to?: string;
   pageSize?: number;
-  pageCursor?: string;
+  /** Caminho já normalizado da próxima página (ver readNextPointer). */
+  nextPath?: string | null;
 }) {
   // A rota v2 aceita apenas accountId + paginação por cursor. Enviar `from`,
   // `to` ou `pageSize` faz a API responder 400 ("property should not exist").
-  const qs = new URLSearchParams();
-  qs.set("accountId", params.accountId);
-  if (params.pageCursor) qs.set("pageCursor", params.pageCursor);
+  const path = params.nextPath && params.nextPath.trim()
+    ? params.nextPath
+    : `/v2/transactions?${new URLSearchParams({ accountId: params.accountId }).toString()}`;
   return await request<{
     results: PluggyTransaction[];
-    nextCursor: string | null;
-  }>("GET", `/v2/transactions?${qs.toString()}`);
+    next?: string | null;
+    nextCursor?: string | null;
+  }>("GET", path);
 }
 
 

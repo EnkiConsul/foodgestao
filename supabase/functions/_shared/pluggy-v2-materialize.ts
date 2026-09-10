@@ -1,6 +1,7 @@
 // V2 — Materialização isolada de item Pluggy em pluggy_v2_*
 // Nenhuma leitura/escrita nas tabelas V1.
 import { getItem, listAccounts, listTransactionsV2 } from "./pluggy-client.ts";
+import { readNextPointer } from "./pluggy-cursor.ts";
 
 // Máscara simples para dados sensíveis
 function maskAccountNumber(n?: string): string | null {
@@ -157,13 +158,13 @@ export async function materializePluggyItemV2(params: {
     : new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
   for (const acc of accounts) {
-    let cursor: string | undefined;
+    let nextPath: string | null = null;
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const txResp = await listTransactionsV2({
         accountId: acc.id,
         from,
-        pageCursor: cursor,
+        nextPath,
         pageSize: 500,
       });
       if (!txResp.ok) throw new Error(`list_transactions_failed:${txResp.error}`);
@@ -197,10 +198,11 @@ export async function materializePluggyItemV2(params: {
         if (txErr) console.error("[pv2-materialize] tx upsert error", txErr.message);
         else transactionsIngested += rows.length;
       }
-      cursor = page.nextCursor ?? undefined;
-      cursorAfter = cursor ?? cursorAfter;
+      nextPath = readNextPointer(page);
+      cursorAfter = nextPath ?? cursorAfter;
 
-      if (!cursor) break;
+      if (!nextPath) break;
+      if (txs.length === 0) break;
       if (pagesProcessed > 200) {
         console.warn("[pv2-materialize] safety-cap 200 pages hit");
         break;
