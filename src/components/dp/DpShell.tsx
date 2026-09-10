@@ -16,7 +16,7 @@ export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" })
         <DpSidebar variant={variant} />
         <div className="flex flex-1 flex-col min-w-0">
           <DpHeader variant={variant} />
-          <main className="flex-1 p-3 md:p-8 pb-24 md:pb-8">
+          <main className="flex-1 p-3 md:p-8 pb-28 md:pb-8">
             <HiddenScreenGuard surface={variant}>
               <Outlet />
             </HiddenScreenGuard>
