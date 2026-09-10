@@ -24,6 +24,8 @@ import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
 import logoMarinho from "@/assets/aveto360-logo.png.asset.json";
 import logoClaro from "@/assets/aveto360-horizontal-light.png.asset.json";
+import loginDesktop from "@/assets/aveto360-login-desktop.png.asset.json";
+import loginMobile from "@/assets/aveto360-login-mobile.png.asset.json";
 
 // Login identifier: e-mail OR CPF (11 digits with or without punctuation)
 const loginSchema = z.object({
@@ -429,7 +431,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <main className="min-h-screen bg-background lg:h-screen lg:overflow-hidden">
       <Helmet>
         <title>Entrar ou criar conta — Aveto 360</title>
         <meta name="description" content="Acesse sua conta Aveto 360 ou crie um cadastro gratuito para gerenciar suas finanças pessoais e empresariais." />
@@ -437,26 +439,42 @@ export default function Auth() {
         <meta property="og:description" content="Acesse sua conta Aveto 360 ou crie um cadastro gratuito para gerenciar suas finanças." />
       </Helmet>
       <h1 className="sr-only">Acesse sua conta ou crie seu cadastro no Aveto 360</h1>
-      <div className="w-full max-w-md space-y-3">
-        <Card className="w-full shadow-lg">
 
-        <CardHeader className="text-center space-y-3">
+      <div className="relative min-h-screen lg:grid lg:h-screen lg:min-h-0 lg:grid-cols-[minmax(0,1.45fr)_minmax(420px,0.75fr)]">
+        <section className="relative h-[42vh] min-h-[300px] overflow-hidden bg-site-ink-deep sm:h-[48vh] lg:h-screen lg:min-h-0" aria-label="Aveto 360 para negócios de alimentação">
+          <picture>
+            <source media="(min-width: 1024px)" srcSet={loginDesktop.url} />
+            <img
+              src={loginMobile.url}
+              alt="Equipe de food service usando o Aveto 360"
+              className="absolute inset-0 h-full w-full object-cover object-top lg:object-center"
+              draggable={false}
+            />
+          </picture>
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background to-transparent lg:hidden" aria-hidden="true" />
+        </section>
+
+        <section className="relative z-10 -mt-8 flex min-h-[58vh] items-start justify-center px-4 pb-56 sm:-mt-12 sm:px-8 sm:pb-28 lg:mt-0 lg:h-screen lg:min-h-0 lg:items-center lg:overflow-y-auto lg:bg-card lg:px-10 lg:py-12">
+          <div className="w-full max-w-md">
+        <Card className="w-full border-border/80 bg-card shadow-site-float lg:border-0 lg:shadow-none">
+
+        <CardHeader className="space-y-3 px-6 pb-5 pt-7 text-center sm:px-8 sm:pt-8">
           <CardTitle className="sr-only">Aveto 360</CardTitle>
           <img
             src={logoClaro.url}
             alt="Aveto 360"
-            className="mx-auto h-16 w-auto select-none dark:hidden"
+            className="mx-auto h-12 w-auto select-none dark:hidden sm:h-14"
             draggable={false}
           />
           <img
             src={logoMarinho.url}
             alt=""
             aria-hidden
-            className="mx-auto hidden h-16 w-auto select-none dark:block"
+            className="mx-auto hidden h-12 w-auto select-none dark:block sm:h-14"
             draggable={false}
           />
 
-          <CardDescription>
+          <CardDescription className="text-sm font-medium text-foreground/70">
             {mfaRequired
               ? "Verificação em duas etapas"
               : isConfirmEmail
@@ -470,14 +488,14 @@ export default function Auth() {
         </CardHeader>
 
         {mfaRequired ? (
-          <CardContent>
+          <CardContent className="px-6 sm:px-8">
             <MfaChallenge
               onSuccess={() => { void resolveTargetForUser().then(goTo); }}
               onCancel={() => setMfaRequired(false)}
             />
           </CardContent>
         ) : isConfirmEmail ? (
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-6 sm:px-8">
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
                 <MailCheck className="h-7 w-7 text-primary" aria-hidden="true" />
@@ -512,7 +530,7 @@ export default function Auth() {
           </CardContent>
         ) : (
           <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-6 sm:px-8">
             {isSignup && duplicateEmail && (
               <div
                 role="alert"
@@ -549,7 +567,7 @@ export default function Auth() {
                     placeholder="Seu nome"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="pl-10"
+                   className="h-11 pl-10"
                     maxLength={100}
                   />
                 </div>
@@ -568,7 +586,7 @@ export default function Auth() {
                     placeholder="seu@email.com ou 000.000.000-00"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    className="pl-10"
+                     className="h-11 pl-10"
                     maxLength={255}
                     autoComplete="username"
                     autoCapitalize="off"
@@ -588,7 +606,7 @@ export default function Auth() {
                     placeholder="seu@email.com"
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); setDuplicateEmail(""); }}
-                    className="pl-10"
+                     className="h-11 pl-10"
                     maxLength={255}
                   />
                 </div>
@@ -618,7 +636,7 @@ export default function Auth() {
                     placeholder="••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10"
+                     className="h-11 pl-10 pr-10"
                     maxLength={128}
                   />
                   <button
@@ -646,7 +664,7 @@ export default function Auth() {
                     placeholder="••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10 pr-10"
+                     className="h-11 pl-10 pr-10"
                     maxLength={128}
                   />
                   <button
@@ -737,8 +755,8 @@ export default function Auth() {
             )}
           </CardContent>
 
-          <CardFooter className="flex flex-col gap-3">
-            <Button type="submit" className="w-full" disabled={submitting || (isLogin && !!turnstileError)}>
+          <CardFooter className="flex flex-col gap-3 px-6 pb-7 sm:px-8 sm:pb-8">
+            <Button type="submit" className="h-11 w-full font-semibold" disabled={submitting || (isLogin && !!turnstileError)}>
 
               {submitting
                 ? "Aguarde..."
@@ -772,7 +790,9 @@ export default function Auth() {
           </form>
         )}
         </Card>
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
