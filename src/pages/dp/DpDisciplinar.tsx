@@ -428,7 +428,7 @@ export default function DpDisciplinar() {
               <h3 className="text-lg font-semibold">Cadastrar Registro Disciplinar</h3>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="space-y-2">
                 <Label>Unidade *</Label>
                 <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); }}>
