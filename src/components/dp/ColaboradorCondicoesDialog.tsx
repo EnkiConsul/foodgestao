@@ -876,11 +876,50 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
           <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button className="flex-1 sm:flex-none" onClick={salvar} disabled={aplicar.isPending}>
+          {ABAS_EDITAVEIS.includes(aba as AbaEditavel) ? (
+            <Button
+              variant="secondary"
+              className="flex-1 sm:flex-none"
+              onClick={() => void salvar("stay")}
+              disabled={aplicar.isPending}
+            >
+              {aplicar.isPending ? "Salvando…" : "Salvar e continuar"}
+            </Button>
+          ) : null}
+          <Button
+            className="flex-1 sm:flex-none"
+            onClick={() => void salvar("close")}
+            disabled={aplicar.isPending}
+          >
             {aplicar.isPending ? "Salvando…" : "Aplicar mudança"}
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={confirmarNovoContrato} onOpenChange={setConfirmarNovoContrato}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Recomeçar a contagem como novo contrato?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O vínculo atual de {colaborador?.nome ?? "o colaborador"} será encerrado em {fmtDate(vigencia)} e
+              férias, 13º e tempo de casa passam a contar dessa data. O histórico e os documentos anteriores
+              continuam disponíveis para consulta.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmarNovoContrato(false);
+                void executar();
+              }}
+            >
+              Confirmar novo contrato
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
+
   );
 }
