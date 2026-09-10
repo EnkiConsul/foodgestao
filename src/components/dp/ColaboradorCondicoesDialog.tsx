@@ -826,9 +826,41 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
               <div className="space-y-2">
                 <p className="text-sm font-medium">Dias e horários da semana</p>
                 <p className="text-xs text-muted-foreground">
-                  Deixe o horário em branco para seguir o turno. Preencha só quando o dia tiver horário próprio.
+                  Deixe o horário em branco para seguir o turno do dia (o horário aparece como
+                  sugestão dentro do campo). Preencha só quando o dia tiver horário próprio.
                 </p>
-                {dias.map((d) => (
+                {atalhosColegas.length > 0 ? (
+                  <div className="space-y-1.5 rounded-md border bg-muted/30 p-3">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Copiar o horário de um colega da unidade:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {atalhosColegas.map((m) => (
+                        <Button
+                          key={m.id}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          title={m.colaborador_nome}
+                          onClick={() => copiarSemanaDoColega(m)}
+                        >
+                          {m.colaborador_nome.trim().split(/\s+/)[0]}
+                          {m.horario ? ` · ${m.horario.entrada}–${m.horario.saida}` : ""}
+                        </Button>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCopiarOpen(true)}
+                      >
+                        <Users className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                        Outro colaborador…
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+                {dias.map((d) => {
                   <div key={d.dow} className="grid items-end gap-2 rounded-md border p-3 sm:grid-cols-[auto_1fr_1fr_1fr_1fr]">
                     <div className="flex items-center gap-2">
                       <Switch
