@@ -447,7 +447,7 @@ export function ColaboradorJornadaPanel({
     });
   }, [
     dias, turnoPadraoTela.id, turnosTela, folgaVariavel,
-    colaborador?.data_nascimento, colaborador?.regime, inicio,
+    colaborador?.data_nascimento, colaborador?.regime, colaborador?.vinculo_label, inicio,
   ]);
 
   const avisos = alertas.filter((a) => a.severidade === "aviso");
