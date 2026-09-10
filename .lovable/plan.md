@@ -18,6 +18,7 @@ A empresa configurou vale-alimentação (R$ 24/dia, pagamento dia 25) e prêmio 
 O que muda:
 
 - A aba passa a listar também os benefícios do padrão da empresa/unidade/cargo (vale-alimentação, vale-transporte, prêmio de assiduidade), já marcados conforme o padrão, com o valor editável para aquele colaborador.
+- Novo botão **"Manter os benefícios atuais"**: aplica exatamente os benefícios que o colaborador já tem cadastrados hoje (mesmos itens e valores), útil quando só outras condições mudaram.
 - A mensagem "nenhum benefício cadastrado" só aparece quando não houver nem catálogo nem padrão, e passa a trazer um atalho para cadastrar benefícios.
 
 ## 3. Tipo de vínculo: deixar CLT efetivo explícito
