@@ -139,6 +139,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   const [baseDias, setBaseDias] = useState<string>("");
   const [beneficiosSel, setBeneficiosSel] = useState<Record<string, boolean>>({});
   const [beneficiosValor, setBeneficiosValor] = useState<Record<string, string>>({});
+  /** VA, VT e prêmio de assiduidade: valores próprios, não itens do catálogo. */
+  const [fixosSel, setFixosSel] = useState({ va: false, vt: false, assiduidade: false });
+  const [fixosValor, setFixosValor] = useState<Record<"va" | "vt" | "assiduidade", string>>({
+    va: "", vt: "", assiduidade: "",
+  });
+  const fixosInitRef = useRef(false);
+  const [copiarOpen, setCopiarOpen] = useState(false);
   const [justificativa, setJustificativa] = useState("");
   const [modo, setModo] = useState<ModoContinuidade>("continuidade");
   const [confirmarNovoContrato, setConfirmarNovoContrato] = useState(false);
