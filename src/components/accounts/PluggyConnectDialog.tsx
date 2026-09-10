@@ -363,16 +363,16 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           return;
         }
 
-        const { data: sync, error: syncError } = await supabase.functions.invoke("pluggy-sync-item", {
-          body: { connect_request_id: requestId, company_id: companyId, first_connect: true },
-        });
-        if (syncError) {
+        let sync: Awaited<ReturnType<typeof invokeSync>> = null;
+        try {
+          sync = await invokeSync({ connect_request_id: requestId, company_id: companyId, first_connect: true });
+        } catch (syncError: unknown) {
           const info = await parseEdgeFunctionError(syncError, "A confirmação do banco ainda não foi localizada");
           toast.info(info.message);
           return;
         }
 
-        const resolvedItemId = sync?.item_id as string | undefined;
+        const resolvedItemId = sync?.item_id;
         if (resolvedItemId) {
           finishedRef.current = true;
           clearResume();
@@ -383,7 +383,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
         }
 
         toast.info(
-          (sync?.message as string | undefined)
+          sync?.message
             ?? "A autorização ainda não apareceu no Open Finance. Aguarde alguns instantes e verifique novamente.",
         );
 
@@ -391,7 +391,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     } finally {
       setChecking(false);
     }
-  }, [checkConnectRequest, companyId, onConnected, onOpenChange]);
+  }, [checkConnectRequest, companyId, onConnected, onOpenChange, invokeSync]);
 
   useEffect(() => {
     if (!open) {
@@ -530,7 +530,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
         setLoading(false);
       }
     })();
-  }, [open, phase, companyId, itemIdToUpdate, onConnected, onOpenChange, checkConnectRequest]);
+  }, [open, phase, companyId, itemIdToUpdate, onConnected, onOpenChange, checkConnectRequest, invokeSync]);
 
   // Polling curto enquanto a autorização acontece fora do navegador (QR Code).
   useEffect(() => {
