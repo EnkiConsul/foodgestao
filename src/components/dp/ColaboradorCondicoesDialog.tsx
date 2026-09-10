@@ -1219,12 +1219,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
       <CopiarConfigColaboradorDialog
         open={copiarOpen}
         onOpenChange={setCopiarOpen}
-        colaboradorId={colaboradorId}
+        colaboradorId={colaborador?.id ?? null}
         unidadeId={unidadeId || null}
         excluirSocios={!isSocio(colaborador?.vinculo_label ?? null)}
         turnos={turnosResolvidos}
-        onCopiar={copiarConfigDoColega}
+        onCopiar={aplicarConfigCopiada}
       />
+
 
 
 
