@@ -454,7 +454,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       socio: !!colab.socio,
       socio_integrado: socioIntegrado,
       origem: horario?.origem ?? "jornada",
-      ...(extras ?? {}),
+      ...extrasSemSetor,
     });
   };
 
