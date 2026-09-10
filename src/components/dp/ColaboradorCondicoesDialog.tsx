@@ -329,7 +329,8 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     const p = cargoPadrao.data;
     if (!open || !p || p.base === 0) return;
     const t = tocados.current;
-    if (!t.has("regime") && p.regime) setRegime(p.regime);
+    // O tipo de vínculo nunca vem do padrão do cargo: CLT efetivo e
+    // intermitente são escolha explícita do gestor na mudança.
     if (!t.has("setor") && p.setor_id) setSetorId(p.setor_id);
     if (!t.has("forma") && p.forma_pagamento) setForma(p.forma_pagamento);
     if (!t.has("turno") && p.turno_padrao_id) setTurnoPadraoId(p.turno_padrao_id);
