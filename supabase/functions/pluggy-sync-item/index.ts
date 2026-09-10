@@ -991,6 +991,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Fecha o ciclo: sem isso a "próxima sincronização" continuava com data
+    // vencida depois de sincronizar pelo botão, e o resultado parcial (parte das
+    // contas não veio do banco) não ficava registrado para a tela mostrar.
+    const execUpper = String(item?.executionStatus ?? '').toUpperCase();
+    const parcial = execUpper === 'PARTIAL_SUCCESS';
+    const intervaloMin = Number(Deno.env.get('PLUGGY_CRON_INTERVAL_MIN') ?? '60');
+    await admin
+      .from('pluggy_connections')
+      .update({
+        last_sync_status: parcial ? 'partial_success' : 'success',
+        last_sync_error: parcial
+          ? 'O banco não devolveu todas as contas nesta coleta.'
+          : null,
+        last_sync_attempt_at: new Date().toISOString(),
+        next_sync_at: new Date(Date.now() + intervaloMin * 60_000).toISOString(),
+      })
+      .eq('id', conn.id);
+
     return new Response(JSON.stringify({
       ok: true,
       item_id: itemId,
