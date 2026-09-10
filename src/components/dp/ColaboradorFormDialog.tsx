@@ -1464,8 +1464,8 @@ export function ColaboradorFormDialog({
         Math.abs(numeroBR(rem.salario_base) - salarioCargo) <= 0.009;
       if (salarioTravadoNoCargo) cargoResolvido.current = true;
 
-      // Piso é convenção patronal de empregado vinculado a uma unidade: sócio e
-      // cadastro sem unidade específica não entram na reconciliação.
+      // A referência do cargo é por unidade: cadastro sem unidade específica não
+      // entra na reconciliação (o sócio entra, pela referência da empresa).
       if (!deveReconciliarPisoCargo({ socio: socioSelecionado, unidadeId: form.unidade_id })) {
         cargoResolvido.current = true;
       }
