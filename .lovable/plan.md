@@ -1,48 +1,51 @@
-# Salvar e continuar nas Condições de Trabalho
+# Condições de Trabalho: salvar por etapas, herdar padrão do cargo e definir a contagem
 
-## Objetivo
+## 1. Salvar e continuar por aba
 
-Deixar a alteração de condições de trabalho com o mesmo fluxo por etapas do cadastro do colaborador: salvar a aba atual, avançar automaticamente para a próxima e manter a janela aberta até a conclusão.
+- Adicionar no rodapé o botão secundário **Salvar e continuar** nas abas editáveis: Contrato, Jornada, Pagamento e Benefícios.
+- Ao clicar: valida a data de início e o motivo, salva e avança para a aba seguinte, mantendo a janela aberta.
+- Em Benefícios, salvar leva para Histórico. Na aba Histórico não há salvar, apenas fechar.
+- O botão principal **Aplicar mudança** continua salvando e fechando.
+- Rodapé adaptado ao celular, com botões grandes empilhados, igual ao cadastro do colaborador.
+- Proteção contra duplicidade: salvar mais de uma vez para a mesma data de início consolida a mesma vigência no histórico, em vez de criar várias linhas repetidas. Se nada mudou desde o último salvamento, a tela apenas avança.
 
-## Mudanças na tela
+## 2. Cargo manda no sindicato e no salário
 
-- Adicionar no rodapé da janela o botão secundário **Salvar e continuar** nas abas editáveis:
-  1. Contrato
-  2. Jornada
-  3. Pagamento
-  4. Benefícios
-- Ao clicar em **Salvar e continuar**:
-  - validar a data de início e o motivo da mudança;
-  - salvar as condições preenchidas;
-  - avançar automaticamente para a próxima aba;
-  - manter a janela aberta.
-- Na aba **Benefícios**, o botão salva e leva para **Histórico**.
-- Na aba **Histórico**, não haverá ação de salvar; ficará apenas a opção de voltar/fechar.
-- Manter o botão principal **Aplicar mudança** para salvar e fechar em qualquer aba editável.
-- Adaptar o rodapé para celular, com botões grandes e empilhados, seguindo o padrão do cadastro do colaborador.
+Ao escolher um cargo já cadastrado:
 
-## Proteção contra histórico duplicado
+- **Sindicato** e **salário base** passam a ser somente leitura, vindos do cadastro do cargo (piso da unidade), com aviso de que a mudança desses valores é feita no cadastro do cargo.
+- Se o cargo não tiver salário cadastrado para a unidade, o campo fica editável com aviso de que falta o piso do cargo naquela unidade.
 
-Como o novo botão permite salvar mais de uma vez durante a mesma alteração, a rotina será ajustada para não criar vários registros idênticos no histórico:
+## 3. Padrão do cargo preenchido automaticamente
 
-- Se a pessoa clicar em **Salvar e continuar** sem alterar nada desde o último salvamento, a tela apenas avança.
-- Se houver novas alterações para a mesma data de início, o registro dessa vigência será atualizado/consolidado, em vez de gerar várias linhas repetidas para a mesma mudança.
-- O histórico continuará preservando vigências anteriores normalmente.
+Ao escolher um cargo, os campos abaixo vêm preenchidos com o padrão dos colaboradores já cadastrados nesse cargo (o valor mais frequente, considerando a mesma unidade quando houver):
+
+- Tipo de vínculo
+- Setor habitual
+- Jornada (turno padrão, horas por semana e dias/horários da semana)
+- Forma de pagamento
+- Benefícios (quais são concedidos e com quais valores)
+
+O gestor pode ajustar qualquer um desses campos depois; o preenchimento é só um ponto de partida e não sobrescreve o que ele já editou manualmente.
+
+## 4. Como fica a contagem de férias, 13º e tempo de casa
+
+Nova pergunta obrigatória na aba Contrato, com duas opções:
+
+- **Continuidade do contrato** (padrão para mudanças comuns: promoção, jornada, setor, unidade, benefícios): férias, 13º, tempo de casa e adicionais por tempo de serviço continuam contando a partir da admissão original.
+- **Novo contrato** (usar quando o vínculo anterior é encerrado, por exemplo mudança de CLT para outro tipo de vínculo): o contrato anterior é encerrado na data informada e a contagem reinicia; férias, 13º e tempo de casa passam a contar da nova data. O período anterior fica preservado no histórico e o colaborador continua com acesso aos documentos antigos pelo portal.
+
+Ao escolher "Novo contrato", a tela mostra em texto simples o que será encerrado e o que reinicia, e pede confirmação antes de salvar. A troca de tipo de vínculo passa a sugerir "Novo contrato" automaticamente.
 
 ## Detalhes técnicos
 
-- Arquivo principal: `src/components/dp/ColaboradorCondicoesDialog.tsx`.
-- Reaproveitar o padrão de intenção de salvamento usado em `src/components/dp/ColaboradorFormDialog.tsx` (`stay` para continuar e `close` para concluir).
-- Ajustar `dp_colaborador_aplicar_condicao` para tratar a mesma combinação de colaborador + data de início como uma única vigência consolidada.
-- Manter dados pessoais e preferências do colaborador fora dessa alteração, como já ocorre hoje.
+- Tela: `src/components/dp/ColaboradorCondicoesDialog.tsx`; padrão de intenção `stay`/`close` reaproveitado de `ColaboradorFormDialog.tsx`.
+- Sindicato/salário do cargo por `salarioCargoNaUnidade` (`src/lib/dp/cargoSalarios.ts`) e vínculo cargo-sindicato (`dp_sindicato_cargos`).
+- Novo utilitário para derivar o padrão do cargo a partir de `dp_colaboradores`, `dp_colaborador_config_trabalho`/`dp_colaborador_config_dias` e `dp_colaborador_beneficios` (mais os padrões já existentes em `dp_beneficios_padroes`), com testes.
+- `dp_colaborador_aplicar_condicao`: consolidar a vigência por (colaborador, data de início) e receber o modo de continuidade; no modo "novo contrato", encerrar o período anterior e reiniciar a base de contagem usada por férias (`dp_ferias_periodos`), 13º e adicional por tempo de serviço, preservando documentos e histórico.
+- Dados pessoais e preferências do colaborador (ex.: adiantamento) seguem fora desta tela.
 
 ## Verificação
 
-- Rodar verificação de tipos e testes existentes.
-- Testar no navegador:
-  - salvar em Contrato e avançar para Jornada;
-  - alterar carga horária/horário e avançar para Pagamento;
-  - revisar Pagamento e avançar para Benefícios;
-  - salvar Benefícios e abrir Histórico;
-  - confirmar que não aparecem registros duplicados para a mesma data de início;
-  - confirmar que **Aplicar mudança** continua salvando e fechando.
+- Verificação de tipos e testes existentes, mais testes do padrão do cargo e da recontagem.
+- Navegador: percorrer as quatro abas com Salvar e continuar; conferir sindicato/salário travados pelo cargo, campos herdados do padrão, ausência de linhas duplicadas no histórico e o efeito das duas opções de contagem.
