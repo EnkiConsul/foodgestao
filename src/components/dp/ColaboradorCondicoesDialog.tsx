@@ -314,15 +314,7 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   const nome = (lista: { id: string; nome: string }[], id?: string | null) =>
     lista.find((i) => i.id === id)?.nome ?? null;
 
-  const salvar = async () => {
-    if (!vigencia) {
-      toast.error("Informe a data em que a mudança passa a valer.");
-      return;
-    }
-    if (justificativa.trim().length < 5) {
-      toast.error("Explique brevemente o motivo da mudança.");
-      return;
-    }
+  const executar = async () => {
     const beneficiosPayload: CondicaoBeneficioInput[] = beneficios.map((b) => ({
       beneficio_id: b.id,
       ativo: !!beneficiosSel[b.id],
@@ -358,13 +350,42 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
         })),
         beneficios: beneficiosPayload,
         justificativa: justificativa.trim(),
+        modo_continuidade: modo,
       });
-      toast.success(`Novas condições valendo a partir de ${fmtDate(vigencia)}.`);
-      onOpenChange(false);
+
+      if (intencao.current === "close") {
+        toast.success(`Novas condições valendo a partir de ${fmtDate(vigencia)}.`);
+        onOpenChange(false);
+        return;
+      }
+      const proxima = abaSeguinte(aba);
+      toast.success("Alterações salvas.");
+      if (proxima) setAba(proxima);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível registrar a mudança.");
     }
   };
+
+  /** Salvar continuando nas abas ("stay") ou concluindo ("close"). */
+  const salvar = async (alvo: "stay" | "close") => {
+    intencao.current = alvo;
+    if (!vigencia) {
+      toast.error("Informe a data em que a mudança passa a valer.");
+      setAba("contrato");
+      return;
+    }
+    if (justificativa.trim().length < 5) {
+      toast.error("Explique brevemente o motivo da mudança.");
+      setAba("contrato");
+      return;
+    }
+    if (modo === "novo_contrato") {
+      setConfirmarNovoContrato(true);
+      return;
+    }
+    await executar();
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
