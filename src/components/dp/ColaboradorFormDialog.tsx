@@ -1901,17 +1901,26 @@ export function ColaboradorFormDialog({
               Quando não é masculino nem feminino, a frequência CLT é informada
               manualmente, pois é ela que limita as folgas permitidas no mês. */}
           <div className="space-y-2">
-            <Label>Gênero</Label>
+            <Label>
+              Gênero
+              {sexoSugerido && form.sexo !== "none" && (
+                <span className="ml-2 text-[11px] font-normal text-muted-foreground">
+                  sugerido pelo nome
+                </span>
+              )}
+            </Label>
             <Select
               value={form.sexo}
-              onValueChange={(v) =>
+              onValueChange={(v) => {
+                sexoTocado.current = true;
+                setSexoSugerido(false);
                 setForm({
                   ...form,
                   sexo: v,
                   // M/F seguem a regra da unidade: o override individual é limpo.
                   domingos_folga_mes: v === "F" || v === "M" ? "none" : form.domingos_folga_mes,
-                })
-              }
+                });
+              }}
             >
               <SelectTrigger {...marca("sexo")}><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
@@ -1923,6 +1932,7 @@ export function ColaboradorFormDialog({
             </Select>
             <p className="text-xs text-muted-foreground">
               Usado para validar a quantidade de folgas dominicais exigidas pela CLT.
+              {sexoSugerido && form.sexo !== "none" ? " Confirme ou ajuste a sugestão." : ""}
             </p>
           </div>
 
