@@ -419,7 +419,17 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
 
     const entrada = hora(horario?.entrada);
     const saida = hora(horario?.saida);
-    const setor = setorEfetivoDoDia({ colaborador: colab, item: itemPor.get(colab.id) ?? null, dow });
+    const { setor_id: setorDoRegistro, ...extrasSemSetor } = extras ?? {};
+    const setorEfetivo = setorEfetivoDoDia({
+      colaborador: colab,
+      item: itemPor.get(colab.id) ?? null,
+      dow,
+    });
+    // Setor lançado no registro de mão de obra extra vale só naquele dia e
+    // vence escala, dia da semana e setor habitual do cadastro.
+    const setor = setorDoRegistro
+      ? { setor_id: setorDoRegistro, origem: "escala" as OrigemSetorDia }
+      : setorEfetivo;
     pessoas.push({
       colaborador_id: colab.id,
       nome: colab.nome,
