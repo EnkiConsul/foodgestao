@@ -391,6 +391,8 @@ function DetalheDiaOperacao({
   nomeUnidade,
   ordemCards,
   onReordenarCards,
+  mostrarZerados,
+  onAlternarZerados,
   onVerCategoria,
   onVerSocios,
   onVerAvulso,
