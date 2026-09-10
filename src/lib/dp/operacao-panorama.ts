@@ -398,6 +398,11 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       observacao?: string | null;
       coberto_por_nome?: string | null;
       cobre_motivo?: string | null;
+      /**
+       * Setor definido só para aquele dia no registro de mão de obra extra:
+       * quando existe, vence escala/dia da semana/cadastro.
+       */
+      setor_id?: string | null;
     },
   ) => {
     // Sócio com unidade definida e jornada cadastrada faz parte do quadro daquela
