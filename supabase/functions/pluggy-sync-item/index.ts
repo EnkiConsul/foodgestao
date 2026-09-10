@@ -780,6 +780,25 @@ Deno.serve(async (req) => {
                 sync_paused_reason: null,
               })
               .eq('id', upserted.id);
+
+            // Reconexão do mesmo banco cria um novo código de conta no provedor.
+            // Sem herdar o extrato anterior, as linhas antigas ficam órfãs em
+            // conexões encerradas e desaparecem da conciliação.
+            const { data: inherited, error: inheritError } = await admin.rpc('pluggy_inherit_staging', {
+              _company_id: effectiveCompanyId,
+              _target_pluggy_account_id: acc.id,
+            });
+            if (inheritError) {
+              console.warn('falha ao herdar extrato de conexao anterior', {
+                pluggyAccountId: acc.id,
+                error: inheritError.message,
+              });
+            } else if ((inherited as number | null) && Number(inherited) > 0) {
+              console.log('extrato herdado de conexao anterior', {
+                pluggyAccountId: acc.id,
+                moved: inherited,
+              });
+            }
           }
 
         }

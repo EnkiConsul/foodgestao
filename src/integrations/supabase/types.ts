@@ -15858,6 +15858,10 @@ export type Database = {
         Args: { p_staging_ids: string[] }
         Returns: number
       }
+      pluggy_inherit_staging: {
+        Args: { _company_id: string; _target_pluggy_account_id: string }
+        Returns: number
+      }
       pluggy_mark_duplicate_staging: {
         Args: { p_staging_ids: string[] }
         Returns: number
