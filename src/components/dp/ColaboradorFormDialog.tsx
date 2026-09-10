@@ -2039,15 +2039,21 @@ export function ColaboradorFormDialog({
             <Label>Perfil de Acesso</Label>
             <Select
               value={form.perfil_acesso}
-              onValueChange={(v: any) => setForm({ ...form, perfil_acesso: v })}
+              onValueChange={(v: any) => { perfilTocado.current = true; setForm({ ...form, perfil_acesso: v }); }}
             >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="colaborador">Colaborador</SelectItem>
+                {/* Sócio administra o negócio: acesso de colaborador não se aplica. */}
+                {!socioSelecionado && <SelectItem value="colaborador">Colaborador</SelectItem>}
                 <SelectItem value="gestor">Gestor</SelectItem>
                 <SelectItem value="admin">Administrador</SelectItem>
               </SelectContent>
             </Select>
+            {socioSelecionado && (
+              <p className="text-[11px] text-muted-foreground">
+                Sócio tem no mínimo acesso de gestor.
+              </p>
+            )}
           </div>
 
 
