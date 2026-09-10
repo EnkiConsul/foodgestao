@@ -855,6 +855,11 @@ export default function DpOperacaoPanorama() {
       extras: { ...(prefs.extras ?? {}), [PREFS_KEY]: { ...(ordemSalva ?? {}), [chave]: next } },
     });
 
+  // Cards zerados ficam ocultos por padrão; a escolha do gestor é lembrada.
+  const mostrarZerados = ((prefs.extras as Record<string, unknown>)?.[ZERADOS_KEY] as boolean | undefined) ?? false;
+  const alternarZerados = () =>
+    save({ extras: { ...(prefs.extras ?? {}), [ZERADOS_KEY]: !mostrarZerados } });
+
   const dia = panorama.diaDe(data);
   const nomeUnidade = unidadeId ? panorama.unidades.find((u) => u.id === unidadeId)?.nome ?? null : null;
 
