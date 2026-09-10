@@ -1178,6 +1178,19 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
 
         </div>
 
+        {/* Resumo do que será gravado, sempre visível antes de salvar. */}
+        <div className="border-t bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+          {[
+            rotuloRegimeMudanca(regime),
+            FORMA_LABEL[forma] ?? forma,
+            cargaSemanal ? `${cargaSemanal}h por semana` : "carga não informada",
+            forma === "mensalista"
+              ? fmtMoeda(num(salario)) ?? "sem valor do mês"
+              : fmtMoeda(num(valorHora)) ?? "sem valor",
+            `a partir de ${fmtDate(vigencia)}`,
+          ].join(" · ")}
+        </div>
+
         <DialogFooter className="flex-row gap-2 border-t p-4">
           <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => onOpenChange(false)}>
             Cancelar
