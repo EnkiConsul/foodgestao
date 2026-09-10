@@ -555,7 +555,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
                   <Label>Turno padrão</Label>
-                  <Select value={turnoPadraoId} onValueChange={setTurnoPadraoId}>
+                  <Select
+                    value={turnoPadraoId}
+                    onValueChange={(v) => {
+                      marcarTocado("turno");
+                      setTurnoPadraoId(v);
+                    }}
+                  >
                     <SelectTrigger><SelectValue placeholder="Sem turno padrão" /></SelectTrigger>
                     <SelectContent>
                       {turnos.map((t) => (
@@ -575,6 +581,8 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                     step="0.5"
                     value={cargaSemanal}
                     onChange={(e) => {
+                      marcarTocado("carga");
+                      marcarTocado("baseHoras");
                       setCargaSemanal(e.target.value);
                       const sugerida = baseHorasMesSugerida(num(e.target.value));
                       setBaseHoras(String(sugerida));
@@ -587,8 +595,15 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                     <p className="text-sm font-medium">Folga variável</p>
                     <p className="text-xs text-muted-foreground">Sem dia fixo de folga</p>
                   </div>
-                  <Switch checked={folgaVariavel} onCheckedChange={setFolgaVariavel} />
+                  <Switch
+                    checked={folgaVariavel}
+                    onCheckedChange={(v) => {
+                      marcarTocado("folga");
+                      setFolgaVariavel(v);
+                    }}
+                  />
                 </div>
+
               </div>
 
               <Separator />
