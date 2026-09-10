@@ -603,8 +603,13 @@ Deno.serve(async (req) => {
       }
 
       if (upserted && !upserted.linked_account_id && (acc.type ?? '').toUpperCase() === 'BANK') {
-        const ownerUserId = userId ?? (await admin
-          .from('pluggy_connections').select('created_by').eq('id', conn.id).maybeSingle()).data?.created_by;
+        // Conexões criadas por webhook/reconciliação não têm created_by; nesse caso
+        // usa o dono da empresa, senão o vínculo da conta bancária nunca é criado.
+        const ownerUserId = userId
+          ?? (await admin
+            .from('pluggy_connections').select('created_by').eq('id', conn.id).maybeSingle()).data?.created_by
+          ?? (await admin
+            .from('companies').select('user_id').eq('id', effectiveCompanyId).maybeSingle()).data?.user_id;
         if (ownerUserId) {
           // Dedup: 1) check if another pluggy_account in the same company already links to a local account
           //        matching this connector (bank_slug + account_number). Reuse that link.
