@@ -528,7 +528,12 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
           intervalo_minutos: 0,
           origem: "registro_manual",
         },
-        { avulso_id: manual.id, avulso_tipo: "registro_manual", observacao: manual.observacao },
+        {
+          avulso_id: manual.id,
+          avulso_tipo: "registro_manual",
+          observacao: manual.observacao,
+          setor_id: manual.setor_id ?? null,
+        },
       );
       continue;
     }
