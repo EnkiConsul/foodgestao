@@ -422,6 +422,48 @@ Deno.serve(async (req) => {
       item = await waitForItem(itemId, 45000);
     }
 
+    // 0b) Uma mesma conta bancária ligada em duas empresas gera extrato e saldo
+    // duplicados. Na PRIMEIRA ligação de um item, conferimos se alguma conta já
+    // está espelhada em outra empresa e devolvemos o conflito para o usuário
+    // confirmar. Com `allow_duplicate: true` ele assume a duplicidade.
+    let preFetchedAccounts: Awaited<ReturnType<typeof listAccounts>> | null = null;
+    if (!existing && body?.allow_duplicate !== true) {
+      try {
+        preFetchedAccounts = await listAccounts(itemId);
+        const numbers = preFetchedAccounts
+          .map((a) => a.number)
+          .filter((n): n is string => !!n);
+        if (numbers.length) {
+          const { data: clashes } = await admin
+            .from('pluggy_accounts')
+            .select('number_masked, name, company_id, companies:company_id(name, trade_name)')
+            .in('number_masked', numbers)
+            .neq('company_id', effectiveCompanyId);
+          const conflitos = (clashes ?? []) as Array<{
+            number_masked: string | null;
+            name: string | null;
+            company_id: string;
+            companies: { name: string | null; trade_name: string | null } | null;
+          }>;
+          if (conflitos.length) {
+            return new Response(JSON.stringify({
+              error: 'duplicate_account_other_company',
+              message: 'Estas contas já estão ligadas em outra empresa.',
+              conflicts: conflitos.map((c) => ({
+                number_masked: c.number_masked,
+                account_name: c.name,
+                company_name: c.companies?.trade_name ?? c.companies?.name ?? null,
+              })),
+            }), {
+              status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+      } catch (e) {
+        // Falha na checagem não deve impedir a conexão: apenas registramos.
+        console.error('duplicate-account check failed', e);
+      }
+    }
 
     const connectionPayload = {
       company_id: effectiveCompanyId,
