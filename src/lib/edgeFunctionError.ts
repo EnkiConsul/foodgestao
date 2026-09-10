@@ -13,6 +13,8 @@ export type EdgeFunctionErrorInfo = {
   status: number | null;
   message: string;
   details?: unknown;
+  /** Corpo completo devolvido pela função, para casos que precisam de dados extras. */
+  payload?: unknown;
 };
 
 const FRIENDLY_MESSAGES: Record<string, string> = {
@@ -35,6 +37,8 @@ const FRIENDLY_MESSAGES: Record<string, string> = {
   forbidden: "Você não tem acesso a esta empresa.",
   unexpected_error: "Erro inesperado no servidor. Tente novamente em instantes.",
   method_not_allowed: "Método HTTP inválido.",
+  duplicate_account_other_company:
+    "Estas contas bancárias já estão ligadas em outra empresa.",
 };
 
 function friendly(code: string, extra?: string): string {
@@ -79,7 +83,7 @@ export async function parseEdgeFunctionError(
       ? anyErr?.message || fallback
       : friendly(code, extra);
 
-  return { code, status, message, details: b.details };
+  return { code, status, message, details: b.details, payload: body };
 }
 
 export function formatEdgeFunctionError(info: EdgeFunctionErrorInfo): string {

@@ -17,6 +17,13 @@ interface Props {
   onConnected?: (payload: { itemId: string; connectionId?: string }) => void;
 }
 
+/** Conta que já está espelhada em outra empresa do usuário. */
+type DuplicateConflict = {
+  number_masked: string | null;
+  account_name: string | null;
+  company_name: string | null;
+};
+
 declare global {
   interface Window {
     PluggyConnect?: new (opts: any) => { init: () => void; destroy?: () => void };
@@ -178,6 +185,8 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
 
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [showInterSteps, setShowInterSteps] = useState(false);
+  const [dupConflicts, setDupConflicts] = useState<DuplicateConflict[] | null>(null);
+  const dupResolveRef = useRef<((autorizado: boolean) => void) | null>(null);
   const instanceRef = useRef<any>(null);
   const launchedRef = useRef(false);
   const finishedRef = useRef(false);
@@ -255,16 +264,42 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     setPhase("launch");
   }, [dontShowAgain]);
 
+  /**
+   * Sincroniza o item. Quando as mesmas contas já estão ligadas em outra
+   * empresa, o servidor devolve o conflito e aqui pedimos a confirmação do
+   * usuário antes de permitir a duplicidade (extrato repetido em duas empresas).
+   */
+  const invokeSync = useCallback(async (body: Record<string, unknown>) => {
+    const attempt = (b: Record<string, unknown>) =>
+      supabase.functions.invoke("pluggy-sync-item", { body: b });
+
+    let { data, error } = await attempt(body);
+    if (error) {
+      const info = await parseEdgeFunctionError(error, "Falha ao sincronizar a conexão");
+      if (info.code !== "duplicate_account_other_company") throw error;
+      const conflicts = ((info.payload as { conflicts?: DuplicateConflict[] } | null)?.conflicts ?? []);
+      const autorizado = await new Promise<boolean>((resolve) => {
+        dupResolveRef.current = resolve;
+        setDupConflicts(conflicts);
+      });
+      dupResolveRef.current = null;
+      setDupConflicts(null);
+      if (!autorizado) {
+        throw new Error("Conexão cancelada: estas contas já estão ligadas em outra empresa.");
+      }
+      ({ data, error } = await attempt({ ...body, allow_duplicate: true }));
+      if (error) throw error;
+    }
+    return data as { transactions?: number; connection_id?: string; item_id?: string; message?: string } | null;
+  }, []);
+
   /** Conclui a conexão a partir do item devolvido pelo banco na URL. */
   const finishReturn = useCallback(async (itemId: string) => {
     if (finishedRef.current) return;
     setChecking(true);
     setError(null);
     try {
-      const { data: sync, error: syncError } = await supabase.functions.invoke("pluggy-sync-item", {
-        body: { item_id: itemId, company_id: companyId, first_connect: true },
-      });
-      if (syncError) throw syncError;
+      const sync = await invokeSync({ item_id: itemId, company_id: companyId, first_connect: true });
       finishedRef.current = true;
       clearResume();
       toast.success(`Conexão concluída: ${sync?.transactions ?? 0} lançamentos importados`);
@@ -276,7 +311,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     } finally {
       setChecking(false);
     }
-  }, [companyId, onConnected, onOpenChange]);
+  }, [companyId, onConnected, onOpenChange, invokeSync]);
 
   useEffect(() => {
     if (!open || phase !== "returning") return;
@@ -292,17 +327,14 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     clearResume();
     toast.success("Conexão concluída. Sincronizando lançamentos…");
     try {
-      const { data: sync, error: syncError } = await supabase.functions.invoke("pluggy-sync-item", {
-        body: { item_id: itemId, company_id: companyId },
-      });
-      if (syncError) throw syncError;
+      const sync = await invokeSync({ item_id: itemId, company_id: companyId });
       onConnected?.({ itemId, connectionId: sync?.connection_id });
     } catch (syncError: unknown) {
       const info = await parseEdgeFunctionError(syncError, "Falha ao sincronizar a conexão");
       toast.error(info.message);
     }
     onOpenChange(false);
-  }, [companyId, onConnected, onOpenChange]);
+  }, [companyId, onConnected, onOpenChange, invokeSync]);
 
   /** Verifica no backend se a autorização feita no app do banco já concluiu. */
   const checkConnectRequest = useCallback(async (): Promise<boolean> => {
@@ -331,16 +363,16 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
           return;
         }
 
-        const { data: sync, error: syncError } = await supabase.functions.invoke("pluggy-sync-item", {
-          body: { connect_request_id: requestId, company_id: companyId, first_connect: true },
-        });
-        if (syncError) {
+        let sync: Awaited<ReturnType<typeof invokeSync>> = null;
+        try {
+          sync = await invokeSync({ connect_request_id: requestId, company_id: companyId, first_connect: true });
+        } catch (syncError: unknown) {
           const info = await parseEdgeFunctionError(syncError, "A confirmação do banco ainda não foi localizada");
           toast.info(info.message);
           return;
         }
 
-        const resolvedItemId = sync?.item_id as string | undefined;
+        const resolvedItemId = sync?.item_id;
         if (resolvedItemId) {
           finishedRef.current = true;
           clearResume();
@@ -351,7 +383,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
         }
 
         toast.info(
-          (sync?.message as string | undefined)
+          sync?.message
             ?? "A autorização ainda não apareceu no Open Finance. Aguarde alguns instantes e verifique novamente.",
         );
 
@@ -359,7 +391,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     } finally {
       setChecking(false);
     }
-  }, [checkConnectRequest, companyId, onConnected, onOpenChange]);
+  }, [checkConnectRequest, companyId, onConnected, onOpenChange, invokeSync]);
 
   useEffect(() => {
     if (!open) {
@@ -460,10 +492,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
             if (!itemId) { toast.error("Conexão sem item retornado"); onOpenChange(false); return; }
             toast.info("Conta conectada. Sincronizando últimos 30 dias…");
             try {
-              const { data: sync, error: sErr } = await supabase.functions.invoke("pluggy-sync-item", {
-                body: { item_id: itemId, company_id: companyId, first_connect: true },
-              });
-              if (sErr) throw sErr;
+              const sync = await invokeSync({ item_id: itemId, company_id: companyId, first_connect: true });
               toast.success(`Sincronização concluída: ${sync?.transactions ?? 0} lançamentos importados`);
               onConnected?.({ itemId, connectionId: sync?.connection_id });
             } catch (err) {
@@ -501,7 +530,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
         setLoading(false);
       }
     })();
-  }, [open, phase, companyId, itemIdToUpdate, onConnected, onOpenChange, checkConnectRequest]);
+  }, [open, phase, companyId, itemIdToUpdate, onConnected, onOpenChange, checkConnectRequest, invokeSync]);
 
   // Polling curto enquanto a autorização acontece fora do navegador (QR Code).
   useEffect(() => {
@@ -520,6 +549,45 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
 
   // Widget da Pluggy gerencia seu próprio modal fullscreen.
   if (!open) return null;
+
+  // Mesmo banco autorizado em duas empresas: o usuário decide antes de seguir.
+  if (dupConflicts) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="w-full max-w-md rounded-lg border bg-card p-5 shadow-lg">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-warning" />
+            <h2 className="text-base font-semibold">Esta conta já está em outra empresa</h2>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Se continuar, os mesmos lançamentos vão aparecer nas duas empresas. Continue apenas se
+            isso for realmente o que você quer.
+          </p>
+          <ul className="mt-3 space-y-1 rounded-md border bg-muted/40 p-3 text-sm">
+            {dupConflicts.map((c, i) => (
+              <li key={`${c.number_masked ?? i}`}>
+                {c.account_name ?? "Conta"}
+                {c.number_masked ? ` • ${c.number_masked}` : ""}
+                {c.company_name ? ` — já em ${c.company_name}` : ""}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
+            <Button variant="outline" onClick={() => dupResolveRef.current?.(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => dupResolveRef.current?.(true)}>
+              Continuar mesmo assim
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (phase === "framed") return null;
 
