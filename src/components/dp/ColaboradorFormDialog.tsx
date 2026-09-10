@@ -1919,11 +1919,21 @@ export function ColaboradorFormDialog({
             </p>
           </div>
 
-          <ColaboradorSetorField
-            unidadeId={form.unidade_id || null}
-            value={form.setor_id || null}
-            onChange={(id) => setForm((f) => ({ ...f, setor_id: id ?? "" }))}
-          />
+          {/* O destaque âmbar do setor fica na moldura do bloco. */}
+          <div
+            data-field="setor_id"
+            className={
+              camposFaltantes.has("setor_id")
+                ? "rounded-xl ring-1 ring-amber-500/40 p-2 -m-2"
+                : undefined
+            }
+          >
+            <ColaboradorSetorField
+              unidadeId={form.unidade_id || null}
+              value={form.setor_id || null}
+              onChange={(id) => setForm((f) => ({ ...f, setor_id: id ?? "" }))}
+            />
+          </div>
 
           {/* Sócio e freelancer não são representados por convenção coletiva: sem enquadramento. */}
           {!socioSelecionado && !freelancerSelecionado && (
