@@ -749,6 +749,34 @@ export function ColaboradorFormDialog({
     });
   }, [regimeSelecionado]);
 
+  /**
+   * Sócio administra o negócio: o acesso mínimo é de gestor. É apenas sugestão —
+   * quem mexer no campo à mão manda.
+   */
+  useEffect(() => {
+    if (!socioSelecionado || perfilTocado.current) return;
+    setForm((f) => (f.perfil_acesso === "colaborador" ? { ...f, perfil_acesso: "gestor" } : f));
+  }, [socioSelecionado]);
+
+  /**
+   * Sugestão de gênero pelo primeiro nome: só preenche enquanto o campo está em
+   * branco e nunca sobrescreve escolha manual.
+   */
+  useEffect(() => {
+    if (sexoTocado.current) return;
+    const sugerido = generoPorNome(form.nome);
+    if (!sugerido) { setSexoSugerido(false); return; }
+    setForm((f) => {
+      if (f.sexo !== "none" && !sexoSugerido) return f;
+      if (f.sexo === sugerido) return f;
+      return { ...f, sexo: sugerido, domingos_folga_mes: "none" };
+    });
+    setSexoSugerido(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.nome]);
+
+
+
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
   const cargoSelecionado = (cargos.data ?? []).find((c) => c.id === form.cargo_id) as any;
 
