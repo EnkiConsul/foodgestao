@@ -550,6 +550,45 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
   // Widget da Pluggy gerencia seu próprio modal fullscreen.
   if (!open) return null;
 
+  // Mesmo banco autorizado em duas empresas: o usuário decide antes de seguir.
+  if (dupConflicts) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="w-full max-w-md rounded-lg border bg-card p-5 shadow-lg">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-warning" />
+            <h2 className="text-base font-semibold">Esta conta já está em outra empresa</h2>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Se continuar, os mesmos lançamentos vão aparecer nas duas empresas. Continue apenas se
+            isso for realmente o que você quer.
+          </p>
+          <ul className="mt-3 space-y-1 rounded-md border bg-muted/40 p-3 text-sm">
+            {dupConflicts.map((c, i) => (
+              <li key={`${c.number_masked ?? i}`}>
+                {c.account_name ?? "Conta"}
+                {c.number_masked ? ` • ${c.number_masked}` : ""}
+                {c.company_name ? ` — já em ${c.company_name}` : ""}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
+            <Button variant="outline" onClick={() => dupResolveRef.current?.(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => dupResolveRef.current?.(true)}>
+              Continuar mesmo assim
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (phase === "framed") return null;
 
   if (phase === "returning") {
