@@ -13,6 +13,8 @@ export type EdgeFunctionErrorInfo = {
   status: number | null;
   message: string;
   details?: unknown;
+  /** Corpo completo devolvido pela função, para casos que precisam de dados extras. */
+  payload?: unknown;
 };
 
 const FRIENDLY_MESSAGES: Record<string, string> = {
