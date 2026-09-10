@@ -22,6 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpFilePicker } from "@/components/dp/DpFilePicker";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
@@ -437,7 +438,7 @@ export default function DpAtestados() {
               <h3 className="text-lg font-semibold">Cadastrar Atestado</h3>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="space-y-2">
                 <Label>Unidade *</Label>
                 <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); }}>
@@ -472,15 +473,18 @@ export default function DpAtestados() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Data do Documento *</Label>
-                <Input type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Data do Documento *</Label>
+                  <Input type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Dias de Afastamento *</Label>
+                  <Input type="number" min={0} placeholder="Ex: 3" value={dias} onChange={(e) => setDias(e.target.value)} />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Dias de Afastamento *</Label>
-                <Input type="number" min={0} placeholder="Ex: 3" value={dias} onChange={(e) => setDias(e.target.value)} />
-              </div>
 
               {dataDoc && dias && parseInt(dias) > 0 && (
                 <div className="rounded-xl bg-muted/30 p-3 text-sm">
@@ -491,11 +495,11 @@ export default function DpAtestados() {
 
               <div className="space-y-2">
                 <Label>Arquivo (PDF ou Imagem) *</Label>
-                <Input
+                <DpFilePicker
                   ref={fileRef}
-                  type="file"
                   accept="application/pdf,image/*"
-                  onChange={(e) => setPendingFile(e.target.files?.[0] ?? null)}
+                  file={pendingFile}
+                  onFileChange={setPendingFile}
                 />
               </div>
 

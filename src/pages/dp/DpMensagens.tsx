@@ -190,23 +190,23 @@ export default function DpMensagens() {
             {modelosList.map((m) => {
               const tipo = (m.tipo ?? "outro") as DpModeloTipo;
               return (
-                <div key={m.id} className="rounded-xl border-2 border-[hsl(var(--dp-border))] bg-card p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
+                <div key={m.id} className="min-w-0 rounded-xl border-2 border-[hsl(var(--dp-border))] bg-card p-4">
+                  <div className="flex min-w-0 items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
                       <p className="font-semibold truncate">{m.titulo}</p>
                       <p className="text-xs text-muted-foreground">{TIPO_LABELS[tipo]}</p>
                       {TIPO_DETALHES[tipo] && (
                         <p className="text-xs text-muted-foreground">{TIPO_DETALHES[tipo]}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => duplicarModelo(m)} title="Duplicar">
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => duplicarModelo(m)} title="Duplicar">
                         <Copy className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => editarModelo(m)} title="Editar">
+                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => editarModelo(m)} title="Editar">
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setToDelete(m)} title="Excluir">
+                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => setToDelete(m)} title="Excluir">
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>

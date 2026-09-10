@@ -22,6 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DpContentCard, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpFilePicker } from "@/components/dp/DpFilePicker";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
@@ -427,7 +428,7 @@ export default function DpDisciplinar() {
               <h3 className="text-lg font-semibold">Cadastrar Registro Disciplinar</h3>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="space-y-2">
                 <Label>Unidade *</Label>
                 <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); }}>
@@ -458,19 +459,21 @@ export default function DpDisciplinar() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Data do Documento *</Label>
-                <Input type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
-              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Data do Documento *</Label>
+                  <Input type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
+                </div>
 
-              <div className="space-y-2">
-                <Label>Tipo de Registro *</Label>
-                <Select value={tipo} onValueChange={setTipo}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
-                  <SelectContent>
-                    {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label>Tipo de Registro *</Label>
+                  <Select value={tipo} onValueChange={setTipo}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                    <SelectContent>
+                      {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -481,11 +484,11 @@ export default function DpDisciplinar() {
 
               <div className="space-y-2">
                 <Label>Arquivo (PDF ou Imagem) *</Label>
-                <Input
+                <DpFilePicker
                   ref={fileRef}
-                  type="file"
                   accept="application/pdf,image/*"
-                  onChange={(e) => setPendingFile(e.target.files?.[0] ?? null)}
+                  file={pendingFile}
+                  onFileChange={setPendingFile}
                 />
               </div>
 
