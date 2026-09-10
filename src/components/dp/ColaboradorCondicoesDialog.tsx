@@ -229,6 +229,60 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     [pisosCargo.data, unidadeId, patronalUnidade?.id, vigencia],
   );
 
+  // O sindicato do colaborador vem do cargo (enquadramento laboral).
+  const enquadramento = useSindicatoDoCargo(cargoId || null, unidadeId || null);
+  const sindicatoDoCargo = enquadramento.data?.laboral ?? null;
+  const sindicatoTravado = !!cargoId && !!sindicatoDoCargo;
+
+  useEffect(() => {
+    if (sindicatoTravado && sindicatoDoCargo && sindicatoId !== sindicatoDoCargo.id) {
+      setSindicatoId(sindicatoDoCargo.id);
+    }
+  }, [sindicatoTravado, sindicatoDoCargo, sindicatoId]);
+
+  // Com salário do cargo cadastrado na unidade, o valor não é digitado aqui.
+  const salarioTravado = !!cargoId && salarioCargo != null && forma === "mensalista";
+
+  useEffect(() => {
+    if (salarioTravado && salarioCargo != null) {
+      const alvo = String(proporcional.salario ?? salarioCargo);
+      if (salario !== alvo) setSalario(alvo);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [salarioTravado, salarioCargo, proporcional.salario]);
+
+  // Padrão praticado pelos colaboradores já cadastrados nesse cargo.
+  const cargoPadrao = useDpCargoPadrao(cargoId || null, unidadeId || null, colaborador?.id ?? null);
+
+  useEffect(() => {
+    const p = cargoPadrao.data;
+    if (!open || !p || p.base === 0) return;
+    const t = tocados.current;
+    if (!t.has("regime") && p.regime) setRegime(p.regime);
+    if (!t.has("setor") && p.setor_id) setSetorId(p.setor_id);
+    if (!t.has("forma") && p.forma_pagamento) setForma(p.forma_pagamento);
+    if (!t.has("turno") && p.turno_padrao_id) setTurnoPadraoId(p.turno_padrao_id);
+    if (!t.has("carga") && p.carga_semanal_horas != null) {
+      setCargaSemanal(String(p.carga_semanal_horas));
+      if (!t.has("baseHoras")) setBaseHoras(String(baseHorasMesSugerida(p.carga_semanal_horas)));
+    }
+    if (!t.has("folga") && p.folga_variavel != null) setFolgaVariavel(p.folga_variavel);
+    if (!t.has("dias") && p.dias && p.dias.length > 0) setDias(normalizarDias(p.dias, null));
+    if (!t.has("beneficios") && p.beneficios.length > 0) {
+      const sel: Record<string, boolean> = {};
+      const val: Record<string, string> = {};
+      p.beneficios.forEach((b) => {
+        sel[b.beneficio_id] = true;
+        if (b.valor != null) val[b.beneficio_id] = String(b.valor);
+      });
+      setBeneficiosSel((s) => ({ ...s, ...sel }));
+      setBeneficiosValor((s) => ({ ...val, ...s }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, cargoPadrao.data]);
+
+
+
   const proporcional = useMemo(
     () =>
       salarioProporcional({
