@@ -439,7 +439,7 @@ export default function Auth() {
       <h1 className="sr-only">Acesse sua conta ou crie seu cadastro no Aveto 360</h1>
 
       <div className="relative min-h-screen lg:grid lg:h-screen lg:min-h-0 lg:grid-cols-[minmax(0,1.45fr)_minmax(420px,0.75fr)]">
-        <section className="relative h-[46vh] min-h-[330px] overflow-hidden bg-site-ink-deep sm:h-[52vh] lg:h-screen lg:min-h-0" aria-label="Aveto 360 para negócios de alimentação">
+        <section className="relative h-[46vh] min-h-[330px] overflow-hidden bg-site-navy-deep sm:h-[52vh] lg:h-screen lg:min-h-0" aria-label="Aveto 360 para negócios de alimentação">
           <picture>
             <source media="(min-width: 1024px)" srcSet={loginDesktop.url} />
             <img
