@@ -14171,51 +14171,32 @@ export type Database = {
         }
         Returns: Json
       }
-      dp_colaborador_aplicar_condicao:
-        | {
-            Args: {
-              p_base_dias_mes: number
-              p_base_horas_mes: number
-              p_cargo_id: string
-              p_colaborador_id: string
-              p_forma_pagamento: string
-              p_justificativa: string
-              p_observacoes: string
-              p_regime: string
-              p_salario_base: number
-              p_setor_id: string
-              p_unidade_id: string
-              p_valor_hora: number
-              p_vigencia_inicio: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_base_dias_mes: number
-              p_base_horas_mes: number
-              p_beneficios?: Json
-              p_carga_semanal_horas?: number
-              p_cargo_id: string
-              p_colaborador_id: string
-              p_compoe_equipe_habitual?: boolean
-              p_dias?: Json
-              p_folga_fixa_dow?: number
-              p_folga_variavel?: boolean
-              p_forma_pagamento: string
-              p_justificativa: string
-              p_observacoes: string
-              p_regime: string
-              p_salario_base: number
-              p_setor_id: string
-              p_sindicato_id?: string
-              p_turno_padrao_id?: string
-              p_unidade_id: string
-              p_valor_hora: number
-              p_vigencia_inicio: string
-            }
-            Returns: string
-          }
+      dp_colaborador_aplicar_condicao: {
+        Args: {
+          p_base_dias_mes: number
+          p_base_horas_mes: number
+          p_beneficios?: Json
+          p_carga_semanal_horas?: number
+          p_cargo_id: string
+          p_colaborador_id: string
+          p_compoe_equipe_habitual?: boolean
+          p_dias?: Json
+          p_folga_fixa_dow?: number
+          p_folga_variavel?: boolean
+          p_forma_pagamento: string
+          p_justificativa: string
+          p_observacoes: string
+          p_regime: string
+          p_salario_base: number
+          p_setor_id: string
+          p_sindicato_id?: string
+          p_turno_padrao_id?: string
+          p_unidade_id: string
+          p_valor_hora: number
+          p_vigencia_inicio: string
+        }
+        Returns: string
+      }
       dp_colaborador_ativo_of: { Args: { _user_id: string }; Returns: string }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
       dp_colaboradores_lixeira: {
