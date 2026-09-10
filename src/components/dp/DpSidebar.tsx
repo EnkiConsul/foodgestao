@@ -237,9 +237,9 @@ function DpLink({ item }: { item: Extract<Item, { kind: "link" }> }) {
           className={
             cn(
               "flex items-center gap-2 rounded-md transition-colors",
-              "transition-all duration-200 hover:translate-x-1",
+              "transition-all duration-200 hover:translate-x-1 group-data-[collapsible=icon]:hover:translate-x-0",
               isActive
-                ? "bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
+                ? "bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1 group-data-[collapsible=icon]:translate-x-0"
                 : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
             )
           }
