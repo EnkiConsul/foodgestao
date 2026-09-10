@@ -112,9 +112,6 @@ const COBRE_MOTIVO_LABEL: Record<string, string> = {
   outro: "Outro",
 };
 
-};
-
-
 /**
  * Cadastro rápido de quem trabalhou no dia: colaborador cadastrado registrado
  * manualmente (convocação/escala esquecida) ou pessoa não cadastrada em teste /
