@@ -1268,6 +1268,7 @@ export function ColaboradorJornadaPanel({
         colaboradorId={colaborador?.id ?? undefined}
         unidadeId={unidadeId === "none" ? null : unidadeId}
         cargoId={colaborador?.cargo_id ?? null}
+        excluirSocios={!isSocio(colaborador?.vinculo_label)}
         turnos={turnosResolvidos}
         onCopiar={onCopiarConfig}
       />
