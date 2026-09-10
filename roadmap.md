@@ -1,11 +1,12 @@
 # Roadmap — Pessoas 360° (plano aprovado 09/2026)
 
-## Mão de obra extra na rotina (09/2026)
-- [ ] Lista sem desligados (só válidos no dia; desligado só em dias até a saída)
-- [ ] Data inicial/final vem do dia clicado, sem voltar para hoje
-- [ ] Dia futuro liberado; intermitente/freelancer com sugestão de convocação na própria tela
-- [ ] Horário conflitante com escala/convocação: aviso + bloqueio + sugestão de horário livre
-- [ ] Aviso de risco legal para jornada extra de contrato fixo (CLT); sócio isento
+## Mão de obra extra na rotina (09/2026) — concluído
+- [x] Lista sem desligados (só válidos no dia; desligado só em dias até a saída) — `operacao-extra.ts` + diálogo
+- [x] Data inicial/final vem do dia clicado, sem voltar para hoje
+- [x] Dia futuro liberado; intermitente/freelancer com botão "Abrir convocação preenchida" → `/dp/escalas/convocacoes` (state.nova)
+- [x] Horário conflitante com escala/convocação: aviso + bloqueio do salvar + botão de horário livre
+- [x] Aviso de risco legal para jornada extra de contrato fixo (CLT); sócio isento
+- [x] Planner de convocação sem desligados (por menor data planejada) e pré-seleção de pessoa
 
 ## Feito
 - [x] Migração: `dp_intermitente_competencia_confirmacoes`, `dp_adiantamento_solicitacoes`, `dp_pendencias_decisoes` (RLS, triggers, backfill de optantes)
