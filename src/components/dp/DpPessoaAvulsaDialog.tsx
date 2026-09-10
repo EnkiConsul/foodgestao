@@ -188,23 +188,28 @@ export function DpPessoaAvulsaDialog({
     [apoio.data, form.unidade_id, form.pessoa_apoio_id, liberacoesDaUnidade],
   );
 
-  /** Colaboradores da unidade + os liberados como apoio nessa unidade. */
+  /**
+   * Colaboradores da unidade + os liberados como apoio nessa unidade, e só
+   * quem tinha contrato válido na data lançada (admissão/desligamento). O
+   * registro em edição sempre aparece, mesmo que a pessoa já tenha saído.
+   */
   const colaboradoresDaUnidade = useMemo(
     () =>
       pessoasSelecionaveisNaUnidade(
-        colaboradores,
+        colaboradoresElegiveisNoDia(colaboradores, form.data_inicio),
         form.unidade_id || null,
         liberacoesDaUnidade.colaboradorIds,
-        form.colaborador_id || null,
+        form.colaborador_id || registro?.colaborador_id || null,
       ),
-    [colaboradores, form.unidade_id, form.colaborador_id, liberacoesDaUnidade],
+    [colaboradores, form.data_inicio, form.unidade_id, form.colaborador_id, registro?.colaborador_id, liberacoesDaUnidade],
   );
 
 
   useEffect(() => {
     if (!open) return;
     setHorarioTocado(false);
-    const dataBase = registro?.data_inicio ?? (dataInicial > hojeIso() ? hojeIso() : dataInicial);
+    // A data vem sempre do dia clicado na rotina — inclusive dias futuros.
+    const dataBase = registro?.data_inicio ?? dataInicial;
     setForm({
       nome: registro?.nome ?? "",
       telefone: registro?.telefone ?? "",
