@@ -1171,11 +1171,12 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
             )}
           </div>
 
-          <DialogFooter className="shrink-0 flex-row items-center justify-between gap-2 border-t border-border p-3">
+          <DialogFooter className="shrink-0 flex-col items-stretch gap-2 border-t border-border p-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-[11px] text-muted-foreground">
               {diasCompletos.length} dia(s) · {destinatarios.length} destinatário(s)
             </span>
-            <div className="flex gap-2">
+            <div className="flex gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
+
               {revisando ? (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setRevisando(false)} disabled={publicando}>
