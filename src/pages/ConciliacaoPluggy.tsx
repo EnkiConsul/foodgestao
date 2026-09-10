@@ -58,6 +58,7 @@ import {
   type CardRoutingMaps,
 } from "@/lib/conciliacao/cardRouting";
 import { cardHintLabel, formatProviderDescription, hasMerchantName } from "@/lib/conciliacao/cardDescription";
+import { usePluggyCreditReview } from "@/hooks/usePluggyCreditReview";
 
 
 
@@ -304,6 +305,8 @@ export default function ConciliacaoPluggy() {
   const navigate = useNavigate();
   const { contextType, selectedCompanyId } = useCompanyContext();
   const { maskBRL } = usePrivacy();
+  // Cartões do banco ainda sem autorização: o extrato deles fica fora da fila.
+  const { pending: creditReviewPending } = usePluggyCreditReview();
 
   const [searchParams] = useSearchParams();
   const scopedLocalAccountId = searchParams.get("account");
@@ -478,12 +481,18 @@ export default function ConciliacaoPluggy() {
     setScopeUnresolved(!!(scopedCardId || scopedLocalAccountId) && !resolvedScope);
     setConnectionId(resolvedScope ? resolvedScope.connectionId : "all");
 
-    let stagingQuery = supabase.from("pluggy_staging_transactions")
-      .select("*")
-      .eq("company_id", selectedCompanyId);
-    if (resolvedScope) {
-      stagingQuery = stagingQuery.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
-    }
+    // Fábrica de query: cada página precisa de um builder novo (os builders do
+    // supabase-js não podem ser reexecutados).
+    const stagingPageQuery = (fromIdx: number, toIdx: number) => {
+      let q = supabase.from("pluggy_staging_transactions")
+        .select("*")
+        .eq("company_id", selectedCompanyId);
+      if (resolvedScope) q = q.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
+      return q
+        .order("date", { ascending: false })
+        .order("id", { ascending: false })
+        .range(fromIdx, toIdx);
+    };
 
     const [
       { data: conns, error: connsError },
@@ -500,7 +509,24 @@ export default function ConciliacaoPluggy() {
       supabase.from("pluggy_connections")
         .select("id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status")
         .eq("company_id", selectedCompanyId).order("created_at", { ascending: false }),
-      stagingQuery.order("date", { ascending: false }).limit(500),
+      // Busca paginada: um limite fixo escondia lançamentos já importados
+      // (empresas com extrato longo passavam de 500 linhas sem nenhum aviso).
+      (async () => {
+        const PAGE = 500;
+        const MAX_PAGES = 40;
+        const all: StagingRow[] = [];
+        for (let page = 0; page < MAX_PAGES; page++) {
+          const { data, error } = await stagingPageQuery(
+            page * PAGE,
+            page * PAGE + PAGE - 1,
+          );
+          if (error) return { data: all as StagingRow[] | null, error };
+          const chunk = (data ?? []) as StagingRow[];
+          all.push(...chunk);
+          if (chunk.length < PAGE) break;
+        }
+        return { data: all as StagingRow[] | null, error: null };
+      })(),
       supabase.rpc("get_accessible_accounts", {
         _context: "pj", _company_id: selectedCompanyId, _include_inactive: false,
       }),
@@ -1758,6 +1784,27 @@ export default function ConciliacaoPluggy() {
             {scopedCardId
               ? "Este cartão não possui vínculo com uma conta conectada via Open Finance. Exibindo a fila completa da empresa."
               : "Esta conta não possui vínculo com uma conexão Open Finance. Exibindo a fila completa da empresa."}
+          </CardContent>
+        </Card>
+      )}
+
+      {creditReviewPending.length > 0 && (
+        <Card className="border-warning/50 bg-warning/10">
+          <CardContent className="flex flex-col gap-2 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-warning shrink-0" />
+              {creditReviewPending.length === 1
+                ? "1 cartão do banco aguarda sua autorização — o extrato dele ainda não entra na conciliação."
+                : `${creditReviewPending.length} cartões do banco aguardam sua autorização — o extrato deles ainda não entra na conciliação.`}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              onClick={() => navigate("/cartoes-credito")}
+            >
+              Autorizar cartões
+            </Button>
           </CardContent>
         </Card>
       )}
