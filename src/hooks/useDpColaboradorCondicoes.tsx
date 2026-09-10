@@ -6,6 +6,25 @@ import type { Database } from "@/integrations/supabase/types";
 export type CondicaoHistorico =
   Database["public"]["Tables"]["dp_colaborador_historico_condicoes"]["Row"];
 
+/** Dia da semana enviado ao banco na alteração de condições. */
+export interface CondicaoDiaInput {
+  dow: number;
+  trabalha: boolean;
+  turno_id?: string | null;
+  entrada?: string | null;
+  saida?: string | null;
+  intervalo_minutos?: number | null;
+  setor_id?: string | null;
+}
+
+/** Benefício do catálogo com o valor que passa a valer na nova vigência. */
+export interface CondicaoBeneficioInput {
+  beneficio_id: string;
+  ativo: boolean;
+  valor?: number | null;
+  desconto_valor?: number | null;
+}
+
 export interface AplicarCondicaoInput {
   vigencia_inicio: string;
   regime?: string | null;
@@ -15,8 +34,19 @@ export interface AplicarCondicaoInput {
   setor_id?: string | null;
   salario_base?: number | null;
   valor_hora?: number | null;
+  base_horas_mes?: number | null;
+  base_dias_mes?: number | null;
   justificativa?: string | null;
   observacoes?: string | null;
+  /** Turno padrão da nova configuração de trabalho. */
+  turno_padrao_id?: string | null;
+  carga_semanal_horas?: number | null;
+  folga_variavel?: boolean | null;
+  folga_fixa_dow?: number | null;
+  sindicato_id?: string | null;
+  compoe_equipe_habitual?: boolean | null;
+  dias?: CondicaoDiaInput[] | null;
+  beneficios?: CondicaoBeneficioInput[] | null;
 }
 
 /**
