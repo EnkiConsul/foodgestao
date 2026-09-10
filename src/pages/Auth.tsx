@@ -513,7 +513,7 @@ export default function Auth() {
           </CardContent>
         ) : (
           <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-2.5 px-4">
+          <CardContent className="space-y-2 px-4 md:space-y-2.5">
             {isSignup && duplicateEmail && (
               <div
                 role="alert"
