@@ -233,15 +233,27 @@ function GradeCards({
   ordem,
   onReordenar,
   render,
+  valores,
+  ocultarZerados,
+  acao,
+  vazioTexto,
 }: {
   ordem: string[];
   onReordenar: (next: string[]) => void;
   render: (key: string) => React.ReactNode;
+  /** Valor de cada card, usado para esconder os zerados. */
+  valores?: Record<string, number>;
+  ocultarZerados?: boolean;
+  /** Botão de mostrar/ocultar zerados. */
+  acao?: React.ReactNode;
+  vazioTexto?: string;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   );
+  const visiveis =
+    valores && ocultarZerados ? ordem.filter((k) => (valores[k] ?? 0) > 0) : ordem;
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
@@ -251,17 +263,26 @@ function GradeCards({
     onReordenar(arrayMove(ordem, from, to));
   };
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-      <SortableContext items={ordem} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
-          {ordem.map((k) => (
-            <CardArrastavel key={k} id={k}>
-              {render(k)}
-            </CardArrastavel>
-          ))}
-        </div>
-      </SortableContext>
-    </DndContext>
+    <div className="space-y-2">
+      {acao && <div className="flex justify-end">{acao}</div>}
+      {visiveis.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+          {vazioTexto ?? "Nada registrado neste dia."}
+        </p>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext items={visiveis} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
+              {visiveis.map((k) => (
+                <CardArrastavel key={k} id={k}>
+                  {render(k)}
+                </CardArrastavel>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+    </div>
   );
 }
 
