@@ -1079,17 +1079,21 @@ export function ColaboradorFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
 
+  /** Campo que o usuário pediu para conferir pelo resumo do topo. */
+  const [campoFoco, setCampoFoco] = useState<string | null>(null);
+
   /** Leva o usuário até o campo pendente: rola, foca e mantém o destaque. */
   useEffect(() => {
-    if (!campoErro) return;
+    const alvoCampo = campoErro ?? campoFoco;
+    if (!alvoCampo) return;
     const t = window.setTimeout(() => {
-      const alvo = contentRef.current?.querySelector<HTMLElement>(`[data-field="${campoErro}"]`);
+      const alvo = contentRef.current?.querySelector<HTMLElement>(`[data-field="${alvoCampo}"]`);
       if (!alvo) return;
       alvo.scrollIntoView({ block: "center", behavior: "smooth" });
       alvo.focus({ preventScroll: true });
     }, 120);
     return () => window.clearTimeout(t);
-  }, [campoErro, tab]);
+  }, [campoErro, campoFoco, tab]);
 
   /** Qualquer edição limpa o destaque de pendência. */
   useEffect(() => {
@@ -1097,14 +1101,25 @@ export function ColaboradorFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot]);
 
-  /** Atributos do campo pendente: âncora para foco e destaque em vermelho. */
-  const marca = (campo: string, extraClass?: string) => ({
-    "data-field": campo,
-    "aria-invalid": campoErro === campo ? true : undefined,
-    className: [extraClass, campoErro === campo ? "border-destructive ring-1 ring-destructive" : ""]
-      .filter(Boolean)
-      .join(" ") || undefined,
-  });
+  /**
+   * Atributos do campo: âncora para foco, vermelho no que impede salvar e
+   * âmbar no que falta para o cadastro ficar completo.
+   */
+  const marca = (campo: string, extraClass?: string) => {
+    const erro = campoErro === campo;
+    const faltando = !erro && camposFaltantes.has(campo);
+    return {
+      "data-field": campo,
+      "aria-invalid": erro ? true : undefined,
+      className: [
+        extraClass,
+        erro ? "border-destructive ring-1 ring-destructive" : "",
+        faltando ? "border-amber-500 ring-1 ring-amber-500/40" : "",
+      ]
+        .filter(Boolean)
+        .join(" ") || undefined,
+    };
+  };
 
 
 
