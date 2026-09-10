@@ -314,6 +314,12 @@ export function ColaboradorFormDialog({
   const cargoResolvido = useRef(false);
   /** Vínculo escolhido à mão: bloqueia a sugestão automática pelo cargo. */
   const vinculoTocado = useRef(false);
+  /** Perfil de acesso escolhido à mão: bloqueia a sugestão do vínculo. */
+  const perfilTocado = useRef(false);
+  /** Gênero escolhido à mão: bloqueia a sugestão pelo nome. */
+  const sexoTocado = useRef(false);
+  /** Gênero preenchido pela sugestão do nome (rótulo informativo). */
+  const [sexoSugerido, setSexoSugerido] = useState(false);
   // Ciência do risco jurídico do vínculo sem registro, válida para este salvamento.
   const cienciaConfirmada = useRef<{ justificativa: string } | null>(null);
 
