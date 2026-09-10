@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { normalizarDias, type DiaConfig } from "@/lib/dp/config-trabalho";
 import type { HorarioSimples } from "@/lib/dp/turno-resolver";
+import { isSocio } from "@/lib/dp/contrato-policy";
 
 export interface ModeloHorarioColaborador {
   /** Id da configuração de trabalho de origem. */
