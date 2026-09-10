@@ -17,6 +17,13 @@ interface Props {
   onConnected?: (payload: { itemId: string; connectionId?: string }) => void;
 }
 
+/** Conta que já está espelhada em outra empresa do usuário. */
+type DuplicateConflict = {
+  number_masked: string | null;
+  account_name: string | null;
+  company_name: string | null;
+};
+
 declare global {
   interface Window {
     PluggyConnect?: new (opts: any) => { init: () => void; destroy?: () => void };
