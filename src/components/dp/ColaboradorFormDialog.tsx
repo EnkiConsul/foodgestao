@@ -27,6 +27,7 @@ import { itensIsonomiaDoCadastro } from "@/hooks/useDpIsonomiaBeneficios";
 import { BeneficioDispensaDialog, type DispensaBeneficio, type MotivoIsonomiaEscolhido } from "@/components/dp/BeneficioDispensaDialog";
 import { useDpUnidades, useDpCargos, useUpsertDpCargo, usePropagarRiscosCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, useDpSindicatos, type DpCargo } from "@/hooks/useDpCadastros";
 import { salarioCargoNaUnidade, salarioSocioNaUnidade, mensagemErroPiso, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
+import { generoPorNome } from "@/lib/dp/generoPorNome";
 
 import { useDpBeneficios, type Beneficio } from "@/hooks/useDpBeneficios";
 import { BeneficioDialog } from "@/components/dp/beneficios/BeneficiosDialogs";
