@@ -113,15 +113,30 @@ async function handleItemDeleted(admin: Admin, itemId: string | null) {
     .not('status', 'in', '("deleted","revoked")');
 }
 
+/** Indisponibilidade do banco (não é erro de credencial): vale retentar. */
+function isTemporaryBankOutage(detail: string): boolean {
+  const d = detail.toLowerCase();
+  return d.includes('not available') || d.includes('maintenance') ||
+    d.includes('unavailable') || d.includes('indisponí') || d.includes('manutenç') ||
+    d.includes('timeout') || d.includes('try again');
+}
+
 async function handleItemError(admin: Admin, itemId: string | null, payload: any) {
   const detail = String(
     payload?.error?.message ?? payload?.error?.code ?? payload?.executionStatus ?? 'item_error',
   ).slice(0, 500);
+  const temporary = isTemporaryBankOutage(detail);
   if (itemId) {
     await admin.from('pluggy_connections')
-      .update({ status: 'error', last_error: detail, last_sync_status: 'item_error' })
+      .update({
+        status: temporary ? 'error_temporary' : 'error',
+        last_error: detail,
+        last_sync_status: temporary ? 'bank_unavailable' : 'item_error',
+      })
       .eq('pluggy_item_id', itemId);
   }
+  // Banco fora do ar é temporário: deixa o backoff da fila retentar depois.
+  if (temporary) throw new Error(`bank_unavailable: ${detail}`);
   // Erro no item exige ação do usuário (credencial/MFA): retentar não resolve.
   throw new FatalEventError(`item_error: ${detail}`, 'item_error');
 }
