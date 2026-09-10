@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-
 import { toast } from "sonner";
 import { History, Calculator, Lock, Users } from "lucide-react";
 import {
@@ -532,6 +531,14 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
           setor_id: d.setor_id || null,
         })),
         beneficios: beneficiosPayload,
+        beneficios_fixos: {
+          vale_alimentacao: fixosSel.va,
+          vale_alimentacao_valor: num(fixosValor.va),
+          vale_transporte: fixosSel.vt,
+          vale_transporte_valor_dia: num(fixosValor.vt),
+          premio_assiduidade: fixosSel.assiduidade,
+          premio_assiduidade_valor: num(fixosValor.assiduidade),
+        },
         justificativa: justificativa.trim(),
         modo_continuidade: modo,
       });
