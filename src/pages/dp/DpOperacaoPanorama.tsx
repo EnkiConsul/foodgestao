@@ -54,7 +54,8 @@ import {
   type PessoaPanorama,
 } from "@/lib/dp/operacao-panorama";
 import { TIPO_LABEL, ESTADO_LABEL, TIPOS_PREVISAO } from "@/lib/dp/ocorrencias";
-import { DpPessoaAvulsaDialog } from "@/components/dp/DpPessoaAvulsaDialog";
+import DpPessoaAvulsaDialog, { type PessoaAvulsaInput } from "@/components/dp/DpPessoaAvulsaDialog";
+import { previsaoNoDia, type PrevisaoNoDia } from "@/lib/dp/operacao-extra";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
