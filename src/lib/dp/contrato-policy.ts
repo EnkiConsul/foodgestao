@@ -74,6 +74,12 @@ export interface ContratoPolicy {
   remuneracaoSocietaria: boolean;
   /** Mensagem da ciência jurídica exibida no cadastro. */
   cienciaLegalMensagem: string | null;
+  /**
+   * Vínculo formalizado (registro em carteira/contrato celetista). Contratos
+   * formais só podem migrar para outros contratos formais: sair da formalidade
+   * exige desligamento, nunca uma simples mudança de vigência.
+   */
+  formalizado: boolean;
 }
 
 /** Formas de pagamento do banco, repetidas aqui para evitar ciclo de import. */
