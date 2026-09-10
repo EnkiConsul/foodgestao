@@ -429,7 +429,7 @@ export default function Auth() {
   };
 
   return (
-    <main className="min-h-screen bg-site-navy-deep">
+    <main className="h-[100svh] overflow-hidden bg-site-navy-deep md:min-h-screen md:h-auto md:overflow-visible">
       <Helmet>
         <title>Entrar ou criar conta — Aveto 360</title>
         <meta name="description" content="Acesse sua conta Aveto 360 ou crie um cadastro gratuito para gerenciar suas finanças pessoais e empresariais." />
@@ -438,24 +438,24 @@ export default function Auth() {
       </Helmet>
       <h1 className="sr-only">Acesse sua conta ou crie seu cadastro no Aveto 360</h1>
 
-      <div className="relative min-h-[max(100svh,178vw)] overflow-hidden bg-site-navy-deep md:min-h-screen">
-        <section className="absolute inset-x-0 top-0" aria-label="Aveto 360 para negócios de alimentação">
+      <div className="relative h-[100svh] overflow-hidden bg-site-navy-deep md:min-h-screen md:h-auto">
+        <section className="absolute inset-0 flex items-start justify-center" aria-label="Aveto 360 para negócios de alimentação">
           <picture>
             <source media="(min-width: 768px)" srcSet={loginDesktop.url} />
             <img
               src={loginMobile.url}
               alt="Profissional de food service usando o Aveto 360"
-              className="block h-auto w-full"
+              className="block h-full w-full object-contain object-top md:h-auto md:object-fill"
               draggable={false}
             />
           </picture>
         </section>
 
-        <section className="relative z-10 flex min-h-[max(100svh,178vw)] items-end justify-center px-3 pb-6 pt-[58vh] md:min-h-screen md:items-start md:justify-end md:px-[4vw] md:py-[clamp(2rem,8vw,8rem)] lg:px-[5vw] lg:py-[clamp(2.5rem,9vh,6rem)]">
+        <section className="relative z-10 flex h-full items-end justify-center px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[46svh] md:min-h-screen md:h-auto md:items-start md:justify-end md:px-[4vw] md:py-[clamp(2rem,8vw,8rem)] lg:px-[5vw] lg:py-[clamp(2.5rem,9vh,6rem)]">
           <div className="w-full max-w-[340px] md:max-w-[320px] lg:max-w-[340px]">
-        <Card className="max-h-[calc(100svh-2rem)] w-full overflow-y-auto border-border/70 bg-card/90 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/84">
+        <Card className="max-h-[53svh] w-full overflow-y-auto border-border/70 bg-card/90 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/84 md:max-h-[calc(100svh-2rem)]">
 
-        <CardHeader className="space-y-0 px-4 pb-2 pt-4 text-center">
+        <CardHeader className="space-y-0 px-4 pb-1.5 pt-3 text-center md:pb-2 md:pt-4">
           <CardTitle className="sr-only">Aveto 360</CardTitle>
           <CardDescription className="text-sm font-semibold text-foreground/80">
             {mfaRequired
@@ -478,7 +478,7 @@ export default function Auth() {
             />
           </CardContent>
         ) : isConfirmEmail ? (
-          <CardContent className="space-y-2.5 px-4">
+          <CardContent className="space-y-2 px-4 md:space-y-2.5">
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                 <MailCheck className="h-5 w-5 text-primary" aria-hidden="true" />
@@ -696,7 +696,7 @@ export default function Auth() {
             )}
 
             {isLogin && turnstileSiteKey && (
-              <div className="pt-1 space-y-2">
+              <div className="space-y-1.5 pt-0.5 md:space-y-2 md:pt-1">
                 <TurnstileWidget
                   key={turnstileNonce}
                   siteKey={turnstileSiteKey}
@@ -738,7 +738,7 @@ export default function Auth() {
             )}
           </CardContent>
 
-          <CardFooter className="flex flex-col gap-2 px-4 pb-4 pt-1">
+          <CardFooter className="flex flex-col gap-1.5 px-4 pb-3 pt-0.5 md:gap-2 md:pb-4 md:pt-1">
             <Button type="submit" className="h-9 w-full font-semibold" disabled={submitting || (isLogin && !!turnstileError)}>
 
               {submitting
