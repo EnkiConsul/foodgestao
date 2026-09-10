@@ -682,7 +682,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Forma de pagamento</Label>
-                  <Select value={forma} onValueChange={setForma}>
+                  <Select
+                    value={forma}
+                    onValueChange={(v) => {
+                      marcarTocado("forma");
+                      setForma(v);
+                    }}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {formasPermitidas.map((f) => (
@@ -702,11 +708,25 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                       min="0"
                       step="0.01"
                       value={salario}
+                      readOnly={salarioTravado}
+                      className={salarioTravado ? "bg-muted/50" : undefined}
                       onChange={(e) => setSalario(e.target.value)}
                       placeholder="0,00"
                     />
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                      {salarioTravado ? (
+                        <>
+                          <Lock className="h-3 w-3" aria-hidden="true" />
+                          Vem do salário do cargo nesta unidade
+                          {proporcional.parcial ? ", proporcional à jornada" : ""}. Para mudar, altere o cadastro do cargo.
+                        </>
+                      ) : (
+                        "Sem salário cadastrado para este cargo na unidade: informe o valor manualmente."
+                      )}
+                    </p>
                   </div>
                 ) : (
+
                   <div className="space-y-1.5">
                     <Label htmlFor="cond-hora">
                       {forma === "diarista" ? "Valor do dia" : "Valor da hora"}
