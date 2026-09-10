@@ -472,15 +472,18 @@ export default function DpAtestados() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Data do Documento *</Label>
-                <Input type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Data do Documento *</Label>
+                  <Input type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Dias de Afastamento *</Label>
+                  <Input type="number" min={0} placeholder="Ex: 3" value={dias} onChange={(e) => setDias(e.target.value)} />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Dias de Afastamento *</Label>
-                <Input type="number" min={0} placeholder="Ex: 3" value={dias} onChange={(e) => setDias(e.target.value)} />
-              </div>
 
               {dataDoc && dias && parseInt(dias) > 0 && (
                 <div className="rounded-xl bg-muted/30 p-3 text-sm">
