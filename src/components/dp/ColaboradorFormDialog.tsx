@@ -1058,12 +1058,12 @@ export function ColaboradorFormDialog({
   );
 
   /** Chave essencial → campo desta tela (e aba onde ele aparece). */
-  const CAMPO_DA_CHAVE: Record<string, { campo: string; aba: string }> = {
-    setor_id: { campo: "setor_id", aba: "dados" },
-    contato: { campo: "whatsapp", aba: "dados" },
-    email_contato: { campo: "email", aba: "dados" },
-    data_nascimento: { campo: "data_nascimento", aba: "dados" },
-    salario_base: { campo: "salario_base", aba: "remuneracao" },
+  const CAMPO_DA_CHAVE: Record<string, { campo: string; aba: AbaVisivel }> = {
+    setor_id: { campo: "setor_id", aba: "dados" as AbaVisivel },
+    contato: { campo: "whatsapp", aba: "dados" as AbaVisivel },
+    email_contato: { campo: "email", aba: "dados" as AbaVisivel },
+    data_nascimento: { campo: "data_nascimento", aba: "dados" as AbaVisivel },
+    salario_base: { campo: "salario_base", aba: "remuneracao" as AbaVisivel },
   };
   const faltantesNaTela = faltantesEssenciais.filter((c) => CAMPO_DA_CHAVE[c.chave]);
   const camposFaltantes = new Set(faltantesNaTela.map((c) => CAMPO_DA_CHAVE[c.chave].campo));
