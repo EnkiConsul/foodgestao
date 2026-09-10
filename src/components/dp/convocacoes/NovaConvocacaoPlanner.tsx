@@ -137,6 +137,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const [publicando, setPublicando] = useState(false);
   const [justificativa, setJustificativa] = useState("");
   const [cienteAntecedencia, setCienteAntecedencia] = useState(false);
+  const [justificadaEm, setJustificadaEm] = useState<string | null>(null);
   const [revisando, setRevisando] = useState(false);
   /** Cache das sugestões por cargo|data — remarcar um dia não reconsulta. */
   const sugestoesRef = useRef<Map<string, SugestaoCache>>(new Map());
@@ -161,8 +162,15 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     setDetalhe(null);
     setRevisando(false);
     setRemovidas({});
-    setJustificativa("");
     setOverrides({});
+    // Rascunho que já registrou a exceção não pede ciência/justificativa de novo.
+    const justSalva =
+      grupo?.ocorrencias.map((o) => o.justificativa_fora_prazo ?? "").find((v) => !!v.trim()) ?? "";
+    const confirmadoEm =
+      grupo?.ocorrencias.map((o) => o.confirmado_fora_prazo_em).find((v) => !!v) ?? null;
+    setJustificativa(justSalva);
+    setJustificadaEm(confirmadoEm);
+    setCienteAntecedencia(!!justSalva.trim() || !!confirmadoEm);
     if (grupo) {
       const [a, m] = grupo.competencia.split("-").map(Number);
       setGrupoId(grupo.id);
