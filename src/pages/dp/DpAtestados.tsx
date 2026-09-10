@@ -437,7 +437,7 @@ export default function DpAtestados() {
               <h3 className="text-lg font-semibold">Cadastrar Atestado</h3>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="space-y-2">
                 <Label>Unidade *</Label>
                 <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); }}>
