@@ -1,9 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { History, Calculator } from "lucide-react";
+import { History, Calculator, Lock } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,9 +28,12 @@ import { useDpSetores } from "@/hooks/useDpSetores";
 import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
+import { useDpCargoPadrao } from "@/hooks/useDpCargoPadrao";
+import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
 import { contratoPolicy, formasPagamentoDoRegime } from "@/lib/dp/contrato-policy";
 import { salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
 import { salarioProporcional, baseHorasMesSugerida } from "@/lib/dp/jornadaParcial";
+import { sugerirModoContinuidade, type ModoContinuidade } from "@/lib/dp/cargoPadrao";
 import { DOW_LABEL, diasPadrao, normalizarDias, type DiaConfig } from "@/lib/dp/config-trabalho";
 import type { DpColaborador } from "@/hooks/useDpColaboradores";
 
@@ -36,6 +43,16 @@ const FORMA_LABEL: Record<string, string> = {
   mensalista: "Mensalista (salário do mês)",
   horista: "Horista (valor da hora)",
   diarista: "Diarista (valor do dia)",
+};
+
+/** Abas em que há algo para salvar, na ordem em que o gestor avança. */
+const ABAS_EDITAVEIS = ["contrato", "jornada", "remuneracao", "beneficios"] as const;
+type AbaEditavel = (typeof ABAS_EDITAVEIS)[number];
+
+const abaSeguinte = (aba: string): string | null => {
+  const i = ABAS_EDITAVEIS.indexOf(aba as AbaEditavel);
+  if (i < 0) return null;
+  return (ABAS_EDITAVEIS[i + 1] as string | undefined) ?? "historico";
 };
 
 const hoje = () => new Date().toISOString().slice(0, 10);
@@ -49,6 +66,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }
+
 
 /**
  * Alterar Condições de Trabalho: tudo que é contrato do colaborador (vínculo,
