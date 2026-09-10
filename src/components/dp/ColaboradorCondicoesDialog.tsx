@@ -118,7 +118,22 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   const { turnos = [] } = useDpTurnos();
   const patronalPorUnidade = useDpPatronalPorUnidade();
   const { beneficios = [], atribuicoes = [] } = useDpBeneficios(colaborador?.id ?? "todos");
+  const padroesBeneficios = useDpBeneficiosPadroes();
   const configs = useDpColaboradorConfigTrabalho(colaborador?.id);
+
+  // Turnos no formato usado para resolver o horário de referência de cada dia.
+  const turnosResolvidos = useMemo<TurnoResolvido[]>(
+    () =>
+      turnos.map((t) => ({
+        id: t.id,
+        nome: t.nome,
+        cor: t.cor ?? null,
+        entrada: String(t.entrada).slice(0, 5),
+        saida: String(t.saida).slice(0, 5),
+        intervalo_minutos: t.intervalo_minutos ?? 0,
+      })),
+    [turnos],
+  );
 
   const [aba, setAba] = useState("contrato");
   const [vigencia, setVigencia] = useState(hoje());
