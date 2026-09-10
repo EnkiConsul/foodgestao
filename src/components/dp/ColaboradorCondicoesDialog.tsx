@@ -30,14 +30,19 @@ import { useDpBeneficios } from "@/hooks/useDpBeneficios";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpCargoPadrao } from "@/hooks/useDpCargoPadrao";
 import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
-import { contratoPolicy, formasPagamentoDoRegime } from "@/lib/dp/contrato-policy";
+import {
+  contratoPolicy,
+  formasPagamentoDoRegime,
+  regimeFormalizado,
+  regimesPermitidosNaMudanca,
+  mudancaRegimePermitida,
+  exigeNovoContrato,
+} from "@/lib/dp/contrato-policy";
 import { salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
 import { salarioProporcional, baseHorasMesSugerida } from "@/lib/dp/jornadaParcial";
 import { sugerirModoContinuidade, type ModoContinuidade } from "@/lib/dp/cargoPadrao";
 import { DOW_LABEL, diasPadrao, normalizarDias, type DiaConfig } from "@/lib/dp/config-trabalho";
 import type { DpColaborador } from "@/hooks/useDpColaboradores";
-
-const REGIMES = ["clt", "intermitente", "estagio", "temporario", "freelancer", "pj", "mei"] as const;
 
 const FORMA_LABEL: Record<string, string> = {
   mensalista: "Mensalista (salário do mês)",
@@ -196,6 +201,10 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     setBeneficiosValor(valores);
   }, [open, atribuicoes]);
 
+  const regimeAtual = colaborador?.regime ?? null;
+  /** Só é possível mudar dentro da formalidade; sair dela exige desligamento. */
+  const regimesDisponiveis = useMemo(() => regimesPermitidosNaMudanca(regimeAtual), [regimeAtual]);
+  const bloqueiaInformal = regimeFormalizado(regimeAtual);
   const policy = useMemo(() => contratoPolicy(regime), [regime]);
   const formasPermitidas = useMemo(() => formasPagamentoDoRegime(regime), [regime]);
 
@@ -440,12 +449,16 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                   onValueChange={(v) => {
                     marcarTocado("regime");
                     setRegime(v);
-                    setModo(sugerirModoContinuidade(colaborador?.regime ?? null, v));
+                    setModo(
+                      exigeNovoContrato(regimeAtual, v)
+                        ? "novo_contrato"
+                        : sugerirModoContinuidade(regimeAtual, v),
+                    );
                   }}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {REGIMES.map((r) => (
+                    {regimesDisponiveis.map((r) => (
                       <SelectItem key={r} value={r}>{contratoPolicy(r).label}</SelectItem>
                     ))}
                   </SelectContent>
