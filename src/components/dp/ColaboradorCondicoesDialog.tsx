@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { History, Calculator, Lock } from "lucide-react";
+import { History, Calculator, Lock, Users } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -27,9 +27,18 @@ import {
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
+import { useDpBeneficiosPadroes } from "@/hooks/useDpBeneficiosPadrao";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpCargoPadrao } from "@/hooks/useDpCargoPadrao";
 import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
+import {
+  useDpModelosHorario,
+  type ModeloHorarioColaborador,
+} from "@/hooks/useDpModelosHorario";
+import {
+  CopiarConfigColaboradorDialog,
+  type ConfigCopiada,
+} from "@/components/dp/CopiarConfigColaboradorDialog";
 import {
   contratoPolicy,
   formasPagamentoDoRegime,
@@ -37,11 +46,20 @@ import {
   regimesPermitidosNaMudanca,
   mudancaRegimePermitida,
   exigeNovoContrato,
+  isSocio,
 } from "@/lib/dp/contrato-policy";
 import { salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
 import { salarioProporcional, baseHorasMesSugerida } from "@/lib/dp/jornadaParcial";
 import { sugerirModoContinuidade, type ModoContinuidade } from "@/lib/dp/cargoPadrao";
-import { DOW_LABEL, diasPadrao, normalizarDias, type DiaConfig } from "@/lib/dp/config-trabalho";
+import { assinaturaSemana } from "@/lib/dp/modeloHorarioRanking";
+import {
+  DOW_LABEL,
+  diasPadrao,
+  normalizarDias,
+  turnoDoDia,
+  type DiaConfig,
+  type TurnoResolvido,
+} from "@/lib/dp/config-trabalho";
 import type { DpColaborador } from "@/hooks/useDpColaboradores";
 
 const FORMA_LABEL: Record<string, string> = {
@@ -49,6 +67,16 @@ const FORMA_LABEL: Record<string, string> = {
   horista: "Horista (valor da hora)",
   diarista: "Diarista (valor do dia)",
 };
+
+/**
+ * Na mudança de condições o vínculo aparece com o nome que o gestor usa no
+ * dia a dia: "CLT" sozinho não distingue efetivo de intermitente.
+ */
+const REGIME_LABEL_MUDANCA: Record<string, string> = {
+  clt: "CLT efetivo (mensalista ou parcial)",
+  intermitente: "CLT intermitente (por convocação)",
+};
+const rotuloRegimeMudanca = (r: string) => REGIME_LABEL_MUDANCA[r] ?? contratoPolicy(r).label;
 
 /** Abas em que há algo para salvar, na ordem em que o gestor avança. */
 const ABAS_EDITAVEIS = ["contrato", "jornada", "remuneracao", "beneficios"] as const;
