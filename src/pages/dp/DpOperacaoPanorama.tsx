@@ -419,11 +419,44 @@ function DetalheDiaOperacao({
   const rotuloAus = (t: string) => (t === "adiantamento" ? "Adiantamento" : t === "outros" ? "Ausência" : t);
   const avulsosDoDia = avulsos.filter((a) => a.data_inicio <= data && a.data_fim >= data);
 
+  // Valor de cada card, para esconder os que estão zerados.
+  const valoresCards = useMemo(() => {
+    const map: Record<string, number> = {
+      folga_socio: sociosAusentes.length,
+      avulso_teste: dia.contagens_avulsos.teste,
+      avulso_folguista: dia.contagens_avulsos.folguista,
+    };
+    for (const cat of CATEGORIA_ORDEM) map[cat] = dia.contagens[cat] ?? 0;
+    return map;
+  }, [dia, sociosAusentes.length]);
+
+  const zeradosOcultos = ordemCards.filter((k) => (valoresCards[k] ?? 0) === 0).length;
+
   return (
     <div className="space-y-4">
       <GradeCards
         ordem={ordemCards}
         onReordenar={onReordenarCards}
+        valores={valoresCards}
+        ocultarZerados={!mostrarZerados}
+        vazioTexto="Nenhum registro para este dia. Toque no olho para ver todos os indicadores."
+        acao={
+          zeradosOcultos > 0 || mostrarZerados ? (
+            <Button variant="ghost" size="sm" onClick={onAlternarZerados}>
+              {mostrarZerados ? (
+                <>
+                  <EyeOff className="mr-1.5 h-4 w-4" />
+                  Ocultar zerados
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-1.5 h-4 w-4" />
+                  Mostrar zerados ({zeradosOcultos})
+                </>
+              )}
+            </Button>
+          ) : undefined
+        }
         render={(k) => {
           if (k === "folga_socio") {
             return (
