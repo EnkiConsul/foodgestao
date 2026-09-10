@@ -1,10 +1,10 @@
 # Roadmap — Pessoas 360° (plano aprovado 09/2026)
 
 ## Condições de trabalho — ajustes (10/2026)
-- [ ] Jornada: horário sugerido do turno e "Copiar horário de" (colega), sem sócio como fonte
-- [ ] Benefícios: listar também o padrão da empresa (VA/VT/assiduidade) + opção "manter os benefícios atuais"
-- [ ] Vínculo: rótulos "CLT efetivo" vs "CLT intermitente" claros; padrão do cargo não mexe no vínculo
-- [ ] Desligamento: data começa em branco, sem sugerir o dia de hoje
+- [x] Jornada: horário sugerido do turno e "Copiar horário de" (colega), sem sócio como fonte
+- [x] Benefícios: listar também o padrão da empresa (VA/VT/assiduidade) + opção "manter os benefícios atuais"
+- [x] Vínculo: rótulos "CLT efetivo" vs "CLT intermitente" claros; padrão do cargo não mexe no vínculo
+- [x] Desligamento: data começa em branco, sem sugerir o dia de hoje
 
 ## Mão de obra extra na rotina (09/2026) — concluído
 - [x] Lista sem desligados (só válidos no dia; desligado só em dias até a saída) — `operacao-extra.ts` + diálogo
