@@ -435,7 +435,14 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
             <TabsContent value="contrato" className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Tipo de vínculo</Label>
-                <Select value={regime} onValueChange={setRegime}>
+                <Select
+                  value={regime}
+                  onValueChange={(v) => {
+                    marcarTocado("regime");
+                    setRegime(v);
+                    setModo(sugerirModoContinuidade(colaborador?.regime ?? null, v));
+                  }}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {REGIMES.map((r) => (
@@ -454,6 +461,12 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                     ))}
                   </SelectContent>
                 </Select>
+                {cargoId && (cargoPadrao.data?.base ?? 0) > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Campos preenchidos pelo padrão de {cargoPadrao.data?.base} colaborador(es) neste cargo
+                    {cargoPadrao.data?.daUnidade ? " nesta unidade" : " na empresa"}. Você pode ajustar.
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-1.5">
                 <Label>Unidade</Label>
@@ -474,7 +487,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
               </div>
               <div className="space-y-1.5">
                 <Label>Setor habitual</Label>
-                <Select value={setorId} onValueChange={setSetorId}>
+                <Select
+                  value={setorId}
+                  onValueChange={(v) => {
+                    marcarTocado("setor");
+                    setSetorId(v);
+                  }}
+                >
                   <SelectTrigger><SelectValue placeholder="Sem setor definido" /></SelectTrigger>
                   <SelectContent>
                     {setoresDaUnidade.map((s) => (
@@ -485,15 +504,41 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
               </div>
               <div className="space-y-1.5">
                 <Label>Sindicato</Label>
-                <Select value={sindicatoId} onValueChange={setSindicatoId}>
-                  <SelectTrigger><SelectValue placeholder="Sem sindicato" /></SelectTrigger>
+                {sindicatoTravado ? (
+                  <>
+                    <Input value={sindicatoDoCargo?.nome ?? ""} readOnly className="bg-muted/50" />
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Lock className="h-3 w-3" aria-hidden="true" />
+                      Vem do cadastro do cargo. Para trocar, altere o cargo ou o cadastro dele.
+                    </p>
+                  </>
+                ) : (
+                  <Select value={sindicatoId} onValueChange={setSindicatoId}>
+                    <SelectTrigger><SelectValue placeholder="Sem sindicato" /></SelectTrigger>
+                    <SelectContent>
+                      {sindicatos.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div className="space-y-2 rounded-md border p-3 sm:col-span-2">
+                <p className="text-sm font-medium">Férias, 13º e tempo de casa</p>
+                <Select value={modo} onValueChange={(v) => setModo(v as ModoContinuidade)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {sindicatos.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
-                    ))}
+                    <SelectItem value="continuidade">Continuidade do contrato</SelectItem>
+                    <SelectItem value="novo_contrato">Novo contrato (recomeça a contagem)</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {modo === "continuidade"
+                    ? "Tudo continua contando desde a admissão original: férias, 13º, tempo de casa e adicional por tempo de serviço."
+                    : `O vínculo anterior é encerrado em ${fmtDate(vigencia)} e a contagem recomeça nessa data. O período anterior fica guardado no histórico e o colaborador segue com acesso aos documentos antigos.`}
+                </p>
               </div>
+
               <div className="flex items-center justify-between gap-3 rounded-md border p-3 sm:col-span-2">
                 <div>
                   <p className="text-sm font-medium">Faz parte da equipe habitual da unidade</p>
