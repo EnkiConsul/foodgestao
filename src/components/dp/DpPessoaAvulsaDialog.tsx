@@ -735,7 +735,6 @@ export function DpPessoaAvulsaDialog({
               <Label>Data inicial *</Label>
               <Input
                 type="date"
-                max={manual ? hoje : undefined}
                 value={form.data_inicio}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -751,7 +750,6 @@ export function DpPessoaAvulsaDialog({
               <Input
                 type="date"
                 min={form.data_inicio || undefined}
-                max={manual ? hoje : undefined}
                 value={form.data_fim}
                 onChange={(e) => setForm({ ...form, data_fim: e.target.value })}
               />
