@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+// Executar: payload da RPC + VA/VT/assiduidade gravados no cadastro.
 import { toast } from "sonner";
 import { History, Calculator, Lock, Users } from "lucide-react";
 import {
