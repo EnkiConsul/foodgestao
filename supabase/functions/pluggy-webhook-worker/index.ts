@@ -129,7 +129,9 @@ async function handleItemError(admin: Admin, itemId: string | null, payload: any
   if (itemId) {
     await admin.from('pluggy_connections')
       .update({
-        status: temporary ? 'error_temporary' : 'error',
+        // O enum de status não tem estado "temporário": mantém `error` e
+        // diferencia pelo motivo, que é o que a tela mostra ao usuário.
+        status: 'error',
         last_error: detail,
         last_sync_status: temporary ? 'bank_unavailable' : 'item_error',
       })
