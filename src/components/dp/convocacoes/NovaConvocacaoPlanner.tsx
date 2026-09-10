@@ -137,6 +137,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const [publicando, setPublicando] = useState(false);
   const [justificativa, setJustificativa] = useState("");
   const [cienteAntecedencia, setCienteAntecedencia] = useState(false);
+  const [justificadaEm, setJustificadaEm] = useState<string | null>(null);
   const [revisando, setRevisando] = useState(false);
   /** Cache das sugestões por cargo|data — remarcar um dia não reconsulta. */
   const sugestoesRef = useRef<Map<string, SugestaoCache>>(new Map());
@@ -161,8 +162,15 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     setDetalhe(null);
     setRevisando(false);
     setRemovidas({});
-    setJustificativa("");
     setOverrides({});
+    // Rascunho que já registrou a exceção não pede ciência/justificativa de novo.
+    const justSalva =
+      grupo?.ocorrencias.map((o) => o.justificativa_fora_prazo ?? "").find((v) => !!v.trim()) ?? "";
+    const confirmadoEm =
+      grupo?.ocorrencias.map((o) => o.confirmado_fora_prazo_em).find((v) => !!v) ?? null;
+    setJustificativa(justSalva);
+    setJustificadaEm(confirmadoEm);
+    setCienteAntecedencia(!!justSalva.trim() || !!confirmadoEm);
     if (grupo) {
       const [a, m] = grupo.competencia.split("-").map(Number);
       setGrupoId(grupo.id);
@@ -834,6 +842,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   onJustificativaChange={setJustificativa}
                   ciente={cienteAntecedencia}
                   onCienteChange={setCienteAntecedencia}
+                  justificadaEm={justificadaEm}
                 />
               </div>
             ) : (
@@ -1140,20 +1149,12 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
               </div>
 
               {foraDaAntecedencia.length > 0 && (
-                <Alert variant="destructive">
+                <Alert>
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription className="space-y-2 text-xs">
-                    <p>
-                      {foraDaAntecedencia.length} dia(s) abaixo da antecedência mínima de{" "}
-                      {antecedenciaMinima} dias. A publicação segue permitida, com registro da
-                      exceção{exigeJustificativa ? " e justificativa obrigatória" : ""}.
-                    </p>
-                    <Textarea
-                      rows={2}
-                      placeholder="Justificativa da exceção"
-                      value={justificativa}
-                      onChange={(e) => setJustificativa(e.target.value)}
-                    />
+                  <AlertDescription className="text-xs">
+                    {foraDaAntecedencia.length} dia(s) em cima da hora (menos de{" "}
+                    {antecedenciaMinima} dia(s) de antecedência). A publicação segue permitida
+                    {exigeJustificativa ? " — a justificativa é pedida em “Revisar e publicar”." : "."}
                   </AlertDescription>
                 </Alert>
               )}
@@ -1171,11 +1172,12 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
             )}
           </div>
 
-          <DialogFooter className="shrink-0 flex-row items-center justify-between gap-2 border-t border-border p-3">
+          <DialogFooter className="shrink-0 flex-col items-stretch gap-2 border-t border-border p-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-[11px] text-muted-foreground">
               {diasCompletos.length} dia(s) · {destinatarios.length} destinatário(s)
             </span>
-            <div className="flex gap-2">
+            <div className="flex gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
+
               {revisando ? (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setRevisando(false)} disabled={publicando}>

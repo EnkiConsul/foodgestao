@@ -72,7 +72,8 @@ export function DiasSelecionadosLista({
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-semibold capitalize">{rotuloData(d.data)}</span>
-                <div className="flex items-center gap-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-1">
+
                   <Button
                     type="button"
                     size="sm"
@@ -139,9 +140,10 @@ export function DiasSelecionadosLista({
                     onChange={(e) => onPatch(d.chave, { saida: e.target.value })}
                   />
                 </div>
-                <div className="space-y-1">
+                <div className="col-span-2 min-w-0 space-y-1 md:col-span-1">
                   <Label className="text-[11px]">Vagas</Label>
-                  <div className="flex items-center gap-1">
+                  <div className="flex min-w-0 items-center gap-1">
+
                     <Button
                       type="button"
                       size="icon"
@@ -176,7 +178,7 @@ export function DiasSelecionadosLista({
                   </div>
                 </div>
 
-                <label className="flex items-end gap-2 pb-1.5 text-[11px]">
+                <label className="col-span-2 flex min-w-0 flex-wrap items-center gap-2 text-[11px] md:col-span-1 md:items-end md:pb-1.5">
                   <Checkbox
                     checked={d.vira}
                     disabled={viraNoDiaSeguinte(d.entrada, d.saida)}

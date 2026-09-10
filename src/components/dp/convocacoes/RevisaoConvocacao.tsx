@@ -71,6 +71,8 @@ interface Props {
   /** Ciência de que a convocação é em cima da hora. */
   ciente: boolean;
   onCienteChange: (v: boolean) => void;
+  /** Data em que a exceção já foi registrada neste rascunho, se houver. */
+  justificadaEm?: string | null;
 
   /** Verificação prévia feita pelo banco (mesma regra da publicação). */
   preAvaliacao: PreAvaliacaoLinha[];
@@ -94,7 +96,9 @@ export function RevisaoConvocacao(props: Props) {
     unidadeId, unidadeNome, competencia, titulo, observacao, dias,
     destinatarios, overrides, horarioGeral, jornadaDe, prazoRespostaDias, justificativa,
     antecedenciaMinima, exigeJustificativa, onJustificativaChange, ciente, onCienteChange,
+    justificadaEm,
     preAvaliacao, preAvaliacaoCarregando, onUsarHorarioParaTodos, onAjustarNecessidade,
+
 
   } = props;
 
@@ -246,6 +250,12 @@ export function RevisaoConvocacao(props: Props) {
               .filter((v, i, arr) => arr.indexOf(v) === i)
               .join(", ")}
           </p>
+          {justificadaEm && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Exceção já justificada em{" "}
+              {new Date(justificadaEm).toLocaleDateString("pt-BR")} — você pode manter ou editar.
+            </p>
+          )}
           <label className="mt-2 flex items-start gap-2 text-xs font-medium">
             <Checkbox checked={ciente} onCheckedChange={(v) => onCienteChange(v === true)} />
             <span>Estou ciente e quero publicar mesmo assim</span>
