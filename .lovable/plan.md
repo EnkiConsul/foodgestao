@@ -35,7 +35,25 @@ Para cargos de sócio, todo texto e regra de piso deixa de citar sindicato patro
 
 No horário de trabalho de um sócio (opcional), os pontos de atenção da CLT (limite de 44h, interjornada, adicional noturno, folga dominical etc.) deixam de aparecer: o painel deixa de passar o sócio pela verificação trabalhista, que é um dever do empregador e não se aplica a sócio. Também não aparece o pedido de ciência ("estou ciente") ao salvar o horário do sócio.
 
+## 6. Campos faltantes destacados no cadastro
+
+Hoje o cadastro só pinta um campo quando o salvamento acusa erro; por isso o card diz "cadastro incompleto" mas a tela de edição não mostra o que falta.
+
+- Ao abrir um cadastro incompleto, os campos essenciais em branco já aparecem com **borda/rótulo em cor de atenção** (âmbar) e o texto "falta preencher".
+- As abas mostram um ponto de atenção quando têm campo faltante, e um resumo no topo lista "Faltam: telefone, vínculo, salário" com atalho de clique que leva ao campo.
+- A cor de erro (vermelho) continua reservada para tentativa de salvar com campo inválido; o destaque de faltante é apenas informativo e não bloqueia.
+- Usa a mesma fonte única que gera o selo do card, então tela e card nunca discordam.
+
+## 7. Sócio em mais de uma unidade
+
+- No cadastro de sócio, a Unidade passa a permitir **selecionar várias unidades** da sociedade (além da opção "Geral (todas as unidades)"), com uma marcada como unidade principal para lotação/relatórios.
+- As unidades adicionais são gravadas como atuação do sócio nas outras unidades, então ele aparece na operação, documentos e portal dessas unidades sem cadastro duplicado.
+- O pró-labore continua único por sócio; a referência do cargo de sócio (item 4) é gravada apenas na unidade principal.
+- Cobranças de documentos e pendências continuam sem se aplicar a sócio, independentemente do número de unidades.
+
 ## Detalhes técnicos
+
+
 
 - `src/components/dp/ColaboradorFormDialog.tsx`: rótulo/copy condicional do campo de data, sugestão de perfil `gestor` ao marcar sócio (com aviso ao escolher `colaborador`), integração da sugestão de gênero e do novo fluxo de referência salarial do sócio.
 - `src/lib/dp/cargos.ts`: `deveReconciliarPisoCargo` passa a aceitar sócio quando há `unidadeId`, retornando a origem `empresa` (sem patronal).
@@ -44,5 +62,7 @@ No horário de trabalho de um sócio (opcional), os pontos de atenção da CLT (
 - `src/lib/dp/contrato-policy.ts` (`isSocio`) segue como única fonte da detecção de sócio.
 - `src/components/dp/ColaboradorJornadaPanel.tsx` + `src/lib/dp/clt-alertas.ts`: `EntradaAlertasClt` ganha `socio`; quando `true`, `verificarAlertasClt` retorna vazio e o painel não exibe avisos nem pede ciência ao salvar. O painel passa a receber/reconhecer o rótulo do vínculo do colaborador (hoje só usa `regime`, que para sócio é `pj` e por isso caía na verificação).
 - Gravação da referência do sócio reaproveita `dp_cargo_salarios` com `sindicato_patronal_id` nulo e `unidade_id` preenchido; sem mudança de schema.
+- Destaque de faltantes: `camposFaltando` (`src/lib/dp/cadastro-completude.ts`) alimenta um `Set` no `ColaboradorFormDialog`; `marca()` ganha um segundo estado visual (`border-amber-500`) e os `TabsTrigger` reaproveitam os indicadores já existentes.
+- Sócio multiunidade: multi-seleção reaproveita `dp_apoio_unidades` (`src/lib/dp/apoio-unidades.ts`, `useDpPessoasApoio`) com a unidade principal em `dp_colaboradores.unidade_id`; sem mudança de schema.
 - Testes novos em `src/lib/dp/__tests__/`: `genero-por-nome.test.ts` e casos de sócio em `cargoSalarios`/`cargos`.
 - Verificação: `bunx tsgo --noEmit`, `bunx vitest run src/lib/dp src/test` e conferência no navegador do cadastro do sócio (data, perfil, gênero sugerido, pergunta do pró-labore).
