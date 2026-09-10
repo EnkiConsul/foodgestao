@@ -297,12 +297,12 @@ Deno.serve(async (req) => {
     }
 
     // Fallback: a conexão pode existir apenas no cadastro V2 (item criado pelo
-    // fluxo novo/QR Code) ou no espelho de contas. Sem isso, itens que JÁ têm
-    // empresa definida caíam em "empresa não resolvida" e nunca sincronizavam.
+    // fluxo novo/QR Code). Sem isso, itens que JÁ têm empresa definida caíam em
+    // "empresa não resolvida" e nunca sincronizavam.
     if (!existing && !companyId) {
       const { data: v2conn } = await admin
         .from('pluggy_v2_connections')
-        .select('company_id, created_by')
+        .select('company_id')
         .eq('pluggy_item_id', itemId)
         .not('company_id', 'is', null)
         .order('created_at', { ascending: false })
@@ -311,18 +311,6 @@ Deno.serve(async (req) => {
       if (v2conn?.company_id) {
         companyId = v2conn.company_id as string;
         console.log(`resolved company via pluggy_v2_connections -> ${companyId}`);
-      } else {
-        const { data: mirrored } = await admin
-          .from('pluggy_accounts')
-          .select('company_id')
-          .eq('pluggy_item_id', itemId)
-          .not('company_id', 'is', null)
-          .limit(1)
-          .maybeSingle();
-        if (mirrored?.company_id) {
-          companyId = mirrored.company_id as string;
-          console.log(`resolved company via pluggy_accounts -> ${companyId}`);
-        }
       }
     }
 
