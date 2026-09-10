@@ -141,7 +141,7 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
       </SidebarHeader>
 
 
-      <SidebarContent className="px-2 py-3">
+      <SidebarContent className={cn("py-3", collapsed ? "px-0" : "px-2")}>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
@@ -164,7 +164,7 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3 space-y-2">
+      <SidebarFooter className={cn("border-t border-sidebar-border space-y-2", collapsed ? "p-1" : "p-3")}>
         {!collapsed && (
           <button
             type="button"
