@@ -22,7 +22,6 @@ import {
   ELEGIBILIDADE_OPTIONS,
   DIAS_CARENCIA_PORTAL_DEFAULT,
   calcAcessoPortalAte,
-  toDateOnly,
 } from "@/lib/dp/desligamento";
 import { ColaboradorRecontratacaoDialog } from "@/components/dp/ColaboradorRecontratacaoDialog";
 
@@ -44,7 +43,8 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
 
   const isDesligado = !!colaborador?.data_desligamento || colaborador?.ativo === false;
 
-  const [data, setData] = useState(() => toDateOnly(new Date()));
+  // A data nunca vem sugerida: só o gestor informa, manualmente.
+  const [data, setData] = useState("");
   const [motivo, setMotivo] = useState<string>(NONE);
   const [elegibilidade, setElegibilidade] = useState<string>(NONE);
   const [observacao, setObservacao] = useState("");
@@ -54,7 +54,7 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
 
   useEffect(() => {
     if (!colaborador) return;
-    setData(colaborador.data_desligamento ?? toDateOnly(new Date()));
+    setData(colaborador.data_desligamento ?? "");
     setMotivo(colaborador.motivo_desligamento ?? NONE);
     setElegibilidade((colaborador as any).elegivel_recontratacao ?? NONE);
     setObservacao((colaborador as any).observacao_desligamento ?? "");
@@ -244,7 +244,8 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
             <Button
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => { if (validar()) setConfirmar(true); }}
-              disabled={pending}
+              disabled={pending || !data}
+              title={!data ? "Informe a data da demissão" : undefined}
             >
               <UserMinus className="mr-2 h-4 w-4" aria-hidden="true" />
               {desligar.isPending ? "Desligando..." : "Registrar desligamento"}

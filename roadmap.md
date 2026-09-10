@@ -1,5 +1,11 @@
 # Roadmap — Pessoas 360° (plano aprovado 09/2026)
 
+## Condições de trabalho — ajustes (10/2026)
+- [ ] Jornada: horário sugerido do turno e "Copiar horário de" (colega), sem sócio como fonte
+- [ ] Benefícios: listar também o padrão da empresa (VA/VT/assiduidade) + opção "manter os benefícios atuais"
+- [ ] Vínculo: rótulos "CLT efetivo" vs "CLT intermitente" claros; padrão do cargo não mexe no vínculo
+- [ ] Desligamento: data começa em branco, sem sugerir o dia de hoje
+
 ## Mão de obra extra na rotina (09/2026) — concluído
 - [x] Lista sem desligados (só válidos no dia; desligado só em dias até a saída) — `operacao-extra.ts` + diálogo
 - [x] Data inicial/final vem do dia clicado, sem voltar para hoje
@@ -12,7 +18,7 @@
 - [x] Migração: `dp_intermitente_competencia_confirmacoes`, `dp_adiantamento_solicitacoes`, `dp_pendencias_decisoes` (RLS, triggers, backfill de optantes)
 - [x] `src/lib/dp/adiantamento-opcao.ts` — efeito por competência, última solicitação válida, regra dos 5 dias no portal
 - [x] `src/hooks/useDpAdiantamentoSolicitacoes.tsx` — listar/registrar (gestor e portal) + notificação ao gestor
-- [x] `src/hooks/useDpPendenciasDecisoes.tsx` — ignorar (justificativa) / adiar compartilhados
+- [x] `useDpPendenciasDecisoes.tsx` — ignorar (justificativa) / adiar compartilhados
 - [x] `pendencias-documentos.ts` — `optanteNaCompetencia`, `intermitenteSemRegistros`/`intermitenteTrabalho`
 - [x] `useDpPendencias.tsx` — adiantamento por histórico; alerta "Confirmar trabalho de intermitente"; férias adquiridas/a vencer/vencidas (exceto sócio e desligado)
 - [x] Alerta do intermitente respondido na UI ("Trabalhou"/"Não trabalhou") via `PendenciaAcoes` + `useDpIntermitenteConfirmacoes`

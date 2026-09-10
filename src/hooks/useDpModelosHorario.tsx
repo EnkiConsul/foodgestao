@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { normalizarDias, type DiaConfig } from "@/lib/dp/config-trabalho";
 import type { HorarioSimples } from "@/lib/dp/turno-resolver";
+import { isSocio } from "@/lib/dp/contrato-policy";
 
 export interface ModeloHorarioColaborador {
   /** Id da configuração de trabalho de origem. */
@@ -19,6 +20,8 @@ export interface ModeloHorarioColaborador {
   horario: HorarioSimples | null;
   /** Semana completa, já com as exceções de horário por dia. */
   dias: DiaConfig[];
+  /** Sócio não tem jornada contratual: nunca é fonte de cópia para colaborador. */
+  socio: boolean;
   usado_em: string;
 }
 
@@ -64,6 +67,7 @@ export function mapModeloHorario(c: any): ModeloHorarioColaborador {
       }),
       c.folga_fixa_dow ?? null,
     ),
+    socio: isSocio(c.colaborador?.vinculo_label ?? null) || c.colaborador?.regime === "socio",
     usado_em: c.updated_at ?? c.vigencia_inicio,
   };
 }
@@ -74,8 +78,15 @@ export function mapModeloHorario(c: any): ModeloHorarioColaborador {
  *
  * Traz o horário de cada dia da semana, inclusive quando o dia usa um turno
  * próprio da loja.
+ * Sempre exclui a pessoa editada e colaboradores inativos; com
+ * `excluirSocios`, sócios também ficam fora — um colaborador nunca copia o
+ * horário de um sócio.
  */
-export function useDpModelosHorario(unidadeId?: string | null, excluirColaboradorId?: string | null) {
+export function useDpModelosHorario(
+  unidadeId?: string | null,
+  excluirColaboradorId?: string | null,
+  excluirSocios = false,
+) {
   const { selectedCompanyId } = useCompanyContext();
 
   const query = useQuery({
@@ -88,7 +99,7 @@ export function useDpModelosHorario(unidadeId?: string | null, excluirColaborado
           "id, colaborador_id, unidade_id, turno_padrao_id, folga_variavel, folga_fixa_dow, vigencia_inicio, vigencia_fim, updated_at," +
             " dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos," +
             " turno:dp_turnos(entrada, saida, intervalo_minutos))," +
-            " colaborador:dp_colaboradores(nome, cargo, cargo_id, ativo)," +
+            " colaborador:dp_colaboradores(nome, cargo, cargo_id, ativo, vinculo_label, regime)," +
             " turno:dp_turnos!dp_colaborador_config_trabalho_turno_padrao_id_fkey(entrada, saida, intervalo_minutos)",
         )
         .eq("company_id", selectedCompanyId!)
@@ -111,8 +122,9 @@ export function useDpModelosHorario(unidadeId?: string | null, excluirColaborado
         vistos.add(c.colaborador_id);
         return true;
       })
-      .map(mapModeloHorario);
-  }, [query.data, excluirColaboradorId]);
+      .map(mapModeloHorario)
+      .filter((m) => (excluirSocios ? !m.socio : true));
+  }, [query.data, excluirColaboradorId, excluirSocios]);
 
   return { modelos, isLoading: query.isLoading, refetch: query.refetch };
 }

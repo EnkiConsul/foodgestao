@@ -26,6 +26,8 @@ interface Props {
   unidadeId?: string | null;
   /** Cargo atual — coloca colegas do mesmo cargo no topo. */
   cargoId?: string | null;
+  /** Quando a pessoa editada não é sócia, sócios ficam fora da lista de fontes. */
+  excluirSocios?: boolean;
   turnos: TurnoResolvido[];
   onCopiar: (config: ConfigCopiada) => void;
 }
@@ -36,9 +38,9 @@ interface Props {
  * reconfigurar tudo a cada novo colaborador.
  */
 export function CopiarConfigColaboradorDialog({
-  open, onOpenChange, colaboradorId, unidadeId, cargoId, turnos, onCopiar,
+  open, onOpenChange, colaboradorId, unidadeId, cargoId, excluirSocios = false, turnos, onCopiar,
 }: Props) {
-  const { modelos, isLoading } = useDpModelosHorario(unidadeId, colaboradorId);
+  const { modelos, isLoading } = useDpModelosHorario(unidadeId, colaboradorId, excluirSocios);
 
   const modelosOrdenados = useMemo(() => {
     return [...modelos].sort((a, b) => {

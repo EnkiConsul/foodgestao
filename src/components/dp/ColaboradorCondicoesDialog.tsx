@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { toast } from "sonner";
-import { History, Calculator, Lock } from "lucide-react";
+import { History, Calculator, Lock, Users } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -27,9 +28,18 @@ import {
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useDpBeneficios } from "@/hooks/useDpBeneficios";
+import { useDpBeneficiosPadroes } from "@/hooks/useDpBeneficiosPadrao";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpCargoPadrao } from "@/hooks/useDpCargoPadrao";
 import { useSindicatoDoCargo } from "@/hooks/useSindicatoDoCargo";
+import {
+  useDpModelosHorario,
+  type ModeloHorarioColaborador,
+} from "@/hooks/useDpModelosHorario";
+import {
+  CopiarConfigColaboradorDialog,
+  type ConfigCopiada,
+} from "@/components/dp/CopiarConfigColaboradorDialog";
 import {
   contratoPolicy,
   formasPagamentoDoRegime,
@@ -37,11 +47,20 @@ import {
   regimesPermitidosNaMudanca,
   mudancaRegimePermitida,
   exigeNovoContrato,
+  isSocio,
 } from "@/lib/dp/contrato-policy";
 import { salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
 import { salarioProporcional, baseHorasMesSugerida } from "@/lib/dp/jornadaParcial";
 import { sugerirModoContinuidade, type ModoContinuidade } from "@/lib/dp/cargoPadrao";
-import { DOW_LABEL, diasPadrao, normalizarDias, type DiaConfig } from "@/lib/dp/config-trabalho";
+import { assinaturaSemana } from "@/lib/dp/modeloHorarioRanking";
+import {
+  DOW_LABEL,
+  diasPadrao,
+  normalizarDias,
+  turnoDoDia,
+  type DiaConfig,
+  type TurnoResolvido,
+} from "@/lib/dp/config-trabalho";
 import type { DpColaborador } from "@/hooks/useDpColaboradores";
 
 const FORMA_LABEL: Record<string, string> = {
@@ -49,6 +68,16 @@ const FORMA_LABEL: Record<string, string> = {
   horista: "Horista (valor da hora)",
   diarista: "Diarista (valor do dia)",
 };
+
+/**
+ * Na mudança de condições o vínculo aparece com o nome que o gestor usa no
+ * dia a dia: "CLT" sozinho não distingue efetivo de intermitente.
+ */
+const REGIME_LABEL_MUDANCA: Record<string, string> = {
+  clt: "CLT efetivo (mensalista ou parcial)",
+  intermitente: "CLT intermitente (por convocação)",
+};
+const rotuloRegimeMudanca = (r: string) => REGIME_LABEL_MUDANCA[r] ?? contratoPolicy(r).label;
 
 /** Abas em que há algo para salvar, na ordem em que o gestor avança. */
 const ABAS_EDITAVEIS = ["contrato", "jornada", "remuneracao", "beneficios"] as const;
@@ -90,7 +119,22 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   const { turnos = [] } = useDpTurnos();
   const patronalPorUnidade = useDpPatronalPorUnidade();
   const { beneficios = [], atribuicoes = [] } = useDpBeneficios(colaborador?.id ?? "todos");
+  const padroesBeneficios = useDpBeneficiosPadroes();
   const configs = useDpColaboradorConfigTrabalho(colaborador?.id);
+
+  // Turnos no formato usado para resolver o horário de referência de cada dia.
+  const turnosResolvidos = useMemo<TurnoResolvido[]>(
+    () =>
+      turnos.map((t) => ({
+        id: t.id,
+        nome: t.nome,
+        cor: t.cor ?? null,
+        entrada: String(t.entrada).slice(0, 5),
+        saida: String(t.saida).slice(0, 5),
+        intervalo_minutos: t.intervalo_minutos ?? 0,
+      })),
+    [turnos],
+  );
 
   const [aba, setAba] = useState("contrato");
   const [vigencia, setVigencia] = useState(hoje());
@@ -111,6 +155,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   const [baseDias, setBaseDias] = useState<string>("");
   const [beneficiosSel, setBeneficiosSel] = useState<Record<string, boolean>>({});
   const [beneficiosValor, setBeneficiosValor] = useState<Record<string, string>>({});
+  /** VA, VT e prêmio de assiduidade: valores próprios, não itens do catálogo. */
+  const [fixosSel, setFixosSel] = useState({ va: false, vt: false, assiduidade: false });
+  const [fixosValor, setFixosValor] = useState<Record<"va" | "vt" | "assiduidade", string>>({
+    va: "", vt: "", assiduidade: "",
+  });
+  const fixosInitRef = useRef(false);
+  const [copiarOpen, setCopiarOpen] = useState(false);
   const [justificativa, setJustificativa] = useState("");
   const [modo, setModo] = useState<ModoContinuidade>("continuidade");
   const [confirmarNovoContrato, setConfirmarNovoContrato] = useState(false);
@@ -279,7 +330,8 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     const p = cargoPadrao.data;
     if (!open || !p || p.base === 0) return;
     const t = tocados.current;
-    if (!t.has("regime") && p.regime) setRegime(p.regime);
+    // O tipo de vínculo nunca vem do padrão do cargo: CLT efetivo e
+    // intermitente são escolha explícita do gestor na mudança.
     if (!t.has("setor") && p.setor_id) setSetorId(p.setor_id);
     if (!t.has("forma") && p.forma_pagamento) setForma(p.forma_pagamento);
     if (!t.has("turno") && p.turno_padrao_id) setTurnoPadraoId(p.turno_padrao_id);
@@ -301,6 +353,128 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, cargoPadrao.data]);
+
+  // ---- Copiar horário de outro colaborador (sócio nunca é fonte para CLT) ----
+  const excluirSocios = !isSocio(colaborador?.vinculo_label);
+  const { modelos: modelosHorario } = useDpModelosHorario(
+    unidadeId || null,
+    colaborador?.id ?? null,
+    excluirSocios,
+  );
+
+  /** Até 4 colegas: mesmo cargo primeiro, sem repetir o mesmo horário. */
+  const atalhosColegas = useMemo(() => {
+    const ordenados = [...modelosHorario].sort((a, b) => {
+      const aCargo = (a.cargo_id ?? null) === (cargoId || null) ? 1 : 0;
+      const bCargo = (b.cargo_id ?? null) === (cargoId || null) ? 1 : 0;
+      return bCargo - aCargo || (b.usado_em ?? "").localeCompare(a.usado_em ?? "");
+    });
+    const vistos = new Set<string>();
+    return ordenados
+      .filter((m) => {
+        const s = assinaturaSemana(m);
+        if (vistos.has(s)) return false;
+        vistos.add(s);
+        return true;
+      })
+      .slice(0, 4);
+  }, [modelosHorario, cargoId]);
+
+  /** Copia a semana do colega: folgas, horários e o turno padrão da unidade. */
+  const aplicarConfigCopiada = (cfg: ConfigCopiada) => {
+    marcarTocado("dias");
+    marcarTocado("folga");
+    const turnoOk =
+      cfg.turno_padrao_id && turnosResolvidos.some((t) => t.id === cfg.turno_padrao_id)
+        ? cfg.turno_padrao_id
+        : "";
+    if (turnoOk) {
+      marcarTocado("turno");
+      setTurnoPadraoId(turnoOk);
+    }
+    setFolgaVariavel(cfg.folga_variavel);
+    setDias(normalizarDias(cfg.dias.map((d) => ({ ...d, turno_id: null })), null));
+  };
+
+  const copiarSemanaDoColega = (m: ModeloHorarioColaborador) => {
+    aplicarConfigCopiada({
+      turno_padrao_id: m.turno_padrao_id,
+      folga_variavel: m.folga_variavel,
+      dias: m.dias,
+      horario: m.horario,
+    });
+    toast.success(`Horário de ${m.colaborador_nome} copiado.`);
+  };
+
+  // ---- VA/VT/assiduidade: padrão da empresa/unidade/cargo -----------------
+  const padraoAplicavel = useMemo(() => {
+    const linhas = padroesBeneficios.data ?? [];
+    return (
+      linhas.find((p) => p.cargo_id === (cargoId || null) && p.unidade_id === (unidadeId || null)) ??
+      linhas.find((p) => p.cargo_id === (cargoId || null) && !p.unidade_id) ??
+      linhas.find((p) => !p.cargo_id && p.unidade_id === (unidadeId || null)) ??
+      linhas.find((p) => !p.cargo_id && !p.unidade_id) ??
+      null
+    );
+  }, [padroesBeneficios.data, cargoId, unidadeId]);
+
+  /**
+   * VA/VT/assiduidade abrem com o que já está no cadastro; quando o campo nunca
+   * foi definido, cai no padrão da empresa/unidade/cargo. Inicializa uma vez por
+   * abertura para não pisar em edições do gestor.
+   */
+  useEffect(() => {
+    if (!open) {
+      fixosInitRef.current = false;
+      return;
+    }
+    if (fixosInitRef.current || !colaborador) return;
+    fixosInitRef.current = true;
+    const c = colaborador as unknown as Record<string, unknown>;
+    const p = padraoAplicavel?.payload ?? null;
+    const bool = (v: unknown) => v === true;
+    setFixosSel({
+      va: c.vale_alimentacao != null ? bool(c.vale_alimentacao) : !!p?.vale_alimentacao,
+      vt: c.vale_transporte != null ? bool(c.vale_transporte) : !!p?.vale_transporte,
+      assiduidade: c.premio_assiduidade != null ? bool(c.premio_assiduidade) : !!p?.premio_assiduidade,
+    });
+    const str = (v: unknown) => (v == null ? "" : String(v));
+    setFixosValor({
+      va: str(c.vale_alimentacao_valor ?? p?.vale_alimentacao_valor),
+      vt: str(c.vale_transporte_valor_dia ?? p?.vale_transporte_valor_dia),
+      assiduidade: str(c.premio_assiduidade_valor ?? p?.premio_assiduidade_valor),
+    });
+  }, [open, colaborador, padraoAplicavel]);
+
+  /** Reaplica exatamente os benefícios que o colaborador já tem hoje. */
+  const manterBeneficiosAtuais = () => {
+    const ativos: Record<string, boolean> = {};
+    const valores: Record<string, string> = {};
+    atribuicoes
+      .filter((a) => a.ativo !== false && !a.data_fim)
+      .forEach((a) => {
+        ativos[a.beneficio_id] = true;
+        valores[a.beneficio_id] = a.valor != null ? String(a.valor) : "";
+      });
+    setBeneficiosSel(ativos);
+    setBeneficiosValor(valores);
+    const c = (colaborador ?? {}) as unknown as Record<string, unknown>;
+    setFixosSel({
+      va: c.vale_alimentacao === true,
+      vt: c.vale_transporte === true,
+      assiduidade: c.premio_assiduidade === true,
+    });
+    const str = (v: unknown) => (v == null ? "" : String(v));
+    setFixosValor({
+      va: str(c.vale_alimentacao_valor),
+      vt: str(c.vale_transporte_valor_dia),
+      assiduidade: str(c.premio_assiduidade_valor),
+    });
+    marcarTocado("beneficios");
+    toast.success("Benefícios atuais reaplicados.");
+  };
+
+
 
 
 
@@ -358,6 +532,14 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
           setor_id: d.setor_id || null,
         })),
         beneficios: beneficiosPayload,
+        beneficios_fixos: {
+          vale_alimentacao: fixosSel.va,
+          vale_alimentacao_valor: num(fixosValor.va),
+          vale_transporte: fixosSel.vt,
+          vale_transporte_valor_dia: num(fixosValor.vt),
+          premio_assiduidade: fixosSel.assiduidade,
+          premio_assiduidade_valor: num(fixosValor.assiduidade),
+        },
         justificativa: justificativa.trim(),
         modo_continuidade: modo,
       });
@@ -465,7 +647,9 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {regimesDisponiveis.map((r) => (
-                      <SelectItem key={r} value={r}>{contratoPolicy(r).label}</SelectItem>
+                      <SelectItem key={r} value={r}>
+                        {rotuloRegimeMudanca(r)}{r === regimeAtual ? " (atual)" : ""}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -642,9 +826,44 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
               <div className="space-y-2">
                 <p className="text-sm font-medium">Dias e horários da semana</p>
                 <p className="text-xs text-muted-foreground">
-                  Deixe o horário em branco para seguir o turno. Preencha só quando o dia tiver horário próprio.
+                  Deixe o horário em branco para seguir o turno do dia (o horário aparece como
+                  sugestão dentro do campo). Preencha só quando o dia tiver horário próprio.
                 </p>
-                {dias.map((d) => (
+                {atalhosColegas.length > 0 ? (
+                  <div className="space-y-1.5 rounded-md border bg-muted/30 p-3">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Copiar o horário de um colega da unidade:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {atalhosColegas.map((m) => (
+                        <Button
+                          key={m.id}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          title={m.colaborador_nome}
+                          onClick={() => copiarSemanaDoColega(m)}
+                        >
+                          {m.colaborador_nome.trim().split(/\s+/)[0]}
+                          {m.horario ? ` · ${m.horario.entrada}–${m.horario.saida}` : ""}
+                        </Button>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCopiarOpen(true)}
+                      >
+                        <Users className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                        Outro colaborador…
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+                {dias.map((d) => {
+                  // Horário de referência do dia: turno do dia ou turno padrão.
+                  const ref = turnoDoDia(d, turnoPadraoId || null, turnosResolvidos);
+                  return (
                   <div key={d.dow} className="grid items-end gap-2 rounded-md border p-3 sm:grid-cols-[auto_1fr_1fr_1fr_1fr]">
                     <div className="flex items-center gap-2">
                       <Switch
@@ -675,6 +894,7 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                       <Input
                         type="time"
                         value={d.entrada ?? ""}
+                        placeholder={ref?.entrada ?? undefined}
                         disabled={!d.trabalha}
                         onChange={(e) => alterarDia(d.dow, { entrada: e.target.value || null })}
                       />
@@ -684,6 +904,7 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                       <Input
                         type="time"
                         value={d.saida ?? ""}
+                        placeholder={ref?.saida ?? undefined}
                         disabled={!d.trabalha}
                         onChange={(e) => alterarDia(d.dow, { saida: e.target.value || null })}
                       />
@@ -695,6 +916,7 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                         min="0"
                         step="5"
                         value={d.intervalo_minutos ?? ""}
+                        placeholder={ref ? String(ref.intervalo_minutos ?? 0) : undefined}
                         disabled={!d.trabalha}
                         onChange={(e) =>
                           alterarDia(d.dow, {
@@ -704,7 +926,8 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                       />
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </TabsContent>
 
@@ -823,9 +1046,61 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
 
             {/* ---------------- Benefícios ---------------- */}
             <TabsContent value="beneficios" className="mt-4 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  Vale-alimentação, vale-transporte e prêmio de assiduidade valem por pessoa; os
+                  demais benefícios vêm do catálogo da empresa.
+                </p>
+                <Button type="button" variant="outline" size="sm" onClick={manterBeneficiosAtuais}>
+                  Manter os benefícios atuais
+                </Button>
+              </div>
+
+              {/* Benefícios fixos (VA/VT/assiduidade), com valores próprios */}
+              {(
+                [
+                  { chave: "va" as const, nome: "Vale-alimentação", hint: "por dia" },
+                  { chave: "vt" as const, nome: "Vale-transporte", hint: "por dia" },
+                  {
+                    chave: "assiduidade" as const,
+                    nome: "Prêmio de assiduidade",
+                    hint: padraoAplicavel?.payload?.premio_assiduidade_tipo === "percentual" ? "% do salário" : "por mês",
+                  },
+                ]
+              ).map((item) => (
+                <div key={item.chave} className="grid items-center gap-2 rounded-md border p-3 sm:grid-cols-[1fr_auto_140px]">
+                  <div>
+                    <p className="text-sm font-medium">{item.nome}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Valor {item.hint}
+                      {padraoAplicavel ? " · padrão da empresa aplicável a este cadastro" : ""}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={fixosSel[item.chave]}
+                    onCheckedChange={(v) => {
+                      marcarTocado("beneficios");
+                      setFixosSel((s) => ({ ...s, [item.chave]: v }));
+                    }}
+                    aria-label={`Conceder ${item.nome}`}
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={fixosValor[item.chave]}
+                    disabled={!fixosSel[item.chave]}
+                    placeholder="0,00"
+                    onChange={(e) =>
+                      setFixosValor((s) => ({ ...s, [item.chave]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))}
+
               {beneficios.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Nenhum benefício cadastrado na empresa ainda.
+                  Nenhum benefício extra cadastrado na empresa ainda.
                 </p>
               ) : (
                 beneficios.map((b) => (
@@ -903,6 +1178,19 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
 
         </div>
 
+        {/* Resumo do que será gravado, sempre visível antes de salvar. */}
+        <div className="border-t bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+          {[
+            rotuloRegimeMudanca(regime),
+            FORMA_LABEL[forma] ?? forma,
+            cargaSemanal ? `${cargaSemanal}h por semana` : "carga não informada",
+            forma === "mensalista"
+              ? fmtMoeda(num(salario)) ?? "sem valor do mês"
+              : fmtMoeda(num(valorHora)) ?? "sem valor",
+            `a partir de ${fmtDate(vigencia)}`,
+          ].join(" · ")}
+        </div>
+
         <DialogFooter className="flex-row gap-2 border-t p-4">
           <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => onOpenChange(false)}>
             Cancelar
@@ -926,6 +1214,20 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Cópia completa de semana (dias de trabalho, turnos e horários) de um colega. */}
+      <CopiarConfigColaboradorDialog
+        open={copiarOpen}
+        onOpenChange={setCopiarOpen}
+        colaboradorId={colaborador?.id ?? null}
+        unidadeId={unidadeId || null}
+        excluirSocios={!isSocio(colaborador?.vinculo_label ?? null)}
+        turnos={turnosResolvidos}
+        onCopiar={aplicarConfigCopiada}
+      />
+
+
+
 
       <AlertDialog open={confirmarNovoContrato} onOpenChange={setConfirmarNovoContrato}>
         <AlertDialogContent>
