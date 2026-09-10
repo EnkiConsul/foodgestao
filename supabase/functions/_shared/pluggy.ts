@@ -110,28 +110,45 @@ export async function listAccounts(itemId: string) {
   return j.results ?? [];
 }
 
+/**
+ * Normaliza o ponteiro de próxima página devolvido pela Pluggy.
+ * A API pode responder `next` como caminho completo (`/v2/transactions?...`),
+ * como query string (`?pageCursor=...`) ou apenas o valor do cursor. Enviar o
+ * caminho inteiro em `after=` gera 400 "Invalid cursor".
+ */
+export function nextTransactionsPath(next: string | null | undefined): string | null {
+  if (!next) return null;
+  const raw = String(next).trim();
+  if (!raw) return null;
+  if (raw.startsWith("/")) return raw;
+  if (raw.startsWith("?")) return `/v2/transactions${raw}`;
+  if (raw.startsWith("http")) {
+    try {
+      const u = new URL(raw);
+      return `${u.pathname}${u.search}`;
+    } catch {
+      return null;
+    }
+  }
+  return `/v2/transactions?pageCursor=${encodeURIComponent(raw)}`;
+}
+
 export async function listTransactions(accountId: string, from: string, to: string) {
-  // Uses Pluggy's cursor-based /v2/transactions endpoint.
-  // Params: accountId, dateFrom (yyyy-mm-dd), dateTo (yyyy-mm-dd), after (cursor).
+  // Paginação por cursor do /v2/transactions. A primeira página filtra por data;
+  // as seguintes seguem exatamente o ponteiro devolvido pela API.
   const all: any[] = [];
-  let after: string | null = null;
+  const first = new URLSearchParams({ accountId, dateFrom: from, dateTo: to });
+  let path: string | null = `/v2/transactions?${first.toString()}`;
   let safety = 0;
-  while (true) {
-    const params = new URLSearchParams({
-      accountId,
-      dateFrom: from,
-      dateTo: to,
-    });
-    if (after) params.set("after", after);
-    const res = await pluggyFetch(`/v2/transactions?${params.toString()}`);
+  while (path) {
+    const res = await pluggyFetch(path);
     if (!res.ok) throw new Error(`list_transactions_failed: ${res.status} ${await res.text()}`);
     const j = await res.json();
     const rows = j.results ?? [];
     all.push(...rows);
-    const next: string | null = j.next ?? j.nextCursor ?? null;
-    if (!next || rows.length === 0) break;
-    after = next;
-    if (++safety > 40) break; // hard safety cap
+    if (rows.length === 0) break;
+    path = nextTransactionsPath(j.next ?? j.nextCursor ?? null);
+    if (++safety > 200) break; // hard safety cap
   }
   return all;
 }
