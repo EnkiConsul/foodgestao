@@ -25,6 +25,19 @@ export interface CondicaoBeneficioInput {
   desconto_valor?: number | null;
 }
 
+/**
+ * VA, VT e prêmio de assiduidade: valores próprios do colaborador (vivem em
+ * colunas de dp_colaboradores, não no catálogo de benefícios).
+ */
+export interface CondicaoBeneficiosFixosInput {
+  vale_alimentacao: boolean;
+  vale_alimentacao_valor?: number | null;
+  vale_transporte: boolean;
+  vale_transporte_valor_dia?: number | null;
+  premio_assiduidade: boolean;
+  premio_assiduidade_valor?: number | null;
+}
+
 export interface AplicarCondicaoInput {
   vigencia_inicio: string;
   regime?: string | null;
@@ -47,6 +60,8 @@ export interface AplicarCondicaoInput {
   compoe_equipe_habitual?: boolean | null;
   dias?: CondicaoDiaInput[] | null;
   beneficios?: CondicaoBeneficioInput[] | null;
+  /** VA/VT/assiduidade gravados direto no cadastro do colaborador. */
+  beneficios_fixos?: CondicaoBeneficiosFixosInput | null;
   /** "continuidade" mantém a contagem; "novo_contrato" recomeça férias/13º/tempo de casa. */
   modo_continuidade?: "continuidade" | "novo_contrato";
 }
@@ -105,6 +120,23 @@ export function useDpColaboradorCondicoes(colaboradorId?: string | null) {
       } as never);
 
       if (error) throw error;
+
+      // VA/VT/assiduidade ficam no cadastro, não no catálogo de benefícios.
+      if (input.beneficios_fixos) {
+        const f = input.beneficios_fixos;
+        const { error: errFixos } = await supabase
+          .from("dp_colaboradores")
+          .update({
+            vale_alimentacao: f.vale_alimentacao,
+            vale_alimentacao_valor: f.vale_alimentacao ? f.vale_alimentacao_valor ?? null : null,
+            vale_transporte: f.vale_transporte,
+            vale_transporte_valor_dia: f.vale_transporte ? f.vale_transporte_valor_dia ?? null : null,
+            premio_assiduidade: f.premio_assiduidade,
+            premio_assiduidade_valor: f.premio_assiduidade ? f.premio_assiduidade_valor ?? null : null,
+          })
+          .eq("id", colaboradorId);
+        if (errFixos) throw errFixos;
+      }
       return data as string;
     },
     onSuccess: () => {
