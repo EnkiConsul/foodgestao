@@ -42,6 +42,7 @@ No horário de trabalho de um sócio (opcional), os pontos de atenção da CLT (
 - `src/lib/dp/cargoSalarios.ts`: nova origem de piso "empresa" para cargos de sócio — resolução por (cargo, unidade, data) sem `sindicato_patronal_id`; textos de origem ajustados.
 - Novo `src/lib/dp/generoPorNome.ts` (dicionário + heurística de terminação, retorna `F` | `M` | `null`) usado no formulário e em `src/lib/dp/ficha-registro/payload.ts`.
 - `src/lib/dp/contrato-policy.ts` (`isSocio`) segue como única fonte da detecção de sócio.
+- `src/components/dp/ColaboradorJornadaPanel.tsx` + `src/lib/dp/clt-alertas.ts`: `EntradaAlertasClt` ganha `socio`; quando `true`, `verificarAlertasClt` retorna vazio e o painel não exibe avisos nem pede ciência ao salvar. O painel passa a receber/reconhecer o rótulo do vínculo do colaborador (hoje só usa `regime`, que para sócio é `pj` e por isso caía na verificação).
 - Gravação da referência do sócio reaproveita `dp_cargo_salarios` com `sindicato_patronal_id` nulo e `unidade_id` preenchido; sem mudança de schema.
 - Testes novos em `src/lib/dp/__tests__/`: `genero-por-nome.test.ts` e casos de sócio em `cargoSalarios`/`cargos`.
 - Verificação: `bunx tsgo --noEmit`, `bunx vitest run src/lib/dp src/test` e conferência no navegador do cadastro do sócio (data, perfil, gênero sugerido, pergunta do pró-labore).
