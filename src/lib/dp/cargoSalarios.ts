@@ -29,7 +29,7 @@ export interface CargoSalarioLinha {
 /** Compatibilidade com o nome anterior. */
 export type CargoSalarioUnidade = CargoSalarioLinha;
 
-export type OrigemSalario = "unidade" | "patronal" | "pendente";
+export type OrigemSalario = "unidade" | "patronal" | "empresa" | "pendente";
 
 export interface SalarioResolvido {
   /** Valor aplicável (null quando pendente de cadastro). */
