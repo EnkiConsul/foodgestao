@@ -255,6 +255,35 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     setPhase("launch");
   }, [dontShowAgain]);
 
+  /**
+   * Sincroniza o item. Quando as mesmas contas já estão ligadas em outra
+   * empresa, o servidor devolve o conflito e aqui pedimos a confirmação do
+   * usuário antes de permitir a duplicidade (extrato repetido em duas empresas).
+   */
+  const invokeSync = useCallback(async (body: Record<string, unknown>) => {
+    const attempt = (b: Record<string, unknown>) =>
+      supabase.functions.invoke("pluggy-sync-item", { body: b });
+
+    let { data, error } = await attempt(body);
+    if (error) {
+      const info = await parseEdgeFunctionError(error, "Falha ao sincronizar a conexão");
+      if (info.code !== "duplicate_account_other_company") throw error;
+      const conflicts = ((info.payload as { conflicts?: DuplicateConflict[] } | null)?.conflicts ?? []);
+      const autorizado = await new Promise<boolean>((resolve) => {
+        dupResolveRef.current = resolve;
+        setDupConflicts(conflicts);
+      });
+      dupResolveRef.current = null;
+      setDupConflicts(null);
+      if (!autorizado) {
+        throw new Error("Conexão cancelada: estas contas já estão ligadas em outra empresa.");
+      }
+      ({ data, error } = await attempt({ ...body, allow_duplicate: true }));
+      if (error) throw error;
+    }
+    return data as { transactions?: number; connection_id?: string; item_id?: string; message?: string } | null;
+  }, []);
+
   /** Conclui a conexão a partir do item devolvido pelo banco na URL. */
   const finishReturn = useCallback(async (itemId: string) => {
     if (finishedRef.current) return;
