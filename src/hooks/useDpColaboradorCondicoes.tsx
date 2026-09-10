@@ -101,7 +101,9 @@ export function useDpColaboradorCondicoes(colaboradorId?: string | null) {
         p_compoe_equipe_habitual: input.compoe_equipe_habitual ?? null,
         p_dias: (input.dias ?? null) as never,
         p_beneficios: (input.beneficios ?? null) as never,
+        p_modo_continuidade: input.modo_continuidade ?? "continuidade",
       } as never);
+
       if (error) throw error;
       return data as string;
     },
