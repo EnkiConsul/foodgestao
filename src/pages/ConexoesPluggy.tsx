@@ -24,6 +24,7 @@ interface Connection {
   connector_name: string | null;
   connector_image_url: string | null;
   status: string;
+  execution_status: string | null;
   last_synced_at: string | null;
   last_sync_attempt_at: string | null;
   next_sync_at: string | null;
@@ -31,6 +32,22 @@ interface Connection {
   last_sync_error: string | null;
   last_error: any;
   revoked_at?: string | null;
+}
+
+/**
+ * Motivo da última tentativa em linguagem simples. O código técnico do
+ * provedor não diz nada ao usuário: "bank_unavailable" é o banco fora do ar,
+ * não um problema da conta dele.
+ */
+function motivoAmigavel(c: Connection): string | null {
+  const st = c.last_sync_status;
+  if (!st || st === "success") return null;
+  if (st === "bank_unavailable") return "Banco indisponível no momento — tentaremos de novo automaticamente";
+  if (st === "item_error" || c.status === "login_error") return "Reconectar: o banco pediu nova autorização";
+  if (st === "waiting_user_input") return "O banco está aguardando a confirmação no app dele";
+  if (st === "dead_letter") return "Não conseguimos sincronizar após várias tentativas";
+  if (st === "skipped_paused") return "Sincronização pausada nesta conta";
+  return "A última tentativa não foi concluída";
 }
 
 /**
@@ -79,7 +96,8 @@ function SyncInfo({ connection: c }: { connection: Connection }) {
   const nextLabel = c.next_sync_at
     ? formatDistanceToNow(new Date(c.next_sync_at), { locale: ptBR, addSuffix: true })
     : null;
-  const failed = c.last_sync_status && c.last_sync_status !== "success";
+  const motivo = motivoAmigavel(c);
+  const failed = !!motivo;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -88,13 +106,14 @@ function SyncInfo({ connection: c }: { connection: Connection }) {
           <TooltipTrigger asChild>
             <span className={failed ? "text-warning" : ""}>
               Última sincronização: {lastLabel}
-              {failed && c.last_sync_error ? ` (${c.last_sync_error})` : ""}
+              {motivo ? ` — ${motivo}` : ""}
             </span>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-xs text-xs">
             <p>Última sincronização: {fmtDateTime(lastAt) ?? "—"}</p>
             {c.next_sync_at && <p>Próxima programada: {fmtDateTime(c.next_sync_at) ?? "—"}</p>}
-            {c.last_sync_status && <p>Status: {c.last_sync_status}</p>}
+            {motivo && <p>{motivo}</p>}
+            {c.last_sync_error && <p className="text-muted-foreground">{c.last_sync_error}</p>}
           </TooltipContent>
         </Tooltip>
         {nextLabel && (
@@ -140,7 +159,7 @@ export default function ConexoesPluggy() {
     if (!opts?.silent) setLoading(true);
 
     const { data: conns } = await supabase.from("pluggy_connections")
-      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status, last_sync_error, last_error, revoked_at")
+      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, execution_status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status, last_sync_error, last_error, revoked_at")
       .eq("company_id", selectedCompanyId).order("created_at", { ascending: false });
 
     // `deleted` é o estado legado de conexões apagadas: continua fora da lista.
@@ -409,6 +428,11 @@ export default function ConexoesPluggy() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold truncate">{c.connector_name ?? "Banco"}</p>
                       <Badge variant="outline" className={st.className}>{st.label}</Badge>
+                      {c.execution_status === "PARTIAL_SUCCESS" && (
+                        <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">
+                          Parcial — parte das contas não veio
+                        </Badge>
+                      )}
                       {m.pending > 0 && (
                         <Badge className="bg-warning/15 text-warning border-warning/30">
                           {m.pending} pendente(s)
