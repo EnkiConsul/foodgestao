@@ -10,8 +10,9 @@ Usar as novas imagens 1 e 2 para manter a pessoa e o notebook/celular inteiros, 
 - Usar a arte como fundo principal da tela, sem criar uma coluna sólida separada para o formulário.
 - Posicionar o formulário centralizado dentro da área livre de cada arte: parte inferior no celular e lateral direita no desktop/tablet, sem cobrir a pessoa ou o aparelho.
 - Aplicar a direção escolhida “Translucent Professional Glass”: vidro fumê, transparência perceptível, desfoque discreto, borda fina e sombra leve.
-- Reduzir novamente largura, altura, espaços internos, intervalos e controles do formulário, mantendo campos e textos legíveis e acessíveis.
-- Manter a tipografia atual e não repetir a marca, pois ela já faz parte das imagens.
+- Remover totalmente a logo do formulário, pois a marca já está presente nas novas imagens.
+- Simplificar o formulário ao máximo e reduzir novamente largura, altura, espaços internos, intervalos e controles, mantendo todos os campos, ações, mensagens e estados funcionais.
+- Manter a tipografia atual e evitar qualquer elemento decorativo que aumente o painel sem necessidade.
 - Adaptar o painel nos estados de cadastro, recuperação, confirmação de e-mail e MFA, permitindo rolagem interna apenas quando o conteúdo adicional exigir.
 - Ajustar a convivência com o aviso de cookies no celular para ele não esconder o formulário nem a pessoa.
 
