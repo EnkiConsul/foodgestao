@@ -94,6 +94,7 @@ export type FormaPagamentoRegime =
 const CLT_LIKE: ContratoPolicy = {
   regime: "clt",
   label: "CLT",
+  formalizado: true,
   jornadaComoDisponibilidade: false,
   validaCargaSemanal: true,
   exigeFolgaSemanal: true,
@@ -120,6 +121,7 @@ const CLT_LIKE: ContratoPolicy = {
 const INTERMITENTE: ContratoPolicy = {
   regime: "intermitente",
   label: "Intermitente",
+  formalizado: true,
   jornadaComoDisponibilidade: true,
   validaCargaSemanal: false,
   exigeFolgaSemanal: false,
@@ -150,6 +152,7 @@ const INTERMITENTE: ContratoPolicy = {
 const FREELANCER: ContratoPolicy = {
   regime: "freelancer",
   label: "Freelancer (sem registro)",
+  formalizado: false,
   jornadaComoDisponibilidade: true,
   validaCargaSemanal: false,
   exigeFolgaSemanal: false,
@@ -183,6 +186,7 @@ const FREELANCER: ContratoPolicy = {
 const PJ_LIKE: ContratoPolicy = {
   regime: "pj",
   label: "PJ",
+  formalizado: false,
   jornadaComoDisponibilidade: false,
   validaCargaSemanal: false,
   exigeFolgaSemanal: false,
