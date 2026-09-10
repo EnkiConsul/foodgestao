@@ -245,7 +245,8 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
             <Button
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => { if (validar()) setConfirmar(true); }}
-              disabled={pending}
+              disabled={pending || !data}
+              title={!data ? "Informe a data da demissão" : undefined}
             >
               <UserMinus className="mr-2 h-4 w-4" aria-hidden="true" />
               {desligar.isPending ? "Desligando..." : "Registrar desligamento"}
