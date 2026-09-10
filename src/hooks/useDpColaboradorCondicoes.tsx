@@ -117,6 +117,10 @@ export function useDpColaboradorCondicoes(colaboradorId?: string | null) {
         "dp_beneficios",
         "dp_escala_itens",
         "dp_operacao_panorama",
+        "dp_cargo_padrao",
+        "dp_ferias",
+        "dp_ferias_periodos",
+
       ].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
     },
   });
