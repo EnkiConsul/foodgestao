@@ -107,6 +107,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
   const [beneficiosSel, setBeneficiosSel] = useState<Record<string, boolean>>({});
   const [beneficiosValor, setBeneficiosValor] = useState<Record<string, string>>({});
   const [justificativa, setJustificativa] = useState("");
+  const [modo, setModo] = useState<ModoContinuidade>("continuidade");
+  const [confirmarNovoContrato, setConfirmarNovoContrato] = useState(false);
+  /** Campos que o gestor já mexeu à mão: o padrão do cargo não os sobrescreve. */
+  const tocados = useRef<Set<string>>(new Set());
+  const intencao = useRef<"stay" | "close">("close");
+  const marcarTocado = (campo: string) => tocados.current.add(campo);
+
 
   const configAberta = useMemo(
     () => (configs.data ?? []).find((c) => !c.vigencia_fim) ?? (configs.data ?? [])[0] ?? null,
