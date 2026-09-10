@@ -453,7 +453,7 @@ export default function Auth() {
 
         <section className="relative z-10 flex min-h-[max(100svh,178vw)] items-end justify-center px-3 pb-6 pt-[58vh] md:min-h-screen md:items-start md:justify-end md:px-[4vw] md:py-[clamp(2rem,8vw,8rem)] lg:px-[5vw] lg:py-[clamp(2.5rem,9vh,6rem)]">
           <div className="w-full max-w-[340px] md:max-w-[320px] lg:max-w-[340px]">
-        <Card className="max-h-[calc(100svh-2rem)] w-full overflow-y-auto border-border/50 bg-card/72 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/66">
+        <Card className="max-h-[calc(100svh-2rem)] w-full overflow-y-auto border-border/70 bg-card/90 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/84">
 
         <CardHeader className="space-y-0 px-4 pb-2 pt-4 text-center">
           <CardTitle className="sr-only">Aveto 360</CardTitle>

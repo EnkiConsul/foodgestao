@@ -30,11 +30,11 @@ export function CookieConsentBanner() {
   return (
     <>
       {!decided && !hidden && (
-        <div className="fixed inset-x-3 bottom-3 z-[60] sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-md max-sm:max-h-[40vh] max-sm:overflow-y-auto">
-          <div className="rounded-xl border border-border bg-card p-4 shadow-2xl">
+        <div className="fixed inset-x-3 bottom-3 z-[60] sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-md max-sm:max-h-[32vh] max-sm:overflow-y-auto">
+          <div className="rounded-lg border border-border bg-card p-3 shadow-2xl sm:p-4">
             <div className="flex items-start gap-3">
               <Cookie className="h-5 w-5 shrink-0 text-primary" />
-              <div className="flex-1 text-sm">
+              <div className="flex-1 text-xs sm:text-sm">
                 <p className="font-semibold text-foreground">Cookies e privacidade</p>
                 <p className="mt-1 text-muted-foreground">
                   Usamos cookies essenciais para o funcionamento e, com sua autorização, cookies
@@ -54,7 +54,7 @@ export function CookieConsentBanner() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
               <Button size="sm" onClick={acceptAll} className="flex-1 min-w-[100px]">
                 Aceitar todos
               </Button>
