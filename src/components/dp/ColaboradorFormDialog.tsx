@@ -1802,6 +1802,32 @@ export function ColaboradorFormDialog({
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6">
           <TabsContent value="dados" className="mt-0">
 
+            {/* O selo "cadastro incompleto" da lista vem destes campos: aqui o
+                usuário vê quais são e vai direto neles. */}
+            {faltantesNaTela.length > 0 && (
+              <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+                <span className="font-medium">Falta para o cadastro ficar completo:</span>{" "}
+                {faltantesNaTela.map((c, i) => (
+                  <span key={c.chave}>
+                    {i > 0 ? ", " : ""}
+                    <button
+                      type="button"
+                      className="underline underline-offset-2"
+                      onClick={() => {
+                        const alvo = CAMPO_DA_CHAVE[c.chave];
+                        setTab(alvo.aba);
+                        setCampoFoco(alvo.campo);
+                      }}
+                    >
+                      {c.label}
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+
+
 
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
