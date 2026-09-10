@@ -2361,6 +2361,20 @@ export function ColaboradorFormDialog({
 
               />
 
+              {/* Sócio pode participar da sociedade de mais de uma unidade */}
+              {socioSelecionado && colaborador?.id && (
+                <div className="md:col-span-2">
+                  <SocioUnidadesField
+                    colaboradorId={colaborador.id}
+                    unidadePrincipalId={form.unidade_id || null}
+                    setorPrincipalId={form.setor_id || null}
+                    cargoId={form.cargo_id || null}
+                    proLaborePrincipal={numeroBR(rem.salario_base) || null}
+                  />
+                </div>
+              )}
+
+
               {/* Regra coletiva de anuênio/triênio aplicável a este colaborador */}
               {!socioSelecionado && !freelancerSelecionado && <AdicionalTempoServicoCard
                 admissao={form.data_admissao || null}
