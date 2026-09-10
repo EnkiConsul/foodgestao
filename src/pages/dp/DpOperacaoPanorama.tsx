@@ -1187,6 +1187,8 @@ export default function DpOperacaoPanorama() {
               nomeUnidade={nomeUnidade}
               ordemCards={ordemDia}
               onReordenarCards={(next) => salvarOrdem("dia", next)}
+              mostrarZerados={mostrarZerados}
+              onAlternarZerados={alternarZerados}
               onVerCategoria={setDetalheCategoria}
               onVerSocios={() => setVerSocios(true)}
               onDispensar={dispensar}
