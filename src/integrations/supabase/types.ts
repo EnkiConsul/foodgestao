@@ -4341,10 +4341,16 @@ export type Database = {
         Row: {
           base_dias_mes: number | null
           base_horas_mes: number | null
+          beneficios: Json | null
+          carga_semanal_horas: number | null
           cargo_id: string | null
           colaborador_id: string
           company_id: string
+          compoe_equipe_habitual: boolean | null
           created_at: string
+          dias: Json | null
+          folga_fixa_dow: number | null
+          folga_variavel: boolean | null
           forma_pagamento:
             | Database["public"]["Enums"]["dp_forma_pagamento"]
             | null
@@ -4354,6 +4360,8 @@ export type Database = {
           regime: Database["public"]["Enums"]["dp_regime_trabalho"] | null
           salario_base: number | null
           setor_id: string | null
+          sindicato_id: string | null
+          turno_padrao_id: string | null
           unidade_id: string | null
           updated_at: string
           usuario_id: string | null
@@ -4364,10 +4372,16 @@ export type Database = {
         Insert: {
           base_dias_mes?: number | null
           base_horas_mes?: number | null
+          beneficios?: Json | null
+          carga_semanal_horas?: number | null
           cargo_id?: string | null
           colaborador_id: string
           company_id: string
+          compoe_equipe_habitual?: boolean | null
           created_at?: string
+          dias?: Json | null
+          folga_fixa_dow?: number | null
+          folga_variavel?: boolean | null
           forma_pagamento?:
             | Database["public"]["Enums"]["dp_forma_pagamento"]
             | null
@@ -4377,6 +4391,8 @@ export type Database = {
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"] | null
           salario_base?: number | null
           setor_id?: string | null
+          sindicato_id?: string | null
+          turno_padrao_id?: string | null
           unidade_id?: string | null
           updated_at?: string
           usuario_id?: string | null
@@ -4387,10 +4403,16 @@ export type Database = {
         Update: {
           base_dias_mes?: number | null
           base_horas_mes?: number | null
+          beneficios?: Json | null
+          carga_semanal_horas?: number | null
           cargo_id?: string | null
           colaborador_id?: string
           company_id?: string
+          compoe_equipe_habitual?: boolean | null
           created_at?: string
+          dias?: Json | null
+          folga_fixa_dow?: number | null
+          folga_variavel?: boolean | null
           forma_pagamento?:
             | Database["public"]["Enums"]["dp_forma_pagamento"]
             | null
@@ -4400,6 +4422,8 @@ export type Database = {
           regime?: Database["public"]["Enums"]["dp_regime_trabalho"] | null
           salario_base?: number | null
           setor_id?: string | null
+          sindicato_id?: string | null
+          turno_padrao_id?: string | null
           unidade_id?: string | null
           updated_at?: string
           usuario_id?: string | null
@@ -4441,6 +4465,20 @@ export type Database = {
             columns: ["setor_id"]
             isOneToOne: false
             referencedRelation: "dp_setores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_historico_condicoes_sindicato_id_fkey"
+            columns: ["sindicato_id"]
+            isOneToOne: false
+            referencedRelation: "dp_sindicatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_historico_condicoes_turno_padrao_id_fkey"
+            columns: ["turno_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_turnos"
             referencedColumns: ["id"]
           },
           {
@@ -14133,24 +14171,51 @@ export type Database = {
         }
         Returns: Json
       }
-      dp_colaborador_aplicar_condicao: {
-        Args: {
-          p_base_dias_mes: number
-          p_base_horas_mes: number
-          p_cargo_id: string
-          p_colaborador_id: string
-          p_forma_pagamento: string
-          p_justificativa: string
-          p_observacoes: string
-          p_regime: string
-          p_salario_base: number
-          p_setor_id: string
-          p_unidade_id: string
-          p_valor_hora: number
-          p_vigencia_inicio: string
-        }
-        Returns: string
-      }
+      dp_colaborador_aplicar_condicao:
+        | {
+            Args: {
+              p_base_dias_mes: number
+              p_base_horas_mes: number
+              p_cargo_id: string
+              p_colaborador_id: string
+              p_forma_pagamento: string
+              p_justificativa: string
+              p_observacoes: string
+              p_regime: string
+              p_salario_base: number
+              p_setor_id: string
+              p_unidade_id: string
+              p_valor_hora: number
+              p_vigencia_inicio: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_base_dias_mes: number
+              p_base_horas_mes: number
+              p_beneficios?: Json
+              p_carga_semanal_horas?: number
+              p_cargo_id: string
+              p_colaborador_id: string
+              p_compoe_equipe_habitual?: boolean
+              p_dias?: Json
+              p_folga_fixa_dow?: number
+              p_folga_variavel?: boolean
+              p_forma_pagamento: string
+              p_justificativa: string
+              p_observacoes: string
+              p_regime: string
+              p_salario_base: number
+              p_setor_id: string
+              p_sindicato_id?: string
+              p_turno_padrao_id?: string
+              p_unidade_id: string
+              p_valor_hora: number
+              p_vigencia_inicio: string
+            }
+            Returns: string
+          }
       dp_colaborador_ativo_of: { Args: { _user_id: string }; Returns: string }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
       dp_colaboradores_lixeira: {
