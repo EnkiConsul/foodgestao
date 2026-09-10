@@ -861,6 +861,9 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                   </div>
                 ) : null}
                 {dias.map((d) => {
+                  // Horário de referência do dia: turno do dia ou turno padrão.
+                  const ref = turnoDoDia(d, turnoPadraoId || null, turnosResolvidos);
+                  return (
                   <div key={d.dow} className="grid items-end gap-2 rounded-md border p-3 sm:grid-cols-[auto_1fr_1fr_1fr_1fr]">
                     <div className="flex items-center gap-2">
                       <Switch
@@ -891,6 +894,7 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                       <Input
                         type="time"
                         value={d.entrada ?? ""}
+                        placeholder={ref?.entrada ?? undefined}
                         disabled={!d.trabalha}
                         onChange={(e) => alterarDia(d.dow, { entrada: e.target.value || null })}
                       />
@@ -900,6 +904,7 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                       <Input
                         type="time"
                         value={d.saida ?? ""}
+                        placeholder={ref?.saida ?? undefined}
                         disabled={!d.trabalha}
                         onChange={(e) => alterarDia(d.dow, { saida: e.target.value || null })}
                       />
@@ -911,6 +916,7 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                         min="0"
                         step="5"
                         value={d.intervalo_minutos ?? ""}
+                        placeholder={ref ? String(ref.intervalo_minutos ?? 0) : undefined}
                         disabled={!d.trabalha}
                         onChange={(e) =>
                           alterarDia(d.dow, {
@@ -920,7 +926,8 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                       />
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </TabsContent>
 
