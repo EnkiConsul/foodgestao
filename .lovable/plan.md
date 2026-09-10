@@ -31,6 +31,10 @@ Hoje a conferência de salário do cargo é ignorada para sócio, então salvar 
 
 Para cargos de sócio, todo texto e regra de piso deixa de citar sindicato patronal e passa a ser **referência/piso da empresa** por unidade: sem exigência de sindicato patronal vinculado, sem aviso de "cargo sem piso no sindicato", e a gravação da referência não fica presa a um sindicato.
 
+## 5. Horário do sócio sem pontos de atenção trabalhista
+
+No horário de trabalho de um sócio (opcional), os pontos de atenção da CLT (limite de 44h, interjornada, adicional noturno, folga dominical etc.) deixam de aparecer: o painel deixa de passar o sócio pela verificação trabalhista, que é um dever do empregador e não se aplica a sócio. Também não aparece o pedido de ciência ("estou ciente") ao salvar o horário do sócio.
+
 ## Detalhes técnicos
 
 - `src/components/dp/ColaboradorFormDialog.tsx`: rótulo/copy condicional do campo de data, sugestão de perfil `gestor` ao marcar sócio (com aviso ao escolher `colaborador`), integração da sugestão de gênero e do novo fluxo de referência salarial do sócio.
@@ -38,6 +42,7 @@ Para cargos de sócio, todo texto e regra de piso deixa de citar sindicato patro
 - `src/lib/dp/cargoSalarios.ts`: nova origem de piso "empresa" para cargos de sócio — resolução por (cargo, unidade, data) sem `sindicato_patronal_id`; textos de origem ajustados.
 - Novo `src/lib/dp/generoPorNome.ts` (dicionário + heurística de terminação, retorna `F` | `M` | `null`) usado no formulário e em `src/lib/dp/ficha-registro/payload.ts`.
 - `src/lib/dp/contrato-policy.ts` (`isSocio`) segue como única fonte da detecção de sócio.
+- `src/components/dp/ColaboradorJornadaPanel.tsx` + `src/lib/dp/clt-alertas.ts`: `EntradaAlertasClt` ganha `socio`; quando `true`, `verificarAlertasClt` retorna vazio e o painel não exibe avisos nem pede ciência ao salvar. O painel passa a receber/reconhecer o rótulo do vínculo do colaborador (hoje só usa `regime`, que para sócio é `pj` e por isso caía na verificação).
 - Gravação da referência do sócio reaproveita `dp_cargo_salarios` com `sindicato_patronal_id` nulo e `unidade_id` preenchido; sem mudança de schema.
 - Testes novos em `src/lib/dp/__tests__/`: `genero-por-nome.test.ts` e casos de sócio em `cargoSalarios`/`cargos`.
 - Verificação: `bunx tsgo --noEmit`, `bunx vitest run src/lib/dp src/test` e conferência no navegador do cadastro do sócio (data, perfil, gênero sugerido, pergunta do pró-labore).
