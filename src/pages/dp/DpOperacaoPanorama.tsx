@@ -843,9 +843,12 @@ export default function DpOperacaoPanorama() {
   const ordemDia = useMemo(() => ordenar(CARDS_DIA, ordemSalva?.dia), [ordemSalva?.dia]);
   const ordemMes = useMemo(() => ordenar(CARDS_MES, ordemSalva?.mes), [ordemSalva?.mes]);
 
-  const agrupamento =
-    ((prefs.extras as Record<string, unknown>)?.[AGRUP_KEY] as AgrupamentoEquipe | undefined) ??
-    "cargo";
+  // Padrão: setor quando a unidade tem setores cadastrados; a escolha manual é lembrada.
+  const agrupamentoSalvo = (prefs.extras as Record<string, unknown>)?.[AGRUP_KEY] as
+    | AgrupamentoEquipe
+    | undefined;
+  const agrupamento: AgrupamentoEquipe =
+    panorama.usaSetores ? agrupamentoSalvo ?? "setor" : "cargo";
 
   const salvarAgrupamento = (v: AgrupamentoEquipe) =>
     save({ extras: { ...(prefs.extras ?? {}), [AGRUP_KEY]: v } });
