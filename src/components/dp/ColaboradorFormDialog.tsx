@@ -1022,6 +1022,56 @@ export function ColaboradorFormDialog({
     salario_cargo: salarioCargo,
   });
 
+  /**
+   * Campos essenciais ainda em branco (o mesmo critério do selo "cadastro
+   * incompleto" da lista). Aqui eles ganham destaque âmbar e um resumo no topo:
+   * o vermelho continua reservado ao que impede salvar.
+   */
+  const faltantesEssenciais = useMemo(
+    () =>
+      camposFaltando(
+        {
+          setor_id: form.setor_id || null,
+          telefone: null,
+          whatsapp: form.whatsapp,
+          email_contato: form.email,
+          data_nascimento: form.data_nascimento,
+          regime: form.tipo_vinculo,
+          salario_base: numeroBR(rem.salario_base) || null,
+          valor_hora: numeroBR(rem.valor_hora) || null,
+          valor_diaria: numeroBR((rem as any).valor_diaria) || null,
+          base_salarial: numeroBR(rem.base_salarial) || null,
+          socio_remuneracao: socioSelecionado ? socioRem : null,
+          // Endereço, estado civil e PIS não são editados nesta tela.
+          endereco: "-",
+          estado_civil: "-",
+          pis_nit: "-",
+        },
+        { salarioCargo },
+      ),
+    [
+      form.setor_id, form.whatsapp, form.email, form.data_nascimento, form.tipo_vinculo,
+      rem.salario_base, rem.valor_hora, rem.base_salarial, (rem as any).valor_diaria,
+      socioSelecionado, socioRem, salarioCargo,
+    ],
+  );
+
+  /** Chave essencial → campo desta tela (e aba onde ele aparece). */
+  const CAMPO_DA_CHAVE: Record<string, { campo: string; aba: string }> = {
+    setor_id: { campo: "setor_id", aba: "dados" },
+    contato: { campo: "whatsapp", aba: "dados" },
+    email_contato: { campo: "email", aba: "dados" },
+    data_nascimento: { campo: "data_nascimento", aba: "dados" },
+    salario_base: { campo: "salario_base", aba: "remuneracao" },
+  };
+  const faltantesNaTela = faltantesEssenciais.filter((c) => CAMPO_DA_CHAVE[c.chave]);
+  const camposFaltantes = new Set(faltantesNaTela.map((c) => CAMPO_DA_CHAVE[c.chave].campo));
+  const dadosFaltandoEssencial = faltantesNaTela.some(
+    (c) => CAMPO_DA_CHAVE[c.chave].aba === "dados",
+  );
+
+
+
   /** Sincroniza o marco de "sem alterações" após carregar o colaborador. */
   useEffect(() => {
     setBaseline(JSON.stringify({ form, rem }));
