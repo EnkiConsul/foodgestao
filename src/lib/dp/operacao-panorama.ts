@@ -398,6 +398,11 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       observacao?: string | null;
       coberto_por_nome?: string | null;
       cobre_motivo?: string | null;
+      /**
+       * Setor definido só para aquele dia no registro de mão de obra extra:
+       * quando existe, vence escala/dia da semana/cadastro.
+       */
+      setor_id?: string | null;
     },
   ) => {
     // Sócio com unidade definida e jornada cadastrada faz parte do quadro daquela
@@ -414,7 +419,17 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
 
     const entrada = hora(horario?.entrada);
     const saida = hora(horario?.saida);
-    const setor = setorEfetivoDoDia({ colaborador: colab, item: itemPor.get(colab.id) ?? null, dow });
+    const { setor_id: setorDoRegistro, ...extrasSemSetor } = extras ?? {};
+    const setorEfetivo = setorEfetivoDoDia({
+      colaborador: colab,
+      item: itemPor.get(colab.id) ?? null,
+      dow,
+    });
+    // Setor lançado no registro de mão de obra extra vale só naquele dia e
+    // vence escala, dia da semana e setor habitual do cadastro.
+    const setor = setorDoRegistro
+      ? { setor_id: setorDoRegistro, origem: "escala" as OrigemSetorDia }
+      : setorEfetivo;
     pessoas.push({
       colaborador_id: colab.id,
       nome: colab.nome,
@@ -439,7 +454,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       socio: !!colab.socio,
       socio_integrado: socioIntegrado,
       origem: horario?.origem ?? "jornada",
-      ...(extras ?? {}),
+      ...extrasSemSetor,
     });
   };
 
@@ -513,7 +528,12 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
           intervalo_minutos: 0,
           origem: "registro_manual",
         },
-        { avulso_id: manual.id, avulso_tipo: "registro_manual", observacao: manual.observacao },
+        {
+          avulso_id: manual.id,
+          avulso_tipo: "registro_manual",
+          observacao: manual.observacao,
+          setor_id: manual.setor_id ?? null,
+        },
       );
       continue;
     }
