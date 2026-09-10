@@ -22,8 +22,8 @@ import { consumePendingInviteToken } from "@/lib/auth/invite";
 import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
-import loginDesktop from "@/assets/aveto360-login-desktop.png.asset.json";
-import loginMobile from "@/assets/aveto360-login-mobile.png.asset.json";
+import loginDesktop from "@/assets/aveto360-login-desktop-v2.png.asset.json";
+import loginMobile from "@/assets/aveto360-login-mobile-v2.png.asset.json";
 
 // Login identifier: e-mail OR CPF (11 digits with or without punctuation)
 const loginSchema = z.object({
@@ -429,7 +429,7 @@ export default function Auth() {
   };
 
   return (
-    <main className="min-h-screen bg-background lg:h-screen lg:overflow-hidden">
+    <main className="min-h-screen bg-site-navy-deep">
       <Helmet>
         <title>Entrar ou criar conta — Aveto 360</title>
         <meta name="description" content="Acesse sua conta Aveto 360 ou crie um cadastro gratuito para gerenciar suas finanças pessoais e empresariais." />
@@ -438,27 +438,26 @@ export default function Auth() {
       </Helmet>
       <h1 className="sr-only">Acesse sua conta ou crie seu cadastro no Aveto 360</h1>
 
-      <div className="relative min-h-screen lg:grid lg:h-screen lg:min-h-0 lg:grid-cols-[minmax(0,1.45fr)_minmax(420px,0.75fr)]">
-        <section className="relative h-[46vh] min-h-[330px] overflow-hidden bg-site-navy-deep sm:h-[52vh] lg:h-screen lg:min-h-0" aria-label="Aveto 360 para negócios de alimentação">
+      <div className="relative min-h-[max(100svh,178vw)] overflow-hidden bg-site-navy-deep md:min-h-screen">
+        <section className="absolute inset-x-0 top-0" aria-label="Aveto 360 para negócios de alimentação">
           <picture>
-            <source media="(min-width: 1024px)" srcSet={loginDesktop.url} />
+            <source media="(min-width: 768px)" srcSet={loginDesktop.url} />
             <img
               src={loginMobile.url}
-              alt="Equipe de food service usando o Aveto 360"
-              className="absolute inset-0 h-full w-full object-cover object-top lg:object-center"
+              alt="Profissional de food service usando o Aveto 360"
+              className="block h-auto w-full"
               draggable={false}
             />
           </picture>
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-site-navy-deep to-transparent lg:hidden" aria-hidden="true" />
         </section>
 
-        <section className="relative z-10 -mt-10 flex min-h-[54vh] items-center justify-center bg-site-navy-deep px-4 pb-48 pt-8 sm:-mt-12 sm:min-h-[52vh] sm:px-8 sm:pb-24 lg:mt-0 lg:h-screen lg:min-h-0 lg:overflow-y-auto lg:px-8 lg:py-10">
-          <div className="w-full max-w-sm">
-        <Card className="w-full border-border/70 bg-card/85 shadow-site-float backdrop-blur-xl lg:bg-card/70 lg:shadow-site-card">
+        <section className="relative z-10 flex min-h-[max(100svh,178vw)] items-end justify-center px-3 pb-6 pt-[58vh] md:min-h-screen md:items-start md:justify-end md:px-[4vw] md:py-[clamp(2rem,8vw,8rem)] lg:px-[5vw] lg:py-[clamp(2.5rem,9vh,6rem)]">
+          <div className="w-full max-w-[340px] md:max-w-[320px] lg:max-w-[340px]">
+        <Card className="max-h-[calc(100svh-2rem)] w-full overflow-y-auto border-border/50 bg-card/72 shadow-site-float backdrop-blur-xl supports-[backdrop-filter]:bg-card/66">
 
-        <CardHeader className="space-y-0 px-5 pb-4 pt-5 text-center sm:px-6 sm:pt-6">
+        <CardHeader className="space-y-0 px-4 pb-2 pt-4 text-center">
           <CardTitle className="sr-only">Aveto 360</CardTitle>
-          <CardDescription className="text-sm font-medium text-foreground/70">
+          <CardDescription className="text-sm font-semibold text-foreground/80">
             {mfaRequired
               ? "Verificação em duas etapas"
               : isConfirmEmail
@@ -472,17 +471,17 @@ export default function Auth() {
         </CardHeader>
 
         {mfaRequired ? (
-          <CardContent className="px-5 sm:px-6">
+          <CardContent className="px-4">
             <MfaChallenge
               onSuccess={() => { void resolveTargetForUser().then(goTo); }}
               onCancel={() => setMfaRequired(false)}
             />
           </CardContent>
         ) : isConfirmEmail ? (
-          <CardContent className="space-y-3 px-5 sm:px-6">
+          <CardContent className="space-y-2.5 px-4">
             <div className="flex flex-col items-center gap-3 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-                <MailCheck className="h-7 w-7 text-primary" aria-hidden="true" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <MailCheck className="h-5 w-5 text-primary" aria-hidden="true" />
               </div>
               <h2 className="text-lg font-semibold text-foreground">Confirme seu e-mail</h2>
               <p className="text-sm text-muted-foreground">
@@ -514,7 +513,7 @@ export default function Auth() {
           </CardContent>
         ) : (
           <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-3 px-5 sm:px-6">
+          <CardContent className="space-y-2.5 px-4">
             {isSignup && duplicateEmail && (
               <div
                 role="alert"
@@ -542,7 +541,7 @@ export default function Auth() {
               </div>
             )}
             {isSignup && (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="fullName">Nome completo</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -551,7 +550,7 @@ export default function Auth() {
                     placeholder="Seu nome"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="h-10 bg-background/80 pl-10"
+                    className="h-9 bg-background/80 pl-10"
                     maxLength={100}
                   />
                 </div>
@@ -560,7 +559,7 @@ export default function Auth() {
             )}
 
             {isLogin ? (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="identifier">E-mail ou CPF</Label>
                 <div className="relative">
                   <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -570,7 +569,7 @@ export default function Auth() {
                     placeholder="seu@email.com ou 000.000.000-00"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                     className="h-10 bg-background/80 pl-10"
+                     className="h-9 bg-background/80 pl-10"
                     maxLength={255}
                     autoComplete="username"
                     autoCapitalize="off"
@@ -580,7 +579,7 @@ export default function Auth() {
                 {errors.identifier && <p className="text-xs text-destructive">{errors.identifier}</p>}
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="email">E-mail</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -590,7 +589,7 @@ export default function Auth() {
                     placeholder="seu@email.com"
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); setDuplicateEmail(""); }}
-                     className="h-10 bg-background/80 pl-10"
+                     className="h-9 bg-background/80 pl-10"
                     maxLength={255}
                   />
                 </div>
@@ -599,7 +598,7 @@ export default function Auth() {
             )}
 
             {!isForgot && (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Senha</Label>
                   {isLogin && (
@@ -620,7 +619,7 @@ export default function Auth() {
                     placeholder="••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                     className="h-10 bg-background/80 pl-10 pr-10"
+                     className="h-9 bg-background/80 pl-10 pr-10"
                     maxLength={128}
                   />
                   <button
@@ -638,7 +637,7 @@ export default function Auth() {
             )}
 
             {isSignup && (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="confirmPassword">Confirmar senha</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -648,7 +647,7 @@ export default function Auth() {
                     placeholder="••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                     className="h-10 bg-background/80 pl-10 pr-10"
+                     className="h-9 bg-background/80 pl-10 pr-10"
                     maxLength={128}
                   />
                   <button
@@ -739,8 +738,8 @@ export default function Auth() {
             )}
           </CardContent>
 
-          <CardFooter className="flex flex-col gap-2.5 px-5 pb-5 sm:px-6 sm:pb-6">
-            <Button type="submit" className="h-10 w-full font-semibold" disabled={submitting || (isLogin && !!turnstileError)}>
+          <CardFooter className="flex flex-col gap-2 px-4 pb-4 pt-1">
+            <Button type="submit" className="h-9 w-full font-semibold" disabled={submitting || (isLogin && !!turnstileError)}>
 
               {submitting
                 ? "Aguarde..."
@@ -767,7 +766,7 @@ export default function Auth() {
                 {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
               </button>
             )}
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-[11px] text-muted-foreground text-center">
               Colaboradores podem entrar com CPF neste mesmo formulário.
             </p>
           </CardFooter>
