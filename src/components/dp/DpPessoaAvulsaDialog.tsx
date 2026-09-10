@@ -96,6 +96,14 @@ const TIPO_RISCO: Partial<Record<PessoaAvulsaTipo, string>> = {
 const RISCO_GERAL =
   "Esta classificação é operacional e não substitui a formalização trabalhista aplicável. Dependendo das características reais da relação de trabalho, podem existir obrigações trabalhistas, previdenciárias ou contratuais. Em caso de dúvida, consulte seu contador, departamento pessoal ou assessoria jurídica.";
 
+/**
+ * Risco legal de lançar dia extra para contrato fixo (CLT): horas extras ou
+ * compensação precisam ser registradas e pagas; dias extras habituais fora da
+ * escala podem reforçar jornada maior que a contratada e virar passivo.
+ */
+const RISCO_EXTRA_CLT =
+  "Atenção: dia extra para contrato CLT tem risco legal. Essas horas precisam ser pagas como extras ou compensadas com registro, e dias extras frequentes fora da escala podem ser reconhecidos como jornada maior que a contratada, gerando passivo de horas extras. Em caso de dúvida, confirme com seu contador ou assessoria jurídica.";
+
 /** Motivos operacionais de cobertura (atestado não cria documento médico). */
 const COBRE_MOTIVO_LABEL: Record<string, string> = {
   folga: "Folga",
@@ -127,6 +135,8 @@ export function DpPessoaAvulsaDialog({
   registro,
   salvando,
   sugerirHorario,
+  previsaoDoDia,
+  onIrParaConvocacao,
   onSalvar,
 }: Props) {
   const [form, setForm] = useState({
