@@ -1,9 +1,10 @@
 # Roadmap — Pessoas 360° (plano aprovado 09/2026)
 
 ## Tela de acesso — refinamento visual (09/2026)
-- [x] Manter a proporção da arte e centralizar o formulário compacto e translúcido
-- [x] Remover a repetição da logo dentro do formulário
-- [x] Validar celular, tablet, computador e os testes do acesso
+- [ ] Aplicar as novas artes 1 e 2 sem recortar pessoa, celular ou notebook
+- [ ] Posicionar o formulário compacto e translúcido nas áreas livres das artes
+- [ ] Manter o formulário sem logo e preservar todas as funções atuais
+- [ ] Validar celular, tablet, computador e os testes do acesso
 
 ## Condições de trabalho — ajustes (10/2026)
 - [x] Jornada: horário sugerido do turno e "Copiar horário de" (colega), sem sócio como fonte
