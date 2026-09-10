@@ -190,9 +190,9 @@ export default function DpMensagens() {
             {modelosList.map((m) => {
               const tipo = (m.tipo ?? "outro") as DpModeloTipo;
               return (
-                <div key={m.id} className="rounded-xl border-2 border-[hsl(var(--dp-border))] bg-card p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
+                <div key={m.id} className="min-w-0 rounded-xl border-2 border-[hsl(var(--dp-border))] bg-card p-4">
+                  <div className="flex min-w-0 items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
                       <p className="font-semibold truncate">{m.titulo}</p>
                       <p className="text-xs text-muted-foreground">{TIPO_LABELS[tipo]}</p>
                       {TIPO_DETALHES[tipo] && (
