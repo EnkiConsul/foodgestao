@@ -47,8 +47,10 @@ Hoje o cadastro só pinta um campo quando o salvamento acusa erro; por isso o ca
 ## 7. Sócio em mais de uma unidade
 
 - No cadastro de sócio, a Unidade passa a permitir **selecionar várias unidades** da sociedade (além da opção "Geral (todas as unidades)"), com uma marcada como unidade principal para lotação/relatórios.
-- As unidades adicionais são gravadas como atuação do sócio nas outras unidades, então ele aparece na operação, documentos e portal dessas unidades sem cadastro duplicado.
-- O pró-labore continua único por sócio; a referência do cargo de sócio (item 4) é gravada apenas na unidade principal.
+- Para **cada unidade** o sócio pode ter **setor habitual, horário de trabalho e pró-labore próprios**. Quando um deles fica em branco, vale o da unidade principal.
+- A tela mostra uma lista de "Participação por unidade": unidade, setor, horário (opcional) e pró-labore, com totalizador do pró-labore somado.
+- Ele aparece na operação, documentos e portal de todas as unidades marcadas, sem cadastro duplicado.
+- A referência do cargo de sócio (item 4) é perguntada por unidade, com o pró-labore daquela unidade.
 - Cobranças de documentos e pendências continuam sem se aplicar a sócio, independentemente do número de unidades.
 
 ## Detalhes técnicos
