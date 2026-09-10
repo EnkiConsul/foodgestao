@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   BellRing, CalendarClock, CalendarDays, CheckCircle2, ClipboardCheck, Clock, History, Pencil, Plus,
@@ -124,6 +124,7 @@ export default function DpConvocacoes() {
   const [wizard, setWizard] = useState(false);
   const [params, setParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const [inicial, setInicial] = useState<
     { unidadeId?: string | null; cargoId?: string | null; datas?: string[]; colaboradorId?: string | null } | null
   >(null);
