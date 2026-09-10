@@ -62,5 +62,7 @@ Hoje o cadastro só pinta um campo quando o salvamento acusa erro; por isso o ca
 - `src/lib/dp/contrato-policy.ts` (`isSocio`) segue como única fonte da detecção de sócio.
 - `src/components/dp/ColaboradorJornadaPanel.tsx` + `src/lib/dp/clt-alertas.ts`: `EntradaAlertasClt` ganha `socio`; quando `true`, `verificarAlertasClt` retorna vazio e o painel não exibe avisos nem pede ciência ao salvar. O painel passa a receber/reconhecer o rótulo do vínculo do colaborador (hoje só usa `regime`, que para sócio é `pj` e por isso caía na verificação).
 - Gravação da referência do sócio reaproveita `dp_cargo_salarios` com `sindicato_patronal_id` nulo e `unidade_id` preenchido; sem mudança de schema.
+- Destaque de faltantes: `camposFaltando` (`src/lib/dp/cadastro-completude.ts`) alimenta um `Set` no `ColaboradorFormDialog`; `marca()` ganha um segundo estado visual (`border-amber-500`) e os `TabsTrigger` reaproveitam os indicadores já existentes.
+- Sócio multiunidade: multi-seleção reaproveita `dp_apoio_unidades` (`src/lib/dp/apoio-unidades.ts`, `useDpPessoasApoio`) com a unidade principal em `dp_colaboradores.unidade_id`; sem mudança de schema.
 - Testes novos em `src/lib/dp/__tests__/`: `genero-por-nome.test.ts` e casos de sócio em `cargoSalarios`/`cargos`.
 - Verificação: `bunx tsgo --noEmit`, `bunx vitest run src/lib/dp src/test` e conferência no navegador do cadastro do sócio (data, perfil, gênero sugerido, pergunta do pró-labore).
