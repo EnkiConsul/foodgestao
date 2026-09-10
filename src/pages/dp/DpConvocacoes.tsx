@@ -263,7 +263,7 @@ export default function DpConvocacoes() {
       />
 
       <Tabs defaultValue="proximas">
-        <TabsList className="flex w-full flex-wrap justify-start">
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 p-1 [&>button]:min-h-9">
           <TabsTrigger value="proximas" className="gap-1.5">
             <CalendarClock className="h-4 w-4" /> Próximas
           </TabsTrigger>
