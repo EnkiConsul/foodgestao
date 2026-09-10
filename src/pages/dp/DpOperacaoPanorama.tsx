@@ -10,6 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Eye,
+  EyeOff,
   GripVertical,
   Handshake,
   HeartPulse,
@@ -202,6 +204,7 @@ type CardMesKey = (typeof CARDS_MES)[number];
 const PREFS_KEY = "operacao_cards";
 const AGRUP_KEY = "operacao_agrupamento";
 const UNIDADE_KEY = "operacao_unidade";
+const ZERADOS_KEY = "operacao_cards_zerados";
 
 /** Card arrastável: o conteúdo é o DpStatCard normal com um handle discreto. */
 function CardArrastavel({ id, children }: { id: string; children: React.ReactNode }) {
@@ -230,15 +233,27 @@ function GradeCards({
   ordem,
   onReordenar,
   render,
+  valores,
+  ocultarZerados,
+  acao,
+  vazioTexto,
 }: {
   ordem: string[];
   onReordenar: (next: string[]) => void;
   render: (key: string) => React.ReactNode;
+  /** Valor de cada card, usado para esconder os zerados. */
+  valores?: Record<string, number>;
+  ocultarZerados?: boolean;
+  /** Botão de mostrar/ocultar zerados. */
+  acao?: React.ReactNode;
+  vazioTexto?: string;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   );
+  const visiveis =
+    valores && ocultarZerados ? ordem.filter((k) => (valores[k] ?? 0) > 0) : ordem;
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
@@ -248,17 +263,26 @@ function GradeCards({
     onReordenar(arrayMove(ordem, from, to));
   };
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-      <SortableContext items={ordem} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
-          {ordem.map((k) => (
-            <CardArrastavel key={k} id={k}>
-              {render(k)}
-            </CardArrastavel>
-          ))}
-        </div>
-      </SortableContext>
-    </DndContext>
+    <div className="space-y-2">
+      {acao && <div className="flex justify-end">{acao}</div>}
+      {visiveis.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+          {vazioTexto ?? "Nada registrado neste dia."}
+        </p>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext items={visiveis} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
+              {visiveis.map((k) => (
+                <CardArrastavel key={k} id={k}>
+                  {render(k)}
+                </CardArrastavel>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+    </div>
   );
 }
 
@@ -326,6 +350,9 @@ interface DetalheDiaProps {
   nomeUnidade: string | null;
   ordemCards: string[];
   onReordenarCards: (next: string[]) => void;
+  /** Cards com valor zero ficam ocultos até o gestor pedir para ver. */
+  mostrarZerados: boolean;
+  onAlternarZerados: () => void;
   onVerCategoria: (cat: CategoriaDia) => void;
   onVerSocios: () => void;
   onVerAvulso: (tipo: "avulso_teste" | "avulso_folguista") => void;
@@ -364,6 +391,8 @@ function DetalheDiaOperacao({
   nomeUnidade,
   ordemCards,
   onReordenarCards,
+  mostrarZerados,
+  onAlternarZerados,
   onVerCategoria,
   onVerSocios,
   onVerAvulso,
@@ -390,11 +419,44 @@ function DetalheDiaOperacao({
   const rotuloAus = (t: string) => (t === "adiantamento" ? "Adiantamento" : t === "outros" ? "Ausência" : t);
   const avulsosDoDia = avulsos.filter((a) => a.data_inicio <= data && a.data_fim >= data);
 
+  // Valor de cada card, para esconder os que estão zerados.
+  const valoresCards = useMemo(() => {
+    const map: Record<string, number> = {
+      folga_socio: sociosAusentes.length,
+      avulso_teste: dia.contagens_avulsos.teste,
+      avulso_folguista: dia.contagens_avulsos.folguista,
+    };
+    for (const cat of CATEGORIA_ORDEM) map[cat] = dia.contagens[cat] ?? 0;
+    return map;
+  }, [dia, sociosAusentes.length]);
+
+  const zeradosOcultos = ordemCards.filter((k) => (valoresCards[k] ?? 0) === 0).length;
+
   return (
     <div className="space-y-4">
       <GradeCards
         ordem={ordemCards}
         onReordenar={onReordenarCards}
+        valores={valoresCards}
+        ocultarZerados={!mostrarZerados}
+        vazioTexto="Nenhum registro para este dia. Toque no olho para ver todos os indicadores."
+        acao={
+          zeradosOcultos > 0 || mostrarZerados ? (
+            <Button variant="ghost" size="sm" onClick={onAlternarZerados}>
+              {mostrarZerados ? (
+                <>
+                  <EyeOff className="mr-1.5 h-4 w-4" />
+                  Ocultar zerados
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-1.5 h-4 w-4" />
+                  Mostrar zerados ({zeradosOcultos})
+                </>
+              )}
+            </Button>
+          ) : undefined
+        }
         render={(k) => {
           if (k === "folga_socio") {
             return (
@@ -793,6 +855,11 @@ export default function DpOperacaoPanorama() {
       extras: { ...(prefs.extras ?? {}), [PREFS_KEY]: { ...(ordemSalva ?? {}), [chave]: next } },
     });
 
+  // Cards zerados ficam ocultos por padrão; a escolha do gestor é lembrada.
+  const mostrarZerados = ((prefs.extras as Record<string, unknown>)?.[ZERADOS_KEY] as boolean | undefined) ?? false;
+  const alternarZerados = () =>
+    save({ extras: { ...(prefs.extras ?? {}), [ZERADOS_KEY]: !mostrarZerados } });
+
   const dia = panorama.diaDe(data);
   const nomeUnidade = unidadeId ? panorama.unidades.find((u) => u.id === unidadeId)?.nome ?? null : null;
 
@@ -1120,6 +1187,8 @@ export default function DpOperacaoPanorama() {
               nomeUnidade={nomeUnidade}
               ordemCards={ordemDia}
               onReordenarCards={(next) => salvarOrdem("dia", next)}
+              mostrarZerados={mostrarZerados}
+              onAlternarZerados={alternarZerados}
               onVerCategoria={setDetalheCategoria}
               onVerSocios={() => setVerSocios(true)}
               onDispensar={dispensar}
@@ -1390,6 +1459,8 @@ export default function DpOperacaoPanorama() {
                 nomeUnidade={nomeUnidade}
                 ordemCards={ordemDia}
                 onReordenarCards={(next) => salvarOrdem("dia", next)}
+                mostrarZerados={mostrarZerados}
+                onAlternarZerados={alternarZerados}
                 onVerCategoria={setDetalheCategoria}
                 onVerSocios={() => setVerSocios(true)}
                 onDispensar={dispensar}
