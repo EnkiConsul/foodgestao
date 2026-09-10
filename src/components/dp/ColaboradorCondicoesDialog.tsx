@@ -683,16 +683,6 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
             </TabsContent>
           </Tabs>
 
-          <div className="mt-4 space-y-1.5">
-            <Label htmlFor="cond-observacoes">Observações (opcional)</Label>
-            <Textarea
-              id="cond-observacoes"
-              rows={2}
-              value={justificativa}
-              onChange={(e) => setJustificativa(e.target.value)}
-              placeholder="Ex.: promoção acordada, mudança de unidade, ajuste de piso do sindicato."
-            />
-          </div>
         </div>
 
         <DialogFooter className="flex-row gap-2 border-t p-4">
