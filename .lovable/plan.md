@@ -1,13 +1,14 @@
 # Refinamento da tela de acesso
 
 ## Objetivo
-Dar protagonismo às imagens originais enviadas, mantendo a pessoa e o notebook/celular inteiros, com um formulário menor e realmente translúcido sobre a área livre da composição.
+Usar as novas imagens 1 e 2 para manter a pessoa e o notebook/celular inteiros, aproveitando as áreas livres planejadas para receber um formulário menor e realmente translúcido.
 
 ## Alterações visuais
-- Manter as duas artes originais já cadastradas: horizontal para desktop/tablet e vertical para celular.
-- Trocar o preenchimento com recorte por um enquadramento proporcional sem corte, preservando integralmente a pessoa e o aparelho.
+- Substituir as artes atuais pelas novas imagens enviadas: imagem 1 vertical para celular e imagem 2 horizontal para desktop/tablet.
+- Usar as imagens 3 e 4 somente como referência visual de posição e proporção do formulário; elas não serão exibidas no sistema.
+- Exibir cada nova arte no enquadramento proporcional correto, sem corte, preservando integralmente a pessoa, o celular/notebook, a marca e os textos incorporados.
 - Usar a arte como fundo principal da tela, sem criar uma coluna sólida separada para o formulário.
-- Posicionar o formulário de forma centralizada dentro da área livre da respectiva arte, sem cobrir a pessoa.
+- Posicionar o formulário centralizado dentro da área livre de cada arte: parte inferior no celular e lateral direita no desktop/tablet, sem cobrir a pessoa ou o aparelho.
 - Aplicar a direção escolhida “Translucent Professional Glass”: vidro fumê, transparência perceptível, desfoque discreto, borda fina e sombra leve.
 - Reduzir novamente largura, altura, espaços internos, intervalos e controles do formulário, mantendo campos e textos legíveis e acessíveis.
 - Manter a tipografia atual e não repetir a marca, pois ela já faz parte das imagens.
@@ -16,7 +17,7 @@ Dar protagonismo às imagens originais enviadas, mantendo a pessoa e o notebook/
 
 ## Limites
 - Nenhuma mudança em autenticação, cadastro, recuperação, MFA, Turnstile, convites, redirecionamentos, validações ou políticas de segurança.
-- Nenhuma substituição, regeneração ou ampliação das imagens originais.
+- Nenhuma regeneração ou ampliação das novas imagens 1 e 2.
 - Nenhuma mudança na tipografia existente.
 
 ## Verificação
