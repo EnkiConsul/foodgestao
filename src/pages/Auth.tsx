@@ -22,7 +22,7 @@ import { consumePendingInviteToken } from "@/lib/auth/invite";
 import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent, FunnelStep } from "@/lib/analytics";
-import logoMarinho from "@/assets/aveto360-logo.png.asset.json";
+import logoAssinatura from "@/assets/aveto360-assinatura.png.asset.json";
 import logoClaro from "@/assets/aveto360-horizontal-light.png.asset.json";
 import loginDesktop from "@/assets/aveto360-login-desktop.png.asset.json";
 import loginMobile from "@/assets/aveto360-login-mobile.png.asset.json";
@@ -441,7 +441,7 @@ export default function Auth() {
       <h1 className="sr-only">Acesse sua conta ou crie seu cadastro no Aveto 360</h1>
 
       <div className="relative min-h-screen lg:grid lg:h-screen lg:min-h-0 lg:grid-cols-[minmax(0,1.45fr)_minmax(420px,0.75fr)]">
-        <section className="relative h-[42vh] min-h-[300px] overflow-hidden bg-site-ink-deep sm:h-[48vh] lg:h-screen lg:min-h-0" aria-label="Aveto 360 para negócios de alimentação">
+        <section className="relative h-[46vh] min-h-[330px] overflow-hidden bg-site-ink-deep sm:h-[52vh] lg:h-screen lg:min-h-0" aria-label="Aveto 360 para negócios de alimentação">
           <picture>
             <source media="(min-width: 1024px)" srcSet={loginDesktop.url} />
             <img
@@ -463,14 +463,14 @@ export default function Auth() {
           <img
             src={logoClaro.url}
             alt="Aveto 360"
-            className="mx-auto h-12 w-auto select-none dark:hidden sm:h-14"
+            className="mx-auto h-11 w-auto select-none dark:hidden sm:h-12"
             draggable={false}
           />
           <img
-            src={logoMarinho.url}
+            src={logoAssinatura.url}
             alt=""
             aria-hidden
-            className="mx-auto hidden h-12 w-auto select-none dark:block sm:h-14"
+            className="mx-auto hidden h-11 w-auto select-none dark:block sm:h-12"
             draggable={false}
           />
 
