@@ -1844,6 +1844,7 @@ export function ColaboradorFormDialog({
             <Input
               type="email"
               value={form.email}
+              {...marca("email")}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="email@exemplo.com"
             />
@@ -1852,6 +1853,7 @@ export function ColaboradorFormDialog({
             <Label>WhatsApp</Label>
             <Input
               value={form.whatsapp}
+              {...marca("whatsapp")}
               onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
               placeholder="(62) 99999-9999"
             />
