@@ -141,7 +141,7 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
       </SidebarHeader>
 
 
-      <SidebarContent className="px-2 py-3">
+      <SidebarContent className={cn("py-3", collapsed ? "px-0" : "px-2")}>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
@@ -164,7 +164,7 @@ export function DpSidebar({ variant = "admin" }: { variant?: "admin" | "portal" 
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3 space-y-2">
+      <SidebarFooter className={cn("border-t border-sidebar-border space-y-2", collapsed ? "p-1" : "p-3")}>
         {!collapsed && (
           <button
             type="button"
@@ -237,9 +237,9 @@ function DpLink({ item }: { item: Extract<Item, { kind: "link" }> }) {
           className={
             cn(
               "flex items-center gap-2 rounded-md transition-colors",
-              "transition-all duration-200 hover:translate-x-1",
+              "transition-all duration-200 hover:translate-x-1 group-data-[collapsible=icon]:hover:translate-x-0",
               isActive
-                ? "bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
+                ? "bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1 group-data-[collapsible=icon]:translate-x-0"
                 : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
             )
           }

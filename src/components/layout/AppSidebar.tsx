@@ -77,8 +77,8 @@ export function AppSidebar() {
                     <NavLink
                       to="/hub"
                       end
-                      className="flex items-center gap-2 text-primary hover:bg-sidebar-accent rounded-md transition-all duration-200 hover:translate-x-1 font-medium"
-                      activeClassName="bg-sidebar-accent translate-x-1"
+                      className="flex items-center gap-2 text-primary hover:bg-sidebar-accent rounded-md transition-all duration-200 hover:translate-x-1 group-data-[collapsible=icon]:hover:translate-x-0 font-medium"
+                      activeClassName="bg-sidebar-accent translate-x-1 group-data-[collapsible=icon]:translate-x-0"
                     >
                       <LayoutGrid className="h-4 w-4 shrink-0" />
                       <span>Hub de Módulos</span>

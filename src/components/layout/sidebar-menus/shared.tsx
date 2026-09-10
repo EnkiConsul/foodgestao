@@ -28,8 +28,8 @@ export function SidebarNavItem({ item }: { item: MenuItem }) {
         <NavLink
           to={item.url}
           end={item.end}
-          className="flex items-center gap-2 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-md transition-all duration-200 hover:translate-x-1"
-          activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1"
+          className="flex items-center gap-2 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-md transition-all duration-200 hover:translate-x-1 group-data-[collapsible=icon]:hover:translate-x-0"
+          activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1 group-data-[collapsible=icon]:translate-x-0"
         >
           <item.icon className="h-4 w-4 shrink-0" />
           <span className="truncate">{item.title}</span>
@@ -80,7 +80,7 @@ export function SidebarCollapsibleGroup({
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton
-            className={`flex items-center gap-3 px-5 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg mx-2 transition-all duration-200 hover:translate-x-1 ${
+            className={`flex items-center gap-3 px-5 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg mx-2 transition-all duration-200 hover:translate-x-1 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:hover:translate-x-0 group-data-[collapsible=icon]:justify-center ${
               active ? "bg-sidebar-accent text-sidebar-foreground font-medium translate-x-1" : ""
             }`}
           >
