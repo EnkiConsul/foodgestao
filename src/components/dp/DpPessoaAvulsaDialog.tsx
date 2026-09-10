@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Info } from "lucide-react";
+import { AlertTriangle, Info, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,29 @@ import { useDpPessoasApoio, useSalvarDpPessoaApoio } from "@/hooks/useDpPessoasA
 import { useDpApoioUnidades } from "@/hooks/useDpApoioUnidades";
 import { liberacoesParaUnidade, pessoasSelecionaveisNaUnidade } from "@/lib/dp/apoio-unidades";
 import type { HorarioSugerido, PessoaAvulsaPanorama, PessoaAvulsaTipo } from "@/lib/dp/operacao-panorama";
+import {
+  colaboradoresElegiveisNoDia,
+  colaboradorElegivelNoDia,
+  conflitoDeHorario,
+  descreverPrevisao,
+  foiDesligado,
+  sugerirHorarioLivre,
+  type PrevisaoNoDia,
+} from "@/lib/dp/operacao-extra";
+import { isSocio, regimeFormalizado } from "@/lib/dp/contrato-policy";
 
+
+interface ColaboradorOpcao {
+  id: string;
+  nome: string;
+  cargo_id?: string | null;
+  unidade_id?: string | null;
+  regime?: string | null;
+  socio?: boolean;
+  ativo?: boolean;
+  data_admissao?: string | null;
+  data_desligamento?: string | null;
+}
 
 interface Props {
   open: boolean;
@@ -33,12 +55,16 @@ interface Props {
   unidadePadrao?: string | null;
   unidades: { id: string; nome: string }[];
   cargos: { id: string; nome: string }[];
-  colaboradores: { id: string; nome: string; cargo_id?: string | null; unidade_id?: string | null }[];
+  colaboradores: ColaboradorOpcao[];
   /** Registro em edição; ausente = novo cadastro. */
   registro?: PessoaAvulsaPanorama | null;
   salvando?: boolean;
   /** Sugere horário de entrada/saída com base no histórico do cargo/unidade/dia da semana. */
   sugerirHorario?: (unidadeId: string, cargoId: string, data: string) => HorarioSugerido | null;
+  /** Horários que a pessoa já tem previstos no dia (escala, jornada, convocação, outro extra). */
+  previsaoDoDia?: (data: string, colaboradorId: string, ignorarAvulsoId?: string | null) => PrevisaoNoDia[];
+  /** Atalho para abrir a convocação já preenchida (intermitente/freelancer). */
+  onIrParaConvocacao?: (alvo: { unidadeId: string; cargoId: string; data: string; colaboradorId: string }) => void;
   onSalvar: (input: PessoaAvulsaInput) => void;
 }
 
