@@ -1458,7 +1458,9 @@ export function ColaboradorFormDialog({
         email: form.email.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
 
-        perfil_acesso: form.perfil_acesso,
+        // Sócio nunca é gravado com acesso de colaborador.
+        perfil_acesso:
+          socioSelecionado && form.perfil_acesso === "colaborador" ? "gestor" : form.perfil_acesso,
         folga_fixa_semana:
           policy.exigeFolgaSemanal && form.folga_fixa_semana !== "none"
             ? Number(form.folga_fixa_semana)
