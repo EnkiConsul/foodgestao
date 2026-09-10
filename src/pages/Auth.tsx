@@ -738,9 +738,8 @@ export default function Auth() {
             )}
           </CardContent>
 
-          <CardFooter className="flex flex-col gap-1.5 px-4 pb-3 pt-0.5 md:gap-2 md:pb-4 md:pt-1">
+          <CardFooter className="flex flex-col gap-1 px-4 pb-2 pt-0 md:gap-2 md:pb-4 md:pt-1">
             <Button type="submit" className="h-9 w-full font-semibold" disabled={submitting || (isLogin && !!turnstileError)}>
-
               {submitting
                 ? "Aguarde..."
                 : isForgot
@@ -766,9 +765,6 @@ export default function Auth() {
                 {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
               </button>
             )}
-            <p className="text-[11px] text-muted-foreground text-center">
-              Colaboradores podem entrar com CPF neste mesmo formulário.
-            </p>
           </CardFooter>
           </form>
         )}
