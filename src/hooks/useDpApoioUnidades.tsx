@@ -36,9 +36,13 @@ export interface HorarioUnidadeJson {
   intervalo_minutos?: number | null;
 }
 
-export interface ApoioUnidadeInput extends Omit<ApoioUnidade, "id" | "ativo"> {
+export interface ApoioUnidadeInput
+  extends Omit<ApoioUnidade, "id" | "ativo" | "socio" | "pro_labore" | "horario"> {
   id?: string;
   ativo?: boolean;
+  socio?: boolean;
+  pro_labore?: number | null;
+  horario?: HorarioUnidadeJson[] | null;
 }
 
 const COLS =
@@ -72,7 +76,7 @@ export function useDpApoioUnidades(opts?: {
         .eq("company_id", selectedCompanyId!);
       if (pessoaApoioId) q = q.eq("pessoa_apoio_id", pessoaApoioId);
       if (colaboradorId) q = q.eq("colaborador_id", colaboradorId);
-          if (apenasAtivas) q = q.eq("ativo", true);
+      if (apenasAtivas) q = q.eq("ativo", true);
       if (opts?.apenasSocio) q = q.eq("socio", true);
       const { data, error } = await q;
       if (error) throw error;
