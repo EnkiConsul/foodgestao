@@ -2850,10 +2850,13 @@ export type Database = {
           company_id: string
           created_at: string
           criado_por: string | null
+          horario: Json | null
           id: string
           observacao: string | null
           pessoa_apoio_id: string | null
+          pro_labore: number | null
           setor_id: string | null
+          socio: boolean
           unidade_id: string
           updated_at: string
         }
@@ -2864,10 +2867,13 @@ export type Database = {
           company_id: string
           created_at?: string
           criado_por?: string | null
+          horario?: Json | null
           id?: string
           observacao?: string | null
           pessoa_apoio_id?: string | null
+          pro_labore?: number | null
           setor_id?: string | null
+          socio?: boolean
           unidade_id: string
           updated_at?: string
         }
@@ -2878,10 +2884,13 @@ export type Database = {
           company_id?: string
           created_at?: string
           criado_por?: string | null
+          horario?: Json | null
           id?: string
           observacao?: string | null
           pessoa_apoio_id?: string | null
+          pro_labore?: number | null
           setor_id?: string | null
+          socio?: boolean
           unidade_id?: string
           updated_at?: string
         }

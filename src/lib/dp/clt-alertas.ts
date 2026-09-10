@@ -43,6 +43,11 @@ export interface EntradaAlertasClt {
   avisarMenor?: boolean;
   /** A folga muda a cada semana: quem responde por DSR é a escala do mês. */
   folgaVariavel?: boolean;
+  /**
+   * Sócio: não há empregador conferindo jornada de sócio, então nenhum ponto de
+   * atenção trabalhista se aplica ao horário dele.
+   */
+  socio?: boolean;
 }
 
 
@@ -107,6 +112,7 @@ function foraDaClt(regime?: string | null): boolean {
  */
 export function verificarAlertasClt(input: EntradaAlertasClt): AlertaClt[] {
   const out: AlertaClt[] = [];
+  if (input.socio) return out;
   const dias = input.dias.filter(temHorario);
   if (dias.length === 0) return out;
 

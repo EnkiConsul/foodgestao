@@ -27,7 +27,7 @@ import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTr
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { useDpModelosHorario, type ModeloHorarioColaborador } from "@/hooks/useDpModelosHorario";
 import { chaveHorarioBase, contarHorariosBase, horarioBaseMaisComum, sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
-import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { formatarFaixaTurno, intervaloAbaixoDoLegal } from "@/lib/dp/turno-utils";
 import { resolverTurnoDoHorario, type HorarioSimples } from "@/lib/dp/turno-resolver";
@@ -432,6 +432,7 @@ export function ColaboradorJornadaPanel({
     return verificarAlertasClt({
       idade,
       regime: colaborador?.regime,
+      socio: isSocio(colaborador?.vinculo_label),
       folgaVariavel,
       dias: dias.map((d) => {
         const t = turnoDoDia(d, turnoPadraoTela.id, turnosTela);
@@ -446,7 +447,7 @@ export function ColaboradorJornadaPanel({
     });
   }, [
     dias, turnoPadraoTela.id, turnosTela, folgaVariavel,
-    colaborador?.data_nascimento, colaborador?.regime, inicio,
+    colaborador?.data_nascimento, colaborador?.regime, colaborador?.vinculo_label, inicio,
   ]);
 
   const avisos = alertas.filter((a) => a.severidade === "aviso");

@@ -26,7 +26,9 @@ import { snapshotColegaBeneficios } from "@/lib/dp/isonomia-snapshot";
 import { itensIsonomiaDoCadastro } from "@/hooks/useDpIsonomiaBeneficios";
 import { BeneficioDispensaDialog, type DispensaBeneficio, type MotivoIsonomiaEscolhido } from "@/components/dp/BeneficioDispensaDialog";
 import { useDpUnidades, useDpCargos, useUpsertDpCargo, usePropagarRiscosCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, useDpSindicatos, type DpCargo } from "@/hooks/useDpCadastros";
-import { salarioCargoNaUnidade, mensagemErroPiso, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
+import { salarioCargoNaUnidade, salarioSocioNaUnidade, mensagemErroPiso, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
+import { generoPorNome } from "@/lib/dp/generoPorNome";
+import { camposFaltando } from "@/lib/dp/cadastro-completude";
 
 import { useDpBeneficios, type Beneficio } from "@/hooks/useDpBeneficios";
 import { BeneficioDialog } from "@/components/dp/beneficios/BeneficiosDialogs";
@@ -67,6 +69,7 @@ import { SindicatoEnquadramentoField } from "@/components/dp/SindicatoEnquadrame
 import { UnidadeAdiantamentoDialog } from "@/components/dp/UnidadeAdiantamentoDialog";
 
 import { CargoSalarioConflitoDialog } from "@/components/dp/CargoSalarioConflitoDialog";
+import { SocioUnidadesField } from "@/components/dp/SocioUnidadesField";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -314,6 +317,12 @@ export function ColaboradorFormDialog({
   const cargoResolvido = useRef(false);
   /** Vínculo escolhido à mão: bloqueia a sugestão automática pelo cargo. */
   const vinculoTocado = useRef(false);
+  /** Perfil de acesso escolhido à mão: bloqueia a sugestão do vínculo. */
+  const perfilTocado = useRef(false);
+  /** Gênero escolhido à mão: bloqueia a sugestão pelo nome. */
+  const sexoTocado = useRef(false);
+  /** Gênero preenchido pela sugestão do nome (rótulo informativo). */
+  const [sexoSugerido, setSexoSugerido] = useState(false);
   // Ciência do risco jurídico do vínculo sem registro, válida para este salvamento.
   const cienciaConfirmada = useRef<{ justificativa: string } | null>(null);
 
@@ -743,6 +752,34 @@ export function ColaboradorFormDialog({
     });
   }, [regimeSelecionado]);
 
+  /**
+   * Sócio administra o negócio: o acesso mínimo é de gestor. É apenas sugestão —
+   * quem mexer no campo à mão manda.
+   */
+  useEffect(() => {
+    if (!socioSelecionado || perfilTocado.current) return;
+    setForm((f) => (f.perfil_acesso === "colaborador" ? { ...f, perfil_acesso: "gestor" } : f));
+  }, [socioSelecionado]);
+
+  /**
+   * Sugestão de gênero pelo primeiro nome: só preenche enquanto o campo está em
+   * branco e nunca sobrescreve escolha manual.
+   */
+  useEffect(() => {
+    if (sexoTocado.current) return;
+    const sugerido = generoPorNome(form.nome);
+    if (!sugerido) { setSexoSugerido(false); return; }
+    setForm((f) => {
+      if (f.sexo !== "none" && !sexoSugerido) return f;
+      if (f.sexo === sugerido) return f;
+      return { ...f, sexo: sugerido, domingos_folga_mes: "none" };
+    });
+    setSexoSugerido(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.nome]);
+
+
+
   const unidadeSelecionada = (unidades.data ?? []).find((u) => u.id === form.unidade_id) as any;
   const cargoSelecionado = (cargos.data ?? []).find((c) => c.id === form.cargo_id) as any;
 
@@ -763,16 +800,25 @@ export function ColaboradorFormDialog({
     : null;
   const refSalario = useMemo(
     () =>
-      salarioCargoNaUnidade(
-        (pisosCargo.data ?? []) as any,
-        form.unidade_id || null,
-        patronalUnidade?.id ?? null,
-        form.data_admissao || undefined,
-        // Piso já negociado com vigência posterior à admissão continua sendo a
-        // referência do cargo — não faz sentido pedir novo cadastro.
-        { aceitarFuturo: true },
-      ),
-    [pisosCargo.data, form.unidade_id, patronalUnidade?.id, form.data_admissao],
+      // Sócio não tem convenção coletiva: a referência é da própria empresa,
+      // por unidade (pró-labore de referência do cargo de sócio).
+      socioSelecionado
+        ? salarioSocioNaUnidade(
+            (pisosCargo.data ?? []) as any,
+            form.unidade_id || null,
+            form.data_admissao || undefined,
+            { aceitarFuturo: true },
+          )
+        : salarioCargoNaUnidade(
+            (pisosCargo.data ?? []) as any,
+            form.unidade_id || null,
+            patronalUnidade?.id ?? null,
+            form.data_admissao || undefined,
+            // Piso já negociado com vigência posterior à admissão continua sendo a
+            // referência do cargo — não faz sentido pedir novo cadastro.
+            { aceitarFuturo: true },
+          ),
+    [pisosCargo.data, form.unidade_id, patronalUnidade?.id, form.data_admissao, socioSelecionado],
   );
   const salarioCargo = refSalario.valor;
   const cargoParaComparacao = cargoSelecionado
@@ -978,23 +1024,77 @@ export function ColaboradorFormDialog({
     salario_cargo: salarioCargo,
   });
 
+  /**
+   * Campos essenciais ainda em branco (o mesmo critério do selo "cadastro
+   * incompleto" da lista). Aqui eles ganham destaque âmbar e um resumo no topo:
+   * o vermelho continua reservado ao que impede salvar.
+   */
+  const faltantesEssenciais = useMemo(
+    () =>
+      camposFaltando(
+        {
+          setor_id: form.setor_id || null,
+          telefone: null,
+          whatsapp: form.whatsapp,
+          email_contato: form.email,
+          data_nascimento: form.data_nascimento,
+          regime: form.tipo_vinculo,
+          salario_base: numeroBR(rem.salario_base) || null,
+          valor_hora: numeroBR(rem.valor_hora) || null,
+          valor_diaria: numeroBR((rem as any).valor_diaria) || null,
+          base_salarial: numeroBR(rem.base_salarial) || null,
+          socio_remuneracao: socioSelecionado ? socioRem : null,
+          // Endereço, estado civil e PIS não são editados nesta tela.
+          endereco: "-",
+          estado_civil: "-",
+          pis_nit: "-",
+        },
+        { salarioCargo },
+      ),
+    [
+      form.setor_id, form.whatsapp, form.email, form.data_nascimento, form.tipo_vinculo,
+      rem.salario_base, rem.valor_hora, rem.base_salarial, (rem as any).valor_diaria,
+      socioSelecionado, socioRem, salarioCargo,
+    ],
+  );
+
+  /** Chave essencial → campo desta tela (e aba onde ele aparece). */
+  const CAMPO_DA_CHAVE: Record<string, { campo: string; aba: AbaVisivel }> = {
+    setor_id: { campo: "setor_id", aba: "dados" as AbaVisivel },
+    contato: { campo: "whatsapp", aba: "dados" as AbaVisivel },
+    email_contato: { campo: "email", aba: "dados" as AbaVisivel },
+    data_nascimento: { campo: "data_nascimento", aba: "dados" as AbaVisivel },
+    salario_base: { campo: "salario_base", aba: "remuneracao" as AbaVisivel },
+  };
+  const faltantesNaTela = faltantesEssenciais.filter((c) => CAMPO_DA_CHAVE[c.chave]);
+  const camposFaltantes = new Set(faltantesNaTela.map((c) => CAMPO_DA_CHAVE[c.chave].campo));
+  const dadosFaltandoEssencial = faltantesNaTela.some(
+    (c) => CAMPO_DA_CHAVE[c.chave].aba === "dados",
+  );
+
+
+
   /** Sincroniza o marco de "sem alterações" após carregar o colaborador. */
   useEffect(() => {
     setBaseline(JSON.stringify({ form, rem }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
 
+  /** Campo que o usuário pediu para conferir pelo resumo do topo. */
+  const [campoFoco, setCampoFoco] = useState<string | null>(null);
+
   /** Leva o usuário até o campo pendente: rola, foca e mantém o destaque. */
   useEffect(() => {
-    if (!campoErro) return;
+    const alvoCampo = campoErro ?? campoFoco;
+    if (!alvoCampo) return;
     const t = window.setTimeout(() => {
-      const alvo = contentRef.current?.querySelector<HTMLElement>(`[data-field="${campoErro}"]`);
+      const alvo = contentRef.current?.querySelector<HTMLElement>(`[data-field="${alvoCampo}"]`);
       if (!alvo) return;
       alvo.scrollIntoView({ block: "center", behavior: "smooth" });
       alvo.focus({ preventScroll: true });
     }, 120);
     return () => window.clearTimeout(t);
-  }, [campoErro, tab]);
+  }, [campoErro, campoFoco, tab]);
 
   /** Qualquer edição limpa o destaque de pendência. */
   useEffect(() => {
@@ -1002,14 +1102,25 @@ export function ColaboradorFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot]);
 
-  /** Atributos do campo pendente: âncora para foco e destaque em vermelho. */
-  const marca = (campo: string, extraClass?: string) => ({
-    "data-field": campo,
-    "aria-invalid": campoErro === campo ? true : undefined,
-    className: [extraClass, campoErro === campo ? "border-destructive ring-1 ring-destructive" : ""]
-      .filter(Boolean)
-      .join(" ") || undefined,
-  });
+  /**
+   * Atributos do campo: âncora para foco, vermelho no que impede salvar e
+   * âmbar no que falta para o cadastro ficar completo.
+   */
+  const marca = (campo: string, extraClass?: string) => {
+    const erro = campoErro === campo;
+    const faltando = !erro && camposFaltantes.has(campo);
+    return {
+      "data-field": campo,
+      "aria-invalid": erro ? true : undefined,
+      className: [
+        extraClass,
+        erro ? "border-destructive ring-1 ring-destructive" : "",
+        faltando ? "border-amber-500 ring-1 ring-amber-500/40" : "",
+      ]
+        .filter(Boolean)
+        .join(" ") || undefined,
+    };
+  };
 
 
 
@@ -1234,7 +1345,12 @@ export function ColaboradorFormDialog({
       if (!isValidCpf(cpfDigits)) return erro("cpf", "CPF inválido");
       if (!form.cargo_id) return erro("cargo_id", "Cargo é obrigatório");
       if (!form.unidade_id && !socioSelecionado) return erro("unidade_id", "Unidade é obrigatória");
-      if (!form.data_admissao) return erro("data_admissao", "Data de admissão é obrigatória");
+      if (!form.data_admissao) {
+        return erro(
+          "data_admissao",
+          socioSelecionado ? "Início na sociedade é obrigatório" : "Data de admissão é obrigatória",
+        );
+      }
       if (!form.data_nascimento) return erro("data_nascimento", "Data de nascimento é obrigatória");
       if (exigeDomingosFolga && form.domingos_folga_mes === "none") {
         return erro(
@@ -1248,15 +1364,21 @@ export function ColaboradorFormDialog({
       const admissao = new Date(form.data_admissao + "T00:00:00");
       if (nascimento >= hoje) return erro("data_nascimento", "Data de nascimento deve ser no passado");
 
+      const marcoTexto = socioSelecionado ? "no início na sociedade" : "na admissão";
       const idade = (admissao.getTime() - nascimento.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-      if (idade < 14) return erro("data_nascimento", "Colaborador deve ter no mínimo 14 anos na admissão");
-      if (idade > 100) return erro("data_nascimento", "Data de nascimento inconsistente com a admissão");
+      if (idade < 14) return erro("data_nascimento", `Deve ter no mínimo 14 anos ${marcoTexto}`);
+      if (idade > 100) return erro("data_nascimento", `Data de nascimento inconsistente com a data ${socioSelecionado ? "de início na sociedade" : "de admissão"}`);
 
       if (admissao > hoje) {
-        // permite admissão futura até 90 dias
+        // permite data futura até 90 dias
         const diffDias = (admissao.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24);
         if (diffDias > 90) {
-          return erro("data_admissao", "Data de admissão muito distante no futuro (máx. 90 dias)");
+          return erro(
+            "data_admissao",
+            socioSelecionado
+              ? "Início na sociedade muito distante no futuro (máx. 90 dias)"
+              : "Data de admissão muito distante no futuro (máx. 90 dias)",
+          );
         }
       }
 
@@ -1343,8 +1465,8 @@ export function ColaboradorFormDialog({
         Math.abs(numeroBR(rem.salario_base) - salarioCargo) <= 0.009;
       if (salarioTravadoNoCargo) cargoResolvido.current = true;
 
-      // Piso é convenção patronal de empregado vinculado a uma unidade: sócio e
-      // cadastro sem unidade específica não entram na reconciliação.
+      // A referência do cargo é por unidade: cadastro sem unidade específica não
+      // entra na reconciliação (o sócio entra, pela referência da empresa).
       if (!deveReconciliarPisoCargo({ socio: socioSelecionado, unidadeId: form.unidade_id })) {
         cargoResolvido.current = true;
       }
@@ -1403,7 +1525,9 @@ export function ColaboradorFormDialog({
         email: form.email.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
 
-        perfil_acesso: form.perfil_acesso,
+        // Sócio nunca é gravado com acesso de colaborador.
+        perfil_acesso:
+          socioSelecionado && form.perfil_acesso === "colaborador" ? "gestor" : form.perfil_acesso,
         folga_fixa_semana:
           policy.exigeFolgaSemanal && form.folga_fixa_semana !== "none"
             ? Number(form.folga_fixa_semana)
@@ -1679,6 +1803,32 @@ export function ColaboradorFormDialog({
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6">
           <TabsContent value="dados" className="mt-0">
 
+            {/* O selo "cadastro incompleto" da lista vem destes campos: aqui o
+                usuário vê quais são e vai direto neles. */}
+            {faltantesNaTela.length > 0 && (
+              <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+                <span className="font-medium">Falta para o cadastro ficar completo:</span>{" "}
+                {faltantesNaTela.map((c, i) => (
+                  <span key={c.chave}>
+                    {i > 0 ? ", " : ""}
+                    <button
+                      type="button"
+                      className="underline underline-offset-2"
+                      onClick={() => {
+                        const alvo = CAMPO_DA_CHAVE[c.chave];
+                        setTab(alvo.aba);
+                        setCampoFoco(alvo.campo);
+                      }}
+                    >
+                      {c.label}
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+
+
 
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
@@ -1721,6 +1871,7 @@ export function ColaboradorFormDialog({
             <Input
               type="email"
               value={form.email}
+              {...marca("email")}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="email@exemplo.com"
             />
@@ -1729,6 +1880,7 @@ export function ColaboradorFormDialog({
             <Label>WhatsApp</Label>
             <Input
               value={form.whatsapp}
+              {...marca("whatsapp")}
               onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
               placeholder="(62) 99999-9999"
             />
@@ -1794,11 +1946,21 @@ export function ColaboradorFormDialog({
             </p>
           </div>
 
-          <ColaboradorSetorField
-            unidadeId={form.unidade_id || null}
-            value={form.setor_id || null}
-            onChange={(id) => setForm((f) => ({ ...f, setor_id: id ?? "" }))}
-          />
+          {/* O destaque âmbar do setor fica na moldura do bloco. */}
+          <div
+            data-field="setor_id"
+            className={
+              camposFaltantes.has("setor_id")
+                ? "rounded-xl ring-1 ring-amber-500/40 p-2 -m-2"
+                : undefined
+            }
+          >
+            <ColaboradorSetorField
+              unidadeId={form.unidade_id || null}
+              value={form.setor_id || null}
+              onChange={(id) => setForm((f) => ({ ...f, setor_id: id ?? "" }))}
+            />
+          </div>
 
           {/* Sócio e freelancer não são representados por convenção coletiva: sem enquadramento. */}
           {!socioSelecionado && !freelancerSelecionado && (
@@ -1815,9 +1977,9 @@ export function ColaboradorFormDialog({
 
 
 
-          {/* Datas */}
+          {/* Datas — no sócio a data marca a entrada na sociedade, não admissão. */}
           <div className="space-y-2">
-            <Label>Data de Admissão *</Label>
+            <Label>{socioSelecionado ? "Início na Sociedade *" : "Data de Admissão *"}</Label>
             <Input
               type="date"
               value={form.data_admissao}
@@ -1825,6 +1987,11 @@ export function ColaboradorFormDialog({
 
               onChange={(e) => setForm({ ...form, data_admissao: e.target.value })}
             />
+            {socioSelecionado && (
+              <p className="text-[11px] text-muted-foreground">
+                Data em que o sócio passou a integrar a sociedade — usada como marco de tempo e histórico.
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Data de Nascimento *</Label>
@@ -1841,17 +2008,26 @@ export function ColaboradorFormDialog({
               Quando não é masculino nem feminino, a frequência CLT é informada
               manualmente, pois é ela que limita as folgas permitidas no mês. */}
           <div className="space-y-2">
-            <Label>Gênero</Label>
+            <Label>
+              Gênero
+              {sexoSugerido && form.sexo !== "none" && (
+                <span className="ml-2 text-[11px] font-normal text-muted-foreground">
+                  sugerido pelo nome
+                </span>
+              )}
+            </Label>
             <Select
               value={form.sexo}
-              onValueChange={(v) =>
+              onValueChange={(v) => {
+                sexoTocado.current = true;
+                setSexoSugerido(false);
                 setForm({
                   ...form,
                   sexo: v,
                   // M/F seguem a regra da unidade: o override individual é limpo.
                   domingos_folga_mes: v === "F" || v === "M" ? "none" : form.domingos_folga_mes,
-                })
-              }
+                });
+              }}
             >
               <SelectTrigger {...marca("sexo")}><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
@@ -1863,6 +2039,7 @@ export function ColaboradorFormDialog({
             </Select>
             <p className="text-xs text-muted-foreground">
               Usado para validar a quantidade de folgas dominicais exigidas pela CLT.
+              {sexoSugerido && form.sexo !== "none" ? " Confirme ou ajuste a sugestão." : ""}
             </p>
           </div>
 
@@ -1969,15 +2146,21 @@ export function ColaboradorFormDialog({
             <Label>Perfil de Acesso</Label>
             <Select
               value={form.perfil_acesso}
-              onValueChange={(v: any) => setForm({ ...form, perfil_acesso: v })}
+              onValueChange={(v: any) => { perfilTocado.current = true; setForm({ ...form, perfil_acesso: v }); }}
             >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="colaborador">Colaborador</SelectItem>
+                {/* Sócio administra o negócio: acesso de colaborador não se aplica. */}
+                {!socioSelecionado && <SelectItem value="colaborador">Colaborador</SelectItem>}
                 <SelectItem value="gestor">Gestor</SelectItem>
                 <SelectItem value="admin">Administrador</SelectItem>
               </SelectContent>
             </Select>
+            {socioSelecionado && (
+              <p className="text-[11px] text-muted-foreground">
+                Sócio tem no mínimo acesso de gestor.
+              </p>
+            )}
           </div>
 
 
@@ -2178,6 +2361,20 @@ export function ColaboradorFormDialog({
                 folgasFimDeSemanaMes={folgasFimDeSemanaMes}
 
               />
+
+              {/* Sócio pode participar da sociedade de mais de uma unidade */}
+              {socioSelecionado && colaborador?.id && (
+                <div className="md:col-span-2">
+                  <SocioUnidadesField
+                    colaboradorId={colaborador.id}
+                    unidadePrincipalId={form.unidade_id || null}
+                    setorPrincipalId={form.setor_id || null}
+                    cargoId={form.cargo_id || null}
+                    proLaborePrincipal={numeroBR(rem.salario_base) || null}
+                  />
+                </div>
+              )}
+
 
               {/* Regra coletiva de anuênio/triênio aplicável a este colaborador */}
               {!socioSelecionado && !freelancerSelecionado && <AdicionalTempoServicoCard
@@ -2446,16 +2643,31 @@ export function ColaboradorFormDialog({
       <AlertDialog open={!!cargoSemSalario} onOpenChange={(v) => { if (!v) setCargoSemSalario(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cadastrar o piso salarial deste cargo?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {socioSelecionado
+                ? "Usar este valor como referência do cargo nesta unidade?"
+                : "Cadastrar o piso salarial deste cargo?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              O cargo {cargoSelecionado?.nome ?? ""} ainda não tem piso cadastrado
-              {patronalUnidade?.nome
-                ? ` no sindicato patronal ${patronalUnidade.nome}`
-                : unidadeSelecionada?.nome
-                  ? ` para ${unidadeSelecionada.nome}`
-                  : ""}
-              . Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como piso, valendo para
-              todas as unidades com esse mesmo patronal?
+              {socioSelecionado ? (
+                <>
+                  O cargo {cargoSelecionado?.nome ?? ""} ainda não tem valor de referência
+                  {unidadeSelecionada?.nome ? ` em ${unidadeSelecionada.nome}` : ""}. Sócio não tem
+                  piso de sindicato: quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como
+                  referência da empresa para este cargo nesta unidade?
+                </>
+              ) : (
+                <>
+                  O cargo {cargoSelecionado?.nome ?? ""} ainda não tem piso cadastrado
+                  {patronalUnidade?.nome
+                    ? ` no sindicato patronal ${patronalUnidade.nome}`
+                    : unidadeSelecionada?.nome
+                      ? ` para ${unidadeSelecionada.nome}`
+                      : ""}
+                  . Quer usar {moedaBR(cargoSemSalario?.salarioInformado ?? 0)} como piso, valendo para
+                  todas as unidades com esse mesmo patronal?
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2466,10 +2678,13 @@ export function ColaboradorFormDialog({
                 void submit();
               }}
             >
-              Só para este colaborador
+              Só para este {socioSelecionado ? "sócio" : "colaborador"}
             </AlertDialogCancel>
-            {/* O piso é do sindicato patronal: unidades com o mesmo patronal compartilham. */}
-            {patronalUnidade?.id && (
+            {/*
+              Empregado: o piso é do sindicato patronal e vale para todas as unidades dele.
+              Sócio: o valor é referência da própria empresa, gravada na unidade.
+            */}
+            {(socioSelecionado ? !!form.unidade_id : !!patronalUnidade?.id) && (
               <AlertDialogAction
                 disabled={salvandoPiso || upsertCargoSalario.isPending}
                 onClick={async (e) => {
@@ -2481,17 +2696,22 @@ export function ColaboradorFormDialog({
                   try {
                     await upsertCargoSalario.mutateAsync({
                       cargo_id: form.cargo_id,
-                      unidade_id: null,
-                      sindicato_patronal_id: patronalUnidade.id,
+                      unidade_id: socioSelecionado ? form.unidade_id : null,
+                      sindicato_patronal_id: socioSelecionado ? null : patronalUnidade!.id,
                       salario_base: pendente.salarioInformado,
                       vigencia_inicio: form.data_admissao || new Date().toISOString().slice(0, 10),
                     });
                     await queryClient.refetchQueries({ queryKey: ["dp_cargo_salarios"] });
                   } catch (err) {
                     setCargoSemSalario(pendente);
-                    toast.error("Não foi possível gravar o piso do sindicato patronal", {
-                      description: `${mensagemErroPiso(err)} Você pode usar “Só para este colaborador” para salvar o cadastro agora.`,
-                    });
+                    toast.error(
+                      socioSelecionado
+                        ? "Não foi possível gravar a referência do cargo na unidade"
+                        : "Não foi possível gravar o piso do sindicato patronal",
+                      {
+                        description: `${mensagemErroPiso(err)} Você pode usar “Só para este ${socioSelecionado ? "sócio" : "colaborador"}” para salvar o cadastro agora.`,
+                      },
+                    );
                     setSalvandoPiso(false);
                     return;
                   }
@@ -2500,13 +2720,18 @@ export function ColaboradorFormDialog({
                   await submit();
                 }}
               >
-                {salvandoPiso ? "Salvando..." : "Definir piso do patronal"}
+                {salvandoPiso
+                  ? "Salvando..."
+                  : socioSelecionado
+                    ? "Definir referência da unidade"
+                    : "Definir piso do patronal"}
               </AlertDialogAction>
             )}
 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       <UnidadeAdiantamentoDialog
         unidade={unidadeSelecionada ?? null}
