@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Info } from "lucide-react";
+import { AlertTriangle, Info, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,29 @@ import { useDpPessoasApoio, useSalvarDpPessoaApoio } from "@/hooks/useDpPessoasA
 import { useDpApoioUnidades } from "@/hooks/useDpApoioUnidades";
 import { liberacoesParaUnidade, pessoasSelecionaveisNaUnidade } from "@/lib/dp/apoio-unidades";
 import type { HorarioSugerido, PessoaAvulsaPanorama, PessoaAvulsaTipo } from "@/lib/dp/operacao-panorama";
+import {
+  colaboradoresElegiveisNoDia,
+  colaboradorElegivelNoDia,
+  conflitoDeHorario,
+  descreverPrevisao,
+  foiDesligado,
+  sugerirHorarioLivre,
+  type PrevisaoNoDia,
+} from "@/lib/dp/operacao-extra";
+import { isSocio, regimeFormalizado } from "@/lib/dp/contrato-policy";
 
+
+interface ColaboradorOpcao {
+  id: string;
+  nome: string;
+  cargo_id?: string | null;
+  unidade_id?: string | null;
+  regime?: string | null;
+  socio?: boolean;
+  ativo?: boolean;
+  data_admissao?: string | null;
+  data_desligamento?: string | null;
+}
 
 interface Props {
   open: boolean;
@@ -33,12 +55,16 @@ interface Props {
   unidadePadrao?: string | null;
   unidades: { id: string; nome: string }[];
   cargos: { id: string; nome: string }[];
-  colaboradores: { id: string; nome: string; cargo_id?: string | null; unidade_id?: string | null }[];
+  colaboradores: ColaboradorOpcao[];
   /** Registro em edição; ausente = novo cadastro. */
   registro?: PessoaAvulsaPanorama | null;
   salvando?: boolean;
   /** Sugere horário de entrada/saída com base no histórico do cargo/unidade/dia da semana. */
   sugerirHorario?: (unidadeId: string, cargoId: string, data: string) => HorarioSugerido | null;
+  /** Horários que a pessoa já tem previstos no dia (escala, jornada, convocação, outro extra). */
+  previsaoDoDia?: (data: string, colaboradorId: string, ignorarAvulsoId?: string | null) => PrevisaoNoDia[];
+  /** Atalho para abrir a convocação já preenchida (intermitente/freelancer). */
+  onIrParaConvocacao?: (alvo: { unidadeId: string; cargoId: string; data: string; colaboradorId: string }) => void;
   onSalvar: (input: PessoaAvulsaInput) => void;
 }
 
@@ -70,6 +96,14 @@ const TIPO_RISCO: Partial<Record<PessoaAvulsaTipo, string>> = {
 const RISCO_GERAL =
   "Esta classificação é operacional e não substitui a formalização trabalhista aplicável. Dependendo das características reais da relação de trabalho, podem existir obrigações trabalhistas, previdenciárias ou contratuais. Em caso de dúvida, consulte seu contador, departamento pessoal ou assessoria jurídica.";
 
+/**
+ * Risco legal de lançar dia extra para contrato fixo (CLT): horas extras ou
+ * compensação precisam ser registradas e pagas; dias extras habituais fora da
+ * escala podem reforçar jornada maior que a contratada e virar passivo.
+ */
+const RISCO_EXTRA_CLT =
+  "Atenção: dia extra para contrato CLT tem risco legal. Essas horas precisam ser pagas como extras ou compensadas com registro, e dias extras frequentes fora da escala podem ser reconhecidos como jornada maior que a contratada, gerando passivo de horas extras. Em caso de dúvida, confirme com seu contador ou assessoria jurídica.";
+
 /** Motivos operacionais de cobertura (atestado não cria documento médico). */
 const COBRE_MOTIVO_LABEL: Record<string, string> = {
   folga: "Folga",
@@ -77,12 +111,6 @@ const COBRE_MOTIVO_LABEL: Record<string, string> = {
   atestado: "Atestado",
   outro: "Outro",
 };
-
-const hojeIso = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
-
 
 /**
  * Cadastro rápido de quem trabalhou no dia: colaborador cadastrado registrado
@@ -101,6 +129,8 @@ export function DpPessoaAvulsaDialog({
   registro,
   salvando,
   sugerirHorario,
+  previsaoDoDia,
+  onIrParaConvocacao,
   onSalvar,
 }: Props) {
   const [form, setForm] = useState({
@@ -128,7 +158,6 @@ export function DpPessoaAvulsaDialog({
 
 
   const manual = form.tipo === "registro_manual";
-  const hoje = hojeIso();
 
   /**
    * Disponibilidade ativa para a unidade da operação, por pessoa. A unidade
@@ -152,23 +181,28 @@ export function DpPessoaAvulsaDialog({
     [apoio.data, form.unidade_id, form.pessoa_apoio_id, liberacoesDaUnidade],
   );
 
-  /** Colaboradores da unidade + os liberados como apoio nessa unidade. */
+  /**
+   * Colaboradores da unidade + os liberados como apoio nessa unidade, e só
+   * quem tinha contrato válido na data lançada (admissão/desligamento). O
+   * registro em edição sempre aparece, mesmo que a pessoa já tenha saído.
+   */
   const colaboradoresDaUnidade = useMemo(
     () =>
       pessoasSelecionaveisNaUnidade(
-        colaboradores,
+        colaboradoresElegiveisNoDia(colaboradores, form.data_inicio),
         form.unidade_id || null,
         liberacoesDaUnidade.colaboradorIds,
-        form.colaborador_id || null,
+        form.colaborador_id || registro?.colaborador_id || null,
       ),
-    [colaboradores, form.unidade_id, form.colaborador_id, liberacoesDaUnidade],
+    [colaboradores, form.data_inicio, form.unidade_id, form.colaborador_id, registro?.colaborador_id, liberacoesDaUnidade],
   );
 
 
   useEffect(() => {
     if (!open) return;
     setHorarioTocado(false);
-    const dataBase = registro?.data_inicio ?? (dataInicial > hojeIso() ? hojeIso() : dataInicial);
+    // A data vem sempre do dia clicado na rotina — inclusive dias futuros.
+    const dataBase = registro?.data_inicio ?? dataInicial;
     setForm({
       nome: registro?.nome ?? "",
       telefone: registro?.telefone ?? "",
@@ -273,10 +307,70 @@ export function DpPessoaAvulsaDialog({
     }));
   };
 
+  /** Colaborador escolhido no tipo "Colaborador", com vínculo e datas. */
+  const selecionado = useMemo(
+    () => (manual && form.colaborador_id
+      ? colaboradores.find((c) => c.id === form.colaborador_id) ?? null
+      : null),
+    [manual, form.colaborador_id, colaboradores],
+  );
+
+  /** Trocar a data pode tornar inválida a pessoa escolhida (ex.: antes da admissão). */
+  useEffect(() => {
+    if (!open || !manual || !selecionado || !form.data_inicio) return;
+    if (colaboradorElegivelNoDia(selecionado, form.data_inicio)) return;
+    toast.info("Pessoa removida da seleção", {
+      description: `${selecionado.nome} não tinha vínculo válido em ${form.data_inicio.split("-").reverse().join("/")}.`,
+    });
+    setForm((f) => ({ ...f, colaborador_id: "" }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, manual, selecionado?.id, form.data_inicio]);
+
+  /** O que a pessoa já tem previsto no dia lançado (escala, jornada, convocação, outro extra). */
+  const previsoes = useMemo(
+    () =>
+      selecionado && previsaoDoDia && form.data_inicio
+        ? previsaoDoDia(form.data_inicio, selecionado.id, registro?.id ?? null)
+        : [],
+    [selecionado, previsaoDoDia, form.data_inicio, registro?.id],
+  );
+
+  const conflito = useMemo(
+    () => conflitoDeHorario(previsoes, form.entrada, form.saida, form.termina_no_dia_seguinte),
+    [previsoes, form.entrada, form.saida, form.termina_no_dia_seguinte],
+  );
+
+  const horarioSugeridoLivre = useMemo(
+    () => sugerirHorarioLivre(previsoes, form.entrada, form.saida, form.termina_no_dia_seguinte),
+    [previsoes, form.entrada, form.saida, form.termina_no_dia_seguinte],
+  );
+
+  const regimeSelecionado = selecionado?.regime ?? null;
+  const selecionadoSocio = !!selecionado?.socio;
+  const selecionadoConvocavel =
+    regimeSelecionado === "intermitente" || regimeSelecionado === "freelancer";
+  /** CLT formal (não sócio, não intermitente): dia extra tem risco legal a sinalizar. */
+  const selecionadoRiscoClt =
+    !!selecionado &&
+    !selecionadoSocio &&
+    regimeSelecionado !== "intermitente" &&
+    regimeFormalizado(regimeSelecionado);
+
+  const aplicarHorarioSugerido = () => {
+    if (!horarioSugeridoLivre) return;
+    setHorarioTocado(true);
+    setForm((f) => ({
+      ...f,
+      entrada: horarioSugeridoLivre.entrada,
+      saida: horarioSugeridoLivre.saida,
+      termina_no_dia_seguinte: horarioSugeridoLivre.termina_no_dia_seguinte,
+    }));
+  };
+
   const salvar = async () => {
-    if (manual && form.data_fim > hoje) {
-      toast.error("Data futura não permitida", {
-        description: "Para dias futuros use a convocação ou a escala.",
+    if (conflito) {
+      toast.error("Horário em conflito", {
+        description: "Ajuste o horário para um período livre antes de salvar.",
       });
       return;
     }
@@ -391,13 +485,84 @@ export function DpPessoaAvulsaDialog({
                   {colaboradoresDaUnidade.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.nome}
+                      {foiDesligado(c, form.data_inicio)
+                        ? ` — desligado em ${c.data_desligamento!.split("-").reverse().slice(0, 2).join("/")}`
+                        : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Só para hoje ou dias que já passaram. Não gera convocação, ponto nem folha.
+                Só aparecem pessoas com vínculo válido na data lançada. Não gera convocação, ponto nem folha.
               </p>
+
+              {selecionadoConvocavel && onIrParaConvocacao && form.unidade_id && form.cargo_id && (
+                <div className="flex items-start gap-2 rounded-md border border-blue-500/40 bg-blue-500/5 p-2.5 text-xs">
+                  <Megaphone className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600" />
+                  <div className="flex-1 space-y-1.5">
+                    <p className="text-muted-foreground">
+                      {selecionado?.nome} trabalha por convocação ({regimeSelecionado === "intermitente" ? "intermitente" : "freelancer"}).
+                      O caminho recomendado é convocar, para ela aceitar pelo portal.
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        onIrParaConvocacao({
+                          unidadeId: form.unidade_id,
+                          cargoId: form.cargo_id,
+                          data: form.data_inicio,
+                          colaboradorId: selecionado!.id,
+                        })
+                      }
+                    >
+                      Abrir convocação preenchida
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {selecionadoRiscoClt && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+                  <p className="text-muted-foreground">{RISCO_EXTRA_CLT}</p>
+                </div>
+              )}
+
+              {selecionado && previsoes.length > 0 && (
+                <div
+                  className={`space-y-1 rounded-md border p-2.5 text-xs ${
+                    conflito
+                      ? "border-destructive/50 bg-destructive/5"
+                      : "border-muted bg-muted/30"
+                  }`}
+                >
+                  {previsoes.map((p, i) => (
+                    <p key={i} className={conflito ? "text-destructive" : "text-muted-foreground"}>
+                      {descreverPrevisao(selecionado.nome, p)}
+                    </p>
+                  ))}
+                  {conflito && (
+                    <div className="space-y-1.5 pt-1">
+                      <p className="font-medium text-destructive">
+                        O horário digitado se sobrepõe a essa previsão — ajuste antes de salvar.
+                      </p>
+                      {horarioSugeridoLivre && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={aplicarHorarioSugerido}
+                        >
+                          Usar horário livre: {horarioSugeridoLivre.entrada} às {horarioSugeridoLivre.saida}
+                          {horarioSugeridoLivre.termina_no_dia_seguinte ? " (termina no dia seguinte)" : ""}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -564,7 +729,6 @@ export function DpPessoaAvulsaDialog({
               <Label>Data inicial *</Label>
               <Input
                 type="date"
-                max={manual ? hoje : undefined}
                 value={form.data_inicio}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -580,7 +744,6 @@ export function DpPessoaAvulsaDialog({
               <Input
                 type="date"
                 min={form.data_inicio || undefined}
-                max={manual ? hoje : undefined}
                 value={form.data_fim}
                 onChange={(e) => setForm({ ...form, data_fim: e.target.value })}
               />
@@ -644,7 +807,7 @@ export function DpPessoaAvulsaDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={salvando}>
             Cancelar
           </Button>
-          <Button onClick={salvar} disabled={salvando}>
+          <Button onClick={salvar} disabled={salvando || !!conflito}>
             {salvando ? "Salvando..." : registro ? "Salvar" : "Registrar"}
           </Button>
         </DialogFooter>

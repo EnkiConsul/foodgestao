@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -55,6 +55,7 @@ import {
 } from "@/lib/dp/operacao-panorama";
 import { TIPO_LABEL, ESTADO_LABEL, TIPOS_PREVISAO } from "@/lib/dp/ocorrencias";
 import { DpPessoaAvulsaDialog } from "@/components/dp/DpPessoaAvulsaDialog";
+import { previsaoNoDia, type PrevisaoNoDia } from "@/lib/dp/operacao-extra";
 import type { PessoaAvulsaInput } from "@/hooks/useDpOperacaoPanorama";
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
@@ -966,6 +967,41 @@ export default function DpOperacaoPanorama() {
         toast.error(traduzirErroSetor(e as { message?: string }), { id: "rotina-avulsa-salvar" }),
     });
 
+  /** Horários que a pessoa já tem previstos no dia — alimenta o alerta de conflito. */
+  const previsaoDoDia = useCallback(
+    (data: string, colaboradorId: string, ignorarAvulsoId?: string | null): PrevisaoNoDia[] =>
+      previsaoNoDia(
+        panorama.dias.find((d) => d.data === data) ?? null,
+        colaboradorId,
+        ignorarAvulsoId,
+      ),
+    [panorama.dias],
+  );
+
+  /**
+   * Intermitente/freelancer lançado manualmente: atalho para a convocação já
+   * preenchida. Fecha o diálogo atual e navega com a pessoa pré-selecionada.
+   */
+  const irParaConvocacao = (alvo: {
+    unidadeId: string;
+    cargoId: string;
+    data: string;
+    colaboradorId: string;
+  }) => {
+    setAvulsaOpen(false);
+    setAvulsaEditando(null);
+    navigate("/dp/escalas/convocacoes", {
+      state: {
+        nova: {
+          unidadeId: alvo.unidadeId,
+          cargoId: alvo.cargoId,
+          datas: [alvo.data],
+          colaboradorId: alvo.colaboradorId,
+        },
+      },
+    });
+  };
+
   const excluirAvulsa = (registro: PessoaAvulsaPanorama) =>
     panorama.excluirAvulsa.mutate(registro.id, {
       onSuccess: () => toast.success("Pessoa removida do dia.", { id: "rotina-avulsa-remover" }),
@@ -1092,6 +1128,8 @@ export default function DpOperacaoPanorama() {
         colaboradores={panorama.colaboradores}
         registro={avulsaEditando}
         salvando={panorama.salvarAvulsa.isPending}
+        previsaoDoDia={previsaoDoDia}
+        onIrParaConvocacao={irParaConvocacao}
         sugerirHorario={panorama.sugerirHorario}
         onSalvar={salvarAvulsa}
       />
