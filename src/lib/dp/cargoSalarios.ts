@@ -151,6 +151,31 @@ export function salarioCargoNaUnidade(
   };
 }
 
+/**
+ * Referência salarial do cargo de sócio numa unidade.
+ *
+ * Sócio não tem piso de sindicato: o valor é a referência da própria empresa
+ * para aquele cargo naquela unidade (pró-labore de referência).
+ */
+export function salarioSocioNaUnidade(
+  linhas: CargoSalarioLinha[] | null | undefined,
+  unidadeId: string | null | undefined,
+  data: string = hoje(),
+  opts?: ResolucaoOpts,
+): SalarioResolvido {
+  const linhaUnidade = ajusteDaUnidade(linhas ?? [], unidadeId, data, opts);
+  const valor = linhaUnidade && linhaUnidade.salario_base > 0 ? Number(linhaUnidade.salario_base) : null;
+  return {
+    valor,
+    origem: valor == null ? "pendente" : "empresa",
+    pisoPatronal: null,
+    linhaPatronal: null,
+    linhaUnidade: valor == null ? null : linhaUnidade,
+    faltaPisoPatronal: false,
+    semPatronalVinculado: false,
+  };
+}
+
 /** Tolerância de centavos. */
 const TOL = 0.005;
 
@@ -162,14 +187,17 @@ export type ValidacaoOverride =
 
 /**
  * O ajuste de uma unidade só é aceito se houver piso do patronal cadastrado e o
- * valor não ficar abaixo dele (o piso sindical é mínimo, não teto).
+ * valor não ficar abaixo dele (o piso sindical é mínimo, não teto). Cargos de
+ * sócio não têm convenção: passe `exigePisoPatronal: false`.
  */
 export function validarOverrideUnidade(
   valor: number | null | undefined,
   pisoPatronal: number | null | undefined,
+  opts?: { exigePisoPatronal?: boolean },
 ): ValidacaoOverride {
   const v = valor == null ? 0 : Number(valor);
   if (!v || v <= 0) return { ok: false, motivo: "valor_invalido" };
+  if (opts?.exigePisoPatronal === false) return { ok: true };
   if (pisoPatronal == null || pisoPatronal <= 0) return { ok: false, motivo: "sem_piso_patronal" };
   if (v + TOL < pisoPatronal) return { ok: false, motivo: "abaixo_do_piso", piso: Number(pisoPatronal) };
   return { ok: true };
