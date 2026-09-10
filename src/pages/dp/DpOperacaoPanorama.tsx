@@ -350,6 +350,9 @@ interface DetalheDiaProps {
   nomeUnidade: string | null;
   ordemCards: string[];
   onReordenarCards: (next: string[]) => void;
+  /** Cards com valor zero ficam ocultos até o gestor pedir para ver. */
+  mostrarZerados: boolean;
+  onAlternarZerados: () => void;
   onVerCategoria: (cat: CategoriaDia) => void;
   onVerSocios: () => void;
   onVerAvulso: (tipo: "avulso_teste" | "avulso_folguista") => void;
