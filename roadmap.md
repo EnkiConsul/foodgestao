@@ -13,3 +13,9 @@
 - [x] `ColaboradorFormDialog.tsx` — histórico de solicitações datadas (gestor pode retroativo)
 - [x] Portal: solicitação de ativar/cancelar adiantamento em `DpMeuSolicitacoes` (hoje/futuro, 5 dias de antecedência)
 - [x] Testes de `adiantamento-opcao` + typecheck e suíte DP
+
+## Condições de trabalho (10/2026)
+- [x] Migração: histórico com turno, carga semanal, folga, sindicato, equipe habitual, dias e benefícios; RPC `dp_colaborador_aplicar_condicao` ampliada (versão antiga removida)
+- [x] `src/lib/dp/jornadaParcial.ts` + testes — salário proporcional às horas e base mensal sugerida
+- [x] `useDpColaboradorCondicoes.tsx` — novos campos e invalidações de jornada/benefícios/escala
+- [x] `ColaboradorCondicoesDialog.tsx` — abas Contrato, Jornada, Pagamento, Benefícios e Histórico
