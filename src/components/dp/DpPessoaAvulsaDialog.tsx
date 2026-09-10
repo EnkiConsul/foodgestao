@@ -164,7 +164,6 @@ export function DpPessoaAvulsaDialog({
 
 
   const manual = form.tipo === "registro_manual";
-  const hoje = hojeIso();
 
   /**
    * Disponibilidade ativa para a unidade da operação, por pessoa. A unidade
@@ -492,13 +491,84 @@ export function DpPessoaAvulsaDialog({
                   {colaboradoresDaUnidade.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.nome}
+                      {foiDesligado(c, form.data_inicio)
+                        ? ` — desligado em ${c.data_desligamento!.split("-").reverse().slice(0, 2).join("/")}`
+                        : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Só para hoje ou dias que já passaram. Não gera convocação, ponto nem folha.
+                Só aparecem pessoas com vínculo válido na data lançada. Não gera convocação, ponto nem folha.
               </p>
+
+              {selecionadoConvocavel && onIrParaConvocacao && form.unidade_id && form.cargo_id && (
+                <div className="flex items-start gap-2 rounded-md border border-blue-500/40 bg-blue-500/5 p-2.5 text-xs">
+                  <Megaphone className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600" />
+                  <div className="flex-1 space-y-1.5">
+                    <p className="text-muted-foreground">
+                      {selecionado?.nome} trabalha por convocação ({regimeSelecionado === "intermitente" ? "intermitente" : "freelancer"}).
+                      O caminho recomendado é convocar, para ela aceitar pelo portal.
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        onIrParaConvocacao({
+                          unidadeId: form.unidade_id,
+                          cargoId: form.cargo_id,
+                          data: form.data_inicio,
+                          colaboradorId: selecionado!.id,
+                        })
+                      }
+                    >
+                      Abrir convocação preenchida
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {selecionadoRiscoClt && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+                  <p className="text-muted-foreground">{RISCO_EXTRA_CLT}</p>
+                </div>
+              )}
+
+              {selecionado && previsoes.length > 0 && (
+                <div
+                  className={`space-y-1 rounded-md border p-2.5 text-xs ${
+                    conflito
+                      ? "border-destructive/50 bg-destructive/5"
+                      : "border-muted bg-muted/30"
+                  }`}
+                >
+                  {previsoes.map((p, i) => (
+                    <p key={i} className={conflito ? "text-destructive" : "text-muted-foreground"}>
+                      {descreverPrevisao(selecionado.nome, p)}
+                    </p>
+                  ))}
+                  {conflito && (
+                    <div className="space-y-1.5 pt-1">
+                      <p className="font-medium text-destructive">
+                        O horário digitado se sobrepõe a essa previsão — ajuste antes de salvar.
+                      </p>
+                      {horarioSugeridoLivre && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={aplicarHorarioSugerido}
+                        >
+                          Usar horário livre: {horarioSugeridoLivre.entrada} às {horarioSugeridoLivre.saida}
+                          {horarioSugeridoLivre.termina_no_dia_seguinte ? " (termina no dia seguinte)" : ""}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <>
