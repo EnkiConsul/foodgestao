@@ -199,14 +199,14 @@ export default function DpMensagens() {
                         <p className="text-xs text-muted-foreground">{TIPO_DETALHES[tipo]}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => duplicarModelo(m)} title="Duplicar">
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => duplicarModelo(m)} title="Duplicar">
                         <Copy className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => editarModelo(m)} title="Editar">
+                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => editarModelo(m)} title="Editar">
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setToDelete(m)} title="Excluir">
+                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => setToDelete(m)} title="Excluir">
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
