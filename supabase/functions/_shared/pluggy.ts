@@ -1,4 +1,8 @@
 // Shared Pluggy REST client helper
+import { nextTransactionsPath, readNextPointer } from "./pluggy-cursor.ts";
+
+export { nextTransactionsPath, readNextPointer };
+
 const PLUGGY_API = "https://api.pluggy.ai";
 
 let cachedApiKey: { token: string; expiresAt: number } | null = null;
