@@ -44,7 +44,8 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
 
   const isDesligado = !!colaborador?.data_desligamento || colaborador?.ativo === false;
 
-  const [data, setData] = useState(() => toDateOnly(new Date()));
+  // A data nunca vem sugerida: só o gestor informa, manualmente.
+  const [data, setData] = useState("");
   const [motivo, setMotivo] = useState<string>(NONE);
   const [elegibilidade, setElegibilidade] = useState<string>(NONE);
   const [observacao, setObservacao] = useState("");
@@ -54,7 +55,7 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
 
   useEffect(() => {
     if (!colaborador) return;
-    setData(colaborador.data_desligamento ?? toDateOnly(new Date()));
+    setData(colaborador.data_desligamento ?? "");
     setMotivo(colaborador.motivo_desligamento ?? NONE);
     setElegibilidade((colaborador as any).elegivel_recontratacao ?? NONE);
     setObservacao((colaborador as any).observacao_desligamento ?? "");
