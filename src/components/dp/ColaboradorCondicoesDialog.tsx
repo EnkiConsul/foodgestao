@@ -647,7 +647,9 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {regimesDisponiveis.map((r) => (
-                      <SelectItem key={r} value={r}>{contratoPolicy(r).label}</SelectItem>
+                      <SelectItem key={r} value={r}>
+                        {rotuloRegimeMudanca(r)}{r === regimeAtual ? " (atual)" : ""}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
