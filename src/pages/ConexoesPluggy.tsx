@@ -428,6 +428,11 @@ export default function ConexoesPluggy() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold truncate">{c.connector_name ?? "Banco"}</p>
                       <Badge variant="outline" className={st.className}>{st.label}</Badge>
+                      {c.execution_status === "PARTIAL_SUCCESS" && (
+                        <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">
+                          Parcial — parte das contas não veio
+                        </Badge>
+                      )}
                       {m.pending > 0 && (
                         <Badge className="bg-warning/15 text-warning border-warning/30">
                           {m.pending} pendente(s)
