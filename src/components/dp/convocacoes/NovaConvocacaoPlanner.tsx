@@ -1148,20 +1148,12 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
               </div>
 
               {foraDaAntecedencia.length > 0 && (
-                <Alert variant="destructive">
+                <Alert>
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription className="space-y-2 text-xs">
-                    <p>
-                      {foraDaAntecedencia.length} dia(s) abaixo da antecedência mínima de{" "}
-                      {antecedenciaMinima} dias. A publicação segue permitida, com registro da
-                      exceção{exigeJustificativa ? " e justificativa obrigatória" : ""}.
-                    </p>
-                    <Textarea
-                      rows={2}
-                      placeholder="Justificativa da exceção"
-                      value={justificativa}
-                      onChange={(e) => setJustificativa(e.target.value)}
-                    />
+                  <AlertDescription className="text-xs">
+                    {foraDaAntecedencia.length} dia(s) em cima da hora (menos de{" "}
+                    {antecedenciaMinima} dia(s) de antecedência). A publicação segue permitida
+                    {exigeJustificativa ? " — a justificativa é pedida em “Revisar e publicar”." : "."}
                   </AlertDescription>
                 </Alert>
               )}
