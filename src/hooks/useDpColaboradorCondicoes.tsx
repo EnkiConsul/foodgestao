@@ -47,7 +47,10 @@ export interface AplicarCondicaoInput {
   compoe_equipe_habitual?: boolean | null;
   dias?: CondicaoDiaInput[] | null;
   beneficios?: CondicaoBeneficioInput[] | null;
+  /** "continuidade" mantém a contagem; "novo_contrato" recomeça férias/13º/tempo de casa. */
+  modo_continuidade?: "continuidade" | "novo_contrato";
 }
+
 
 /**
  * Histórico de condições de trabalho do colaborador (vínculo, cargo, unidade,
