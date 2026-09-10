@@ -250,6 +250,12 @@ export function RevisaoConvocacao(props: Props) {
               .filter((v, i, arr) => arr.indexOf(v) === i)
               .join(", ")}
           </p>
+          {justificadaEm && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Exceção já justificada em{" "}
+              {new Date(justificadaEm).toLocaleDateString("pt-BR")} — você pode manter ou editar.
+            </p>
+          )}
           <label className="mt-2 flex items-start gap-2 text-xs font-medium">
             <Checkbox checked={ciente} onCheckedChange={(v) => onCienteChange(v === true)} />
             <span>Estou ciente e quero publicar mesmo assim</span>
