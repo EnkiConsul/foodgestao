@@ -6,8 +6,8 @@ describe("deveReconciliarPisoCargo", () => {
     expect(deveReconciliarPisoCargo({ socio: false, unidadeId: "uni-1" })).toBe(true);
   });
 
-  it("sócio nunca entra, mesmo com unidade", () => {
-    expect(deveReconciliarPisoCargo({ socio: true, unidadeId: "uni-1" })).toBe(false);
+  it("sócio com unidade entra, pela referência da empresa", () => {
+    expect(deveReconciliarPisoCargo({ socio: true, unidadeId: "uni-1" })).toBe(true);
   });
 
   it("sem unidade específica não há patronal para o piso", () => {
