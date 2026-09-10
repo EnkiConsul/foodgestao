@@ -295,16 +295,6 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
 
 
 
-  const proporcional = useMemo(
-    () =>
-      salarioProporcional({
-        salarioCargo,
-        cargaSemanal: num(cargaSemanal),
-        cargaBaseCargo: cargoSelecionado?.carga_horaria_semanal ?? null,
-        baseHorasMes: num(baseHoras) ?? baseHorasMesSugerida(num(cargaSemanal)),
-      }),
-    [salarioCargo, cargaSemanal, cargoSelecionado?.carga_horaria_semanal, baseHoras],
-  );
 
   /** Preenche remuneração e base mensal com o resultado proporcional. */
   const aplicarProporcional = () => {
