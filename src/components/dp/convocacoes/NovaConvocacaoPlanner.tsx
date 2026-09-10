@@ -234,6 +234,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
         setCargoIds([inicial.cargoId]);
         setCargoAtivo(inicial.cargoId);
       }
+      // Vindo do lançamento manual na rotina: já deixa a pessoa selecionada.
+      if (inicial.colaboradorId) setDestinatarios([inicial.colaboradorId]);
       if (datas.length) {
         const [a, m] = datas[0].split("-").map(Number);
         setAno(a);
@@ -265,7 +267,9 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
   useEffect(() => {
     if (!open || !grupo) return;
-    if (destinatariosSalvos.data?.globais) setDestinatarios(destinatariosSalvos.data.globais);
+    // Não sobrescreve quem já veio pré-selecionado (ex.: atalho da rotina do dia).
+    if (destinatariosSalvos.data?.globais)
+      setDestinatarios((prev) => (prev.length ? prev : destinatariosSalvos.data!.globais));
     if (destinatariosSalvos.data?.niveis) setNiveis(destinatariosSalvos.data.niveis);
     setIntervaloNiveisHoras(grupo.intervalo_niveis_horas ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
