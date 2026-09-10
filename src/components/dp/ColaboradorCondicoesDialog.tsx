@@ -143,7 +143,10 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
         : "",
     );
     setJustificativa("");
+    setModo("continuidade");
+    tocados.current = new Set();
   }, [open, colaborador]);
+
 
   // Jornada e equipe vêm da configuração de trabalho vigente.
   useEffect(() => {
