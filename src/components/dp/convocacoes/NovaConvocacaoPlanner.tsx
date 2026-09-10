@@ -60,7 +60,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   /** Pré-preenchimento vindo de outra tela (ex.: cobertura de férias). */
-  inicial?: { unidadeId?: string | null; cargoId?: string | null; datas?: string[] } | null;
+  inicial?: { unidadeId?: string | null; cargoId?: string | null; datas?: string[]; colaboradorId?: string | null } | null;
   onSalvo?: (grupoId: string) => void;
   /** Quando presente, edita o rascunho existente (nunca cria outro). */
   grupo?: GrupoComOcorrencias | null;
@@ -280,16 +280,27 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const preview = useDpConvocacaoPreview({ unidadeId, inicio: limites.inicio, fim: limites.fim });
 
   // ------------------------------------------------------------ pessoas convocáveis
+  /** Menor data planejada — quem saiu antes dela não pode ser convocado. */
+  const menorDataPlanejada = useMemo(() => {
+    const datas = Object.values(dias)
+      .map((d) => d.data)
+      .filter(Boolean)
+      .sort();
+    return datas[0] ?? null;
+  }, [dias]);
+
   const convocaveis = useMemo(
     () =>
       (colaboradores.data ?? []).filter(
         (c: any) =>
           regimeConvocavel(c.regime) &&
           c.ativo !== false &&
+          // Desligado antes da primeira data planejada não entra na lista.
+          !(c.data_desligamento && c.data_desligamento < (menorDataPlanejada ?? "9999-12-31")) &&
           (!unidadeId || c.unidade_id === unidadeId) &&
           (cargoIds.length === 0 || (c.cargo_id && cargoIds.includes(c.cargo_id))),
       ),
-    [colaboradores.data, unidadeId, cargoIds],
+    [colaboradores.data, unidadeId, cargoIds, menorDataPlanejada],
   );
 
   // Seleção nunca guarda quem deixou de ser elegível pelos filtros.
