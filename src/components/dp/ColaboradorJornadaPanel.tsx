@@ -26,7 +26,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { useDpModelosHorario, type ModeloHorarioColaborador } from "@/hooks/useDpModelosHorario";
-import { chaveHorarioBase, contarHorariosBase, horarioBaseMaisComum, sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
+import { chaveHorarioBase, contarHorariosBase, horarioBaseMaisComum, sugerirModeloHorario, assinaturaSemana } from "@/lib/dp/modeloHorarioRanking";
 import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { formatarFaixaTurno, intervaloAbaixoDoLegal } from "@/lib/dp/turno-utils";
@@ -57,26 +57,6 @@ const HORARIO_VAZIO: HorarioSimples = { entrada: "", saida: "", intervalo_minuto
 
 /** Só o primeiro nome cabe no atalho — o nome completo fica no title. */
 const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] || nome;
-
-/**
- * Identidade do horário de um colega, usada só para deduplicar os atalhos.
- *
- * Compara apenas horários (base + as variações de entrada/saída/intervalo dos
- * dias trabalhados) e ignora quais dias são folga: dois colegas com exatamente
- * o mesmo horário aparecem uma única vez na fileira, mesmo folgando em dias
- * diferentes. A cópia em si continua trazendo folgas e overrides.
- */
-function assinaturaSemana(m: ModeloHorarioColaborador): string {
-  const base = m.horario
-    ? `${m.horario.entrada}-${m.horario.saida}-${m.horario.intervalo_minutos ?? 0}`
-    : "sem-base";
-  const variacoes = [...new Set(
-    m.dias
-      .filter((d) => d.trabalha && (d.entrada || d.saida))
-      .map((d) => `${d.entrada ?? "="}-${d.saida ?? "="}-${d.intervalo_minutos ?? "="}`),
-  )].sort().join("|");
-  return `${base}#${variacoes}`;
-}
 
 
 /** Dias do colega com horário diferente do horário base dele. */
@@ -216,7 +196,7 @@ export function ColaboradorJornadaPanel({
    * "o horário da Cristiane", não a faixa de horas solta.
    */
   const unidadeIdModelo = unidadeId === "none" ? colaborador?.unidade_id ?? null : unidadeId;
-  const { modelos } = useDpModelosHorario(unidadeIdModelo, colaborador?.id ?? null);
+  const { modelos } = useDpModelosHorario(unidadeIdModelo, colaborador?.id ?? null, !isSocio(colaborador?.vinculo_label));
   const atalhosColegas = useMemo(() => {
     const cargoId = colaborador?.cargo_id ?? null;
     // Quantos colegas usam cada horário base: o horário da loja é o mais
