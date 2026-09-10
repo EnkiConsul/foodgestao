@@ -71,6 +71,8 @@ interface Props {
   /** Ciência de que a convocação é em cima da hora. */
   ciente: boolean;
   onCienteChange: (v: boolean) => void;
+  /** Data em que a exceção já foi registrada neste rascunho, se houver. */
+  justificadaEm?: string | null;
 
   /** Verificação prévia feita pelo banco (mesma regra da publicação). */
   preAvaliacao: PreAvaliacaoLinha[];
