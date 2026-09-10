@@ -791,4 +791,39 @@ describe("setor da pessoa avulsa e agrupamento da equipe", () => {
     const porCargo = agruparEquipe(pessoas, "cargo");
     expect(porCargo).toHaveLength(1);
   });
+
+  it("registro manual de colaborador usa o setor lançado naquele dia", () => {
+    const colab: ColaboradorPanorama = { ...fixo("a"), setor_id: "s2" };
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [colab],
+      turnos,
+      setores,
+      ...vazio,
+      avulsos: [
+        avulsa({ id: "av9", tipo: "registro_manual", nome: null, colaborador_id: "a", setor_id: "s1" }),
+      ],
+    });
+    const p = r.pessoas.find((x) => x.colaborador_id === "a");
+    expect(p?.setor_id).toBe("s1");
+    expect(p?.setor_nome).toBe("Salão");
+    expect(p?.setor_origem).toBe("escala");
+    expect(p?.setor_habitual_id).toBe("s2");
+    expect(agruparEquipe(r.pessoas, "setor")[0].setor_id).toBe("s1");
+  });
+
+  it("registro manual sem setor lançado mantém o setor habitual do cadastro", () => {
+    const colab: ColaboradorPanorama = { ...fixo("a"), setor_id: "s2" };
+    const r = contarDia({
+      data: SEGUNDA,
+      colaboradores: [colab],
+      turnos,
+      setores,
+      ...vazio,
+      avulsos: [avulsa({ id: "av9", tipo: "registro_manual", nome: null, colaborador_id: "a" })],
+    });
+    const p = r.pessoas.find((x) => x.colaborador_id === "a");
+    expect(p?.setor_id).toBe("s2");
+    expect(p?.setor_origem).toBe("cadastro");
+  });
 });
