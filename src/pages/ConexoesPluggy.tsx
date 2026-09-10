@@ -24,6 +24,7 @@ interface Connection {
   connector_name: string | null;
   connector_image_url: string | null;
   status: string;
+  execution_status: string | null;
   last_synced_at: string | null;
   last_sync_attempt_at: string | null;
   next_sync_at: string | null;
@@ -31,6 +32,22 @@ interface Connection {
   last_sync_error: string | null;
   last_error: any;
   revoked_at?: string | null;
+}
+
+/**
+ * Motivo da última tentativa em linguagem simples. O código técnico do
+ * provedor não diz nada ao usuário: "bank_unavailable" é o banco fora do ar,
+ * não um problema da conta dele.
+ */
+function motivoAmigavel(c: Connection): string | null {
+  const st = c.last_sync_status;
+  if (!st || st === "success") return null;
+  if (st === "bank_unavailable") return "Banco indisponível no momento — tentaremos de novo automaticamente";
+  if (st === "item_error" || c.status === "login_error") return "Reconectar: o banco pediu nova autorização";
+  if (st === "waiting_user_input") return "O banco está aguardando a confirmação no app dele";
+  if (st === "dead_letter") return "Não conseguimos sincronizar após várias tentativas";
+  if (st === "skipped_paused") return "Sincronização pausada nesta conta";
+  return "A última tentativa não foi concluída";
 }
 
 /**
