@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.dp_colaborador_aplicar_condicao(uuid, date, text, text, uuid, uuid, uuid, numeric, numeric, numeric, numeric, text, text);
