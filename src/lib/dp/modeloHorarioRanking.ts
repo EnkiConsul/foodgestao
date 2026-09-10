@@ -122,3 +122,23 @@ export function contarHorariosUsados<T extends ModeloHorarioRanking>(modelos: T[
   }
   return out;
 }
+
+/**
+ * Identidade do horário de um colega, usada só para deduplicar os atalhos
+ * "copiar o horário de": compara os horários (base + as variações de
+ * entrada/saída/intervalo dos dias trabalhados) e ignora quais dias são folga.
+ * Dois colegas com exatamente o mesmo horário aparecem uma única vez, mesmo
+ * folgando em dias diferentes. A cópia em si continua trazendo folgas e
+ * horários próprios.
+ */
+export function assinaturaSemana(m: Pick<ModeloHorarioRanking, "horario" | "dias">): string {
+  const base = m.horario
+    ? `${m.horario.entrada}-${m.horario.saida}-${m.horario.intervalo_minutos ?? 0}`
+    : "sem-base";
+  const variacoes = [...new Set(
+    m.dias
+      .filter((d) => d.trabalha && (d.entrada || d.saida))
+      .map((d) => `${d.entrada ?? "="}-${d.saida ?? "="}-${d.intervalo_minutos ?? "="}`),
+  )].sort().join("|");
+  return `${base}#${variacoes}`;
+}
