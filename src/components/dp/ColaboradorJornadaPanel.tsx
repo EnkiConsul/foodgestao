@@ -432,6 +432,7 @@ export function ColaboradorJornadaPanel({
     return verificarAlertasClt({
       idade,
       regime: colaborador?.regime,
+      socio: isSocio(colaborador?.vinculo_label),
       folgaVariavel,
       dias: dias.map((d) => {
         const t = turnoDoDia(d, turnoPadraoTela.id, turnosTela);
