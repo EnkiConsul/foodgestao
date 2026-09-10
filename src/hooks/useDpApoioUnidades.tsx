@@ -80,7 +80,7 @@ export function useDpApoioUnidades(opts?: {
       if (opts?.apenasSocio) q = q.eq("socio", true);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as ApoioUnidade[];
+      return (data ?? []) as unknown as ApoioUnidade[];
     },
   });
 }
