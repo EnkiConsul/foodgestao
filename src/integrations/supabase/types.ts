@@ -15262,6 +15262,10 @@ export type Database = {
         Args: { _regime: Database["public"]["Enums"]["dp_regime_trabalho"] }
         Returns: boolean
       }
+      dp_regime_formalizado: {
+        Args: { p_regime: Database["public"]["Enums"]["dp_regime_trabalho"] }
+        Returns: boolean
+      }
       dp_regra_bloqueia_data: {
         Args: { _company_id: string; _data: string; _unidade_id: string }
         Returns: boolean
