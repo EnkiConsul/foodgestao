@@ -19,6 +19,8 @@ export interface ModeloHorarioColaborador {
   horario: HorarioSimples | null;
   /** Semana completa, já com as exceções de horário por dia. */
   dias: DiaConfig[];
+  /** Sócio não tem jornada contratual: nunca é fonte de cópia para colaborador. */
+  socio: boolean;
   usado_em: string;
 }
 
