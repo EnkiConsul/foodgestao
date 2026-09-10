@@ -178,6 +178,8 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
 
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [showInterSteps, setShowInterSteps] = useState(false);
+  const [dupConflicts, setDupConflicts] = useState<DuplicateConflict[] | null>(null);
+  const dupResolveRef = useRef<((autorizado: boolean) => void) | null>(null);
   const instanceRef = useRef<any>(null);
   const launchedRef = useRef(false);
   const finishedRef = useRef(false);
