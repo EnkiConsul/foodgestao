@@ -807,7 +807,7 @@ export function DpPessoaAvulsaDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={salvando}>
             Cancelar
           </Button>
-          <Button onClick={salvar} disabled={salvando}>
+          <Button onClick={salvar} disabled={salvando || !!conflito}>
             {salvando ? "Salvando..." : registro ? "Salvar" : "Registrar"}
           </Button>
         </DialogFooter>
