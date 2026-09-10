@@ -26,7 +26,7 @@ import { snapshotColegaBeneficios } from "@/lib/dp/isonomia-snapshot";
 import { itensIsonomiaDoCadastro } from "@/hooks/useDpIsonomiaBeneficios";
 import { BeneficioDispensaDialog, type DispensaBeneficio, type MotivoIsonomiaEscolhido } from "@/components/dp/BeneficioDispensaDialog";
 import { useDpUnidades, useDpCargos, useUpsertDpCargo, usePropagarRiscosCargo, useDpCargoSalarios, useUpsertDpCargoSalario, useDpPatronalPorUnidade, useDpSindicatos, type DpCargo } from "@/hooks/useDpCadastros";
-import { salarioCargoNaUnidade, mensagemErroPiso, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
+import { salarioCargoNaUnidade, salarioSocioNaUnidade, mensagemErroPiso, rotuloSalarioCargo, agruparPisosPorCargo } from "@/lib/dp/cargoSalarios";
 
 import { useDpBeneficios, type Beneficio } from "@/hooks/useDpBeneficios";
 import { BeneficioDialog } from "@/components/dp/beneficios/BeneficiosDialogs";
@@ -763,16 +763,25 @@ export function ColaboradorFormDialog({
     : null;
   const refSalario = useMemo(
     () =>
-      salarioCargoNaUnidade(
-        (pisosCargo.data ?? []) as any,
-        form.unidade_id || null,
-        patronalUnidade?.id ?? null,
-        form.data_admissao || undefined,
-        // Piso já negociado com vigência posterior à admissão continua sendo a
-        // referência do cargo — não faz sentido pedir novo cadastro.
-        { aceitarFuturo: true },
-      ),
-    [pisosCargo.data, form.unidade_id, patronalUnidade?.id, form.data_admissao],
+      // Sócio não tem convenção coletiva: a referência é da própria empresa,
+      // por unidade (pró-labore de referência do cargo de sócio).
+      socioSelecionado
+        ? salarioSocioNaUnidade(
+            (pisosCargo.data ?? []) as any,
+            form.unidade_id || null,
+            form.data_admissao || undefined,
+            { aceitarFuturo: true },
+          )
+        : salarioCargoNaUnidade(
+            (pisosCargo.data ?? []) as any,
+            form.unidade_id || null,
+            patronalUnidade?.id ?? null,
+            form.data_admissao || undefined,
+            // Piso já negociado com vigência posterior à admissão continua sendo a
+            // referência do cargo — não faz sentido pedir novo cadastro.
+            { aceitarFuturo: true },
+          ),
+    [pisosCargo.data, form.unidade_id, patronalUnidade?.id, form.data_admissao, socioSelecionado],
   );
   const salarioCargo = refSalario.valor;
   const cargoParaComparacao = cargoSelecionado
@@ -1815,9 +1824,9 @@ export function ColaboradorFormDialog({
 
 
 
-          {/* Datas */}
+          {/* Datas — no sócio a data marca a entrada na sociedade, não admissão. */}
           <div className="space-y-2">
-            <Label>Data de Admissão *</Label>
+            <Label>{socioSelecionado ? "Início na Sociedade *" : "Data de Admissão *"}</Label>
             <Input
               type="date"
               value={form.data_admissao}
@@ -1825,6 +1834,11 @@ export function ColaboradorFormDialog({
 
               onChange={(e) => setForm({ ...form, data_admissao: e.target.value })}
             />
+            {socioSelecionado && (
+              <p className="text-[11px] text-muted-foreground">
+                Data em que o sócio passou a integrar a sociedade — usada como marco de tempo e histórico.
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Data de Nascimento *</Label>
