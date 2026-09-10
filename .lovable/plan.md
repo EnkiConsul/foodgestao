@@ -31,6 +31,10 @@ Hoje a conferência de salário do cargo é ignorada para sócio, então salvar 
 
 Para cargos de sócio, todo texto e regra de piso deixa de citar sindicato patronal e passa a ser **referência/piso da empresa** por unidade: sem exigência de sindicato patronal vinculado, sem aviso de "cargo sem piso no sindicato", e a gravação da referência não fica presa a um sindicato.
 
+## 5. Horário do sócio sem pontos de atenção trabalhista
+
+No horário de trabalho de um sócio (opcional), os pontos de atenção da CLT (limite de 44h, interjornada, adicional noturno, folga dominical etc.) deixam de aparecer: o painel deixa de passar o sócio pela verificação trabalhista, que é um dever do empregador e não se aplica a sócio. Também não aparece o pedido de ciência ("estou ciente") ao salvar o horário do sócio.
+
 ## Detalhes técnicos
 
 - `src/components/dp/ColaboradorFormDialog.tsx`: rótulo/copy condicional do campo de data, sugestão de perfil `gestor` ao marcar sócio (com aviso ao escolher `colaborador`), integração da sugestão de gênero e do novo fluxo de referência salarial do sócio.
