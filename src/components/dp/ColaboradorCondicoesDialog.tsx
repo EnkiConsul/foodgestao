@@ -1046,9 +1046,61 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
 
             {/* ---------------- Benefícios ---------------- */}
             <TabsContent value="beneficios" className="mt-4 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  Vale-alimentação, vale-transporte e prêmio de assiduidade valem por pessoa; os
+                  demais benefícios vêm do catálogo da empresa.
+                </p>
+                <Button type="button" variant="outline" size="sm" onClick={manterBeneficiosAtuais}>
+                  Manter os benefícios atuais
+                </Button>
+              </div>
+
+              {/* Benefícios fixos (VA/VT/assiduidade), com valores próprios */}
+              {(
+                [
+                  { chave: "va" as const, nome: "Vale-alimentação", hint: "por dia" },
+                  { chave: "vt" as const, nome: "Vale-transporte", hint: "por dia" },
+                  {
+                    chave: "assiduidade" as const,
+                    nome: "Prêmio de assiduidade",
+                    hint: padraoAplicavel?.payload?.premio_assiduidade_tipo === "percentual" ? "% do salário" : "por mês",
+                  },
+                ]
+              ).map((item) => (
+                <div key={item.chave} className="grid items-center gap-2 rounded-md border p-3 sm:grid-cols-[1fr_auto_140px]">
+                  <div>
+                    <p className="text-sm font-medium">{item.nome}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Valor {item.hint}
+                      {padraoAplicavel ? " · padrão da empresa aplicável a este cadastro" : ""}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={fixosSel[item.chave]}
+                    onCheckedChange={(v) => {
+                      marcarTocado("beneficios");
+                      setFixosSel((s) => ({ ...s, [item.chave]: v }));
+                    }}
+                    aria-label={`Conceder ${item.nome}`}
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={fixosValor[item.chave]}
+                    disabled={!fixosSel[item.chave]}
+                    placeholder="0,00"
+                    onChange={(e) =>
+                      setFixosValor((s) => ({ ...s, [item.chave]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))}
+
               {beneficios.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Nenhum benefício cadastrado na empresa ainda.
+                  Nenhum benefício extra cadastrado na empresa ainda.
                 </p>
               ) : (
                 beneficios.map((b) => (
