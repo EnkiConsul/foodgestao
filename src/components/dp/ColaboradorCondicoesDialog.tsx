@@ -240,6 +240,17 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     }
   }, [sindicatoTravado, sindicatoDoCargo, sindicatoId]);
 
+  const proporcional = useMemo(
+    () =>
+      salarioProporcional({
+        salarioCargo,
+        cargaSemanal: num(cargaSemanal),
+        cargaBaseCargo: cargoSelecionado?.carga_horaria_semanal ?? null,
+        baseHorasMes: num(baseHoras) ?? baseHorasMesSugerida(num(cargaSemanal)),
+      }),
+    [salarioCargo, cargaSemanal, cargoSelecionado?.carga_horaria_semanal, baseHoras],
+  );
+
   // Com salário do cargo cadastrado na unidade, o valor não é digitado aqui.
   const salarioTravado = !!cargoId && salarioCargo != null && forma === "mensalista";
 
@@ -250,6 +261,7 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [salarioTravado, salarioCargo, proporcional.salario]);
+
 
   // Padrão praticado pelos colaboradores já cadastrados nesse cargo.
   const cargoPadrao = useDpCargoPadrao(cargoId || null, unidadeId || null, colaborador?.id ?? null);
