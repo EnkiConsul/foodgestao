@@ -514,7 +514,7 @@ Deno.serve(async (req) => {
 
 
     // 2) Accounts — mirror to pluggy_accounts and auto-materialize local `accounts` for BANK type
-    const accounts = await listAccounts(itemId);
+    const accounts = preFetchedAccounts ?? await listAccounts(itemId);
     const connectorName: string = (item?.connector?.name ?? '').toLowerCase();
     let bankSlug: string | null = null;
     if (connectorName) {
