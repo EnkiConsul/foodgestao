@@ -807,11 +807,13 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                     </div>
                     <Switch
                       checked={!!beneficiosSel[b.id]}
-                      onCheckedChange={(v) =>
-                        setBeneficiosSel((s) => ({ ...s, [b.id]: v }))
-                      }
+                      onCheckedChange={(v) => {
+                        marcarTocado("beneficios");
+                        setBeneficiosSel((s) => ({ ...s, [b.id]: v }));
+                      }}
                       aria-label={`Conceder ${b.nome}`}
                     />
+
                     <Input
                       type="number"
                       min="0"
