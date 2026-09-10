@@ -696,7 +696,7 @@ export default function Auth() {
             )}
 
             {isLogin && turnstileSiteKey && (
-              <div className="space-y-1.5 pt-0.5 md:space-y-2 md:pt-1">
+              <div className="space-y-1 pt-0 md:space-y-2 md:pt-1">
                 <TurnstileWidget
                   key={turnstileNonce}
                   siteKey={turnstileSiteKey}
