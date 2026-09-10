@@ -494,11 +494,11 @@ export default function DpAtestados() {
 
               <div className="space-y-2">
                 <Label>Arquivo (PDF ou Imagem) *</Label>
-                <Input
+                <DpFilePicker
                   ref={fileRef}
-                  type="file"
                   accept="application/pdf,image/*"
-                  onChange={(e) => setPendingFile(e.target.files?.[0] ?? null)}
+                  file={pendingFile}
+                  onFileChange={setPendingFile}
                 />
               </div>
 
