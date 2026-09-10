@@ -27,7 +27,7 @@ import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTr
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { useDpModelosHorario, type ModeloHorarioColaborador } from "@/hooks/useDpModelosHorario";
 import { chaveHorarioBase, contarHorariosBase, horarioBaseMaisComum, sugerirModeloHorario } from "@/lib/dp/modeloHorarioRanking";
-import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { formatarFaixaTurno, intervaloAbaixoDoLegal } from "@/lib/dp/turno-utils";
 import { resolverTurnoDoHorario, type HorarioSimples } from "@/lib/dp/turno-resolver";
