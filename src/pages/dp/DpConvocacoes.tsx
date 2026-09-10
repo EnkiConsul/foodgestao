@@ -123,8 +123,9 @@ function GrupoCard({
 export default function DpConvocacoes() {
   const [wizard, setWizard] = useState(false);
   const [params, setParams] = useSearchParams();
+  const location = useLocation();
   const [inicial, setInicial] = useState<
-    { unidadeId?: string | null; cargoId?: string | null; datas?: string[] } | null
+    { unidadeId?: string | null; cargoId?: string | null; datas?: string[]; colaboradorId?: string | null } | null
   >(null);
 
   /** Link vindo da cobertura de férias: abre o planejador já pré-preenchido. */
@@ -141,6 +142,21 @@ export default function DpConvocacoes() {
     setParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
+
+  /** Atalho da rotina do dia (state da navegação): convocação com pessoa pré-selecionada. */
+  useEffect(() => {
+    const nova = (location.state as { nova?: { unidadeId?: string; cargoId?: string; datas?: string[]; colaboradorId?: string } } | null)?.nova;
+    if (!nova) return;
+    setInicial({
+      unidadeId: nova.unidadeId ?? null,
+      cargoId: nova.cargoId ?? null,
+      datas: nova.datas ?? [],
+      colaboradorId: nova.colaboradorId ?? null,
+    });
+    setWizard(true);
+    navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
   const [emEdicao, setEmEdicao] = useState<GrupoComOcorrencias | null>(null);
   const [parcialAberta, setParcialAberta] = useState<ParcialPendente | null>(null);
   const grupos = useDpConvocacaoGrupos();
