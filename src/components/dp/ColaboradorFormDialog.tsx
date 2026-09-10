@@ -69,6 +69,7 @@ import { SindicatoEnquadramentoField } from "@/components/dp/SindicatoEnquadrame
 import { UnidadeAdiantamentoDialog } from "@/components/dp/UnidadeAdiantamentoDialog";
 
 import { CargoSalarioConflitoDialog } from "@/components/dp/CargoSalarioConflitoDialog";
+import { SocioUnidadesField } from "@/components/dp/SocioUnidadesField";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
