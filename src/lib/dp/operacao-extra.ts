@@ -159,8 +159,21 @@ export function sugerirHorarioLivre(
   viraODia: boolean,
 ): { entrada: string; saida: string; termina_no_dia_seguinte: boolean } | null {
   if (previsoes.length === 0) return null;
-  const conflito = conflitoDeHorario(previsoes, entrada, saida, viraODia);
-  if (!conflito) return null;
+  let conflito = conflitoDeHorario(previsoes, entrada, saida, viraODia);
+  if (!conflito) {
+    // Sem horário digitado ainda não há conflito mensurável: parte do fim da
+    // última previsão do dia.
+    if (entrada && saida) return null;
+    conflito = previsoes.reduce((maior, p) => {
+      const [, fim] = intervaloMinutos(p.entrada, p.saida, p.termina_no_dia_seguinte);
+      const [, fimMaior] = intervaloMinutos(
+        maior.entrada,
+        maior.saida,
+        maior.termina_no_dia_seguinte,
+      );
+      return fim > fimMaior ? p : maior;
+    });
+  }
 
   let duracao = DURACAO_PADRAO_MINUTOS;
   if (entrada && saida) {
