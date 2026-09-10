@@ -1262,15 +1262,21 @@ export function ColaboradorFormDialog({
       const admissao = new Date(form.data_admissao + "T00:00:00");
       if (nascimento >= hoje) return erro("data_nascimento", "Data de nascimento deve ser no passado");
 
+      const marcoTexto = socioSelecionado ? "no início na sociedade" : "na admissão";
       const idade = (admissao.getTime() - nascimento.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-      if (idade < 14) return erro("data_nascimento", "Colaborador deve ter no mínimo 14 anos na admissão");
-      if (idade > 100) return erro("data_nascimento", "Data de nascimento inconsistente com a admissão");
+      if (idade < 14) return erro("data_nascimento", `Deve ter no mínimo 14 anos ${marcoTexto}`);
+      if (idade > 100) return erro("data_nascimento", `Data de nascimento inconsistente com a data ${socioSelecionado ? "de início na sociedade" : "de admissão"}`);
 
       if (admissao > hoje) {
-        // permite admissão futura até 90 dias
+        // permite data futura até 90 dias
         const diffDias = (admissao.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24);
         if (diffDias > 90) {
-          return erro("data_admissao", "Data de admissão muito distante no futuro (máx. 90 dias)");
+          return erro(
+            "data_admissao",
+            socioSelecionado
+              ? "Início na sociedade muito distante no futuro (máx. 90 dias)"
+              : "Data de admissão muito distante no futuro (máx. 90 dias)",
+          );
         }
       }
 
