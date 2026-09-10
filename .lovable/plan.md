@@ -31,6 +31,14 @@ Se a pessoa já está prevista naquele dia (escala publicada, padrão da rotina,
 - Sem sobreposição, o aviso é só informativo e o salvamento segue normal.
 - Turnos que viram o dia contam a passagem da meia-noite na comparação.
 
+## 5. Aviso de risco legal para jornada extra de contrato fixo
+
+Lançar um dia extra para quem é CLT (mensalista, parcial, intermitente fora da convocação) tem risco legal e o gestor precisa ver isso na hora.
+
+- Quando a pessoa selecionada é de contrato fixo, aparece um aviso jurídico (não bloqueante) ao lado do lançamento: dia extra exige pagamento de horas extras ou compensação registrada; habitualidade de dias extras fora da escala pode reforçar jornada superior à contratada; sem registro correto, vira passivo de horas extras.
+- O aviso segue o estilo orientador já usado no cadastro de vínculos (`src/lib/dp/regime-riscos.ts`): informa e orienta, sem impedir o gestor de decidir.
+- Sócio é isento desse aviso (não é relação de emprego).
+
 ## Detalhes técnicos
 
 - `src/lib/dp/operacao-extra.ts` (novo, funções puras + testes): `colaboradoresElegiveisNoDia()` (admissão/desligamento/ativo por data), `previsaoNoDia()` (extrai horários já previstos de `ResultadoDia.pessoas` e dos avulsos), `conflitoDeHorario()` (sobreposição com suporte a `termina_no_dia_seguinte`) e `sugerirHorarioLivre()`.
