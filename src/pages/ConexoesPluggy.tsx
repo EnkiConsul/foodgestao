@@ -159,7 +159,7 @@ export default function ConexoesPluggy() {
     if (!opts?.silent) setLoading(true);
 
     const { data: conns } = await supabase.from("pluggy_connections")
-      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status, last_sync_error, last_error, revoked_at")
+      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, execution_status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status, last_sync_error, last_error, revoked_at")
       .eq("company_id", selectedCompanyId).order("created_at", { ascending: false });
 
     // `deleted` é o estado legado de conexões apagadas: continua fora da lista.
