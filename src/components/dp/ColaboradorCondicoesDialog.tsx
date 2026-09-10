@@ -1215,6 +1215,19 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
         </DialogFooter>
       </DialogContent>
 
+      {/* Cópia completa de semana (dias de trabalho, turnos e horários) de um colega. */}
+      <CopiarConfigColaboradorDialog
+        open={copiarOpen}
+        onOpenChange={setCopiarOpen}
+        colaboradorId={colaboradorId}
+        unidadeId={unidadeId || null}
+        excluirSocios={!isSocio(colaborador?.vinculo_label ?? null)}
+        turnos={turnosResolvidos}
+        onCopiar={copiarConfigDoColega}
+      />
+
+
+
       <AlertDialog open={confirmarNovoContrato} onOpenChange={setConfirmarNovoContrato}>
         <AlertDialogContent>
           <AlertDialogHeader>
