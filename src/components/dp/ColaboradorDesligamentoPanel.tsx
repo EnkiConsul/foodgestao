@@ -22,7 +22,6 @@ import {
   ELEGIBILIDADE_OPTIONS,
   DIAS_CARENCIA_PORTAL_DEFAULT,
   calcAcessoPortalAte,
-  toDateOnly,
 } from "@/lib/dp/desligamento";
 import { ColaboradorRecontratacaoDialog } from "@/components/dp/ColaboradorRecontratacaoDialog";
 
