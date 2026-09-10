@@ -299,10 +299,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     setChecking(true);
     setError(null);
     try {
-      const { data: sync, error: syncError } = await supabase.functions.invoke("pluggy-sync-item", {
-        body: { item_id: itemId, company_id: companyId, first_connect: true },
-      });
-      if (syncError) throw syncError;
+      const sync = await invokeSync({ item_id: itemId, company_id: companyId, first_connect: true });
       finishedRef.current = true;
       clearResume();
       toast.success(`Conexão concluída: ${sync?.transactions ?? 0} lançamentos importados`);
@@ -314,7 +311,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     } finally {
       setChecking(false);
     }
-  }, [companyId, onConnected, onOpenChange]);
+  }, [companyId, onConnected, onOpenChange, invokeSync]);
 
   useEffect(() => {
     if (!open || phase !== "returning") return;
@@ -330,17 +327,14 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
     clearResume();
     toast.success("Conexão concluída. Sincronizando lançamentos…");
     try {
-      const { data: sync, error: syncError } = await supabase.functions.invoke("pluggy-sync-item", {
-        body: { item_id: itemId, company_id: companyId },
-      });
-      if (syncError) throw syncError;
+      const sync = await invokeSync({ item_id: itemId, company_id: companyId });
       onConnected?.({ itemId, connectionId: sync?.connection_id });
     } catch (syncError: unknown) {
       const info = await parseEdgeFunctionError(syncError, "Falha ao sincronizar a conexão");
       toast.error(info.message);
     }
     onOpenChange(false);
-  }, [companyId, onConnected, onOpenChange]);
+  }, [companyId, onConnected, onOpenChange, invokeSync]);
 
   /** Verifica no backend se a autorização feita no app do banco já concluiu. */
   const checkConnectRequest = useCallback(async (): Promise<boolean> => {
@@ -498,10 +492,7 @@ export function PluggyConnectDialog({ open, onOpenChange, companyId, itemIdToUpd
             if (!itemId) { toast.error("Conexão sem item retornado"); onOpenChange(false); return; }
             toast.info("Conta conectada. Sincronizando últimos 30 dias…");
             try {
-              const { data: sync, error: sErr } = await supabase.functions.invoke("pluggy-sync-item", {
-                body: { item_id: itemId, company_id: companyId, first_connect: true },
-              });
-              if (sErr) throw sErr;
+              const sync = await invokeSync({ item_id: itemId, company_id: companyId, first_connect: true });
               toast.success(`Sincronização concluída: ${sync?.transactions ?? 0} lançamentos importados`);
               onConnected?.({ itemId, connectionId: sync?.connection_id });
             } catch (err) {
