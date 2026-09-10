@@ -47,8 +47,10 @@ Hoje o cadastro só pinta um campo quando o salvamento acusa erro; por isso o ca
 ## 7. Sócio em mais de uma unidade
 
 - No cadastro de sócio, a Unidade passa a permitir **selecionar várias unidades** da sociedade (além da opção "Geral (todas as unidades)"), com uma marcada como unidade principal para lotação/relatórios.
-- As unidades adicionais são gravadas como atuação do sócio nas outras unidades, então ele aparece na operação, documentos e portal dessas unidades sem cadastro duplicado.
-- O pró-labore continua único por sócio; a referência do cargo de sócio (item 4) é gravada apenas na unidade principal.
+- Para **cada unidade** o sócio pode ter **setor habitual, horário de trabalho e pró-labore próprios**. Quando um deles fica em branco, vale o da unidade principal.
+- A tela mostra uma lista de "Participação por unidade": unidade, setor, horário (opcional) e pró-labore, com totalizador do pró-labore somado.
+- Ele aparece na operação, documentos e portal de todas as unidades marcadas, sem cadastro duplicado.
+- A referência do cargo de sócio (item 4) é perguntada por unidade, com o pró-labore daquela unidade.
 - Cobranças de documentos e pendências continuam sem se aplicar a sócio, independentemente do número de unidades.
 
 ## Detalhes técnicos
@@ -64,5 +66,6 @@ Hoje o cadastro só pinta um campo quando o salvamento acusa erro; por isso o ca
 - Gravação da referência do sócio reaproveita `dp_cargo_salarios` com `sindicato_patronal_id` nulo e `unidade_id` preenchido; sem mudança de schema.
 - Destaque de faltantes: `camposFaltando` (`src/lib/dp/cadastro-completude.ts`) alimenta um `Set` no `ColaboradorFormDialog`; `marca()` ganha um segundo estado visual (`border-amber-500`) e os `TabsTrigger` reaproveitam os indicadores já existentes.
 - Sócio multiunidade: multi-seleção reaproveita `dp_apoio_unidades` (`src/lib/dp/apoio-unidades.ts`, `useDpPessoasApoio`) com a unidade principal em `dp_colaboradores.unidade_id`; sem mudança de schema.
-- Testes novos em `src/lib/dp/__tests__/`: `genero-por-nome.test.ts` e casos de sócio em `cargoSalarios`/`cargos`.
+- Sócio multiunidade: multi-seleção reaproveita `dp_apoio_unidades` (`src/lib/dp/apoio-unidades.ts`, `useDpPessoasApoio`) com a unidade principal em `dp_colaboradores.unidade_id`. Migração acrescenta a essa tabela `pro_labore numeric`, `horario jsonb` (dias/entrada/saída/intervalo) e `socio boolean` para distinguir participação societária de liberação de apoio; resolução por unidade com fallback na principal em um novo `src/lib/dp/socio-unidades.ts`.
+- Testes novos em `src/lib/dp/__tests__/`: `genero-por-nome.test.ts`, `socio-unidades.test.ts` e casos de sócio em `cargoSalarios`/`cargos`.
 - Verificação: `bunx tsgo --noEmit`, `bunx vitest run src/lib/dp src/test` e conferência no navegador do cadastro do sócio (data, perfil, gênero sugerido, pergunta do pró-labore).
