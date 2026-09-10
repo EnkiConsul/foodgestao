@@ -18,6 +18,22 @@ export interface ApoioUnidade {
   setor_id: string | null;
   ativo: boolean;
   observacao: string | null;
+  /**
+   * Participação societária: o sócio pode integrar a sociedade de mais de uma
+   * unidade, com pró-labore e horário próprios em cada uma.
+   */
+  socio: boolean;
+  pro_labore: number | null;
+  horario: HorarioUnidadeJson[] | null;
+}
+
+/** Horário do sócio naquela unidade (um item por dia da semana). */
+export interface HorarioUnidadeJson {
+  dow: number;
+  trabalha: boolean;
+  entrada?: string | null;
+  saida?: string | null;
+  intervalo_minutos?: number | null;
 }
 
 export interface ApoioUnidadeInput extends Omit<ApoioUnidade, "id" | "ativo"> {
@@ -26,7 +42,7 @@ export interface ApoioUnidadeInput extends Omit<ApoioUnidade, "id" | "ativo"> {
 }
 
 const COLS =
-  "id, pessoa_apoio_id, colaborador_id, unidade_id, cargo_id, setor_id, ativo, observacao";
+  "id, pessoa_apoio_id, colaborador_id, unidade_id, cargo_id, setor_id, ativo, observacao, socio, pro_labore, horario";
 
 /**
  * Disponibilidades da empresa. Filtra por pessoa quando informado; sem filtro,
@@ -36,13 +52,18 @@ export function useDpApoioUnidades(opts?: {
   pessoaApoioId?: string | null;
   colaboradorId?: string | null;
   apenasAtivas?: boolean;
+  /** Somente participações societárias. */
+  apenasSocio?: boolean;
 }) {
   const { selectedCompanyId } = useCompanyContext();
   const pessoaApoioId = opts?.pessoaApoioId ?? null;
   const colaboradorId = opts?.colaboradorId ?? null;
   const apenasAtivas = opts?.apenasAtivas ?? false;
   return useQuery({
-    queryKey: ["dp_apoio_unidades", selectedCompanyId, pessoaApoioId, colaboradorId, apenasAtivas],
+    queryKey: [
+      "dp_apoio_unidades", selectedCompanyId, pessoaApoioId, colaboradorId, apenasAtivas,
+      opts?.apenasSocio ?? false,
+    ],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
       let q = supabase
@@ -51,7 +72,8 @@ export function useDpApoioUnidades(opts?: {
         .eq("company_id", selectedCompanyId!);
       if (pessoaApoioId) q = q.eq("pessoa_apoio_id", pessoaApoioId);
       if (colaboradorId) q = q.eq("colaborador_id", colaboradorId);
-      if (apenasAtivas) q = q.eq("ativo", true);
+          if (apenasAtivas) q = q.eq("ativo", true);
+      if (opts?.apenasSocio) q = q.eq("socio", true);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as ApoioUnidade[];
@@ -84,6 +106,9 @@ export function useSalvarDpApoioUnidade() {
         setor_id: input.setor_id ?? null,
         ativo: input.ativo ?? true,
         observacao: input.observacao?.trim() || null,
+        socio: input.socio ?? false,
+        pro_labore: input.pro_labore ?? null,
+        horario: (input.horario ?? null) as never,
       };
       if (input.id) {
         const { error } = await supabase
