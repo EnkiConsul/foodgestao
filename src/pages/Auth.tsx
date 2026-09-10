@@ -452,7 +452,7 @@ export default function Auth() {
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-site-navy-deep to-transparent lg:hidden" aria-hidden="true" />
         </section>
 
-        <section className="relative z-10 -mt-10 flex min-h-[54vh] items-center justify-center bg-site-navy-deep px-4 pb-48 pt-8 sm:-mt-12 sm:min-h-[52vh] sm:px-8 sm:pb-24 lg:mt-0 lg:h-screen lg:min-h-0 lg:overflow-y-auto lg:bg-card/90 lg:px-8 lg:py-10 lg:backdrop-blur-md">
+        <section className="relative z-10 -mt-10 flex min-h-[54vh] items-center justify-center bg-site-navy-deep px-4 pb-48 pt-8 sm:-mt-12 sm:min-h-[52vh] sm:px-8 sm:pb-24 lg:mt-0 lg:h-screen lg:min-h-0 lg:overflow-y-auto lg:px-8 lg:py-10">
           <div className="w-full max-w-sm">
         <Card className="w-full border-border/70 bg-card/85 shadow-site-float backdrop-blur-xl lg:bg-card/70 lg:shadow-site-card">
 
