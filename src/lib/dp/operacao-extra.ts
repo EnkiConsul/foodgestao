@@ -198,7 +198,7 @@ export function sugerirHorarioLivre(
   return {
     entrada: fmt(inicio),
     saida: fmt(fim),
-    termina_no_dia_seguinte: fim > MINUTOS_NO_DIA,
+    termina_no_dia_seguinte: fim >= MINUTOS_NO_DIA,
   };
 }
 
