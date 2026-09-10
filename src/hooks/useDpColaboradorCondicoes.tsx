@@ -86,17 +86,33 @@ export function useDpColaboradorCondicoes(colaboradorId?: string | null) {
         p_setor_id: input.setor_id ?? null,
         p_salario_base: input.salario_base ?? null,
         p_valor_hora: input.valor_hora ?? null,
-        p_base_horas_mes: null,
-        p_base_dias_mes: null,
+        p_base_horas_mes: input.base_horas_mes ?? null,
+        p_base_dias_mes: input.base_dias_mes ?? null,
         p_justificativa: input.justificativa ?? null,
         p_observacoes: input.observacoes ?? null,
-      });
+        p_turno_padrao_id: input.turno_padrao_id ?? null,
+        p_carga_semanal_horas: input.carga_semanal_horas ?? null,
+        p_folga_variavel: input.folga_variavel ?? null,
+        p_folga_fixa_dow: input.folga_fixa_dow ?? null,
+        p_sindicato_id: input.sindicato_id ?? null,
+        p_compoe_equipe_habitual: input.compoe_equipe_habitual ?? null,
+        p_dias: (input.dias ?? null) as never,
+        p_beneficios: (input.beneficios ?? null) as never,
+      } as never);
       if (error) throw error;
       return data as string;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["dp_colab_condicoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+      // A alteração muda contrato, jornada, benefícios e escala derivada.
+      [
+        "dp_colab_condicoes",
+        "dp_colaboradores",
+        "dp_colab_config_trabalho",
+        "dp_colaborador_beneficios",
+        "dp_beneficios",
+        "dp_escala_itens",
+        "dp_operacao_panorama",
+      ].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
     },
   });
 
