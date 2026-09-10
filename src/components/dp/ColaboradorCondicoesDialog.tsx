@@ -463,6 +463,18 @@ export function ColaboradorCondicoesDialog({ colaborador, open, onOpenChange }: 
                     ))}
                   </SelectContent>
                 </Select>
+                {bloqueiaInformal ? (
+                  <p className="text-xs text-muted-foreground">
+                    Só é possível mudar entre vínculos com registro. Para passar a um vínculo sem
+                    registro (freelancer, PJ, MEI), faça o desligamento e cadastre a pessoa de novo
+                    aproveitando os dados do colaborador inativo.
+                  </p>
+                ) : exigeNovoContrato(regimeAtual, regime) ? (
+                  <p className="text-xs text-muted-foreground">
+                    Efetivação de vínculo sem registro: entra como novo contrato, com a contagem de
+                    férias, 13º e tempo de casa começando na data informada.
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-1.5">
                 <Label>Cargo</Label>
