@@ -1,5 +1,12 @@
 # Roadmap — Pessoas 360° (plano aprovado 09/2026)
 
+## Mão de obra extra na rotina (09/2026)
+- [ ] Lista sem desligados (só válidos no dia; desligado só em dias até a saída)
+- [ ] Data inicial/final vem do dia clicado, sem voltar para hoje
+- [ ] Dia futuro liberado; intermitente/freelancer com sugestão de convocação na própria tela
+- [ ] Horário conflitante com escala/convocação: aviso + bloqueio + sugestão de horário livre
+- [ ] Aviso de risco legal para jornada extra de contrato fixo (CLT); sócio isento
+
 ## Feito
 - [x] Migração: `dp_intermitente_competencia_confirmacoes`, `dp_adiantamento_solicitacoes`, `dp_pendencias_decisoes` (RLS, triggers, backfill de optantes)
 - [x] `src/lib/dp/adiantamento-opcao.ts` — efeito por competência, última solicitação válida, regra dos 5 dias no portal
