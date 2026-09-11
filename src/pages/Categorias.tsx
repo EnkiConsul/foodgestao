@@ -17,6 +17,7 @@ import { Plus, Search, Tag, ChevronsUpDown, Sparkles, MoreHorizontal, X, Refresh
 import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
 import { buildCategoryTree, type Category, type TreeNode } from "@/lib/categories/tree";
+import { syncCategoryCompanies } from "@/lib/categories/visibility";
 import { CategoryRow } from "@/components/categorias/CategoryRow";
 import { CategoryMobileRow } from "@/components/categorias/CategoryMobileRow";
 import { BatchActionBar } from "@/components/categorias/BatchActionBar";
