@@ -47,6 +47,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
+import { useSalvarDpDesligamentoRessalvas, useDpDesligamentoRessalvas } from "@/hooks/useDpDesligamentoRessalvas";
 import { ColaboradorAcessoPanel } from "./ColaboradorAcessoPanel";
 import { AdiantamentoSolicitacoesPanel } from "@/components/dp/AdiantamentoSolicitacoesPanel";
 import { Trash2 } from "lucide-react";
@@ -684,8 +685,9 @@ export function ColaboradorFormDialog({
         c.domingos_folga_mes != null ? String(c.domingos_folga_mes) : "none",
       data_desligamento: c.data_desligamento ?? "",
       motivo_desligamento: c.motivo_desligamento ?? NONE_DESLIG,
-      elegivel_recontratacao: c.elegivel_recontratacao ?? NONE_DESLIG,
-      observacao_desligamento: c.observacao_desligamento ?? "",
+      // Ressalvas vêm da tabela restrita (efeito abaixo), nunca da ficha.
+      elegivel_recontratacao: NONE_DESLIG,
+      observacao_desligamento: "",
       
       tipo_vinculo:
         (c.vinculo_label && TIPOS_VINCULO.some((t) => t.value === c.vinculo_label)
@@ -708,6 +710,19 @@ export function ColaboradorFormDialog({
   useEffect(() => {
     if (!open) { setDispensas([]); isonomiaConfirmada.current = false; }
   }, [open]);
+
+  // Ressalvas do desligamento ficam em tabela restrita ao RH/dono.
+  const ressalvasQuery = useDpDesligamentoRessalvas(open ? colaborador?.id : null);
+  const salvarRessalvas = useSalvarDpDesligamentoRessalvas();
+  useEffect(() => {
+    if (!open) return;
+    const r = ressalvasQuery.data;
+    setForm((f) => ({
+      ...f,
+      elegivel_recontratacao: r?.elegivel_recontratacao ?? NONE_DESLIG,
+      observacao_desligamento: r?.observacao ?? "",
+    }));
+  }, [open, ressalvasQuery.data]);
 
   const regimeSelecionado = VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt";
   /** Sócio tem remuneração societária e fica fora dos complementos CLT. */
@@ -1614,12 +1629,20 @@ export function ColaboradorFormDialog({
               data_desligamento: form.data_desligamento,
               motivo_desligamento:
                 form.motivo_desligamento === NONE_DESLIG ? null : form.motivo_desligamento,
-              elegivel_recontratacao:
-                form.elegivel_recontratacao === NONE_DESLIG ? null : form.elegivel_recontratacao,
-              observacao_desligamento: form.observacao_desligamento.trim() || null,
             }
           : {}),
       } as any);
+
+      // Ressalvas do desligamento vão para a tabela restrita ao RH/dono,
+      // fora da ficha que o colaborador consegue ler.
+      if (isDesligado && colaboradorId) {
+        await salvarRessalvas.mutateAsync({
+          colaborador_id: colaboradorId,
+          observacao: form.observacao_desligamento.trim() || null,
+          elegibilidade:
+            form.elegivel_recontratacao === NONE_DESLIG ? null : form.elegivel_recontratacao,
+        });
+      }
 
       // Se este cadastro veio de uma pessoa de apoio, vincula o histórico e
       // inativa o registro original para não manter duplicidade.

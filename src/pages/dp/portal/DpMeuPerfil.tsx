@@ -20,7 +20,31 @@ export default function DpMeuPerfil() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("*, dp_unidades(nome), dp_cargos(nome), dp_sindicatos(nome)")
+        // Colunas explícitas de propósito: o portal nunca deve trazer campos
+        // internos do RH (ex.: notas/ressalvas do desligamento).
+        .select(
+          [
+            "id",
+            "nome",
+            "nome_social",
+            "matricula",
+            "cpf",
+            "cargo",
+            "regime",
+            "perfil_acesso",
+            "data_admissao",
+            "data_nascimento",
+            "email",
+            "email_portal",
+            "email_contato",
+            "telefone",
+            "whatsapp",
+            "endereco",
+            "dp_unidades(nome)",
+            "dp_cargos(nome)",
+            "dp_sindicatos(nome)",
+          ].join(", "),
+        )
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;

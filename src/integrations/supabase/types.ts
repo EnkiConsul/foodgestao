@@ -4446,6 +4446,64 @@ export type Database = {
           },
         ]
       }
+      dp_colaborador_desligamento_restrito: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          elegivel_recontratacao:
+            | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
+            | null
+          id: string
+          observacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          elegivel_recontratacao?:
+            | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
+            | null
+          id?: string
+          observacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          elegivel_recontratacao?:
+            | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
+            | null
+          id?: string
+          observacao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaborador_desligamento_restrito_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: true
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_desligamento_restrito_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: true
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_desligamento_restrito_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_colaborador_documentos: {
         Row: {
           aceite_solicitado_em: string | null
@@ -15639,6 +15697,14 @@ export type Database = {
       }
       dp_restaurar_colaborador: {
         Args: { p_colaborador_id: string }
+        Returns: undefined
+      }
+      dp_set_desligamento_ressalvas: {
+        Args: {
+          p_colaborador_id: string
+          p_elegibilidade?: Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
+          p_observacao?: string
+        }
         Returns: undefined
       }
       dp_setor_previsto: {

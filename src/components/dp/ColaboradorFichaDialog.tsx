@@ -43,6 +43,7 @@ import { ColaboradorOcorrenciasCard } from "@/components/dp/ocorrencias/Colabora
 import { maskCpf } from "@/lib/cpf";
 import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
+import { useDpDesligamentoRessalvas } from "@/hooks/useDpDesligamentoRessalvas";
 
 
 const fmtDate = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
@@ -149,6 +150,8 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
 
   const perfil = (colaborador as any)?.perfil_acesso as string | null;
   const isDesligado = !!colaborador?.data_desligamento;
+  // Só RH/dono conseguem ler: para o colaborador a consulta volta vazia.
+  const ressalvas = useDpDesligamentoRessalvas(colaborador?.id);
   const folga = (colaborador as any)?.folga_fixa_semana;
   const possuiFolha = (colaborador as any)?.possui_folha_ponto as boolean | null;
   const optanteAdiantamento = (colaborador as any)?.optante_adiantamento as boolean | null;
@@ -742,7 +745,7 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
             <Section icon={LogOut} title="Desligamento">
               <Field label="Data da Demissão" value={fmtDate(colaborador?.data_desligamento)} />
               <Field label="Acesso ao Portal Até" value={fmtDate(acessoPortalAte)} />
-              <Field label="Observações" value={(colaborador as any)?.observacao_desligamento} />
+              <Field label="Observações" value={ressalvas.data?.observacao ?? null} />
             </Section>
           )}
 

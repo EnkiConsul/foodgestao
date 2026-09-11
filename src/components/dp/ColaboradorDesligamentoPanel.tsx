@@ -24,6 +24,7 @@ import {
   calcAcessoPortalAte,
 } from "@/lib/dp/desligamento";
 import { ColaboradorRecontratacaoDialog } from "@/components/dp/ColaboradorRecontratacaoDialog";
+import { useDpDesligamentoRessalvas } from "@/hooks/useDpDesligamentoRessalvas";
 
 const NONE = "__none__";
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
@@ -42,6 +43,7 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
   const dias = (config as any).dias_carencia_portal ?? DIAS_CARENCIA_PORTAL_DEFAULT;
 
   const isDesligado = !!colaborador?.data_desligamento || colaborador?.ativo === false;
+  const ressalvas = useDpDesligamentoRessalvas(colaborador?.id);
 
   // A data nunca vem sugerida: só o gestor informa, manualmente.
   const [data, setData] = useState("");
@@ -56,9 +58,18 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
     if (!colaborador) return;
     setData(colaborador.data_desligamento ?? "");
     setMotivo(colaborador.motivo_desligamento ?? NONE);
-    setElegibilidade((colaborador as any).elegivel_recontratacao ?? NONE);
-    setObservacao((colaborador as any).observacao_desligamento ?? "");
   }, [colaborador?.id, colaborador?.data_desligamento]);
+
+  // Ressalvas ficam em tabela restrita ao RH/dono — nunca na ficha lida pelo portal.
+  useEffect(() => {
+    if (!ressalvas.data) {
+      setElegibilidade(NONE);
+      setObservacao("");
+      return;
+    }
+    setElegibilidade(ressalvas.data.elegivel_recontratacao ?? NONE);
+    setObservacao(ressalvas.data.observacao ?? "");
+  }, [ressalvas.data, colaborador?.id]);
 
   const impacto = useQuery({
     queryKey: ["dp_desligamento_impacto", colaborador?.id, data],
