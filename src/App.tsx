@@ -29,6 +29,7 @@ import { resolveLandingTarget } from "@/lib/auth/landing";
 import { PageSpinner } from "@/components/PageSpinner";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ErrorReportCenter } from "@/components/errors/ErrorReportCenter";
 import { installGlobalErrorHandlers } from "@/lib/logger";
 
 installGlobalErrorHandlers();
@@ -569,6 +570,7 @@ const App = () => (
               <CompanyContextProvider>
                 <PrivacyProvider>
                   <AppShell />
+                  <ErrorReportCenter />
                 </PrivacyProvider>
               </CompanyContextProvider>
             </AuthProvider>

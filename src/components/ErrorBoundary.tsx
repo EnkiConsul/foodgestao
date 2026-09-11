@@ -1,10 +1,10 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { AlertTriangle, Bug, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger, toErrorMessage } from "@/lib/logger";
 import { isStaleBundleError, recoverFromStaleBundle } from "@/lib/staleBundle";
-import { reportError } from "@/lib/errorLog";
+import { getLatestErrorReport, reportError } from "@/lib/errorLog";
 
 
 interface ErrorBoundaryProps {
@@ -85,6 +85,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <pre className="max-h-28 overflow-auto rounded-md bg-muted p-3 text-xs text-muted-foreground">
               {toErrorMessage(error)}
             </pre>
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">
+              <p className="mb-2 text-sm font-semibold">Ajude-nos a corrigir este problema</p>
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={() => {
+                  const detail = getLatestErrorReport();
+                  if (detail) window.dispatchEvent(new CustomEvent("app:error-report-ready", { detail }));
+                }}
+              >
+                <Bug className="mr-2 h-4 w-4" aria-hidden="true" />
+                Relatar problema
+              </Button>
+            </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button onClick={this.reset} className="flex-1">
                 <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
