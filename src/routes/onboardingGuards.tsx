@@ -233,11 +233,8 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const portal = usePortalOnlyUser(user?.id, !!user && !completed);
 
   if (loading || checking || portal.checking) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
+    const pending = loading ? "sessão" : checking ? "cadastro" : "destino inicial";
+    return <GuardWaiting pending={pending} scope="Assistente de cadastro" />;
   }
   if (!user) return <Navigate to="/auth" replace />;
   if (completed) return <Navigate to="/hub" replace />;
