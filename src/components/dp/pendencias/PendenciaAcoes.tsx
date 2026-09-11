@@ -205,6 +205,16 @@ export function PendenciaAcoes({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {licencaRetorno && (
+        <DpLicencaRetornoDialog
+          alvo={{ ...p.licenca!, colaboradorNome: p.colaboradorNome ?? null }}
+          open={retornoAberto}
+          onOpenChange={setRetornoAberto}
+          onResolved={onResolved}
+        />
+      )}
     </div>
+
   );
 }
