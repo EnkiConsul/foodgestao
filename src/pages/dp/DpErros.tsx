@@ -2,7 +2,8 @@ import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertTriangle, Bug, CheckCircle2, ChevronDown, EyeOff, RefreshCw, RotateCcw } from "lucide-react";
+import { AlertTriangle, Bug, CheckCircle2, ChevronDown, Copy, EyeOff, RefreshCw, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DpErrorState } from "@/components/dp/DpErrorState";
+import { errorDetailsToText, separarDetalhes, usuarioLabel } from "@/lib/errorDetailsText";
 import {
   useAppErrorLogs, useAppErrorStatus, useAppErrorReportStatus, FILTROS_ERRO_PADRAO,
   type AppErrorFiltros, type AppErrorLog,
@@ -41,6 +43,111 @@ const SITUACAO_LABEL: Record<AppErrorLog["status"], string> = {
 
 function dataHora(iso: string) {
   return format(new Date(iso), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+}
+
+function LinhaDetalhe({ rotulo, valor }: { rotulo: string; valor?: string | null }) {
+  if (!valor || !String(valor).trim()) return null;
+  return (
+    <div className="flex flex-wrap gap-1">
+      <span className="text-muted-foreground">{rotulo}:</span>
+      <span className="min-w-0 break-words font-medium">{valor}</span>
+    </div>
+  );
+}
+
+/** Tudo que o suporte precisa para investigar: contexto, pilha e repetições. */
+function DetalhesTecnicos({ log }: { log: AppErrorLog }) {
+  const { stack, componentStack, agent, extra } = separarDetalhes(log.details);
+  const texto = errorDetailsToText({
+    message: log.message,
+    surface: log.surface,
+    action: log.action,
+    route: log.route,
+    source: ORIGEM_LABEL[log.source],
+    severity: GRAVIDADE_LABEL[log.severity],
+    code: log.code,
+    userMessage: log.user_message,
+    userName: log.user_name,
+    userEmail: log.user_email,
+    companyId: log.company_id,
+    occurrences: log.occurrences,
+    firstSeenAt: dataHora(log.first_seen_at),
+    lastSeenAt: dataHora(log.last_seen_at),
+    details: log.details,
+  });
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      toast.success("Detalhes copiados.");
+    } catch {
+      toast.error("Não foi possível copiar. Selecione o texto manualmente.");
+    }
+  };
+
+  return (
+    <details className="mt-3 rounded-md border bg-muted/30 p-3">
+      <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold">
+        <ChevronDown className="h-4 w-4" /> Detalhes técnicos
+      </summary>
+      <div className="mt-3 space-y-3 text-xs">
+        <div className="grid gap-1.5 sm:grid-cols-2">
+          <LinhaDetalhe rotulo="Tela" valor={log.surface ?? "Não identificada"} />
+          <LinhaDetalhe rotulo="Ação" valor={log.action} />
+          <LinhaDetalhe rotulo="Endereço" valor={log.route} />
+          <LinhaDetalhe rotulo="Origem" valor={ORIGEM_LABEL[log.source]} />
+          <LinhaDetalhe rotulo="Código" valor={log.code} />
+          <LinhaDetalhe rotulo="Repetições" valor={`${log.occurrences}x`} />
+          <LinhaDetalhe rotulo="Usuário" valor={usuarioLabel({ nome: log.user_name, email: log.user_email })} />
+          <LinhaDetalhe rotulo="Empresa" valor={log.company_id} />
+          <LinhaDetalhe rotulo="Primeira vez" valor={dataHora(log.first_seen_at)} />
+          <LinhaDetalhe rotulo="Última vez" valor={dataHora(log.last_seen_at)} />
+          <LinhaDetalhe rotulo="Navegador" valor={agent} />
+        </div>
+        <div>
+          <p className="mb-1 font-semibold">Mensagem completa</p>
+          <p className="whitespace-pre-wrap break-words rounded-md bg-background p-2">{log.message}</p>
+        </div>
+        {Object.keys(extra).length > 0 && (
+          <div>
+            <p className="mb-1 font-semibold">Contexto</p>
+            <pre className="max-h-40 overflow-auto rounded-md bg-background p-2">{JSON.stringify(extra, null, 2)}</pre>
+          </div>
+        )}
+        {componentStack && (
+          <div>
+            <p className="mb-1 font-semibold">Componentes</p>
+            <pre className="max-h-40 overflow-auto rounded-md bg-background p-2">{componentStack}</pre>
+          </div>
+        )}
+        {stack ? (
+          <div>
+            <p className="mb-1 font-semibold">Pilha técnica</p>
+            <pre className="max-h-56 overflow-auto rounded-md bg-background p-2">{stack}</pre>
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Sem pilha técnica gravada para este erro.</p>
+        )}
+        {(log.ocorrencias?.length ?? 0) > 0 && (
+          <div>
+            <p className="mb-1 font-semibold">Últimas ocorrências</p>
+            <ul className="space-y-1">
+              {log.ocorrencias?.map((oc) => (
+                <li key={oc.id} className="rounded-md bg-background p-2">
+                  {dataHora(oc.created_at)} · {usuarioLabel({ nome: oc.user_name, email: oc.user_email })}
+                  {oc.route ? ` · ${oc.route}` : ""}
+                  {oc.code ? ` · código ${oc.code}` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <Button size="sm" variant="outline" onClick={copiar}>
+          <Copy className="mr-2 h-4 w-4" />Copiar detalhes
+        </Button>
+      </div>
+    </details>
+  );
 }
 
 type DpErrosProps = {
@@ -210,7 +317,7 @@ export default function DpErros({ todasEmpresas = false }: DpErrosProps) {
                     )}
                     <p className="text-xs text-muted-foreground">
                       {l.route ? `${l.route} · ` : ""}
-                      {l.user_name ? `${l.user_name} · ` : ""}
+                      {`${usuarioLabel({ nome: l.user_name, email: l.user_email })} · `}
                       Primeira vez {dataHora(l.first_seen_at)} · Última{" "}
                       {formatDistanceToNowStrict(new Date(l.last_seen_at), { locale: ptBR, addSuffix: true })}
                       {l.code ? ` · código ${l.code}` : ""}
@@ -218,6 +325,7 @@ export default function DpErros({ todasEmpresas = false }: DpErrosProps) {
                     {l.status_note && (
                       <p className="text-xs text-muted-foreground">Observação: {l.status_note}</p>
                     )}
+                    <DetalhesTecnicos log={l} />
                     {(l.reports?.length ?? 0) > 0 && (
                       <details className="mt-3 rounded-md border bg-muted/30 p-3">
                         <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold">
@@ -235,7 +343,7 @@ export default function DpErros({ todasEmpresas = false }: DpErrosProps) {
                               <p className="whitespace-pre-wrap font-medium">{report.description}</p>
                               {report.attempted_action && <p className="mt-2 text-muted-foreground"><strong>Tentava:</strong> {report.attempted_action}</p>}
                               <p className="mt-2 text-xs text-muted-foreground">
-                                {report.reporter_name ?? "Usuário"} · {dataHora(report.created_at)}
+                                {usuarioLabel({ nome: report.reporter_name, email: report.reporter_email })} · {dataHora(report.created_at)}
                               </p>
                               {report.internal_note && <p className="mt-2 text-xs text-muted-foreground">Observação interna: {report.internal_note}</p>}
                               <div className="mt-3 flex flex-wrap gap-2">

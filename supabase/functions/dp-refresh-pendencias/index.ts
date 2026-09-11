@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
+import { recordEdgeError } from "../_shared/error-log.ts";
 
 const BodySchema = z.object({ companyId: z.string().uuid() });
 
@@ -31,9 +32,22 @@ Deno.serve(async (req) => {
     const { data: apuradoEm, error } = await admin.rpc("dp_refresh_my_company_pending", {
       p_company_id: parsed.data.companyId,
     });
-    if (error) return jsonError(req, "internal", error);
+    if (error) {
+      await recordEdgeError({
+        functionName: "dp-refresh-pendencias",
+        action: "atualizar pendências",
+        error,
+        companyId: parsed.data.companyId,
+      });
+      return jsonError(req, "internal", error);
+    }
     return jsonResponse(req, 200, { apuradoEm });
   } catch (error) {
+    await recordEdgeError({
+      functionName: "dp-refresh-pendencias",
+      action: "atualizar pendências",
+      error,
+    });
     return jsonError(req, "internal", error);
   }
 });

@@ -8,6 +8,7 @@ export type AppErrorLog = {
   fingerprint: string;
   company_id: string | null;
   user_name: string | null;
+  user_email: string | null;
   surface: string | null;
   route: string | null;
   action: string | null;
@@ -23,6 +24,20 @@ export type AppErrorLog = {
   first_seen_at: string;
   last_seen_at: string;
   reports?: AppErrorReport[];
+  ocorrencias?: AppErrorOccurrence[];
+};
+
+/** Uma repetição do mesmo erro: quem, quando e em qual tela. */
+export type AppErrorOccurrence = {
+  id: string;
+  error_log_id: string;
+  user_name: string | null;
+  user_email: string | null;
+  route: string | null;
+  code: string | null;
+  message: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
 };
 
 export type AppErrorReport = {
@@ -30,6 +45,7 @@ export type AppErrorReport = {
   error_log_id: string;
   protocol: string;
   reporter_name: string | null;
+  reporter_email: string | null;
   description: string;
   attempted_action: string | null;
   route: string | null;
@@ -91,22 +107,41 @@ export function useAppErrorLogs(filtros: AppErrorFiltros) {
       if (ids.length > 0) {
         const { data: reportData, error: reportError } = await supabase
           .from("app_error_reports")
-          .select("id,error_log_id,protocol,reporter_name,description,attempted_action,route,status,internal_note,created_at")
+          .select("id,error_log_id,protocol,reporter_name,reporter_email,description,attempted_action,route,status,internal_note,created_at")
           .in("error_log_id", ids)
           .order("created_at", { ascending: false });
         if (reportError) throw reportError;
         reports = (reportData ?? []) as AppErrorReport[];
       }
+      let ocorrencias: AppErrorOccurrence[] = [];
+      if (ids.length > 0) {
+        const { data: ocData } = await supabase
+          .from("app_error_occurrences")
+          .select("id,error_log_id,user_name,user_email,route,code,message,details,created_at")
+          .in("error_log_id", ids)
+          .order("created_at", { ascending: false })
+          .limit(1000);
+        ocorrencias = (ocData ?? []) as unknown as AppErrorOccurrence[];
+      }
+      const ocorrenciasByError = new Map<string, AppErrorOccurrence[]>();
+      ocorrencias.forEach((oc) => {
+        ocorrenciasByError.set(oc.error_log_id, [...(ocorrenciasByError.get(oc.error_log_id) ?? []), oc]);
+      });
+
       const reportsByError = new Map<string, AppErrorReport[]>();
       reports.forEach((report) => {
         reportsByError.set(report.error_log_id, [...(reportsByError.get(report.error_log_id) ?? []), report]);
       });
-      const enriched = linhas.map((linha) => ({ ...linha, reports: reportsByError.get(linha.id) ?? [] }));
+      const enriched = linhas.map((linha) => ({
+        ...linha,
+        reports: reportsByError.get(linha.id) ?? [],
+        ocorrencias: ocorrenciasByError.get(linha.id) ?? [],
+      }));
       if (!termo) return enriched;
       return enriched.filter((l) =>
         [
-          l.message, l.surface, l.action, l.route, l.code, l.user_name,
-          ...(l.reports ?? []).flatMap((report) => [report.protocol, report.reporter_name, report.description, report.attempted_action]),
+          l.message, l.surface, l.action, l.route, l.code, l.user_name, l.user_email,
+          ...(l.reports ?? []).flatMap((report) => [report.protocol, report.reporter_name, report.reporter_email, report.description, report.attempted_action]),
         ]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(termo)),
