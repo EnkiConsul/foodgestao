@@ -97,34 +97,7 @@ describe("useStablePendencias", () => {
 
     expect(result.current.data).toEqual([atualizada]);
     expect(result.current.dataUpdatedAt).toBe(200);
-describe("PendenciasCard", () => {
-  beforeEach(() => {
-    cleanup();
-    mockPendenciasData = [];
-    mockIsFetching = false;
   });
-
-  it("renderiza título, data de atualização e contadores de urgência", () => {
-    mockPendenciasData = [
-      { id: "p1", icon: Bell, titulo: "Doc atrasado", subtitulo: "", tipo: "Documentos", vencimento: null, atrasoDias: 1, url: "/dp/cadastros/pendencias" },
-      { id: "p2", icon: Bell, titulo: "Doc hoje", subtitulo: "", tipo: "Férias", vencimento: null, atrasoDias: 0, url: "/dp/cadastros/pendencias" },
-      { id: "p3", icon: Bell, titulo: "Doc próximo", subtitulo: "", tipo: "Rescisão", vencimento: null, atrasoDias: -2, url: "/dp/cadastros/pendencias" },
-    ];
-
-    render(
-      <MemoryRouter>
-        <PendenciasCard />
-      </MemoryRouter>,
-    );
-
-    expect(screen.getByText("Pendências do Sistema")).toBeInTheDocument();
-    expect(screen.getByText("Atrasado: 1")).toBeInTheDocument();
-    expect(screen.getByText("Hoje: 1")).toBeInTheDocument();
-    expect(screen.getByText("Próximo: 1")).toBeInTheDocument();
-    expect(screen.getByText(/Atualizado\s+11\/09/)).toBeInTheDocument();
-  });
-});
-
 
   it("não reutiliza pendências ao trocar de empresa", () => {
     const { result, rerender } = renderHook(
@@ -154,5 +127,33 @@ describe("PendenciasCard", () => {
 
     expect(result.current.data).toEqual([]);
     expect(result.current.ready).toBe(false);
+  });
+});
+
+describe("PendenciasCard", () => {
+  beforeEach(() => {
+    cleanup();
+    mockPendenciasData = [];
+    mockIsFetching = false;
+  });
+
+  it("renderiza título, data de atualização e contadores de urgência", () => {
+    mockPendenciasData = [
+      { id: "p1", icon: Bell, titulo: "Doc atrasado", subtitulo: "", tipo: "Documentos", vencimento: null, atrasoDias: 1, url: "/dp/cadastros/pendencias" },
+      { id: "p2", icon: Bell, titulo: "Doc hoje", subtitulo: "", tipo: "Férias", vencimento: null, atrasoDias: 0, url: "/dp/cadastros/pendencias" },
+      { id: "p3", icon: Bell, titulo: "Doc próximo", subtitulo: "", tipo: "Rescisão", vencimento: null, atrasoDias: -2, url: "/dp/cadastros/pendencias" },
+    ];
+
+    render(
+      <MemoryRouter>
+        <PendenciasCard />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Pendências do Sistema")).toBeInTheDocument();
+    expect(screen.getByText("Atrasado: 1")).toBeInTheDocument();
+    expect(screen.getByText("Hoje: 1")).toBeInTheDocument();
+    expect(screen.getByText("Próximo: 1")).toBeInTheDocument();
+    expect(screen.getByText(/Atualizado\s+11\/09/)).toBeInTheDocument();
   });
 });
