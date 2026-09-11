@@ -66,3 +66,6 @@ Criar uma tela dedicada (no menu Geral e também no backoffice) que registra tod
 - Pendências: tabela materializada + função agendada (cron 6h e a cada 8h) alimentada por uma única regra derivada de `pendencias-documentos.ts`; `useDpPendencias` e `DocConsistenciaPanel` passam a ler dela.
 - Importação: `input multiple` em `BulkImportPanel` e novo agrupador `rescisao` em `documentoTipos.ts`.
 - Nome social: coluna `nome_social` em `dp_colaboradores` + exibição.
+- Convocação: sem mudança na RPC de publicação (segue transacional); os dias OK ficam recolhidos no cliente a partir da pré-avaliação e da mensagem de erro, que passa a devolver a data.
+- Folga do mês: `useDpPendenciasColaborador` passa a usar `folgaDominicalAutomatica`/`folga_fixa_semana` (mesma regra do `DpMeuCalendario`).
+- Erros: nova tabela `app_error_logs` (RLS: gestor lê da própria empresa, super admin lê tudo; inserção por `authenticated` e `service_role`), hash de agrupamento, ErrorBoundary global + wrapper de erros do cliente Supabase e das Edge Functions, tela `/dp/geral/erros` e `/admin/erros`.
