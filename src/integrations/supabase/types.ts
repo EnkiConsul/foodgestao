@@ -180,6 +180,57 @@ export type Database = {
           },
         ]
       }
+      app_error_report_events: {
+        Row: {
+          actor_user_id: string
+          company_id: string
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          note: string | null
+          report_id: string
+          to_status: string | null
+        }
+        Insert: {
+          actor_user_id: string
+          company_id: string
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          report_id: string
+          to_status?: string | null
+        }
+        Update: {
+          actor_user_id?: string
+          company_id?: string
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          report_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_error_report_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_error_report_events_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "app_error_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_error_reports: {
         Row: {
           attempted_action: string | null
