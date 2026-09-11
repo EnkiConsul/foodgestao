@@ -30,8 +30,8 @@ export function CookieConsentBanner() {
   return (
     <>
       {!decided && !hidden && (
-        {/* No celular o aviso fica ACIMA da barra de navegação inferior
-            (64px + área segura); no desktop segue no canto inferior. */}
+        // No celular o aviso fica ACIMA da barra de navegação inferior
+        // (64px + área segura); no desktop segue no canto inferior.
         <div className="fixed inset-x-3 bottom-[calc(64px+env(safe-area-inset-bottom)+0.75rem)] z-[60] sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-md max-sm:max-h-[32vh] max-sm:overflow-y-auto">
           <div className="rounded-lg border border-border bg-card p-3 shadow-2xl sm:p-4">
             <div className="flex items-start gap-3">
