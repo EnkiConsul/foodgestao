@@ -351,6 +351,8 @@ export type PeriodoRisco = {
   controle_externo?: boolean | null;
   /** Sócio fica fora do controle legal: nunca gera risco de dobra. */
   socio?: boolean | null;
+  /** Desligado: sai da cobrança de prazo e do risco de dobra. */
+  desligado?: boolean | null;
 };
 
 export type RiscoAcumulo = {
@@ -367,7 +369,7 @@ export type RiscoAcumulo = {
 /** Um período conta como "em aberto" quando ainda há dias a conceder. */
 export function periodoEmAberto(p: PeriodoRisco): boolean {
   if (p.controle_externo) return false;
-  if (p.socio) return false;
+  if (p.socio || p.desligado) return false;
   if ((p.dias_saldo ?? 0) <= 0) return false;
   return p.status !== "em_aquisicao" && p.status !== "concluido";
 }

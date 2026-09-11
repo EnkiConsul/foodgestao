@@ -13,6 +13,9 @@ export type FeriasPeriodo = Database["public"]["Tables"]["dp_ferias_periodos"]["
   unidade_id?: string | null;
   /** Sócio: registro fica apenas como ausência, fora do controle legal. */
   socio?: boolean;
+  /** Desligado: fica só como histórico/rescisão, sem cobrança de prazo. */
+  desligado?: boolean;
+  data_desligamento?: string | null;
 };
 export type FeriasGozo = Database["public"]["Tables"]["dp_ferias_gozos"]["Row"];
 export type FeriasPeriodoStatus = Database["public"]["Enums"]["dp_ferias_periodo_status"];
