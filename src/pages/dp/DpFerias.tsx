@@ -151,6 +151,7 @@ export default function DpFerias() {
       hojeISO,
       politica: feriasConfig.sinalizacaoCicloEncerrado,
       socio: p.socio,
+      acumulo: idsAcumulo.has(p.id),
     });
     if (nivel === "normal") return null;
     const meta = NIVEL_VENCIMENTO_META[nivel];
