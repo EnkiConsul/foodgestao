@@ -13,6 +13,7 @@ import { tipoCanonicoPorVinculo } from "../_shared/doc-tipo-vinculo.ts";
 
 const SRC_BUCKET = "dp-bulk-import";
 const DST_BUCKET = "dp-documentos";
+const TIPOS_RESCISAO = new Set(["aviso_previo", "trct", "demonstrativo_rescisorio", "outros_desligamento"]);
 
 const BodySchema = z.object({
   item_ids: z.array(z.string().uuid()).min(1).max(200),
@@ -193,7 +194,7 @@ Deno.serve(async (req) => {
           aprovacao_status: "aprovado",
           revisado_em: nowIso,
           revisado_por: uid,
-           rescisao_grupo_id: batch.rescisao_grupo_id ?? null,
+           rescisao_grupo_id: TIPOS_RESCISAO.has(tipoDoc) ? batch.rescisao_grupo_id ?? null : null,
         }).select("id").single();
         if (dErr) throw new Error(dErr.message);
 

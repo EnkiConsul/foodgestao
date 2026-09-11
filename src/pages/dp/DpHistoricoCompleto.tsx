@@ -425,6 +425,15 @@ export default function DpHistoricoCompleto() {
     return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
   }, [query.data]);
 
+  const arquivosPorRescisao = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const documento of query.data ?? []) {
+      if (!documento.rescisao_grupo_id) continue;
+      contagem.set(documento.rescisao_grupo_id, (contagem.get(documento.rescisao_grupo_id) ?? 0) + 1);
+    }
+    return contagem;
+  }, [query.data]);
+
   // ---------------- Descritores de coluna ----------------
   const COLS: Record<ColKey, {
     label: string;
@@ -457,7 +466,9 @@ export default function DpHistoricoCompleto() {
               reunidos como um único conjunto da rescisão. */}
           {docTipoGrupo(r.tipo_key) === "desligamento" && (
             <span className="text-[10px] text-muted-foreground">
-              {r.rescisao_grupo_id ? "Documentos da Rescisão · conjunto" : "Documentos da Rescisão"}
+              {r.rescisao_grupo_id
+                ? `Documentos da Rescisão · ${arquivosPorRescisao.get(r.rescisao_grupo_id) ?? 1} arquivos`
+                : "Documentos da Rescisão"}
             </span>
           )}
         </div>

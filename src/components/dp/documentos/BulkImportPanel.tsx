@@ -227,7 +227,7 @@ export function BulkImportPanel({
       // Fila: um lote por arquivo, processados em segundo plano.
       const enviados: string[] = [];
       const falhas: string[] = [];
-      const rescisaoGrupoId = tipo !== AUTO_TIPO && docTipoGrupo(tipo) === "desligamento"
+      const rescisaoGrupoId = files.length > 1 || (tipo !== AUTO_TIPO && docTipoGrupo(tipo) === "desligamento")
         ? crypto.randomUUID()
         : null;
       for (const file of files) {
