@@ -25,6 +25,14 @@ A escolha fica na URL (`?aba=ferias&visao=analitica|sintetica`) e é lembrada, e
 - Ordem, larguras e colunas visíveis ficam salvos por usuário; filtros e ordenação são temporários.
 - Colunas: Código, Empregado, Admissão, Vencimento, Venc., Prop., Início/Fim aquisitivo, Início gozo, Dias, Abono, 13º, Direito, Gozados, Restantes, Limite p/ gozo, Afastamento, Faltas, Situação, Dias p/ limite, Dias p/ marcar. Empregado é coluna essencial. Imprimir e CSV seguem as colunas visíveis, na ordem escolhida.
 
+## Cabeçalho do relatório sintético reflete a unidade filtrada
+
+Hoje o cabeçalho usa sempre o nome fantasia da empresa (que é de uma unidade) com o CNPJ da matriz — combinação errada quando há mais de uma unidade com CNPJ próprio. Correção:
+
+- **Uma unidade filtrada**: cabeçalho mostra o nome e o CNPJ **daquela unidade** (`dp_unidades.nome` + `dp_unidades.cnpj`).
+- **"Todas"**: mostra a **razão social da empresa** (`companies.name`, não o nome fantasia de unidade) com o CNPJ da matriz; se houver unidades com CNPJ próprio, indica no subtítulo "Consolidado de todas as unidades".
+- O mesmo cabeçalho corrigido vale para tela, impresso/PDF e CSV.
+
 ## Detalhes técnicos
 
 - `src/pages/dp/DpFeriasHub.tsx`: remove os `TabsTrigger` "Planejamento" e "Programação", cria a aba `ferias` que renderiza um novo `FeriasViewSwitch` (ToggleGroup Analítica/Sintética) controlando `?visao=`, com `DpEmbeddedProvider` + `Suspense` para o painel analítico lazy. Redireciona `aba=planejamento|programacao` para `aba=ferias` com a visão correspondente (compatibilidade com links existentes de pendências/dashboard).
