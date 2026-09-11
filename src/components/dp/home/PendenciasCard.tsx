@@ -24,7 +24,7 @@ export function PendenciasCard() {
   const { data = [], isLoading, isFetching, dataUpdatedAt, lastCalculatedAt, refetch } = useDpPendencias();
   const { prefs } = useDpUserPrefs();
   const { ignoradas, adiadas } = useDpPendenciasDecisoes();
-  const [grupoAberto, setGrupoAberto] = useState<GrupoPendencias<Pendencia> | null>(null);
+  const [grupoAbertoTipo, setGrupoAbertoTipo] = useState<string | null>(null);
 
   const abertas = useMemo(
     () =>
@@ -36,6 +36,7 @@ export function PendenciasCard() {
   );
 
   const grupos = useMemo(() => agruparPorTipo(abertas), [abertas]);
+  const grupoAberto = grupos.find((grupo) => grupo.tipo === grupoAbertoTipo) ?? null;
 
   const counters = useMemo(() => {
     let atrasado = 0, hoje = 0, proximo = 0;
@@ -107,7 +108,7 @@ export function PendenciasCard() {
           <button
             key={g.tipo}
             type="button"
-            onClick={() => setGrupoAberto(g)}
+            onClick={() => setGrupoAbertoTipo(g.tipo)}
             className="w-full text-left flex items-start gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3 hover:shadow-sm transition-shadow"
           >
             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -145,7 +146,7 @@ export function PendenciasCard() {
       </div>
 
       {/* Detalhe do grupo: itens individuais preservados, agrupados por colaborador quando houver */}
-      <Dialog open={!!grupoAberto} onOpenChange={(v) => { if (!v) setGrupoAberto(null); }}>
+      <Dialog open={!!grupoAberto} onOpenChange={(v) => { if (!v) setGrupoAbertoTipo(null); }}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           {grupoAberto && (
             <>
@@ -156,7 +157,7 @@ export function PendenciasCard() {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                {agruparPorColaborador(grupoAberto.itens).map((sub) => (
+                {agruparPorColaborador(grupoAberto.itens, { ordenarPorAtraso: true }).map((sub) => (
                   <div key={sub.colaborador ?? "geral"} className="space-y-2">
                     {sub.colaborador && (
                       <p className="text-xs font-semibold text-muted-foreground">
@@ -185,7 +186,13 @@ export function PendenciasCard() {
                               Prazo: {format(new Date(`${p.vencimento}T12:00:00`), "dd/MM/yyyy")}
                             </p>
                           )}
-                          <PendenciaAcoes pendencia={p} onNavigate={() => setGrupoAberto(null)} />
+                           <PendenciaAcoes
+                             pendencia={p}
+                             onNavigate={() => setGrupoAbertoTipo(null)}
+                             onResolved={() => {
+                               if (grupoAberto.itens.length === 1) setGrupoAbertoTipo(null);
+                             }}
+                           />
                         </div>
                       </div>
                     ))}

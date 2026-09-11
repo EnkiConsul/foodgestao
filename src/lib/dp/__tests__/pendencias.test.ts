@@ -88,6 +88,16 @@ describe("agruparPorColaborador", () => {
     expect(subs[0].itens.map((i) => i.id)).toEqual(["1", "2"]); // ordenado por atraso
     expect(subs[0].itens.length).toBe(2);
   });
+
+  it("ordena colaboradores pelo maior atraso quando solicitado", () => {
+    const itens = [
+      mk({ id: "1", colaboradorNome: "Ana", atrasoDias: 4 }),
+      mk({ id: "2", colaboradorNome: "Bia", atrasoDias: 32 }),
+      mk({ id: "3", colaboradorNome: "Carla", atrasoDias: 12 }),
+    ];
+    const subs = agruparPorColaborador(itens, { ordenarPorAtraso: true });
+    expect(subs.map((s) => s.colaborador)).toEqual(["Bia", "Carla", "Ana"]);
+  });
 });
 
 describe("opcoesFiltro", () => {
