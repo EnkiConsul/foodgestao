@@ -70,10 +70,9 @@ export function useDpPendencias() {
   const query = useQuery({
     queryKey: ["dp_pendencias", selectedCompanyId, config],
     enabled: !!selectedCompanyId,
-    // Recalcular é caro: mantemos o resultado por 8 horas e atualizamos
-    // automaticamente nesse mesmo ritmo, além do botão manual.
-    staleTime: 8 * 60 * 60 * 1000,
-    refetchInterval: 8 * 60 * 60 * 1000,
+    // Sem repetição periódica no navegador: a rotina diária, as ações do gestor
+    // e o botão manual controlam quando uma nova apuração deve acontecer.
+    staleTime: Infinity,
     refetchOnWindowFocus: false,
     queryFn: async (): Promise<Pendencia[]> => {
       const cfg: DpPendenciasConfig = config;
@@ -1155,7 +1154,7 @@ export function useDpPendencias() {
 
 
       // A apuração documental é compartilhada entre as telas e também roda
-      // automaticamente às 6h, 14h e 22h (horário de São Paulo). Se alguma
+      // automaticamente às 3h (horário de São Paulo). Se alguma
       // alteração deixou o resultado marcado como desatualizado, recalcula ao abrir.
       try {
         let { data: apuracao } = await supabase

@@ -42,7 +42,7 @@
 
 ## Ainda em aberto (fila desta revisão)
 - [x] Documentos de rescisão identificados como um conjunto no histórico do colaborador
-- [x] Fonte única de pendências (Início, Pendências e Importar), botão Atualizar com data/hora e recálculo automático a cada 8h
+- [x] Fonte única de pendências (Início, Pendências e Importar), botão Atualizar com data/hora e recálculo por ações do gestor
 - [x] Convocação: recolher visualmente os dias sem erro e abrir o dia com problema (publicação segue atômica)
 - [x] Horário do Herick divergente na rotina do dia (horário próprio do dia vence o turno)
 - [x] Erro ao confirmar se o Erildson trabalhou em 05/2026 (coluna errada na gravação)
@@ -56,4 +56,4 @@
 - [x] Auditoria de erros disponível no backoffice e erro intermitente traduzido
 - [x] Nome social aplicado na rotina, escalas, convocações, avisos e mensagens
 - [x] Recontratação preserva a pessoa e o histórico do vínculo encerrado
-- [x] Materializar pendências documentais e atualizar às 6h, 14h e 22h, além de recalcular após alterações e pelo botão Atualizar
+- [x] Materializar pendências documentais e atualizar uma vez ao dia, às 3h, além de recalcular após ações e pelo botão Atualizar
