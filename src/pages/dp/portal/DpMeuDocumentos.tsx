@@ -235,8 +235,8 @@ export default function DpMeuDocumentos() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Documento confirmado", {
-        description: "Registramos data, hora e dispositivo. Isso não confirma valores nem pagamento.",
+      toast.success("Documento aprovado", {
+        description: "Registramos data, hora e dispositivo da sua aprovação.",
       });
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
     },
@@ -414,12 +414,12 @@ export default function DpMeuDocumentos() {
                         <StatusBadge d={d} />
                         {d.aceite === true && (
                           <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-[11px]">
-                            <CheckCircle2 className="h-3 w-3 mr-1" /> Recebimento confirmado
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> Aprovado por você
                           </Badge>
                         )}
                         {d.aceite === false && (
                           <Badge variant="outline" className="border-amber-300 text-amber-700 text-[11px]">
-                            <Clock className="h-3 w-3 mr-1" /> Aguardando sua confirmação de leitura
+                            <Clock className="h-3 w-3 mr-1" /> Aguardando sua aprovação
                           </Badge>
                         )}
                       </div>
@@ -456,7 +456,7 @@ export default function DpMeuDocumentos() {
                             disabled={aceitar.isPending}
                             className="min-h-9 flex-1 sm:flex-none"
                           >
-                            <PenLine className="h-4 w-4 mr-1" /> Confirmar Documento
+                            <PenLine className="h-4 w-4 mr-1" /> Aprovar documento
                           </Button>
                         )}
                         {d.origem === "meu_envio" && d.status_key === "pendente" && (
