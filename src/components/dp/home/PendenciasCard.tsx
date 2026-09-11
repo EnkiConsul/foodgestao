@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff, CalendarPlus, Settings, ChevronRight } from "lucide-react";
+import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff, CalendarPlus, Settings, ChevronRight, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 
 export function PendenciasCard() {
-  const { data = [], isLoading } = useDpPendencias();
+  const { data = [], isLoading, isFetching, dataUpdatedAt, refetch } = useDpPendencias();
   const { prefs } = useDpUserPrefs();
   const { ignoradas, adiadas } = useDpPendenciasDecisoes();
   const [grupoAberto, setGrupoAberto] = useState<GrupoPendencias<Pendencia> | null>(null);
@@ -58,6 +58,16 @@ export function PendenciasCard() {
         </Badge>
         <div className="ml-auto flex items-center gap-1 shrink-0">
           <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            title="Atualizar pendências agora"
+            disabled={isFetching}
+            onClick={() => void refetch()}
+          >
+            <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+          </Button>
+          <Button
             asChild
             variant="ghost"
             size="icon"
@@ -75,6 +85,12 @@ export function PendenciasCard() {
           </Button>
         </div>
       </div>
+
+      <p className="-mt-2 mb-2 text-[11px] text-muted-foreground">
+        {dataUpdatedAt
+          ? `Última atualização: ${new Date(dataUpdatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
+          : "Atualizando…"}
+      </p>
 
       <div className="flex flex-wrap gap-2 mb-4">
         <UrgencyChip icon={AlarmClockOff} label="Atrasado" count={counters.atrasado} tone="destructive" />

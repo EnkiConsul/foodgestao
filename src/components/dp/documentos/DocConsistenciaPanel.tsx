@@ -712,6 +712,33 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         </CollapsibleTrigger>
         <CollapsibleContent>
       <CardContent className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs"
+            disabled={atualizandoPendencias}
+            onClick={() => {
+              void recalcularPendencias();
+              void query.refetch();
+            }}
+          >
+            <RefreshCw
+              className={cn("mr-1 h-3.5 w-3.5", atualizandoPendencias && "animate-spin")}
+            />
+            Atualizar
+          </Button>
+          <span className="text-[11px] text-muted-foreground">
+            {dataUpdatedAt
+              ? `Última atualização: ${new Date(dataUpdatedAt).toLocaleString("pt-BR", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}`
+              : "Atualizando…"}
+          </span>
+        </div>
         {query.isLoading && <p className="text-sm text-muted-foreground">Conferindo…</p>}
 
         {!query.isLoading && tudoOk && (
