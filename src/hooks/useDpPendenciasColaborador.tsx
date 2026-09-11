@@ -7,6 +7,7 @@ import {
   CalendarPlus, FileWarning, Repeat2, Palmtree, Megaphone, UserCog, FileCheck2,
 } from "lucide-react";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
+import { folgaDominicalAutomatica } from "@/lib/dp/dsr-rules";
 
 export type PendenciaColaborador = {
   id: string;
