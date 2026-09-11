@@ -13,6 +13,13 @@
 - Na ciência, o colaborador vê essa informação e o registro guarda que ele deu ciência a um aviso fora do prazo.
 - O card do gestor mostra o selo **"Aviso fora do prazo"** com a justificativa.
 
+### 2b. Aviso retroativo (comunicação feita fora do sistema)
+- O gestor pode informar uma **data de aviso retroativa** (anterior a hoje), inclusive para férias já iniciadas ou concluídas, apenas para reconstruir o histórico.
+- Ao escolher data retroativa, ele marca uma declaração de ciência: "confirmo que a comunicação foi feita formalmente por outro meio na data informada".
+- Nesse caso o **anexo do aviso passa a ser obrigatório** (comprovante da comunicação); sem o arquivo o registro não é salvo.
+- Se a data informada respeitar os 30 dias, o aviso conta como dentro do prazo; se não, continua exigindo justificativa e recebe o selo "Aviso fora do prazo".
+- O card mostra **"Aviso registrado retroativamente"** com a data declarada, quem declarou e o comprovante anexado.
+
 ### 3. Anexos no mesmo card das férias
 No card de cada férias (Programadas / Em férias / Histórico e também em Minhas Férias):
 - **Aviso de férias** — anexo opcional (o documento assinado, quando houver).
