@@ -6,7 +6,7 @@ import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap, UserCog, Baby } from "lucide-react";
-import { LEMBRETE_RETORNO_DIAS, TIPOS_LICENCA, labelAfastamento, situacaoRetorno } from "@/lib/dp/licencas";
+import { LEMBRETE_RETORNO_DIAS, TIPOS_AFASTAMENTO, TIPOS_LICENCA, afastamentoCobreCompetencia, labelAfastamento, situacaoRetorno } from "@/lib/dp/licencas";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
@@ -351,6 +351,54 @@ export function useDpPendencias() {
         pontoIntermitente.has(`${colaboradorId}:${competencia}`) ||
         folhasPontoImportadas.has(`${colaboradorId}:${competencia}`);
 
+      // Afastamentos aprovados (licenças e atestados longos): quando cobrem o
+      // mês inteiro, não há ponto a bater e a folha não é exigida da pessoa.
+      const afastamentosAprovados: Array<{
+        colaborador_id: string;
+        data_alvo: string;
+        data_fim: string | null;
+      }> = [];
+      try {
+        const { data: afast } = await supabase
+          .from("dp_solicitacoes")
+          .select("colaborador_id, data_alvo, data_fim")
+          .eq("company_id", selectedCompanyId!)
+          .in("tipo", [...TIPOS_AFASTAMENTO] as any)
+          .eq("status", "aprovada")
+          .not("colaborador_id", "is", null);
+        (afast ?? []).forEach((a: any) => {
+          if (a.colaborador_id && a.data_alvo) {
+            afastamentosAprovados.push({
+              colaborador_id: a.colaborador_id,
+              data_alvo: String(a.data_alvo).slice(0, 10),
+              data_fim: a.data_fim ? String(a.data_fim).slice(0, 10) : null,
+            });
+          }
+        });
+      } catch (e) {
+        console.warn("pendencias/afastamentos:", e);
+      }
+
+      const afastadoMesInteiroCache = new Map<string, boolean>();
+      const afastadoMesInteiro = (c: ColabElegibilidade, comp: string): boolean => {
+        const chave = `${c.id}:${comp}`;
+        const cache = afastadoMesInteiroCache.get(chave);
+        if (cache !== undefined) return cache;
+        const cobre = afastamentosAprovados.some(
+          (a) =>
+            a.colaborador_id === c.id &&
+            afastamentoCobreCompetencia({
+              competencia: comp,
+              afastamentoInicio: a.data_alvo,
+              afastamentoFim: a.data_fim,
+              admissao: c.data_admissao ?? null,
+              desligamento: c.data_desligamento ?? null,
+            }),
+        );
+        afastadoMesInteiroCache.set(chave, cobre);
+        return cobre;
+      };
+
       /**
        * Quem está devendo o documento na unidade/competência.
        * Falta de todos → 1 pendência da unidade; falta parcial → 1 por pessoa.
@@ -372,7 +420,9 @@ export function useDpPendencias() {
               : undefined,
           intermitenteSemRegistros: !intermitenteTemEvidencia(c.id, comp),
           intermitenteTrabalho: confirmacaoIntermitente.get(`${c.id}:${comp}`) ?? null,
+          afastadoMesInteiro: tipo === "ponto" ? afastadoMesInteiro(c, comp) : false,
         });
+
 
       const faltantesDocumento = (
         tipo: DocTipoColaborador,
