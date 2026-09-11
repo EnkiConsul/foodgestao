@@ -262,11 +262,49 @@ export function PendenciasCard() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-2">
-        <UrgencyChip icon={AlarmClockOff} label="Atrasado" count={counters.atrasado} tone="destructive" />
-        <UrgencyChip icon={AlarmClockOff} label="Urgente" count={counters.urgente} tone="destructive" />
-        <UrgencyChip icon={Clock3} label="Hoje" count={counters.hoje} tone="warning" />
-        <UrgencyChip icon={CalendarClock} label="Próximo" count={counters.proximo} tone="info" />
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <UrgencyChip
+          icon={AlarmClockOff}
+          label="Atrasado"
+          count={counters.atrasado}
+          tone="destructive"
+          active={urgenciaFiltro === "atrasada"}
+          onClick={() => alternarUrgencia("atrasada")}
+        />
+        <UrgencyChip
+          icon={AlarmClockOff}
+          label="Urgente"
+          count={counters.urgente}
+          tone="destructive"
+          active={urgenciaFiltro === "urgente"}
+          onClick={() => alternarUrgencia("urgente")}
+        />
+        <UrgencyChip
+          icon={Clock3}
+          label="Hoje"
+          count={counters.hoje}
+          tone="warning"
+          active={urgenciaFiltro === "hoje"}
+          onClick={() => alternarUrgencia("hoje")}
+        />
+        <UrgencyChip
+          icon={CalendarClock}
+          label="Próximo"
+          count={counters.proximo}
+          tone="info"
+          active={urgenciaFiltro === "proxima"}
+          onClick={() => alternarUrgencia("proxima")}
+        />
+        {urgenciaFiltro && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-[11px] text-muted-foreground"
+            onClick={() => setUrgenciaFiltro(null)}
+          >
+            Todas
+          </Button>
+        )}
       </div>
 
       <p className="mb-3 text-[11px] text-muted-foreground">
@@ -279,8 +317,13 @@ export function PendenciasCard() {
       <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
         {!stable.ready && <p className="text-sm text-muted-foreground">Carregando…</p>}
         {stable.ready && abertas.length === 0 && (
-          <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma pendência aberta no momento. 🎉</p>
+          <p className="text-sm text-muted-foreground py-8 text-center">
+            {urgenciaFiltro
+              ? "Nenhuma pendência nesta classificação."
+              : "Nenhuma pendência aberta no momento. 🎉"}
+          </p>
         )}
+
         {grupos.map((g) => (
           <button
             key={g.tipo}
