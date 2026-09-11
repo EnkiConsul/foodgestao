@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  Download, Eye, FileText, History, Replace, Trash2, Loader2,
+  Download, Eye, FileText, History, Replace, Trash2, Loader2, Printer,
 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { imprimirCertificadoValidacao } from "@/lib/dp/documento-certificado";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -80,7 +82,7 @@ export function DocDetalhesDialog(props: {
         source === "doc"
           ? supabase
               .from("dp_documento_aceites")
-              .select("aceito_em, aceito_por, ip")
+              .select("id, aceito_em, aceito_por, ip, user_agent, conteudo_hash")
               .eq("documento_id", docId!)
               .order("aceito_em", { ascending: false })
               .limit(1)
@@ -112,12 +114,42 @@ export function DocDetalhesDialog(props: {
         (profs ?? []).forEach((p: any) => nomes.set(p.user_id, p.full_name ?? "Usuário"));
       }
 
-      return { doc, aceite, eventos, nomes };
+      const { data: empresa } = await supabase
+        .from("companies")
+        .select("razao_social, nome_fantasia")
+        .eq("id", companyId!)
+        .maybeSingle();
+
+      return { doc, aceite, eventos, nomes, empresa };
     },
   });
 
+
   const nome = (id?: string | null) =>
     (id ? detalhes.data?.nomes.get(id) : null) ?? (id ? "Usuário" : "—");
+
+  const aceite = detalhes.data?.aceite ?? null;
+
+  const imprimirCertificado = () => {
+    if (!target || !aceite) return;
+    const empresa = detalhes.data?.empresa as any;
+    const ok = imprimirCertificadoValidacao({
+      empresa: empresa?.razao_social ?? empresa?.nome_fantasia ?? "",
+      colaborador: target.colaborador_nome,
+      documentoTitulo: target.titulo,
+      documentoTipo: target.tipo_label,
+      competencia: target.competencia,
+      arquivo: detalhes.data?.doc?.file_name ?? target.file_path?.split("/").pop() ?? null,
+      aceitoEm: aceite.aceito_em,
+      aprovadoPor: nome(aceite.aceito_por),
+      ip: aceite.ip,
+      dispositivo: aceite.user_agent,
+      conteudoHash: aceite.conteudo_hash,
+      registroId: aceite.id,
+    });
+    if (!ok) toast.error("Libere as janelas pop-up para imprimir o certificado.");
+  };
+
 
   const aceiteBadge = () => {
     if (!target) return null;
@@ -192,6 +224,11 @@ export function DocDetalhesDialog(props: {
                   {detalhes.data?.doc?.assinatura_detectada ? "Detectada" : "Não detectada"}
                 </Campo>
               </div>
+              {aceite && (
+                <Button size="sm" variant="outline" className="mt-3" onClick={imprimirCertificado}>
+                  <Printer className="mr-1 h-4 w-4" /> Certificado de validação
+                </Button>
+              )}
             </div>
 
             <div className="rounded-lg border p-3">

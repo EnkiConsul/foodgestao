@@ -41,6 +41,14 @@ export type UnifiedDoc = {
   motivo_recusao?: string | null;
   /** null = não exige aceite; false = aguardando aceite; true = já aceito */
   aceite?: boolean | null;
+  /** Registro da aprovação eletrônica (base do certificado de validação). */
+  aceiteInfo?: {
+    id: string;
+    aceito_em: string;
+    ip: string | null;
+    user_agent: string | null;
+    conteudo_hash: string | null;
+  } | null;
   meta?: Record<string, any>;
 };
 
@@ -104,10 +112,20 @@ export function useMeusDocumentos() {
       if (!cid) return null;
       const { data } = await supabase
         .from("dp_colaboradores")
-        .select("id, company_id, nome, unidade_id, sindicato_id, possui_folha_ponto")
+        .select("id, company_id, nome, nome_social, unidade_id, sindicato_id, possui_folha_ponto")
         .eq("id", cid as string)
         .maybeSingle();
-      return data;
+      if (!data) return null;
+      const { data: empresa } = await supabase
+        .from("companies")
+        .select("razao_social, nome_fantasia")
+        .eq("id", (data as any).company_id)
+        .maybeSingle();
+      return {
+        ...(data as any),
+        empresa_nome:
+          (empresa as any)?.razao_social ?? (empresa as any)?.nome_fantasia ?? "",
+      };
     },
   });
 
@@ -129,10 +147,15 @@ export function useMeusDocumentos() {
 
       const { data: aceites } = await supabase
         .from("dp_documento_aceites")
-        .select("documento_id")
+        .select("id, documento_id, aceito_em, ip, user_agent, conteudo_hash")
         .eq("colaborador_id", colab.id)
-        .not("documento_id", "is", null);
-      const aceitos = new Set((aceites ?? []).map((a: any) => a.documento_id as string));
+        .not("documento_id", "is", null)
+        .order("aceito_em", { ascending: false });
+      const aceitePorDoc = new Map<string, any>();
+      for (const a of (aceites ?? []) as any[]) {
+        if (!aceitePorDoc.has(a.documento_id)) aceitePorDoc.set(a.documento_id, a);
+      }
+      const aceitos = new Set(aceitePorDoc.keys());
 
       for (const d of (docs ?? []) as any[]) {
         const tipo = normalizeTipo(d.tipo);
@@ -172,6 +195,7 @@ export function useMeusDocumentos() {
           observacao: d.descricao ?? null,
           motivo_recusao: d.motivo_recusao ?? null,
           aceite: d.exige_aceite && !d.submetido_por_colaborador ? aceitos.has(d.id) : null,
+          aceiteInfo: aceitePorDoc.get(d.id) ?? null,
           meta: { originalId: d.id, submetido: d.submetido_por_colaborador },
         });
       }

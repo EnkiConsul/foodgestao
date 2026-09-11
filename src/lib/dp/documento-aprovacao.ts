@@ -1,10 +1,10 @@
 /**
  * Prazo de aprovação de documento pelo colaborador.
  *
- * Documento enviado pela empresa que exige aprovação tem 3 dias corridos
+ * Documento enviado pela empresa que exige aprovação tem 5 dias corridos
  * desde o envio. Passado o prazo, a pendência vira "Atraso grave".
  */
-export const PRAZO_APROVACAO_DIAS = 3;
+export const PRAZO_APROVACAO_DIAS = 5;
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
@@ -28,7 +28,7 @@ export function atrasoAprovacao(createdAt: string | Date, hoje: Date = new Date(
   return Math.round((inicioDoDia(hoje) - inicioDoDia(limite)) / DIA_MS);
 }
 
-/** Atraso grave: passou dos 3 dias corridos sem aprovação. */
+/** Atraso grave: passou dos 5 dias corridos sem aprovação. */
 export function atrasoGraveAprovacao(createdAt: string | Date, hoje: Date = new Date()): boolean {
   return atrasoAprovacao(createdAt, hoje) > 0;
 }
