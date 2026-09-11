@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger, toErrorMessage } from "@/lib/logger";
 import { isStaleBundleError, recoverFromStaleBundle } from "@/lib/staleBundle";
+import { reportError } from "@/lib/errorLog";
 
 
 interface ErrorBoundaryProps {
@@ -42,6 +43,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       componentStack: info.componentStack?.slice(0, 2000),
       path: typeof window !== "undefined" ? window.location.pathname : undefined,
     });
+    // Auditoria de erros: alimenta a tela de erros do sistema.
+    if (!isStaleBundleError(error)) {
+      void reportError({
+        error,
+        surface: this.props.title ?? this.props.scope ?? "Tela",
+        action: "renderizar tela",
+        source: "client",
+        userMessage: "Algo deu errado nesta tela.",
+        details: { componentStack: info.componentStack?.slice(0, 1500) },
+      });
+    }
   }
 
   private reset = () => this.setState({ error: null });

@@ -7,6 +7,7 @@ import {
   CalendarPlus, FileWarning, Repeat2, Palmtree, Megaphone, UserCog, FileCheck2,
 } from "lucide-react";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
+import { folgaDominicalAutomatica } from "@/lib/dp/dsr-rules";
 
 export type PendenciaColaborador = {
   id: string;
@@ -52,15 +53,38 @@ export function useDpPendenciasColaborador() {
       const results: PendenciaColaborador[] = [];
 
       // 1. Escolher a folga do mês vigente.
+      // Só vale para quem NÃO tem dia fixo de folga na semana: quem já folga
+      // sempre no mesmo dia (domingo, ou sábado na Pakerê) não escolhe nada.
       try {
-        const { count } = await supabase
-          .from("dp_folgas")
-          .select("id", { count: "exact", head: true })
-          .eq("colaborador_id", colabId as string)
-          .neq("status", "cancelada")
-          .gte("data", ymd(mesInicio))
-          .lte("data", ymd(mesFim));
-        if ((count ?? 0) === 0) {
+        const { data: meFolga } = await supabase
+          .from("dp_colaboradores")
+          .select("company_id, folga_fixa_semana")
+          .eq("id", colabId as string)
+          .maybeSingle();
+
+        let escolheFolga = (meFolga as any)?.folga_fixa_semana == null;
+
+        if (escolheFolga && (meFolga as any)?.company_id) {
+          // Empresa com folga dominical automática (regra legal) também não pede escolha.
+          const { data: cfg } = await supabase
+            .from("dp_config_dp")
+            .select("regra_dsr, tipo_descanso_domingo")
+            .eq("company_id", (meFolga as any).company_id)
+            .maybeSingle();
+          if (cfg && folgaDominicalAutomatica(cfg as any)) escolheFolga = false;
+        }
+
+        const { count } = escolheFolga
+          ? await supabase
+              .from("dp_folgas")
+              .select("id", { count: "exact", head: true })
+              .eq("colaborador_id", colabId as string)
+              .neq("status", "cancelada")
+              .gte("data", ymd(mesInicio))
+              .lte("data", ymd(mesFim))
+          : { count: 1 };
+
+        if (escolheFolga && (count ?? 0) === 0) {
           results.push({
             id: `folga-mes-${format(mesInicio, "yyyy-MM")}`,
             icon: CalendarPlus,

@@ -78,6 +78,7 @@ const DpFerias = lazyWithRetry(() => import("./pages/dp/DpFeriasHub"));
 const DpConformidade = lazyWithRetry(() => import("./pages/dp/DpConformidade"));
 const DpBeneficios = lazyWithRetry(() => import("./pages/dp/DpBeneficios"));
 const DpAnalytics = lazyWithRetry(() => import("./pages/dp/DpAnalytics"));
+const DpErros = lazyWithRetry(() => import("./pages/dp/DpErros"));
 
 const DpFolgasHub = lazyWithRetry(() => import("./pages/dp/DpFolgasHub"));
 const DpCadastrosHub = lazyWithRetry(() => import("./pages/dp/DpCadastrosHub"));
@@ -404,6 +405,7 @@ const AppRoutes = () => (
         <Route path="conformidade" element={<ModuloEmDesenvolvimentoGate titulo="SESMT"><DpConformidade /></ModuloEmDesenvolvimentoGate>} />
         <Route path="beneficios" element={<Navigate to="/dp/cadastros/beneficios" replace />} />
         <Route path="analytics" element={<DpAnalytics />} />
+        <Route path="erros" element={<DpErros />} />
 
         <Route path="calendario" element={<DpAdminCalendario />} />
         <Route path="documentos" element={<DpDocumentosImportar />} />

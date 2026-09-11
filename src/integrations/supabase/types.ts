@@ -100,6 +100,86 @@ export type Database = {
           },
         ]
       }
+      app_error_logs: {
+        Row: {
+          action: string | null
+          code: string | null
+          company_id: string | null
+          created_at: string
+          details: Json | null
+          fingerprint: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          message: string
+          occurrences: number
+          route: string | null
+          severity: string
+          source: string
+          status: string
+          status_note: string | null
+          surface: string | null
+          updated_at: string
+          user_id: string | null
+          user_message: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action?: string | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          details?: Json | null
+          fingerprint: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          message: string
+          occurrences?: number
+          route?: string | null
+          severity?: string
+          source?: string
+          status?: string
+          status_note?: string | null
+          surface?: string | null
+          updated_at?: string
+          user_id?: string | null
+          user_message?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          details?: Json | null
+          fingerprint?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          message?: string
+          occurrences?: number
+          route?: string | null
+          severity?: string
+          source?: string
+          status?: string
+          status_note?: string | null
+          surface?: string | null
+          updated_at?: string
+          user_id?: string | null
+          user_message?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_error_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_hidden_screens: {
         Row: {
           enabled: boolean
@@ -4648,6 +4728,7 @@ export type Database = {
           nome: string
           nome_mae: string | null
           nome_pai: string | null
+          nome_social: string | null
           observacao_desligamento: string | null
           observacoes: string | null
           optante_adiantamento: boolean
@@ -4772,6 +4853,7 @@ export type Database = {
           nome: string
           nome_mae?: string | null
           nome_pai?: string | null
+          nome_social?: string | null
           observacao_desligamento?: string | null
           observacoes?: string | null
           optante_adiantamento?: boolean
@@ -4896,6 +4978,7 @@ export type Database = {
           nome?: string
           nome_mae?: string | null
           nome_pai?: string | null
+          nome_social?: string | null
           observacao_desligamento?: string | null
           observacoes?: string | null
           optante_adiantamento?: boolean
@@ -13816,6 +13899,22 @@ export type Database = {
           _idempotency_key?: string
           _note: string
           _target_balance: number
+        }
+        Returns: string
+      }
+      app_error_log_record: {
+        Args: {
+          _action?: string
+          _code?: string
+          _company_id?: string
+          _details?: Json
+          _fingerprint: string
+          _message: string
+          _route?: string
+          _severity?: string
+          _source?: string
+          _surface?: string
+          _user_message?: string
         }
         Returns: string
       }

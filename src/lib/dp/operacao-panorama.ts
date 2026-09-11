@@ -315,6 +315,9 @@ const OCORRENCIA_CATEGORIA: Partial<Record<OcorrenciaTipo, CategoriaDia>> = {
   // (ex.: motivo de uma cobertura) também tiram a pessoa do quadro do dia.
   atestado: "atestado",
   ausencia_justificada: "atestado",
+  // "Outra divergência de jornada" também é ausência: sem isso a pessoa
+  // continuava contada como folga/trabalho no painel do dia.
+  divergencia_jornada: "ausente",
 };
 
 /** Categorias que já representam a pessoa fora do trabalho no dia. */
@@ -641,7 +644,11 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
   for (const [colabId, ocorrencias] of ocorrenciasPor.entries()) {
     const principal = pessoaPrincipalPorColab.get(colabId);
     const colab = colabPorId.get(colabId);
-    const categoriasTrabalho: CategoriaDia[] = ["fixo", "convocado_aceito", "convocado_pendente", "coberto"];
+    // Ausência registrada vence também a folga padrão: quem avisou que ia
+    // faltar não pode aparecer como folga do dia.
+    const categoriasTrabalho: CategoriaDia[] = [
+      "fixo", "convocado_aceito", "convocado_pendente", "coberto", "folga_padrao",
+    ];
     // Falta e atestado/ausência justificada vencem a categoria de trabalho:
     // quem faltou ou está afastado não conta como trabalhando.
     const catAusencia = ocorrencias
