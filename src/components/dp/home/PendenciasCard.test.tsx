@@ -13,11 +13,13 @@ vi.mock("@/hooks/useCompanyContext", () => ({
 
 let mockPendenciasData: Pendencia[] | undefined = [];
 let mockIsFetching = false;
+let mockIsRefreshing = false;
 vi.mock("@/hooks/useDpPendencias", () => ({
   useDpPendencias: () => ({
     data: mockPendenciasData,
     isLoading: false,
     isFetching: mockIsFetching,
+    isRefreshing: mockIsRefreshing,
     dataUpdatedAt: new Date("2026-09-11T03:00:00Z").getTime(),
     lastCalculatedAt: "2026-09-11T03:00:00Z",
     refetch: vi.fn(),
