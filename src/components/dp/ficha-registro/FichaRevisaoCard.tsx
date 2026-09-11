@@ -58,7 +58,7 @@ const ESTADOS_CIVIS: Array<{ value: string; label: string }> = [
 interface Props {
   item: FichaItem;
   cargos: Array<{ id: string; nome: string; cbo?: string | null }>;
-  unidades: Array<{ id: string; nome: string; cnpj?: string | null }>;
+  unidades: Array<{ id: string; nome: string; cnpj?: string | null; possui_relogio_ponto?: boolean | null }>;
   setores?: Array<{ id: string; nome: string; unidade_id: string | null }>;
   turnos?: TurnoCadastrado[];
   unidadePadraoId: string | null;
@@ -95,6 +95,9 @@ export function FichaRevisaoCard({
   const [usarJornada, setUsarJornada] = useState(true);
   const [atualizar, setAtualizar] = useState(!!item.colaborador_existente_id);
   const [anexarFicha, setAnexarFicha] = useState(true);
+  const [formaPagamento, setFormaPagamento] = useState<string | null>(null);
+  const [possuiFolhaPonto, setPossuiFolhaPonto] = useState<boolean | null>(null);
+  const [optanteAdiantamento, setOptanteAdiantamento] = useState<boolean | null>(null);
   const [trechos, setTrechos] = useState<Record<string, boolean>>({});
   const [verTexto, setVerTexto] = useState(false);
   const [cargoDialog, setCargoDialog] = useState(false);
@@ -133,7 +136,12 @@ export function FichaRevisaoCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dados, setorId, regime, setores.length, salarioCargo]);
 
-  const executar = (camposPermitidos: string[] | null) =>
+  const executar = (camposPermitidos: string[] | null) => {
+    if (!regime || !formaPagamento || possuiFolhaPonto === null || optanteAdiantamento === null) {
+      setCompletarAberto(true);
+      toast.error("Confirme vínculo, pagamento, ponto e adiantamento antes de criar o cadastro.");
+      return;
+    }
     aplicar.mutate(
       {
         item,
@@ -147,6 +155,9 @@ export function FichaRevisaoCard({
         turnoId: usarJornada ? turnoEscolhido : null,
         camposPermitidos,
         anexarFicha,
+        formaPagamento,
+        possuiFolhaPonto,
+        optanteAdiantamento,
       },
       {
         onSuccess: () => {
@@ -156,6 +167,7 @@ export function FichaRevisaoCard({
         onError: (e: Error) => toast.error(e.message),
       },
     );
+  };
 
   const set = (campo: string, valor: string) =>
     setDados((d) => {
@@ -417,6 +429,46 @@ export function FichaRevisaoCard({
                         {REGIMES.map((r) => (
                           <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Forma de pagamento *</Label>
+                    <Select value={formaPagamento ?? "__none"} onValueChange={(v) => setFormaPagamento(v === "__none" ? null : v)}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Confirmar" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Confirmar forma</SelectItem>
+                        <SelectItem value="mensalista">Mensalista</SelectItem>
+                        <SelectItem value="horista">Horista</SelectItem>
+                        <SelectItem value="diarista">Diarista</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Folha de ponto *</Label>
+                    <Select value={possuiFolhaPonto === null ? "__none" : String(possuiFolhaPonto)} onValueChange={(v) => setPossuiFolhaPonto(v === "__none" ? null : v === "true")}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Confirmar" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Confirmar opção</SelectItem>
+                        <SelectItem value="true">Ativa</SelectItem>
+                        <SelectItem value="false">Não utiliza</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {unidades.find((u) => u.id === unidadeId)?.possui_relogio_ponto && possuiFolhaPonto === null && (
+                      <p className="text-[11px] text-muted-foreground">Sugestão: ativa, pois a unidade possui relógio de ponto.</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Adiantamento salarial *</Label>
+                    <Select value={optanteAdiantamento === null ? "__none" : String(optanteAdiantamento)} onValueChange={(v) => setOptanteAdiantamento(v === "__none" ? null : v === "true")}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Confirmar" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Confirmar opção</SelectItem>
+                        <SelectItem value="true">Optante</SelectItem>
+                        <SelectItem value="false">Não optante</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

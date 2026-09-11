@@ -65,6 +65,7 @@ type UnifiedDoc = {
   aceite: boolean | null;
   /** Validação digital dispensada porque o documento já veio assinado. */
   aceiteDispensado?: boolean;
+  rescisao_grupo_id?: string | null;
 };
 
 const TIPO_OPTIONS = [
@@ -312,7 +313,7 @@ export default function DpHistoricoCompleto() {
       const [docsRes, solRes, discRes, aceitesRes] = await Promise.all([
         supabase
           .from("dp_documentos")
-          .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada")
+          .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id")
           .eq("company_id", cId),
         supabase
           .from("dp_solicitacoes")
@@ -357,6 +358,7 @@ export default function DpHistoricoCompleto() {
           titulo: d.titulo,
           aceite: d.exige_aceite ? aceitos.has(d.id) : null,
           aceiteDispensado: !d.exige_aceite && d.assinatura_detectada === true,
+           rescisao_grupo_id: d.rescisao_grupo_id ?? null,
         });
       });
 
@@ -423,6 +425,15 @@ export default function DpHistoricoCompleto() {
     return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
   }, [query.data]);
 
+  const arquivosPorRescisao = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const documento of query.data ?? []) {
+      if (!documento.rescisao_grupo_id) continue;
+      contagem.set(documento.rescisao_grupo_id, (contagem.get(documento.rescisao_grupo_id) ?? 0) + 1);
+    }
+    return contagem;
+  }, [query.data]);
+
   // ---------------- Descritores de coluna ----------------
   const COLS: Record<ColKey, {
     label: string;
@@ -454,7 +465,11 @@ export default function DpHistoricoCompleto() {
           {/* A contabilidade manda vários papéis na saída: eles aparecem
               reunidos como um único conjunto da rescisão. */}
           {docTipoGrupo(r.tipo_key) === "desligamento" && (
-            <span className="text-[10px] text-muted-foreground">Documentos da Rescisão</span>
+            <span className="text-[10px] text-muted-foreground">
+              {r.rescisao_grupo_id
+                ? `Documentos da Rescisão · ${arquivosPorRescisao.get(r.rescisao_grupo_id) ?? 1} arquivos`
+                : "Documentos da Rescisão"}
+            </span>
           )}
         </div>
       ),

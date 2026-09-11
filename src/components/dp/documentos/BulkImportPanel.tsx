@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { BulkReviewDialog } from "./BulkReviewDialog";
 import { BulkReviewInline } from "./BulkReviewInline";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
-import { DP_DOC_TIPOS_IMPORTAVEIS, docTipoLabel } from "@/lib/dp/documentoTipos";
+import { DP_DOC_TIPOS_IMPORTAVEIS, docTipoGrupo, docTipoLabel } from "@/lib/dp/documentoTipos";
 import { competenciaPredominante } from "@/lib/dp/bulk-coverage";
 
 const AUTO_TIPO = "__auto";
@@ -227,6 +227,9 @@ export function BulkImportPanel({
       // Fila: um lote por arquivo, processados em segundo plano.
       const enviados: string[] = [];
       const falhas: string[] = [];
+      const rescisaoGrupoId = files.length > 1 || (tipo !== AUTO_TIPO && docTipoGrupo(tipo) === "desligamento")
+        ? crypto.randomUUID()
+        : null;
       for (const file of files) {
       try {
       const provisional = `${selectedCompanyId}/pending_${Date.now()}.pdf`;
@@ -240,6 +243,7 @@ export function BulkImportPanel({
           referencia_data: competenciaToDate(referencia),
           status: "processing",
           uploaded_by: uid,
+           rescisao_grupo_id: rescisaoGrupoId,
         })
         .select("id")
         .single();

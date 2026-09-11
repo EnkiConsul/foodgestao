@@ -22,6 +22,7 @@ import {
   Activity,
   Crown,
   Wifi,
+  Bug,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ const overviewItems = [
   { title: "Estatísticas", url: "/admin/estatisticas", icon: BarChart3 },
   { title: "Documentos Legais", url: "/admin/documentos-legais", icon: ScrollText },
   { title: "Auditoria", url: "/admin/auditoria", icon: ScrollText },
+  { title: "Auditoria de Erros", url: "/admin/erros", icon: Bug },
   { title: "Usuários Conectados", url: "/admin/conectados", icon: Wifi },
   { title: "Indexação SEO", url: "/admin/seo-indexacao", icon: Search },
 ];

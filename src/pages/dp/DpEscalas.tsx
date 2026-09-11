@@ -11,6 +11,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpConfigDp } from "@/hooks/useDpConfigDp";
 import { semanasEfetivas, semanasEfetivasMulher } from "@/lib/dp/dsr-rules";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 
 import { expandRegraNoIntervalo, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import {
@@ -72,7 +73,7 @@ export default function DpEscalas() {
     enabled: !!selectedCompanyId,
     queryFn: async () => {
       const [colabs, unidades, vinculos, ferias, folgas, diaConfig, datas, regras, regraUnid] = await Promise.all([
-        supabase.from("dp_colaboradores").select("id, nome, sexo, unidade_id, regime, vinculo_label")
+        supabase.from("dp_colaboradores").select("id, nome, nome_social, sexo, unidade_id, regime, vinculo_label")
           .eq("company_id", selectedCompanyId!).eq("ativo", true).order("nome"),
 
         supabase.from("dp_unidades").select("id, nome").eq("company_id", selectedCompanyId!).order("nome"),
@@ -130,7 +131,7 @@ export default function DpEscalas() {
         horariosPorColaborador.set(c.id, jornada?.horarios ?? []);
         return {
           id: c.id,
-          nome: c.nome,
+          nome: nomeExibicao(c),
           sexo: c.sexo,
           unidadeId: c.unidade_id,
           diasFolga: jornada?.dias_folga ?? [0],

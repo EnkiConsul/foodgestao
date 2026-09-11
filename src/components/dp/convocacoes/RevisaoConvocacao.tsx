@@ -19,6 +19,7 @@ import type { JornadaDia } from "@/lib/dp/convocacoes-planejamento";
 import { cn } from "@/lib/utils";
 
 export interface RevisaoDia {
+  id: string;
   cargo_id: string;
   cargo_nome: string;
   data: string;
@@ -63,11 +64,12 @@ interface Props {
   horarioGeral: RevisaoHorario | null;
   jornadaDe: (colaboradorId: string, data: string) => JornadaDia | null;
   prazoRespostaDias: number | null;
-  justificativa: string;
+  justificativas: Record<string, string>;
   /** Antecedência mínima configurada (só gera aviso, nunca bloqueia). */
   antecedenciaMinima: number;
   exigeJustificativa: boolean;
-  onJustificativaChange: (v: string) => void;
+  onJustificativaChange: (ocorrenciaId: string, v: string) => void;
+  onRepetirJustificativa: (origemId: string) => void;
   /** Ciência de que a convocação é em cima da hora. */
   ciente: boolean;
   onCienteChange: (v: boolean) => void;
@@ -94,8 +96,8 @@ const rotuloHorario = (h: { entrada: string; saida: string; termina_no_dia_segui
 export function RevisaoConvocacao(props: Props) {
   const {
     unidadeId, unidadeNome, competencia, titulo, observacao, dias,
-    destinatarios, overrides, horarioGeral, jornadaDe, prazoRespostaDias, justificativa,
-    antecedenciaMinima, exigeJustificativa, onJustificativaChange, ciente, onCienteChange,
+    destinatarios, overrides, horarioGeral, jornadaDe, prazoRespostaDias, justificativas,
+    antecedenciaMinima, exigeJustificativa, onJustificativaChange, onRepetirJustificativa, ciente, onCienteChange,
     justificadaEm,
     preAvaliacao, preAvaliacaoCarregando, onUsarHorarioParaTodos, onAjustarNecessidade,
 
@@ -212,9 +214,6 @@ export function RevisaoConvocacao(props: Props) {
         </dl>
         {titulo && <p className="mt-2 text-xs"><span className="text-muted-foreground">Título: </span>{titulo}</p>}
         {observacao && <p className="mt-1 text-xs"><span className="text-muted-foreground">Observação: </span>{observacao}</p>}
-        {justificativa && (
-          <p className="mt-1 text-xs"><span className="text-muted-foreground">Justificativa da exceção: </span>{justificativa}</p>
-        )}
         {prazoRespostaDias != null && (
           <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
@@ -260,16 +259,27 @@ export function RevisaoConvocacao(props: Props) {
             <Checkbox checked={ciente} onCheckedChange={(v) => onCienteChange(v === true)} />
             <span>Estou ciente e quero publicar mesmo assim</span>
           </label>
-          <div className="mt-2 space-y-1">
-            <Label className="text-xs">
-              Justificativa {exigeJustificativa ? "(obrigatória)" : "(opcional)"}
-            </Label>
-            <Textarea
-              rows={2}
-              value={justificativa}
-              onChange={(e) => onJustificativaChange(e.target.value)}
-              placeholder="Ex.: falta de última hora na equipe"
-            />
+          <div className="mt-3 space-y-3">
+            {diasEmCimaDaHora.map((dia, index) => (
+              <div key={dia.id} className="space-y-1 rounded-md border border-amber-500/30 bg-background/60 p-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label className="text-xs">
+                    {rotuloData(dia.data)} · {dia.cargo_nome} {exigeJustificativa ? "(obrigatória)" : "(opcional)"}
+                  </Label>
+                  {index === 0 && diasEmCimaDaHora.length > 1 && (
+                    <Button type="button" size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => onRepetirJustificativa(dia.id)}>
+                      Repetir nos demais dias
+                    </Button>
+                  )}
+                </div>
+                <Textarea
+                  rows={2}
+                  value={justificativas[dia.id] ?? ""}
+                  onChange={(e) => onJustificativaChange(dia.id, e.target.value)}
+                  placeholder="Ex.: falta de última hora na equipe"
+                />
+              </div>
+            ))}
           </div>
         </div>
       )}

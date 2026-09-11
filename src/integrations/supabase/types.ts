@@ -3571,6 +3571,7 @@ export type Database = {
           matched_count: number
           processed_pages: number
           referencia_data: string | null
+          rescisao_grupo_id: string | null
           source_file_name: string | null
           source_file_path: string
           status: string
@@ -3591,6 +3592,7 @@ export type Database = {
           matched_count?: number
           processed_pages?: number
           referencia_data?: string | null
+          rescisao_grupo_id?: string | null
           source_file_name?: string | null
           source_file_path: string
           status?: string
@@ -3611,6 +3613,7 @@ export type Database = {
           matched_count?: number
           processed_pages?: number
           referencia_data?: string | null
+          rescisao_grupo_id?: string | null
           source_file_name?: string | null
           source_file_path?: string
           status?: string
@@ -6625,6 +6628,7 @@ export type Database = {
           mime_type: string | null
           motivo_recusao: string | null
           referencia_data: string | null
+          rescisao_grupo_id: string | null
           revisado_em: string | null
           revisado_por: string | null
           submetido_por_colaborador: boolean
@@ -6649,6 +6653,7 @@ export type Database = {
           mime_type?: string | null
           motivo_recusao?: string | null
           referencia_data?: string | null
+          rescisao_grupo_id?: string | null
           revisado_em?: string | null
           revisado_por?: string | null
           submetido_por_colaborador?: boolean
@@ -6673,6 +6678,7 @@ export type Database = {
           mime_type?: string | null
           motivo_recusao?: string | null
           referencia_data?: string | null
+          rescisao_grupo_id?: string | null
           revisado_em?: string | null
           revisado_por?: string | null
           submetido_por_colaborador?: boolean

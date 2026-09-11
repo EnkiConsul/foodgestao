@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
+import { reportError } from "@/lib/errorLog";
 
 export type IntermitenteConfirmacao = {
   id: string;
@@ -60,7 +61,16 @@ export function useDpIntermitenteConfirmacoes() {
           : "Registrado: não houve trabalho — nada será cobrado nessa competência.",
       );
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível registrar a resposta."),
+    onError: (e: unknown) => {
+      void reportError({
+        source: "database",
+        surface: "Pendências de documentos",
+        action: "confirmar trabalho de intermitente",
+        error: e,
+        userMessage: "Não foi possível registrar a resposta. Tente novamente.",
+      });
+      toast.error("Não foi possível registrar a resposta. Tente novamente.");
+    },
   });
 
   return { confirmacoes: query.data ?? [], isLoading: query.isLoading, responder };

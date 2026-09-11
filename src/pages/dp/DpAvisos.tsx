@@ -26,6 +26,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 
 const MAX_UPLOAD_MB = 10;
 const ALLOWED_MIMES = [
@@ -132,7 +133,7 @@ function AvisoDialog({
                   <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Colaborador Específico</div>
                 )}
                 {(colaboradores.data ?? []).map((c: any) => (
-                  <SelectItem key={`c-${c.id}`} value={`colaborador:${c.id}`}>{c.nome}</SelectItem>
+                  <SelectItem key={`c-${c.id}`} value={`colaborador:${c.id}`}>{nomeExibicao(c)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

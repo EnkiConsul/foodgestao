@@ -22,6 +22,7 @@ import {
   useDpModelosMensagem, type DpModeloMensagem, type DpModeloTipo,
 } from "@/hooks/useDpModelosMensagem";
 import { toast } from "sonner";
+import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 
 const TIPO_LABELS: Record<DpModeloTipo, string> = {
   aniversario: "Aniversário",
@@ -66,7 +67,7 @@ export default function DpMensagens() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("id, nome")
+        .select("id, nome, nome_social")
         .eq("company_id", selectedCompanyId!)
         .eq("ativo", true)
         .order("nome");
@@ -233,7 +234,7 @@ export default function DpMensagens() {
               <SelectContent>
                 <SelectItem value="todos">Todos os colaboradores</SelectItem>
                 {(colaboradores as any[]).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>{nomeExibicao(c)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

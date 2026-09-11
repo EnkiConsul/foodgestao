@@ -55,6 +55,7 @@ import { comCarimboAtual } from "@/lib/dp/convocacao-versao";
 import { supabase } from "@/integrations/supabase/client";
 import { useDpConvocacaoPreAvaliacao } from "@/hooks/useDpConvocacaoPreAvaliacao";
 import { cn } from "@/lib/utils";
+import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 
 interface Props {
   open: boolean;
@@ -137,7 +138,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const [publicando, setPublicando] = useState(false);
   /** Dia que travou a última publicação: os outros ficam recolhidos na lista. */
   const [dataComErro, setDataComErro] = useState<string | null>(null);
-  const [justificativa, setJustificativa] = useState("");
+  const [justificativas, setJustificativas] = useState<Record<string, string>>({});
   const [cienteAntecedencia, setCienteAntecedencia] = useState(false);
   const [justificadaEm, setJustificadaEm] = useState<string | null>(null);
   const [revisando, setRevisando] = useState(false);
@@ -166,13 +167,16 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     setRemovidas({});
     setOverrides({});
     // Rascunho que já registrou a exceção não pede ciência/justificativa de novo.
-    const justSalva =
-      grupo?.ocorrencias.map((o) => o.justificativa_fora_prazo ?? "").find((v) => !!v.trim()) ?? "";
+    const justificativasSalvas = Object.fromEntries(
+      (grupo?.ocorrencias ?? [])
+        .filter((o) => !!o.justificativa_fora_prazo?.trim())
+        .map((o) => [o.id, o.justificativa_fora_prazo ?? ""]),
+    );
     const confirmadoEm =
       grupo?.ocorrencias.map((o) => o.confirmado_fora_prazo_em).find((v) => !!v) ?? null;
-    setJustificativa(justSalva);
+    setJustificativas(justificativasSalvas);
     setJustificadaEm(confirmadoEm);
-    setCienteAntecedencia(!!justSalva.trim() || !!confirmadoEm);
+    setCienteAntecedencia(Object.keys(justificativasSalvas).length > 0 || !!confirmadoEm);
     if (grupo) {
       const [a, m] = grupo.competencia.split("-").map(Number);
       setGrupoId(grupo.id);
@@ -326,7 +330,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const nomeCargo = (id: string | null) =>
     (cargos.data ?? []).find((c: any) => c.id === id)?.nome ?? "—";
   const nomePessoa = (id: string) =>
-    (colaboradores.data ?? []).find((c: any) => c.id === id)?.nome ?? "—";
+    nomeExibicao((colaboradores.data ?? []).find((c: any) => c.id === id)) || "—";
 
   const listaDias = useMemo(() => Object.values(dias), [dias]);
   const diasDoCargo = useMemo(
@@ -553,7 +557,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       if (!h) continue;
       out.push({
         colaborador_id: id,
-        nome: c?.nome ?? "—",
+        nome: c ? nomeExibicao(c) : "—",
         categoria: "convocado_pendente",
         turno_id: null,
         turno_nome: null,
@@ -735,7 +739,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
           confirmacoes: foraDaAntecedencia.map((d) => ({
             ocorrencia_id: d.id,
             confirmado: true,
-            justificativa: justificativa.trim() || null,
+             justificativa: justificativas[d.id]?.trim() || null,
           })),
         }),
       );
@@ -788,7 +792,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   dias={diasCompletos.map((d) => {
                     const cob = cobertura(d.data, d.cargo_id);
                     return {
-                      cargo_id: d.cargo_id,
+                       id: d.id,
+                       cargo_id: d.cargo_id,
                       cargo_nome: nomeCargo(d.cargo_id),
                       data: d.data,
                       entrada: d.entrada,
@@ -807,7 +812,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     const c = (colaboradores.data ?? []).find((x: any) => x.id === id);
                     return {
                       id,
-                      nome: c?.nome ?? "—",
+                      nome: c ? nomeExibicao(c) : "—",
                       cargo_id: c?.cargo_id ?? null,
                       cargo_nome: nomeCargo(c?.cargo_id ?? null),
                     };
@@ -841,10 +846,19 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   horarioGeral={usaHorarioGeral ? horarioGeral : null}
                   jornadaDe={preview.jornadaDe}
                   prazoRespostaDias={config.data?.prazo_resposta_dias_uteis ?? null}
-                  justificativa={justificativa}
+                   justificativas={justificativas}
                   antecedenciaMinima={antecedenciaMinima}
                   exigeJustificativa={exigeJustificativa}
-                  onJustificativaChange={setJustificativa}
+                   onJustificativaChange={(id, valor) =>
+                     setJustificativas((atual) => ({ ...atual, [id]: valor }))
+                   }
+                   onRepetirJustificativa={(origemId) => {
+                     const valor = justificativas[origemId] ?? "";
+                     setJustificativas((atual) => ({
+                       ...atual,
+                       ...Object.fromEntries(foraDaAntecedencia.map((d) => [d.id, valor])),
+                     }));
+                   }}
                   ciente={cienteAntecedencia}
                   onCienteChange={setCienteAntecedencia}
                   justificadaEm={justificadaEm}
@@ -926,7 +940,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                           marcado ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted/50",
                         )}
                       >
-                        {c.nome}
+                        {nomeExibicao(c)}
                       </button>
                     );
                   })}
@@ -972,7 +986,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                               )
                             }
                           />
-                          <span className="flex-1 truncate">{c.nome}</span>
+                          <span className="flex-1 truncate">{nomeExibicao(c)}</span>
                           <span className="text-[10px] text-muted-foreground">{nomeCargo(c.cargo_id)}</span>
                         </label>
                       );
@@ -1194,8 +1208,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     onClick={publicarGrupo}
                     disabled={!podeSalvar || publicando || salvando ||
                       preAvaliacao.isLoading || diasSemApto.length > 0 ||
-                      (foraDaAntecedencia.length > 0 &&
-                        (!cienteAntecedencia || (exigeJustificativa && !justificativa.trim())))}
+                       (foraDaAntecedencia.length > 0 &&
+                         (!cienteAntecedencia || (exigeJustificativa && foraDaAntecedencia.some((d) => !justificativas[d.id]?.trim()))))}
                   >
                     {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
                     Confirmar e publicar
