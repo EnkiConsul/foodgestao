@@ -112,10 +112,20 @@ export function useMeusDocumentos() {
       if (!cid) return null;
       const { data } = await supabase
         .from("dp_colaboradores")
-        .select("id, company_id, nome, unidade_id, sindicato_id, possui_folha_ponto")
+        .select("id, company_id, nome, nome_social, unidade_id, sindicato_id, possui_folha_ponto")
         .eq("id", cid as string)
         .maybeSingle();
-      return data;
+      if (!data) return null;
+      const { data: empresa } = await supabase
+        .from("companies")
+        .select("razao_social, nome_fantasia")
+        .eq("id", (data as any).company_id)
+        .maybeSingle();
+      return {
+        ...(data as any),
+        empresa_nome:
+          (empresa as any)?.razao_social ?? (empresa as any)?.nome_fantasia ?? "",
+      };
     },
   });
 
