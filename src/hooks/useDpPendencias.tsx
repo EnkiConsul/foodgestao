@@ -861,7 +861,7 @@ export function useDpPendencias() {
             atrasoDias: dias,
             // Ainda dentro do prazo legal, mas já em risco de pagar em dobro:
             // precisa aparecer no topo, junto do que está atrasado.
-            urgente: alerta.nivel === "atencao",
+            urgente: alerta.nivel === "atencao" || alerta.nivel === "marcacao_atrasada",
             url: `/dp/ferias?colaborador=${p.colaborador_id}`,
           });
         });
