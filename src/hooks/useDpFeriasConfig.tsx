@@ -112,6 +112,7 @@ export function useDpFeriasConfig() {
     onSuccess: () => {
       toast.success("Regra de férias atualizada");
       void qc.invalidateQueries({ queryKey: ["dp_ferias_config", selectedCompanyId] });
+      void qc.invalidateQueries({ queryKey: ["dp_pendencias", selectedCompanyId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar a regra"),
   });
