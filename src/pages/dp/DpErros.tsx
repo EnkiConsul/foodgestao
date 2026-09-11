@@ -164,7 +164,7 @@ export default function DpErros({ todasEmpresas = false }: DpErrosProps) {
         </div>
       </DpFilterCard>
 
-      <DpContentCard>
+      <DpContentCard contentClassName="p-4 md:p-5">
         {error ? (
           <DpErrorState message="Não foi possível carregar os erros." onRetry={() => refetch()} />
         ) : isLoading ? (

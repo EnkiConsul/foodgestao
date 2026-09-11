@@ -174,12 +174,22 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Pendências", to: "/dp/cadastros/pendencias", icon: BellRing },
     ],
   },
+  {
+    id: "geral",
+    label: "Geral",
+    icon: Settings,
+    hubTo: "/dp/analytics",
+    matchPrefixes: ["/dp/analytics", "/dp/configuracoes", "/dp/erros"],
+    items: [
+      { label: "Analytics", to: "/dp/analytics", icon: BarChart3, shortcut: true, shortLabel: "Analytics" },
+      { label: "Configurações", to: "/dp/configuracoes", icon: Settings },
+      { label: "Auditoria de erros", to: "/dp/erros", icon: Bug },
+    ],
+  },
 ];
 
 const ADMIN_DIRECT: DpNavItem[] = [
   { label: "SESMT", to: "/dp/conformidade", icon: ShieldCheck, end: true, badge: "Em breve" },
-  { label: "Analytics", to: "/dp/analytics", icon: BarChart3, shortcut: true, shortLabel: "Analytics" },
-  { label: "Configurações de Pessoas", to: "/dp/configuracoes", icon: Settings },
 ];
 
 export const DP_ADMIN_NAV: DpNavSurface = {
