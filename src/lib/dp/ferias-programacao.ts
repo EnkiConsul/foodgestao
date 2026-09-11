@@ -200,7 +200,6 @@ export function montarProgramacao(opts: MontarProgramacaoOpts): ProgramacaoDados
         .sort((a, b) => a.data_inicio.localeCompare(b.data_inicio));
       const gozoAberto = gozosDoPeriodo.find((g) => g.status !== "concluido");
       const gozoRef = gozoAberto ?? gozosDoPeriodo[gozosDoPeriodo.length - 1] ?? null;
-      const gozoFimOuFuturo = gozoAberto && gozoAberto.data_inicio > dataBase;
 
       const diasRestantes = p.dias_saldo ?? Math.max(0, p.dias_direito - p.dias_gozados);
       const situacao = nivelVencimentoPeriodo({
