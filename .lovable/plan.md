@@ -6,7 +6,7 @@ Alterar somente a frequência automática das pendências: uma execução diári
 ## Alterações
 - Substituir o agendamento atual das 06:00, 14:00 e 22:00 por um único processamento diário às 03:00.
 - Ajustar o nome do agendamento para refletir o novo horário e evitar manter duas rotinas ativas.
-- Retirar a repetição automática da tela a cada 8 horas, alinhando a consulta periódica ao ciclo diário.
+- Retirar completamente a repetição automática da tela a cada 8 horas; abrir ou manter a tela aberta não disparará esse ciclo periódico.
 - Preservar as atualizações já existentes quando o gestor conclui uma ação, usa o botão **Atualizar** ou quando uma alteração relevante marca as pendências para recálculo.
 - Atualizar os textos internos e o roteiro do projeto sem modificar regras de elegibilidade, prazos, ordenação, ignorar ou adiar.
 
