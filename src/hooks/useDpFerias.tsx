@@ -53,7 +53,7 @@ export function useDpFerias(colaboradorFilter: string) {
     queryFn: async () => {
       let q = supabase
         .from("dp_ferias_periodos")
-        .select("*, dp_colaboradores(nome, unidade_id, vinculo_label)")
+        .select("*, dp_colaboradores(nome, unidade_id, vinculo_label, ativo, data_desligamento)")
         .eq("company_id", selectedCompanyId!)
         .order("inicio_aquisitivo", { ascending: false });
       if (colaboradorFilter !== "todos") q = q.eq("colaborador_id", colaboradorFilter);
@@ -64,6 +64,8 @@ export function useDpFerias(colaboradorFilter: string) {
         colaborador_nome: r.dp_colaboradores?.nome ?? null,
         unidade_id: r.dp_colaboradores?.unidade_id ?? null,
         socio: isSocio(r.dp_colaboradores?.vinculo_label),
+        desligado: r.dp_colaboradores?.ativo === false,
+        data_desligamento: r.dp_colaboradores?.data_desligamento ?? null,
       })) as FeriasPeriodo[];
     },
   });
