@@ -1,5 +1,7 @@
 import { useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { EdgeGestures } from "@/components/mobile/EdgeGestures";
+import { PullToRefresh } from "@/components/mobile/PullToRefresh";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
@@ -13,6 +15,7 @@ import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 export function AppLayout() {
   useBillingRealtime();
   useLocation();
+  const queryClient = useQueryClient();
 
   return (
     <SidebarProvider>
@@ -23,7 +26,9 @@ export function AppLayout() {
           <SubscriptionBanner />
           <AppHeader />
           <main className="flex-1 p-3 md:p-6 pb-24 md:pb-6">
-            <Outlet />
+            <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
+              <Outlet />
+            </PullToRefresh>
           </main>
         </div>
       </div>
