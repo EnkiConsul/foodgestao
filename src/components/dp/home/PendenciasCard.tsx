@@ -329,7 +329,7 @@ export function PendenciasCard() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-sm font-medium break-words">{p.titulo}</p>
-                            <UrgenciaBadge atrasoDias={p.atrasoDias} />
+                            <UrgenciaBadge atrasoDias={p.atrasoDias} urgente={p.urgente} />
                           </div>
                           <p className="text-xs text-muted-foreground break-words">{p.subtitulo}</p>
                           {p.unidadeNome && (
