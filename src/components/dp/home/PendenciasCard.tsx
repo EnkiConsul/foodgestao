@@ -116,13 +116,15 @@ export function PendenciasCard() {
 
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-5">
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
+      <div className="flex items-center gap-2 mb-3">
         <Bell className="h-5 w-5 text-primary shrink-0" />
-        <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">Pendências do Sistema</h2>
+        <h2 className="text-base sm:text-lg font-semibold min-w-0 truncate">
+          Pendências do Sistema
+        </h2>
         <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 shrink-0">
           {abertas.length}
         </Badge>
-        <div className="ml-auto flex items-center gap-1 shrink-0">
+        <div className="ml-auto flex items-center gap-0.5 shrink-0">
           <Button
             variant="ghost"
             size="icon"
@@ -144,25 +146,42 @@ export function PendenciasCard() {
               <Settings className="h-4 w-4" />
             </Link>
           </Button>
-          <Button asChild variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="hidden sm:inline-flex h-7 text-xs text-muted-foreground hover:text-foreground"
+          >
             <Link to="/dp/cadastros/pendencias">
               Ver todas <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="sm:hidden h-7 w-7 text-muted-foreground hover:text-foreground"
+            aria-label="Ver todas as pendências"
+          >
+            <Link to="/dp/cadastros/pendencias">
+              <ChevronRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>
       </div>
 
-      <p className="-mt-2 mb-2 text-[11px] text-muted-foreground">
-        {stable.lastCalculatedAt || stable.dataUpdatedAt
-          ? `Última atualização: ${new Date(stable.lastCalculatedAt ?? stable.dataUpdatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
-          : "Atualizando…"}
-      </p>
-
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-2">
         <UrgencyChip icon={AlarmClockOff} label="Atrasado" count={counters.atrasado} tone="destructive" />
         <UrgencyChip icon={Clock3} label="Hoje" count={counters.hoje} tone="warning" />
         <UrgencyChip icon={CalendarClock} label="Próximo" count={counters.proximo} tone="info" />
       </div>
+
+      <p className="mb-3 text-[11px] text-muted-foreground">
+        {stable.lastCalculatedAt || stable.dataUpdatedAt
+          ? `Atualizado ${new Date(stable.lastCalculatedAt ?? stable.dataUpdatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
+          : "Atualizando…"}
+      </p>
+
 
       <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
         {!stable.ready && <p className="text-sm text-muted-foreground">Carregando…</p>}
@@ -302,7 +321,7 @@ function UrgencyChip({
 }: { icon: any; label: string; count: number; tone: "destructive" | "warning" | "info" }) {
   const cls =
     tone === "destructive" ? "bg-destructive/10 text-destructive border-destructive/30"
-    : tone === "warning" ? "bg-amber-100 text-amber-900 border-amber-300"
+    : tone === "warning" ? "bg-warning/10 text-warning border-warning/30"
     : "bg-blue-50 text-blue-900 border-blue-200";
   return (
     <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${cls}`}>
@@ -311,6 +330,7 @@ function UrgencyChip({
     </div>
   );
 }
+
 
 const PRESETS = [1, 3, 7, 15, 30];
 
