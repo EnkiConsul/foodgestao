@@ -444,13 +444,18 @@ export default function DpHistoricoCompleto() {
       label: "Tipo", sortKey: "tipo_label", center: true,
       value: (r) => r.tipo_label,
       render: (r) => (
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-0.5">
           <Badge
             variant="outline"
             className={`max-w-full whitespace-normal break-words text-center leading-tight ${tipoBadgeClass(r.tipo_key)}`}
           >
             {r.tipo_label}
           </Badge>
+          {/* A contabilidade manda vários papéis na saída: eles aparecem
+              reunidos como um único conjunto da rescisão. */}
+          {docTipoGrupo(r.tipo_key) === "desligamento" && (
+            <span className="text-[10px] text-muted-foreground">Documentos da Rescisão</span>
+          )}
         </div>
       ),
       cellClass: "whitespace-normal break-words align-top text-center",
