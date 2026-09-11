@@ -104,6 +104,8 @@ const TIPO_LABEL: Record<Tipo, string> = {
   folga: "Folga",
   ferias: "Férias",
   atestado: "Atestado",
+  licenca_maternidade: "Licença-maternidade",
+  licenca_paternidade: "Licença-paternidade",
   adiantamento: "Adiantamento",
   outros: "Outros",
 };

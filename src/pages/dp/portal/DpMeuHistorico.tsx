@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { History, ClipboardList, Repeat, HeartPulse, FileText, ShieldAlert } from "lucide-react";
+import { isTipoAfastamento, labelAfastamento } from "@/lib/dp/licencas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -60,8 +61,8 @@ export default function DpMeuHistorico() {
       const out: Evento[] = [];
       (sols.data ?? []).forEach((s: any) => out.push({
         id: `s-${s.id}`, data: s.created_at, tipo: "Solicitação",
-        titulo: `Solicitação de ${s.tipo}`, status: s.status,
-        icon: s.tipo === "atestado" ? HeartPulse : ClipboardList,
+        titulo: `Solicitação de ${labelAfastamento(s.tipo)}`, status: s.status,
+        icon: isTipoAfastamento(s.tipo) ? HeartPulse : ClipboardList,
       }));
       (trocas.data ?? []).forEach((t: any) => out.push({
         id: `t-${t.id}`, data: t.created_at, tipo: "Troca",

@@ -5,7 +5,8 @@ import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPen
 import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap, UserCog } from "lucide-react";
+import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap, UserCog, Baby } from "lucide-react";
+import { LEMBRETE_RETORNO_DIAS, TIPOS_LICENCA, labelAfastamento, situacaoRetorno } from "@/lib/dp/licencas";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
@@ -803,6 +804,51 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/ferias:", e);
+      }
+
+      // 7b. Licenças (maternidade/paternidade) — retorno se aproximando ou vencido
+      try {
+        const limiteRetorno = new Date(today);
+        limiteRetorno.setDate(limiteRetorno.getDate() + LEMBRETE_RETORNO_DIAS);
+        const { data: licencas } = await supabase
+          .from("dp_solicitacoes")
+          .select("id, colaborador_id, tipo, data_alvo, data_fim, dp_colaboradores(nome, ativo)")
+          .eq("company_id", selectedCompanyId!)
+          .in("tipo", [...TIPOS_LICENCA])
+          .eq("status", "aprovada")
+          .not("data_fim", "is", null)
+          .lte("data_alvo", hojeISO)
+          .lte("data_fim", ymd(limiteRetorno))
+          .order("data_fim", { ascending: true })
+          .limit(30);
+        (licencas ?? []).forEach((l: any) => {
+          if (l.dp_colaboradores?.ativo === false) return;
+          const situacao = situacaoRetorno(
+            { colaborador_id: l.colaborador_id, tipo: l.tipo, data_alvo: l.data_alvo, data_fim: l.data_fim },
+            today,
+          );
+          if (situacao !== "lembrete" && situacao !== "vencido") return;
+          const fim = new Date(`${l.data_fim}T00:00:00`);
+          const dias = differenceInCalendarDays(today, fim);
+          const rotulo = labelAfastamento(l.tipo);
+          results.push({
+            id: `licenca-${l.id}`,
+            icon: Baby,
+            titulo: situacao === "vencido" ? `Retorno de ${rotulo.toLowerCase()} vencido` : `Retorno de ${rotulo.toLowerCase()} se aproximando`,
+            subtitulo: situacao === "vencido"
+              ? `${l.dp_colaboradores?.nome ?? "Colaborador"} — retorno previsto era ${format(fim, "dd/MM/yyyy")}. Confirme o retorno ou prorrogue.`
+              : `${l.dp_colaboradores?.nome ?? "Colaborador"} — retorno previsto em ${format(fim, "dd/MM/yyyy")}. Prepare a reintegração.`,
+            tipo: "Licença",
+            colaboradorNome: l.dp_colaboradores?.nome ?? null,
+            colaboradorId: l.colaborador_id,
+            vencimento: ymd(fim),
+            atrasoDias: dias,
+            urgente: situacao === "vencido",
+            url: "/dp/atestados?aba=historico",
+          });
+        });
+      } catch (e) {
+        console.warn("pendencias/licencas:", e);
       }
 
       // 8. Conformidade — ASO, EPIs e treinamentos vencendo

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { tituloDocumento } from "@/lib/dp/documento-titulo";
+import { TIPOS_AFASTAMENTO } from "@/lib/dp/licencas";
 
 export type UnifiedTipo =
   | "contracheque"
@@ -200,12 +201,12 @@ export function useMeusDocumentos() {
         });
       }
 
-      // 2) dp_solicitacoes atestado (meus envios explícitos)
+      // 2) dp_solicitacoes atestado/licenças (meus envios e registros do gestor)
       const { data: sols } = await supabase
         .from("dp_solicitacoes")
         .select("id, tipo, status, data_alvo, data_fim, arquivo_path, resposta_admin, motivo, created_at")
         .eq("colaborador_id", colab.id)
-        .eq("tipo", "atestado")
+        .in("tipo", [...TIPOS_AFASTAMENTO])
         .order("created_at", { ascending: false });
 
       for (const s of (sols ?? []) as any[]) {
