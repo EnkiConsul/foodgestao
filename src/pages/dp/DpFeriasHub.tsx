@@ -82,6 +82,7 @@ export default function DpFeriasHub() {
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <DpTabsBar>
           <TabsTrigger value="planejamento">Planejamento</TabsTrigger>
+          <TabsTrigger value="programacao">Programação</TabsTrigger>
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
           <TabsTrigger value="programadas">Programadas</TabsTrigger>
           <TabsTrigger value="em-ferias">Em férias</TabsTrigger>
@@ -97,6 +98,14 @@ export default function DpFeriasHub() {
               <Suspense fallback={<PanelFallback />}>
                 <PlanejamentoPanel />
               </Suspense>
+            </DpEmbeddedProvider>
+          )}
+        </TabsContent>
+
+        <TabsContent value="programacao" className="m-0">
+          {aba === "programacao" && (
+            <DpEmbeddedProvider>
+              <FeriasProgramacaoPanel />
             </DpEmbeddedProvider>
           )}
         </TabsContent>
