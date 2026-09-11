@@ -4,7 +4,8 @@
 
 Hoje o aviso "risco de dobra" só aparece quando faltam 30 dias ou menos para o prazo legal do período mais antigo. Passa a valer a regra pedida:
 
-- Quando a pessoa fecha um segundo ano de trabalho sem ter tirado as férias do primeiro, o aviso de risco de dobra aparece já com **90 dias de antecedência** do fechamento desse segundo período.
+- Com **180 dias** para o fechamento do segundo período sem as férias do primeiro tiradas: aviso amarelo de **acompanhamento** ("Férias a conceder — acompanhar"), para o gestor já programar.
+- Com **90 dias**: vira aviso vermelho de **risco de dobra**, urgente, no topo das pendências.
 - Sem período anterior em aberto, segue como hoje: "A conceder", depois "Atenção" nos últimos 30 dias.
 - Depois do prazo legal, continua "Férias vencidas — pagamento em dobro".
 - Sócio segue fora da regra.
