@@ -135,6 +135,13 @@ export function FeriasGozosPanel({ status, vazio }: Props) {
                       </Button>
                     )}
                   </div>
+                 </div>
+                 {g.status !== "cancelado" && (
+                   <FeriasDocumentosCard
+                     gozo={{ ...g, colaborador_nome: nome }}
+                     onRegistrarAviso={() => setAvisando({ ...g, colaborador_nome: nome })}
+                   />
+                 )}
                 </div>
               );
             })}
