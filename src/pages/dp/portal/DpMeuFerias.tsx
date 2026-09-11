@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Palmtree, Plus, CheckCircle2 } from "lucide-react";
+import { Palmtree, Plus, CheckCircle2, FileText } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,8 @@ const STATUS_TONE: Record<string, string> = {
 
 /** Minhas Férias: saldo, pedidos e ciência das férias programadas. */
 export default function DpMeuFerias() {
-  const { periodos, isLoading, isError, refetch, solicitar, registrarCiencia } = useDpMinhasFerias();
+  const { periodos, isLoading, isError, refetch, solicitar, registrarCiencia, abrirDocumento } =
+    useDpMinhasFerias();
   const [aberto, setAberto] = useState(false);
   const [periodoId, setPeriodoId] = useState("");
   const [inicio, setInicio] = useState("");
