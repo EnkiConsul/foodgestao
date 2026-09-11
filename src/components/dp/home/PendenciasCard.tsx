@@ -99,7 +99,8 @@ export function useStablePendencias({
         ? { companyId, ...snapshotDaEmpresa, ready: true }
         : confirmed;
 
-    if (snapshotDaEmpresa && !podeConfirmarNovoQuadro(baseAtual, companyId, lastCalculatedAt)) return;
+    const temDados = data.length > 0;
+    if (snapshotDaEmpresa && !podeConfirmarNovoQuadro(baseAtual, companyId, lastCalculatedAt, temDados)) return;
 
     salvarPendenciasSnapshot(companyId, { data, dataUpdatedAt, lastCalculatedAt });
     setConfirmed((anterior) => {
@@ -109,9 +110,10 @@ export function useStablePendencias({
           ? { companyId, ...snapshotDaEmpresa, ready: true }
           : anterior;
 
-      if (!podeConfirmarNovoQuadro(base, companyId, lastCalculatedAt)) {
+      if (!podeConfirmarNovoQuadro(base, companyId, lastCalculatedAt, temDados)) {
         return base;
       }
+
 
       // Evita atualizações redundantes quando a fonte reemite o mesmo quadro.
       if (
