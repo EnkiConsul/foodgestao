@@ -115,7 +115,17 @@ export function useDpMinhasFerias() {
     onError: (e: any) => toast.error(textoErroFerias(e?.message)),
   });
 
+  /** Abre o aviso ou recibo de férias em nova aba, com link temporário. */
+  const abrirDocumento = async (doc: MinhaFeriasDocumento) => {
+    const { data, error } = await supabase.storage
+      .from("dp-documentos")
+      .createSignedUrl(doc.file_path, 60);
+    if (error || !data) return toast.error("Erro ao abrir o arquivo");
+    window.open(data.signedUrl, "_blank", "noopener");
+  };
+
   return {
+    abrirDocumento,
     periodos: query.data ?? [],
     isLoading: query.isLoading,
     isError: query.isError,
