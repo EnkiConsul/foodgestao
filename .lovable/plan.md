@@ -19,9 +19,18 @@
 - Vale só para a folha de ponto; contracheque e adiantamento seguem as regras atuais (o pagamento continua acontecendo durante a licença).
 - A mesma regra é aplicada nas telas Início, Pendências e Importar, já que as três leem a mesma fonte.
 
+## 4. Pendência de retorno da licença: ação certa e presença nas duas telas
+
+- Hoje o item "Retorno de licença-maternidade" leva à tela de cadastrar atestado, o que não faz sentido. Passa a abrir uma janela de retorno com três opções claras: confirmar o retorno na data prevista, informar outra data de retorno, ou prorrogar a licença (nova data final).
+- Confirmado o retorno, a pendência fecha sozinha e a pessoa volta a aparecer normalmente na escala e nas cobranças do mês seguinte.
+- O item também deve aparecer no cartão do Início, e não só na lista completa. A causa dessa diferença ainda não está confirmada — o primeiro passo é comparar o que as duas telas leem (lista calculada na hora × última apuração salva) e corrigir onde o item se perde, seja na apuração salva ou na leitura do cartão.
+
 ## Detalhes técnicos
 
 - `src/components/dp/home/PendenciasCard.tsx`: estado local `urgenciaFiltro`, `UrgencyChip` recebe `onClick`/`active`, filtro aplicado antes de `agruparPorTipo` e dentro do grupo aberto; ocultação de zerados via classe responsiva (`hidden` + `sm:inline-flex`) para não mudar o desktop.
 - `src/lib/dp/pendencias-documentos.ts`: nova opção `afastadoMesInteiro` em `ElegibilidadeOpts`, tratada apenas no ramo do tipo `ponto` (retorna false).
 - `src/hooks/useDpPendencias.tsx`: uma consulta a `dp_solicitacoes` (tipos de licença aprovados, intervalo `rangeInicio`/`rangeFim`) monta um `Set<colaborador:competência>` de cobertura integral usando `data_alvo`/`data_fim` versus o intervalo da competência; passado em `elegibilidadeDe`.
-- Testes: casos novos em `src/lib/dp/__tests__/pendencias-documentos-elegibilidade.test.ts` (mês integral, mês parcial) e no teste do cartão para o filtro por urgência.
+- Retorno de licença: novo diálogo `DpLicencaRetornoDialog` acionado pelo item `licenca-*` (rota com `?retorno=<solicitacaoId>` em `/dp/atestados?aba=historico` para manter link compartilhável), gravando `data_fim`/observação em `dp_solicitacoes` e invalidando as queries de pendências.
+- Diagnóstico do item 4: comparar a saída do bloco `7b` do hook com as linhas de `dp_pendencias_materializadas` para a empresa e ajustar a materialização/leitura conforme o resultado.
+- Testes: casos novos em `src/lib/dp/__tests__/pendencias-documentos-elegibilidade.test.ts` (mês integral, mês parcial), teste do cartão para o filtro por urgência e teste do cálculo de retorno/prorrogação.
+
