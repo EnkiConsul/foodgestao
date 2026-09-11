@@ -128,7 +128,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .eq("company_id", selectedCompanyId!),
           supabase
             .from("dp_colaborador_config_trabalho")
-            .select("*, dias:dp_colaborador_config_dias(dow, trabalha, turno_id, setor_id)")
+            .select("*, dias:dp_colaborador_config_dias(dow, trabalha, turno_id, setor_id, entrada, saida, intervalo_minutos)")
             .eq("company_id", selectedCompanyId!)
             .lte("vigencia_inicio", fim)
             .order("vigencia_inicio", { ascending: false }),
@@ -410,6 +410,11 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
                   trabalha: x.trabalha,
                   turno_id: x.turno_id ?? null,
                   setor_id: x.setor_id ?? null,
+                  // O horário próprio do dia vence o turno: sem ele, a rotina
+                  // mostrava o horário antigo do turno depois de uma mudança.
+                  entrada: x.entrada ? String(x.entrada).slice(0, 5) : null,
+                  saida: x.saida ? String(x.saida).slice(0, 5) : null,
+                  intervalo_minutos: x.intervalo_minutos ?? null,
                 })),
                 vigente.folga_variavel ? null : vigente.folga_fixa_dow,
               ),

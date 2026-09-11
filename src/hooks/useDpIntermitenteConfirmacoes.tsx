@@ -44,7 +44,7 @@ export function useDpIntermitenteConfirmacoes() {
             colaborador_id: args.colaboradorId,
             competencia: args.competencia,
             trabalhou: args.trabalhou,
-            criado_por: auth.user?.id ?? null,
+            respondido_por: auth.user?.id ?? null,
           } as any,
           { onConflict: "company_id,colaborador_id,competencia" },
         );

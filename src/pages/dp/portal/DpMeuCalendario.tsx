@@ -51,6 +51,7 @@ import {
   buildOccupantsByDate,
   calculateDateStatus,
   dayType,
+  diasFixosDeFolga,
   formatBR,
   monthKey,
   normalizeWeekday,
@@ -328,7 +329,39 @@ export default function DpMeuCalendario() {
     };
   }, [companyId, qc]);
 
-  const colaboradoresAll = colaboradoresQuery.data ?? [];
+  /**
+   * Dias fixos de descanso da minha configuração de trabalho. Quem descansa em
+   * mais de um dia (sábado e domingo, por exemplo) não cabe no campo único do
+   * cadastro, então o calendário lê a configuração.
+   */
+  const meusDiasFixosQuery = useQuery({
+    queryKey: ["dp_meus_dias_fixos", meRef.data?.id],
+    enabled: !!meRef.data?.id,
+    queryFn: async (): Promise<number[]> => {
+      const { data: cfg } = await supabase
+        .from("dp_colaborador_config_trabalho")
+        .select("id")
+        .eq("colaborador_id", meRef.data!.id)
+        .order("vigencia_inicio", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cfg?.id) return [];
+      const { data: dias } = await supabase
+        .from("dp_colaborador_config_dias")
+        .select("dow, trabalha")
+        .eq("config_id", cfg.id);
+      return (dias ?? []).filter((d: any) => d.trabalha === false).map((d: any) => Number(d.dow));
+    },
+  });
+
+  const colaboradoresAll = useMemo(() => {
+    const lista = colaboradoresQuery.data ?? [];
+    const fixos = meusDiasFixosQuery.data ?? [];
+    if (!fixos.length || !meRef.data?.id) return lista;
+    return lista.map((c) =>
+      c.id === meRef.data!.id ? { ...c, folgas_fixas_dow: fixos } : c,
+    );
+  }, [colaboradoresQuery.data, meusDiasFixosQuery.data, meRef.data?.id]);
   // Filtra colaboradores da minha unidade (se eu tiver)
   const colaboradores = useMemo(
     () => (myUnidade ? colaboradoresAll.filter((c) => c.unidade_id === myUnidade) : colaboradoresAll),
@@ -503,8 +536,11 @@ export default function DpMeuCalendario() {
 
 
       // 3) folga fixa própria
-      const fixa = normalizeWeekday(meRef.data.folga_fixa_semana);
-      if (fixa != null && fixa === wd) {
+      const fixos = diasFixosDeFolga({
+        folga_fixa_semana: meRef.data.folga_fixa_semana,
+        folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
+      });
+      if (fixos.includes(wd)) {
         throw new Error('Este é seu dia de folga fixa. Use "Solicitar exceção" ou uma troca.');
       }
 

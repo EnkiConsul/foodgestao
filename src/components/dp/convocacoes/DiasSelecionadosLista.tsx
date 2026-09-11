@@ -30,6 +30,11 @@ interface Props {
   onAplicarATodos: (chave: string) => void;
   /** Rotina do dia simulada, montada sob demanda ao expandir a linha. */
   renderSimulacao?: (item: DiaSelecionadoItem) => ReactNode;
+  /**
+   * Dia que travou a publicação. Os outros dias ficam recolhidos para facilitar
+   * a leitura — nada é publicado separadamente, apenas a exibição muda.
+   */
+  destacarData?: string | null;
 }
 
 const ROTULO_ORIGEM: Record<OrigemHorario, string> = {
@@ -54,8 +59,10 @@ export function DiasSelecionadosLista({
   onAbrirIndividuais,
   onAplicarATodos,
   renderSimulacao,
+  destacarData = null,
 }: Props) {
   const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
+  const [reabertos, setReabertos] = useState<Record<string, boolean>>({});
   if (itens.length === 0) return null;
 
 
@@ -65,13 +72,39 @@ export function DiasSelecionadosLista({
       <div className="space-y-2">
         {itens.map((d) => {
           const semHorario = !d.entrada || !d.saida;
+          const comErro = !!destacarData && d.data === destacarData;
+          const recolhido = !!destacarData && !comErro && !reabertos[d.chave];
+          if (recolhido) {
+            return (
+              <button
+                key={d.chave}
+                type="button"
+                onClick={() => setReabertos((prev) => ({ ...prev, [d.chave]: true }))}
+                className="flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-2 text-left text-xs hover:bg-muted"
+              >
+                <span className="font-medium capitalize">{rotuloData(d.data)}</span>
+                <span className="text-muted-foreground">
+                  {d.entrada && d.saida ? `${d.entrada} às ${d.saida}` : "sem horário"} · toque para abrir
+                </span>
+              </button>
+            );
+          }
           return (
             <div
               key={d.chave}
-              className="space-y-2 rounded-lg border border-border p-2.5"
+              className={
+                comErro
+                  ? "space-y-2 rounded-lg border-2 border-destructive/60 bg-destructive/5 p-2.5"
+                  : "space-y-2 rounded-lg border border-border p-2.5"
+              }
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-semibold capitalize">{rotuloData(d.data)}</span>
+                <span className="text-xs font-semibold capitalize">
+                  {rotuloData(d.data)}
+                  {comErro && (
+                    <span className="ml-2 font-medium text-destructive">Dia com problema</span>
+                  )}
+                </span>
                 <div className="flex min-w-0 flex-wrap items-center gap-1">
 
                   <Button

@@ -43,8 +43,8 @@
 ## Ainda em aberto (fila desta revisão)
 - [ ] Documentos de rescisão agrupados (vários arquivos num único conjunto do colaborador)
 - [ ] Fonte única de pendências entre Início, Pendências e Importar + botão Atualizar com data/hora e rotina automática (6h e a cada 8h)
-- [ ] Convocação: recolher visualmente os dias sem erro e abrir o dia com problema, com justificativa ao final
-- [ ] Horário do Herick divergente na rotina do dia
-- [ ] Erro ao confirmar se o Erildson trabalhou em 05/2026
-- [ ] Link do portal na mensagem padrão de acesso
-- [ ] Portal da Karen: rotina da loja vazia, folgas fixas no calendário, pendências de documentos pessoais
+- [x] Convocação: recolher visualmente os dias sem erro e abrir o dia com problema (publicação segue atômica)
+- [x] Horário do Herick divergente na rotina do dia (horário próprio do dia vence o turno)
+- [x] Erro ao confirmar se o Erildson trabalhou em 05/2026 (coluna errada na gravação)
+- [x] Link do portal na mensagem padrão de acesso
+- [x] Portal da Karen: rotina da loja, folgas fixas no calendário e atalho para as pendências pessoais

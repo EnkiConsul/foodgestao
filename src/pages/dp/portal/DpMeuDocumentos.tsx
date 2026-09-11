@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
+import { cn } from "@/lib/utils";
 import { DpContentCard, DpEmptyState, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -79,6 +80,9 @@ export default function DpMeuDocumentos() {
   const { colaborador, possuiPonto, documentos, isLoading } = useMeusDocumentos();
 
   const [params, setParams] = useSearchParams();
+  /** Quando a pendência aponta para cá, o foco vai direto para o checklist pessoal. */
+  const focoPendencias = params.get("foco") === "pendencias";
+  const checklistRef = useRef<HTMLDivElement>(null);
   const initialTab = params.get("tipo") ?? "all";
   const [tab, setTab] = useState<string>(initialTab);
   const [origem, setOrigem] = useState<"dp" | "meu_envio">("dp");
@@ -104,6 +108,14 @@ export default function DpMeuDocumentos() {
     () => visibleTabs.find((t) => t.key === tab) ?? visibleTabs[0],
     [visibleTabs, tab]
   );
+
+  useEffect(() => {
+    if (!focoPendencias || isLoading) return;
+    const t = setTimeout(() => {
+      checklistRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [focoPendencias, isLoading]);
 
   const changeTab = (v: string) => {
     setTab(v);
@@ -469,7 +481,13 @@ export default function DpMeuDocumentos() {
       )}
 
       {/* Meus documentos pessoais (envio e pendências) vêm depois dos documentos da empresa. */}
-      <div className="mt-6">
+      <div
+        ref={checklistRef}
+        className={cn(
+          "mt-6 scroll-mt-24",
+          focoPendencias && "rounded-lg ring-2 ring-primary/60 ring-offset-2 ring-offset-background",
+        )}
+      >
         <ColaboradorDocumentosPanel colaboradorId={colaborador?.id ?? null} somenteEnvio ocultarConfig />
       </div>
 

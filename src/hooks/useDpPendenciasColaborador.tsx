@@ -121,7 +121,7 @@ export function useDpPendenciasColaborador() {
             tipo: "Documento",
             vencimento: ymd(base),
             atrasoDias: differenceInCalendarDays(today, base),
-            url: "/dp/meu/documentos",
+            url: "/dp/meu/documentos?foco=pendencias",
           });
         });
       } catch (e) {
@@ -312,7 +312,7 @@ export function useDpPendenciasColaborador() {
               tipo: "Documentos",
               vencimento: null,
               atrasoDias: 1,
-              url: "/dp/meu/documentos",
+              url: "/dp/meu/documentos?foco=pendencias",
             });
           }
           const aceites = itens.filter((i) =>
@@ -327,7 +327,7 @@ export function useDpPendenciasColaborador() {
               tipo: "Documentos",
               vencimento: null,
               atrasoDias: 1,
-              url: "/dp/meu/documentos",
+              url: "/dp/meu/documentos?foco=pendencias",
             });
           }
           if (resumo.vencendo.length > 0) {
@@ -339,7 +339,7 @@ export function useDpPendenciasColaborador() {
               tipo: "Documentos",
               vencimento: null,
               atrasoDias: 0,
-              url: "/dp/meu/documentos",
+              url: "/dp/meu/documentos?foco=pendencias",
             });
           }
         }
