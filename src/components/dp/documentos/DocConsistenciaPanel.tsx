@@ -179,6 +179,7 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
   const {
     data: pendencias = [],
     dataUpdatedAt,
+    lastCalculatedAt,
     isFetching: atualizandoPendencias,
     refetch: recalcularPendencias,
   } = useDpPendencias();
@@ -729,8 +730,8 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
             Atualizar
           </Button>
           <span className="text-[11px] text-muted-foreground">
-            {dataUpdatedAt
-              ? `Última atualização: ${new Date(dataUpdatedAt).toLocaleString("pt-BR", {
+            {lastCalculatedAt || dataUpdatedAt
+              ? `Última atualização: ${new Date(lastCalculatedAt ?? dataUpdatedAt).toLocaleString("pt-BR", {
                   day: "2-digit",
                   month: "2-digit",
                   hour: "2-digit",

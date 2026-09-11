@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 
 export function PendenciasCard() {
-  const { data = [], isLoading, isFetching, dataUpdatedAt, refetch } = useDpPendencias();
+  const { data = [], isLoading, isFetching, dataUpdatedAt, lastCalculatedAt, refetch } = useDpPendencias();
   const { prefs } = useDpUserPrefs();
   const { ignoradas, adiadas } = useDpPendenciasDecisoes();
   const [grupoAberto, setGrupoAberto] = useState<GrupoPendencias<Pendencia> | null>(null);
@@ -87,8 +87,8 @@ export function PendenciasCard() {
       </div>
 
       <p className="-mt-2 mb-2 text-[11px] text-muted-foreground">
-        {dataUpdatedAt
-          ? `Última atualização: ${new Date(dataUpdatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
+        {lastCalculatedAt || dataUpdatedAt
+          ? `Última atualização: ${new Date(lastCalculatedAt ?? dataUpdatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
           : "Atualizando…"}
       </p>
 
