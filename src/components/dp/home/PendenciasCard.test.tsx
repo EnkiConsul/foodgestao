@@ -144,6 +144,85 @@ describe("useStablePendencias", () => {
     expect(result.current.dataUpdatedAt).toBe(200);
   });
 
+  it("não troca o retrato por resposta vazia sem uma apuração mais nova", () => {
+    salvarPendenciasSnapshot("empresa-a", {
+      data: [antiga],
+      dataUpdatedAt: 100,
+      lastCalculatedAt: "2026-09-10T03:00:00Z",
+    });
+
+    const { result } = renderHook(() =>
+      useStablePendencias({
+        companyId: "empresa-a",
+        data: [],
+        dataUpdatedAt: 200,
+        lastCalculatedAt: "2026-09-10T03:00:00Z",
+        isLoading: false,
+        isFetching: false,
+      }),
+    );
+
+    expect(result.current.data.map((p) => p.id)).toEqual(["antiga"]);
+    expect(lerPendenciasSnapshot("empresa-a")?.data.map((p) => p.id)).toEqual(["antiga"]);
+  });
+
+  it("aceita um quadro vazio quando uma apuração mais nova o confirma", () => {
+    salvarPendenciasSnapshot("empresa-a", {
+      data: [antiga],
+      dataUpdatedAt: 100,
+      lastCalculatedAt: "2026-09-10T03:00:00Z",
+    });
+
+    const { result } = renderHook(() =>
+      useStablePendencias({
+        companyId: "empresa-a",
+        data: [],
+        dataUpdatedAt: 200,
+        lastCalculatedAt: "2026-09-11T03:00:00Z",
+        isLoading: false,
+        isFetching: false,
+      }),
+    );
+
+    expect(result.current.ready).toBe(true);
+    expect(result.current.data).toEqual([]);
+    expect(lerPendenciasSnapshot("empresa-a")?.data).toEqual([]);
+  });
+
+  it("recupera o retrato quando a empresa chega depois da primeira renderização", () => {
+    salvarPendenciasSnapshot("empresa-a", {
+      data: [antiga],
+      dataUpdatedAt: 100,
+      lastCalculatedAt: "2026-09-10T03:00:00Z",
+    });
+
+    const { result, rerender } = renderHook(
+      (props) => useStablePendencias(props),
+      {
+        initialProps: {
+          companyId: null as string | null,
+          data: undefined as Pendencia[] | undefined,
+          dataUpdatedAt: 0,
+          lastCalculatedAt: null as string | null,
+          isLoading: true,
+          isFetching: false,
+        },
+      },
+    );
+
+    rerender({
+      companyId: "empresa-a",
+      data: [] as Pendencia[],
+      dataUpdatedAt: 200,
+      lastCalculatedAt: "2026-09-10T03:00:00Z",
+      isLoading: false,
+      isFetching: false,
+    });
+
+    expect(result.current.ready).toBe(true);
+    expect(result.current.data.map((p) => p.id)).toEqual(["antiga"]);
+  });
+
   it("não reutiliza pendências ao trocar de empresa", () => {
     const { result, rerender } = renderHook(
       (props) => useStablePendencias(props),
