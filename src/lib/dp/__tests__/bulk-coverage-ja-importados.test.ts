@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeCoverage, tipoColetivoDoc, tiposEquivalentes } from "@/lib/dp/bulk-coverage";
+import { computeCoverage, resolveUnidadesLote, tipoColetivoDoc, tiposEquivalentes } from "@/lib/dp/bulk-coverage";
 
 const pessoa = (id: string, nome: string) => ({
   id,
@@ -59,5 +59,21 @@ describe("cobertura do lote considerando documentos já salvos", () => {
     expect(tipoColetivoDoc("trct")).toBe(false);
     expect(tiposEquivalentes("rescisao")).toEqual(["trct", "demonstrativo_rescisorio"]);
     expect(tiposEquivalentes("ponto")).toEqual(["ponto"]);
+  });
+
+  it("identifica a unidade pelo colaborador quando o documento não traz CNPJ", () => {
+    expect(resolveUnidadesLote({
+      rows: [{ matched_colaborador_id: "a" }],
+      colaboradores,
+      unidades: [{ id: "u1", cnpj: "12345678000190" }],
+    })).toEqual(["u1"]);
+  });
+
+  it("preserva páginas de unidades diferentes em um lote multiunidade", () => {
+    expect(resolveUnidadesLote({
+      rows: [{ matched_colaborador_id: "a" }, { matched_colaborador_id: "d" }],
+      colaboradores: [...colaboradores, { ...pessoa("d", "DANIEL"), unidade_id: "u2" }],
+      unidades: [],
+    }).sort()).toEqual(["u1", "u2"]);
   });
 });

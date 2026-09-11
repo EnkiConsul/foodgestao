@@ -182,6 +182,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       // Sócio com pró-labore não recebe contracheque: a natureza segue o vínculo.
       if (colaborador_id) {
         const colab = colaboradores.find((c: any) => c.id === colaborador_id);
+        if (colab?.unidade_id) patch.detected_unidade_id = colab.unidade_id;
         const row = (items.data ?? []).find((r: any) => r.id === id) as any;
         const tipoAtual = row?.tipo_detectado ?? (batchInfo.data as any)?.tipo;
         const tipoNovo = tipoAtual ? tipoCanonicoPorVinculo(tipoAtual, colab as any) : null;
@@ -193,8 +194,27 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       }
       const { error } = await supabase.from("dp_bulk_import_items" as any).update(patch).eq("id", id);
       if (error) throw error;
+      if (colaborador_id) {
+        const colab = colaboradores.find((c: any) => c.id === colaborador_id);
+        const outrasUnidades = new Set(
+          (items.data ?? [])
+            .filter((r: any) => r.id !== id && r.matched_colaborador_id)
+            .map((r: any) => r.detected_unidade_id)
+            .filter(Boolean),
+        );
+        if (colab?.unidade_id) {
+          outrasUnidades.add(colab.unidade_id);
+          const batchUpdate = await supabase.from("dp_bulk_import_batches" as any)
+            .update({ unidade_id: outrasUnidades.size === 1 ? colab.unidade_id : null }).eq("id", batchId);
+          if (batchUpdate.error) throw batchUpdate.error;
+        }
+      }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+    },
   });
 
   const setCompetencia = useMutation({
@@ -266,6 +286,13 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
+      if (okc + rep > 0) {
+        const companyId = (batchInfo.data as any)?.company_id;
+        if (companyId) {
+          await supabase.functions.invoke("dp-refresh-pendencias", { body: { companyId } });
+          qc.invalidateQueries({ queryKey: ["dp_pendencias", companyId] });
+        }
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao aprovar");
     } finally {

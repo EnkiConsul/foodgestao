@@ -921,7 +921,27 @@ export function useDpPendencias() {
           .eq("status", "ready")
           .order("created_at", { ascending: true })
           .limit(10);
+        const loteIds = (lotes ?? []).map((l: any) => l.id);
+        const { data: itensLote } = loteIds.length
+          ? await supabase
+            .from("dp_bulk_import_items")
+            .select("batch_id, detected_unidade_id, matched_colaborador_id, status")
+            .in("batch_id", loteIds)
+          : { data: [] };
+        const itensPorLote = new Map<string, any[]>();
+        (itensLote ?? []).forEach((item: any) => {
+          const atuais = itensPorLote.get(item.batch_id) ?? [];
+          atuais.push(item);
+          itensPorLote.set(item.batch_id, atuais);
+        });
         (lotes ?? []).forEach((l: any) => {
+          const itensAtivos = (itensPorLote.get(l.id) ?? []).filter((item: any) => item.status !== "rejected");
+          const todosComUnidade = itensAtivos.length > 0 && itensAtivos.every(
+            (item: any) => !!item.detected_unidade_id || !!unidadeDoColab.get(item.matched_colaborador_id),
+          );
+          // Um lote pode ser multiunidade. Se cada página já conhece sua unidade,
+          // não existe pendência de identificação do cabeçalho.
+          if (todosComUnidade) return;
           const vencimento = new Date(l.created_at);
           vencimento.setDate(vencimento.getDate() + 2);
           results.push({
