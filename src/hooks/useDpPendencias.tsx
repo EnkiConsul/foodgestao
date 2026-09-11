@@ -1340,16 +1340,21 @@ export function useDpPendencias() {
           .maybeSingle();
         const precisaAtualizar = !apuracao?.apurado_em || new Date(apuracao.sujo_desde).getTime() > new Date(apuracao.apurado_em).getTime();
         if (precisaAtualizar) {
-          const { error } = await supabase.functions.invoke("dp-refresh-pendencias", {
-            body: { companyId: selectedCompanyId },
-          });
-          if (!error) {
-            const refreshed = await supabase
-              .from("dp_pendencias_apuracoes")
-              .select("apurado_em, sujo_desde")
-              .eq("company_id", selectedCompanyId!)
-              .maybeSingle();
-            apuracao = refreshed.data;
+          setIsRefreshing(true);
+          try {
+            const { error } = await supabase.functions.invoke("dp-refresh-pendencias", {
+              body: { companyId: selectedCompanyId },
+            });
+            if (!error) {
+              const refreshed = await supabase
+                .from("dp_pendencias_apuracoes")
+                .select("apurado_em, sujo_desde")
+                .eq("company_id", selectedCompanyId!)
+                .maybeSingle();
+              apuracao = refreshed.data;
+            }
+          } finally {
+            setIsRefreshing(false);
           }
         }
 
