@@ -120,6 +120,7 @@ export function agruparPorTipo<T extends PendenciaLike>(itens: T[]): GrupoPenden
   const grupos: GrupoPendencias<T>[] = [];
   for (const [tipo, lista] of mapa.entries()) {
     let atrasadas = 0;
+    let urgentes = 0;
     let hoje = 0;
     let proximas = 0;
     let maiorAtraso = Number.NEGATIVE_INFINITY;
@@ -128,6 +129,7 @@ export function agruparPorTipo<T extends PendenciaLike>(itens: T[]): GrupoPenden
     for (const p of lista) {
       const u = urgenciaDe(p);
       if (u === "atrasada") atrasadas++;
+      else if (u === "urgente") urgentes++;
       else if (u === "hoje") hoje++;
       else proximas++;
       if (p.atrasoDias > maiorAtraso) maiorAtraso = p.atrasoDias;
@@ -136,9 +138,10 @@ export function agruparPorTipo<T extends PendenciaLike>(itens: T[]): GrupoPenden
     }
     grupos.push({
       tipo,
-      itens: [...lista].sort((a, b) => b.atrasoDias - a.atrasoDias),
+      itens: [...lista].sort(compararUrgencia),
       total: lista.length,
       atrasadas,
+      urgentes,
       hoje,
       proximas,
       colaboradores: Array.from(colaboradores).sort((a, b) => a.localeCompare(b, "pt-BR")),
