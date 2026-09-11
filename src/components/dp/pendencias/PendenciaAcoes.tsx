@@ -28,9 +28,11 @@ const ADIAR_PRESETS = [7, 15, 30];
 export function PendenciaAcoes({
   pendencia: p,
   onNavigate,
+  onResolved,
 }: {
   pendencia: Pendencia;
   onNavigate?: () => void;
+  onResolved?: () => void;
 }) {
   const { decidir, remover, decisaoDe } = useDpPendenciasDecisoes();
   const { responder } = useDpIntermitenteConfirmacoes();
@@ -72,11 +74,14 @@ export function PendenciaAcoes({
             className="h-9 sm:h-7 text-xs"
             disabled={responder.isPending}
             onClick={() =>
-              responder.mutate({
-                colaboradorId: p.colaboradorId!,
-                competencia: p.competencia!,
-                trabalhou: true,
-              })
+              responder.mutate(
+                {
+                  colaboradorId: p.colaboradorId!,
+                  competencia: p.competencia!,
+                  trabalhou: true,
+                },
+                { onSuccess: onResolved },
+              )
             }
           >
             <Check className="h-3 w-3 mr-1" /> Trabalhou
@@ -87,11 +92,14 @@ export function PendenciaAcoes({
             className="h-9 sm:h-7 text-xs"
             disabled={responder.isPending}
             onClick={() =>
-              responder.mutate({
-                colaboradorId: p.colaboradorId!,
-                competencia: p.competencia!,
-                trabalhou: false,
-              })
+              responder.mutate(
+                {
+                  colaboradorId: p.colaboradorId!,
+                  competencia: p.competencia!,
+                  trabalhou: false,
+                },
+                { onSuccess: onResolved },
+              )
             }
           >
             <X className="h-3 w-3 mr-1" /> Não trabalhou

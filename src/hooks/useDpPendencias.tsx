@@ -1235,12 +1235,13 @@ export function useDpPendencias() {
         console.warn("pendencias/materializadas:", e);
       }
 
-      // Ordenar: mais atrasado primeiro; empate → vencimento mais próximo
+      // Ordenar: mais atrasado primeiro; empate → vencimento e nome.
       results.sort((a, b) => {
         if (b.atrasoDias !== a.atrasoDias) return b.atrasoDias - a.atrasoDias;
         const av = a.vencimento ? new Date(a.vencimento).getTime() : Infinity;
         const bv = b.vencimento ? new Date(b.vencimento).getTime() : Infinity;
-        return av - bv;
+        if (av !== bv) return av - bv;
+        return (a.colaboradorNome ?? "").localeCompare(b.colaboradorNome ?? "", "pt-BR");
       });
 
       return results;

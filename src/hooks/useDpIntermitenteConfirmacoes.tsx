@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
 import { reportError } from "@/lib/errorLog";
+import type { Pendencia } from "@/hooks/useDpPendencias";
 
 export type IntermitenteConfirmacao = {
   id: string;
@@ -52,6 +53,28 @@ export function useDpIntermitenteConfirmacoes() {
       if (error) throw error;
     },
     onSuccess: (_d, args) => {
+      const pendenciaId = `intermitente-${args.colaboradorId}-${args.competencia.slice(0, 4)}-${Number(args.competencia.slice(5, 7))}`;
+      qc.setQueryData<Pendencia[]>(["dp_pendencias", selectedCompanyId], (atuais) =>
+        atuais?.filter((pendencia) => pendencia.id !== pendenciaId),
+      );
+      qc.setQueryData<IntermitenteConfirmacao[]>(
+        ["dp_intermitente_confirmacoes", selectedCompanyId],
+        (atuais) => {
+          const semCompetenciaRespondida = (atuais ?? []).filter(
+            (item) =>
+              item.colaborador_id !== args.colaboradorId || item.competencia !== args.competencia,
+          );
+          return [
+            ...semCompetenciaRespondida,
+            {
+              id: pendenciaId,
+              colaborador_id: args.colaboradorId,
+              competencia: args.competencia,
+              trabalhou: args.trabalhou,
+            },
+          ];
+        },
+      );
       qc.invalidateQueries({ queryKey: ["dp_intermitente_confirmacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_consistencia_janela"] });
