@@ -137,10 +137,15 @@ export function useMeusDocumentos() {
 
       const { data: aceites } = await supabase
         .from("dp_documento_aceites")
-        .select("documento_id")
+        .select("id, documento_id, aceito_em, ip, user_agent, conteudo_hash")
         .eq("colaborador_id", colab.id)
-        .not("documento_id", "is", null);
-      const aceitos = new Set((aceites ?? []).map((a: any) => a.documento_id as string));
+        .not("documento_id", "is", null)
+        .order("aceito_em", { ascending: false });
+      const aceitePorDoc = new Map<string, any>();
+      for (const a of (aceites ?? []) as any[]) {
+        if (!aceitePorDoc.has(a.documento_id)) aceitePorDoc.set(a.documento_id, a);
+      }
+      const aceitos = new Set(aceitePorDoc.keys());
 
       for (const d of (docs ?? []) as any[]) {
         const tipo = normalizeTipo(d.tipo);
