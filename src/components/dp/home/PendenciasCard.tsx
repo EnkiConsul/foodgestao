@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bell, ArrowRight, Clock, Clock3, CalendarClock, AlarmClockOff, CalendarPlus, Settings, ChevronRight, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +19,74 @@ import {
   type GrupoPendencias,
 } from "@/lib/dp/pendencias";
 import { toast } from "sonner";
+import { useCompanyContext } from "@/contexts/CompanyContext";
+
+type StablePendenciasState = {
+  companyId: string | null;
+  data: Pendencia[];
+  dataUpdatedAt: number;
+  lastCalculatedAt: string | null;
+  ready: boolean;
+};
+
+/** Mantém o último quadro confirmado enquanto uma nova apuração está em andamento. */
+export function useStablePendencias({
+  companyId,
+  data,
+  dataUpdatedAt,
+  lastCalculatedAt,
+  isLoading,
+  isFetching,
+}: {
+  companyId: string | null;
+  data: Pendencia[] | undefined;
+  dataUpdatedAt: number;
+  lastCalculatedAt: string | null;
+  isLoading: boolean;
+  isFetching: boolean;
+}) {
+  const [confirmed, setConfirmed] = useState<StablePendenciasState>(() => ({
+    companyId,
+    data: data ?? [],
+    dataUpdatedAt,
+    lastCalculatedAt,
+    ready: data !== undefined && !isLoading,
+  }));
+
+  useEffect(() => {
+    if (isLoading || isFetching || data === undefined) return;
+    setConfirmed({
+      companyId,
+      data,
+      dataUpdatedAt,
+      lastCalculatedAt,
+      ready: true,
+    });
+  }, [companyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching]);
+
+  if (confirmed.companyId !== companyId) {
+    return {
+      data: data ?? [],
+      dataUpdatedAt,
+      lastCalculatedAt,
+      ready: data !== undefined && !isLoading && !isFetching,
+    };
+  }
+
+  return confirmed;
+}
 
 export function PendenciasCard() {
-  const { data = [], isLoading, isFetching, dataUpdatedAt, lastCalculatedAt, refetch } = useDpPendencias();
+  const { selectedCompanyId } = useCompanyContext();
+  const { data, isLoading, isFetching, dataUpdatedAt, lastCalculatedAt, refetch } = useDpPendencias();
+  const stable = useStablePendencias({
+    companyId: selectedCompanyId,
+    data,
+    dataUpdatedAt,
+    lastCalculatedAt,
+    isLoading,
+    isFetching,
+  });
   const { prefs } = useDpUserPrefs();
   const { ignoradas, adiadas } = useDpPendenciasDecisoes();
   const [grupoAbertoTipo, setGrupoAbertoTipo] = useState<string | null>(null);
@@ -29,10 +94,10 @@ export function PendenciasCard() {
   const abertas = useMemo(
     () =>
       filtrarAbertas(
-        data.filter((p) => !ignoradas.has(p.id)),
+        stable.data.filter((p) => !ignoradas.has(p.id)),
         { ...prefs.pendencias_adiadas, ...adiadas },
       ),
-    [data, prefs.pendencias_adiadas, ignoradas, adiadas],
+    [stable.data, prefs.pendencias_adiadas, ignoradas, adiadas],
   );
 
   const grupos = useMemo(() => agruparPorTipo(abertas), [abertas]);
@@ -88,8 +153,8 @@ export function PendenciasCard() {
       </div>
 
       <p className="-mt-2 mb-2 text-[11px] text-muted-foreground">
-        {lastCalculatedAt || dataUpdatedAt
-          ? `Última atualização: ${new Date(lastCalculatedAt ?? dataUpdatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
+        {stable.lastCalculatedAt || stable.dataUpdatedAt
+          ? `Última atualização: ${new Date(stable.lastCalculatedAt ?? stable.dataUpdatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
           : "Atualizando…"}
       </p>
 
@@ -100,8 +165,8 @@ export function PendenciasCard() {
       </div>
 
       <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-        {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
-        {!isLoading && abertas.length === 0 && (
+        {!stable.ready && <p className="text-sm text-muted-foreground">Carregando…</p>}
+        {stable.ready && abertas.length === 0 && (
           <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma pendência aberta no momento. 🎉</p>
         )}
         {grupos.map((g) => (
