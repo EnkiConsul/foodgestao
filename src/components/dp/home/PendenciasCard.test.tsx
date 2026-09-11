@@ -4,6 +4,7 @@ import { Bell } from "lucide-react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { PendenciasCard, useStablePendencias } from "@/components/dp/home/PendenciasCard";
 import type { Pendencia } from "@/hooks/useDpPendencias";
+import { lerPendenciasSnapshot, salvarPendenciasSnapshot } from "@/lib/dp/pendencias-cache";
 
 // ---- Mocks -----------------------------------------------------------------
 vi.mock("@/hooks/useCompanyContext", () => ({
@@ -53,6 +54,51 @@ const atualizada: Pendencia = {
 };
 
 describe("useStablePendencias", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("hidrata o último retrato guardado enquanto a nova apuração roda", () => {
+    salvarPendenciasSnapshot("empresa-a", {
+      data: [antiga],
+      dataUpdatedAt: 50,
+      lastCalculatedAt: "2026-09-10T03:00:00Z",
+    });
+
+    const { result } = renderHook(() =>
+      useStablePendencias({
+        companyId: "empresa-a",
+        data: undefined,
+        dataUpdatedAt: 0,
+        lastCalculatedAt: null,
+        isLoading: true,
+        isFetching: true,
+      }),
+    );
+
+    expect(result.current.ready).toBe(true);
+    expect(result.current.data.map((p) => p.id)).toEqual(["antiga"]);
+    expect(result.current.lastCalculatedAt).toBe("2026-09-10T03:00:00Z");
+  });
+
+  it("grava o retrato quando a apuração termina e ignora cache corrompido", () => {
+    renderHook(() =>
+      useStablePendencias({
+        companyId: "empresa-a",
+        data: [atualizada],
+        dataUpdatedAt: 300,
+        lastCalculatedAt: "2026-09-11T06:00:00Z",
+        isLoading: false,
+        isFetching: false,
+      }),
+    );
+
+    expect(lerPendenciasSnapshot("empresa-a")?.data.map((p) => p.id)).toEqual(["atualizada"]);
+
+    localStorage.setItem("dp_pendencias_snapshot:empresa-a", "{{{");
+    expect(lerPendenciasSnapshot("empresa-a")).toBeNull();
+  });
+
   it("mantém a lista confirmada até a atualização terminar", () => {
     const { result, rerender } = renderHook(
       (props) => useStablePendencias(props),
@@ -150,7 +196,7 @@ describe("PendenciasCard", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("Pendências do Sistema")).toBeInTheDocument();
+    expect(screen.getByText("Pendências")).toBeInTheDocument();
     expect(screen.getByText("Atrasado: 1")).toBeInTheDocument();
     expect(screen.getByText("Hoje: 1")).toBeInTheDocument();
     expect(screen.getByText("Próximo: 1")).toBeInTheDocument();
