@@ -230,7 +230,9 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         .select("company_id")
         .eq("category_id", editCategory.id)
         .then(({ data }) => {
-          setSelectedCompanies(new Set((data ?? []).map((d) => d.company_id)));
+          const atuais = new Set((data ?? []).map((d) => d.company_id));
+          setSelectedCompanies(atuais);
+          setInitialCompanies(new Set(atuais));
         });
     } else {
       setName(defaultName ?? "");
