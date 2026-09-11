@@ -11,7 +11,7 @@ Hoje o painel do dia só troca a situação da pessoa quando ela estava marcada 
 ## 2. Convocação fora do prazo com erro
 A justificativa hoje é um único texto para todos os dias, e o servidor cancela a publicação inteira quando um dia falha — sem dizer qual dia.
 
-- Publicar dia por dia: os dias que passam ficam publicados e recolhidos ("Publicado"); só o dia com problema fica aberto, destacado, com o motivo em português.
+- Nada é publicado em partes: a publicação continua sendo de todos os dias juntos. O que muda é só a visualização — os dias sem problema ficam recolhidos e o dia com erro fica aberto e destacado, com o motivo em português.
 - Mover o bloco de ciência/justificativa para o fim, junto de "Revisar e publicar", e rolar automaticamente até ele quando for exigido.
 - Justificativa por dia (o campo já é aceito por dia no servidor), com opção de repetir para todos.
 
@@ -45,10 +45,19 @@ Adicionar "Nome social / Como prefere ser chamado" no cadastro. Usado nas telas 
 Vou fazer o link ser reconhecido em qualquer forma que você escreveu no modelo e validar o envio para a Karen, mostrando prévia antes de enviar.
 
 ## 10. Portal da Karen
-- Não oferecer "Escolher folga do mês" a quem tem folga fixa/automática.
+- "Escolher folga do mês" só aparece para quem **não** tem domingo fixo de folga. Quem já folga domingo não escolhe nada. Quem não tem domingo fixo escolhe o domingo (ou o sábado, no caso da Pakerê) conforme a regra da unidade.
 - Rotina da loja: mostrar a equipe do dia mesmo sem escala publicada (usar a rotina prevista) e avisar quando não houver unidade vinculada.
 - Calendário: marcar sábado e domingo como folga semanal para quem tem folga fixa.
 - Pendências de documentos pessoais: abrir a lista do que falta dela enviar, não a lista de documentos da empresa.
+
+## 11. Auditoria de erros do sistema
+Criar uma tela dedicada (no menu Geral e também no backoffice) que registra todo erro ocorrido no uso do sistema, para você saber o que precisa ser corrigido.
+
+- Captura automática: falhas de tela, falhas de gravação no banco (com o código e a mensagem do banco), falhas das funções do servidor e erros de importação de documentos.
+- Cada registro guarda: data e hora, usuário, empresa/unidade, tela e ação, mensagem técnica, mensagem mostrada ao usuário e quantas vezes o mesmo erro repetiu.
+- Agrupamento por erro repetido, com contador e "primeira vez / última vez", para priorizar o que mais atrapalha.
+- Filtros por período, empresa, tela, gravidade e situação; marcar como "Resolvido" ou "Ignorado" com observação.
+- Aviso no topo quando surgir um erro novo nas últimas 24h.
 
 ## Detalhes técnicos
 - Ausência: incluir `divergencia_jornada` e novos motivos em `OCORRENICA_CATEGORIA` e permitir sobrepor `folga_padrao` em `src/lib/dp/operacao-panorama.ts`.
@@ -57,3 +66,6 @@ Vou fazer o link ser reconhecido em qualquer forma que você escreveu no modelo 
 - Pendências: tabela materializada + função agendada (cron 6h e a cada 8h) alimentada por uma única regra derivada de `pendencias-documentos.ts`; `useDpPendencias` e `DocConsistenciaPanel` passam a ler dela.
 - Importação: `input multiple` em `BulkImportPanel` e novo agrupador `rescisao` em `documentoTipos.ts`.
 - Nome social: coluna `nome_social` em `dp_colaboradores` + exibição.
+- Convocação: sem mudança na RPC de publicação (segue transacional); os dias OK ficam recolhidos no cliente a partir da pré-avaliação e da mensagem de erro, que passa a devolver a data.
+- Folga do mês: `useDpPendenciasColaborador` passa a usar `folgaDominicalAutomatica`/`folga_fixa_semana` (mesma regra do `DpMeuCalendario`).
+- Erros: nova tabela `app_error_logs` (RLS: gestor lê da própria empresa, super admin lê tudo; inserção por `authenticated` e `service_role`), hash de agrupamento, ErrorBoundary global + wrapper de erros do cliente Supabase e das Edge Functions, tela `/dp/geral/erros` e `/admin/erros`.
