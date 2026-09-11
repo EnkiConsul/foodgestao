@@ -108,6 +108,10 @@ export function PendenciaAcoes({
             <X className="h-3 w-3 mr-1" /> Não trabalhou
           </Button>
         </>
+      ) : licencaRetorno ? (
+        <Button size="sm" className="h-9 sm:h-7 text-xs" onClick={() => setRetornoAberto(true)}>
+          <Check className="h-3 w-3 mr-1" /> Registrar retorno
+        </Button>
       ) : (
         <Button asChild size="sm" className="h-9 sm:h-7 text-xs">
           <Link to={p.url} onClick={onNavigate}>
@@ -115,6 +119,7 @@ export function PendenciaAcoes({
           </Link>
         </Button>
       )}
+
 
       {decisao ? (
         <Button
