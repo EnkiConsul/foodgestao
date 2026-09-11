@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { categorySchema, validateWithToast } from "@/lib/validations";
 import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
+import { syncCategoryCompanies } from "@/lib/categories/visibility";
 import type { Tables } from "@/integrations/supabase/types";
 
 
