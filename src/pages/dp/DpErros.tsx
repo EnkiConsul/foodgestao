@@ -268,7 +268,6 @@ export default function DpErros({ todasEmpresas = false }: DpErrosProps) {
               Confirmar
             </Button>
           </DialogFooter>
-        </DialogFooter>
         </DialogContent>
       </Dialog>
     </DpPage>
