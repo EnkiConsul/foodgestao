@@ -20,6 +20,7 @@ import {
 } from "@/lib/dp/pendencias";
 import { toast } from "sonner";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { lerPendenciasSnapshot, salvarPendenciasSnapshot } from "@/lib/dp/pendencias-cache";
 
 type StablePendenciasState = {
   companyId: string | null;
@@ -45,26 +46,53 @@ export function useStablePendencias({
   isLoading: boolean;
   isFetching: boolean;
 }) {
-  const [confirmed, setConfirmed] = useState<StablePendenciasState>(() => ({
-    companyId,
-    data: data ?? [],
-    dataUpdatedAt,
-    lastCalculatedAt,
-    ready: data !== undefined && !isLoading,
-  }));
+  const [confirmed, setConfirmed] = useState<StablePendenciasState>(() => {
+    if (data !== undefined && !isLoading && !isFetching) {
+      return { companyId, data, dataUpdatedAt, lastCalculatedAt, ready: true };
+    }
+    const snapshot = lerPendenciasSnapshot(companyId);
+    if (snapshot) {
+      return { companyId, ...snapshot, ready: true };
+    }
+    return {
+      companyId,
+      data: data ?? [],
+      dataUpdatedAt,
+      lastCalculatedAt,
+      ready: data !== undefined && !isLoading,
+    };
+  });
 
   useEffect(() => {
     if (isLoading || isFetching || data === undefined) return;
-    setConfirmed({
-      companyId,
-      data,
-      dataUpdatedAt,
-      lastCalculatedAt,
-      ready: true,
+    setConfirmed((anterior) => {
+      // Evita atualizações redundantes quando a fonte reemite o mesmo quadro.
+      if (
+        anterior.ready &&
+        anterior.companyId === companyId &&
+        anterior.dataUpdatedAt === dataUpdatedAt &&
+        anterior.lastCalculatedAt === lastCalculatedAt &&
+        anterior.data.length === data.length &&
+        anterior.data.every((p, i) => p.id === data[i]?.id)
+      ) {
+        return anterior;
+      }
+      return { companyId, data, dataUpdatedAt, lastCalculatedAt, ready: true };
     });
+    salvarPendenciasSnapshot(companyId, { data, dataUpdatedAt, lastCalculatedAt });
   }, [companyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching]);
 
+  // Retrato local da empresa selecionada: usado enquanto a apuração atual não
+  // terminou (inclusive no primeiro carregamento do dia e ao trocar de empresa).
+  const snapshotDaEmpresa = useMemo(() => lerPendenciasSnapshot(companyId), [companyId]);
+
   if (confirmed.companyId !== companyId) {
+    if (data !== undefined && !isLoading && !isFetching) {
+      return { data, dataUpdatedAt, lastCalculatedAt, ready: true };
+    }
+    if (snapshotDaEmpresa) {
+      return { ...snapshotDaEmpresa, ready: true };
+    }
     return {
       data: data ?? [],
       dataUpdatedAt,
@@ -119,7 +147,7 @@ export function PendenciasCard() {
       <div className="flex items-center gap-2 mb-3">
         <Bell className="h-5 w-5 text-primary shrink-0" />
         <h2 className="text-base sm:text-lg font-semibold min-w-0 truncate">
-          Pendências do Sistema
+          Pendências
         </h2>
         <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 shrink-0">
           {abertas.length}
