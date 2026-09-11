@@ -244,6 +244,28 @@ export default function DpMeuDocumentos() {
     onError: (e: any) => toast.error(e?.message ?? "Erro ao registrar o aceite"),
   });
 
+  /** Certificado imprimível da aprovação eletrônica. */
+  const certificado = (d: UnifiedDoc) => {
+    const info = d.aceiteInfo;
+    if (!info) return;
+    const c = colaborador as any;
+    const ok = imprimirCertificadoValidacao({
+      empresa: c?.empresa_nome ?? "",
+      colaborador: c?.nome_social || c?.nome || "",
+      documentoTitulo: d.titulo,
+      documentoTipo: d.tipo_label,
+      competencia: d.competencia_label,
+      arquivo: d.arquivo_nome ?? null,
+      aceitoEm: info.aceito_em,
+      aprovadoPor: c?.nome_social || c?.nome || "",
+      ip: info.ip,
+      dispositivo: info.user_agent,
+      conteudoHash: info.conteudo_hash,
+      registroId: info.id,
+    });
+    if (!ok) toast.error("Libere as janelas pop-up para imprimir o certificado.");
+  };
+
   const cancelar = useMutation({
     mutationFn: async (d: UnifiedDoc) => {
       if (d.meta?.source === "solicitacao") {
@@ -458,6 +480,16 @@ export default function DpMeuDocumentos() {
                             className="min-h-9 flex-1 sm:flex-none"
                           >
                             <PenLine className="h-4 w-4 mr-1" /> Aprovar documento
+                          </Button>
+                        )}
+                        {d.aceite === true && d.aceiteInfo && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => certificado(d)}
+                            className="min-h-9 flex-1 sm:flex-none"
+                          >
+                            <Printer className="h-4 w-4 mr-1" /> Certificado
                           </Button>
                         )}
                         {d.origem === "meu_envio" && d.status_key === "pendente" && (
