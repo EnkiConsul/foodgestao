@@ -134,6 +134,7 @@ const AdminPluggyStatus = lazyWithRetry(() => import("./pages/admin/PluggyStatus
 const AdminPerfisAcesso = lazyWithRetry(() => import("./pages/admin/PerfisAcesso"));
 const AdminDonosEmpresas = lazyWithRetry(() => import("./pages/admin/DonosEmpresas"));
 const AdminAuditoria = lazyWithRetry(() => import("./pages/admin/Auditoria"));
+const AdminErros = lazyWithRetry(() => import("./pages/admin/Erros"));
 const AdminConectados = lazyWithRetry(() => import("./pages/admin/Conectados"));
 const AdminResetarDados = lazyWithRetry(() => import("./pages/admin/ResetarDados"));
 const AdminCadastros = lazyWithRetry(() => import("./pages/admin/Cadastros"));
@@ -496,6 +497,7 @@ const AppRoutes = () => (
         <Route path="/admin/perfis-acesso" element={<AdminPerfisAcesso />} />
         <Route path="/admin/donos" element={<AdminDonosEmpresas />} />
         <Route path="/admin/auditoria" element={<AdminAuditoria />} />
+        <Route path="/admin/erros" element={<AdminErros />} />
         <Route path="/admin/conectados" element={<AdminConectados />} />
         <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
         <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />

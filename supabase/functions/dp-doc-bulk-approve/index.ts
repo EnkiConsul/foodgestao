@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
     const { data: items, error: iErr } = await userClient
       .from("dp_bulk_import_items")
-      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name, source_file_path, deteccao_automatica, exigir_aceite, unidade_id)")
+      .select("*, dp_bulk_import_batches!inner(id, company_id, tipo, referencia_data, source_file_name, source_file_path, deteccao_automatica, exigir_aceite, unidade_id, rescisao_grupo_id)")
       .in("id", parsed.data.item_ids);
     if (iErr) {
       console.error("[dp-doc-bulk-approve]", iErr.message);
@@ -193,6 +193,7 @@ Deno.serve(async (req) => {
           aprovacao_status: "aprovado",
           revisado_em: nowIso,
           revisado_por: uid,
+           rescisao_grupo_id: batch.rescisao_grupo_id ?? null,
         }).select("id").single();
         if (dErr) throw new Error(dErr.message);
 

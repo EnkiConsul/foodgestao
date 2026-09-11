@@ -65,6 +65,7 @@ type UnifiedDoc = {
   aceite: boolean | null;
   /** Validação digital dispensada porque o documento já veio assinado. */
   aceiteDispensado?: boolean;
+  rescisao_grupo_id?: string | null;
 };
 
 const TIPO_OPTIONS = [
@@ -312,7 +313,7 @@ export default function DpHistoricoCompleto() {
       const [docsRes, solRes, discRes, aceitesRes] = await Promise.all([
         supabase
           .from("dp_documentos")
-          .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada")
+          .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id")
           .eq("company_id", cId),
         supabase
           .from("dp_solicitacoes")
@@ -357,6 +358,7 @@ export default function DpHistoricoCompleto() {
           titulo: d.titulo,
           aceite: d.exige_aceite ? aceitos.has(d.id) : null,
           aceiteDispensado: !d.exige_aceite && d.assinatura_detectada === true,
+           rescisao_grupo_id: d.rescisao_grupo_id ?? null,
         });
       });
 
@@ -454,7 +456,9 @@ export default function DpHistoricoCompleto() {
           {/* A contabilidade manda vários papéis na saída: eles aparecem
               reunidos como um único conjunto da rescisão. */}
           {docTipoGrupo(r.tipo_key) === "desligamento" && (
-            <span className="text-[10px] text-muted-foreground">Documentos da Rescisão</span>
+            <span className="text-[10px] text-muted-foreground">
+              {r.rescisao_grupo_id ? "Documentos da Rescisão · conjunto" : "Documentos da Rescisão"}
+            </span>
           )}
         </div>
       ),
