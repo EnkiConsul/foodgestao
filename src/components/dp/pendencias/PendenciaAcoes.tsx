@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
 import { useDpIntermitenteConfirmacoes } from "@/hooks/useDpIntermitenteConfirmacoes";
 import type { Pendencia } from "@/hooks/useDpPendencias";
+import { DpLicencaRetornoDialog } from "@/components/dp/licencas/DpLicencaRetornoDialog";
 import { addDays, format } from "date-fns";
 
 const ADIAR_PRESETS = [7, 15, 30];
@@ -39,9 +40,12 @@ export function PendenciaAcoes({
   const [ignorarAberto, setIgnorarAberto] = useState(false);
   const [justificativa, setJustificativa] = useState("");
   const [adiarAberto, setAdiarAberto] = useState(false);
+  const [retornoAberto, setRetornoAberto] = useState(false);
 
   const decisao = decisaoDe.get(p.id);
   const intermitente = p.tipo === "Intermitente" && !!p.colaboradorId && !!p.competencia;
+  const licencaRetorno = p.tipo === "Licença" && !!p.licenca;
+
 
   const adiar = (dias: number) => {
     setAdiarAberto(false);
@@ -105,6 +109,10 @@ export function PendenciaAcoes({
             <X className="h-3 w-3 mr-1" /> Não trabalhou
           </Button>
         </>
+      ) : licencaRetorno ? (
+        <Button size="sm" className="h-9 sm:h-7 text-xs" onClick={() => setRetornoAberto(true)}>
+          <Check className="h-3 w-3 mr-1" /> Registrar retorno
+        </Button>
       ) : (
         <Button asChild size="sm" className="h-9 sm:h-7 text-xs">
           <Link to={p.url} onClick={onNavigate}>
@@ -112,6 +120,7 @@ export function PendenciaAcoes({
           </Link>
         </Button>
       )}
+
 
       {decisao ? (
         <Button
@@ -197,6 +206,16 @@ export function PendenciaAcoes({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {licencaRetorno && (
+        <DpLicencaRetornoDialog
+          alvo={{ ...p.licenca!, colaboradorNome: p.colaboradorNome ?? null }}
+          open={retornoAberto}
+          onOpenChange={setRetornoAberto}
+          onResolved={onResolved}
+        />
+      )}
     </div>
+
   );
 }

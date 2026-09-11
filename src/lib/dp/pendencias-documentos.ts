@@ -165,7 +165,13 @@ export type ElegibilidadeOpts = {
   /** Intermitente sem nenhum registro de trabalho na competência
    * (ponto, convocação aceita ou escala publicada). */
   intermitenteSemRegistros?: boolean;
+  /**
+   * Afastado (licença/atestado) em todos os dias trabalháveis da competência:
+   * não há ponto a bater, então a folha de ponto não é exigida.
+   */
+  afastadoMesInteiro?: boolean;
 };
+
 
 /** Intermitente sem evidência de trabalho e sem confirmação do gestor. */
 export function intermitenteIncertoNaCompetencia(
@@ -226,5 +232,8 @@ export function elegivelDocumento(
     return true;
   }
   if (intermitenteIncerto) return false;
+  // Mês 100% coberto por licença/afastamento: sem marcações a apresentar.
+  if (opts.afastadoMesInteiro === true) return false;
   return opts.unidadeTemRelogio === true && c.possui_folha_ponto !== false;
 }
+

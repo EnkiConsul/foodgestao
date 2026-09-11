@@ -17,6 +17,7 @@ import {
   filtrarAbertas,
   urgenciaDe,
   type GrupoPendencias,
+  type PendenciaUrgencia,
 } from "@/lib/dp/pendencias";
 import { toast } from "sonner";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -40,13 +41,18 @@ function podeConfirmarNovoQuadro(
   anterior: StablePendenciasState,
   companyId: string | null,
   lastCalculatedAt: string | null,
+  temDados = false,
 ): boolean {
   if (!companyId || anterior.companyId !== companyId || !anterior.ready) return true;
 
-  // Um retrato persistido só deve ser substituído quando o backend confirmar
-  // uma apuração mais recente. O término da consulta, sozinho, pode representar
-  // apenas uma resposta intermediária vazia durante a atualização diária.
+  // Uma resposta com pendências é sempre um quadro válido: reflete ações
+  // recentes do gestor (ex.: licença registrada agora) mesmo sem nova apuração
+  // diária. O que não pode substituir o retrato anterior é a resposta vazia
+  // intermediária durante a atualização.
+  if (temDados) return true;
+
   const anteriorEm = instanteDaApuracao(anterior.lastCalculatedAt);
+
   const novoEm = instanteDaApuracao(lastCalculatedAt);
   if (anteriorEm > 0) return novoEm > anteriorEm;
   return novoEm > 0;
@@ -94,7 +100,8 @@ export function useStablePendencias({
         ? { companyId, ...snapshotDaEmpresa, ready: true }
         : confirmed;
 
-    if (snapshotDaEmpresa && !podeConfirmarNovoQuadro(baseAtual, companyId, lastCalculatedAt)) return;
+    const temDados = data.length > 0;
+    if (snapshotDaEmpresa && !podeConfirmarNovoQuadro(baseAtual, companyId, lastCalculatedAt, temDados)) return;
 
     salvarPendenciasSnapshot(companyId, { data, dataUpdatedAt, lastCalculatedAt });
     setConfirmed((anterior) => {
@@ -104,9 +111,10 @@ export function useStablePendencias({
           ? { companyId, ...snapshotDaEmpresa, ready: true }
           : anterior;
 
-      if (!podeConfirmarNovoQuadro(base, companyId, lastCalculatedAt)) {
+      if (!podeConfirmarNovoQuadro(base, companyId, lastCalculatedAt, temDados)) {
         return base;
       }
+
 
       // Evita atualizações redundantes quando a fonte reemite o mesmo quadro.
       if (
@@ -160,8 +168,9 @@ export function PendenciasCard() {
   const { prefs } = useDpUserPrefs();
   const { ignoradas, adiadas } = useDpPendenciasDecisoes();
   const [grupoAbertoTipo, setGrupoAbertoTipo] = useState<string | null>(null);
+  const [urgenciaFiltro, setUrgenciaFiltro] = useState<PendenciaUrgencia | null>(null);
 
-  const abertas = useMemo(
+  const todasAbertas = useMemo(
     () =>
       filtrarAbertas(
         stable.data.filter((p) => !ignoradas.has(p.id)),
@@ -170,12 +179,9 @@ export function PendenciasCard() {
     [stable.data, prefs.pendencias_adiadas, ignoradas, adiadas],
   );
 
-  const grupos = useMemo(() => agruparPorTipo(abertas), [abertas]);
-  const grupoAberto = grupos.find((grupo) => grupo.tipo === grupoAbertoTipo) ?? null;
-
   const counters = useMemo(() => {
     let atrasado = 0, urgente = 0, hoje = 0, proximo = 0;
-    for (const p of abertas) {
+    for (const p of todasAbertas) {
       const u = urgenciaDe(p);
       if (u === "atrasada") atrasado++;
       else if (u === "urgente") urgente++;
@@ -183,7 +189,22 @@ export function PendenciasCard() {
       else proximo++;
     }
     return { atrasado, urgente, hoje, proximo };
-  }, [abertas]);
+  }, [todasAbertas]);
+
+  // Filtro por urgência escolhido nos selos: vale para a lista e para o detalhe.
+  const abertas = useMemo(
+    () => (urgenciaFiltro ? todasAbertas.filter((p) => urgenciaDe(p) === urgenciaFiltro) : todasAbertas),
+    [todasAbertas, urgenciaFiltro],
+  );
+
+  const grupos = useMemo(() => agruparPorTipo(abertas), [abertas]);
+  const grupoAberto = grupos.find((grupo) => grupo.tipo === grupoAbertoTipo) ?? null;
+
+  const alternarUrgencia = (u: PendenciaUrgencia) => {
+    setGrupoAbertoTipo(null);
+    setUrgenciaFiltro((atual) => (atual === u ? null : u));
+  };
+
 
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-5">
@@ -241,11 +262,49 @@ export function PendenciasCard() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-2">
-        <UrgencyChip icon={AlarmClockOff} label="Atrasado" count={counters.atrasado} tone="destructive" />
-        <UrgencyChip icon={AlarmClockOff} label="Urgente" count={counters.urgente} tone="destructive" />
-        <UrgencyChip icon={Clock3} label="Hoje" count={counters.hoje} tone="warning" />
-        <UrgencyChip icon={CalendarClock} label="Próximo" count={counters.proximo} tone="info" />
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <UrgencyChip
+          icon={AlarmClockOff}
+          label="Atrasado"
+          count={counters.atrasado}
+          tone="destructive"
+          active={urgenciaFiltro === "atrasada"}
+          onClick={() => alternarUrgencia("atrasada")}
+        />
+        <UrgencyChip
+          icon={AlarmClockOff}
+          label="Urgente"
+          count={counters.urgente}
+          tone="destructive"
+          active={urgenciaFiltro === "urgente"}
+          onClick={() => alternarUrgencia("urgente")}
+        />
+        <UrgencyChip
+          icon={Clock3}
+          label="Hoje"
+          count={counters.hoje}
+          tone="warning"
+          active={urgenciaFiltro === "hoje"}
+          onClick={() => alternarUrgencia("hoje")}
+        />
+        <UrgencyChip
+          icon={CalendarClock}
+          label="Próximo"
+          count={counters.proximo}
+          tone="info"
+          active={urgenciaFiltro === "proxima"}
+          onClick={() => alternarUrgencia("proxima")}
+        />
+        {urgenciaFiltro && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-[11px] text-muted-foreground"
+            onClick={() => setUrgenciaFiltro(null)}
+          >
+            Todas
+          </Button>
+        )}
       </div>
 
       <p className="mb-3 text-[11px] text-muted-foreground">
@@ -258,8 +317,13 @@ export function PendenciasCard() {
       <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
         {!stable.ready && <p className="text-sm text-muted-foreground">Carregando…</p>}
         {stable.ready && abertas.length === 0 && (
-          <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma pendência aberta no momento. 🎉</p>
+          <p className="text-sm text-muted-foreground py-8 text-center">
+            {urgenciaFiltro
+              ? "Nenhuma pendência nesta classificação."
+              : "Nenhuma pendência aberta no momento. 🎉"}
+          </p>
         )}
+
         {grupos.map((g) => (
           <button
             key={g.tipo}
@@ -404,19 +468,36 @@ export function UrgenciaBadge({
 }
 
 function UrgencyChip({
-  icon: Icon, label, count, tone,
-}: { icon: any; label: string; count: number; tone: "destructive" | "warning" | "info" }) {
+  icon: Icon, label, count, tone, active, onClick,
+}: {
+  icon: any;
+  label: string;
+  count: number;
+  tone: "destructive" | "warning" | "info";
+  active?: boolean;
+  onClick?: () => void;
+}) {
   const cls =
     tone === "destructive" ? "bg-destructive/10 text-destructive border-destructive/30"
     : tone === "warning" ? "bg-warning/10 text-warning border-warning/30"
     : "bg-blue-50 text-blue-900 border-blue-200";
+  // No celular, só faz sentido mostrar classificações que têm pendências.
+  const visibilidade = count > 0 ? "inline-flex" : "hidden sm:inline-flex";
+  const destaque = active ? "ring-2 ring-offset-1 ring-current" : "";
   return (
-    <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${cls}`}>
+    <button
+      type="button"
+      disabled={count === 0}
+      aria-pressed={!!active}
+      onClick={onClick}
+      className={`${visibilidade} items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-shadow disabled:cursor-default ${cls} ${destaque}`}
+    >
       <Icon className="h-3 w-3" />
       {label}: {count}
-    </div>
+    </button>
   );
 }
+
 
 
 const PRESETS = [1, 3, 7, 15, 30];

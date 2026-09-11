@@ -94,3 +94,38 @@ export function situacaoRetorno(
   if (restantes <= LEMBRETE_RETORNO_DIAS) return "lembrete";
   return "ok";
 }
+
+/**
+ * A licença cobre TODOS os dias da competência em que a pessoa poderia
+ * trabalhar? Quando sim, não há ponto a bater no mês e a folha de ponto deixa
+ * de ser exigida daquela pessoa naquela competência.
+ *
+ * A janela considerada é a interseção da competência com o vínculo
+ * (admissão/desligamento), para não cobrar dias anteriores à admissão.
+ */
+export function afastamentoCobreCompetencia(args: {
+  competencia: string; // "YYYY-MM"
+  afastamentoInicio: string;
+  afastamentoFim: string | null;
+  admissao?: string | null;
+  desligamento?: string | null;
+}): boolean {
+  const comp = String(args.competencia ?? "").slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(comp)) return false;
+  const inicioLic = String(args.afastamentoInicio ?? "").slice(0, 10);
+  if (!inicioLic) return false;
+  const fimLic = String(args.afastamentoFim ?? inicioLic).slice(0, 10);
+
+  const ano = Number(comp.slice(0, 4));
+  const mes = Number(comp.slice(5, 7));
+  const primeiro = `${comp}-01`;
+  const ultimo = `${comp}-${String(new Date(ano, mes, 0).getDate()).padStart(2, "0")}`;
+
+  const admissao = String(args.admissao ?? "").slice(0, 10);
+  const desligamento = String(args.desligamento ?? "").slice(0, 10);
+  const inicioJanela = admissao && admissao > primeiro ? admissao : primeiro;
+  const fimJanela = desligamento && desligamento < ultimo ? desligamento : ultimo;
+  if (inicioJanela > fimJanela) return false;
+
+  return inicioLic <= inicioJanela && fimLic >= fimJanela;
+}
