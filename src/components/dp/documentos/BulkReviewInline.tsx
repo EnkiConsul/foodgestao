@@ -309,7 +309,11 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
         }
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
+      qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+    },
   });
 
   const setCompetencia = useMutation({
