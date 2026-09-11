@@ -188,6 +188,14 @@ export function alertaPendenciaFerias(args: {
       detalhePrazo: `prazo legal vencido há ${Math.abs(diasRestantes)} dia(s)`,
     };
   }
+  if (nivel === "marcacao_atrasada") {
+    const saldo = args.diasSaldo ?? 0;
+    return {
+      nivel,
+      titulo: "Férias — marcação atrasada",
+      detalhePrazo: `faltam ${diasRestantes} dia(s) para o prazo legal e ainda há ${saldo} dia(s) a gozar`,
+    };
+  }
   if (nivel === "atencao") {
     return {
       nivel,
