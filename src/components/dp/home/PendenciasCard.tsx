@@ -17,6 +17,7 @@ import {
   filtrarAbertas,
   urgenciaDe,
   type GrupoPendencias,
+  type PendenciaUrgencia,
 } from "@/lib/dp/pendencias";
 import { toast } from "sonner";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
