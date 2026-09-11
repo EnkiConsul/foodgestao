@@ -46,6 +46,7 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
     );
     const dias = (p: FeriasPeriodo) => differenceInCalendarDays(parseISO(p.limite_concessivo), hoje);
 
+    const idsAcumulo = periodosComAcumulo(periodos as any[]);
     const nivelDe = (p: FeriasPeriodo) =>
       nivelVencimentoPeriodo({
         fimAquisitivo: p.fim_aquisitivo,
@@ -54,6 +55,7 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
         hojeISO,
         politica,
         socio: p.socio,
+        acumulo: idsAcumulo.has(p.id),
       });
 
     const riscos = riscoAcumuloPorColaborador(periodos as any[], hojeISO);
