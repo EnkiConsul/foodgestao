@@ -26,6 +26,7 @@ import {
   NIVEL_VENCIMENTO_META,
   RISCO_DOBRA_META,
   nivelVencimentoPeriodo,
+  periodosComAcumulo,
   riscoAcumuloPorColaborador,
 } from "@/lib/dp/ferias-direito";
 
@@ -81,6 +82,7 @@ export default function DpFerias() {
     () => riscoAcumuloPorColaborador(periodos as any[], hojeISOFiltro),
     [periodos, hojeISOFiltro],
   );
+  const idsAcumulo = useMemo(() => periodosComAcumulo(periodos as any[]), [periodos]);
   const soRisco = params.get("risco") === "1";
 
   const periodosFiltrados = useMemo(() => {
