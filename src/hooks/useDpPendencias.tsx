@@ -783,6 +783,9 @@ export function useDpPendencias() {
             colaboradorNome: p.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
+            // Ainda dentro do prazo legal, mas já em risco de pagar em dobro:
+            // precisa aparecer no topo, junto do que está atrasado.
+            urgente: alerta.nivel === "atencao",
             url: `/dp/ferias?colaborador=${p.colaborador_id}`,
           });
         });
