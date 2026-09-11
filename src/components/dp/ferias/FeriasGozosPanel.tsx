@@ -77,7 +77,8 @@ export function FeriasGozosPanel({ status, vazio }: Props) {
               const podeCancelar = g.status === "aprovado" || g.status === "em_gozo";
               const socio = !!periodo?.socio;
               return (
-                <div key={g.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div key={g.id} className="p-4">
+                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{nome}</p>
                     <p className="text-sm text-muted-foreground">
