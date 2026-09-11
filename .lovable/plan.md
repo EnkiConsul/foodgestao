@@ -1,30 +1,27 @@
-# Pendências: custo de recalcular a cada acesso + seta girando sem atualizar a hora
+# Pendências: apuração diária em fila + seta girando sem atualizar a hora
 
-## 1. Impacto de recalcular a cada acesso (1.000 empresas)
+## 1. Apuração continua 1x por dia, empresa por empresa
 
-Hoje o funcionamento é: a apuração roda uma vez por dia (03:00 de São Paulo), mais quando alguma ação do gestor marca o resultado como desatualizado, mais o botão manual. Ao abrir a tela, o sistema só lê o resultado já pronto.
+Decisão: manter a apuração automática apenas no horário fixo diário (03:00 de São Paulo). Nada de recalcular a cada acesso — com 1.000 empresas, isso sairia de ~1.000 apurações por dia para dezenas de milhares, com pico logo na abertura do painel de manhã e tela lenta sem nenhum ganho, já que quase sempre o resultado é o mesmo.
 
-Se voltar a recalcular a cada acesso:
+Ao abrir a tela continua valendo o que já existe hoje: leitura do resultado pronto e recálculo só se alguma ação tiver marcado a empresa como desatualizada, ou pelo botão manual.
 
-- Cada abertura de tela dispara a apuração completa da empresa (colaboradores, documentos, competências, férias, benefícios). Hoje isso é 1 vez por dia por empresa; com recálculo por acesso, uma empresa com 5 gestores abrindo o painel 6 vezes ao dia passa a ~30 apurações/dia.
-- Com 1.000 empresas nesse ritmo, sai de ~1.000 apurações/dia para ~30.000/dia, com picos concentrados no início da manhã (todos abrindo o painel ao mesmo tempo). É aí que aparece lentidão: a tela demora para montar e o banco fica ocupado com trabalho repetido que devolve exatamente o mesmo resultado.
-- O resultado, na prática, é idêntico ao atual na maior parte dos acessos, porque nada mudou desde a última apuração.
-
-Recomendação: manter o modelo atual (diário + ações + botão manual) e acrescentar apenas uma rede de segurança leve: ao abrir a tela, recalcular somente se o resultado estiver marcado como desatualizado (já funciona) **ou** se a última apuração tiver mais de 6 horas. Isso dá frescor sem multiplicar o custo por acesso.
+Mudança de robustez: a rotina diária passa a processar as empresas **uma por vez, em fila**, em vez de tudo no mesmo instante. Assim, com 1.000 empresas, o banco trabalha de forma constante e leve, sem pico. Se uma empresa falhar, ela é anotada e a fila continua nas seguintes.
 
 ## 2. Seta girando sem mudar o horário
 
-Causa: a seta gira sempre que a tela está buscando dados, inclusive quando ela apenas relê o resultado já apurado (nesse caso o horário "Atualizado" não muda, porque nenhuma apuração nova rodou). E quando a apuração roda e não encontra diferença, o horário também não avança.
+Causa: a seta gira sempre que a tela está buscando dados, inclusive quando ela apenas relê o resultado já apurado — e nesse caso o horário "Atualizado" não muda, porque nenhuma apuração nova rodou. Quando a apuração roda e não encontra diferença, o horário também não avança.
 
 Correções:
 
-- A seta só gira quando uma apuração de verdade está em andamento (botão manual, ou recálculo automático por estar desatualizado/vencido). Leitura simples do resultado não gira mais nada.
-- Sempre que a apuração roda até o fim, o horário da última atualização passa a ser registrado, mesmo que o conteúdo não tenha mudado. Assim, se a seta girou, a hora muda.
+- A seta só gira quando uma apuração de verdade está em andamento (botão manual ou recálculo por estar desatualizado). Leitura simples do resultado não gira mais nada.
+- Sempre que a apuração roda até o fim, o horário da última atualização passa a ser registrado, mesmo sem mudança no conteúdo. Se a seta girou, a hora muda.
 - "Carregando…" continua apenas no primeiro acesso, sem apagar a lista existente.
 
 ## Detalhes técnicos
 
-- `src/hooks/useDpPendencias.tsx`: expor um estado próprio de apuração (`isRefreshing`) separado do `isFetching` do React Query; disparar `dp-refresh-pendencias` quando `sujo_desde > apurado_em` **ou** `apurado_em` mais antigo que 6h; após a chamada, reler `dp_pendencias_apuracoes` e propagar o novo `apurado_em`.
-- `dp-refresh-pendencias` / `private.dp_refresh_document_pending`: gravar `apurado_em = now()` ao concluir, inclusive sem alterações no conjunto de pendências.
-- `src/components/dp/home/PendenciasCard.tsx`: `RefreshCw` com `animate-spin` e `disabled` ligados a `isRefreshing`, não a `isFetching`; manter `useStablePendencias` como está.
-- Testes: atualizar `PendenciasCard.test.tsx` para cobrir "relendo sem apurar → sem giro" e "apurando → gira e horário avança".
+- `dp-refresh-pendencias`: no modo diário (sem `companyId`), iterar as empresas sequencialmente com um pequeno intervalo entre elas, capturando erro por empresa e seguindo a fila; manter o cron atual `0 6 * * *` UTC.
+- `private.dp_refresh_document_pending` / `dp_pendencias_apuracoes`: gravar `apurado_em = now()` ao concluir, inclusive quando o conjunto de pendências não mudou.
+- `src/hooks/useDpPendencias.tsx`: expor `isRefreshing` próprio (apuração em curso) separado do `isFetching` do React Query; após invocar a função, reler `apurado_em` e propagar. Nenhuma nova condição de recálculo por tempo.
+- `src/components/dp/home/PendenciasCard.tsx`: `RefreshCw` com `animate-spin`/`disabled` ligados a `isRefreshing`, não a `isFetching`; `useStablePendencias` permanece como está.
+- Testes: `PendenciasCard.test.tsx` cobrindo "relendo sem apurar → sem giro" e "apurando → gira e horário avança".
