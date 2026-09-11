@@ -40,6 +40,7 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
       (p) =>
         !p.controle_externo &&
         !p.socio &&
+        !p.desligado &&
         (p.dias_saldo ?? 0) > 0 &&
         p.status !== "em_aquisicao" &&
         p.status !== "concluido",
