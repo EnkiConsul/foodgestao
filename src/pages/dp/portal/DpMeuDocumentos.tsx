@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Download, FileText, Eye, DownloadCloud, Upload, Ban,
-  CheckCircle2, Clock, XCircle, HeartPulse, ShieldAlert, Scale, Coins, FileClock, Files, PenLine,
+  CheckCircle2, Clock, XCircle, HeartPulse, ShieldAlert, Scale, Coins, FileClock, Files, PenLine, Printer,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
