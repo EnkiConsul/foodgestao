@@ -356,7 +356,7 @@ export function useDpPendencias() {
             tipo === "adiantamento"
               ? optanteNaCompetencia(solicitacoesPorColab.get(c.id), comp, c.optante_adiantamento)
               : undefined,
-          intermitenteSemRegistros: !pontoIntermitente.has(`${c.id}:${comp}`),
+           intermitenteSemRegistros: !intermitenteTemEvidencia(c.id, comp),
           intermitenteTrabalho: confirmacaoIntermitente.get(`${c.id}:${comp}`) ?? null,
         });
 
@@ -377,6 +377,14 @@ export function useDpPendencias() {
           completo: elegiveis.length > 1 && faltantes.length === elegiveis.length,
         };
       };
+
+      // A folha de ponto importada para o colaborador na competência também é
+      // evidência suficiente de trabalho do intermitente, mesmo sem marcações
+      // individuais em dp_pontos.
+      const folhasPontoImportadas = await carregarTipo("ponto", rangeInicio, rangeFim);
+      const intermitenteTemEvidencia = (colaboradorId: string, competencia: string) =>
+        pontoIntermitente.has(`${colaboradorId}:${competencia}`) ||
+        folhasPontoImportadas.has(`${colaboradorId}:${competencia}`);
 
       // Competências esperadas por unidade (a partir de 1 mês antes do cadastro)
       const compsPorUnidade = new Map<string, { ateAnterior: string[]; ateVigente: string[] }>();
@@ -511,7 +519,7 @@ export function useDpPendencias() {
           for (const c of colabsPorUnidade.get(u.id) ?? []) {
             if (String(c.regime ?? "").toLowerCase() !== "intermitente") continue;
             if (!ativoNaCompetencia(c as any, comp)) continue;
-            if (pontoIntermitente.has(`${c.id}:${comp}`)) continue; // há evidência
+             if (intermitenteTemEvidencia(c.id, comp)) continue; // há evidência
             if (confirmacaoIntermitente.has(`${c.id}:${comp}`)) continue; // já respondido
             const cobraria =
               elegibilidadeDe("contracheque", { ...c, regime: "clt" }, u, comp) ||
