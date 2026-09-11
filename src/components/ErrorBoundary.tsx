@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger, toErrorMessage } from "@/lib/logger";
 import { isStaleBundleError, recoverFromStaleBundle } from "@/lib/staleBundle";
+import { reportError } from "@/lib/errorLog";
 
 
 interface ErrorBoundaryProps {
