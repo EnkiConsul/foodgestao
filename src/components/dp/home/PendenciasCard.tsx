@@ -94,7 +94,7 @@ export function useStablePendencias({
         ? { companyId, ...snapshotDaEmpresa, ready: true }
         : confirmed;
 
-    if (!podeConfirmarNovoQuadro(baseAtual, companyId, lastCalculatedAt)) return;
+    if (snapshotDaEmpresa && !podeConfirmarNovoQuadro(baseAtual, companyId, lastCalculatedAt)) return;
 
     salvarPendenciasSnapshot(companyId, { data, dataUpdatedAt, lastCalculatedAt });
     setConfirmed((anterior) => {
