@@ -13,6 +13,13 @@
 - Na ciência, o colaborador vê essa informação e o registro guarda que ele deu ciência a um aviso fora do prazo.
 - O card do gestor mostra o selo **"Aviso fora do prazo"** com a justificativa.
 
+### 2b. Aviso retroativo (comunicação feita fora do sistema)
+- O gestor pode informar uma **data de aviso retroativa** (anterior a hoje), inclusive para férias já iniciadas ou concluídas, apenas para reconstruir o histórico.
+- Ao escolher data retroativa, ele marca uma declaração de ciência: "confirmo que a comunicação foi feita formalmente por outro meio na data informada".
+- Nesse caso o **anexo do aviso passa a ser obrigatório** (comprovante da comunicação); sem o arquivo o registro não é salvo.
+- Se a data informada respeitar os 30 dias, o aviso conta como dentro do prazo; se não, continua exigindo justificativa e recebe o selo "Aviso fora do prazo".
+- O card mostra **"Aviso registrado retroativamente"** com a data declarada, quem declarou e o comprovante anexado.
+
 ### 3. Anexos no mesmo card das férias
 No card de cada férias (Programadas / Em férias / Histórico e também em Minhas Férias):
 - **Aviso de férias** — anexo opcional (o documento assinado, quando houver).
@@ -31,7 +38,8 @@ No card de cada férias (Programadas / Em férias / Histórico e também em Minh
 ## Detalhes técnicos
 
 **Banco**
-- `dp_ferias_gozos`: usar `aviso_em` como data de envio do aviso; novas colunas `aviso_enviado_em timestamptz`, `aviso_fora_prazo boolean default false`, `ciente_fora_prazo boolean default false`; `aviso_justificativa` passa a guardar a justificativa do atraso.
+- `dp_ferias_gozos`: usar `aviso_em` como data de envio do aviso; novas colunas `aviso_enviado_em timestamptz`, `aviso_fora_prazo boolean default false`, `ciente_fora_prazo boolean default false`, `aviso_retroativo boolean default false`, `aviso_retroativo_declarado_por uuid`, `aviso_retroativo_declarado_em timestamptz`; `aviso_justificativa` passa a guardar a justificativa do atraso.
+- RPC `dp_ferias_registrar_aviso(_gozo_id, _aviso_em, _retroativo, _justificativa, _documento_id)`: quando `_aviso_em < current_date`, exige `_retroativo = true` e `_documento_id` de um `dp_documentos` do tipo `aviso_ferias` ligado ao gozo; `aviso_fora_prazo` calculado sobre `_aviso_em`.
 - `dp_documentos`: nova coluna `ferias_gozo_id uuid references public.dp_ferias_gozos(id) on delete set null` + índice, para amarrar aviso/recibo ao gozo (tipos `aviso_ferias` e `recibo_ferias` já existem no enum).
 - `dp_ferias_programar` / `dp_ferias_aprovar`: calcular `aviso_fora_prazo = (data_inicio - current_date) < 30`; exigir justificativa quando fora do prazo; criar notificação `ferias_aviso` (chave `ferias_aviso:<gozo_id>`) com texto de prazo/atraso, além da notificação atual.
 - `dp_ferias_registrar_ciencia`: gravar `ciente_em`, `ciente_por` e `ciente_fora_prazo` a partir do gozo.
