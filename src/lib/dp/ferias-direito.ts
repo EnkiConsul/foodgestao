@@ -167,9 +167,12 @@ export function alertaPendenciaFerias(args: {
   diasSaldo: number | null | undefined;
   hojeISO: string;
   politica?: FeriasSinalizacaoCiclo;
+  /** Segundo período aquisitivo em curso sem o primeiro ter sido gozado. */
+  acumulo?: boolean | null;
 }): AlertaPendenciaFerias {
   const nivel = nivelVencimentoPeriodo(args);
   const diasRestantes = diffDias(args.limiteConcessivo, args.hojeISO);
+  const acumulo = args.acumulo === true;
 
   if (nivel === "vencido") {
     return {
