@@ -1245,7 +1245,16 @@ export function useDpPendencias() {
     },
   });
 
-  return { ...query, lastCalculatedAt: apuracao.data ?? null };
+  const refetch = async () => {
+    if (selectedCompanyId) {
+      await supabase.functions.invoke("dp-refresh-pendencias", {
+        body: { companyId: selectedCompanyId },
+      });
+    }
+    return query.refetch();
+  };
+
+  return { ...query, refetch, lastCalculatedAt: apuracao.data ?? null };
 }
 
 /** Alias explícito: escopo administrativo (empresa inteira). */
