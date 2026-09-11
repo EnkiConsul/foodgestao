@@ -1,26 +1,67 @@
-# Telefone obrigatório no cadastro
+# Reorganização do cabeçalho do card "Pendências do Sistema" no mobile
 
-Hoje o telefone é opcional: não é pedido na criação da conta e pode ficar vazio no perfil. Passa a ser obrigatório.
+## Objetivo
+Reduzir a altura do cabeçalho do card de pendências na versão mobile (screenshot: 407 px), mantendo todas as ações e informações atuais. Hoje o cabeçalho ocupa 4 linhas visuais; o ajuste deve deixá-lo com 3 linhas no mínimo, sem perder funcionalidade.
 
-## O que muda
+## Estado atual
 
-1. **Criação de conta**: novo campo "Telefone (WhatsApp)" logo abaixo do nome, com máscara brasileira `(00) 00000-0000`. Sem telefone válido a conta não é criada; a mensagem de erro aparece embaixo do campo.
-2. **Perfil / Configurações**: o telefone passa a ser obrigatório para salvar, com a mesma máscara e validação. Campo marcado como obrigatório.
-3. **Quem já tem conta sem telefone**: ao entrar, um aviso pede o telefone com um campo e o botão "Salvar". O aviso pode ser fechado para não travar o uso, mas volta a aparecer no próximo acesso enquanto o telefone estiver vazio.
+```text
+[Linha 1]  (sino) Pendências do Sistema  (badge 26)        [refresh] [settings] [Ver todas >]
+[Linha 2]  Última atualização: 11/09, 01:24
+[Linha 3]  [Atrasado: 20]  [Hoje: 0]  [Próximo: 6]
+[Linha 4]  (quebra causada pelos botões de ação, conforme screenshot)
+```
 
-Validação usada: 10 ou 11 dígitos, DDD válido, celular começando com 9 — a mesma regra já aplicada em outras telas.
+Problemas:
+- A linha do título quebra no mobile porque "Pendências do Sistema" + badge + 3 botões não cabem.
+- Os três chips de urgência são exibidos como pills soltos, o que pode quebrar em telas muito estreitas.
+- A data de última atualização ocupa uma linha própria.
 
-## Detalhes técnicos
+## Proposta
 
-- `src/pages/Auth.tsx`: `signupSchema` ganha `phone` com `refine(isValidPhone)`; estado + input com `maskPhone` (`src/lib/phone.ts`); telefone enviado em `signUp` via `options.data.phone` e gravado no perfil.
-- `src/hooks/useAuth.tsx`: `signUp` recebe `phone` e o repassa em `options.data` (o trigger de criação de perfil já lê `raw_user_meta_data`; se não copiar `phone`, gravar via update do perfil após o primeiro login — verificar `handle_new_user` antes de escolher).
-- `src/pages/Configuracoes.tsx`: validação com `isValidPhone` antes do update, `maskPhone` no `onChange`, label com asterisco e erro inline; bloqueia o `mutate` quando inválido.
-- `src/lib/validations.ts`: novo `profileSchema` (nome + telefone obrigatório) usado por Configurações, via `validateWithToast`.
-- Aviso para contas antigas: componente `src/components/profile/PhoneRequiredBanner.tsx` renderizado no layout principal, exibido quando `profiles.phone` está vazio; grava direto em `profiles` e invalida a query do perfil. Sem novas tabelas nem migração.
-- Empresas, contatos e colaboradores permanecem como estão (fora do escopo).
+### Layout mobile alvo (3 linhas)
 
-## Validação
+```text
+[Linha 1]  (sino) Pendências do Sistema (badge)  [↻] [⚙] [Ver >]
+[Linha 2]  [Atrasado 20 | Hoje 0 | Próximo 6]
+[Linha 3]  Atualizado 11/09, 01:24
+```
 
-- Criar uma conta sem telefone e confirmar o bloqueio; criar com telefone e conferir o valor no perfil e na tela "Últimos Acessos".
-- Tentar salvar Configurações apagando o telefone e confirmar o erro.
-- Entrar com um usuário sem telefone e confirmar que o aviso aparece e que salvar resolve.
+Para telas muito estreitas, a linha 1 continua em uma única linha porque o título trunca, as ações ficam em ícones compactos e "Ver todas" vira "Ver".
+
+### Mudanças no componente
+
+1. **Linha do título (mobile)**
+   - Aplicar `flex-nowrap` com `truncate` no título, garantindo que não haja quebra.
+   - Manter o badge ao lado do título.
+   - Reduzir "Ver todas" para "Ver" no mobile (`sm:hidden`), mantendo o texto completo em telas maiores.
+   - Manter refresh e settings como ícones (`size="icon"`).
+
+2. **Chips de urgência (mobile)**
+   - Transformar os três pills soltos em uma única barra segmentada (`inline-flex` com bordas arredondadas externas), ocupando uma linha só.
+   - Cada segmento exibe ícone + contador + rótulo abreviado quando necessário (`Atrasado`, `Hoje`, `Próximo`).
+   - Garantir que a barra não quebre em duas linhas; usar `shrink-0`, texto reduzido e `truncate` se precisar.
+
+3. **Data de atualização**
+   - Manter abaixo dos chips, mas com texto mais curto: "Atualizado 11/09, 01:24" (remover "Última atualização:").
+   - Reduzir tamanho da fonte (`text-[11px]`).
+
+4. **Desktop**
+   - Preservar layout atual; as mudanças aplicam-se principalmente abaixo do breakpoint `sm`.
+
+5. **Tokens de cor**
+   - Aproveitar para substituir cores hardcoded (`bg-blue-50`, `text-amber-900`, etc.) nos chips por classes semânticas do tema (`bg-info/10 text-info`, `bg-warning/10 text-warning`, `bg-destructive/10 text-destructive`), caso existam; se não existirem, manter a aparência atual para não quebrar o visual.
+
+## Escopo
+
+- Apenas o componente `src/components/dp/home/PendenciasCard.tsx`.
+- Não alterar lógica de dados, hooks, agrupamentos, ações de ignorar/adiar, nem o diálogo de detalhes.
+
+## Testes e validação
+
+1. Adicionar teste de renderização em `src/components/dp/home/PendenciasCard.test.tsx` que monte o card com dados stub e verifique:
+   - presença do título "Pendências do Sistema";
+   - presença dos três segmentos de urgência com os contadores corretos;
+   - presença do botão/link "Ver todas" (desktop) / "Ver" (mobile).
+2. Executar `bunx vitest run src/components/dp/home/PendenciasCard.test.tsx`.
+3. Validar visualmente no preview em viewport mobile (407×748 ou similar) para confirmar que o cabeçalho não ultrapassa 3 linhas.
