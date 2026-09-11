@@ -5,6 +5,66 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { resolveOnboardingStatus } from "@/lib/onboardingStatus";
 import { resolveLandingTarget, PORTAL_PATH } from "@/lib/auth/landing";
+import { Button } from "@/components/ui/button";
+import { reportError } from "@/lib/errorLog";
+
+/** Tempo máximo de espera das verificações de entrada antes de oferecer saída. */
+const GUARD_TIMEOUT_MS = 10_000;
+
+/**
+ * Tela de espera das guardas de rota.
+ *
+ * Sem limite de tempo, qualquer verificação que não responda deixa o usuário
+ * preso na bolinha girando em tela cheia. Passado o limite, registramos o erro
+ * (com a verificação pendente) e oferecemos recuperação.
+ */
+function GuardWaiting({ pending, scope }: { pending: string; scope: string }) {
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    setTimedOut(false);
+    const id = window.setTimeout(() => {
+      setTimedOut(true);
+      void reportError({
+        error: new Error(`Verificação de entrada não respondeu: ${pending}`),
+        surface: scope,
+        action: `aguardar verificação (${pending})`,
+        source: "client",
+        userMessage: "A verificação de acesso demorou demais.",
+        details: { pending, timeoutMs: GUARD_TIMEOUT_MS },
+      });
+    }, GUARD_TIMEOUT_MS);
+    return () => window.clearTimeout(id);
+  }, [pending, scope]);
+
+  if (!timedOut) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center p-6">
+      <div className="w-full max-w-sm space-y-4 text-center">
+        <h1 className="text-lg font-semibold">Não conseguimos concluir a verificação</h1>
+        <p className="text-sm text-muted-foreground">
+          A checagem do seu acesso está demorando mais que o normal. Tente novamente ou
+          volte ao início.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button className="flex-1" onClick={() => window.location.reload()}>
+            Tentar novamente
+          </Button>
+          <Button variant="outline" className="flex-1" asChild>
+            <a href="/hub">Ir para o Hub</a>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Colaborador (sem ser dono/administrador) nunca deve ver o assistente de
@@ -103,11 +163,14 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const portal = usePortalOnlyUser(user?.id, onboardingCompleted === false);
 
   if (loading || checkingOnboarding || mfaChecking || portal.checking) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
+    const pending = loading
+      ? "sessão"
+      : checkingOnboarding
+        ? "cadastro"
+        : mfaChecking
+          ? "verificação em duas etapas"
+          : "destino inicial";
+    return <GuardWaiting pending={pending} scope="Acesso à tela protegida" />;
   }
 
   if (!user) {
@@ -170,11 +233,8 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const portal = usePortalOnlyUser(user?.id, !!user && !completed);
 
   if (loading || checking || portal.checking) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
+    const pending = loading ? "sessão" : checking ? "cadastro" : "destino inicial";
+    return <GuardWaiting pending={pending} scope="Assistente de cadastro" />;
   }
   if (!user) return <Navigate to="/auth" replace />;
   if (completed) return <Navigate to="/hub" replace />;
