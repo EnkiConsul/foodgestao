@@ -870,10 +870,11 @@ export function useDpPendencias() {
         limiteRetorno.setDate(limiteRetorno.getDate() + LEMBRETE_RETORNO_DIAS);
         const { data: licencas } = await supabase
           .from("dp_solicitacoes")
-          .select("id, colaborador_id, tipo, data_alvo, data_fim, dp_colaboradores(nome, ativo)")
+          .select("id, colaborador_id, tipo, data_alvo, data_fim, retorno_confirmado_em, dp_colaboradores(nome, ativo)")
           .eq("company_id", selectedCompanyId!)
           .in("tipo", [...TIPOS_LICENCA])
           .eq("status", "aprovada")
+          .is("retorno_confirmado_em", null)
           .not("data_fim", "is", null)
           .lte("data_alvo", hojeISO)
           .lte("data_fim", ymd(limiteRetorno))
