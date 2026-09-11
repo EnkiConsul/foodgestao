@@ -9,6 +9,17 @@ As abas **Planejamento** e **Programação** viram uma só aba **Férias**, com 
 
 A escolha fica na URL (`?aba=ferias&visao=analitica|sintetica`) e é lembrada, então o usuário volta na visão que preferir. Os filtros comuns (unidade/colaborador, incluir desligados) continuam válidos nas duas visões.
 
+## Nova aba Status
+
+As abas **Solicitações**, **Programadas**, **Em férias** e **Histórico** viram sub-visões de uma única aba **Status**, escolhidas por um seletor interno:
+
+- **Solicitadas** — pedidos aguardando aprovação (com aprovar/recusar como hoje).
+- **Programadas** — férias planejadas e aprovadas.
+- **Em férias** — quem está de férias hoje.
+- **Histórico** — concluídas e canceladas.
+
+Cada sub-visão mantém exatamente o conteúdo e as ações atuais. A barra de abas de Férias fica enxuta: **Férias**, **Status**, **Calendário**, **Contabilidade**, **Regras**.
+
 ## Visão analítica: só o que há para gozar
 
 - Períodos **totalmente gozados** (sem saldo a gozar) deixam de aparecer por padrão.
@@ -35,7 +46,7 @@ Hoje o cabeçalho usa sempre o nome fantasia da empresa (que é de uma unidade) 
 
 ## Detalhes técnicos
 
-- `src/pages/dp/DpFeriasHub.tsx`: remove os `TabsTrigger` "Planejamento" e "Programação", cria a aba `ferias` que renderiza um novo `FeriasViewSwitch` (ToggleGroup Analítica/Sintética) controlando `?visao=`, com `DpEmbeddedProvider` + `Suspense` para o painel analítico lazy. Redireciona `aba=planejamento|programacao` para `aba=ferias` com a visão correspondente (compatibilidade com links existentes de pendências/dashboard).
+- `src/pages/dp/DpFeriasHub.tsx`: `ABAS` passa a ser `["ferias", "status", "calendario", "contabilidade", "regras"]`. A aba `ferias` renderiza um novo `FeriasViewSwitch` (ToggleGroup Analítica/Sintética) controlando `?visao=`, com `DpEmbeddedProvider` + `Suspense` para o painel analítico lazy. A aba `status` renderiza um seletor (`?status=solicitadas|programadas|em-ferias|historico`) sobre `FeriasSolicitacoesPanel` e `FeriasGozosPanel` com os mesmos filtros de status já usados hoje. Mapeamento de compatibilidade dos links antigos: `planejamento`→`ferias&visao=analitica`, `programacao`→`ferias&visao=sintetica`, `solicitacoes|programadas|em-ferias|historico`→`status` com a sub-visão correspondente.
 - `src/pages/dp/DpFerias.tsx`: novo estado `incluirGozados` (default false) filtrando em `periodosFiltrados` por saldo a gozar (`dias_saldo <= 0` e status concluído), com contador de ocultos ao lado do checkbox.
 - `src/lib/dp/ferias-programacao.ts`: `montarProgramacao` passa a preencher `codigo`, `nome`, `admissao`, `feriasVencidas`, `feriasProporcionais` em todas as linhas do colaborador (campos deixam de ser `null` em linhas subsequentes); `programacaoParaCsv` e `programacaoDocumento` recebem a lista de colunas visíveis (`ProgramacaoColKey[]`) e passam a montar cabeçalho/células a partir dela. Nova tabela de metadados de coluna (chave, rótulo, alinhamento, largura padrão, valor de texto por linha) reaproveitada por tela, CSV e impresso.
 - `src/hooks/useDpFeriasProgramacao.tsx`: passa a buscar também `dp_unidades` (nome, cnpj) da empresa; `montarProgramacao` recebe `unidades` e resolve o cabeçalho pela regra acima (unidade filtrada → nome/CNPJ da unidade; todas → `companies.name` + CNPJ da empresa, com flag `consolidado` no `ProgramacaoDados` para o subtítulo).
