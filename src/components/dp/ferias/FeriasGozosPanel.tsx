@@ -42,6 +42,7 @@ export function FeriasGozosPanel({ status, vazio }: Props) {
   const { gozos, gozosLoading, periodos, cancelarGozo } = useDpFerias("todos");
   const { data: colaboradores = [] } = useDpColaboradores();
   const [cancelando, setCancelando] = useState<(FeriasGozo & { colaborador_nome?: string | null }) | null>(null);
+  const [avisando, setAvisando] = useState<(FeriasGozo & { colaborador_nome?: string | null }) | null>(null);
   const [cobertura, setCobertura] = useState<
     (FeriasGozo & { colaborador_nome?: string | null; unidade_id?: string | null; cargo_id?: string | null }) | null
   >(null);
