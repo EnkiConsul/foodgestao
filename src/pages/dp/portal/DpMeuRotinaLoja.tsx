@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { toUpperCadastro } from "@/lib/text/upperCadastro";
+import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 
 type Pessoa = { id: string; nome: string; cargo: string; entrada: string | null; saida: string | null };
 
@@ -24,28 +25,23 @@ export default function DpMeuRotinaLoja() {
     queryKey: ["dp_meu_rotina_loja", vinculo?.unidadeId, data],
     enabled: !!vinculo?.unidadeId,
     queryFn: async (): Promise<Pessoa[]> => {
-      const { data: itens, error } = await supabase
-        .from("dp_escala_itens")
-        .select(
-          "id, entrada, saida, tipo, colaborador:dp_colaboradores(id, nome, cargo), escala:dp_escalas!inner(unidade_id, status)",
-        )
-        .eq("data", data)
-        .eq("tipo", "trabalho")
-        .eq("escala.unidade_id", vinculo!.unidadeId!)
-        .eq("escala.status", "publicada");
+      // Uma única consulta segura: usa a escala publicada e, quando o mês ainda
+      // não foi publicado, monta a equipe pelo horário habitual de cada colega.
+      const { data: linhas, error } = await supabase.rpc("dp_portal_rotina_dia", {
+        p_data: data,
+      });
       if (error) throw error;
       const vistos = new Set<string>();
       const out: Pessoa[] = [];
-      for (const i of (itens ?? []) as any[]) {
-        const c = i.colaborador;
-        if (!c || vistos.has(c.id)) continue;
-        vistos.add(c.id);
+      for (const l of (linhas ?? []) as any[]) {
+        if (!l?.colaborador_id || vistos.has(l.colaborador_id)) continue;
+        vistos.add(l.colaborador_id);
         out.push({
-          id: c.id,
-          nome: toUpperCadastro(c.nome ?? ""),
-          cargo: c.cargo || "Sem função definida",
-          entrada: hhmm(i.entrada),
-          saida: hhmm(i.saida),
+          id: l.colaborador_id,
+          nome: toUpperCadastro(nomeExibicao(l)),
+          cargo: l.cargo || "Sem função definida",
+          entrada: hhmm(l.entrada),
+          saida: hhmm(l.saida),
         });
       }
       return out.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
@@ -87,7 +83,7 @@ export default function DpMeuRotinaLoja() {
       ) : escala.isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
       ) : porCargo.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhuma equipe publicada para este dia.</p>
+        <p className="text-sm text-muted-foreground">Nenhuma equipe prevista para este dia.</p>
       ) : (
         <div className="space-y-4">
           {porCargo.map(([cargo, pessoas]) => (
