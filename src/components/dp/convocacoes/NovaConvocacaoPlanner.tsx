@@ -135,6 +135,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const [detalhe, setDetalhe] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [publicando, setPublicando] = useState(false);
+  /** Dia que travou a última publicação: os outros ficam recolhidos na lista. */
+  const [dataComErro, setDataComErro] = useState<string | null>(null);
   const [justificativa, setJustificativa] = useState("");
   const [cienteAntecedencia, setCienteAntecedencia] = useState(false);
   const [justificadaEm, setJustificadaEm] = useState<string | null>(null);
