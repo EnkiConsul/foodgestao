@@ -10,6 +10,7 @@ import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/docume
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
 import { alertaPendenciaFerias } from "@/lib/dp/ferias-direito";
+import { compararUrgencia } from "@/lib/dp/pendencias";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
 import {
