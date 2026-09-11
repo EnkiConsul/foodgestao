@@ -22,6 +22,20 @@ export type AppErrorLog = {
   occurrences: number;
   first_seen_at: string;
   last_seen_at: string;
+  reports?: AppErrorReport[];
+};
+
+export type AppErrorReport = {
+  id: string;
+  error_log_id: string;
+  protocol: string;
+  reporter_name: string | null;
+  description: string;
+  attempted_action: string | null;
+  route: string | null;
+  status: "aberto" | "em_analise" | "resolvido" | "ignorado";
+  internal_note: string | null;
+  created_at: string;
 };
 
 export type AppErrorFiltros = {
@@ -72,13 +86,51 @@ export function useAppErrorLogs(filtros: AppErrorFiltros) {
 
       const termo = filtros.busca.trim().toLowerCase();
       const linhas = (data ?? []) as unknown as AppErrorLog[];
-      if (!termo) return linhas;
-      return linhas.filter((l) =>
-        [l.message, l.surface, l.action, l.route, l.code, l.user_name]
+      const ids = linhas.map((linha) => linha.id);
+      let reports: AppErrorReport[] = [];
+      if (ids.length > 0) {
+        const { data: reportData, error: reportError } = await supabase
+          .from("app_error_reports")
+          .select("id,error_log_id,protocol,reporter_name,description,attempted_action,route,status,internal_note,created_at")
+          .in("error_log_id", ids)
+          .order("created_at", { ascending: false });
+        if (reportError) throw reportError;
+        reports = (reportData ?? []) as AppErrorReport[];
+      }
+      const reportsByError = new Map<string, AppErrorReport[]>();
+      reports.forEach((report) => {
+        reportsByError.set(report.error_log_id, [...(reportsByError.get(report.error_log_id) ?? []), report]);
+      });
+      const enriched = linhas.map((linha) => ({ ...linha, reports: reportsByError.get(linha.id) ?? [] }));
+      if (!termo) return enriched;
+      return enriched.filter((l) =>
+        [
+          l.message, l.surface, l.action, l.route, l.code, l.user_name,
+          ...(l.reports ?? []).flatMap((report) => [report.protocol, report.reporter_name, report.description, report.attempted_action]),
+        ]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(termo)),
       );
     },
+  });
+}
+
+export function useAppErrorReportStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; status: AppErrorReport["status"]; nota?: string }) => {
+      const { error } = await supabase.rpc("app_error_report_update_status", {
+        _report_id: input.id,
+        _status: input.status,
+        _internal_note: input.nota?.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["app_error_logs"] });
+      toast.success("Chamado atualizado.");
+    },
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o chamado."),
   });
 }
 
