@@ -128,6 +128,29 @@ export function DocDetalhesDialog(props: {
   const nome = (id?: string | null) =>
     (id ? detalhes.data?.nomes.get(id) : null) ?? (id ? "Usuário" : "—");
 
+  const aceite = detalhes.data?.aceite ?? null;
+
+  const imprimirCertificado = () => {
+    if (!target || !aceite) return;
+    const empresa = detalhes.data?.empresa as any;
+    const ok = imprimirCertificadoValidacao({
+      empresa: empresa?.razao_social ?? empresa?.nome_fantasia ?? "",
+      colaborador: target.colaborador_nome,
+      documentoTitulo: target.titulo,
+      documentoTipo: target.tipo_label,
+      competencia: target.competencia,
+      arquivo: detalhes.data?.doc?.file_name ?? target.file_path?.split("/").pop() ?? null,
+      aceitoEm: aceite.aceito_em,
+      aprovadoPor: nome(aceite.aceito_por),
+      ip: aceite.ip,
+      dispositivo: aceite.user_agent,
+      conteudoHash: aceite.conteudo_hash,
+      registroId: aceite.id,
+    });
+    if (!ok) toast.error("Libere as janelas pop-up para imprimir o certificado.");
+  };
+
+
   const aceiteBadge = () => {
     if (!target) return null;
     if (target.aceite === null) {
