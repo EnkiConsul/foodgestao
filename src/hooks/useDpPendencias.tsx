@@ -58,7 +58,15 @@ export type Pendencia = {
   /** Pessoas faltantes quando a pendência cobre o lote inteiro da unidade. */
   pessoas?: Array<{ nome: string; desligamento: string | null }>;
   totalElegiveis?: number;
+  /** Retorno de licença: dados da solicitação para confirmar ou prorrogar. */
+  licenca?: {
+    solicitacaoId: string;
+    tipo: string;
+    dataInicio: string;
+    dataFimPrevista: string;
+  } | null;
 };
+
 
 const MES_NOME = [
   "janeiro", "fevereiro", "março", "abril", "maio", "junho",
@@ -895,6 +903,13 @@ export function useDpPendencias() {
             atrasoDias: dias,
             urgente: situacao === "vencido",
             url: "/dp/atestados?aba=historico",
+            licenca: {
+              solicitacaoId: l.id,
+              tipo: l.tipo,
+              dataInicio: String(l.data_alvo).slice(0, 10),
+              dataFimPrevista: String(l.data_fim).slice(0, 10),
+            },
+
           });
         });
       } catch (e) {
