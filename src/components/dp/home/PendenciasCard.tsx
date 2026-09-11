@@ -30,6 +30,28 @@ type StablePendenciasState = {
   ready: boolean;
 };
 
+function instanteDaApuracao(valor: string | null): number {
+  if (!valor) return 0;
+  const instante = new Date(valor).getTime();
+  return Number.isFinite(instante) ? instante : 0;
+}
+
+function podeConfirmarNovoQuadro(
+  anterior: StablePendenciasState,
+  companyId: string | null,
+  lastCalculatedAt: string | null,
+): boolean {
+  if (!companyId || anterior.companyId !== companyId || !anterior.ready) return true;
+
+  // Um retrato persistido só deve ser substituído quando o backend confirmar
+  // uma apuração mais recente. O término da consulta, sozinho, pode representar
+  // apenas uma resposta intermediária vazia durante a atualização diária.
+  const anteriorEm = instanteDaApuracao(anterior.lastCalculatedAt);
+  const novoEm = instanteDaApuracao(lastCalculatedAt);
+  if (anteriorEm > 0) return novoEm > anteriorEm;
+  return novoEm > 0;
+}
+
 /** Mantém o último quadro confirmado enquanto uma nova apuração está em andamento. */
 export function useStablePendencias({
   companyId,
@@ -47,12 +69,12 @@ export function useStablePendencias({
   isFetching: boolean;
 }) {
   const [confirmed, setConfirmed] = useState<StablePendenciasState>(() => {
-    if (data !== undefined && !isLoading && !isFetching) {
-      return { companyId, data, dataUpdatedAt, lastCalculatedAt, ready: true };
-    }
     const snapshot = lerPendenciasSnapshot(companyId);
     if (snapshot) {
       return { companyId, ...snapshot, ready: true };
+    }
+    if (data !== undefined && !isLoading && !isFetching) {
+      return { companyId, data, dataUpdatedAt, lastCalculatedAt, ready: true };
     }
     return {
       companyId,
@@ -65,33 +87,53 @@ export function useStablePendencias({
 
   useEffect(() => {
     if (isLoading || isFetching || data === undefined) return;
+    const snapshotDaEmpresa = lerPendenciasSnapshot(companyId);
+    const baseAtual = confirmed.companyId === companyId
+      ? confirmed
+      : snapshotDaEmpresa
+        ? { companyId, ...snapshotDaEmpresa, ready: true }
+        : confirmed;
+
+    if (snapshotDaEmpresa && !podeConfirmarNovoQuadro(baseAtual, companyId, lastCalculatedAt)) return;
+
+    salvarPendenciasSnapshot(companyId, { data, dataUpdatedAt, lastCalculatedAt });
     setConfirmed((anterior) => {
+      const base = anterior.companyId === companyId
+        ? anterior
+        : snapshotDaEmpresa
+          ? { companyId, ...snapshotDaEmpresa, ready: true }
+          : anterior;
+
+      if (!podeConfirmarNovoQuadro(base, companyId, lastCalculatedAt)) {
+        return base;
+      }
+
       // Evita atualizações redundantes quando a fonte reemite o mesmo quadro.
       if (
-        anterior.ready &&
-        anterior.companyId === companyId &&
-        anterior.dataUpdatedAt === dataUpdatedAt &&
-        anterior.lastCalculatedAt === lastCalculatedAt &&
-        anterior.data.length === data.length &&
-        anterior.data.every((p, i) => p.id === data[i]?.id)
+        base.ready &&
+        base.companyId === companyId &&
+        base.dataUpdatedAt === dataUpdatedAt &&
+        base.lastCalculatedAt === lastCalculatedAt &&
+        base.data.length === data.length &&
+        base.data.every((p, i) => p.id === data[i]?.id)
       ) {
-        return anterior;
+        return base;
       }
-      return { companyId, data, dataUpdatedAt, lastCalculatedAt, ready: true };
+      const proximo = { companyId, data, dataUpdatedAt, lastCalculatedAt, ready: true };
+      return proximo;
     });
-    salvarPendenciasSnapshot(companyId, { data, dataUpdatedAt, lastCalculatedAt });
-  }, [companyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching]);
+  }, [companyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching, confirmed]);
 
   // Retrato local da empresa selecionada: usado enquanto a apuração atual não
   // terminou (inclusive no primeiro carregamento do dia e ao trocar de empresa).
   const snapshotDaEmpresa = useMemo(() => lerPendenciasSnapshot(companyId), [companyId]);
 
   if (confirmed.companyId !== companyId) {
-    if (data !== undefined && !isLoading && !isFetching) {
-      return { data, dataUpdatedAt, lastCalculatedAt, ready: true };
-    }
     if (snapshotDaEmpresa) {
       return { ...snapshotDaEmpresa, ready: true };
+    }
+    if (data !== undefined && !isLoading && !isFetching) {
+      return { data, dataUpdatedAt, lastCalculatedAt, ready: true };
     }
     return {
       data: data ?? [],
