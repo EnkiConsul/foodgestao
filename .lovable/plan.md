@@ -1,17 +1,17 @@
 # Relato do usuário ligado à auditoria de erros
 
 ## Objetivo
-Sempre que o sistema identificar uma falha, mostrar um aviso discreto com a ação **“Relatar erro”**. O usuário poderá explicar detalhadamente o que aconteceu e o que tentava fazer, sem perder a tela ou interromper obrigatoriamente o trabalho.
+Sempre que o sistema identificar uma falha real, mostrar um aviso chamativo com a ação **“Relatar problema”**. O fluxo funcionará como uma abertura de chamado ligada automaticamente ao erro técnico, incentivando o usuário a explicar detalhadamente o que aconteceu e o que tentava fazer.
 
 ## Experiência do usuário
-- Manter a mensagem de erro normal e acrescentar o botão **“Relatar erro”**.
-- Ao clicar, abrir uma janela simples com:
+- Substituir o aviso discreto por um destaque visual claro de **“Ajude-nos a corrigir este problema”**, com botão principal **“Relatar problema”**.
+- Ao clicar, abrir uma janela de chamado com:
   - descrição obrigatória do que ocorreu;
   - descrição opcional do que estava tentando fazer;
   - identificação automática da tela, empresa, usuário, data, navegador e erro técnico, sem pedir esses dados novamente.
-- Confirmar o envio e impedir envios vazios ou repetidos por clique duplo.
+- Confirmar o envio, gerar um protocolo visível e impedir envios vazios ou repetidos por clique duplo.
 - Nas falhas que impedem a exibição da tela, incluir o mesmo botão junto às opções de tentar novamente, recarregar e voltar ao início.
-- O relato será opcional: fechar o aviso não bloqueará o usuário.
+- O chamado continuará opcional para não bloquear o trabalho, mas o destaque permanecerá visível enquanto a mensagem de erro estiver aberta.
 
 ## Auditoria de erros
 - Preservar o agrupamento atual dos erros técnicos por assinatura e empresa.
@@ -24,6 +24,8 @@ Sempre que o sistema identificar uma falha, mostrar um aviso discreto com a aç�
   - erro técnico relacionado.
 - Destacar erros que receberam relatos e permitir abrir o histórico de relatos dentro do item.
 - Incluir o texto dos relatos na busca da auditoria.
+- Tratar cada envio como chamado, com protocolo, situação **Aberto**, **Em análise**, **Resolvido** ou **Ignorado**, observações internas e histórico de mudanças.
+- Permitir ao gestor e ao backoffice acompanhar os chamados sem misturá-los com simples ocorrências automáticas sem relato.
 
 ## Cobertura dos erros
 - Evoluir o registrador central para devolver a identificação do erro gravado, necessária para vincular o relato.
