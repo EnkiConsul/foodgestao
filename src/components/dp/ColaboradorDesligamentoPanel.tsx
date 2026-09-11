@@ -43,6 +43,7 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
   const dias = (config as any).dias_carencia_portal ?? DIAS_CARENCIA_PORTAL_DEFAULT;
 
   const isDesligado = !!colaborador?.data_desligamento || colaborador?.ativo === false;
+  const ressalvas = useDpDesligamentoRessalvas(colaborador?.id);
 
   // A data nunca vem sugerida: só o gestor informa, manualmente.
   const [data, setData] = useState("");
