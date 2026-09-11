@@ -167,8 +167,9 @@ export function PendenciasCard() {
   const { prefs } = useDpUserPrefs();
   const { ignoradas, adiadas } = useDpPendenciasDecisoes();
   const [grupoAbertoTipo, setGrupoAbertoTipo] = useState<string | null>(null);
+  const [urgenciaFiltro, setUrgenciaFiltro] = useState<PendenciaUrgencia | null>(null);
 
-  const abertas = useMemo(
+  const todasAbertas = useMemo(
     () =>
       filtrarAbertas(
         stable.data.filter((p) => !ignoradas.has(p.id)),
@@ -177,12 +178,9 @@ export function PendenciasCard() {
     [stable.data, prefs.pendencias_adiadas, ignoradas, adiadas],
   );
 
-  const grupos = useMemo(() => agruparPorTipo(abertas), [abertas]);
-  const grupoAberto = grupos.find((grupo) => grupo.tipo === grupoAbertoTipo) ?? null;
-
   const counters = useMemo(() => {
     let atrasado = 0, urgente = 0, hoje = 0, proximo = 0;
-    for (const p of abertas) {
+    for (const p of todasAbertas) {
       const u = urgenciaDe(p);
       if (u === "atrasada") atrasado++;
       else if (u === "urgente") urgente++;
@@ -190,7 +188,22 @@ export function PendenciasCard() {
       else proximo++;
     }
     return { atrasado, urgente, hoje, proximo };
-  }, [abertas]);
+  }, [todasAbertas]);
+
+  // Filtro por urgência escolhido nos selos: vale para a lista e para o detalhe.
+  const abertas = useMemo(
+    () => (urgenciaFiltro ? todasAbertas.filter((p) => urgenciaDe(p) === urgenciaFiltro) : todasAbertas),
+    [todasAbertas, urgenciaFiltro],
+  );
+
+  const grupos = useMemo(() => agruparPorTipo(abertas), [abertas]);
+  const grupoAberto = grupos.find((grupo) => grupo.tipo === grupoAbertoTipo) ?? null;
+
+  const alternarUrgencia = (u: PendenciaUrgencia) => {
+    setGrupoAbertoTipo(null);
+    setUrgenciaFiltro((atual) => (atual === u ? null : u));
+  };
+
 
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-5">
