@@ -156,7 +156,7 @@ export function useStablePendencias({
 
 export function PendenciasCard() {
   const { selectedCompanyId } = useCompanyContext();
-  const { data, isLoading, isFetching, dataUpdatedAt, lastCalculatedAt, refetch } = useDpPendencias();
+  const { data, isLoading, isFetching, isRefreshing, dataUpdatedAt, lastCalculatedAt, refetch } = useDpPendencias();
   const stable = useStablePendencias({
     companyId: selectedCompanyId,
     data,
