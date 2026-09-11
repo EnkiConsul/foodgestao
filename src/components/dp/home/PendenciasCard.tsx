@@ -361,7 +361,21 @@ export function PendenciasCard() {
   );
 }
 
-export function UrgenciaBadge({ atrasoDias }: { atrasoDias: number }) {
+export function UrgenciaBadge({
+  atrasoDias,
+  urgente,
+}: {
+  atrasoDias: number;
+  urgente?: boolean | null;
+}) {
+  if (atrasoDias <= 0 && urgente) {
+    return (
+      <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive text-[10px] shrink-0">
+        <Clock className="h-3 w-3 mr-1" />
+        Urgente — risco de dobra
+      </Badge>
+    );
+  }
   if (atrasoDias > 0) {
     return (
       <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive text-[10px] shrink-0">
