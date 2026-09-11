@@ -82,6 +82,10 @@ export function useDpPendencias() {
   const { selectedCompanyId } = useCompanyContext();
   const { config, isLoading: isConfigLoading } = useDpPendenciasConfig();
   const { config: feriasConfig, isLoading: isFeriasConfigLoading } = useDpFeriasConfig();
+  // Verdadeira apuração em curso (botão manual ou recálculo por estar desatualizado).
+  // Reler o resultado já pronto não conta — por isso é separado de isFetching.
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
 
   const query = useQuery({
     // A identidade do cache depende apenas da empresa. Mudanças de configuração
