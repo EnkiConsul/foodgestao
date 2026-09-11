@@ -12,6 +12,7 @@ import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/docume
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
 import { alertaPendenciaFerias, periodosComAcumulo } from "@/lib/dp/ferias-direito";
+import { AVISO_FERIAS_PRAZO_DIAS } from "@/lib/dp/ferias-aviso";
 import { compararUrgencia } from "@/lib/dp/pendencias";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
@@ -872,6 +873,66 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/ferias:", e);
+      }
+
+      // 7c. Aviso de férias sem registro/ciência e recibo de férias faltando
+      try {
+        const { data: gozos } = await supabase
+          .from("dp_ferias_gozos")
+          .select("id, colaborador_id, data_inicio, data_fim, status, aviso_em, ciente_em, dp_colaboradores(nome, ativo)")
+          .eq("company_id", selectedCompanyId!)
+          .in("status", ["aprovado", "em_gozo", "concluido"])
+          .order("data_inicio", { ascending: true })
+          .limit(200);
+        const ids = (gozos ?? []).map((g: any) => g.id);
+        const { data: docsFerias } = ids.length
+          ? await supabase
+              .from("dp_documentos")
+              .select("ferias_gozo_id, tipo")
+              .eq("company_id", selectedCompanyId!)
+              .in("ferias_gozo_id", ids)
+          : { data: [] as any[] };
+        const comRecibo = new Set(
+          (docsFerias ?? [])
+            .filter((d: any) => d.tipo === "recibo_ferias")
+            .map((d: any) => d.ferias_gozo_id as string),
+        );
+        (gozos ?? []).forEach((g: any) => {
+          const nome = g.dp_colaboradores?.nome ?? "Colaborador";
+          // Aviso: precisa sair 30 dias antes do início.
+          if (!g.aviso_em && g.status === "aprovado") {
+            const dias = differenceInCalendarDays(
+              today,
+              new Date(`${g.data_inicio}T00:00:00`),
+            ) + AVISO_FERIAS_PRAZO_DIAS;
+            results.push({
+              id: `ferias-aviso-${g.id}`,
+              icon: Palmtree,
+              titulo: "Aviso de férias não registrado",
+              subtitulo: `${nome} — férias começam em ${g.data_inicio.split("-").reverse().join("/")}. A lei pede aviso 30 dias antes.`,
+              tipo: "Férias",
+              colaboradorNome: nome,
+              atrasoDias: dias,
+              urgente: dias > 0,
+              url: `/dp/ferias?colaborador=${g.colaborador_id}`,
+            });
+          }
+          // Recibo emitido pela contabilidade: exigido depois do início.
+          if (g.data_inicio <= hojeISO && !comRecibo.has(g.id)) {
+            results.push({
+              id: `ferias-recibo-${g.id}`,
+              icon: FileText,
+              titulo: "Recibo de férias não anexado",
+              subtitulo: `${nome} — férias de ${g.data_inicio.split("-").reverse().join("/")}. Anexe o recibo emitido pela contabilidade.`,
+              tipo: "Férias",
+              colaboradorNome: nome,
+              atrasoDias: differenceInCalendarDays(today, new Date(`${g.data_inicio}T00:00:00`)),
+              url: `/dp/ferias?colaborador=${g.colaborador_id}`,
+            });
+          }
+        });
+      } catch (e) {
+        console.warn("pendencias/ferias-documentos:", e);
       }
 
       // 7b. Licenças (maternidade/paternidade) — retorno se aproximando ou vencido
