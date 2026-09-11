@@ -87,8 +87,17 @@ export function useStablePendencias({
 
   useEffect(() => {
     if (isLoading || isFetching || data === undefined) return;
+    const snapshotDaEmpresa = lerPendenciasSnapshot(companyId);
+    const baseAtual = confirmed.companyId === companyId
+      ? confirmed
+      : snapshotDaEmpresa
+        ? { companyId, ...snapshotDaEmpresa, ready: true }
+        : confirmed;
+
+    if (!podeConfirmarNovoQuadro(baseAtual, companyId, lastCalculatedAt)) return;
+
+    salvarPendenciasSnapshot(companyId, { data, dataUpdatedAt, lastCalculatedAt });
     setConfirmed((anterior) => {
-      const snapshotDaEmpresa = lerPendenciasSnapshot(companyId);
       const base = anterior.companyId === companyId
         ? anterior
         : snapshotDaEmpresa
@@ -108,16 +117,12 @@ export function useStablePendencias({
         base.data.length === data.length &&
         base.data.every((p, i) => p.id === data[i]?.id)
       ) {
-        if (!snapshotDaEmpresa) {
-          salvarPendenciasSnapshot(companyId, { data, dataUpdatedAt, lastCalculatedAt });
-        }
         return base;
       }
       const proximo = { companyId, data, dataUpdatedAt, lastCalculatedAt, ready: true };
-      salvarPendenciasSnapshot(companyId, { data, dataUpdatedAt, lastCalculatedAt });
       return proximo;
     });
-  }, [companyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching]);
+  }, [companyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching, confirmed]);
 
   // Retrato local da empresa selecionada: usado enquanto a apuração atual não
   // terminou (inclusive no primeiro carregamento do dia e ao trocar de empresa).
