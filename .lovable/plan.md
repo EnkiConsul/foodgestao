@@ -10,7 +10,7 @@ Hoje o aviso "risco de dobra" só aparece quando faltam 30 dias ou menos para o 
 - Depois do prazo legal, continua "Férias vencidas — pagamento em dobro".
 - Sócio segue fora da regra.
 
-Efeito prático na Pakerê: o Erildson (período 01/10/2024–30/09/2025, prazo 30/09/2026) já aparece como urgente, e casos parecidos passam a aparecer desde 90 dias antes, não só no último mês.
+Efeito prático na Pakerê: o Erildson (período 01/10/2024–30/09/2025, prazo 30/09/2026) já aparece como urgente, e casos parecidos passam a ser acompanhados desde 180 dias antes, virando urgentes aos 90.
 
 Nas telas de Férias e Pendências o item continua com o selo vermelho "Urgente — risco de dobra" e entra na contagem de ação imediata, acima dos itens futuros.
 
