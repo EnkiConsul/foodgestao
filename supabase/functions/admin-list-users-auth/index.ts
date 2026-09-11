@@ -80,10 +80,44 @@ Deno.serve(async (req) => {
       if (page > 20) break;
     }
 
+    // Empresas vinculadas (dono via companies.user_id, convidado via company_members)
+    const { data: companies } = await admin
+      .from("companies")
+      .select("id, name, trade_name, user_id");
+    const { data: members } = await admin
+      .from("company_members")
+      .select("company_id, user_id, role");
+
+    const companyById = new Map<string, any>();
+    (companies ?? []).forEach((c: any) => companyById.set(c.id, c));
+
+    const companiesByUser = new Map<string, any[]>();
+    const push = (userId: string | null, entry: any) => {
+      if (!userId) return;
+      const list = companiesByUser.get(userId) ?? [];
+      if (list.some((e) => e.id === entry.id)) return;
+      list.push(entry);
+      companiesByUser.set(userId, list);
+    };
+    (companies ?? []).forEach((c: any) =>
+      push(c.user_id, { id: c.id, name: c.trade_name || c.name, role: "owner" }),
+    );
+    (members ?? []).forEach((m: any) => {
+      const c = companyById.get(m.company_id);
+      if (!c) return;
+      push(m.user_id, {
+        id: c.id,
+        name: c.trade_name || c.name,
+        role: c.user_id === m.user_id ? "owner" : m.role || "member",
+      });
+    });
+
     const users = (profiles ?? []).map((p: any) => ({
       ...p,
       auth: authMap.get(p.user_id) ?? null,
+      companies: companiesByUser.get(p.user_id) ?? [],
     }));
+
 
     return new Response(JSON.stringify({ users }), {
       status: 200,
