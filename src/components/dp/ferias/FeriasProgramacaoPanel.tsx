@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { DpContentCard, DpFilterCard } from "@/components/dp/DpPage";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpFeriasProgramacao } from "@/hooks/useDpFeriasProgramacao";
 import {
   baixarProgramacaoCsv,
@@ -24,7 +25,9 @@ const num = (v: number | null) => (v === null ? "...." : v);
 export function FeriasProgramacaoPanel() {
   const [unidadeId, setUnidadeId] = useState<string>("todas");
   const [incluirDesligados, setIncluirDesligados] = useState(false);
-  const { data: unidades = [] } = useDpUnidades();
+  const { selectedCompanyId } = useCompanyContext();
+  const { data: unidadesTodas = [] } = useDpUnidades();
+  const unidades = (unidadesTodas as any[]).filter((u) => u.company_id === selectedCompanyId);
   const { relatorio, isLoading } = useDpFeriasProgramacao({
     unidadeId: unidadeId === "todas" ? null : unidadeId,
     incluirDesligados,
