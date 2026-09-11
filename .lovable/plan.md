@@ -50,6 +50,15 @@ Vou fazer o link ser reconhecido em qualquer forma que você escreveu no modelo 
 - Calendário: marcar sábado e domingo como folga semanal para quem tem folga fixa.
 - Pendências de documentos pessoais: abrir a lista do que falta dela enviar, não a lista de documentos da empresa.
 
+## 11. Auditoria de erros do sistema
+Criar uma tela dedicada (no menu Geral e também no backoffice) que registra todo erro ocorrido no uso do sistema, para você saber o que precisa ser corrigido.
+
+- Captura automática: falhas de tela, falhas de gravação no banco (com o código e a mensagem do banco), falhas das funções do servidor e erros de importação de documentos.
+- Cada registro guarda: data e hora, usuário, empresa/unidade, tela e ação, mensagem técnica, mensagem mostrada ao usuário e quantas vezes o mesmo erro repetiu.
+- Agrupamento por erro repetido, com contador e "primeira vez / última vez", para priorizar o que mais atrapalha.
+- Filtros por período, empresa, tela, gravidade e situação; marcar como "Resolvido" ou "Ignorado" com observação.
+- Aviso no topo quando surgir um erro novo nas últimas 24h.
+
 ## Detalhes técnicos
 - Ausência: incluir `divergencia_jornada` e novos motivos em `OCORRENICA_CATEGORIA` e permitir sobrepor `folga_padrao` em `src/lib/dp/operacao-panorama.ts`.
 - Horário: `operacao-panorama.ts` passa a consumir `src/lib/dp/horario-previsto.ts`.
