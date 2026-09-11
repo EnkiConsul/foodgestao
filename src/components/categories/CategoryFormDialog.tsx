@@ -410,11 +410,12 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
       // Save company visibility
       if (newCat && selectedCompanies.size > 0) {
-        const rows = Array.from(selectedCompanies).map((company_id) => ({
-          category_id: newCat.id,
-          company_id,
-        }));
-        await supabase.from("category_companies").insert(rows);
+        const { error: visError } = await syncCategoryCompanies(newCat.id, [], selectedCompanies);
+        if (visError) {
+          toast.error("Categoria criada, mas a visibilidade não foi salva", {
+            description: visError.message,
+          });
+        }
       }
 
       await supabase.rpc("insert_audit_log", {
