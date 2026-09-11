@@ -535,8 +535,11 @@ export default function DpMeuCalendario() {
 
 
       // 3) folga fixa própria
-      const fixa = normalizeWeekday(meRef.data.folga_fixa_semana);
-      if (fixa != null && fixa === wd) {
+      const fixos = diasFixosDeFolga({
+        folga_fixa_semana: meRef.data.folga_fixa_semana,
+        folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
+      });
+      if (fixos.includes(wd)) {
         throw new Error('Este é seu dia de folga fixa. Use "Solicitar exceção" ou uma troca.');
       }
 
