@@ -836,7 +836,7 @@ export function useDpPendencias() {
           if (vinculo.includes("sóci")) return;
           if (p.dp_colaboradores?.ativo === false) return;
           const vencimento = new Date(`${p.limite_concessivo}T00:00:00`);
-          const dias = differenceInCalendarDays(today, vencimento);
+          let dias = differenceInCalendarDays(today, vencimento);
           const alerta = alertaPendenciaFerias({
             fimAquisitivo: p.fim_aquisitivo,
             limiteConcessivo: p.limite_concessivo,
@@ -845,6 +845,11 @@ export function useDpPendencias() {
             politica: feriasConfig.sinalizacaoCicloEncerrado,
             acumulo: idsAcumulo.has(p.id),
           });
+          // O prazo já não cabe o descanso inteiro: conta como atraso real
+          // (dias que já não caberão dentro do prazo legal).
+          if (alerta.nivel === "marcacao_atrasada" && dias < 0) {
+            dias = Math.max(1, (p.dias_saldo ?? 0) - Math.abs(dias));
+          }
           results.push({
             id: `ferias-${p.id}`,
             icon: Palmtree,
@@ -856,7 +861,7 @@ export function useDpPendencias() {
             atrasoDias: dias,
             // Ainda dentro do prazo legal, mas já em risco de pagar em dobro:
             // precisa aparecer no topo, junto do que está atrasado.
-            urgente: alerta.nivel === "atencao",
+            urgente: alerta.nivel === "atencao" || alerta.nivel === "marcacao_atrasada",
             url: `/dp/ferias?colaborador=${p.colaborador_id}`,
           });
         });

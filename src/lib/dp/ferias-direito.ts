@@ -44,6 +44,7 @@ export type NivelVencimento =
   | "planejamento"
   | "a_conceder"
   | "atencao"
+  | "marcacao_atrasada"
   | "vencido";
 
 export const NIVEL_VENCIMENTO_META: Record<
@@ -54,6 +55,10 @@ export const NIVEL_VENCIMENTO_META: Record<
   planejamento: { label: "Planejar", tone: "bg-sky-500/15 text-sky-600" },
   a_conceder: { label: "A conceder", tone: "bg-amber-500/10 text-amber-700" },
   atencao: { label: "Atenção", tone: "bg-amber-500/15 text-amber-600" },
+  marcacao_atrasada: {
+    label: "Marcação atrasada",
+    tone: "bg-destructive/15 text-destructive",
+  },
   vencido: { label: "Vencido", tone: "bg-destructive/15 text-destructive" },
 };
 
@@ -108,6 +113,8 @@ export function nivelVencimentoPeriodo(args: {
   const saldo = args.diasSaldo ?? 0;
   const diasRestantes = diffDias(limiteConcessivo, hojeISO);
   if (diasRestantes < 0) return "vencido";
+  // O prazo já não cabe o descanso inteiro: marcar agora é tarde.
+  if (saldo > 0 && diasRestantes <= saldo) return "marcacao_atrasada";
   const acumulo = args.acumulo === true;
   const janelaAtencao = acumulo ? JANELA_ACUMULO_RISCO_DIAS : JANELA_ATENCAO_DIAS;
   const janelaPlanejamento = acumulo
@@ -179,6 +186,14 @@ export function alertaPendenciaFerias(args: {
       nivel,
       titulo: "Férias vencidas — pagamento em dobro",
       detalhePrazo: `prazo legal vencido há ${Math.abs(diasRestantes)} dia(s)`,
+    };
+  }
+  if (nivel === "marcacao_atrasada") {
+    const saldo = args.diasSaldo ?? 0;
+    return {
+      nivel,
+      titulo: "Férias — marcação atrasada",
+      detalhePrazo: `faltam ${diasRestantes} dia(s) para o prazo legal e ainda há ${saldo} dia(s) a gozar`,
     };
   }
   if (nivel === "atencao") {

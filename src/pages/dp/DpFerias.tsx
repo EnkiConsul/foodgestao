@@ -157,7 +157,9 @@ export default function DpFerias() {
     const meta = NIVEL_VENCIMENTO_META[nivel];
     return (
       <Badge className={meta.tone}>
-        {nivel === "vencido" || nivel === "a_conceder" ? meta.label : `${meta.label} · ${dias}d`}
+        {nivel === "vencido" || nivel === "a_conceder" || nivel === "marcacao_atrasada"
+          ? meta.label
+          : `${meta.label} · ${dias}d`}
       </Badge>
     );
   };
