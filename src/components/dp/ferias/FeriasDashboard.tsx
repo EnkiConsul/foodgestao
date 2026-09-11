@@ -10,6 +10,7 @@ import {
   NIVEL_VENCIMENTO_META,
   RISCO_DOBRA_META,
   nivelVencimentoPeriodo,
+  periodosComAcumulo,
   riscoAcumuloPorColaborador,
   textoPrazo,
 } from "@/lib/dp/ferias-direito";
