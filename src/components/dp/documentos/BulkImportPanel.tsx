@@ -437,9 +437,9 @@ export function BulkImportPanel({
                 <button
                   type="button"
                   className="underline text-muted-foreground hover:text-foreground"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFile(null); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFiles([]); }}
                 >
-                  Trocar arquivo
+                  Limpar seleção
                 </button>
               </div>
             ) : (

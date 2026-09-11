@@ -534,6 +534,7 @@ export function ColaboradorFormDialog({
     setForm({
       ...DOCUMENTOS_PESSOAIS_BLANK,
       nome: p.nome ?? "",
+      nome_social: "",
       cpf: p.cpf ? maskCpf(p.cpf) : "",
       matricula: "",
       email: "",
