@@ -69,6 +69,7 @@ export default function DpFerias() {
   const [defaultPeriodoId, setDefaultPeriodoId] = useState<string | null>(null);
   const [faltasPeriodo, setFaltasPeriodo] = useState<FeriasPeriodo | null>(null);
   const [saldoPeriodo, setSaldoPeriodo] = useState<FeriasPeriodo | null>(null);
+  const [incluirDesligados, setIncluirDesligados] = useState(false);
 
 
   const {
@@ -87,6 +88,8 @@ export default function DpFerias() {
 
   const periodosFiltrados = useMemo(() => {
     let base = statusFilter === "todos" ? periodos : periodos.filter((p) => p.status === statusFilter);
+    // Quem foi desligado não entra na programação: só aparece se o gestor pedir.
+    if (!incluirDesligados) base = base.filter((p) => !p.desligado);
     if (soRisco) {
       base = base
         .filter((p) => riscoPorColab.get(p.colaborador_id)?.emRisco)
@@ -94,7 +97,12 @@ export default function DpFerias() {
         .sort((a, b) => a.limite_concessivo.localeCompare(b.limite_concessivo));
     }
     return base;
-  }, [periodos, statusFilter, soRisco, riscoPorColab]);
+  }, [periodos, statusFilter, soRisco, riscoPorColab, incluirDesligados]);
+
+  const desligadosOcultos = useMemo(
+    () => (incluirDesligados ? 0 : periodos.filter((p) => p.desligado).length),
+    [periodos, incluirDesligados],
+  );
 
 
   const gozosByPeriodo = useMemo(() => {
