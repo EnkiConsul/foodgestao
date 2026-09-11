@@ -55,6 +55,7 @@ import { comCarimboAtual } from "@/lib/dp/convocacao-versao";
 import { supabase } from "@/integrations/supabase/client";
 import { useDpConvocacaoPreAvaliacao } from "@/hooks/useDpConvocacaoPreAvaliacao";
 import { cn } from "@/lib/utils";
+import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 
 interface Props {
   open: boolean;
@@ -329,7 +330,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const nomeCargo = (id: string | null) =>
     (cargos.data ?? []).find((c: any) => c.id === id)?.nome ?? "—";
   const nomePessoa = (id: string) =>
-    (colaboradores.data ?? []).find((c: any) => c.id === id)?.nome ?? "—";
+    nomeExibicao((colaboradores.data ?? []).find((c: any) => c.id === id)) || "—";
 
   const listaDias = useMemo(() => Object.values(dias), [dias]);
   const diasDoCargo = useMemo(
@@ -556,7 +557,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       if (!h) continue;
       out.push({
         colaborador_id: id,
-        nome: c?.nome ?? "—",
+        nome: c ? nomeExibicao(c) : "—",
         categoria: "convocado_pendente",
         turno_id: null,
         turno_nome: null,
@@ -811,7 +812,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     const c = (colaboradores.data ?? []).find((x: any) => x.id === id);
                     return {
                       id,
-                      nome: c?.nome ?? "—",
+                      nome: c ? nomeExibicao(c) : "—",
                       cargo_id: c?.cargo_id ?? null,
                       cargo_nome: nomeCargo(c?.cargo_id ?? null),
                     };
@@ -939,7 +940,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                           marcado ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted/50",
                         )}
                       >
-                        {c.nome}
+                        {nomeExibicao(c)}
                       </button>
                     );
                   })}
@@ -985,7 +986,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                               )
                             }
                           />
-                          <span className="flex-1 truncate">{c.nome}</span>
+                          <span className="flex-1 truncate">{nomeExibicao(c)}</span>
                           <span className="text-[10px] text-muted-foreground">{nomeCargo(c.cargo_id)}</span>
                         </label>
                       );
