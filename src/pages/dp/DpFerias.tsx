@@ -306,6 +306,10 @@ export default function DpFerias() {
                         <Badge className={FERIAS_SOCIO_META.tone}>
                           <History className="mr-1 size-3.5" /> {FERIAS_SOCIO_META.label}
                         </Badge>
+                      ) : desligado ? (
+                        <Badge className="bg-muted text-muted-foreground">
+                          <History className="mr-1 size-3.5" /> Desligado
+                        </Badge>
                       ) : externo ? (
                         <Badge className="bg-muted text-muted-foreground">
                           <History className="mr-1 size-3.5" /> Controle externo
@@ -339,7 +343,9 @@ export default function DpFerias() {
                     <p className="text-xs text-muted-foreground">
                       {socio
                         ? FERIAS_SOCIO_META.explicacao
-                        : "Período anterior ao início do controle no sistema — fica apenas como histórico, sem cobrança de prazo nem alertas."}
+                        : desligado
+                          ? "Pessoa desligada: o saldo em aberto é tratado na rescisão, sem cobrança de prazo nem programação de férias."
+                          : "Período anterior ao início do controle no sistema — fica apenas como histórico, sem cobrança de prazo nem alertas."}
                     </p>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2 text-sm">
