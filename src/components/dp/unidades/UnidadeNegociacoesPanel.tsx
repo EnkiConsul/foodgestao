@@ -60,6 +60,22 @@ const emptyForm: FormState = {
   arquivo_nome: null,
 };
 
+export function newNegotiationForm(latest?: Negociacao | null): FormState {
+  if (!latest) return { ...emptyForm };
+
+  const latestDate = latest.data_base ? new Date(`${latest.data_base}T12:00:00`) : null;
+  const latestYear = latest.ano ?? latestDate?.getFullYear() ?? currentYear;
+  const latestMonth = latest.mes ?? (latestDate ? latestDate.getMonth() + 1 : new Date().getMonth() + 1);
+
+  return {
+    ...emptyForm,
+    sindicato_patronal_id: latest.sindicato_id,
+    sindicato_laboral_id: latest.sindicato_laboral_id ?? "",
+    ano: String(latestYear + 1),
+    mes: String(latestMonth),
+  };
+}
+
 const tipoBadgeClass = (tipo: TipoDoc) => {
   switch (tipo) {
     case "act":
@@ -226,7 +242,7 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
   };
 
   const openNew = () => {
-    setForm({ ...emptyForm });
+    setForm(newNegotiationForm(list.data?.[0]));
     setOpen(true);
   };
 
@@ -311,11 +327,11 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="grid w-full grid-cols-[1fr_auto_auto] gap-1 sm:flex sm:w-auto sm:flex-wrap">
                     <Button
                       size="sm"
                       variant="outline"
-                      className="min-h-10"
+                      className="min-h-10 min-w-0 px-2 text-xs sm:px-3 sm:text-sm"
                       onClick={() =>
                         setAplicar({
                           sindicatoPatronalId: n.sindicato_id ?? null,
@@ -340,11 +356,11 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
                       <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <span className="truncate">{arquivoNome ?? "arquivo.pdf"}</span>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="min-h-10" onClick={() => openPdf(n.pdf_path!, false)}>
+                    <div className="grid grid-cols-2 gap-2 sm:flex">
+                      <Button size="sm" variant="outline" className="min-h-10" onClick={() => n.pdf_path && openPdf(n.pdf_path, false)}>
                         <Eye className="mr-1.5 h-4 w-4" /> Visualizar
                       </Button>
-                      <Button size="sm" variant="outline" className="min-h-10" onClick={() => openPdf(n.pdf_path!, true)}>
+                      <Button size="sm" variant="outline" className="min-h-10" onClick={() => n.pdf_path && openPdf(n.pdf_path, true)}>
                         <Download className="mr-1.5 h-4 w-4" /> Baixar
                       </Button>
                     </div>
@@ -357,11 +373,11 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[calc(100dvh-1rem)] max-w-md flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="shrink-0 border-b px-4 py-4 pr-12 sm:px-6">
             <DialogTitle>{form.id ? "Editar Negociação" : "Nova Negociação"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
             <p className="text-xs text-muted-foreground">Unidade: {unidadeNome || "—"}</p>
 
             <div className="space-y-1.5">
@@ -398,7 +414,7 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Ano Base *</Label>
                 <Input type="number" min={2000} max={2100} value={form.ano} onChange={(e) => setForm({ ...form, ano: e.target.value })} />
@@ -433,6 +449,7 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
               <Input
                 type="file"
                 accept="application/pdf"
+                className="min-w-0 max-w-full text-xs file:mr-2 sm:text-sm"
                 onChange={(e) => setForm({ ...form, arquivo: e.target.files?.[0] ?? null })}
               />
               {form.id && form.arquivo_nome && !form.arquivo && (
@@ -440,9 +457,9 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
               )}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={() => upsert.mutate()} disabled={upsert.isPending}>
+          <DialogFooter className="shrink-0 gap-2 border-t px-4 py-3 sm:px-6">
+            <Button variant="ghost" className="h-11 w-full sm:w-auto" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button className="h-11 w-full sm:w-auto" onClick={() => upsert.mutate()} disabled={upsert.isPending}>
               {upsert.isPending ? "Salvando..." : form.id ? "Salvar" : "Cadastrar"}
             </Button>
           </DialogFooter>

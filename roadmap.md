@@ -1,5 +1,11 @@
 # Roadmap — Pessoas 360° (plano aprovado 09/2026)
 
+## Sindicatos no celular e renovação anual (11/09/2026)
+- [x] Organizar as abas, cartões e ações da unidade em telas pequenas
+- [x] Ajustar o formulário de negociação para caber no celular sem cortes
+- [x] Pré-preencher sindicatos, mês-base e ano seguinte a partir da negociação mais recente
+- [x] Validar os cenários com e sem negociação anterior e conferir a tela no celular
+
 ## Tela de acesso — refinamento visual (09/2026)
 - [x] Aplicar as novas artes 1 e 2 sem recortar pessoa, celular ou notebook
 - [x] Posicionar o formulário compacto e translúcido nas áreas livres das artes
