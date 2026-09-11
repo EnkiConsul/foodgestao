@@ -9,7 +9,7 @@ import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Sc
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
-import { alertaPendenciaFerias } from "@/lib/dp/ferias-direito";
+import { alertaPendenciaFerias, periodosComAcumulo } from "@/lib/dp/ferias-direito";
 import { compararUrgencia } from "@/lib/dp/pendencias";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
