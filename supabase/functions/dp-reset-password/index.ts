@@ -2,10 +2,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { generateProvisionalPassword } from "../_shared/provisional-password.ts";
 
-function digitsOnly(s: string | null | undefined): string {
-  return (s ?? "").replace(/\D/g, "");
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -45,7 +41,7 @@ Deno.serve(async (req) => {
 
     const { data: colab, error: colErr } = await admin
       .from("dp_colaboradores")
-      .select("id, cpf, user_id, nome, company_id")
+      .select("id, user_id, nome, company_id")
       .eq("id", colaboradorId)
       .maybeSingle();
     if (colErr || !colab) {
