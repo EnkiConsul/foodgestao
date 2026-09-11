@@ -9,6 +9,8 @@ import { useDpFerias, type FeriasGozo } from "@/hooks/useDpFerias";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { FeriasCancelarDialog } from "@/components/dp/ferias/FeriasCancelarDialog";
 import { FeriasCoberturaDialog } from "@/components/dp/ferias/FeriasCoberturaDialog";
+import { FeriasDocumentosCard } from "@/components/dp/ferias/FeriasDocumentosCard";
+import { FeriasAvisoDialog } from "@/components/dp/ferias/FeriasAvisoDialog";
 import { FERIAS_SOCIO_META } from "@/lib/dp/ferias-direito";
 
 const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
