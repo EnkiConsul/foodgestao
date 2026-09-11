@@ -243,6 +243,7 @@ export function PendenciasCard() {
 
       <div className="flex flex-wrap gap-2 mb-2">
         <UrgencyChip icon={AlarmClockOff} label="Atrasado" count={counters.atrasado} tone="destructive" />
+        <UrgencyChip icon={AlarmClockOff} label="Urgente" count={counters.urgente} tone="destructive" />
         <UrgencyChip icon={Clock3} label="Hoje" count={counters.hoje} tone="warning" />
         <UrgencyChip icon={CalendarClock} label="Próximo" count={counters.proximo} tone="info" />
       </div>
