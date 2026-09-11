@@ -246,6 +246,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setSubtype("");
       setAiDescription("");
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
+      setInitialCompanies(new Set());
     }
   }, [editCategory, open, defaultParentId, defaultType, defaultName]);
 
