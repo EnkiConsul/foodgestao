@@ -93,7 +93,11 @@ describe("nivelVencimentoPeriodo — ciclos já encerrados", () => {
   });
 
   it("prazo legal apertado continua em Atenção", () => {
-    expect(nivelVencimentoPeriodo(base)).toBe("atencao");
+    expect(nivelVencimentoPeriodo({ ...base, diasSaldo: 5 })).toBe("atencao");
+  });
+
+  it("prazo restante menor que o saldo vira marcação atrasada", () => {
+    expect(nivelVencimentoPeriodo(base)).toBe("marcacao_atrasada");
   });
 
   it("política legal ignora o ciclo encerrado", () => {
