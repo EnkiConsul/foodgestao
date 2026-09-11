@@ -41,6 +41,14 @@ export type UnifiedDoc = {
   motivo_recusao?: string | null;
   /** null = não exige aceite; false = aguardando aceite; true = já aceito */
   aceite?: boolean | null;
+  /** Registro da aprovação eletrônica (base do certificado de validação). */
+  aceiteInfo?: {
+    id: string;
+    aceito_em: string;
+    ip: string | null;
+    user_agent: string | null;
+    conteudo_hash: string | null;
+  } | null;
   meta?: Record<string, any>;
 };
 
