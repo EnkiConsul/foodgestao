@@ -356,15 +356,18 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         return;
       }
 
-      // Sync company visibility
-      await supabase.from("category_companies").delete().eq("category_id", editCategory.id);
-      if (selectedCompanies.size > 0) {
-        const rows = Array.from(selectedCompanies).map((company_id) => ({
-          category_id: editCategory.id,
-          company_id,
-        }));
-        await supabase.from("category_companies").insert(rows);
+      // Sync company visibility (apenas a diferença)
+      const { error: visError } = await syncCategoryCompanies(
+        editCategory.id,
+        initialCompanies,
+        selectedCompanies,
+      );
+      if (visError) {
+        toast.error("Erro ao salvar a visibilidade", { description: visError.message });
+        setSaving(false);
+        return;
       }
+      setInitialCompanies(new Set(selectedCompanies));
 
       await supabase.rpc("insert_audit_log", {
         _action: "category_updated",
