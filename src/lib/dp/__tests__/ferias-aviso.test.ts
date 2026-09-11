@@ -24,7 +24,7 @@ describe("aviso de férias", () => {
       justificativa: "",
     });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.motivo).toBe("justificativa");
+    if (r.ok === false) expect(r.motivo).toBe("justificativa");
   });
 
   it("registro retroativo exige declaração e anexo", () => {
@@ -37,7 +37,7 @@ describe("aviso de férias", () => {
       justificativa: "",
     });
     expect(semDeclaracao.ok).toBe(false);
-    if (!semDeclaracao.ok) expect(semDeclaracao.motivo).toBe("declaracao");
+    if (semDeclaracao.ok === false) expect(semDeclaracao.motivo).toBe("declaracao");
 
     const semAnexo = validarRegistroAviso({
       dataInicio: "2026-06-01",
@@ -48,7 +48,7 @@ describe("aviso de férias", () => {
       justificativa: "",
     });
     expect(semAnexo.ok).toBe(false);
-    if (!semAnexo.ok) expect(semAnexo.motivo).toBe("anexo");
+    if (semAnexo.ok === false) expect(semAnexo.motivo).toBe("anexo");
 
     const ok = validarRegistroAviso({
       dataInicio: "2026-06-01",
@@ -71,7 +71,7 @@ describe("aviso de férias", () => {
       justificativa: "",
     });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.motivo).toBe("futura");
+    if (r.ok === false) expect(r.motivo).toBe("futura");
   });
 
   it("mostra os selos do aviso", () => {
