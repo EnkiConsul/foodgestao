@@ -121,33 +121,59 @@ export default function DpMeuFerias() {
               {p.gozos.length > 0 && (
                 <div className="space-y-2 rounded-xl bg-muted/40 p-3">
                   {p.gozos.map((g) => (
-                    <div key={g.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                      <span>
-                        {fmt(g.data_inicio)} a {fmt(g.data_fim)} · {g.dias} dias
-                        {g.dias_abono > 0 && ` + ${g.dias_abono} de abono`}
-                        {g.adiantar_13 && " · 13º adiantado"}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <Badge className={STATUS_TONE[g.status]}>
-                          {STATUS_LABEL[g.status] ?? g.status}
-                        </Badge>
-                        {g.ciente_em ? (
-                          <Badge variant="outline" className="text-emerald-600">
-                            <CheckCircle2 className="mr-1 size-3.5" /> Ciente
+                    <div key={g.id} className="space-y-2 text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span>
+                          {fmt(g.data_inicio)} a {fmt(g.data_fim)} · {g.dias} dias
+                          {g.dias_abono > 0 && ` + ${g.dias_abono} de abono`}
+                          {g.adiantar_13 && " · 13º adiantado"}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <Badge className={STATUS_TONE[g.status]}>
+                            {STATUS_LABEL[g.status] ?? g.status}
                           </Badge>
-                        ) : (
-                          (g.status === "aprovado" || g.status === "em_gozo") && (
+                          {g.ciente_em ? (
+                            <Badge variant="outline" className="text-emerald-600">
+                              <CheckCircle2 className="mr-1 size-3.5" /> Ciente
+                            </Badge>
+                          ) : (
+                            (g.status === "aprovado" || g.status === "em_gozo") && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={registrarCiencia.isPending}
+                                onClick={() => registrarCiencia.mutate(g.id)}
+                              >
+                                Estou ciente
+                              </Button>
+                            )
+                          )}
+                        </span>
+                      </div>
+
+                      {g.aviso_em && (
+                        <p className="text-xs text-muted-foreground">
+                          Aviso de férias em {fmt(g.aviso_em)}
+                          {g.aviso_fora_prazo && " · comunicado com menos de 30 dias"}
+                          {g.aviso_justificativa ? ` · ${g.aviso_justificativa}` : ""}
+                        </p>
+                      )}
+
+                      {g.documentos.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {g.documentos.map((d) => (
                             <Button
+                              key={d.id}
                               size="sm"
                               variant="outline"
-                              disabled={registrarCiencia.isPending}
-                              onClick={() => registrarCiencia.mutate(g.id)}
+                              onClick={() => abrirDocumento(d)}
                             >
-                              Estou ciente
+                              <FileText className="mr-1 size-3.5" />
+                              {d.tipo === "recibo_ferias" ? "Recibo de férias" : "Aviso de férias"}
                             </Button>
-                          )
-                        )}
-                      </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
