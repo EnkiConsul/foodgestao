@@ -836,7 +836,7 @@ export function useDpPendencias() {
           if (vinculo.includes("sóci")) return;
           if (p.dp_colaboradores?.ativo === false) return;
           const vencimento = new Date(`${p.limite_concessivo}T00:00:00`);
-          const dias = differenceInCalendarDays(today, vencimento);
+          let dias = differenceInCalendarDays(today, vencimento);
           const alerta = alertaPendenciaFerias({
             fimAquisitivo: p.fim_aquisitivo,
             limiteConcessivo: p.limite_concessivo,
