@@ -224,6 +224,11 @@ export function DocDetalhesDialog(props: {
                   {detalhes.data?.doc?.assinatura_detectada ? "Detectada" : "Não detectada"}
                 </Campo>
               </div>
+              {aceite && (
+                <Button size="sm" variant="outline" className="mt-3" onClick={imprimirCertificado}>
+                  <Printer className="mr-1 h-4 w-4" /> Certificado de validação
+                </Button>
+              )}
             </div>
 
             <div className="rounded-lg border p-3">
