@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
@@ -81,6 +82,10 @@ export function useDpPendencias() {
   const { selectedCompanyId } = useCompanyContext();
   const { config, isLoading: isConfigLoading } = useDpPendenciasConfig();
   const { config: feriasConfig, isLoading: isFeriasConfigLoading } = useDpFeriasConfig();
+  // Verdadeira apuração em curso (botão manual ou recálculo por estar desatualizado).
+  // Reler o resultado já pronto não conta — por isso é separado de isFetching.
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
 
   const query = useQuery({
     // A identidade do cache depende apenas da empresa. Mudanças de configuração
@@ -1335,16 +1340,21 @@ export function useDpPendencias() {
           .maybeSingle();
         const precisaAtualizar = !apuracao?.apurado_em || new Date(apuracao.sujo_desde).getTime() > new Date(apuracao.apurado_em).getTime();
         if (precisaAtualizar) {
-          const { error } = await supabase.functions.invoke("dp-refresh-pendencias", {
-            body: { companyId: selectedCompanyId },
-          });
-          if (!error) {
-            const refreshed = await supabase
-              .from("dp_pendencias_apuracoes")
-              .select("apurado_em, sujo_desde")
-              .eq("company_id", selectedCompanyId!)
-              .maybeSingle();
-            apuracao = refreshed.data;
+          setIsRefreshing(true);
+          try {
+            const { error } = await supabase.functions.invoke("dp-refresh-pendencias", {
+              body: { companyId: selectedCompanyId },
+            });
+            if (!error) {
+              const refreshed = await supabase
+                .from("dp_pendencias_apuracoes")
+                .select("apurado_em, sujo_desde")
+                .eq("company_id", selectedCompanyId!)
+                .maybeSingle();
+              apuracao = refreshed.data;
+            }
+          } finally {
+            setIsRefreshing(false);
           }
         }
 
@@ -1410,16 +1420,22 @@ export function useDpPendencias() {
     },
   });
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     if (selectedCompanyId) {
-      await supabase.functions.invoke("dp-refresh-pendencias", {
-        body: { companyId: selectedCompanyId },
-      });
+      setIsRefreshing(true);
+      try {
+        await supabase.functions.invoke("dp-refresh-pendencias", {
+          body: { companyId: selectedCompanyId },
+        });
+      } finally {
+        setIsRefreshing(false);
+      }
     }
     return query.refetch();
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompanyId]);
 
-  return { ...query, refetch, lastCalculatedAt: apuracao.data ?? null };
+  return { ...query, refetch, isRefreshing, lastCalculatedAt: apuracao.data ?? null };
 }
 
 /** Alias explícito: escopo administrativo (empresa inteira). */
