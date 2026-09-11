@@ -149,15 +149,21 @@ describe("alertaPendenciaFerias", () => {
   });
 
   it("destaca risco de dobra quando o prazo legal está próximo", () => {
-    const alerta = alertaPendenciaFerias({ ...base, hojeISO: "2026-09-11" });
+    const alerta = alertaPendenciaFerias({ ...base, diasSaldo: 5, hojeISO: "2026-09-11" });
     expect(alerta.titulo).toBe("Férias a conceder — risco de dobra");
     expect(alerta.detalhePrazo).toContain("19 dia(s)");
   });
 
   it("destaca que o prazo legal termina hoje", () => {
-    const alerta = alertaPendenciaFerias({ ...base, hojeISO: "2026-09-30" });
+    const alerta = alertaPendenciaFerias({ ...base, diasSaldo: 0, hojeISO: "2026-09-30" });
     expect(alerta.titulo).toBe("Férias a conceder — risco de dobra");
     expect(alerta.detalhePrazo).toBe("prazo legal termina hoje");
+  });
+
+  it("avisa marcação atrasada quando o prazo não cabe o saldo", () => {
+    const alerta = alertaPendenciaFerias({ ...base, hojeISO: "2026-09-11" });
+    expect(alerta.titulo).toBe("Férias — marcação atrasada");
+    expect(alerta.detalhePrazo).toContain("30 dia(s) a gozar");
   });
 
   it("informa vencimento e pagamento em dobro após o prazo", () => {
