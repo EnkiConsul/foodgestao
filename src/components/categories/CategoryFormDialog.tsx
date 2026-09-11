@@ -69,6 +69,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const [subtype, setSubtype] = useState<string>("");
   const [aiDescription, setAiDescription] = useState<string>("");
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
+  /** Vínculos já gravados, para gravar só a diferença ao salvar. */
+  const [initialCompanies, setInitialCompanies] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [generatingAi, setGeneratingAi] = useState(false);
 
