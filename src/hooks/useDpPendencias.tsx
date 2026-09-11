@@ -845,6 +845,11 @@ export function useDpPendencias() {
             politica: feriasConfig.sinalizacaoCicloEncerrado,
             acumulo: idsAcumulo.has(p.id),
           });
+          // O prazo já não cabe o descanso inteiro: conta como atraso real
+          // (dias que já não caberão dentro do prazo legal).
+          if (alerta.nivel === "marcacao_atrasada" && dias < 0) {
+            dias = Math.max(1, (p.dias_saldo ?? 0) - Math.abs(dias));
+          }
           results.push({
             id: `ferias-${p.id}`,
             icon: Palmtree,
