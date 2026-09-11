@@ -2,6 +2,7 @@ import {
   BarChart3,
   Bell,
   BellRing,
+  Bug,
   Briefcase,
   Building2,
   Calculator,
