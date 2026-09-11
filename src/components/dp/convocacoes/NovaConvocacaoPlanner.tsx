@@ -50,7 +50,7 @@ import {
   regimeConvocavel,
   viraNoDiaSeguinte,
 } from "@/lib/dp/convocacoes-planejamento";
-import { textoDoErroDePublicacao } from "@/lib/dp/convocacoes-motivos";
+import { dataDoErroDePublicacao, textoDoErroDePublicacao } from "@/lib/dp/convocacoes-motivos";
 import { comCarimboAtual } from "@/lib/dp/convocacao-versao";
 import { supabase } from "@/integrations/supabase/client";
 import { useDpConvocacaoPreAvaliacao } from "@/hooks/useDpConvocacaoPreAvaliacao";
@@ -721,6 +721,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
   const publicarGrupo = async () => {
     setPublicando(true);
+    setDataComErro(null);
     try {
       const expected = await persistir();
       if (!expected) return;
@@ -747,7 +748,9 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       onSalvo?.(grupoId);
       onOpenChange(false);
     } catch (e: any) {
-      toast.error(textoDoErroDePublicacao(String(e?.message ?? "")));
+      const msg = String(e?.message ?? "");
+      setDataComErro(dataDoErroDePublicacao(msg));
+      toast.error(textoDoErroDePublicacao(msg));
     } finally {
       setPublicando(false);
     }
@@ -1129,6 +1132,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     onRemover={removerDia}
                     onAbrirIndividuais={setDetalhe}
                     onAplicarATodos={aplicarATodos}
+                    destacarData={dataComErro}
                     renderSimulacao={(item) => (
                       <DiaSimulacaoInline
                         competencia={competencia}

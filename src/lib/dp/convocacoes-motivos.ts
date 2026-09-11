@@ -66,6 +66,11 @@ export function textoDoMotivo(motivo: string | null | undefined, ctx: ContextoMo
   }
 }
 
+/** Data (ISO) citada no erro de publicação, quando houver. */
+export function dataDoErroDePublicacao(mensagem: string): string | null {
+  return /(\d{4}-\d{2}-\d{2})/.exec(String(mensagem ?? ""))?.[1] ?? null;
+}
+
 /** Mensagem amigável para os erros que a publicação pode devolver. */
 export function textoDoErroDePublicacao(mensagem: string): string {
   const msg = String(mensagem ?? "");
