@@ -222,10 +222,10 @@ export function PendenciasCard() {
             size="icon"
             className="h-7 w-7 text-muted-foreground hover:text-foreground"
             title="Atualizar pendências agora"
-            disabled={isFetching}
+            disabled={isRefreshing}
             onClick={() => void refetch()}
           >
-            <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+            <RefreshCw className={isRefreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
           </Button>
           <Button
             asChild
