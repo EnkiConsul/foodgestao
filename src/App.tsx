@@ -137,6 +137,8 @@ const AdminDonosEmpresas = lazyWithRetry(() => import("./pages/admin/DonosEmpres
 const AdminAuditoria = lazyWithRetry(() => import("./pages/admin/Auditoria"));
 const AdminErros = lazyWithRetry(() => import("./pages/admin/Erros"));
 const AdminConectados = lazyWithRetry(() => import("./pages/admin/Conectados"));
+const AdminAcessos = lazyWithRetry(() => import("./pages/admin/Acessos"));
+
 const AdminResetarDados = lazyWithRetry(() => import("./pages/admin/ResetarDados"));
 const AdminCadastros = lazyWithRetry(() => import("./pages/admin/Cadastros"));
 const AdminCategoriasPadrao = lazyWithRetry(() => import("./pages/admin/CategoriasPadrao"));
@@ -500,6 +502,8 @@ const AppRoutes = () => (
         <Route path="/admin/auditoria" element={<AdminAuditoria />} />
         <Route path="/admin/erros" element={<AdminErros />} />
         <Route path="/admin/conectados" element={<AdminConectados />} />
+        <Route path="/admin/acessos" element={<AdminAcessos />} />
+
         <Route path="/admin/resetar-dados" element={<AdminResetarDados />} />
         <Route path="/admin/documentos-legais" element={<AdminDocumentosLegais />} />
         <Route path="/admin/bancos" element={<AdminBancos />} />
