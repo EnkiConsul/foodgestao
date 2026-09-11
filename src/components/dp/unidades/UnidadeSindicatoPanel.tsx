@@ -262,11 +262,11 @@ export function UnidadeSindicatoPanel({ unidadeId, unidadeNome }: Props) {
       </div>
 
       {vinculado ? (
-        <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm">
-          <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 rounded-xl border border-border bg-muted/30 p-3 text-sm">
+          <div className="flex min-w-0 items-start justify-between gap-2">
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="truncate font-semibold">{vinculado.nome}</span>
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="break-words font-semibold">{vinculado.nome}</span>
                 <Badge variant="secondary" className="shrink-0">Patronal</Badge>
               </div>
               <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
@@ -276,14 +276,14 @@ export function UnidadeSindicatoPanel({ unidadeId, unidadeNome }: Props) {
               </div>
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" className="min-h-10" onClick={abrirEdicao}>
+          <div className="mt-3 grid grid-cols-1 gap-2 min-[390px]:grid-cols-2 sm:flex sm:flex-wrap">
+            <Button size="sm" variant="outline" className="min-h-10 w-full sm:w-auto" onClick={abrirEdicao}>
               <Pencil className="mr-1 size-4" /> Editar Dados
             </Button>
             <Button
               size="sm"
               variant="ghost"
-              className="min-h-10 text-destructive hover:bg-destructive/10"
+              className="min-h-10 w-full text-destructive hover:bg-destructive/10 sm:w-auto"
               onClick={() => vincular(null)}
               disabled={salvando}
             >

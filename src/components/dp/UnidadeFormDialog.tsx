@@ -237,13 +237,13 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
           onValueChange={(v) => setAba(v as UnidadeAba)}
           className="flex min-h-0 flex-1 flex-col gap-0"
         >
-          <div className="border-b px-4 pt-3">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="dados" className="h-10">Dados</TabsTrigger>
-              <TabsTrigger value="setores" className="h-10">Setores</TabsTrigger>
-              <TabsTrigger value="funcionamento" className="h-10">Funcionamento</TabsTrigger>
-              <TabsTrigger value="feriados" className="h-10">Feriados</TabsTrigger>
-              <TabsTrigger value="sindicato" className="h-10">Sindicato</TabsTrigger>
+          <div className="max-w-full overflow-x-auto border-b px-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <TabsList className="flex h-auto w-max min-w-full justify-start sm:grid sm:w-full sm:grid-cols-5">
+              <TabsTrigger value="dados" className="h-10 shrink-0 px-4 sm:px-3">Dados</TabsTrigger>
+              <TabsTrigger value="setores" className="h-10 shrink-0 px-4 sm:px-3">Setores</TabsTrigger>
+              <TabsTrigger value="funcionamento" className="h-10 shrink-0 px-4 sm:px-3">Funcionamento</TabsTrigger>
+              <TabsTrigger value="feriados" className="h-10 shrink-0 px-4 sm:px-3">Feriados</TabsTrigger>
+              <TabsTrigger value="sindicato" className="h-10 shrink-0 px-4 sm:px-3">Sindicato</TabsTrigger>
             </TabsList>
           </div>
         <TabsContent value="dados" className="mt-0 flex-1 space-y-4 overflow-y-auto p-4">
