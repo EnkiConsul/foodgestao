@@ -1,56 +1,44 @@
-# Por que o C6 da Raptor parou de sincronizar (e o que mais está errado)
+# Últimos acessos dos usuários (backoffice)
 
-## O que os dados mostram (verificado agora)
+Nova página no backoffice para acompanhar, em tempo real, o último acesso de cada usuário.
 
-- A conta C6 **35507609-8** aparece nas duas empresas (Raptor e Familia), mas o banco informa **um único CNPJ: 58.241.366/0001-32**, que é exatamente o CNPJ da **Raptor Systems**. A Familia não tem CNPJ cadastrado. Ou seja: **essa conta C6 é da Raptor**, não da Familia.
-- Ontem (10/09, 13:59) a ligação C6 da Raptor foi **encerrada** durante a limpeza de duplicidades, sob a premissa de que o C6 era da Familia. Desde então: último recebimento da Raptor em 10/09 12:10, nenhum aviso do banco depois disso, próxima sincronização parada em 10/09 13:07.
-- O extrato dessa mesma conta continua entrando na **Familia**: 272 lançamentos aguardando conferência lá; na Raptor, zero.
-- A conta financeira C6 da Raptor (a que você tem aberta agora) tem 26 lançamentos próprios e segue apontando para uma ligação encerrada.
+## O que a tela mostra
 
-### Outros problemas encontrados nas demais empresas
+Uma lista com todos os usuários da plataforma, ordenada do acesso mais recente para o mais antigo:
 
-1. **Familia / Neon**: ligação antiga encerrada com 2 contas ainda apontando para ela; a ligação nova tem 1 conta sem vínculo.
-2. **Praianos / Banco do Brasil**: 2 ligações encerradas e 1 ativa; a ativa volta com "sucesso parcial" e 2 contas sem vínculo. 625 lançamentos aguardando conferência.
-3. **Raptor / BTG**: presa em "atualizando" desde 29/08, sem nenhuma conta gerada e sem aviso na tela.
-4. **Contas sem vínculo (cartões)**: 1 em Aperte 3D, 1 no Bmg, 1 no C6, 1 no Santander, 1 no Neon, 2 no BB — aparecem no sistema mas não alimentam nada até serem autorizadas.
-5. **Nubank (Familia) e BB (Praianos)** voltam como "sucesso parcial" e isso não é explicado na tela.
+- Nome
+- E-mail
+- Telefone
+- Empresas vinculadas (nome da empresa e se a pessoa é dona ou convidada)
+- Data e hora do último acesso, com o tempo relativo ("há 12 minutos")
+- Situação atual: "Online agora", "Ausente" ou "Offline"
 
-## O que será feito
+Recursos:
 
-### 1. Devolver o C6 para a Raptor (correção principal)
-- Reativar a ligação C6 da Raptor e religar a conta financeira C6 dela à ligação ativa.
-- Encerrar o espelho do C6 na Familia e mover os 272 lançamentos pendentes desse C6 para a Raptor (nada conferido é apagado; o histórico fica).
-- Reagendar a sincronização e rodar uma sincronização imediata para o extrato voltar a aparecer na Raptor.
+- Busca por nome, e-mail, telefone ou empresa
+- Cartões de resumo no topo: online agora, acessos hoje, acessos nos últimos 7 dias, total de usuários
+- Filtro rápido: todos / online agora / sem acesso nos últimos 30 dias
+- Botão de atualizar, com indicação de "atualizado há X"
+- Layout em tabela no desktop e em cartões no celular
 
-### 2. Impedir que a mesma conta seja atribuída à empresa errada
-- Na hora de ligar/atribuir um banco, comparar o **CNPJ/CPF que o banco informa** com o cadastro da empresa. Se não bater, avisar em qual empresa aquele documento está e pedir confirmação explícita antes de criar.
-- Ao encerrar uma ligação por duplicidade, exigir a mesma checagem de documento, para não desligar a empresa dona da conta.
+## Como o "tempo real" funciona
 
-### 3. Contas apontando para ligação encerrada
-- Rotina que detecta conta financeira ligada a conexão encerrada e a religa à conexão ativa do mesmo banco/conta (Neon da Familia e BB da Praianos entram aqui).
+Duas fontes combinadas:
 
-### 4. Deixar o estado visível na tela de Conexões e Conciliação
-- Faixa por conexão: última sincronização, próxima programada, e motivo quando parada ("encerrada", "requer nova autorização", "banco em manutenção", "sucesso parcial: o banco entregou parte dos dados"), com botão "Sincronizar agora".
-- Conexão presa em atualização por mais de 24h (BTG) passa a aparecer como "requer nova autorização" com botão para reconectar.
-- Aviso com a contagem de contas/cartões aguardando autorização e link direto para a fila.
-
-### 5. Testes
-- Teste da regra de atribuição por documento (documento diferente exige confirmação; documento igual atribui à empresa correta).
-- Teste da religação de conta apontando para conexão encerrada.
+1. Quem está conectado neste instante vem do mesmo canal de presença já usado na tela "Usuários Conectados" — muda na hora, sem recarregar.
+2. A data/hora do último acesso e os dados cadastrais são lidos do backend e atualizados automaticamente a cada 30 segundos (e no botão de atualizar). Quando alguém aparece online, a linha passa a mostrar "agora".
 
 ## Detalhes técnicos
 
-- Correção de dados: reabrir `pluggy_connections` `1e780019…` (item `8454d7c5…`) da Raptor (`status='updated'`, `next_sync_at` recalculado); `pluggy_accounts` `7b0a3805…` mantida ligada a `accounts.84dc8b61…`; encerrar `pluggy_accounts` `54607bb4…` (Familia) e repontar seus `pluggy_staging_transactions` pendentes (272) para `company_id` Raptor + conta `84dc8b61…`; nada com `status='confirmed'` é alterado.
-- `pluggy-sync-item` / `pluggy-webhook-worker`: na resolução de empresa, comparar `pluggy_accounts.raw->>'taxNumber'` (normalizado) com `companies.cnpj`; divergência retorna `owner_document_mismatch` com o nome da empresa dona, e o front reenvia com confirmação.
-- Rotina de religação: `pluggy_accounts.connection_id` de conexões `deleted` com conexão ativa do mesmo `connector_id` + `number_masked` na mesma empresa.
-- Detecção de item preso: conexões em `updating` com `updated_at` > 24h → `requires_reauth` na leitura.
-- Frontend: `src/pages/ConexoesPluggy.tsx`, `src/pages/ConciliacaoPluggy.tsx`, `src/hooks/useExtratoConciliacao.tsx`, `src/lib/pluggy/connectionState.ts` (novos estados).
-- `next_sync_at` sempre reagendado no fim do sync manual, com o intervalo do cron.
-- Sem migração de schema, exceto índice auxiliar se necessário para a busca por documento.
+- Nova rota `/admin/acessos` com item "Últimos Acessos" na sidebar do backoffice (`AdminSidebar.tsx`), protegida por `SuperAdminRoute` como as demais.
+- Nova página `src/pages/admin/Acessos.tsx` + componente `src/components/admin/AdminLastAccess.tsx` seguindo o padrão de `AdminOnlineUsers.tsx` (mesmos cartões, busca, tabela desktop + cartões mobile).
+- Reuso da Edge Function `admin-list-users-auth` (já valida super admin via `is_super_admin` e usa service role): estender o retorno com `companies: [{ id, name, role }]` por usuário, montado a partir de `company_members` (join em `companies`) e da coluna `companies.user_id` para identificar donos. Nenhum outro consumidor quebra: o campo é aditivo (`AdminUsers.tsx` ignora).
+- Último acesso vem de `auth.last_sign_in_at` (já exposto pela função); telefone de `profiles.phone` com fallback `auth.phone`; e-mail de `auth.email`.
+- Presença ao vivo via `useOnlineUsers()` (`src/hooks/usePresence.tsx`), casada por `user_id`; sem novo canal, sem novas inscrições.
+- Hook de dados com React Query (`refetchInterval` de 30s) na própria página, sem alterar hooks existentes.
 
-## Verificação
+## Validação
 
-- Conta C6 da Raptor com extrato novo na Conciliação da Raptor e nada mais entrando na Familia.
-- Neon (Familia) e BB (Praianos) sincronizando na conta financeira correta.
-- BTG aparecendo como "requer nova autorização".
-- Tentar atribuir uma conta cujo CNPJ é de outra empresa exibe confirmação antes de criar.
+- Conferir que a lista traz todos os usuários, com data/hora do último acesso e empresas corretas.
+- Abrir a plataforma em outra sessão e confirmar que a pessoa passa a "Online agora" sem recarregar.
+- Confirmar que usuário sem permissão de backoffice continua sem acesso à rota.
