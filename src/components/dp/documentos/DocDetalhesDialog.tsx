@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  Download, Eye, FileText, History, Replace, Trash2, Loader2,
+  Download, Eye, FileText, History, Replace, Trash2, Loader2, Printer,
 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { imprimirCertificadoValidacao } from "@/lib/dp/documento-certificado";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
