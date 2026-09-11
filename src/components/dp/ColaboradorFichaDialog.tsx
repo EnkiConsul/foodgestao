@@ -742,7 +742,7 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
             <Section icon={LogOut} title="Desligamento">
               <Field label="Data da Demissão" value={fmtDate(colaborador?.data_desligamento)} />
               <Field label="Acesso ao Portal Até" value={fmtDate(acessoPortalAte)} />
-              <Field label="Observações" value={(colaborador as any)?.observacao_desligamento} />
+              <Field label="Observações" value={ressalvas.data?.observacao ?? null} />
             </Section>
           )}
 

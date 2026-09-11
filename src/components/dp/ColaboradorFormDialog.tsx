@@ -1614,12 +1614,20 @@ export function ColaboradorFormDialog({
               data_desligamento: form.data_desligamento,
               motivo_desligamento:
                 form.motivo_desligamento === NONE_DESLIG ? null : form.motivo_desligamento,
-              elegivel_recontratacao:
-                form.elegivel_recontratacao === NONE_DESLIG ? null : form.elegivel_recontratacao,
-              observacao_desligamento: form.observacao_desligamento.trim() || null,
             }
           : {}),
       } as any);
+
+      // Ressalvas do desligamento vão para a tabela restrita ao RH/dono,
+      // fora da ficha que o colaborador consegue ler.
+      if (isDesligado && colaboradorId) {
+        await salvarRessalvas.mutateAsync({
+          colaborador_id: colaboradorId,
+          observacao: form.observacao_desligamento.trim() || null,
+          elegibilidade:
+            form.elegivel_recontratacao === NONE_DESLIG ? null : form.elegivel_recontratacao,
+        });
+      }
 
       // Se este cadastro veio de uma pessoa de apoio, vincula o histórico e
       // inativa o registro original para não manter duplicidade.
