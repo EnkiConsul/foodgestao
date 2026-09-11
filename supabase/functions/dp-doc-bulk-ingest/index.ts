@@ -159,11 +159,24 @@ async function processBatchAsync({ svc, aiKey, batch }: { svc: any; aiKey: strin
       .eq("batch_id", batch_id)
       .not("matched_colaborador_id", "is", null);
 
+    // Se todas as páginas reconhecidas pertencem à mesma unidade, promove a
+    // unidade para o cabeçalho do lote. Lotes realmente multiunidade continuam
+    // sem unidade global e preservam a unidade individual de cada página.
+    const { data: processedItems } = await svc
+      .from("dp_bulk_import_items")
+      .select("detected_unidade_id")
+      .eq("batch_id", batch_id)
+      .not("detected_unidade_id", "is", null);
+    const detectedUnitIds = [
+      ...new Set((processedItems ?? []).map((item: { detected_unidade_id: string }) => item.detected_unidade_id)),
+    ];
+
     await svc.from("dp_bulk_import_batches")
       .update({
         status: "ready",
         matched_count: matchedCount ?? 0,
         processed_pages: totalPages,
+        ...(detectedUnitIds.length === 1 ? { unidade_id: detectedUnitIds[0] } : {}),
       })
       .eq("id", batch_id);
   } catch (e) {
@@ -213,7 +226,7 @@ async function processPage(args: {
     const competencia =
       extractPeriodo(ocr) ??
       extractPeriodoFromFilename(batch.source_file_name ?? ""); // "YYYY-MM" ou null
-    const unidadeDetectada = cnpjs.map((c) => cnpjToUnidade.get(c)).find(Boolean) ?? null;
+    const unidadePorCnpj = cnpjs.map((c) => cnpjToUnidade.get(c)).find(Boolean) ?? null;
 
     // Natureza: regra aprendida da empresa > IA > heurística por palavra-chave.
     const assinatura = assinaturaDocumento(batch.source_file_name ?? "", ocr);
@@ -246,7 +259,7 @@ async function processPage(args: {
     const restrictPonto = tipoEfetivo === "ponto";
     const candidates = colabList.filter((c) => {
       if (restrictPonto && c.possui_folha_ponto === false) return false;
-      if (unidadeDetectada && c.unidade_id && c.unidade_id !== unidadeDetectada) return false;
+      if (unidadePorCnpj && c.unidade_id && c.unidade_id !== unidadePorCnpj) return false;
       return true;
     });
     const candCpf = new Map<string, Colab>();
@@ -269,6 +282,10 @@ async function processPage(args: {
         if (c) { match = c; confidence = 0.9; matchedCpf = cpf; break; }
       }
     }
+
+    // O vínculo inequívoco do colaborador também identifica a unidade. Isso é
+    // especialmente importante em folhas sem CNPJ legível no cabeçalho.
+    const unidadeDetectada = unidadePorCnpj ?? match?.unidade_id ?? null;
     // 3) Nome exato bounded
     if (!match) {
       const upper = normalizeName(ocr);

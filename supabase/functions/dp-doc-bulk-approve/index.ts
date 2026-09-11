@@ -99,14 +99,22 @@ Deno.serve(async (req) => {
     const colabIds = [
       ...new Set((items as any[]).map((i) => i.matched_colaborador_id).filter((v): v is string => !!v)),
     ];
-    const vinculoPorColab = new Map<string, { vinculo_label: string | null; socio_remuneracao: string | null }>();
+    const vinculoPorColab = new Map<string, {
+      vinculo_label: string | null;
+      socio_remuneracao: string | null;
+      unidade_id: string | null;
+    }>();
     if (colabIds.length) {
       const { data: colabs } = await svc
         .from("dp_colaboradores")
-        .select("id, vinculo_label, socio_remuneracao")
+        .select("id, vinculo_label, socio_remuneracao, unidade_id")
         .in("id", colabIds);
       (colabs ?? []).forEach((c: any) =>
-        vinculoPorColab.set(c.id, { vinculo_label: c.vinculo_label, socio_remuneracao: c.socio_remuneracao }),
+        vinculoPorColab.set(c.id, {
+          vinculo_label: c.vinculo_label,
+          socio_remuneracao: c.socio_remuneracao,
+          unidade_id: c.unidade_id,
+        }),
       );
     }
 
@@ -184,7 +192,11 @@ Deno.serve(async (req) => {
           titulo,
           exige_aceite: exigeAceite,
           assinatura_detectada: it.assinatura_detectada ?? null,
-          unidade_id: it.detected_unidade_id ?? batch.unidade_id ?? null,
+          unidade_id:
+            it.detected_unidade_id ??
+            batch.unidade_id ??
+            vinculoPorColab.get(it.matched_colaborador_id)?.unidade_id ??
+            null,
           file_path: dstPath,
           file_name: `${batch.id}_p${it.page_index}.pdf`,
           file_size: bytes.byteLength,
