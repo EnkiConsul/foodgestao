@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertTriangle, Bug, CheckCircle2, EyeOff, RefreshCw, RotateCcw } from "lucide-react";
+import { AlertTriangle, Bug, CheckCircle2, ChevronDown, EyeOff, RefreshCw, RotateCcw } from "lucide-react";
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import {
-  useAppErrorLogs, useAppErrorStatus, FILTROS_ERRO_PADRAO,
+  useAppErrorLogs, useAppErrorStatus, useAppErrorReportStatus, FILTROS_ERRO_PADRAO,
   type AppErrorFiltros, type AppErrorLog,
 } from "@/hooks/useAppErrorLogs";
 
@@ -52,8 +52,10 @@ export default function DpErros({ todasEmpresas = false }: DpErrosProps) {
   const [filtros, setFiltros] = useState<AppErrorFiltros>({ ...FILTROS_ERRO_PADRAO, todasEmpresas });
   const { data, isLoading, error, refetch, isFetching, dataUpdatedAt } = useAppErrorLogs(filtros);
   const atualizar = useAppErrorStatus();
+  const atualizarChamado = useAppErrorReportStatus();
   const [decisao, setDecisao] = useState<{ log: AppErrorLog; status: "resolvido" | "ignorado" } | null>(null);
   const [nota, setNota] = useState("");
+  const [chamado, setChamado] = useState<{ id: string; status: "aberto" | "em_analise" | "resolvido" | "ignorado" } | null>(null);
 
   const linhas = data ?? [];
 
@@ -192,6 +194,9 @@ export default function DpErros({ todasEmpresas = false }: DpErrosProps) {
                       {l.occurrences > 1 && (
                         <Badge variant="outline">{l.occurrences}x</Badge>
                       )}
+                      {(l.reports?.length ?? 0) > 0 && (
+                        <Badge variant="default">{l.reports?.length} chamado{l.reports?.length === 1 ? "" : "s"}</Badge>
+                      )}
                     </div>
                     <p className="font-medium">
                       {l.surface ?? "Tela não identificada"}
@@ -212,6 +217,36 @@ export default function DpErros({ todasEmpresas = false }: DpErrosProps) {
                     </p>
                     {l.status_note && (
                       <p className="text-xs text-muted-foreground">Observação: {l.status_note}</p>
+                    )}
+                    {(l.reports?.length ?? 0) > 0 && (
+                      <details className="mt-3 rounded-md border bg-muted/30 p-3">
+                        <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold">
+                          <ChevronDown className="h-4 w-4" /> Relatos dos usuários
+                        </summary>
+                        <div className="mt-3 space-y-3">
+                          {l.reports?.map((report) => (
+                            <div key={report.id} className="rounded-md border bg-background p-3 text-sm">
+                              <div className="mb-2 flex flex-wrap items-center gap-2">
+                                <Badge variant="outline">{report.protocol}</Badge>
+                                <Badge variant={report.status === "aberto" ? "destructive" : "secondary"}>
+                                  {report.status === "em_analise" ? "Em análise" : SITUACAO_LABEL[report.status]}
+                                </Badge>
+                              </div>
+                              <p className="whitespace-pre-wrap font-medium">{report.description}</p>
+                              {report.attempted_action && <p className="mt-2 text-muted-foreground"><strong>Tentava:</strong> {report.attempted_action}</p>}
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                {report.reporter_name ?? "Usuário"} · {dataHora(report.created_at)}
+                              </p>
+                              {report.internal_note && <p className="mt-2 text-xs text-muted-foreground">Observação interna: {report.internal_note}</p>}
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {report.status !== "em_analise" && <Button size="sm" variant="outline" onClick={() => { setChamado({ id: report.id, status: "em_analise" }); setNota(""); }}>Em análise</Button>}
+                                {report.status !== "resolvido" && <Button size="sm" variant="outline" onClick={() => { setChamado({ id: report.id, status: "resolvido" }); setNota(""); }}>Resolver</Button>}
+                                {report.status !== "ignorado" && <Button size="sm" variant="ghost" onClick={() => { setChamado({ id: report.id, status: "ignorado" }); setNota(""); }}>Ignorar</Button>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
                     )}
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
@@ -267,6 +302,30 @@ export default function DpErros({ todasEmpresas = false }: DpErrosProps) {
             >
               Confirmar
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!chamado} onOpenChange={(open) => { if (!open) { setChamado(null); setNota(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Atualizar chamado</DialogTitle>
+            <DialogDescription>Registre uma observação para manter o histórico da análise.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Observação interna</Label>
+            <Textarea value={nota} onChange={(event) => setNota(event.target.value)} rows={3} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChamado(null)}>Cancelar</Button>
+            <Button
+              onClick={async () => {
+                if (!chamado) return;
+                await atualizarChamado.mutateAsync({ id: chamado.id, status: chamado.status, nota });
+                setChamado(null);
+                setNota("");
+              }}
+              disabled={atualizarChamado.isPending}
+            >Confirmar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

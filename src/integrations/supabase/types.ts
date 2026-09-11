@@ -180,6 +180,120 @@ export type Database = {
           },
         ]
       }
+      app_error_report_events: {
+        Row: {
+          actor_user_id: string
+          company_id: string
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          note: string | null
+          report_id: string
+          to_status: string | null
+        }
+        Insert: {
+          actor_user_id: string
+          company_id: string
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          report_id: string
+          to_status?: string | null
+        }
+        Update: {
+          actor_user_id?: string
+          company_id?: string
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          report_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_error_report_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_error_report_events_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "app_error_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_error_reports: {
+        Row: {
+          attempted_action: string | null
+          company_id: string
+          created_at: string
+          description: string
+          error_log_id: string
+          id: string
+          internal_note: string | null
+          protocol: string
+          reporter_name: string | null
+          reporter_user_id: string
+          route: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempted_action?: string | null
+          company_id: string
+          created_at?: string
+          description: string
+          error_log_id: string
+          id?: string
+          internal_note?: string | null
+          protocol: string
+          reporter_name?: string | null
+          reporter_user_id: string
+          route?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempted_action?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string
+          error_log_id?: string
+          id?: string
+          internal_note?: string | null
+          protocol?: string
+          reporter_name?: string | null
+          reporter_user_id?: string
+          route?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_error_reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_error_reports_error_log_id_fkey"
+            columns: ["error_log_id"]
+            isOneToOne: false
+            referencedRelation: "app_error_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_hidden_screens: {
         Row: {
           enabled: boolean
@@ -14026,6 +14140,22 @@ export type Database = {
           _user_message?: string
         }
         Returns: string
+      }
+      app_error_report_create: {
+        Args: {
+          _attempted_action?: string
+          _description: string
+          _error_log_id: string
+          _route?: string
+        }
+        Returns: {
+          id: string
+          protocol: string
+        }[]
+      }
+      app_error_report_update_status: {
+        Args: { _internal_note?: string; _report_id: string; _status: string }
+        Returns: undefined
       }
       apply_ai_categorization: {
         Args: {
