@@ -24,6 +24,7 @@ import {
   calcAcessoPortalAte,
 } from "@/lib/dp/desligamento";
 import { ColaboradorRecontratacaoDialog } from "@/components/dp/ColaboradorRecontratacaoDialog";
+import { useDpDesligamentoRessalvas } from "@/hooks/useDpDesligamentoRessalvas";
 
 const NONE = "__none__";
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
