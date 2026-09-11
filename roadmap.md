@@ -59,7 +59,7 @@
 - [x] Materializar pendências documentais e atualizar uma vez ao dia, às 3h, além de recalcular após ações e pelo botão Atualizar
 
 ## Chamados ligados a erros (11/09/2026)
-- [ ] Mostrar aviso chamativo em falhas reais e permitir relato detalhado
-- [ ] Gerar protocolo e vincular cada chamado ao erro técnico original
-- [ ] Exibir relatos, situação e histórico na auditoria e no backoffice
-- [ ] Validar permissões, celular e fluxos de erro globais
+- [x] Mostrar aviso chamativo em falhas reais e permitir relato detalhado
+- [x] Gerar protocolo e vincular cada chamado ao erro técnico original
+- [x] Exibir relatos, situação e histórico na auditoria e no backoffice
+- [x] Validar permissões, celular e fluxos de erro globais
