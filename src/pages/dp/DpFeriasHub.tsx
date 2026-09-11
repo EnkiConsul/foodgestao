@@ -12,6 +12,7 @@ import { FeriasSolicitacoesPanel } from "@/components/dp/ferias/FeriasSolicitaco
 import { FeriasConfigCard } from "@/components/dp/ferias/FeriasConfigCard";
 import { FeriasContabilidadePanel } from "@/components/dp/ferias/FeriasContabilidadePanel";
 import { FeriasCalendarioPanel } from "@/components/dp/ferias/FeriasCalendarioPanel";
+import { FeriasProgramacaoPanel } from "@/components/dp/ferias/FeriasProgramacaoPanel";
 import { useDpFerias } from "@/hooks/useDpFerias";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 
@@ -19,6 +20,7 @@ const PlanejamentoPanel = lazy(() => import("./DpFerias"));
 
 const ABAS = [
   "planejamento",
+  "programacao",
   "solicitacoes",
   "programadas",
   "em-ferias",
@@ -80,6 +82,7 @@ export default function DpFeriasHub() {
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <DpTabsBar>
           <TabsTrigger value="planejamento">Planejamento</TabsTrigger>
+          <TabsTrigger value="programacao">Programação</TabsTrigger>
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
           <TabsTrigger value="programadas">Programadas</TabsTrigger>
           <TabsTrigger value="em-ferias">Em férias</TabsTrigger>
@@ -95,6 +98,14 @@ export default function DpFeriasHub() {
               <Suspense fallback={<PanelFallback />}>
                 <PlanejamentoPanel />
               </Suspense>
+            </DpEmbeddedProvider>
+          )}
+        </TabsContent>
+
+        <TabsContent value="programacao" className="m-0">
+          {aba === "programacao" && (
+            <DpEmbeddedProvider>
+              <FeriasProgramacaoPanel />
             </DpEmbeddedProvider>
           )}
         </TabsContent>
