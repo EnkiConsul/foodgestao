@@ -12,21 +12,52 @@ export type PendenciaLike = {
   url: string;
   colaboradorNome?: string | null;
   unidadeNome?: string | null;
+  /**
+   * Pede ação agora mesmo sem ter vencido: hoje só as férias em risco de pagar
+   * em dobro (prazo legal a 30 dias ou menos).
+   */
+  urgente?: boolean | null;
 };
 
-export type PendenciaUrgencia = "atrasada" | "hoje" | "proxima";
+export type PendenciaUrgencia = "atrasada" | "urgente" | "hoje" | "proxima";
 
-export function urgenciaDe(p: Pick<PendenciaLike, "atrasoDias">): PendenciaUrgencia {
+export function urgenciaDe(p: Pick<PendenciaLike, "atrasoDias" | "urgente">): PendenciaUrgencia {
   if (p.atrasoDias > 0) return "atrasada";
+  if (p.urgente) return "urgente";
   if (p.atrasoDias === 0) return "hoje";
   return "proxima";
 }
 
 export const URGENCIA_LABEL: Record<PendenciaUrgencia, string> = {
   atrasada: "Atrasada",
+  urgente: "Urgente",
   hoje: "Vence hoje",
   proxima: "Próxima",
 };
+
+/** Peso de ordenação: atrasadas > urgentes > vence hoje > próximas. */
+export function pesoUrgencia(p: Pick<PendenciaLike, "atrasoDias" | "urgente">): number {
+  const u = urgenciaDe(p);
+  if (u === "atrasada") return 3;
+  if (u === "urgente") return 2;
+  if (u === "hoje") return 1;
+  return 0;
+}
+
+/** Comparador único: atrasadas primeiro, urgentes em seguida, depois por prazo. */
+export function compararUrgencia(
+  a: Pick<PendenciaLike, "atrasoDias" | "urgente" | "vencimento" | "colaboradorNome">,
+  b: Pick<PendenciaLike, "atrasoDias" | "urgente" | "vencimento" | "colaboradorNome">,
+): number {
+  const pa = pesoUrgencia(a);
+  const pb = pesoUrgencia(b);
+  if (pa !== pb) return pb - pa;
+  if (b.atrasoDias !== a.atrasoDias) return b.atrasoDias - a.atrasoDias;
+  const av = a.vencimento ? new Date(a.vencimento).getTime() : Infinity;
+  const bv = b.vencimento ? new Date(b.vencimento).getTime() : Infinity;
+  if (av !== bv) return av - bv;
+  return (a.colaboradorNome ?? "").localeCompare(b.colaboradorNome ?? "", "pt-BR");
+}
 
 /** Uma pendência está adiada quando existe data futura registrada nas preferências do usuário. */
 export function isPendenciaAdiada(
