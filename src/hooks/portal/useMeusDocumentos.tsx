@@ -185,6 +185,7 @@ export function useMeusDocumentos() {
           observacao: d.descricao ?? null,
           motivo_recusao: d.motivo_recusao ?? null,
           aceite: d.exige_aceite && !d.submetido_por_colaborador ? aceitos.has(d.id) : null,
+          aceiteInfo: aceitePorDoc.get(d.id) ?? null,
           meta: { originalId: d.id, submetido: d.submetido_por_colaborador },
         });
       }
