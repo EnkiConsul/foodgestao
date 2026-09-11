@@ -240,6 +240,18 @@ describe("risco de pagamento em dobro", () => {
     expect(r.periodoMaisAntigo?.id).toBe("aberto");
   });
 
+  it("período de pessoa desligada não conta para risco de dobra", () => {
+    const r = riscoAcumulo({
+      periodos: [
+        p("um", "2024-10-01", "2025-09-30", "2026-09-30", 30, { desligado: true }),
+        p("dois", "2025-10-01", "2026-09-30", "2027-09-30", 30, { desligado: true }),
+      ],
+      hojeISO,
+    });
+    expect(r.emRisco).toBe(false);
+    expect(r.periodosAbertos).toHaveLength(0);
+  });
+
   it("agrupa o risco por colaborador", () => {
     const mapa = riscoAcumuloPorColaborador(
       [
