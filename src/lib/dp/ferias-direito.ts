@@ -191,6 +191,13 @@ export function alertaPendenciaFerias(args: {
           : `faltam ${diasRestantes} dia(s) para o prazo legal`,
     };
   }
+  if (acumulo && diasRestantes <= JANELA_ACUMULO_ACOMPANHAR_DIAS) {
+    return {
+      nivel,
+      titulo: "Férias a conceder — acompanhar",
+      detalhePrazo: `faltam ${diasRestantes} dia(s) para o prazo legal (${formatarDataISO(args.limiteConcessivo)})`,
+    };
+  }
   if (nivel === "a_conceder") {
     return {
       nivel,
