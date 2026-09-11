@@ -32,8 +32,29 @@ export interface ColaboradorRecord {
   id: string;
   nome?: string | null;
   folga_fixa_semana: number | null;
+  /**
+   * Dias fixos de descanso vindos da configuração de trabalho (0=domingo).
+   * Quem descansa em mais de um dia — sábado e domingo, por exemplo — não cabe
+   * no campo único `folga_fixa_semana`.
+   */
+  folgas_fixas_dow?: number[] | null;
   ativo?: boolean | null;
   unidade_id?: string | null;
+}
+
+/** Todos os dias fixos de descanso da pessoa, sem repetição. */
+export function diasFixosDeFolga(c: {
+  folga_fixa_semana?: number | null;
+  folgas_fixas_dow?: number[] | null;
+}): number[] {
+  const set = new Set<number>();
+  const unico = normalizeWeekday(c.folga_fixa_semana);
+  if (unico != null) set.add(unico);
+  for (const d of c.folgas_fixas_dow ?? []) {
+    const n = normalizeWeekday(d);
+    if (n != null) set.add(n);
+  }
+  return Array.from(set);
 }
 
 export type OccupantType = "fixed" | "monthly" | "pending";
@@ -156,8 +177,7 @@ export function buildOccupantsByDate(params: {
       const wd = d.getDay();
       for (const c of colaboradores) {
         if (c.ativo === false) continue;
-        const fs = normalizeWeekday(c.folga_fixa_semana);
-        if (fs == null || fs !== wd) continue;
+        if (!diasFixosDeFolga(c).includes(wd)) continue;
         if (filterUser !== "all" && c.id !== filterUser) continue;
         push(iso, {
           key: `fixed:${c.id}:${iso}`,
@@ -284,8 +304,8 @@ export function calculateDateStatus(params: {
   const myProfile = allColaboradores.find((p) => p.id === myColaboradorId);
   const isCanceled =
     myColaboradorId && canceledFolgas.some((c) => c.colaborador_id === myColaboradorId && c.data === iso);
-  const myFixed = normalizeWeekday(myProfile?.folga_fixa_semana);
-  const isMyFixed = !isAdmin && myFixed != null && myFixed === date.getDay() && !isCanceled;
+  const myFixed = myProfile ? diasFixosDeFolga(myProfile) : [];
+  const isMyFixed = !isAdmin && myFixed.includes(date.getDay()) && !isCanceled;
 
   if (isMyFixed) {
     const hasOtherFolgaInSameWeek = allFolgas.some(
