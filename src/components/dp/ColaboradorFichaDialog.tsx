@@ -150,6 +150,8 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
 
   const perfil = (colaborador as any)?.perfil_acesso as string | null;
   const isDesligado = !!colaborador?.data_desligamento;
+  // Só RH/dono conseguem ler: para o colaborador a consulta volta vazia.
+  const ressalvas = useDpDesligamentoRessalvas(colaborador?.id);
   const folga = (colaborador as any)?.folga_fixa_semana;
   const possuiFolha = (colaborador as any)?.possui_folha_ponto as boolean | null;
   const optanteAdiantamento = (colaborador as any)?.optante_adiantamento as boolean | null;
