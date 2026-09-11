@@ -65,15 +65,21 @@ function ymd(d: Date) {
 
 export function useDpPendencias() {
   const { selectedCompanyId } = useCompanyContext();
-  const { config } = useDpPendenciasConfig();
+  const { config, isLoading: isConfigLoading } = useDpPendenciasConfig();
 
   const query = useQuery({
-    queryKey: ["dp_pendencias", selectedCompanyId, config],
-    enabled: !!selectedCompanyId,
+    // A identidade do cache depende apenas da empresa. Mudanças de configuração
+    // invalidam explicitamente esta chave no hook de configuração.
+    queryKey: ["dp_pendencias", selectedCompanyId],
+    enabled: !!selectedCompanyId && !isConfigLoading,
     // Sem repetição periódica no navegador: a rotina diária, as ações do gestor
     // e o botão manual controlam quando uma nova apuração deve acontecer.
     staleTime: Infinity,
+    // Mantém as pendências disponíveis durante toda a sessão para que voltar ao
+    // painel não descarte os dados e não exiba uma nova tela de carregamento.
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     queryFn: async (): Promise<Pendencia[]> => {
       const cfg: DpPendenciasConfig = config;
       const today = new Date();
