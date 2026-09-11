@@ -45,7 +45,7 @@ Adicionar "Nome social / Como prefere ser chamado" no cadastro. Usado nas telas 
 Vou fazer o link ser reconhecido em qualquer forma que você escreveu no modelo e validar o envio para a Karen, mostrando prévia antes de enviar.
 
 ## 10. Portal da Karen
-- Não oferecer "Escolher folga do mês" a quem tem folga fixa/automática.
+- "Escolher folga do mês" só aparece para quem **não** tem domingo fixo de folga. Quem já folga domingo não escolhe nada. Quem não tem domingo fixo escolhe o domingo (ou o sábado, no caso da Pakerê) conforme a regra da unidade.
 - Rotina da loja: mostrar a equipe do dia mesmo sem escala publicada (usar a rotina prevista) e avisar quando não houver unidade vinculada.
 - Calendário: marcar sábado e domingo como folga semanal para quem tem folga fixa.
 - Pendências de documentos pessoais: abrir a lista do que falta dela enviar, não a lista de documentos da empresa.
