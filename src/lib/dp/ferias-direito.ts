@@ -276,6 +276,14 @@ export const FERIAS_ERRO_TEXTO: Record<string, string> = {
     "Há convocação aceita dentro desse período. Cancele a convocação antes de marcar as férias.",
   FERIAS_AVISO_ANTECEDENCIA:
     "O aviso está abaixo da antecedência definida pela empresa. Escreva uma justificativa para seguir.",
+  FERIAS_AVISO_DATA_OBRIGATORIA: "Informe a data do aviso de férias.",
+  FERIAS_AVISO_DATA_FUTURA: "A data do aviso não pode ser no futuro.",
+  FERIAS_AVISO_FORA_PRAZO_SEM_JUSTIFICATIVA:
+    "O aviso saiu com menos de 30 dias. Escreva a justificativa para registrar.",
+  FERIAS_AVISO_RETROATIVO_SEM_DECLARACAO:
+    "Para registrar um aviso com data anterior, confirme que a comunicação foi feita naquela data.",
+  FERIAS_AVISO_RETROATIVO_SEM_ANEXO:
+    "Anexe o comprovante do aviso entregue ao colaborador para registrar a data anterior.",
   FERIAS_PERIODO_EM_REVISAO: "Este período exige revisão administrativa antes de marcar férias.",
   FERIAS_COLABORADOR_NAO_ENCONTRADO: "Colaborador não encontrado.",
   FERIAS_SOLICITACAO_NAO_ENCONTRADA: "Pedido de férias não encontrado.",

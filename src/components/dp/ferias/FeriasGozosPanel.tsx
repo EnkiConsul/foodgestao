@@ -9,6 +9,8 @@ import { useDpFerias, type FeriasGozo } from "@/hooks/useDpFerias";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { FeriasCancelarDialog } from "@/components/dp/ferias/FeriasCancelarDialog";
 import { FeriasCoberturaDialog } from "@/components/dp/ferias/FeriasCoberturaDialog";
+import { FeriasDocumentosCard } from "@/components/dp/ferias/FeriasDocumentosCard";
+import { FeriasAvisoDialog } from "@/components/dp/ferias/FeriasAvisoDialog";
 import { FERIAS_SOCIO_META } from "@/lib/dp/ferias-direito";
 
 const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
@@ -40,6 +42,7 @@ export function FeriasGozosPanel({ status, vazio }: Props) {
   const { gozos, gozosLoading, periodos, cancelarGozo } = useDpFerias("todos");
   const { data: colaboradores = [] } = useDpColaboradores();
   const [cancelando, setCancelando] = useState<(FeriasGozo & { colaborador_nome?: string | null }) | null>(null);
+  const [avisando, setAvisando] = useState<(FeriasGozo & { colaborador_nome?: string | null }) | null>(null);
   const [cobertura, setCobertura] = useState<
     (FeriasGozo & { colaborador_nome?: string | null; unidade_id?: string | null; cargo_id?: string | null }) | null
   >(null);
@@ -77,7 +80,8 @@ export function FeriasGozosPanel({ status, vazio }: Props) {
               const podeCancelar = g.status === "aprovado" || g.status === "em_gozo";
               const socio = !!periodo?.socio;
               return (
-                <div key={g.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div key={g.id} className="p-4">
+                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{nome}</p>
                     <p className="text-sm text-muted-foreground">
@@ -134,12 +138,25 @@ export function FeriasGozosPanel({ status, vazio }: Props) {
                       </Button>
                     )}
                   </div>
+                 </div>
+                 {g.status !== "cancelado" && (
+                   <FeriasDocumentosCard
+                     gozo={{ ...g, colaborador_nome: nome }}
+                     onRegistrarAviso={() => setAvisando({ ...g, colaborador_nome: nome })}
+                   />
+                 )}
                 </div>
               );
             })}
           </div>
         )}
       </DpContentCard>
+
+      <FeriasAvisoDialog
+        open={!!avisando}
+        onOpenChange={(v) => { if (!v) setAvisando(null); }}
+        gozo={avisando}
+      />
 
       <FeriasCoberturaDialog
         gozo={cobertura}

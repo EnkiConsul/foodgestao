@@ -6843,6 +6843,7 @@ export type Database = {
           created_at: string
           descricao: string | null
           exige_aceite: boolean
+          ferias_gozo_id: string | null
           file_name: string | null
           file_path: string
           file_size: number | null
@@ -6868,6 +6869,7 @@ export type Database = {
           created_at?: string
           descricao?: string | null
           exige_aceite?: boolean
+          ferias_gozo_id?: string | null
           file_name?: string | null
           file_path: string
           file_size?: number | null
@@ -6893,6 +6895,7 @@ export type Database = {
           created_at?: string
           descricao?: string | null
           exige_aceite?: boolean
+          ferias_gozo_id?: string | null
           file_name?: string | null
           file_path?: string
           file_size?: number | null
@@ -6930,6 +6933,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documentos_ferias_gozo_id_fkey"
+            columns: ["ferias_gozo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_ferias_gozos"
             referencedColumns: ["id"]
           },
           {
@@ -7413,10 +7423,16 @@ export type Database = {
           aprovado_em: string | null
           aprovado_por: string | null
           aviso_em: string | null
+          aviso_enviado_em: string | null
+          aviso_fora_prazo: boolean
           aviso_justificativa: string | null
+          aviso_retroativo: boolean
+          aviso_retroativo_declarado_em: string | null
+          aviso_retroativo_declarado_por: string | null
           cancelado_em: string | null
           cancelado_por: string | null
           ciente_em: string | null
+          ciente_fora_prazo: boolean
           ciente_por: string | null
           colaborador_id: string
           company_id: string
@@ -7443,10 +7459,16 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           aviso_em?: string | null
+          aviso_enviado_em?: string | null
+          aviso_fora_prazo?: boolean
           aviso_justificativa?: string | null
+          aviso_retroativo?: boolean
+          aviso_retroativo_declarado_em?: string | null
+          aviso_retroativo_declarado_por?: string | null
           cancelado_em?: string | null
           cancelado_por?: string | null
           ciente_em?: string | null
+          ciente_fora_prazo?: boolean
           ciente_por?: string | null
           colaborador_id: string
           company_id: string
@@ -7473,10 +7495,16 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           aviso_em?: string | null
+          aviso_enviado_em?: string | null
+          aviso_fora_prazo?: boolean
           aviso_justificativa?: string | null
+          aviso_retroativo?: boolean
+          aviso_retroativo_declarado_em?: string | null
+          aviso_retroativo_declarado_por?: string | null
           cancelado_em?: string | null
           cancelado_por?: string | null
           ciente_em?: string | null
+          ciente_fora_prazo?: boolean
           ciente_por?: string | null
           colaborador_id?: string
           company_id?: string
@@ -15281,6 +15309,16 @@ export type Database = {
       }
       dp_ferias_recusar: {
         Args: { _motivo: string; _solicitacao_id: string }
+        Returns: undefined
+      }
+      dp_ferias_registrar_aviso: {
+        Args: {
+          _aviso_em: string
+          _documento_id?: string
+          _gozo_id: string
+          _justificativa?: string
+          _retroativo?: boolean
+        }
         Returns: undefined
       }
       dp_ferias_registrar_ciencia: {

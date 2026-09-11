@@ -3,6 +3,15 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
 
+export type MinhaFeriasDocumento = {
+  id: string;
+  tipo: string;
+  titulo: string | null;
+  file_path: string;
+  file_name: string | null;
+  created_at: string;
+};
+
 export type MinhaFeriasGozo = {
   id: string;
   data_inicio: string;
@@ -13,6 +22,12 @@ export type MinhaFeriasGozo = {
   status: string;
   ciente_em: string | null;
   observacao: string | null;
+  aviso_em: string | null;
+  aviso_enviado_em: string | null;
+  aviso_fora_prazo: boolean | null;
+  aviso_retroativo: boolean | null;
+  aviso_justificativa: string | null;
+  documentos: MinhaFeriasDocumento[];
 };
 
 export type MinhaFeriasPeriodo = {
@@ -63,6 +78,7 @@ export function useDpMinhasFerias() {
           ...g,
           dias: Number(g.dias ?? 0),
           dias_abono: Number(g.dias_abono ?? 0),
+          documentos: g.documentos ?? [],
         })),
       }));
     },
@@ -99,7 +115,17 @@ export function useDpMinhasFerias() {
     onError: (e: any) => toast.error(textoErroFerias(e?.message)),
   });
 
+  /** Abre o aviso ou recibo de férias em nova aba, com link temporário. */
+  const abrirDocumento = async (doc: MinhaFeriasDocumento) => {
+    const { data, error } = await supabase.storage
+      .from("dp-documentos")
+      .createSignedUrl(doc.file_path, 60);
+    if (error || !data) return toast.error("Erro ao abrir o arquivo");
+    window.open(data.signedUrl, "_blank", "noopener");
+  };
+
   return {
+    abrirDocumento,
     periodos: query.data ?? [],
     isLoading: query.isLoading,
     isError: query.isError,
