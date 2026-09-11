@@ -17,8 +17,8 @@ Nas telas de Férias e Pendências o item continua com o selo vermelho "Urgente 
 ## 2. Arrastar da direita para a esquerda: menu das telas
 
 - Em Pessoas 360° e no Portal do Colaborador, arrastar da borda direita para a esquerda abre a página **Mais** (todas as telas do módulo) — como já funciona hoje.
-- No Portal do Colaborador, partindo da **tela inicial**: primeiro arrasto abre Mais; estando em Mais, um novo arrasto abre **Meus documentos** (histórico de documentos e recibos).
-- Em qualquer outra tela do portal, o arrasto da direita apenas abre Mais, e o arrasto da esquerda continua voltando.
+- Não existe segundo arrasto dentro de Mais: o gesto só abre Mais.
+- Em qualquer tela, o arrasto da esquerda continua voltando.
 
 ## 3. Arrastar da esquerda para a direita: Hub ou Analytics
 
