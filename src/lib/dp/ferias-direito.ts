@@ -410,5 +410,6 @@ export const RISCO_DOBRA_META = {
 export const FERIAS_EXPLICACAO_DOBRA = [
   "Cada ano trabalhado gera um período de férias. A empresa tem os 12 meses seguintes para conceder essas férias.",
   "Se esse prazo passar, a lei manda pagar as férias em dobro. Por isso o sistema nunca deve deixar duas férias em aberto ao mesmo tempo.",
-  "Como o sistema avisa, em ordem: Planejar (ainda dá tempo) → A conceder (o ano fechou e ninguém tirou) → Atenção (faltam 30 dias ou menos) → Vencido (o prazo passou) → Risco de dobra (a pessoa tem dois períodos em aberto).",
+  "Como o sistema avisa, em ordem: Planejar (ainda dá tempo) → A conceder (o ano fechou e ninguém tirou) → Atenção (faltam 30 dias ou menos) → Vencido (o prazo passou).",
+  "Quando um segundo ano de trabalho começa sem as férias do primeiro terem sido tiradas, o aviso é antecipado: acompanhar a partir de 180 dias do prazo legal e risco de dobra (urgente) a partir de 90 dias.",
 ] as const;
