@@ -76,7 +76,7 @@ export function BulkImportPanel({
   const { selectedCompanyId } = useCompanyContext();
   const { data: colaboradores = [] } = useDpColaboradores();
 
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [tipo, setTipo] = useState<string>(tipoFixed ?? tipoInicial ?? AUTO_TIPO);
   const [referencia, setReferencia] = useState<string>(referenciaFixed ?? referenciaInicial ?? "");
@@ -119,7 +119,7 @@ export function BulkImportPanel({
   /** Volta ao estado inicial do formulário quando o lote termina de ser importado. */
   const reiniciarEnvio = useCallback((batchId: string) => {
     setExpanded((s) => ({ ...s, [batchId]: false }));
-    setFile(null);
+    setFiles([]);
     setTipo(tipoFixed ?? tipoInicial ?? AUTO_TIPO);
     setReferencia(referenciaFixed ?? referenciaInicial ?? "");
     rolarAte(uploadCardRef.current);
@@ -192,23 +192,43 @@ export function BulkImportPanel({
     },
   });
 
-  const pickFile = (f: File | null) => {
-    if (!f) return;
-    if (f.type !== "application/pdf") return toast.error("Envie um arquivo PDF");
-    if (f.size > MAX_SIZE_MB * 1024 * 1024)
-      return toast.error(`Arquivo excede ${MAX_SIZE_MB}MB`);
-    setFile(f);
+  /** Aceita vários PDFs de uma vez (seleção ou arrastar), ignorando repetidos. */
+  const pickFiles = (lista: FileList | File[] | null) => {
+    const escolhidos = Array.from(lista ?? []);
+    if (!escolhidos.length) return;
+    const validos: File[] = [];
+    for (const f of escolhidos) {
+      if (f.type !== "application/pdf") {
+        toast.error(`${f.name}: envie um arquivo PDF`);
+        continue;
+      }
+      if (f.size > MAX_SIZE_MB * 1024 * 1024) {
+        toast.error(`${f.name}: excede ${MAX_SIZE_MB}MB`);
+        continue;
+      }
+      validos.push(f);
+    }
+    if (!validos.length) return;
+    setFiles((prev) => {
+      const chaves = new Set(prev.map((f) => `${f.name}:${f.size}`));
+      return [...prev, ...validos.filter((f) => !chaves.has(`${f.name}:${f.size}`))];
+    });
   };
 
   const upload = useMutation({
     mutationFn: async () => {
-      if (!file || !selectedCompanyId) throw new Error("Selecione um arquivo PDF");
+      if (!files.length || !selectedCompanyId) throw new Error("Selecione ao menos um arquivo PDF");
       setUploading(true);
 
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData?.user?.id;
       if (!uid) throw new Error("Não autenticado");
 
+      // Fila: um lote por arquivo, processados em segundo plano.
+      const enviados: string[] = [];
+      const falhas: string[] = [];
+      for (const file of files) {
+      try {
       const provisional = `${selectedCompanyId}/pending_${Date.now()}.pdf`;
       const insertRes = await (supabase.from("dp_bulk_import_batches" as any) as any)
         .insert({
@@ -256,11 +276,24 @@ export function BulkImportPanel({
           }
         });
 
-      return { batch_id: batch.id };
+      enviados.push(batch.id);
+      } catch (e: any) {
+        falhas.push(`${file.name}: ${e?.message ?? "falha ao enviar"}`);
+      }
+      }
+
+      if (!enviados.length) throw new Error(falhas[0] ?? "Falha ao enviar");
+      return { enviados, falhas };
     },
-    onSuccess: () => {
-      toast.success("PDF enviado — processando páginas em segundo plano");
-      setFile(null);
+    onSuccess: (res) => {
+      const n = res.enviados.length;
+      toast.success(
+        n === 1
+          ? "PDF enviado — processando páginas em segundo plano"
+          : `${n} PDFs enviados — processando em segundo plano`,
+      );
+      res.falhas.forEach((f) => toast.error(f));
+      setFiles([]);
       qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
     },
@@ -360,13 +393,13 @@ export function BulkImportPanel({
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => {
               e.preventDefault(); setDragOver(false);
-              pickFile(e.dataTransfer.files?.[0] ?? null);
+              pickFiles(e.dataTransfer.files);
             }}
             className={cn(
               "block cursor-pointer rounded-xl border-2 border-dashed transition-colors px-6 py-10 text-center",
               dragOver
                 ? "border-primary bg-primary/5"
-                : file
+                : files.length
                   ? "border-green-500/60 bg-green-50 dark:bg-green-950/20"
                   : "border-border hover:border-primary/50",
             )}
@@ -374,23 +407,32 @@ export function BulkImportPanel({
             <input
               type="file"
               accept="application/pdf"
+              multiple
               className="hidden"
-              onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => { pickFiles(e.target.files); e.target.value = ""; }}
             />
-            {file && !dragOver ? (
+            {files.length > 0 && !dragOver ? (
               <Check className="size-8 mx-auto text-green-600 dark:text-green-400" />
             ) : (
               <Upload className="size-8 mx-auto text-muted-foreground" />
             )}
-            <div className="mt-3 text-sm">
-              {file
-                ? <span className="font-medium break-words">{file.name}</span>
-                : "Arraste um PDF ou clique para selecionar"}
+            <div className="mt-3 space-y-1 text-sm">
+              {files.length > 0 ? (
+                files.map((f) => (
+                  <div key={`${f.name}:${f.size}`} className="font-medium break-words">
+                    {f.name}
+                  </div>
+                ))
+              ) : (
+                "Arraste um ou vários PDFs ou clique para selecionar"
+              )}
             </div>
-            {file ? (
+            {files.length > 0 ? (
               <div className="mt-1 flex flex-wrap items-center justify-center gap-2 text-xs">
                 <span className="text-green-700 dark:text-green-400 font-medium">
-                  Arquivo pronto para processar
+                  {files.length === 1
+                    ? "Arquivo pronto para processar"
+                    : `${files.length} arquivos prontos para processar`}
                 </span>
                 <button
                   type="button"
@@ -441,7 +483,7 @@ export function BulkImportPanel({
             )}
           </div>
 
-          <Button onClick={() => upload.mutate()} disabled={!file || uploading} className="w-full">
+          <Button onClick={() => upload.mutate()} disabled={!files.length || uploading} className="w-full">
             {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
             Processar PDF
           </Button>
