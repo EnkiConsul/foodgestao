@@ -20,7 +20,7 @@ export type FiltroProgramacao = { unidadeId: string | null; incluirDesligados: b
  */
 export function useDpFeriasProgramacao(filtro: FiltroProgramacao) {
   const { selectedCompanyId } = useCompanyContext();
-  const { data: feriasConfig } = useDpFeriasConfig();
+  const { config: feriasConfig } = useDpFeriasConfig();
 
   const query = useQuery({
     queryKey: ["dp_ferias_programacao", selectedCompanyId],
@@ -53,7 +53,7 @@ export function useDpFeriasProgramacao(filtro: FiltroProgramacao) {
           .select("colaborador_id, data_alvo, data_fim, tipo, status")
           .eq("company_id", selectedCompanyId!)
           .in("tipo", [...TIPOS_AFASTAMENTO])
-          .eq("status", "aprovado"),
+          .eq("status", "aprovada"),
       ]);
       const err = [empresa, colaboradores, periodos, gozos, afastamentos].find((r) => r.error);
       if (err?.error) throw err.error;
