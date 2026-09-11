@@ -188,6 +188,7 @@ const NONE_DESLIG = "__none__";
 const blank = {
   ...DOCUMENTOS_PESSOAIS_BLANK,
   nome: "",
+  nome_social: "",
   cpf: "",
   matricula: "",
   email: "",
@@ -665,6 +666,7 @@ export function ColaboradorFormDialog({
       ...DOCUMENTOS_PESSOAIS_BLANK,
       ...documentosPessoaisDoColaborador(c as unknown as Record<string, unknown>),
       nome: c.nome ?? "",
+      nome_social: (c as any).nome_social ?? "",
       cpf: c.cpf ? maskCpf(c.cpf) : "",
       matricula: c.matricula ?? "",
       email: c.email ?? "",
@@ -1507,6 +1509,7 @@ export function ColaboradorFormDialog({
         id: colaborador?.id ?? criadoId ?? undefined,
         ...documentosPessoaisParaBanco(form as unknown as Record<string, unknown>),
         nome: form.nome.trim(),
+        nome_social: form.nome_social.trim() || null,
         cpf: form.cpf.replace(/\D/g, "") || null,
         matricula: form.matricula.trim() || null,
         cargo: cargoNome,
@@ -1842,6 +1845,20 @@ export function ColaboradorFormDialog({
               onChange={(e) => setForm({ ...form, nome: e.target.value })}
               placeholder="Ex: João da Silva"
             />
+          </div>
+
+          {/* Nome social */}
+          <div className="md:col-span-2 space-y-2">
+            <Label>Nome social / Como prefere ser chamado</Label>
+            <Input
+              value={form.nome_social}
+              onChange={(e) => setForm({ ...form, nome_social: e.target.value })}
+              placeholder="Ex: Júnior"
+            />
+            <p className="text-xs text-muted-foreground">
+              Usado no dia a dia, nas escalas, no portal e nas mensagens. Os documentos
+              oficiais continuam com o nome completo.
+            </p>
           </div>
 
           {/* CPF / Matrícula */}
