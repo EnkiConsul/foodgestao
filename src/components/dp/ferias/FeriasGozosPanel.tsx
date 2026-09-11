@@ -152,6 +152,12 @@ export function FeriasGozosPanel({ status, vazio }: Props) {
         )}
       </DpContentCard>
 
+      <FeriasAvisoDialog
+        open={!!avisando}
+        onOpenChange={(v) => { if (!v) setAvisando(null); }}
+        gozo={avisando}
+      />
+
       <FeriasCoberturaDialog
         gozo={cobertura}
         onOpenChange={(v) => { if (!v) setCobertura(null); }}
