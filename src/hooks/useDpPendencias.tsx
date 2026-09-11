@@ -337,6 +337,13 @@ export function useDpPendencias() {
         colabsPorUnidade.get(c.unidade_id)!.push(c);
       });
 
+      // Preenchido após calcular o intervalo de competências. A função fica
+      // estável para ser compartilhada pela elegibilidade e pelos alertas.
+      let folhasPontoImportadas = new Set<string>();
+      const intermitenteTemEvidencia = (colaboradorId: string, competencia: string) =>
+        pontoIntermitente.has(`${colaboradorId}:${competencia}`) ||
+        folhasPontoImportadas.has(`${colaboradorId}:${competencia}`);
+
       /**
        * Quem está devendo o documento na unidade/competência.
        * Falta de todos → 1 pendência da unidade; falta parcial → 1 por pessoa.
@@ -356,7 +363,7 @@ export function useDpPendencias() {
             tipo === "adiantamento"
               ? optanteNaCompetencia(solicitacoesPorColab.get(c.id), comp, c.optante_adiantamento)
               : undefined,
-           intermitenteSemRegistros: !intermitenteTemEvidencia(c.id, comp),
+          intermitenteSemRegistros: !intermitenteTemEvidencia(c.id, comp),
           intermitenteTrabalho: confirmacaoIntermitente.get(`${c.id}:${comp}`) ?? null,
         });
 
@@ -378,14 +385,6 @@ export function useDpPendencias() {
         };
       };
 
-      // A folha de ponto importada para o colaborador na competência também é
-      // evidência suficiente de trabalho do intermitente, mesmo sem marcações
-      // individuais em dp_pontos.
-      const folhasPontoImportadas = await carregarTipo("ponto", rangeInicio, rangeFim);
-      const intermitenteTemEvidencia = (colaboradorId: string, competencia: string) =>
-        pontoIntermitente.has(`${colaboradorId}:${competencia}`) ||
-        folhasPontoImportadas.has(`${colaboradorId}:${competencia}`);
-
       // Competências esperadas por unidade (a partir de 1 mês antes do cadastro)
       const compsPorUnidade = new Map<string, { ateAnterior: string[]; ateVigente: string[] }>();
       unidades.forEach((u) => {
@@ -398,6 +397,9 @@ export function useDpPendencias() {
       const menorComp = todasComps.length ? todasComps.slice().sort()[0] : compVigente;
       const rangeInicio = intervaloCompetencia(menorComp).inicio;
       const rangeFim = intervaloCompetencia(compVigente).fim;
+      // Uma folha de ponto já importada confirma que o intermitente trabalhou
+      // naquela competência, ainda que não existam marcações em dp_pontos.
+      folhasPontoImportadas = await carregarTipo("ponto", rangeInicio, rangeFim);
 
       // 3-5. Documentos do colaborador (contracheque, adiantamento, folha de ponto).
       // Falta de todos os elegíveis → 1 pendência da unidade; falta parcial → 1 por pessoa.
