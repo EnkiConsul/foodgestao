@@ -745,7 +745,22 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
             <Section icon={LogOut} title="Desligamento">
               <Field label="Data da Demissão" value={fmtDate(colaborador?.data_desligamento)} />
               <Field label="Acesso ao Portal Até" value={fmtDate(acessoPortalAte)} />
-              <Field label="Observações" value={ressalvas.data?.observacao ?? null} />
+              <Field label="Observações" value={ressalvas.atual?.observacao ?? null} />
+              {ressalvas.historico.length > 0 && (
+                <div className="sm:col-span-2">
+                  <p className="text-xs text-muted-foreground mb-1">Desligamentos anteriores</p>
+                  <div className="space-y-1">
+                    {ressalvas.historico.map((h) => (
+                      <p key={h.id} className="text-sm">
+                        <span className="text-muted-foreground">
+                          {fmtDate(h.data_desligamento) || "—"}:
+                        </span>{" "}
+                        {h.observacao || "Sem observações"}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Section>
           )}
 

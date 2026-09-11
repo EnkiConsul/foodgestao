@@ -716,13 +716,13 @@ export function ColaboradorFormDialog({
   const salvarRessalvas = useSalvarDpDesligamentoRessalvas();
   useEffect(() => {
     if (!open) return;
-    const r = ressalvasQuery.data;
+    const r = ressalvasQuery.atual;
     setForm((f) => ({
       ...f,
       elegivel_recontratacao: r?.elegivel_recontratacao ?? NONE_DESLIG,
       observacao_desligamento: r?.observacao ?? "",
     }));
-  }, [open, ressalvasQuery.data]);
+  }, [open, ressalvasQuery.atual]);
 
   const regimeSelecionado = VINCULO_TO_REGIME[form.tipo_vinculo] ?? "clt";
   /** Sócio tem remuneração societária e fica fora dos complementos CLT. */

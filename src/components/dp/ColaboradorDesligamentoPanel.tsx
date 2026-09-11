@@ -62,14 +62,10 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
 
   // Ressalvas ficam em tabela restrita ao RH/dono — nunca na ficha lida pelo portal.
   useEffect(() => {
-    if (!ressalvas.data) {
-      setElegibilidade(NONE);
-      setObservacao("");
-      return;
-    }
-    setElegibilidade(ressalvas.data.elegivel_recontratacao ?? NONE);
-    setObservacao(ressalvas.data.observacao ?? "");
-  }, [ressalvas.data, colaborador?.id]);
+    const atual = ressalvas.atual;
+    setElegibilidade(atual?.elegivel_recontratacao ?? NONE);
+    setObservacao(atual?.observacao ?? "");
+  }, [ressalvas.atual, colaborador?.id]);
 
   const impacto = useQuery({
     queryKey: ["dp_desligamento_impacto", colaborador?.id, data],
