@@ -47,6 +47,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
+import { useSalvarDpDesligamentoRessalvas, useDpDesligamentoRessalvas } from "@/hooks/useDpDesligamentoRessalvas";
 import { ColaboradorAcessoPanel } from "./ColaboradorAcessoPanel";
 import { AdiantamentoSolicitacoesPanel } from "@/components/dp/AdiantamentoSolicitacoesPanel";
 import { Trash2 } from "lucide-react";

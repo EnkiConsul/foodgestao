@@ -43,6 +43,7 @@ import { ColaboradorOcorrenciasCard } from "@/components/dp/ocorrencias/Colabora
 import { maskCpf } from "@/lib/cpf";
 import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
+import { useDpDesligamentoRessalvas } from "@/hooks/useDpDesligamentoRessalvas";
 
 
 const fmtDate = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
