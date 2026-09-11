@@ -11,7 +11,7 @@ Hoje o painel do dia só troca a situação da pessoa quando ela estava marcada 
 ## 2. Convocação fora do prazo com erro
 A justificativa hoje é um único texto para todos os dias, e o servidor cancela a publicação inteira quando um dia falha — sem dizer qual dia.
 
-- Publicar dia por dia: os dias que passam ficam publicados e recolhidos ("Publicado"); só o dia com problema fica aberto, destacado, com o motivo em português.
+- Nada é publicado em partes: a publicação continua sendo de todos os dias juntos. O que muda é só a visualização — os dias sem problema ficam recolhidos e o dia com erro fica aberto e destacado, com o motivo em português.
 - Mover o bloco de ciência/justificativa para o fim, junto de "Revisar e publicar", e rolar automaticamente até ele quando for exigido.
 - Justificativa por dia (o campo já é aceito por dia no servidor), com opção de repetir para todos.
 
