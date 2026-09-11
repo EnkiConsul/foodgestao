@@ -185,6 +185,9 @@ export function agruparPorColaborador<T extends PendenciaLike>(
   if (opts.ordenarPorAtraso) {
     // Mais antigas/atrasadas primeiro.
     return grupos.sort((a, b) => {
+      const pa = Math.max(...a.itens.map((i) => pesoUrgencia(i)));
+      const pb = Math.max(...b.itens.map((i) => pesoUrgencia(i)));
+      if (pa !== pb) return pb - pa;
       const ma = Math.max(...a.itens.map((i) => i.atrasoDias));
       const mb = Math.max(...b.itens.map((i) => i.atrasoDias));
       if (ma !== mb) return mb - ma;
