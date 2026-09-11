@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
 import { useDpIntermitenteConfirmacoes } from "@/hooks/useDpIntermitenteConfirmacoes";
 import type { Pendencia } from "@/hooks/useDpPendencias";
+import { DpLicencaRetornoDialog } from "@/components/dp/licencas/DpLicencaRetornoDialog";
 import { addDays, format } from "date-fns";
 
 const ADIAR_PRESETS = [7, 15, 30];
