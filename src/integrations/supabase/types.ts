@@ -4878,9 +4878,6 @@ export type Database = {
           desligado_por: string | null
           domingos_folga_mes: number | null
           dp_permissions: Json
-          elegivel_recontratacao:
-            | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
-            | null
           email: string | null
           email_contato: string | null
           email_portal: string | null
@@ -4904,7 +4901,6 @@ export type Database = {
           nome_mae: string | null
           nome_pai: string | null
           nome_social: string | null
-          observacao_desligamento: string | null
           observacoes: string | null
           optante_adiantamento: boolean
           origem_cadastro: string
@@ -5003,9 +4999,6 @@ export type Database = {
           desligado_por?: string | null
           domingos_folga_mes?: number | null
           dp_permissions?: Json
-          elegivel_recontratacao?:
-            | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
-            | null
           email?: string | null
           email_contato?: string | null
           email_portal?: string | null
@@ -5029,7 +5022,6 @@ export type Database = {
           nome_mae?: string | null
           nome_pai?: string | null
           nome_social?: string | null
-          observacao_desligamento?: string | null
           observacoes?: string | null
           optante_adiantamento?: boolean
           origem_cadastro?: string
@@ -5128,9 +5120,6 @@ export type Database = {
           desligado_por?: string | null
           domingos_folga_mes?: number | null
           dp_permissions?: Json
-          elegivel_recontratacao?:
-            | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
-            | null
           email?: string | null
           email_contato?: string | null
           email_portal?: string | null
@@ -5154,7 +5143,6 @@ export type Database = {
           nome_mae?: string | null
           nome_pai?: string | null
           nome_social?: string | null
-          observacao_desligamento?: string | null
           observacoes?: string | null
           optante_adiantamento?: boolean
           origem_cadastro?: string
