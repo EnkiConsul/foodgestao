@@ -3,6 +3,15 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
 
+export type MinhaFeriasDocumento = {
+  id: string;
+  tipo: string;
+  titulo: string | null;
+  file_path: string;
+  file_name: string | null;
+  created_at: string;
+};
+
 export type MinhaFeriasGozo = {
   id: string;
   data_inicio: string;
@@ -13,6 +22,12 @@ export type MinhaFeriasGozo = {
   status: string;
   ciente_em: string | null;
   observacao: string | null;
+  aviso_em: string | null;
+  aviso_enviado_em: string | null;
+  aviso_fora_prazo: boolean | null;
+  aviso_retroativo: boolean | null;
+  aviso_justificativa: string | null;
+  documentos: MinhaFeriasDocumento[];
 };
 
 export type MinhaFeriasPeriodo = {
