@@ -784,6 +784,7 @@ export function useDpPendencias() {
             diasSaldo: p.dias_saldo,
             hojeISO,
             politica: feriasConfig.sinalizacaoCicloEncerrado,
+            acumulo: idsAcumulo.has(p.id),
           });
           results.push({
             id: `ferias-${p.id}`,
