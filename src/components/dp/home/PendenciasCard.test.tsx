@@ -261,6 +261,31 @@ describe("PendenciasCard", () => {
     cleanup();
     mockPendenciasData = [];
     mockIsFetching = false;
+    mockIsRefreshing = false;
+  });
+
+  it("não gira a seta quando apenas relê o resultado já apurado", () => {
+    mockIsFetching = true;
+    render(
+      <MemoryRouter>
+        <PendenciasCard />
+      </MemoryRouter>,
+    );
+    const botao = screen.getByTitle("Atualizar pendências agora");
+    expect(botao).not.toBeDisabled();
+    expect(botao.querySelector(".animate-spin")).toBeNull();
+  });
+
+  it("gira a seta somente quando uma apuração está em andamento", () => {
+    mockIsRefreshing = true;
+    render(
+      <MemoryRouter>
+        <PendenciasCard />
+      </MemoryRouter>,
+    );
+    const botao = screen.getByTitle("Atualizar pendências agora");
+    expect(botao).toBeDisabled();
+    expect(botao.querySelector(".animate-spin")).not.toBeNull();
   });
 
   it("renderiza título, data de atualização e contadores de urgência", () => {
