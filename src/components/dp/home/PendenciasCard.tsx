@@ -40,13 +40,18 @@ function podeConfirmarNovoQuadro(
   anterior: StablePendenciasState,
   companyId: string | null,
   lastCalculatedAt: string | null,
+  temDados = false,
 ): boolean {
   if (!companyId || anterior.companyId !== companyId || !anterior.ready) return true;
 
-  // Um retrato persistido só deve ser substituído quando o backend confirmar
-  // uma apuração mais recente. O término da consulta, sozinho, pode representar
-  // apenas uma resposta intermediária vazia durante a atualização diária.
+  // Uma resposta com pendências é sempre um quadro válido: reflete ações
+  // recentes do gestor (ex.: licença registrada agora) mesmo sem nova apuração
+  // diária. O que não pode substituir o retrato anterior é a resposta vazia
+  // intermediária durante a atualização.
+  if (temDados) return true;
+
   const anteriorEm = instanteDaApuracao(anterior.lastCalculatedAt);
+
   const novoEm = instanteDaApuracao(lastCalculatedAt);
   if (anteriorEm > 0) return novoEm > anteriorEm;
   return novoEm > 0;
