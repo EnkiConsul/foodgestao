@@ -9,7 +9,7 @@ import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Sc
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
-import { alertaPendenciaFerias } from "@/lib/dp/ferias-direito";
+import { alertaPendenciaFerias, periodosComAcumulo } from "@/lib/dp/ferias-direito";
 import { compararUrgencia } from "@/lib/dp/pendencias";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
@@ -763,6 +763,14 @@ export function useDpPendencias() {
           .or(`limite_concessivo.lte.${ymd(limite)},fim_aquisitivo.lte.${hojeISO}`)
           .order("limite_concessivo", { ascending: true })
           .limit(60);
+        // Para saber quem já está no segundo ano aquisitivo sem ter tirado o
+        // primeiro, precisamos de todos os períodos (inclusive em aquisição).
+        const { data: todosPeriodos } = await supabase
+          .from("dp_ferias_periodos")
+          .select("id, colaborador_id, inicio_aquisitivo, dias_saldo, controle_externo")
+          .eq("company_id", selectedCompanyId!)
+          .limit(2000);
+        const idsAcumulo = periodosComAcumulo((todosPeriodos ?? []) as any[]);
         (periodos ?? []).forEach((p: any) => {
           // Sócio não tem férias legais; desligado não agenda férias.
           const vinculo = String(p.dp_colaboradores?.vinculo_label ?? "").toLowerCase();
@@ -776,6 +784,7 @@ export function useDpPendencias() {
             diasSaldo: p.dias_saldo,
             hojeISO,
             politica: feriasConfig.sinalizacaoCicloEncerrado,
+            acumulo: idsAcumulo.has(p.id),
           });
           results.push({
             id: `ferias-${p.id}`,

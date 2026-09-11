@@ -85,6 +85,12 @@ export function nivelVencimento(diasRestantes: number): NivelVencimento {
  * ciclos aquisitivos que se encerraram e ainda têm saldo a conceder.
  * O prazo legal continua mandando: vencido e atenção têm prioridade.
  */
+/** Janelas de alerta: sem acúmulo 30/90; com acúmulo 90 (urgente) e 180 (acompanhar). */
+export const JANELA_ATENCAO_DIAS = 30;
+export const JANELA_PLANEJAMENTO_DIAS = 90;
+export const JANELA_ACUMULO_RISCO_DIAS = 90;
+export const JANELA_ACUMULO_ACOMPANHAR_DIAS = 180;
+
 export function nivelVencimentoPeriodo(args: {
   fimAquisitivo: string;
   limiteConcessivo: string;
@@ -93,6 +99,8 @@ export function nivelVencimentoPeriodo(args: {
   politica?: FeriasSinalizacaoCiclo;
   /** Sócio não tem férias legais: nunca é cobrado por prazo. */
   socio?: boolean | null;
+  /** Já existe um segundo período aquisitivo sem que o primeiro tenha sido gozado. */
+  acumulo?: boolean | null;
 }): NivelVencimento {
   const { fimAquisitivo, limiteConcessivo, hojeISO } = args;
   if (args.socio) return "normal";
@@ -100,12 +108,50 @@ export function nivelVencimentoPeriodo(args: {
   const saldo = args.diasSaldo ?? 0;
   const diasRestantes = diffDias(limiteConcessivo, hojeISO);
   if (diasRestantes < 0) return "vencido";
+  const acumulo = args.acumulo === true;
+  const janelaAtencao = acumulo ? JANELA_ACUMULO_RISCO_DIAS : JANELA_ATENCAO_DIAS;
+  const janelaPlanejamento = acumulo
+    ? JANELA_ACUMULO_ACOMPANHAR_DIAS
+    : JANELA_PLANEJAMENTO_DIAS;
   const cicloEncerradoComSaldo = fimAquisitivo <= hojeISO && saldo > 0;
   if (politica === "vencido" && cicloEncerradoComSaldo) return "vencido";
-  if (diasRestantes <= 30) return "atencao";
+  if (diasRestantes <= janelaAtencao) return "atencao";
   if (politica === "a_conceder" && cicloEncerradoComSaldo) return "a_conceder";
-  if (diasRestantes <= 90) return "planejamento";
+  if (diasRestantes <= janelaPlanejamento) return "planejamento";
   return "normal";
+}
+
+/**
+ * Marca os períodos em que já começou (ou fechou) um segundo ano aquisitivo sem
+ * que o primeiro tenha sido gozado — é aí que corre o risco de pagar em dobro.
+ * Retorna os ids dos períodos nessa situação.
+ */
+export function periodosComAcumulo(
+  periodos: {
+    id: string;
+    colaborador_id: string;
+    inicio_aquisitivo: string;
+    dias_saldo?: number | null;
+    controle_externo?: boolean | null;
+    socio?: boolean | null;
+  }[],
+): Set<string> {
+  const porColab = new Map<string, typeof periodos>();
+  for (const p of periodos) {
+    const lista = porColab.get(p.colaborador_id) ?? [];
+    lista.push(p);
+    porColab.set(p.colaborador_id, lista);
+  }
+  const out = new Set<string>();
+  for (const lista of porColab.values()) {
+    for (const p of lista) {
+      if (p.controle_externo || p.socio) continue;
+      if ((p.dias_saldo ?? 0) <= 0) continue;
+      const temSeguinte = lista.some((o) => o.inicio_aquisitivo > p.inicio_aquisitivo);
+      if (temSeguinte) out.add(p.id);
+    }
+  }
+  return out;
 }
 
 export type AlertaPendenciaFerias = {
@@ -121,9 +167,12 @@ export function alertaPendenciaFerias(args: {
   diasSaldo: number | null | undefined;
   hojeISO: string;
   politica?: FeriasSinalizacaoCiclo;
+  /** Segundo período aquisitivo em curso sem o primeiro ter sido gozado. */
+  acumulo?: boolean | null;
 }): AlertaPendenciaFerias {
   const nivel = nivelVencimentoPeriodo(args);
   const diasRestantes = diffDias(args.limiteConcessivo, args.hojeISO);
+  const acumulo = args.acumulo === true;
 
   if (nivel === "vencido") {
     return {
@@ -140,6 +189,13 @@ export function alertaPendenciaFerias(args: {
         diasRestantes === 0
           ? "prazo legal termina hoje"
           : `faltam ${diasRestantes} dia(s) para o prazo legal`,
+    };
+  }
+  if (acumulo && diasRestantes <= JANELA_ACUMULO_ACOMPANHAR_DIAS) {
+    return {
+      nivel,
+      titulo: "Férias a conceder — acompanhar",
+      detalhePrazo: `faltam ${diasRestantes} dia(s) para o prazo legal (${formatarDataISO(args.limiteConcessivo)})`,
     };
   }
   if (nivel === "a_conceder") {
@@ -354,5 +410,6 @@ export const RISCO_DOBRA_META = {
 export const FERIAS_EXPLICACAO_DOBRA = [
   "Cada ano trabalhado gera um período de férias. A empresa tem os 12 meses seguintes para conceder essas férias.",
   "Se esse prazo passar, a lei manda pagar as férias em dobro. Por isso o sistema nunca deve deixar duas férias em aberto ao mesmo tempo.",
-  "Como o sistema avisa, em ordem: Planejar (ainda dá tempo) → A conceder (o ano fechou e ninguém tirou) → Atenção (faltam 30 dias ou menos) → Vencido (o prazo passou) → Risco de dobra (a pessoa tem dois períodos em aberto).",
+  "Como o sistema avisa, em ordem: Planejar (ainda dá tempo) → A conceder (o ano fechou e ninguém tirou) → Atenção (faltam 30 dias ou menos) → Vencido (o prazo passou).",
+  "Quando um segundo ano de trabalho começa sem as férias do primeiro terem sido tiradas, o aviso é antecipado: acompanhar a partir de 180 dias do prazo legal e risco de dobra (urgente) a partir de 90 dias.",
 ] as const;

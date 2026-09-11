@@ -3,6 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useActiveModule } from "@/hooks/useActiveModule";
 import { MODULE_NAV } from "@/config/mobileNav";
+import { useCompanyModules } from "@/hooks/useCompanyModules";
+import { isModuleUsable } from "@/lib/modules";
+import { destinoGestoEsquerda } from "@/lib/nav/edgeGestureTargets";
 import { haptic } from "@/lib/haptics";
 
 const EDGE_PX = 28;
@@ -26,7 +29,8 @@ function startedInHorizontalScroller(target: EventTarget | null): boolean {
 
 /**
  * Gestos de borda (mobile), alinhados aos padrões iOS/Android:
- * - Arrastar da borda esquerda para a direita → Voltar.
+ * - Arrastar da borda esquerda para a direita → Voltar (na tela inicial de
+ *   Pessoas 360°, abre o Hub de módulos ou o Analytics de Pessoas).
  * - Arrastar da borda direita para a esquerda → abre o menu "Mais" do módulo.
  *
  * Ignorado quando há dialog/sheet aberto ou o toque inicia em scroller horizontal.
@@ -36,6 +40,8 @@ export function useEdgeGestures() {
   const { pathname } = useLocation();
   const { isMobile } = useSidebar();
   const activeModule = useActiveModule();
+  const { modules } = useCompanyModules();
+  const modulosAtivos = Object.values(modules).filter(isModuleUsable).length;
 
   const config = MODULE_NAV[activeModule] ?? MODULE_NAV.financeiro;
   const moreTo = config.moreTo;
@@ -91,6 +97,11 @@ export function useEdgeGestures() {
 
       if (current === "left" && dx >= MIN_DELTA_X) {
         haptic(8);
+        const destino = destinoGestoEsquerda({ activeModule, pathname, homeTo, modulosAtivos });
+        if (destino.tipo === "navegar") {
+          navigate(destino.to);
+          return;
+        }
         // Sem histórico interno (entrada direta) → volta para a home do módulo.
         if (depthRef.current > 1 && window.history.length > 1) navigate(-1);
         else if (pathname !== homeTo) navigate(homeTo);
@@ -111,5 +122,5 @@ export function useEdgeGestures() {
       window.removeEventListener("touchstart", onStart);
       window.removeEventListener("touchend", onEnd);
     };
-  }, [pathname, navigate, isMobile, moreTo, homeTo]);
+  }, [pathname, navigate, isMobile, moreTo, homeTo, activeModule, modulosAtivos]);
 }
