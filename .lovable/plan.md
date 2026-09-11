@@ -9,6 +9,17 @@ As abas **Planejamento** e **Programação** viram uma só aba **Férias**, com 
 
 A escolha fica na URL (`?aba=ferias&visao=analitica|sintetica`) e é lembrada, então o usuário volta na visão que preferir. Os filtros comuns (unidade/colaborador, incluir desligados) continuam válidos nas duas visões.
 
+## Nova aba Status
+
+As abas **Solicitações**, **Programadas**, **Em férias** e **Histórico** viram sub-visões de uma única aba **Status**, escolhidas por um seletor interno:
+
+- **Solicitadas** — pedidos aguardando aprovação (com aprovar/recusar como hoje).
+- **Programadas** — férias planejadas e aprovadas.
+- **Em férias** — quem está de férias hoje.
+- **Histórico** — concluídas e canceladas.
+
+Cada sub-visão mantém exatamente o conteúdo e as ações atuais. A barra de abas de Férias fica enxuta: **Férias**, **Status**, **Calendário**, **Contabilidade**, **Regras**.
+
 ## Visão analítica: só o que há para gozar
 
 - Períodos **totalmente gozados** (sem saldo a gozar) deixam de aparecer por padrão.
