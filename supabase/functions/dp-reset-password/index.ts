@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { generateProvisionalPassword } from "../_shared/provisional-password.ts";
 
 function digitsOnly(s: string | null | undefined): string {
   return (s ?? "").replace(/\D/g, "");
@@ -82,14 +83,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Padrão original: 6 últimos dígitos do CPF
-    const cpf = digitsOnly(colab.cpf);
-    if (cpf.length < 6) {
-      return new Response(JSON.stringify({
-        error: "CPF do colaborador incompleto — complete o cadastro antes de resetar a senha.",
-      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    const newPassword = cpf.slice(-6);
+    // Senha provisória aleatória — nunca derivada do CPF (que também é o login)
+    const newPassword = generateProvisionalPassword();
 
     const { error: updErr } = await admin.auth.admin.updateUserById(colab.user_id, {
       password: newPassword,

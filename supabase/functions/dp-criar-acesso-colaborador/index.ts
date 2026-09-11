@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { generateProvisionalPassword } from "../_shared/provisional-password.ts";
 
 const SYNTHETIC_EMAIL_DOMAIN = "portal.360food.local";
 
@@ -92,7 +93,8 @@ Deno.serve(async (req) => {
     }
 
     const email = `cpf${cpf}@${SYNTHETIC_EMAIL_DOMAIN}`;
-    const password = cpf.slice(-6); // 6 últimos dígitos do CPF
+    // Senha provisória aleatória — nunca derivada do CPF (que também é o login)
+    const password = generateProvisionalPassword();
 
     // Cria usuário no Auth (sem envio de email)
     const created = await admin.auth.admin.createUser({
