@@ -1420,16 +1420,22 @@ export function useDpPendencias() {
     },
   });
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     if (selectedCompanyId) {
-      await supabase.functions.invoke("dp-refresh-pendencias", {
-        body: { companyId: selectedCompanyId },
-      });
+      setIsRefreshing(true);
+      try {
+        await supabase.functions.invoke("dp-refresh-pendencias", {
+          body: { companyId: selectedCompanyId },
+        });
+      } finally {
+        setIsRefreshing(false);
+      }
     }
     return query.refetch();
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompanyId]);
 
-  return { ...query, refetch, lastCalculatedAt: apuracao.data ?? null };
+  return { ...query, refetch, isRefreshing, lastCalculatedAt: apuracao.data ?? null };
 }
 
 /** Alias explícito: escopo administrativo (empresa inteira). */
