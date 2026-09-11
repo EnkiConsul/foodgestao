@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { folgaDominicalAutomatica } from "@/lib/dp/dsr-rules";
+import { atrasoAprovacao, vencimentoAprovacao } from "@/lib/dp/documento-aprovacao";
 
 export type PendenciaColaborador = {
   id: string;
@@ -254,6 +255,58 @@ export function useDpPendenciasColaborador() {
         }
       } catch (e) {
         console.warn("pendencias-colab/cadastro:", e);
+      }
+
+      // 7. Documentos da empresa aguardando a aprovação do colaborador.
+      // Um item por documento, prazo de 3 dias corridos desde o envio.
+      try {
+        const { data: docsAceite } = await supabase
+          .from("dp_documentos")
+          .select("id, titulo, tipo, referencia_data, created_at")
+          .eq("colaborador_id", colabId as string)
+          .eq("exige_aceite", true)
+          .eq("submetido_por_colaborador", false)
+          .neq("aprovacao_status", "recusado")
+          .order("created_at", { ascending: true })
+          .limit(50);
+
+        const ids = (docsAceite ?? []).map((d: any) => d.id);
+        let aprovados = new Set<string>();
+        if (ids.length) {
+          const { data: aceites } = await supabase
+            .from("dp_documento_aceites")
+            .select("documento_id")
+            .eq("colaborador_id", colabId as string)
+            .in("documento_id", ids);
+          aprovados = new Set((aceites ?? []).map((a: any) => a.documento_id));
+        }
+
+        (docsAceite ?? [])
+          .filter((d: any) => !aprovados.has(d.id))
+          .forEach((d: any) => {
+            const limite = vencimentoAprovacao(d.created_at);
+            const atraso = atrasoAprovacao(d.created_at, today);
+            const comp = d.referencia_data
+              ? new Date(`${d.referencia_data}T12:00:00`).toLocaleDateString("pt-BR", {
+                  month: "2-digit",
+                  year: "numeric",
+                })
+              : null;
+            results.push({
+              id: `doc-aprovar-${d.id}`,
+              icon: FileCheck2,
+              titulo: "Aprovar documento",
+              subtitulo: [d.titulo || "Documento", comp ? `Competência ${comp}` : null]
+                .filter(Boolean)
+                .join(" — "),
+              tipo: "Aprovação de documento",
+              vencimento: ymd(limite),
+              atrasoDias: atraso,
+              url: "/dp/meu/documentos?foco=pendencias",
+            });
+          });
+      } catch (e) {
+        console.warn("pendencias-colab/documentos-aprovacao:", e);
       }
 
       // Documentos exigidos: o colaborador anexa e o DP aprova.

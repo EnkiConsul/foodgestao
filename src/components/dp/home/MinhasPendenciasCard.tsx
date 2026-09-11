@@ -18,6 +18,15 @@ export function MinhasPendenciasCard() {
     return { atrasado };
   }, [data]);
 
+  /** Documento sem aprovação passado o prazo: atraso grave, sempre no topo. */
+  const isGrave = (p: { tipo: string; atrasoDias: number }) =>
+    p.tipo === "Aprovação de documento" && p.atrasoDias > 0;
+
+  const itens = useMemo(
+    () => [...data].sort((a, b) => Number(isGrave(b)) - Number(isGrave(a)) || b.atrasoDias - a.atrasoDias),
+    [data],
+  );
+
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-5">
       <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -42,10 +51,14 @@ export function MinhasPendenciasCard() {
             <p className="text-sm">Tudo em dia por aqui. 🎉</p>
           </div>
         )}
-        {data.map((p) => (
+        {itens.map((p) => (
           <div
             key={p.id}
-            className="flex items-start gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3"
+            className={
+              isGrave(p)
+                ? "flex items-start gap-3 rounded-xl bg-destructive/5 border-2 border-destructive/50 p-3"
+                : "flex items-start gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3"
+            }
           >
             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <p.icon className="h-4 w-4 text-primary" />
@@ -54,7 +67,11 @@ export function MinhasPendenciasCard() {
               <div className="flex items-start justify-between gap-2">
                 <p className="text-sm font-medium truncate">{p.titulo}</p>
                 {p.vencimento && (
-                  p.atrasoDias > 0 ? (
+                  isGrave(p) ? (
+                    <Badge className="bg-destructive text-destructive-foreground text-[10px] shrink-0">
+                      <Clock className="h-3 w-3 mr-1" /> Atraso grave {p.atrasoDias}d
+                    </Badge>
+                  ) : p.atrasoDias > 0 ? (
                     <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive text-[10px] shrink-0">
                       <Clock className="h-3 w-3 mr-1" /> Atrasado {p.atrasoDias}d
                     </Badge>

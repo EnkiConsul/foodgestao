@@ -62,14 +62,10 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
 
   // Ressalvas ficam em tabela restrita ao RH/dono — nunca na ficha lida pelo portal.
   useEffect(() => {
-    if (!ressalvas.data) {
-      setElegibilidade(NONE);
-      setObservacao("");
-      return;
-    }
-    setElegibilidade(ressalvas.data.elegivel_recontratacao ?? NONE);
-    setObservacao(ressalvas.data.observacao ?? "");
-  }, [ressalvas.data, colaborador?.id]);
+    const atual = ressalvas.atual;
+    setElegibilidade(atual?.elegivel_recontratacao ?? NONE);
+    setObservacao(atual?.observacao ?? "");
+  }, [ressalvas.atual, colaborador?.id]);
 
   const impacto = useQuery({
     queryKey: ["dp_desligamento_impacto", colaborador?.id, data],
@@ -222,7 +218,36 @@ export function ColaboradorDesligamentoPanel({ colaborador }: { colaborador: DpC
             value={observacao}
             onChange={(e) => setObservacao(e.target.value)}
           />
+          <p className="text-xs text-muted-foreground">
+            Visível apenas para donos, administradores e RH — o colaborador nunca vê.
+          </p>
         </div>
+
+        {/* Desligamentos anteriores: recontratar não apaga nada. */}
+        {ressalvas.historico.length > 0 && (
+          <div className="space-y-2 rounded-md border border-[hsl(var(--dp-border))] bg-muted/40 p-3">
+            <p className="text-xs font-semibold text-muted-foreground">
+              Ressalvas de desligamentos anteriores
+            </p>
+            <div className="space-y-2">
+              {ressalvas.historico.map((h) => (
+                <div key={h.id} className="text-sm">
+                  <p className="text-xs text-muted-foreground">
+                    Desligado em {h.data_desligamento ? fmt(h.data_desligamento) : "—"}
+                    {h.elegivel_recontratacao
+                      ? ` · ${
+                          ELEGIBILIDADE_OPTIONS.find((o) => o.value === h.elegivel_recontratacao)
+                            ?.label ?? h.elegivel_recontratacao
+                        }`
+                      : ""}
+                  </p>
+                  <p className="whitespace-pre-wrap">{h.observacao || "Sem observações"}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
 
         {!isDesligado && (
           <div className="space-y-1 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs">

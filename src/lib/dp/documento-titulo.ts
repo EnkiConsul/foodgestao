@@ -18,6 +18,6 @@ export function tituloDocumento(input: {
   return input.tipoLabel;
 }
 
-/** Texto do aceite: confirma leitura do documento, não valores nem pagamento. */
+/** Texto da aprovação: o colaborador confere o documento e aprova o conteúdo. */
 export const DOCUMENTO_CONFIRMACAO_TEXTO =
-  "Você confirma que recebeu e leu este documento. Isso não confirma valores nem pagamento.";
+  "Confira o documento e aprove. Ao aprovar, você declara que leu e está de acordo com o conteúdo.";
