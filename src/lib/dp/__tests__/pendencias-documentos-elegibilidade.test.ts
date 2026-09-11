@@ -55,3 +55,27 @@ describe("ordenação por atraso", () => {
     expect(g[0].colaborador).toBe("ZE");
   });
 });
+
+describe("folha de ponto com afastamento integral", () => {
+  const clt = { id: "c1", regime: "clt", possui_folha_ponto: true, data_admissao: "2025-05-22" };
+
+  it("não cobra folha de ponto no mês 100% coberto pela licença", () => {
+    expect(
+      elegivelDocumento("ponto", clt, {
+        competencia: "2026-02",
+        unidadeTemRelogio: true,
+        afastadoMesInteiro: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("cobra folha de ponto quando o afastamento cobre só parte do mês", () => {
+    expect(
+      elegivelDocumento("ponto", clt, {
+        competencia: "2026-06",
+        unidadeTemRelogio: true,
+        afastadoMesInteiro: false,
+      }),
+    ).toBe(true);
+  });
+});
