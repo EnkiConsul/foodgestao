@@ -196,6 +196,9 @@ export interface AplicarFichaInput {
   camposPermitidos?: string[] | null;
   /** Anexa o PDF original da ficha nos documentos do colaborador. */
   anexarFicha?: boolean;
+  formaPagamento: string;
+  possuiFolhaPonto: boolean;
+  optanteAdiantamento: boolean;
 }
 
 /** Cria (ou atualiza) o cadastro do colaborador a partir da ficha revisada. */
@@ -215,6 +218,9 @@ export function useAplicarFicha() {
       turnoId,
       camposPermitidos,
       anexarFicha,
+      formaPagamento,
+      possuiFolhaPonto,
+      optanteAdiantamento,
     }: AplicarFichaInput) => {
       if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       const nome = txt(dados.nome);
@@ -231,6 +237,9 @@ export function useAplicarFicha() {
         unidade_id: unidadeId,
         setor_id: setorId ?? null,
         regime: (regime ?? null) as never,
+        forma_pagamento: formaPagamento as never,
+        possui_folha_ponto: possuiFolhaPonto,
+        optante_adiantamento: optanteAdiantamento,
         origem_cadastro: "ficha_importacao",
         ficha_importacao_item_id: item.id,
       };
@@ -242,6 +251,7 @@ export function useAplicarFicha() {
         // para nunca apagar dados já cadastrados.
         const sempre = new Set([
           "ficha_importacao_item_id", "cargo_id", "unidade_id", "setor_id", "regime",
+          "forma_pagamento", "possui_folha_ponto", "optante_adiantamento",
         ]);
 
         const limpo = Object.fromEntries(

@@ -58,7 +58,12 @@ export default function DpFichaRegistroImportar() {
   const unidadesDaEmpresa = useMemo(
     () => unidades
       .filter((u) => u.company_id === selectedCompanyId)
-      .map((u) => ({ id: u.id, nome: u.nome, cnpj: (u as { cnpj?: string | null }).cnpj ?? null })),
+      .map((u) => ({
+        id: u.id,
+        nome: u.nome,
+        cnpj: (u as { cnpj?: string | null }).cnpj ?? null,
+        possui_relogio_ponto: (u as { possui_relogio_ponto?: boolean | null }).possui_relogio_ponto ?? false,
+      })),
     [unidades, selectedCompanyId],
   );
   const { data: empresaCnpj = null } = useQuery({
