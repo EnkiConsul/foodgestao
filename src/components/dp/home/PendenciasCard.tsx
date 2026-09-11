@@ -468,19 +468,36 @@ export function UrgenciaBadge({
 }
 
 function UrgencyChip({
-  icon: Icon, label, count, tone,
-}: { icon: any; label: string; count: number; tone: "destructive" | "warning" | "info" }) {
+  icon: Icon, label, count, tone, active, onClick,
+}: {
+  icon: any;
+  label: string;
+  count: number;
+  tone: "destructive" | "warning" | "info";
+  active?: boolean;
+  onClick?: () => void;
+}) {
   const cls =
     tone === "destructive" ? "bg-destructive/10 text-destructive border-destructive/30"
     : tone === "warning" ? "bg-warning/10 text-warning border-warning/30"
     : "bg-blue-50 text-blue-900 border-blue-200";
+  // No celular, só faz sentido mostrar classificações que têm pendências.
+  const visibilidade = count > 0 ? "inline-flex" : "hidden sm:inline-flex";
+  const destaque = active ? "ring-2 ring-offset-1 ring-current" : "";
   return (
-    <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${cls}`}>
+    <button
+      type="button"
+      disabled={count === 0}
+      aria-pressed={!!active}
+      onClick={onClick}
+      className={`${visibilidade} items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-shadow disabled:cursor-default ${cls} ${destaque}`}
+    >
       <Icon className="h-3 w-3" />
       {label}: {count}
-    </div>
+    </button>
   );
 }
+
 
 
 const PRESETS = [1, 3, 7, 15, 30];
