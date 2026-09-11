@@ -28,6 +28,14 @@ import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  DURACAO_PADRAO_DIAS,
+  TIPOS_AFASTAMENTO,
+  TIPO_AFASTAMENTO_LABEL,
+  isTipoLicenca,
+  labelAfastamento,
+  type TipoAfastamento,
+} from "@/lib/dp/licencas";
 
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
@@ -42,12 +50,12 @@ const STATUS_BADGE: Record<Status, { label: string; className: string }> = {
   cancelada: { label: "Cancelado", className: "bg-muted text-muted-foreground" },
 };
 
-type AtestColKey = "colaborador" | "unidade" | "data" | "retorno" | "observacoes" | "status" | "detalhes" | "arquivo";
-type AtestSortKey = "padrao" | "colaborador" | "unidade" | "data" | "retorno" | "status";
+type AtestColKey = "colaborador" | "tipo" | "unidade" | "data" | "retorno" | "observacoes" | "status" | "detalhes" | "arquivo";
+type AtestSortKey = "padrao" | "colaborador" | "tipo" | "unidade" | "data" | "retorno" | "status";
 
-const ATEST_COL_ORDER: AtestColKey[] = ["colaborador", "unidade", "data", "retorno", "observacoes", "status", "detalhes", "arquivo"];
+const ATEST_COL_ORDER: AtestColKey[] = ["colaborador", "tipo", "unidade", "data", "retorno", "observacoes", "status", "detalhes", "arquivo"];
 const ATEST_COL_WIDTHS: Record<AtestColKey, number> = {
-  colaborador: 220, unidade: 150, data: 110, retorno: 110, observacoes: 190, status: 130, detalhes: 110, arquivo: 110,
+  colaborador: 220, tipo: 160, unidade: 150, data: 110, retorno: 110, observacoes: 190, status: 130, detalhes: 110, arquivo: 110,
 };
 const ATEST_ACOES_WIDTH = 150;
 
@@ -88,6 +96,7 @@ export default function DpAtestados() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [unidadeId, setUnidadeId] = useState<string>("");
   const [colaboradorId, setColaboradorId] = useState<string>("");
+  const [tipoDoc, setTipoDoc] = useState<TipoAfastamento>("atestado");
   const [dataDoc, setDataDoc] = useState<string>("");
   const [dias, setDias] = useState<string>("");
   const [observacao, setObservacao] = useState<string>("");
@@ -118,7 +127,7 @@ export default function DpAtestados() {
         .from("dp_solicitacoes")
         .select("*, dp_colaboradores(nome, unidade_id)")
         .eq("company_id", selectedCompanyId!)
-        .eq("tipo", "atestado")
+        .in("tipo", [...TIPOS_AFASTAMENTO])
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Row[];
@@ -156,6 +165,18 @@ export default function DpAtestados() {
       value: (r: Row) => r.dp_colaboradores?.nome ?? "—",
       render: (r: Row) => (
         <span className="block truncate font-semibold text-foreground" title={r.dp_colaboradores?.nome ?? ""}>{r.dp_colaboradores?.nome ?? "—"}</span>
+      ),
+    },
+    tipo: {
+      label: "Tipo", sortKey: "tipo" as const,
+      value: (r: Row) => labelAfastamento(r.tipo),
+      render: (r: Row) => (
+        <Badge
+          variant="outline"
+          className={`max-w-full truncate ${isTipoLicenca(r.tipo) ? "border-primary/30 bg-primary/10 text-primary" : ""}`}
+        >
+          {labelAfastamento(r.tipo)}
+        </Badge>
       ),
     },
     unidade: {
@@ -292,21 +313,31 @@ export default function DpAtestados() {
     mutationFn: async () => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
       if (!colaboradorId) throw new Error("Selecione o colaborador");
-      if (!dataDoc) throw new Error("Informe a data do atestado");
+      if (!dataDoc) throw new Error(`Informe a data de início${isTipoLicenca(tipoDoc) ? " da licença" : " do atestado"}`);
       const d = parseInt(dias || "0", 10);
       if (Number.isNaN(d) || d < 0) throw new Error("Dias de afastamento inválido");
-      if (!pendingFile) throw new Error("Anexe o arquivo do atestado");
+      // Licenças (maternidade/paternidade) dispensam anexo: a certidão pode ser
+      // anexada depois. Atestado continua exigindo o arquivo.
+      const licenca = isTipoLicenca(tipoDoc);
+      if (!pendingFile && !licenca) throw new Error("Anexe o arquivo do atestado");
 
-      const path = `${selectedCompanyId}/atestado/${colaboradorId}/${Date.now()}-${sanitizeStorageFilename(pendingFile.name)}`;
-      const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, { upsert: false });
-      if (up.error) throw up.error;
+      let path: string | null = null;
+      if (pendingFile) {
+        path = `${selectedCompanyId}/${licenca ? "licenca" : "atestado"}/${colaboradorId}/${Date.now()}-${sanitizeStorageFilename(pendingFile.name)}`;
+        const up = await supabase.storage.from(BUCKET).upload(path, pendingFile, { upsert: false });
+        if (up.error) throw up.error;
+      }
 
       const dataFim = d > 0 ? addDays(dataDoc, d) : dataDoc;
       const { error } = await supabase.from("dp_solicitacoes").insert({
         company_id: selectedCompanyId,
         colaborador_id: colaboradorId,
-        tipo: "atestado",
-        status: "pendente",
+        tipo: tipoDoc,
+        // Licença registrada pelo gestor já entra aprovada e vale na Operação,
+        // mesmo com data de início no passado.
+        status: licenca ? "aprovada" : "pendente",
+        respondido_por: licenca ? user?.id : null,
+        respondido_em: licenca ? new Date().toISOString() : null,
         data_alvo: dataDoc,
         data_fim: dataFim,
         motivo: observacao || null,
@@ -314,13 +345,15 @@ export default function DpAtestados() {
         criado_por: user?.id,
       });
       if (error) throw error;
+      return licenca;
     },
-    onSuccess: () => {
-      toast.success("Atestado importado com sucesso");
-      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setDias(""); setObservacao(""); setPendingFile(null);
+    onSuccess: (licenca) => {
+      toast.success(licenca ? "Licença registrada e já aprovada" : "Atestado importado com sucesso");
+      setUnidadeId(""); setColaboradorId(""); setTipoDoc("atestado"); setDataDoc(""); setDias(""); setObservacao(""); setPendingFile(null);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
       setTab("historico");
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao importar"),
@@ -404,11 +437,11 @@ export default function DpAtestados() {
 
   return (
     <DpPage>
-      <Helmet><title>Atestados — Pessoas 360°</title></Helmet>
+      <Helmet><title>Atestados e Licenças — Pessoas 360°</title></Helmet>
       <DpPageHeader
         icon={FileWarning}
-        title="Atestados"
-        description="Gerencie todos os atestados médicos dos colaboradores."
+        title="Atestados e Licenças"
+        description="Gerencie atestados médicos e licenças (maternidade, paternidade) dos colaboradores."
         actions={
           <>
             {pendentesCount > 0 && (
@@ -435,7 +468,7 @@ export default function DpAtestados() {
           <DpContentCard>
             <div className="flex items-center gap-2 mb-4">
               <Upload className="size-5 text-primary" />
-              <h3 className="text-lg font-semibold">Cadastrar Atestado</h3>
+              <h3 className="text-lg font-semibold">Cadastrar Atestado ou Licença</h3>
             </div>
 
             <div className="space-y-3 sm:space-y-4">
@@ -473,15 +506,52 @@ export default function DpAtestados() {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label>Tipo de afastamento *</Label>
+                <Select
+                  value={tipoDoc}
+                  onValueChange={(v) => {
+                    const t = v as TipoAfastamento;
+                    setTipoDoc(t);
+                    if (isTipoLicenca(t)) setDias(String(DURACAO_PADRAO_DIAS[t]));
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TIPOS_AFASTAMENTO.map((t) => (
+                      <SelectItem key={t} value={t}>{TIPO_AFASTAMENTO_LABEL[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isTipoLicenca(tipoDoc) && (
+                  <p className="text-xs text-muted-foreground">
+                    Registrada pelo gestor, a licença já entra aprovada e bloqueia escalas e
+                    convocações no período — inclusive com início retroativo.
+                  </p>
+                )}
+              </div>
+
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Data do Documento *</Label>
-                  <Input type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
+                  <Label>{isTipoLicenca(tipoDoc) ? "Início da licença *" : "Data do Documento *"}</Label>
+                  <Input
+                    type="date"
+                    value={dataDoc}
+                    onChange={(e) => {
+                      setDataDoc(e.target.value);
+                      if (isTipoLicenca(tipoDoc) && !dias) setDias(String(DURACAO_PADRAO_DIAS[tipoDoc as "licenca_maternidade" | "licenca_paternidade"]));
+                    }}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Dias de Afastamento *</Label>
                   <Input type="number" min={0} placeholder="Ex: 3" value={dias} onChange={(e) => setDias(e.target.value)} />
+                  {isTipoLicenca(tipoDoc) && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Padrão legal: {DURACAO_PADRAO_DIAS[tipoDoc as "licenca_maternidade" | "licenca_paternidade"]} dias — ajuste se necessário.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -494,13 +564,18 @@ export default function DpAtestados() {
               )}
 
               <div className="space-y-2">
-                <Label>Arquivo (PDF ou Imagem) *</Label>
+                <Label>Arquivo (PDF ou Imagem){isTipoLicenca(tipoDoc) ? "" : " *"}</Label>
                 <DpFilePicker
                   ref={fileRef}
                   accept="application/pdf,image/*"
                   file={pendingFile}
                   onFileChange={setPendingFile}
                 />
+                {isTipoLicenca(tipoDoc) && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Opcional para licenças — a certidão pode ser anexada depois.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -516,7 +591,7 @@ export default function DpAtestados() {
               onClick={() => doUpload.mutate()}
             >
               <Upload className="size-4 mr-2" />
-              {doUpload.isPending ? "Enviando..." : "Enviar Atestado"}
+              {doUpload.isPending ? "Enviando..." : isTipoLicenca(tipoDoc) ? "Registrar Licença" : "Enviar Atestado"}
             </Button>
 
           </DpContentCard>

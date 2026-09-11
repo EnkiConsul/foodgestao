@@ -1,5 +1,9 @@
 import { DOCUMENTOS_PESSOAIS } from "@/lib/dp/documentos-pessoais";
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { format, parseISO } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { TIPOS_LICENCA, labelAfastamento, licencaCobre } from "@/lib/dp/licencas";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpDependentes } from "@/hooks/useDpDependentes";
 import {
@@ -37,7 +41,7 @@ import { diasTrabalhaveisNoMes } from "@/lib/dp/beneficios-regras";
 
 import {
   User, Briefcase, Mail, Clock, Wallet, Lock, LogOut, Shield, CheckCircle2, XCircle, Pencil, X, Users, Award,
-  ClipboardList,
+  Baby, ClipboardList,
 } from "lucide-react";
 import { ColaboradorOcorrenciasCard } from "@/components/dp/ocorrencias/ColaboradorOcorrenciasCard";
 import { maskCpf } from "@/lib/cpf";
@@ -152,6 +156,27 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
   const isDesligado = !!colaborador?.data_desligamento;
   // Só RH/dono conseguem ler: para o colaborador a consulta volta vazia.
   const ressalvas = useDpDesligamentoRessalvas(colaborador?.id);
+
+  /** Licença (maternidade/paternidade) em curso hoje — selo no cabeçalho. */
+  const licencaVigente = useQuery({
+    queryKey: ["dp_licenca_vigente", colaborador?.id],
+    enabled: !!colaborador?.id,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const hoje = new Date();
+      const iso = format(hoje, "yyyy-MM-dd");
+      const { data } = await supabase
+        .from("dp_solicitacoes")
+        .select("colaborador_id, tipo, data_alvo, data_fim")
+        .eq("colaborador_id", colaborador!.id)
+        .in("tipo", [...TIPOS_LICENCA])
+        .eq("status", "aprovada")
+        .lte("data_alvo", iso)
+        .order("data_fim", { ascending: false })
+        .limit(5);
+      return (data ?? []).find((l: any) => licencaCobre(l, hoje)) ?? null;
+    },
+  });
   const folga = (colaborador as any)?.folga_fixa_semana;
   const possuiFolha = (colaborador as any)?.possui_folha_ponto as boolean | null;
   const optanteAdiantamento = (colaborador as any)?.optante_adiantamento as boolean | null;
@@ -348,6 +373,15 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
                   <Shield className="mr-1 h-3 w-3" />
                   {PERFIL_LABEL[perfil ?? "colaborador"]}
                 </Badge>
+                {licencaVigente.data && (
+                  <Badge variant="outline" className="h-5 border-primary/30 bg-primary/10 px-1.5 text-[11px] text-primary">
+                    <Baby className="mr-1 h-3 w-3" />
+                    Em {labelAfastamento(licencaVigente.data.tipo).toLowerCase()}
+                    {licencaVigente.data.data_fim
+                      ? ` até ${format(parseISO(licencaVigente.data.data_fim), "dd/MM/yyyy")}`
+                      : ""}
+                  </Badge>
+                )}
               </div>
               <DialogDescription className="mt-1">
                 Ficha completa do colaborador. Clique em <strong>Editar</strong> para alterar os dados.

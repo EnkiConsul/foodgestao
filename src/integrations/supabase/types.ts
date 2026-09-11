@@ -16775,6 +16775,8 @@ export type Database = {
         | "atestado"
         | "adiantamento"
         | "outros"
+        | "licenca_maternidade"
+        | "licenca_paternidade"
       dp_tipo_escala:
         | "6x1"
         | "5x2"
@@ -17277,6 +17279,8 @@ export const Constants = {
         "atestado",
         "adiantamento",
         "outros",
+        "licenca_maternidade",
+        "licenca_paternidade",
       ],
       dp_tipo_escala: [
         "6x1",

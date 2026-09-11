@@ -8,6 +8,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { normalizarDias, type ConfigTrabalho, type DiaConfig, type TurnoResolvido } from "@/lib/dp/config-trabalho";
+import { TIPOS_AFASTAMENTO } from "@/lib/dp/licencas";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import type {
   AusenciaPanorama,
@@ -101,7 +102,7 @@ export async function carregarPanorama(
       .from("dp_solicitacoes")
       .select("colaborador_id, tipo, status, data_alvo, data_fim")
       .eq("company_id", companyId)
-      .eq("tipo", "atestado")
+      .in("tipo", [...TIPOS_AFASTAMENTO])
       .eq("status", "aprovada"),
     supabase
       .from("dp_solicitacoes")

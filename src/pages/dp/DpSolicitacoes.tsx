@@ -27,6 +27,8 @@ const TIPOS: { value: Tipo; label: string }[] = [
   { value: "folga", label: "Folga" },
   { value: "ferias", label: "Férias" },
   { value: "atestado", label: "Atestado" },
+  { value: "licenca_maternidade", label: "Licença-maternidade" },
+  { value: "licenca_paternidade", label: "Licença-paternidade" },
   { value: "adiantamento", label: "Adiantamento" },
   { value: "outros", label: "Outros" },
 ];

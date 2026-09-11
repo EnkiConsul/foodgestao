@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { ConfigTrabalho, DiaConfig, TurnoResolvido } from "@/lib/dp/config-trabalho";
 import { normalizarDias } from "@/lib/dp/config-trabalho";
+import { TIPOS_AFASTAMENTO } from "@/lib/dp/licencas";
 import {
   avaliarDia,
   baselineFeriado,
@@ -157,7 +158,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .from("dp_solicitacoes")
             .select("colaborador_id, tipo, status, data_alvo, data_fim")
             .eq("company_id", selectedCompanyId!)
-            .eq("tipo", "atestado")
+            .in("tipo", [...TIPOS_AFASTAMENTO])
             .eq("status", "aprovada"),
           // Pedidos de folga já aprovados contam como folga do dia, mesmo antes
           // de serem efetivados em dp_folgas (mesma regra do calendário de folgas).

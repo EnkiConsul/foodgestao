@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { TIPOS_AFASTAMENTO } from "@/lib/dp/licencas";
 import {
   atestadosDoPeriodo,
   diasDeAfastamento,
@@ -49,7 +50,7 @@ export function useAnalyticsAusencias({ periodo, colabIds, dimensao, nomes, enab
           .from("dp_solicitacoes")
           .select("colaborador_id, data_alvo, data_fim")
           .eq("company_id", selectedCompanyId!)
-          .eq("tipo", "atestado")
+          .in("tipo", [...TIPOS_AFASTAMENTO])
           .eq("status", "aprovada")
           .not("data_alvo", "is", null)
           .lte("data_alvo", periodo.fim)

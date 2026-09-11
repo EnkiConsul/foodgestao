@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/integrations/supabase/types";
+import { isTipoLicenca, sugestaoDataFim, DURACAO_PADRAO_DIAS } from "@/lib/dp/licencas";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 
@@ -26,6 +27,8 @@ const TIPO_LABEL: Record<Tipo, string> = {
   folga: "Folga",
   ferias: "Férias",
   atestado: "Atestado",
+  licenca_maternidade: "Licença-maternidade",
+  licenca_paternidade: "Licença-paternidade",
   adiantamento: "Adiantamento",
   outros: "Outros",
 };
@@ -72,6 +75,12 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
     if (form.data_fim < form.data_alvo) setForm((f) => ({ ...f, data_fim: f.data_alvo }));
   }, [open, form.data_alvo, form.data_fim]);
 
+  // Licenças sugerem a duração legal padrão (120/5 dias), sempre editável.
+  const sugerirDuracao = (tipo: Tipo, dataInicio: string) => {
+    const fim = sugestaoDataFim(tipo, dataInicio);
+    if (fim) setForm((f) => ({ ...f, data_fim: fim }));
+  };
+
   const salvar = useMutation({
     mutationFn: async () => {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
@@ -113,8 +122,8 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
         <DialogHeader>
           <DialogTitle>Registrar Ausência</DialogTitle>
           <DialogDescription>
-            Férias, atestados e afastamentos entram direto na Operação do dia. Pedidos de folga
-            ficam pendentes de aprovação.
+            Férias, atestados e licenças entram direto na Operação do dia — inclusive com data de
+            início no passado. Pedidos de folga ficam pendentes de aprovação.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 py-2">
@@ -145,7 +154,14 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
           </div>
           <div className="grid gap-1.5">
             <Label>Tipo *</Label>
-            <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })}>
+            <Select
+              value={form.tipo}
+              onValueChange={(v) => {
+                const tipo = v as Tipo;
+                setForm({ ...form, tipo });
+                if (isTipoLicenca(tipo) && form.data_alvo) sugerirDuracao(tipo, form.data_alvo);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -164,7 +180,11 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
               <Input
                 type="date"
                 value={form.data_alvo}
-                onChange={(e) => setForm({ ...form, data_alvo: e.target.value })}
+                onChange={(e) => {
+                  const inicio = e.target.value;
+                  setForm({ ...form, data_alvo: inicio });
+                  if (isTipoLicenca(form.tipo) && inicio) sugerirDuracao(form.tipo, inicio);
+                }}
               />
             </div>
             <div className="grid gap-1.5">
@@ -175,6 +195,11 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
                 value={form.data_fim}
                 onChange={(e) => setForm({ ...form, data_fim: e.target.value })}
               />
+              {isTipoLicenca(form.tipo) && (
+                <p className="text-[10px] text-muted-foreground">
+                  Padrão legal: {DURACAO_PADRAO_DIAS[form.tipo as "licenca_maternidade" | "licenca_paternidade"]} dias — ajuste se necessário.
+                </p>
+              )}
             </div>
           </div>
           <div className="grid gap-1.5">
