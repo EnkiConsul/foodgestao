@@ -48,3 +48,12 @@
 - [x] Erro ao confirmar se o Erildson trabalhou em 05/2026 (coluna errada na gravação)
 - [x] Link do portal na mensagem padrão de acesso
 - [x] Portal da Karen: rotina da loja, folgas fixas no calendário e atalho para as pendências pessoais
+
+## Fechamento do pente-fino (11/09/2026)
+- [x] Convocação fora do prazo com justificativa individual por dia e opção de repetir
+- [x] Documentos de uma mesma rescisão vinculados por conjunto, mantendo arquivos individuais
+- [x] Importação da ficha exige confirmação de vínculo, pagamento, ponto e adiantamento
+- [x] Auditoria de erros disponível no backoffice e erro intermitente traduzido
+- [x] Nome social aplicado na rotina, escalas, convocações, avisos e mensagens
+- [x] Recontratação preserva a pessoa e o histórico do vínculo encerrado
+- [ ] Materializar a apuração de pendências no servidor e agendar 6h/8h; hoje o recálculo compartilhado é client-side a cada 8h
