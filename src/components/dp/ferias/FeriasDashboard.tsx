@@ -73,7 +73,7 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
         programar: comSaldo.length,
         vencendo: comSaldo.filter((p) => {
           const n = nivelDe(p);
-          return n === "vencido" || n === "atencao";
+          return n === "vencido" || n === "atencao" || n === "marcacao_atrasada";
         }).length,
         aguardando: gozos.filter((g) => g.status === "planejado").length,
         programadas: gozos.filter((g) => g.status === "aprovado").length,
