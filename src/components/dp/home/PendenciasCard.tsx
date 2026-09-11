@@ -108,6 +108,9 @@ export function useStablePendencias({
         base.data.length === data.length &&
         base.data.every((p, i) => p.id === data[i]?.id)
       ) {
+        if (!snapshotDaEmpresa) {
+          salvarPendenciasSnapshot(companyId, { data, dataUpdatedAt, lastCalculatedAt });
+        }
         return base;
       }
       const proximo = { companyId, data, dataUpdatedAt, lastCalculatedAt, ready: true };
