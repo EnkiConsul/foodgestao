@@ -163,11 +163,14 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const portal = usePortalOnlyUser(user?.id, onboardingCompleted === false);
 
   if (loading || checkingOnboarding || mfaChecking || portal.checking) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
+    const pending = loading
+      ? "sessão"
+      : checkingOnboarding
+        ? "cadastro"
+        : mfaChecking
+          ? "verificação em duas etapas"
+          : "destino inicial";
+    return <GuardWaiting pending={pending} scope="Acesso à tela protegida" />;
   }
 
   if (!user) {
