@@ -94,6 +94,8 @@ export type GrupoPendencias<T extends PendenciaLike = PendenciaLike> = {
   itens: T[];
   total: number;
   atrasadas: number;
+  /** Ainda no prazo, mas pedem ação agora (risco de dobra nas férias). */
+  urgentes: number;
   hoje: number;
   proximas: number;
   /** Colaboradores distintos citados no grupo (quando o dado existe). */
