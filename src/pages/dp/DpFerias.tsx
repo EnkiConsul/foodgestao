@@ -277,7 +277,8 @@ export default function DpFerias() {
               const faltas = p.faltas_injustificadas;
               const encerrado = parseISO(p.fim_aquisitivo) <= hoje;
               const socio = !!p.socio;
-              const externo = !!p.controle_externo || socio;
+              const desligado = !!p.desligado;
+              const externo = !!p.controle_externo || socio || desligado;
               const risco = riscoPorColab.get(p.colaborador_id);
               const emRisco = !externo && risco?.emRisco === true &&
                 risco.periodosAbertos.some((a) => a.id === p.id);
