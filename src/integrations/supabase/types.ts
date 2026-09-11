@@ -10730,6 +10730,9 @@ export type Database = {
           respondido_em: string | null
           respondido_por: string | null
           resposta_admin: string | null
+          retorno_confirmado_em: string | null
+          retorno_confirmado_por: string | null
+          retorno_em: string | null
           status: Database["public"]["Enums"]["dp_solicitacao_status"]
           tipo: Database["public"]["Enums"]["dp_solicitacao_tipo"]
           updated_at: string
@@ -10748,6 +10751,9 @@ export type Database = {
           respondido_em?: string | null
           respondido_por?: string | null
           resposta_admin?: string | null
+          retorno_confirmado_em?: string | null
+          retorno_confirmado_por?: string | null
+          retorno_em?: string | null
           status?: Database["public"]["Enums"]["dp_solicitacao_status"]
           tipo: Database["public"]["Enums"]["dp_solicitacao_tipo"]
           updated_at?: string
@@ -10766,6 +10772,9 @@ export type Database = {
           respondido_em?: string | null
           respondido_por?: string | null
           resposta_admin?: string | null
+          retorno_confirmado_em?: string | null
+          retorno_confirmado_por?: string | null
+          retorno_em?: string | null
           status?: Database["public"]["Enums"]["dp_solicitacao_status"]
           tipo?: Database["public"]["Enums"]["dp_solicitacao_tipo"]
           updated_at?: string
