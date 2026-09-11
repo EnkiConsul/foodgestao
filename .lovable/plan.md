@@ -27,8 +27,21 @@ Campos ainda não definidos aparecem como no relatório da contabilidade (`..../
 ## Filtros e sinalizações
 
 - Filtro por unidade e opção "incluir desligados" (padrão desligado, como nas outras telas de férias).
-- Linhas com marcação atrasada, risco de dobra ou período vencido recebem destaque visual em tela, usando as mesmas regras já existentes. O arquivo impresso mantém o formato limpo do modelo.
 - Sócios continuam fora do relatório, por não terem férias legais.
+
+## Sinalização de risco (tela e impresso)
+
+Coluna extra **Situação** ao final, com selo e cor por período, usando as mesmas regras já existentes em `ferias-direito.ts`:
+
+- Vermelho — **Pagamento em dobro**: prazo legal estourado (férias vencidas).
+- Vermelho — **Marcação atrasada**: o tempo que falta para vencer já é menor que os dias restantes a gozar.
+- Laranja — **Risco de dobra**: faltam até 90 dias para o limite concessivo.
+- Amarelo — **Acompanhar**: janela de 180 a 90 dias antes do limite.
+- Cinza — **Dentro do prazo**.
+
+Duas colunas extras calculadas (úteis no CSV): **Dias p/ limite** (dias restantes até o limite concessivo) e **Dias p/ marcar** (dias restantes de saldo a gozar), que permitem à contabilidade ordenar por urgência.
+
+No impresso/PDF o selo mantém as cores de fundo claras da situação (o modelo original é preto-e-branco, mas as cores saem legíveis em impressão PB); no CSV vai o texto da situação e os dois números, sem cor.
 
 ## Download
 
