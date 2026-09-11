@@ -763,6 +763,14 @@ export function useDpPendencias() {
           .or(`limite_concessivo.lte.${ymd(limite)},fim_aquisitivo.lte.${hojeISO}`)
           .order("limite_concessivo", { ascending: true })
           .limit(60);
+        // Para saber quem já está no segundo ano aquisitivo sem ter tirado o
+        // primeiro, precisamos de todos os períodos (inclusive em aquisição).
+        const { data: todosPeriodos } = await supabase
+          .from("dp_ferias_periodos")
+          .select("id, colaborador_id, inicio_aquisitivo, dias_saldo, controle_externo")
+          .eq("company_id", selectedCompanyId!)
+          .limit(2000);
+        const idsAcumulo = periodosComAcumulo((todosPeriodos ?? []) as any[]);
         (periodos ?? []).forEach((p: any) => {
           // Sócio não tem férias legais; desligado não agenda férias.
           const vinculo = String(p.dp_colaboradores?.vinculo_label ?? "").toLowerCase();
