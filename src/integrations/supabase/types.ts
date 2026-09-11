@@ -120,6 +120,7 @@ export type Database = {
           status_note: string | null
           surface: string | null
           updated_at: string
+          user_email: string | null
           user_id: string | null
           user_message: string | null
           user_name: string | null
@@ -143,6 +144,7 @@ export type Database = {
           status_note?: string | null
           surface?: string | null
           updated_at?: string
+          user_email?: string | null
           user_id?: string | null
           user_message?: string | null
           user_name?: string | null
@@ -166,6 +168,7 @@ export type Database = {
           status_note?: string | null
           surface?: string | null
           updated_at?: string
+          user_email?: string | null
           user_id?: string | null
           user_message?: string | null
           user_name?: string | null
@@ -176,6 +179,56 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_error_occurrences: {
+        Row: {
+          code: string | null
+          company_id: string | null
+          created_at: string
+          details: Json | null
+          error_log_id: string
+          id: string
+          message: string | null
+          route: string | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          details?: Json | null
+          error_log_id: string
+          id?: string
+          message?: string | null
+          route?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          details?: Json | null
+          error_log_id?: string
+          id?: string
+          message?: string | null
+          route?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_error_occurrences_error_log_id_fkey"
+            columns: ["error_log_id"]
+            isOneToOne: false
+            referencedRelation: "app_error_logs"
             referencedColumns: ["id"]
           },
         ]
@@ -241,6 +294,7 @@ export type Database = {
           id: string
           internal_note: string | null
           protocol: string
+          reporter_email: string | null
           reporter_name: string | null
           reporter_user_id: string
           route: string | null
@@ -256,6 +310,7 @@ export type Database = {
           id?: string
           internal_note?: string | null
           protocol: string
+          reporter_email?: string | null
           reporter_name?: string | null
           reporter_user_id: string
           route?: string | null
@@ -271,6 +326,7 @@ export type Database = {
           id?: string
           internal_note?: string | null
           protocol?: string
+          reporter_email?: string | null
           reporter_name?: string | null
           reporter_user_id?: string
           route?: string | null
