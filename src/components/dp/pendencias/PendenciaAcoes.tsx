@@ -39,9 +39,12 @@ export function PendenciaAcoes({
   const [ignorarAberto, setIgnorarAberto] = useState(false);
   const [justificativa, setJustificativa] = useState("");
   const [adiarAberto, setAdiarAberto] = useState(false);
+  const [retornoAberto, setRetornoAberto] = useState(false);
 
   const decisao = decisaoDe.get(p.id);
   const intermitente = p.tipo === "Intermitente" && !!p.colaboradorId && !!p.competencia;
+  const licencaRetorno = p.tipo === "Licença" && !!p.licenca;
+
 
   const adiar = (dias: number) => {
     setAdiarAberto(false);
