@@ -15344,6 +15344,18 @@ export type Database = {
         Args: { _company_id: string }
         Returns: boolean
       }
+      dp_portal_rotina_dia: {
+        Args: { p_data: string }
+        Returns: {
+          cargo: string
+          colaborador_id: string
+          entrada: string
+          nome: string
+          nome_social: string
+          origem: string
+          saida: string
+        }[]
+      }
       dp_processar_troca: { Args: { _troca_id: string }; Returns: Json }
       dp_processar_troca_direta: { Args: { _troca_id: string }; Returns: Json }
       dp_purgar_colaborador: {
