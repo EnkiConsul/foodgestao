@@ -22,6 +22,8 @@ import {
   Activity,
   Crown,
   Wifi,
+  Clock,
+
   Bug,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
