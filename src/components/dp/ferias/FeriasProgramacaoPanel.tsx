@@ -43,7 +43,7 @@ export function FeriasProgramacaoPanel() {
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent className="max-h-72">
                 <SelectItem value="todas">Todas</SelectItem>
-                {(unidades as any[]).map((u) => (
+                {unidades.map((u) => (
                   <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
                 ))}
               </SelectContent>
