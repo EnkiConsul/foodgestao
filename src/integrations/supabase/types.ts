@@ -9358,6 +9358,35 @@ export type Database = {
           },
         ]
       }
+      dp_pendencias_apuracoes: {
+        Row: {
+          apurado_em: string | null
+          company_id: string
+          sujo_desde: string
+          updated_at: string
+        }
+        Insert: {
+          apurado_em?: string | null
+          company_id: string
+          sujo_desde?: string
+          updated_at?: string
+        }
+        Update: {
+          apurado_em?: string | null
+          company_id?: string
+          sujo_desde?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_pendencias_apuracoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_pendencias_config: {
         Row: {
           alerta_adiantamento_offset: number
@@ -9469,6 +9498,80 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dp_pendencias_decisoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_pendencias_materializadas: {
+        Row: {
+          apurado_em: string
+          atraso_dias: number
+          colaborador_id: string | null
+          colaborador_nome: string | null
+          company_id: string
+          competencia: string | null
+          doc_tipo: string | null
+          escopo: string | null
+          id: string
+          pendencia_id: string
+          pessoas: Json | null
+          subtitulo: string
+          tipo: string
+          titulo: string
+          total_elegiveis: number | null
+          unidade_id: string | null
+          unidade_nome: string | null
+          url: string
+          vencimento: string | null
+        }
+        Insert: {
+          apurado_em?: string
+          atraso_dias?: number
+          colaborador_id?: string | null
+          colaborador_nome?: string | null
+          company_id: string
+          competencia?: string | null
+          doc_tipo?: string | null
+          escopo?: string | null
+          id?: string
+          pendencia_id: string
+          pessoas?: Json | null
+          subtitulo: string
+          tipo: string
+          titulo: string
+          total_elegiveis?: number | null
+          unidade_id?: string | null
+          unidade_nome?: string | null
+          url: string
+          vencimento?: string | null
+        }
+        Update: {
+          apurado_em?: string
+          atraso_dias?: number
+          colaborador_id?: string | null
+          colaborador_nome?: string | null
+          company_id?: string
+          competencia?: string | null
+          doc_tipo?: string | null
+          escopo?: string | null
+          id?: string
+          pendencia_id?: string
+          pessoas?: Json | null
+          subtitulo?: string
+          tipo?: string
+          titulo?: string
+          total_elegiveis?: number | null
+          unidade_id?: string | null
+          unidade_nome?: string | null
+          url?: string
+          vencimento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_pendencias_materializadas_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -15382,6 +15485,10 @@ export type Database = {
           p_unidade_id?: string
           p_valor_hora?: number
         }
+        Returns: string
+      }
+      dp_refresh_my_company_pending: {
+        Args: { p_company_id: string }
         Returns: string
       }
       dp_regime_convocavel: {
