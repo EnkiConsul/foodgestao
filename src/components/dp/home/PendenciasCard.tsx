@@ -65,12 +65,19 @@ export function useStablePendencias({
 
   useEffect(() => {
     if (isLoading || isFetching || data === undefined) return;
-    setConfirmed({
-      companyId,
-      data,
-      dataUpdatedAt,
-      lastCalculatedAt,
-      ready: true,
+    setConfirmed((anterior) => {
+      // Evita atualizações redundantes quando a fonte reemite o mesmo quadro.
+      if (
+        anterior.ready &&
+        anterior.companyId === companyId &&
+        anterior.dataUpdatedAt === dataUpdatedAt &&
+        anterior.lastCalculatedAt === lastCalculatedAt &&
+        anterior.data.length === data.length &&
+        anterior.data.every((p, i) => p.id === data[i]?.id)
+      ) {
+        return anterior;
+      }
+      return { companyId, data, dataUpdatedAt, lastCalculatedAt, ready: true };
     });
     salvarPendenciasSnapshot(companyId, { data, dataUpdatedAt, lastCalculatedAt });
   }, [companyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching]);
