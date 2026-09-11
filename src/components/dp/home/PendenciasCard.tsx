@@ -321,7 +321,7 @@ function UrgencyChip({
 }: { icon: any; label: string; count: number; tone: "destructive" | "warning" | "info" }) {
   const cls =
     tone === "destructive" ? "bg-destructive/10 text-destructive border-destructive/30"
-    : tone === "warning" ? "bg-amber-100 text-amber-900 border-amber-300"
+    : tone === "warning" ? "bg-warning/10 text-warning border-warning/30"
     : "bg-blue-50 text-blue-900 border-blue-200";
   return (
     <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${cls}`}>
@@ -330,6 +330,7 @@ function UrgencyChip({
     </div>
   );
 }
+
 
 const PRESETS = [1, 3, 7, 15, 30];
 
