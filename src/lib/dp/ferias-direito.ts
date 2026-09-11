@@ -113,6 +113,8 @@ export function nivelVencimentoPeriodo(args: {
   const saldo = args.diasSaldo ?? 0;
   const diasRestantes = diffDias(limiteConcessivo, hojeISO);
   if (diasRestantes < 0) return "vencido";
+  // O prazo já não cabe o descanso inteiro: marcar agora é tarde.
+  if (saldo > 0 && diasRestantes <= saldo) return "marcacao_atrasada";
   const acumulo = args.acumulo === true;
   const janelaAtencao = acumulo ? JANELA_ACUMULO_RISCO_DIAS : JANELA_ATENCAO_DIAS;
   const janelaPlanejamento = acumulo
