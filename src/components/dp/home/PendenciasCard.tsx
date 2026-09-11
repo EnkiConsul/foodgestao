@@ -174,14 +174,15 @@ export function PendenciasCard() {
   const grupoAberto = grupos.find((grupo) => grupo.tipo === grupoAbertoTipo) ?? null;
 
   const counters = useMemo(() => {
-    let atrasado = 0, hoje = 0, proximo = 0;
+    let atrasado = 0, urgente = 0, hoje = 0, proximo = 0;
     for (const p of abertas) {
       const u = urgenciaDe(p);
       if (u === "atrasada") atrasado++;
+      else if (u === "urgente") urgente++;
       else if (u === "hoje") hoje++;
       else proximo++;
     }
-    return { atrasado, hoje, proximo };
+    return { atrasado, urgente, hoje, proximo };
   }, [abertas]);
 
   return (
