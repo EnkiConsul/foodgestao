@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { categorySchema, validateWithToast } from "@/lib/validations";
 import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/display";
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
+import { syncCategoryCompanies } from "@/lib/categories/visibility";
 import type { Tables } from "@/integrations/supabase/types";
 
 
@@ -68,6 +69,8 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
   const [subtype, setSubtype] = useState<string>("");
   const [aiDescription, setAiDescription] = useState<string>("");
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
+  /** Vínculos já gravados, para gravar só a diferença ao salvar. */
+  const [initialCompanies, setInitialCompanies] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [generatingAi, setGeneratingAi] = useState(false);
 
@@ -227,7 +230,9 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         .select("company_id")
         .eq("category_id", editCategory.id)
         .then(({ data }) => {
-          setSelectedCompanies(new Set((data ?? []).map((d) => d.company_id)));
+          const atuais = new Set((data ?? []).map((d) => d.company_id));
+          setSelectedCompanies(atuais);
+          setInitialCompanies(new Set(atuais));
         });
     } else {
       setName(defaultName ?? "");
@@ -241,6 +246,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
       setSubtype("");
       setAiDescription("");
       setSelectedCompanies(new Set(companies.map((c) => c.id)));
+      setInitialCompanies(new Set());
     }
   }, [editCategory, open, defaultParentId, defaultType, defaultName]);
 
@@ -356,15 +362,18 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
         return;
       }
 
-      // Sync company visibility
-      await supabase.from("category_companies").delete().eq("category_id", editCategory.id);
-      if (selectedCompanies.size > 0) {
-        const rows = Array.from(selectedCompanies).map((company_id) => ({
-          category_id: editCategory.id,
-          company_id,
-        }));
-        await supabase.from("category_companies").insert(rows);
+      // Sync company visibility (apenas a diferença)
+      const { error: visError } = await syncCategoryCompanies(
+        editCategory.id,
+        initialCompanies,
+        selectedCompanies,
+      );
+      if (visError) {
+        toast.error("Erro ao salvar a visibilidade", { description: visError.message });
+        setSaving(false);
+        return;
       }
+      setInitialCompanies(new Set(selectedCompanies));
 
       await supabase.rpc("insert_audit_log", {
         _action: "category_updated",
@@ -401,11 +410,12 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, editCategory, 
 
       // Save company visibility
       if (newCat && selectedCompanies.size > 0) {
-        const rows = Array.from(selectedCompanies).map((company_id) => ({
-          category_id: newCat.id,
-          company_id,
-        }));
-        await supabase.from("category_companies").insert(rows);
+        const { error: visError } = await syncCategoryCompanies(newCat.id, [], selectedCompanies);
+        if (visError) {
+          toast.error("Categoria criada, mas a visibilidade não foi salva", {
+            description: visError.message,
+          });
+        }
       }
 
       await supabase.rpc("insert_audit_log", {
