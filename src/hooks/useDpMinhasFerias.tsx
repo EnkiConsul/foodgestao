@@ -78,6 +78,7 @@ export function useDpMinhasFerias() {
           ...g,
           dias: Number(g.dias ?? 0),
           dias_abono: Number(g.dias_abono ?? 0),
+          documentos: g.documentos ?? [],
         })),
       }));
     },
