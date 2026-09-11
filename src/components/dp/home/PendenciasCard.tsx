@@ -19,7 +19,7 @@ import {
   type GrupoPendencias,
 } from "@/lib/dp/pendencias";
 import { toast } from "sonner";
-import { useCompanyContext } from "@/contexts/CompanyContext";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 
 type StablePendenciasState = {
   companyId: string | null;
