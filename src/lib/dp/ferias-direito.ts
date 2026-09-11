@@ -108,6 +108,59 @@ export function nivelVencimentoPeriodo(args: {
   return "normal";
 }
 
+export type AlertaPendenciaFerias = {
+  titulo: string;
+  detalhePrazo: string;
+  nivel: NivelVencimento;
+};
+
+/** Mantém Início e Férias com a mesma leitura do prazo concessivo. */
+export function alertaPendenciaFerias(args: {
+  fimAquisitivo: string;
+  limiteConcessivo: string;
+  diasSaldo: number | null | undefined;
+  hojeISO: string;
+  politica?: FeriasSinalizacaoCiclo;
+}): AlertaPendenciaFerias {
+  const nivel = nivelVencimentoPeriodo(args);
+  const diasRestantes = diffDias(args.limiteConcessivo, args.hojeISO);
+
+  if (nivel === "vencido") {
+    return {
+      nivel,
+      titulo: "Férias vencidas — pagamento em dobro",
+      detalhePrazo: `prazo legal vencido há ${Math.abs(diasRestantes)} dia(s)`,
+    };
+  }
+  if (nivel === "atencao") {
+    return {
+      nivel,
+      titulo: "Férias a conceder — risco de dobra",
+      detalhePrazo:
+        diasRestantes === 0
+          ? "prazo legal termina hoje"
+          : `faltam ${diasRestantes} dia(s) para o prazo legal`,
+    };
+  }
+  if (nivel === "a_conceder") {
+    return {
+      nivel,
+      titulo: "Férias a conceder",
+      detalhePrazo: `prazo legal em ${formatarDataISO(args.limiteConcessivo)}`,
+    };
+  }
+  return {
+    nivel,
+    titulo: "Férias a vencer",
+    detalhePrazo: `prazo legal em ${formatarDataISO(args.limiteConcessivo)}`,
+  };
+}
+
+function formatarDataISO(iso: string): string {
+  const [ano, mes, dia] = iso.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
 /** Diferença em dias entre duas datas ISO (yyyy-MM-dd), sem fuso. */
 function diffDias(alvoISO: string, baseISO: string): number {
   const alvo = Date.UTC(

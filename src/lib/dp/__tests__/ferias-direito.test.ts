@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  alertaPendenciaFerias,
   diasDireitoPorFaltas,
   exigeRevisaoAdministrativa,
   nivelVencimento,
@@ -128,6 +129,37 @@ describe("nivelVencimentoPeriodo — ciclos já encerrados", () => {
     expect(nivelVencimentoPeriodo({ ...base, hojeISO: "2026-10-05", politica: "legal" })).toBe(
       "vencido",
     );
+  });
+});
+
+describe("alertaPendenciaFerias", () => {
+  const base = {
+    fimAquisitivo: "2025-09-30",
+    limiteConcessivo: "2026-09-30",
+    diasSaldo: 30,
+    politica: "a_conceder" as const,
+  };
+
+  it("mantém o período adquirido como a conceder longe do prazo", () => {
+    expect(alertaPendenciaFerias({ ...base, hojeISO: "2026-01-10" }).titulo).toBe("Férias a conceder");
+  });
+
+  it("destaca risco de dobra quando o prazo legal está próximo", () => {
+    const alerta = alertaPendenciaFerias({ ...base, hojeISO: "2026-09-11" });
+    expect(alerta.titulo).toBe("Férias a conceder — risco de dobra");
+    expect(alerta.detalhePrazo).toContain("19 dia(s)");
+  });
+
+  it("destaca que o prazo legal termina hoje", () => {
+    const alerta = alertaPendenciaFerias({ ...base, hojeISO: "2026-09-30" });
+    expect(alerta.titulo).toBe("Férias a conceder — risco de dobra");
+    expect(alerta.detalhePrazo).toBe("prazo legal termina hoje");
+  });
+
+  it("informa vencimento e pagamento em dobro após o prazo", () => {
+    const alerta = alertaPendenciaFerias({ ...base, hojeISO: "2026-10-01" });
+    expect(alerta.titulo).toBe("Férias vencidas — pagamento em dobro");
+    expect(alerta.detalhePrazo).toContain("1 dia(s)");
   });
 });
 

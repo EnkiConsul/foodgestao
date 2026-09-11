@@ -2,12 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPendenciasConfig";
+import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap, UserCog } from "lucide-react";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
+import { alertaPendenciaFerias } from "@/lib/dp/ferias-direito";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
 import {
@@ -66,12 +68,13 @@ function ymd(d: Date) {
 export function useDpPendencias() {
   const { selectedCompanyId } = useCompanyContext();
   const { config, isLoading: isConfigLoading } = useDpPendenciasConfig();
+  const { config: feriasConfig, isLoading: isFeriasConfigLoading } = useDpFeriasConfig();
 
   const query = useQuery({
     // A identidade do cache depende apenas da empresa. Mudanças de configuração
     // invalidam explicitamente esta chave no hook de configuração.
     queryKey: ["dp_pendencias", selectedCompanyId],
-    enabled: !!selectedCompanyId && !isConfigLoading,
+    enabled: !!selectedCompanyId && !isConfigLoading && !isFeriasConfigLoading,
     // Sem repetição periódica no navegador: a rotina diária, as ações do gestor
     // e o botão manual controlam quando uma nova apuração deve acontecer.
     staleTime: Infinity,
@@ -764,18 +767,18 @@ export function useDpPendencias() {
           if (p.dp_colaboradores?.ativo === false) return;
           const vencimento = new Date(`${p.limite_concessivo}T00:00:00`);
           const dias = differenceInCalendarDays(today, vencimento);
-          const jaVenceu = dias > 0;
-          const adquirida = String(p.fim_aquisitivo ?? "") <= hojeISO;
-          const titulo = jaVenceu
-            ? "Férias vencidas"
-            : adquirida && dias > cfg.alerta_ferias_dias
-              ? "Férias adquiridas — agendar"
-              : "Férias a vencer";
+          const alerta = alertaPendenciaFerias({
+            fimAquisitivo: p.fim_aquisitivo,
+            limiteConcessivo: p.limite_concessivo,
+            diasSaldo: p.dias_saldo,
+            hojeISO,
+            politica: feriasConfig.sinalizacaoCicloEncerrado,
+          });
           results.push({
             id: `ferias-${p.id}`,
             icon: Palmtree,
-            titulo,
-            subtitulo: `${p.dp_colaboradores?.nome ?? "Colaborador"} — ${p.dias_saldo} dia(s) de saldo · limite ${format(vencimento, "dd/MM/yyyy")}`,
+            titulo: alerta.titulo,
+            subtitulo: `${p.dp_colaboradores?.nome ?? "Colaborador"} — ${p.dias_saldo} dia(s) de saldo · ${alerta.detalhePrazo}`,
             tipo: "Férias",
             colaboradorNome: p.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
