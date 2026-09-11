@@ -232,5 +232,8 @@ export function elegivelDocumento(
     return true;
   }
   if (intermitenteIncerto) return false;
+  // Mês 100% coberto por licença/afastamento: sem marcações a apresentar.
+  if (opts.afastadoMesInteiro === true) return false;
   return opts.unidadeTemRelogio === true && c.possui_folha_ponto !== false;
 }
+
