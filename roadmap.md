@@ -41,8 +41,8 @@
 - [x] `ColaboradorCondicoesDialog.tsx` — abas Contrato, Jornada, Pagamento, Benefícios e Histórico
 
 ## Ainda em aberto (fila desta revisão)
-- [ ] Documentos de rescisão agrupados (vários arquivos num único conjunto do colaborador)
-- [ ] Fonte única de pendências entre Início, Pendências e Importar + botão Atualizar com data/hora e rotina automática (6h e a cada 8h)
+- [x] Documentos de rescisão identificados como um conjunto no histórico do colaborador
+- [x] Fonte única de pendências (Início, Pendências e Importar), botão Atualizar com data/hora e recálculo automático a cada 8h
 - [x] Convocação: recolher visualmente os dias sem erro e abrir o dia com problema (publicação segue atômica)
 - [x] Horário do Herick divergente na rotina do dia (horário próprio do dia vence o turno)
 - [x] Erro ao confirmar se o Erildson trabalhou em 05/2026 (coluna errada na gravação)

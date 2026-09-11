@@ -45,6 +45,13 @@ export type Pendencia = {
   /** Preenchidos em pendências por colaborador/competência (ex.: alerta do intermitente). */
   colaboradorId?: string | null;
   competencia?: string | null;
+  /** Metadados de pendências de documento — usados também na tela Importar. */
+  docTipo?: DocTipoColaborador | null;
+  unidadeId?: string | null;
+  escopo?: "unidade" | "pessoa";
+  /** Pessoas faltantes quando a pendência cobre o lote inteiro da unidade. */
+  pessoas?: Array<{ nome: string; desligamento: string | null }>;
+  totalElegiveis?: number;
 };
 
 const MES_NOME = [
@@ -63,8 +70,11 @@ export function useDpPendencias() {
   return useQuery({
     queryKey: ["dp_pendencias", selectedCompanyId, config],
     enabled: !!selectedCompanyId,
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
+    // Recalcular é caro: mantemos o resultado por 8 horas e atualizamos
+    // automaticamente nesse mesmo ritmo, além do botão manual.
+    staleTime: 8 * 60 * 60 * 1000,
+    refetchInterval: 8 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async (): Promise<Pendencia[]> => {
       const cfg: DpPendenciasConfig = config;
       const today = new Date();
@@ -409,6 +419,15 @@ export function useDpPendencias() {
                 vencimento,
                 atrasoDias,
                 url,
+                docTipo: opts.tipo,
+                unidadeId: u.id,
+                competencia: comp,
+                escopo: "unidade",
+                pessoas: faltantes.map((c) => ({
+                  nome: c.nome,
+                  desligamento: (c.data_desligamento as string | null) ?? null,
+                })),
+                totalElegiveis: faltantes.length,
               });
               continue;
             }
@@ -427,6 +446,18 @@ export function useDpPendencias() {
                 vencimento,
                 atrasoDias,
                 url,
+                docTipo: opts.tipo,
+                unidadeId: u.id,
+                colaboradorId: c.id,
+                competencia: comp,
+                escopo: "pessoa",
+                pessoas: [
+                  {
+                    nome: c.nome,
+                    desligamento: (c.data_desligamento as string | null) ?? null,
+                  },
+                ],
+                totalElegiveis: 1,
               });
             }
           }

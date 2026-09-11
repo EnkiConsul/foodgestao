@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { RefreshCw } from "lucide-react";
+import { useDpPendencias } from "@/hooks/useDpPendencias";
+import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
+import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
+import { filtrarAbertas } from "@/lib/dp/pendencias";
 import { Link } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, ChevronDown, Clock, ShieldAlert, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -134,6 +139,13 @@ type Aviso = {
 
 const MAX_NOMES = 6;
 
+/**
+ * Tipos calculados pelas Pendências (fonte única). Aqui eles são apenas
+ * exibidos, para que Início, Pendências e Importar mostrem exatamente a
+ * mesma lista — incluindo o que foi ignorado ou adiado pelo gestor.
+ */
+const TIPOS_DA_FONTE_UNICA = new Set<Tipo>(["contracheque", "adiantamento", "ponto"]);
+
 type Pessoa = { nome: string; desligamento: string | null };
 
 type Grupo = {
@@ -164,6 +176,14 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
   const { config } = useDpPendenciasConfig();
   const exigirContrachequeMesDesligamento = config.exigir_contracheque_mes_desligamento;
   const [aberto, setAberto] = useState<Record<string, boolean>>({});
+  const {
+    data: pendencias = [],
+    dataUpdatedAt,
+    isFetching: atualizandoPendencias,
+    refetch: recalcularPendencias,
+  } = useDpPendencias();
+  const { ignoradas, adiadas } = useDpPendenciasDecisoes();
+  const { prefs } = useDpUserPrefs();
 
   const query = useQuery({
     queryKey: [
@@ -472,7 +492,9 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
     : "";
 
   const grupos = useMemo(() => {
-    const alertas = query.data?.alertas ?? [];
+    const alertas = (query.data?.alertas ?? []).filter(
+      (a) => !(a.problema === "faltando" && TIPOS_DA_FONTE_UNICA.has(a.tipo)),
+    );
     const elegiveis = query.data?.elegiveis ?? {};
     const unidadesMap = query.data?.unidadesMap ?? new Map<string, string>();
     const out: Grupo[] = [];
@@ -524,7 +546,54 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
     });
   }, [query.data]);
 
-  const faltando = grupos.filter((g) => g.problema === "faltando");
+  /** Contracheque, adiantamento e folha de ponto vêm das Pendências. */
+  const gruposDasPendencias = useMemo<Grupo[]>(() => {
+    const abertas = filtrarAbertas(
+      pendencias.filter((p) => p.docTipo && !ignoradas.has(p.id)),
+      { ...prefs.pendencias_adiadas, ...adiadas },
+    );
+    const porChave = new Map<string, Grupo>();
+    for (const p of abertas) {
+      const tipo = p.docTipo as Tipo;
+      const comp = p.competencia ?? "";
+      const uid = p.unidadeId ?? "sem-unidade";
+      const key = `pend-${comp}-${tipo}-${uid}-${p.escopo}`;
+      const pessoas = (p.pessoas ?? []).map((x) => ({ ...x }));
+      const atual = porChave.get(key);
+      if (atual) {
+        atual.nomes.push(...pessoas);
+        atual.total = Math.max(atual.total, atual.nomes.length);
+        continue;
+      }
+      porChave.set(key, {
+        key,
+        tipo,
+        problema: "faltando",
+        competencia: comp,
+        unidade_id: uid === "sem-unidade" ? null : uid,
+        nome_unidade: p.unidadeNome ?? null,
+        nomes: pessoas,
+        total: p.totalElegiveis ?? pessoas.length,
+        completo: p.escopo === "unidade",
+      });
+    }
+    return Array.from(porChave.values()).map((g) => ({
+      ...g,
+      nomes: g.nomes.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+    }));
+  }, [pendencias, ignoradas, adiadas, prefs.pendencias_adiadas]);
+
+  const faltando = useMemo(
+    () =>
+      [...grupos.filter((g) => g.problema === "faltando"), ...gruposDasPendencias].sort((a, b) => {
+        if (a.competencia !== b.competencia) return a.competencia < b.competencia ? -1 : 1;
+        if (a.tipo !== b.tipo) return TIPO_ORDEM.indexOf(a.tipo) - TIPO_ORDEM.indexOf(b.tipo);
+        const nomeA = a.nome_unidade ?? "Sem unidade";
+        const nomeB = b.nome_unidade ?? "Sem unidade";
+        return nomeA.localeCompare(nomeB, "pt-BR");
+      }),
+    [grupos, gruposDasPendencias],
+  );
   const inconsistentes = grupos.filter((g) => g.problema === "inconsistente");
   const avisos = query.data?.avisos ?? [];
   const tudoOk =
@@ -643,6 +712,33 @@ export function DocConsistenciaPanel({ onImportar }: DocConsistenciaPanelProps =
         </CollapsibleTrigger>
         <CollapsibleContent>
       <CardContent className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs"
+            disabled={atualizandoPendencias}
+            onClick={() => {
+              void recalcularPendencias();
+              void query.refetch();
+            }}
+          >
+            <RefreshCw
+              className={cn("mr-1 h-3.5 w-3.5", atualizandoPendencias && "animate-spin")}
+            />
+            Atualizar
+          </Button>
+          <span className="text-[11px] text-muted-foreground">
+            {dataUpdatedAt
+              ? `Última atualização: ${new Date(dataUpdatedAt).toLocaleString("pt-BR", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}`
+              : "Atualizando…"}
+          </span>
+        </div>
         {query.isLoading && <p className="text-sm text-muted-foreground">Conferindo…</p>}
 
         {!query.isLoading && tudoOk && (

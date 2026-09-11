@@ -59,6 +59,9 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
     qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
     qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
+    // Fonte única das pendências: recalcula ao gravar/apagar documento.
+    qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    qc.invalidateQueries({ queryKey: ["dp_doc_consistencia_janela"] });
   };
 
   const { statusFilter, search, periodoInicio, periodoFim } = filters;
