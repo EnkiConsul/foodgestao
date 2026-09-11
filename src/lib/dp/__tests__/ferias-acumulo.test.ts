@@ -27,7 +27,11 @@ describe("acúmulo de períodos — janelas 180/90", () => {
 
   it("sem acúmulo mantém 30 dias para o risco", () => {
     expect(nivelVencimentoPeriodo({ ...base, hojeISO: "2026-07-15" })).not.toBe("atencao");
-    expect(nivelVencimentoPeriodo({ ...base, hojeISO: "2026-09-20" })).toBe("atencao");
+    // saldo pequeno para isolar a janela de 30 dias (saldo maior que o prazo
+    // restante cai na regra de marcação atrasada)
+    expect(nivelVencimentoPeriodo({ ...base, diasSaldo: 5, hojeISO: "2026-09-20" })).toBe(
+      "atencao",
+    );
   });
 
   it("depois do prazo continua vencida", () => {
