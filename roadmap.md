@@ -56,4 +56,4 @@
 - [x] Auditoria de erros disponível no backoffice e erro intermitente traduzido
 - [x] Nome social aplicado na rotina, escalas, convocações, avisos e mensagens
 - [x] Recontratação preserva a pessoa e o histórico do vínculo encerrado
-- [ ] Materializar a apuração de pendências no servidor e agendar 6h/8h; hoje o recálculo compartilhado é client-side a cada 8h
+- [x] Materializar pendências documentais e atualizar às 6h, 14h e 22h, além de recalcular após alterações e pelo botão Atualizar

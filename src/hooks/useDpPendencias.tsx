@@ -67,7 +67,7 @@ export function useDpPendencias() {
   const { selectedCompanyId } = useCompanyContext();
   const { config } = useDpPendenciasConfig();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ["dp_pendencias", selectedCompanyId, config],
     enabled: !!selectedCompanyId,
     // Recalcular é caro: mantemos o resultado por 8 horas e atualizamos
@@ -1154,6 +1154,72 @@ export function useDpPendencias() {
 
 
 
+      // A apuração documental é compartilhada entre as telas e também roda
+      // automaticamente às 6h, 14h e 22h (horário de São Paulo). Se alguma
+      // alteração deixou o resultado marcado como desatualizado, recalcula ao abrir.
+      try {
+        let { data: apuracao } = await supabase
+          .from("dp_pendencias_apuracoes")
+          .select("apurado_em, sujo_desde")
+          .eq("company_id", selectedCompanyId!)
+          .maybeSingle();
+        const precisaAtualizar = !apuracao?.apurado_em || new Date(apuracao.sujo_desde).getTime() > new Date(apuracao.apurado_em).getTime();
+        if (precisaAtualizar) {
+          const { error } = await supabase.functions.invoke("dp-refresh-pendencias", {
+            body: { companyId: selectedCompanyId },
+          });
+          if (!error) {
+            const refreshed = await supabase
+              .from("dp_pendencias_apuracoes")
+              .select("apurado_em, sujo_desde")
+              .eq("company_id", selectedCompanyId!)
+              .maybeSingle();
+            apuracao = refreshed.data;
+          }
+        }
+
+        const { data: materializadas, error } = await supabase
+          .from("dp_pendencias_materializadas")
+          .select("pendencia_id, titulo, subtitulo, tipo, vencimento, atraso_dias, url, colaborador_nome, unidade_nome, colaborador_id, competencia, doc_tipo, unidade_id, escopo, pessoas, total_elegiveis")
+          .eq("company_id", selectedCompanyId!);
+        if (error) throw error;
+
+        const tiposCompartilhados = new Set(["contracheque", "adiantamento", "ponto", "rescisao"]);
+        for (let i = results.length - 1; i >= 0; i--) {
+          if (results[i].docTipo && tiposCompartilhados.has(results[i].docTipo as string)) results.splice(i, 1);
+          else if (results[i].id.startsWith("rescisao-")) results.splice(i, 1);
+        }
+        const icones: Record<string, LucideIcon> = {
+          contracheque: FileText,
+          adiantamento: Coins,
+          ponto: Clock,
+          rescisao: FileMinus,
+        };
+        for (const p of materializadas ?? []) {
+          results.push({
+            id: p.pendencia_id,
+            icon: icones[p.doc_tipo ?? ""] ?? FileText,
+            titulo: p.titulo,
+            subtitulo: p.subtitulo,
+            tipo: p.tipo,
+            vencimento: p.vencimento,
+            atrasoDias: p.atraso_dias,
+            url: p.url,
+            colaboradorNome: p.colaborador_nome,
+            unidadeNome: p.unidade_nome,
+            colaboradorId: p.colaborador_id,
+            competencia: p.competencia,
+            docTipo: p.doc_tipo as DocTipoColaborador | null,
+            unidadeId: p.unidade_id,
+            escopo: p.escopo as "unidade" | "pessoa" | undefined,
+            pessoas: Array.isArray(p.pessoas) ? p.pessoas as Array<{ nome: string; desligamento: string | null }> : undefined,
+            totalElegiveis: p.total_elegiveis ?? undefined,
+          });
+        }
+      } catch (e) {
+        console.warn("pendencias/materializadas:", e);
+      }
+
       // Ordenar: mais atrasado primeiro; empate → vencimento mais próximo
       results.sort((a, b) => {
         if (b.atrasoDias !== a.atrasoDias) return b.atrasoDias - a.atrasoDias;
@@ -1165,6 +1231,21 @@ export function useDpPendencias() {
       return results;
     },
   });
+
+  const apuracao = useQuery({
+    queryKey: ["dp_pendencias_apuracao", selectedCompanyId, query.dataUpdatedAt],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("dp_pendencias_apuracoes")
+        .select("apurado_em")
+        .eq("company_id", selectedCompanyId!)
+        .maybeSingle();
+      return data?.apurado_em ?? null;
+    },
+  });
+
+  return { ...query, lastCalculatedAt: apuracao.data ?? null };
 }
 
 /** Alias explícito: escopo administrativo (empresa inteira). */
