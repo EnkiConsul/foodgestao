@@ -179,7 +179,7 @@ export default function DpCadastroPendenciasLista() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2 flex-wrap">
                         <p className="text-sm font-medium break-words min-w-0">{p.titulo}</p>
-                        <UrgenciaBadge atrasoDias={p.atrasoDias} />
+                        <UrgenciaBadge atrasoDias={p.atrasoDias} urgente={p.urgente} />
                       </div>
                       <p className="text-xs text-muted-foreground break-words">{p.subtitulo}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">

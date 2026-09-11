@@ -174,14 +174,15 @@ export function PendenciasCard() {
   const grupoAberto = grupos.find((grupo) => grupo.tipo === grupoAbertoTipo) ?? null;
 
   const counters = useMemo(() => {
-    let atrasado = 0, hoje = 0, proximo = 0;
+    let atrasado = 0, urgente = 0, hoje = 0, proximo = 0;
     for (const p of abertas) {
       const u = urgenciaDe(p);
       if (u === "atrasada") atrasado++;
+      else if (u === "urgente") urgente++;
       else if (u === "hoje") hoje++;
       else proximo++;
     }
-    return { atrasado, hoje, proximo };
+    return { atrasado, urgente, hoje, proximo };
   }, [abertas]);
 
   return (
@@ -242,6 +243,7 @@ export function PendenciasCard() {
 
       <div className="flex flex-wrap gap-2 mb-2">
         <UrgencyChip icon={AlarmClockOff} label="Atrasado" count={counters.atrasado} tone="destructive" />
+        <UrgencyChip icon={AlarmClockOff} label="Urgente" count={counters.urgente} tone="destructive" />
         <UrgencyChip icon={Clock3} label="Hoje" count={counters.hoje} tone="warning" />
         <UrgencyChip icon={CalendarClock} label="Próximo" count={counters.proximo} tone="info" />
       </div>
@@ -280,6 +282,7 @@ export function PendenciasCard() {
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">
                 {g.atrasadas > 0 && <span className="text-destructive font-medium">{g.atrasadas} atrasada(s)</span>}
+                {g.urgentes > 0 && <span className="text-destructive font-medium">{g.urgentes} urgente(s)</span>}
                 {g.hoje > 0 && <span className="text-amber-700 font-medium">{g.hoje} vence(m) hoje</span>}
                 {g.proximas > 0 && <span className="text-emerald-700">{g.proximas} próxima(s)</span>}
                 {g.colaboradores.length > 0 && (
@@ -329,7 +332,7 @@ export function PendenciasCard() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-sm font-medium break-words">{p.titulo}</p>
-                            <UrgenciaBadge atrasoDias={p.atrasoDias} />
+                            <UrgenciaBadge atrasoDias={p.atrasoDias} urgente={p.urgente} />
                           </div>
                           <p className="text-xs text-muted-foreground break-words">{p.subtitulo}</p>
                           {p.unidadeNome && (
@@ -361,7 +364,21 @@ export function PendenciasCard() {
   );
 }
 
-export function UrgenciaBadge({ atrasoDias }: { atrasoDias: number }) {
+export function UrgenciaBadge({
+  atrasoDias,
+  urgente,
+}: {
+  atrasoDias: number;
+  urgente?: boolean | null;
+}) {
+  if (atrasoDias <= 0 && urgente) {
+    return (
+      <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive text-[10px] shrink-0">
+        <Clock className="h-3 w-3 mr-1" />
+        Urgente — risco de dobra
+      </Badge>
+    );
+  }
   if (atrasoDias > 0) {
     return (
       <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive text-[10px] shrink-0">

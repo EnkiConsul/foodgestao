@@ -12,21 +12,52 @@ export type PendenciaLike = {
   url: string;
   colaboradorNome?: string | null;
   unidadeNome?: string | null;
+  /**
+   * Pede ação agora mesmo sem ter vencido: hoje só as férias em risco de pagar
+   * em dobro (prazo legal a 30 dias ou menos).
+   */
+  urgente?: boolean | null;
 };
 
-export type PendenciaUrgencia = "atrasada" | "hoje" | "proxima";
+export type PendenciaUrgencia = "atrasada" | "urgente" | "hoje" | "proxima";
 
-export function urgenciaDe(p: Pick<PendenciaLike, "atrasoDias">): PendenciaUrgencia {
+export function urgenciaDe(p: Pick<PendenciaLike, "atrasoDias" | "urgente">): PendenciaUrgencia {
   if (p.atrasoDias > 0) return "atrasada";
+  if (p.urgente) return "urgente";
   if (p.atrasoDias === 0) return "hoje";
   return "proxima";
 }
 
 export const URGENCIA_LABEL: Record<PendenciaUrgencia, string> = {
   atrasada: "Atrasada",
+  urgente: "Urgente",
   hoje: "Vence hoje",
   proxima: "Próxima",
 };
+
+/** Peso de ordenação: atrasadas > urgentes > vence hoje > próximas. */
+export function pesoUrgencia(p: Pick<PendenciaLike, "atrasoDias" | "urgente">): number {
+  const u = urgenciaDe(p);
+  if (u === "atrasada") return 3;
+  if (u === "urgente") return 2;
+  if (u === "hoje") return 1;
+  return 0;
+}
+
+/** Comparador único: atrasadas primeiro, urgentes em seguida, depois por prazo. */
+export function compararUrgencia(
+  a: Pick<PendenciaLike, "atrasoDias" | "urgente" | "vencimento" | "colaboradorNome">,
+  b: Pick<PendenciaLike, "atrasoDias" | "urgente" | "vencimento" | "colaboradorNome">,
+): number {
+  const pa = pesoUrgencia(a);
+  const pb = pesoUrgencia(b);
+  if (pa !== pb) return pb - pa;
+  if (b.atrasoDias !== a.atrasoDias) return b.atrasoDias - a.atrasoDias;
+  const av = a.vencimento ? new Date(a.vencimento).getTime() : Infinity;
+  const bv = b.vencimento ? new Date(b.vencimento).getTime() : Infinity;
+  if (av !== bv) return av - bv;
+  return (a.colaboradorNome ?? "").localeCompare(b.colaboradorNome ?? "", "pt-BR");
+}
 
 /** Uma pendência está adiada quando existe data futura registrada nas preferências do usuário. */
 export function isPendenciaAdiada(
@@ -63,6 +94,8 @@ export type GrupoPendencias<T extends PendenciaLike = PendenciaLike> = {
   itens: T[];
   total: number;
   atrasadas: number;
+  /** Ainda no prazo, mas pedem ação agora (risco de dobra nas férias). */
+  urgentes: number;
   hoje: number;
   proximas: number;
   /** Colaboradores distintos citados no grupo (quando o dado existe). */
@@ -87,6 +120,7 @@ export function agruparPorTipo<T extends PendenciaLike>(itens: T[]): GrupoPenden
   const grupos: GrupoPendencias<T>[] = [];
   for (const [tipo, lista] of mapa.entries()) {
     let atrasadas = 0;
+    let urgentes = 0;
     let hoje = 0;
     let proximas = 0;
     let maiorAtraso = Number.NEGATIVE_INFINITY;
@@ -95,6 +129,7 @@ export function agruparPorTipo<T extends PendenciaLike>(itens: T[]): GrupoPenden
     for (const p of lista) {
       const u = urgenciaDe(p);
       if (u === "atrasada") atrasadas++;
+      else if (u === "urgente") urgentes++;
       else if (u === "hoje") hoje++;
       else proximas++;
       if (p.atrasoDias > maiorAtraso) maiorAtraso = p.atrasoDias;
@@ -103,9 +138,10 @@ export function agruparPorTipo<T extends PendenciaLike>(itens: T[]): GrupoPenden
     }
     grupos.push({
       tipo,
-      itens: [...lista].sort((a, b) => b.atrasoDias - a.atrasoDias),
+      itens: [...lista].sort(compararUrgencia),
       total: lista.length,
       atrasadas,
+      urgentes,
       hoje,
       proximas,
       colaboradores: Array.from(colaboradores).sort((a, b) => a.localeCompare(b, "pt-BR")),
@@ -114,8 +150,10 @@ export function agruparPorTipo<T extends PendenciaLike>(itens: T[]): GrupoPenden
     });
   }
 
-  // Mais antigas/atrasadas primeiro.
+  // Mais antigas/atrasadas primeiro; grupos com urgência vêm logo depois.
+  const rank = (g: GrupoPendencias<T>) => (g.atrasadas > 0 ? 2 : g.urgentes > 0 ? 1 : 0);
   return grupos.sort((a, b) => {
+    if (rank(a) !== rank(b)) return rank(b) - rank(a);
     if (a.maiorAtraso !== b.maiorAtraso) return b.maiorAtraso - a.maiorAtraso;
     if (a.atrasadas !== b.atrasadas) return b.atrasadas - a.atrasadas;
     if (a.total !== b.total) return b.total - a.total;
@@ -142,11 +180,14 @@ export function agruparPorColaborador<T extends PendenciaLike>(
   }
   const grupos = Array.from(mapa.entries()).map(([k, lista]) => ({
     colaborador: k === SEM ? null : k,
-    itens: [...lista].sort((a, b) => b.atrasoDias - a.atrasoDias),
+    itens: [...lista].sort(compararUrgencia),
   }));
   if (opts.ordenarPorAtraso) {
     // Mais antigas/atrasadas primeiro.
     return grupos.sort((a, b) => {
+      const pa = Math.max(...a.itens.map((i) => pesoUrgencia(i)));
+      const pb = Math.max(...b.itens.map((i) => pesoUrgencia(i)));
+      if (pa !== pb) return pb - pa;
       const ma = Math.max(...a.itens.map((i) => i.atrasoDias));
       const mb = Math.max(...b.itens.map((i) => i.atrasoDias));
       if (ma !== mb) return mb - ma;

@@ -10,6 +10,7 @@ import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/docume
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { agruparPisosPorCargo, salarioCargoNaUnidade } from "@/lib/dp/cargoSalarios";
 import { alertaPendenciaFerias } from "@/lib/dp/ferias-direito";
+import { compararUrgencia } from "@/lib/dp/pendencias";
 
 import { alertasDependentes, tabelaSalarioFamiliaVencida } from "@/lib/dp/salarioFamilia";
 import {
@@ -40,6 +41,8 @@ export type Pendencia = {
   tipo: string;
   vencimento?: string | null;
   atrasoDias: number;
+  /** Pede ação imediata mesmo dentro do prazo (ex.: férias em risco de dobra). */
+  urgente?: boolean | null;
   url: string;
   /** Preenchidos somente quando o dado realmente existe na fonte. */
   colaboradorNome?: string | null;
@@ -783,6 +786,9 @@ export function useDpPendencias() {
             colaboradorNome: p.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
             atrasoDias: dias,
+            // Ainda dentro do prazo legal, mas já em risco de pagar em dobro:
+            // precisa aparecer no topo, junto do que está atrasado.
+            urgente: alerta.nivel === "atencao",
             url: `/dp/ferias?colaborador=${p.colaborador_id}`,
           });
         });
@@ -1258,14 +1264,8 @@ export function useDpPendencias() {
         console.warn("pendencias/materializadas:", e);
       }
 
-      // Ordenar: mais atrasado primeiro; empate → vencimento e nome.
-      results.sort((a, b) => {
-        if (b.atrasoDias !== a.atrasoDias) return b.atrasoDias - a.atrasoDias;
-        const av = a.vencimento ? new Date(a.vencimento).getTime() : Infinity;
-        const bv = b.vencimento ? new Date(b.vencimento).getTime() : Infinity;
-        if (av !== bv) return av - bv;
-        return (a.colaboradorNome ?? "").localeCompare(b.colaboradorNome ?? "", "pt-BR");
-      });
+      // Ordenar: atrasados primeiro, urgentes em seguida; empate → vencimento e nome.
+      results.sort(compararUrgencia);
 
       return results;
     },
