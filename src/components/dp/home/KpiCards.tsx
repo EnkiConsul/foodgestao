@@ -3,23 +3,51 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useDpPendencias } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
+import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
 import { useDpOcorrencias, FILTROS_PADRAO } from "@/hooks/useDpOcorrencias";
 import { useDpFerias } from "@/hooks/useDpFerias";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useStablePendencias } from "@/components/dp/home/PendenciasCard";
 import { contarAbertas } from "@/lib/dp/pendencias";
 import { addDays, format } from "date-fns";
 
 export function KpiCards() {
+  const { selectedCompanyId } = useCompanyContext();
   const pend = useDpPendencias();
   const { prefs } = useDpUserPrefs();
+  const { ignoradas, adiadas } = useDpPendenciasDecisoes();
   const hoje = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const ocorrencias = useDpOcorrencias({ ...FILTROS_PADRAO, data: hoje });
   const { periodos } = useDpFerias("todos");
-  const vencendo = periodos.filter((p) => p.limite_concessivo && new Date(p.limite_concessivo) <= addDays(new Date(), 60));
+  // Desligado, sócio e histórico externo não têm prazo de concessão a cobrar.
+  const vencendo = periodos.filter(
+    (p) =>
+      !p.desligado &&
+      !p.socio &&
+      !p.controle_externo &&
+      (p.dias_saldo ?? 0) > 0 &&
+      p.status !== "em_aquisicao" &&
+      p.status !== "concluido" &&
+      p.limite_concessivo &&
+      new Date(p.limite_concessivo) <= addDays(new Date(), 60),
+  );
 
-  // Fonte única: pendência aberta = não adiada (mema regra do card da Home).
+  // Mesma fonte e mesma regra do card de Pendências: ignoradas e adiadas fora.
+  const stable = useStablePendencias({
+    companyId: selectedCompanyId,
+    data: pend.data,
+    dataUpdatedAt: pend.dataUpdatedAt,
+    lastCalculatedAt: pend.lastCalculatedAt,
+    isLoading: pend.isLoading,
+    isFetching: pend.isFetching,
+  });
   const pendentesAbertas = useMemo(
-    () => contarAbertas(pend.data ?? [], prefs.pendencias_adiadas),
-    [pend.data, prefs.pendencias_adiadas],
+    () =>
+      contarAbertas(
+        stable.data.filter((p) => !ignoradas.has(p.id)),
+        { ...prefs.pendencias_adiadas, ...adiadas },
+      ),
+    [stable.data, prefs.pendencias_adiadas, ignoradas, adiadas],
   );
 
   const cards = [
