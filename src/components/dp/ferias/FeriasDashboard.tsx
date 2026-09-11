@@ -56,6 +56,7 @@ export function FeriasDashboard({ periodos, gozos, descricaoColaborador }: Props
         hojeISO,
         politica,
         socio: p.socio,
+        desligado: p.desligado,
         acumulo: idsAcumulo.has(p.id),
       });
 

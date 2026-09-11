@@ -151,6 +151,7 @@ export default function DpFerias() {
       hojeISO,
       politica: feriasConfig.sinalizacaoCicloEncerrado,
       socio: p.socio,
+      desligado: p.desligado,
       acumulo: idsAcumulo.has(p.id),
     });
     if (nivel === "normal") return null;
