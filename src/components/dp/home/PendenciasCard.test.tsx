@@ -82,16 +82,15 @@ describe("useStablePendencias", () => {
   });
 
   it("grava o retrato quando a apuração termina e ignora cache corrompido", () => {
-    renderHook(() =>
-      useStablePendencias({
-        companyId: "empresa-a",
-        data: [atualizada],
-        dataUpdatedAt: 300,
-        lastCalculatedAt: "2026-09-11T06:00:00Z",
-        isLoading: false,
-        isFetching: false,
-      }),
-    );
+    const props = {
+      companyId: "empresa-a",
+      data: [atualizada] as Pendencia[],
+      dataUpdatedAt: 300,
+      lastCalculatedAt: "2026-09-11T06:00:00Z" as string | null,
+      isLoading: false,
+      isFetching: false,
+    };
+    renderHook(() => useStablePendencias(props));
 
     expect(lerPendenciasSnapshot("empresa-a")?.data.map((p) => p.id)).toEqual(["atualizada"]);
 
