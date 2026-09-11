@@ -282,6 +282,7 @@ export function PendenciasCard() {
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">
                 {g.atrasadas > 0 && <span className="text-destructive font-medium">{g.atrasadas} atrasada(s)</span>}
+                {g.urgentes > 0 && <span className="text-destructive font-medium">{g.urgentes} urgente(s)</span>}
                 {g.hoje > 0 && <span className="text-amber-700 font-medium">{g.hoje} vence(m) hoje</span>}
                 {g.proximas > 0 && <span className="text-emerald-700">{g.proximas} próxima(s)</span>}
                 {g.colaboradores.length > 0 && (
