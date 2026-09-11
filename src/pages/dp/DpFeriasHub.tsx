@@ -12,6 +12,7 @@ import { FeriasSolicitacoesPanel } from "@/components/dp/ferias/FeriasSolicitaco
 import { FeriasConfigCard } from "@/components/dp/ferias/FeriasConfigCard";
 import { FeriasContabilidadePanel } from "@/components/dp/ferias/FeriasContabilidadePanel";
 import { FeriasCalendarioPanel } from "@/components/dp/ferias/FeriasCalendarioPanel";
+import { FeriasProgramacaoPanel } from "@/components/dp/ferias/FeriasProgramacaoPanel";
 import { useDpFerias } from "@/hooks/useDpFerias";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 
@@ -19,6 +20,7 @@ const PlanejamentoPanel = lazy(() => import("./DpFerias"));
 
 const ABAS = [
   "planejamento",
+  "programacao",
   "solicitacoes",
   "programadas",
   "em-ferias",
