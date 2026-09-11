@@ -1,4 +1,6 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { EdgeGestures } from "@/components/mobile/EdgeGestures";
+import { PullToRefresh } from "@/components/mobile/PullToRefresh";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "./AdminSidebar";
 import { Outlet } from "react-router-dom";
@@ -7,6 +9,8 @@ import { ShieldCheck } from "lucide-react";
 import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
 
 export function AdminLayout() {
+  const queryClient = useQueryClient();
+
   return (
     <SidebarProvider>
       <EdgeGestures />
@@ -22,7 +26,9 @@ export function AdminLayout() {
             <div className="flex-1" />
           </header>
           <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6">
-            <Outlet />
+            <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
+              <Outlet />
+            </PullToRefresh>
           </main>
         </div>
       </div>
