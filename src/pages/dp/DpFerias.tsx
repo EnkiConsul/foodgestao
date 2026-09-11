@@ -217,6 +217,16 @@ export default function DpFerias() {
               </SelectContent>
             </Select>
           </div>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground sm:col-span-2">
+            <input
+              type="checkbox"
+              className="size-4 accent-[hsl(var(--primary))]"
+              checked={incluirDesligados}
+              onChange={(e) => setIncluirDesligados(e.target.checked)}
+            />
+            Incluir desligados
+            {desligadosOcultos > 0 && ` (${desligadosOcultos} período(s) oculto(s))`}
+          </label>
         </div>
       </DpFilterCard>
 
