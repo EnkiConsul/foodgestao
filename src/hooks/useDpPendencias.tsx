@@ -40,6 +40,8 @@ export type Pendencia = {
   tipo: string;
   vencimento?: string | null;
   atrasoDias: number;
+  /** Pede ação imediata mesmo dentro do prazo (ex.: férias em risco de dobra). */
+  urgente?: boolean | null;
   url: string;
   /** Preenchidos somente quando o dado realmente existe na fonte. */
   colaboradorNome?: string | null;
