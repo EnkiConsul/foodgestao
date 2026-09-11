@@ -18,6 +18,15 @@ export function MinhasPendenciasCard() {
     return { atrasado };
   }, [data]);
 
+  /** Documento sem aprovação passado o prazo: atraso grave, sempre no topo. */
+  const isGrave = (p: { tipo: string; atrasoDias: number }) =>
+    p.tipo === "Aprovação de documento" && p.atrasoDias > 0;
+
+  const itens = useMemo(
+    () => [...data].sort((a, b) => Number(isGrave(b)) - Number(isGrave(a)) || b.atrasoDias - a.atrasoDias),
+    [data],
+  );
+
   return (
     <div className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-5">
       <div className="flex items-center gap-2 mb-4 flex-wrap">
