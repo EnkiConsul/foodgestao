@@ -67,7 +67,7 @@ export function FeriasAvisoDialog({ open, onOpenChange, gozo }: Props) {
       temAnexo: !!file,
       justificativa,
     });
-    if (!check.ok) return setErro(check.texto);
+    if (check.ok === false) return setErro(check.texto);
     setErro(null);
     let documentoId: string | null = null;
     if (file) {
@@ -154,9 +154,8 @@ export function FeriasAvisoDialog({ open, onOpenChange, gozo }: Props) {
             </Label>
             <DpFilePicker
               accept="image/*,application/pdf"
-              onFileSelected={(f) => setFile(f)}
               file={file}
-              onClear={() => setFile(null)}
+              onFileChange={setFile}
             />
           </div>
 
