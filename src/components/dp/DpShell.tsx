@@ -11,6 +11,8 @@ import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
 import { HiddenScreenGuard } from "@/components/nav/HiddenScreenGuard";
 
 export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" }) {
+  const queryClient = useQueryClient();
+
   return (
     <SidebarProvider>
       <EdgeGestures />
@@ -19,9 +21,11 @@ export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" })
         <div className="flex flex-1 flex-col min-w-0">
           <DpHeader variant={variant} />
           <main className="flex-1 p-3 md:p-8 pb-28 md:pb-8">
-            <HiddenScreenGuard surface={variant}>
-              <Outlet />
-            </HiddenScreenGuard>
+            <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
+              <HiddenScreenGuard surface={variant}>
+                <Outlet />
+              </HiddenScreenGuard>
+            </PullToRefresh>
           </main>
         </div>
 
