@@ -100,6 +100,17 @@ describe("nivelVencimentoPeriodo — ciclos já encerrados", () => {
     expect(nivelVencimentoPeriodo(base)).toBe("marcacao_atrasada");
   });
 
+  it("caso do Erildson em 11/09/2026: 19 dias de prazo com 30 de saldo é marcação atrasada", () => {
+    expect(nivelVencimentoPeriodo({ ...base, hojeISO: "2026-09-11" })).toBe("marcacao_atrasada");
+  });
+
+  it("desligado nunca é cobrado por prazo", () => {
+    expect(nivelVencimentoPeriodo({ ...base, desligado: true })).toBe("normal");
+    expect(
+      nivelVencimentoPeriodo({ ...base, hojeISO: "2027-01-10", desligado: true }),
+    ).toBe("normal");
+  });
+
   it("política legal ignora o ciclo encerrado", () => {
     expect(nivelVencimentoPeriodo({ ...base, hojeISO: "2026-01-10", politica: "legal" })).toBe(
       "normal",
@@ -227,6 +238,18 @@ describe("risco de pagamento em dobro", () => {
     });
     expect(r.emRisco).toBe(false);
     expect(r.periodoMaisAntigo?.id).toBe("aberto");
+  });
+
+  it("período de pessoa desligada não conta para risco de dobra", () => {
+    const r = riscoAcumulo({
+      periodos: [
+        p("um", "2024-10-01", "2025-09-30", "2026-09-30", 30, { desligado: true }),
+        p("dois", "2025-10-01", "2026-09-30", "2027-09-30", 30, { desligado: true }),
+      ],
+      hojeISO,
+    });
+    expect(r.emRisco).toBe(false);
+    expect(r.periodosAbertos).toHaveLength(0);
   });
 
   it("agrupa o risco por colaborador", () => {

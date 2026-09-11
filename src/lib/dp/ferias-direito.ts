@@ -104,11 +104,13 @@ export function nivelVencimentoPeriodo(args: {
   politica?: FeriasSinalizacaoCiclo;
   /** Sócio não tem férias legais: nunca é cobrado por prazo. */
   socio?: boolean | null;
+  /** Desligado: saldo em aberto é assunto da rescisão, não de programação. */
+  desligado?: boolean | null;
   /** Já existe um segundo período aquisitivo sem que o primeiro tenha sido gozado. */
   acumulo?: boolean | null;
 }): NivelVencimento {
   const { fimAquisitivo, limiteConcessivo, hojeISO } = args;
-  if (args.socio) return "normal";
+  if (args.socio || args.desligado) return "normal";
   const politica = args.politica ?? "a_conceder";
   const saldo = args.diasSaldo ?? 0;
   const diasRestantes = diffDias(limiteConcessivo, hojeISO);
@@ -141,6 +143,7 @@ export function periodosComAcumulo(
     dias_saldo?: number | null;
     controle_externo?: boolean | null;
     socio?: boolean | null;
+    desligado?: boolean | null;
   }[],
 ): Set<string> {
   const porColab = new Map<string, typeof periodos>();
@@ -152,7 +155,7 @@ export function periodosComAcumulo(
   const out = new Set<string>();
   for (const lista of porColab.values()) {
     for (const p of lista) {
-      if (p.controle_externo || p.socio) continue;
+      if (p.controle_externo || p.socio || p.desligado) continue;
       if ((p.dias_saldo ?? 0) <= 0) continue;
       const temSeguinte = lista.some((o) => o.inicio_aquisitivo > p.inicio_aquisitivo);
       if (temSeguinte) out.add(p.id);
@@ -348,6 +351,8 @@ export type PeriodoRisco = {
   controle_externo?: boolean | null;
   /** Sócio fica fora do controle legal: nunca gera risco de dobra. */
   socio?: boolean | null;
+  /** Desligado: sai da cobrança de prazo e do risco de dobra. */
+  desligado?: boolean | null;
 };
 
 export type RiscoAcumulo = {
@@ -364,7 +369,7 @@ export type RiscoAcumulo = {
 /** Um período conta como "em aberto" quando ainda há dias a conceder. */
 export function periodoEmAberto(p: PeriodoRisco): boolean {
   if (p.controle_externo) return false;
-  if (p.socio) return false;
+  if (p.socio || p.desligado) return false;
   if ((p.dias_saldo ?? 0) <= 0) return false;
   return p.status !== "em_aquisicao" && p.status !== "concluido";
 }

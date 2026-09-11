@@ -69,6 +69,7 @@ export default function DpFerias() {
   const [defaultPeriodoId, setDefaultPeriodoId] = useState<string | null>(null);
   const [faltasPeriodo, setFaltasPeriodo] = useState<FeriasPeriodo | null>(null);
   const [saldoPeriodo, setSaldoPeriodo] = useState<FeriasPeriodo | null>(null);
+  const [incluirDesligados, setIncluirDesligados] = useState(false);
 
 
   const {
@@ -87,6 +88,8 @@ export default function DpFerias() {
 
   const periodosFiltrados = useMemo(() => {
     let base = statusFilter === "todos" ? periodos : periodos.filter((p) => p.status === statusFilter);
+    // Quem foi desligado não entra na programação: só aparece se o gestor pedir.
+    if (!incluirDesligados) base = base.filter((p) => !p.desligado);
     if (soRisco) {
       base = base
         .filter((p) => riscoPorColab.get(p.colaborador_id)?.emRisco)
@@ -94,7 +97,12 @@ export default function DpFerias() {
         .sort((a, b) => a.limite_concessivo.localeCompare(b.limite_concessivo));
     }
     return base;
-  }, [periodos, statusFilter, soRisco, riscoPorColab]);
+  }, [periodos, statusFilter, soRisco, riscoPorColab, incluirDesligados]);
+
+  const desligadosOcultos = useMemo(
+    () => (incluirDesligados ? 0 : periodos.filter((p) => p.desligado).length),
+    [periodos, incluirDesligados],
+  );
 
 
   const gozosByPeriodo = useMemo(() => {
@@ -151,6 +159,7 @@ export default function DpFerias() {
       hojeISO,
       politica: feriasConfig.sinalizacaoCicloEncerrado,
       socio: p.socio,
+      desligado: p.desligado,
       acumulo: idsAcumulo.has(p.id),
     });
     if (nivel === "normal") return null;
@@ -208,6 +217,16 @@ export default function DpFerias() {
               </SelectContent>
             </Select>
           </div>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground sm:col-span-2">
+            <input
+              type="checkbox"
+              className="size-4 accent-[hsl(var(--primary))]"
+              checked={incluirDesligados}
+              onChange={(e) => setIncluirDesligados(e.target.checked)}
+            />
+            Incluir desligados
+            {desligadosOcultos > 0 && ` (${desligadosOcultos} período(s) oculto(s))`}
+          </label>
         </div>
       </DpFilterCard>
 
@@ -258,7 +277,8 @@ export default function DpFerias() {
               const faltas = p.faltas_injustificadas;
               const encerrado = parseISO(p.fim_aquisitivo) <= hoje;
               const socio = !!p.socio;
-              const externo = !!p.controle_externo || socio;
+              const desligado = !!p.desligado;
+              const externo = !!p.controle_externo || socio || desligado;
               const risco = riscoPorColab.get(p.colaborador_id);
               const emRisco = !externo && risco?.emRisco === true &&
                 risco.periodosAbertos.some((a) => a.id === p.id);
@@ -285,6 +305,10 @@ export default function DpFerias() {
                       {socio ? (
                         <Badge className={FERIAS_SOCIO_META.tone}>
                           <History className="mr-1 size-3.5" /> {FERIAS_SOCIO_META.label}
+                        </Badge>
+                      ) : desligado ? (
+                        <Badge className="bg-muted text-muted-foreground">
+                          <History className="mr-1 size-3.5" /> Desligado
                         </Badge>
                       ) : externo ? (
                         <Badge className="bg-muted text-muted-foreground">
@@ -319,7 +343,9 @@ export default function DpFerias() {
                     <p className="text-xs text-muted-foreground">
                       {socio
                         ? FERIAS_SOCIO_META.explicacao
-                        : "Período anterior ao início do controle no sistema — fica apenas como histórico, sem cobrança de prazo nem alertas."}
+                        : desligado
+                          ? "Pessoa desligada: o saldo em aberto é tratado na rescisão, sem cobrança de prazo nem programação de férias."
+                          : "Período anterior ao início do controle no sistema — fica apenas como histórico, sem cobrança de prazo nem alertas."}
                     </p>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2 text-sm">
