@@ -51,6 +51,7 @@ import {
   buildOccupantsByDate,
   calculateDateStatus,
   dayType,
+  diasFixosDeFolga,
   formatBR,
   monthKey,
   normalizeWeekday,
