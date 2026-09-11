@@ -4451,9 +4451,11 @@ export type Database = {
           colaborador_id: string
           company_id: string
           created_at: string
+          data_desligamento: string | null
           elegivel_recontratacao:
             | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
             | null
+          encerrado_em: string | null
           id: string
           observacao: string | null
           updated_at: string
@@ -4462,9 +4464,11 @@ export type Database = {
           colaborador_id: string
           company_id: string
           created_at?: string
+          data_desligamento?: string | null
           elegivel_recontratacao?:
             | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
             | null
+          encerrado_em?: string | null
           id?: string
           observacao?: string | null
           updated_at?: string
@@ -4473,9 +4477,11 @@ export type Database = {
           colaborador_id?: string
           company_id?: string
           created_at?: string
+          data_desligamento?: string | null
           elegivel_recontratacao?:
             | Database["public"]["Enums"]["dp_elegibilidade_recontratacao"]
             | null
+          encerrado_em?: string | null
           id?: string
           observacao?: string | null
           updated_at?: string
@@ -4484,14 +4490,14 @@ export type Database = {
           {
             foreignKeyName: "dp_colaborador_desligamento_restrito_colaborador_id_fkey"
             columns: ["colaborador_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "dp_colaboradores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dp_colaborador_desligamento_restrito_colaborador_id_fkey"
             columns: ["colaborador_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "dp_colaboradores_public"
             referencedColumns: ["id"]
           },
