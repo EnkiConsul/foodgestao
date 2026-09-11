@@ -150,8 +150,10 @@ export function agruparPorTipo<T extends PendenciaLike>(itens: T[]): GrupoPenden
     });
   }
 
-  // Mais antigas/atrasadas primeiro.
+  // Mais antigas/atrasadas primeiro; grupos com urgência vêm logo depois.
+  const rank = (g: GrupoPendencias<T>) => (g.atrasadas > 0 ? 2 : g.urgentes > 0 ? 1 : 0);
   return grupos.sort((a, b) => {
+    if (rank(a) !== rank(b)) return rank(b) - rank(a);
     if (a.maiorAtraso !== b.maiorAtraso) return b.maiorAtraso - a.maiorAtraso;
     if (a.atrasadas !== b.atrasadas) return b.atrasadas - a.atrasadas;
     if (a.total !== b.total) return b.total - a.total;
