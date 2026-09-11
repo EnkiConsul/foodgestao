@@ -1,8 +1,39 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, render, renderHook, screen, cleanup } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { Bell } from "lucide-react";
-import { describe, expect, it } from "vitest";
-import { useStablePendencias } from "@/components/dp/home/PendenciasCard";
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { PendenciasCard, useStablePendencias } from "@/components/dp/home/PendenciasCard";
 import type { Pendencia } from "@/hooks/useDpPendencias";
+
+// ---- Mocks -----------------------------------------------------------------
+vi.mock("@/hooks/useCompanyContext", () => ({
+  useCompanyContext: () => ({ selectedCompanyId: "empresa-teste" }),
+}));
+
+let mockPendenciasData: Pendencia[] | undefined = [];
+let mockIsFetching = false;
+vi.mock("@/hooks/useDpPendencias", () => ({
+  useDpPendencias: () => ({
+    data: mockPendenciasData,
+    isLoading: false,
+    isFetching: mockIsFetching,
+    dataUpdatedAt: new Date("2026-09-11T03:00:00Z").getTime(),
+    lastCalculatedAt: "2026-09-11T03:00:00Z",
+    refetch: vi.fn(),
+  }),
+}));
+
+vi.mock("@/hooks/useDpUserPrefs", () => ({
+  useDpUserPrefs: () => ({
+    prefs: { pendencias_adiadas: {}, favoritos: [], avisos_confirmados: [], extras: {} },
+  }),
+}));
+
+vi.mock("@/hooks/useDpPendenciasDecisoes", () => ({
+  useDpPendenciasDecisoes: () => ({ ignoradas: new Set(), adiadas: {} }),
+}));
+
+
 
 const antiga: Pendencia = {
   id: "antiga",
