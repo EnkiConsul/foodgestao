@@ -82,7 +82,7 @@ export function DocDetalhesDialog(props: {
         source === "doc"
           ? supabase
               .from("dp_documento_aceites")
-              .select("aceito_em, aceito_por, ip")
+              .select("id, aceito_em, aceito_por, ip, user_agent, conteudo_hash")
               .eq("documento_id", docId!)
               .order("aceito_em", { ascending: false })
               .limit(1)
@@ -114,9 +114,16 @@ export function DocDetalhesDialog(props: {
         (profs ?? []).forEach((p: any) => nomes.set(p.user_id, p.full_name ?? "Usuário"));
       }
 
-      return { doc, aceite, eventos, nomes };
+      const { data: empresa } = await supabase
+        .from("companies")
+        .select("razao_social, nome_fantasia")
+        .eq("id", companyId!)
+        .maybeSingle();
+
+      return { doc, aceite, eventos, nomes, empresa };
     },
   });
+
 
   const nome = (id?: string | null) =>
     (id ? detalhes.data?.nomes.get(id) : null) ?? (id ? "Usuário" : "—");
