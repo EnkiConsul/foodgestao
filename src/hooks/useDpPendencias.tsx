@@ -936,7 +936,9 @@ export function useDpPendencias() {
         });
         (lotes ?? []).forEach((l: any) => {
           const itensAtivos = (itensPorLote.get(l.id) ?? []).filter((item: any) => item.status !== "rejected");
-          const todosComUnidade = itensAtivos.length > 0 && itensAtivos.every((item: any) => !!item.detected_unidade_id);
+          const todosComUnidade = itensAtivos.length > 0 && itensAtivos.every(
+            (item: any) => !!item.detected_unidade_id || !!unidadeDoColab.get(item.matched_colaborador_id),
+          );
           // Um lote pode ser multiunidade. Se cada página já conhece sua unidade,
           // não existe pendência de identificação do cabeçalho.
           if (todosComUnidade) return;

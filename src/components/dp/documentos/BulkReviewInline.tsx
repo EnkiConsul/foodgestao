@@ -301,9 +301,10 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
             .map((r: any) => r.detected_unidade_id)
             .filter(Boolean),
         );
-        if (colab?.unidade_id && (outrasUnidades.size === 0 || (outrasUnidades.size === 1 && outrasUnidades.has(colab.unidade_id)))) {
+        if (colab?.unidade_id) {
+          outrasUnidades.add(colab.unidade_id);
           const batchUpdate = await supabase.from("dp_bulk_import_batches" as any)
-            .update({ unidade_id: colab.unidade_id }).eq("id", batchId);
+            .update({ unidade_id: outrasUnidades.size === 1 ? colab.unidade_id : null }).eq("id", batchId);
           if (batchUpdate.error) throw batchUpdate.error;
         }
       }
