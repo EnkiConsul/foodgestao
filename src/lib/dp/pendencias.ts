@@ -180,7 +180,7 @@ export function agruparPorColaborador<T extends PendenciaLike>(
   }
   const grupos = Array.from(mapa.entries()).map(([k, lista]) => ({
     colaborador: k === SEM ? null : k,
-    itens: [...lista].sort((a, b) => b.atrasoDias - a.atrasoDias),
+    itens: [...lista].sort(compararUrgencia),
   }));
   if (opts.ordenarPorAtraso) {
     // Mais antigas/atrasadas primeiro.
