@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
-import { registrarErro } from "@/lib/errorLog";
+import { reportError } from "@/lib/errorLog";
 
 export type IntermitenteConfirmacao = {
   id: string;
@@ -62,7 +62,7 @@ export function useDpIntermitenteConfirmacoes() {
       );
     },
     onError: (e: unknown) => {
-      void registrarErro({
+      void reportError({
         source: "database",
         surface: "Pendências de documentos",
         action: "confirmar trabalho de intermitente",

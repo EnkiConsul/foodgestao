@@ -26,6 +26,7 @@ import {
   type ResultadoDia,
 } from "@/lib/dp/operacao-panorama";
 import { isSocio } from "@/lib/dp/contrato-policy";
+import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import type { HorarioFuncionamentoDia } from "@/lib/dp/turno-utils";
 
 export interface DiaPanorama extends ResultadoDia {
@@ -118,7 +119,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           supabase
             .from("dp_colaboradores")
             .select(
-              "id, nome, regime, vinculo_label, unidade_id, cargo_id, setor_id, ativo, data_admissao, data_desligamento",
+              "id, nome, nome_social, regime, vinculo_label, unidade_id, cargo_id, setor_id, ativo, data_admissao, data_desligamento",
             )
             .eq("company_id", selectedCompanyId!)
             .order("nome"),
@@ -422,7 +423,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           : null;
         return {
           id: c.id,
-          nome: c.nome,
+          nome: nomeExibicao(c),
           regime: c.regime,
           unidade_id: c.unidade_id,
           intermitente: c.regime === "intermitente" || c.regime === "freelancer",
