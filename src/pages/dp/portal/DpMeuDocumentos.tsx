@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
+import { imprimirCertificadoValidacao } from "@/lib/dp/documento-certificado";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { cn } from "@/lib/utils";
