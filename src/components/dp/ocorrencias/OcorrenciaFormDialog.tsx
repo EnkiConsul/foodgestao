@@ -36,6 +36,23 @@ const PEDE_ESTIMADO: OcorrenciaTipo[] = [
   "previsao_saida_antecipada",
   "previsao_atraso_intervalo",
 ];
+/** Tipos em que a pessoa não trabalha no dia: pedem motivo explícito. */
+const PEDE_MOTIVO: OcorrenciaTipo[] = [
+  "falta",
+  "previsao_falta",
+  "ausencia_justificada",
+  "divergencia_jornada",
+];
+
+const MOTIVOS_AUSENCIA = [
+  "Falta avisada",
+  "Falta não avisada",
+  "Falta justificada",
+  "Atestado médico",
+  "Licença legal",
+  "Outro",
+] as const;
+
 const PEDE_REAL: OcorrenciaTipo[] = [
   "atraso",
   "saida_antecipada",
@@ -60,6 +77,7 @@ export function OcorrenciaFormDialog({
   const [horarioEstimado, setHorarioEstimado] = useState("");
   const [horarioReal, setHorarioReal] = useState("");
   const [justificativa, setJustificativa] = useState("");
+  const [motivo, setMotivo] = useState<string>(MOTIVOS_AUSENCIA[0]);
 
   useEffect(() => {
     if (!open) return;
@@ -70,10 +88,12 @@ export function OcorrenciaFormDialog({
     setHorarioEstimado("");
     setHorarioReal("");
     setJustificativa("");
+    setMotivo(MOTIVOS_AUSENCIA[0]);
   }, [open, dataInicial, hoje]);
 
   const pedeEstimado = useMemo(() => PEDE_ESTIMADO.includes(tipo), [tipo]);
   const pedeReal = useMemo(() => PEDE_REAL.includes(tipo), [tipo]);
+  const pedeMotivo = useMemo(() => PEDE_MOTIVO.includes(tipo), [tipo]);
 
   const submit = () => {
     if (!colaboradorId) {
@@ -84,11 +104,19 @@ export function OcorrenciaFormDialog({
       toast.error("Informe a data da rotina.");
       return;
     }
+    if (pedeMotivo && motivo === "Outro" && !justificativa.trim()) {
+      toast.error("Descreva o motivo da ausência.");
+      return;
+    }
+    const detalhe = justificativa.trim();
+    const textoFinal = pedeMotivo
+      ? [motivo, detalhe].filter(Boolean).join(" — ")
+      : detalhe;
     onSubmit({
       colaboradorId,
       data,
       tipo,
-      justificativa: justificativa.trim() || null,
+      justificativa: textoFinal || null,
       horarioEstimado: pedeEstimado ? horarioEstimado || null : null,
       horarioReal: pedeReal ? horarioReal || null : null,
       marcacaoAlvo: tipo === "esquecimento_marcacao" ? marcacao : null,
@@ -143,6 +171,27 @@ export function OcorrenciaFormDialog({
               </Select>
             </div>
           </div>
+
+          {pedeMotivo && (
+            <div className="space-y-1.5">
+              <Label>Motivo da ausência *</Label>
+              <Select value={motivo} onValueChange={setMotivo}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MOTIVOS_AUSENCIA.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                O motivo aparece na rotina do dia e tira a pessoa da contagem de folga.
+              </p>
+            </div>
+          )}
 
           {tipo === "esquecimento_marcacao" && (
             <div className="grid gap-3 sm:grid-cols-2">
