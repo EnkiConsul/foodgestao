@@ -202,18 +202,24 @@ export default function Categorias() {
     );
     await Promise.all(updates);
 
-    // Sync category_companies for all selected
-    await Promise.all(ids.map((id) =>
-      supabase.from("category_companies").delete().eq("category_id", id)
-    ));
-    if (batchSelectedCompanies.size > 0) {
-      const rows = ids.flatMap((catId) =>
-        Array.from(batchSelectedCompanies).map((companyId) => ({
-          category_id: catId,
-          company_id: companyId,
-        }))
-      );
-      await supabase.from("category_companies").insert(rows);
+    // Sync category_companies gravando só a diferença de cada categoria
+    const results = await Promise.all(
+      ids.map((id) =>
+        syncCategoryCompanies(
+          id,
+          categoryCompanies.filter((cc) => cc.category_id === id).map((cc) => cc.company_id),
+          batchSelectedCompanies,
+        )
+      )
+    );
+    const visErrors = results.filter((r) => r.error);
+    if (visErrors.length > 0) {
+      toast.error(`Erro ao atualizar a visibilidade de ${visErrors.length} categoria(s)`, {
+        description: visErrors[0].error?.message,
+      });
+      setBatchVisibilitySaving(false);
+      refetchAll();
+      return;
     }
 
     toast.success(`Visibilidade atualizada para ${selected.size} categoria(s)`);
