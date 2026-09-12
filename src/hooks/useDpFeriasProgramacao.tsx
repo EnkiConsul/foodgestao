@@ -106,6 +106,7 @@ export function useDpFeriasProgramacao(filtro: FiltroProgramacao) {
       emitidoEm: new Date(),
       razaoSocial: dados.razaoSocial,
       cnpj: dados.cnpj,
+      unidades: dados.unidades,
       politica: feriasConfig.sinalizacaoCicloEncerrado,
       unidadeId: filtro.unidadeId,
       incluirDesligados: filtro.incluirDesligados,
