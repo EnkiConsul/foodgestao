@@ -92,12 +92,12 @@ export function AniversariantesCard({ variant = "admin" }: { variant?: "admin" |
                 </div>
                 {/* Linha 4 — ações */}
                 {!portal && (
-                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTarget(a)}>
+                  <div className="flex items-center justify-end gap-1.5 mt-2">
+                    <Button size="sm" variant="outline" className="h-7 text-xs flex-1 max-w-[50%]" onClick={() => setTarget(a)}>
                       <MessageSquare className="h-3 w-3 mr-1" />
                       WhatsApp
                     </Button>
-                    <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                    <Button asChild size="sm" variant="outline" className="h-7 text-xs flex-1 max-w-[50%]">
                       <Link to={`/dp/mensagens?to=${a.colaboradorId}`}>
                         <MessageCircle className="h-3 w-3 mr-1" />
                         Comunicado
