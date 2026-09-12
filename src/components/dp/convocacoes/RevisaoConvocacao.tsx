@@ -458,11 +458,11 @@ export function RevisaoConvocacao(props: Props) {
                 )}
 
               </span>
-            </div>
+            </button>
             <p className="mt-1 text-[11px] text-muted-foreground">
               Janela da necessidade: {o.dia.entrada}–{o.dia.saida}{o.dia.vira ? " (+1)" : ""}
             </p>
-            {(() => {
+            {aberto && (() => {
               const linhasDia = preAvaliacao.filter(
                 (l) => l.data === o.dia.data && (l.cargo_id ?? "") === o.dia.cargo_id,
               );
