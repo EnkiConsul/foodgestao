@@ -33,7 +33,7 @@ function horizontalScrollerDoToque(target: EventTarget | null): HTMLElement | nu
   while (el) {
     if (el.scrollWidth > el.clientWidth + 8) {
       const overflowX = window.getComputedStyle(el).overflowX;
-      if (overflowX === "auto" || overflowX === "scroll") return el;
+      if (overflowX === "auto" || overflowX === "scroll") return el as HTMLElement;
     }
     el = el.parentElement;
   }
