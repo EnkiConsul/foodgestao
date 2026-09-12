@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
  * where the FAB sits. Uses semantic tokens (--card, --border, --foreground)
  * so it inherits theming.
  */
-export function BottomNavShape({ height = 64 }: { height?: number }) {
+export function BottomNavShape({ height = 56 }: { height?: number }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [w, setW] = useState(360);
 
@@ -19,10 +19,11 @@ export function BottomNavShape({ height = 64 }: { height?: number }) {
     return () => ro.disconnect();
   }, []);
 
-  // Notch geometry
-  const notchR = 38; // half-width of the notch
-  const notchDepth = 22;
-  const cornerR = 18;
+  // Notch geometry (proporcional à nova altura de 56px)
+  const notchR = 34; // half-width of the notch
+  const notchDepth = 18;
+  const cornerR = 16;
+
   const cx = w / 2;
   const h = height;
 

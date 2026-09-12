@@ -12,7 +12,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
 
-const NAV_HEIGHT = 64;
+const NAV_HEIGHT = 56;
+
+
 
 
 type SlotDef =
@@ -209,7 +211,8 @@ function HomeSlot({ leaf }: { leaf: NavLeaf }) {
         role="tab"
         onClick={() => haptic(10)}
         className={cn(
-          "flex flex-col items-center justify-center gap-0.5 h-14 w-14 -mt-5 rounded-full",
+          "flex flex-col items-center justify-center gap-0.5 h-14 w-14 -mt-4 rounded-full",
+
           "bg-primary text-primary-foreground",
           "ring-4 ring-background",
           "shadow-[0_10px_24px_-6px_hsl(var(--primary)/0.5)]",
@@ -231,7 +234,8 @@ function MoreSlot({ to }: { to: string }) {
       role="tab"
       onClick={() => haptic(6)}
       className={cn(
-        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] pb-4 pt-1",
+        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] pb-3 pt-1",
+
         "text-muted-foreground active:scale-95 transition-all",
       )}
       activeClassName="text-primary"
@@ -288,7 +292,8 @@ function LeafSlot({ leaf, onLongPress }: { leaf: NavLeaf; onLongPress?: () => vo
         haptic(8);
       }}
       className={cn(
-        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] pb-4 pt-1",
+        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] pb-3 pt-1",
+
         "text-muted-foreground active:scale-95 transition-all",
         "select-none [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent]",
       )}
