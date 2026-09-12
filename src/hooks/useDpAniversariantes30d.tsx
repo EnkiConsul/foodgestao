@@ -8,6 +8,7 @@ export type AnivItem = {
   colaboradorId: string;
   nome: string;
   cargo: string | null;
+  email: string | null;
   unidade: string | null;
   unidadeId: string | null;
   tipo: "nascimento" | "contratacao";
@@ -35,7 +36,7 @@ export function useDpAniversariantes30d() {
     queryFn: async (): Promise<AnivItem[]> => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("id, nome, cargo, unidade_id, data_nascimento, data_admissao, dp_unidades(nome)")
+        .select("id, nome, cargo, email, unidade_id, data_nascimento, data_admissao, dp_unidades(nome)")
         .eq("company_id", selectedCompanyId!)
         .eq("ativo", true);
       if (error) throw error;
@@ -57,6 +58,7 @@ export function useDpAniversariantes30d() {
             colaboradorId: c.id,
             nome: c.nome,
             cargo: c.cargo,
+            email: c.email ?? c.email_contato ?? null,
             unidade: c.dp_unidades?.nome ?? null,
             unidadeId: c.unidade_id ?? null,
             tipo,

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Cake, MessageCircle, MessageSquare } from "lucide-react";
+import { Cake, Clock, Mail, MessageCircle, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useDpAniversariantes30d, type AnivItem } from "@/hooks/useDpAniversariantes30d";
@@ -41,65 +41,97 @@ export function AniversariantesCard({ variant = "admin" }: { variant?: "admin" |
         {data.length === 0 && (
           <p className="text-sm text-muted-foreground py-8 text-center">Nenhum aniversariante nos próximos 30 dias.</p>
         )}
-        {data.map((a) => (
-          <div
-            key={a.id}
-            className="flex items-center gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3"
-          >
+        {data.map((a) => {
+          const emailTo = a.email?.trim() || null;
+          const mailSubject = encodeURIComponent(
+            a.tipo === "nascimento" ? "Feliz aniversário!" : "Parabéns pelo tempo de casa!",
+          );
+          return (
             <div
-              className={cn(
-                "h-11 w-11 rounded-full flex flex-col items-center justify-center shrink-0 text-[10px] font-semibold leading-none",
-                a.tipo === "nascimento"
-                  ? "bg-[hsl(var(--dp-birthday-nasc))]"
-                  : "bg-[hsl(var(--dp-birthday-contrat))]",
-              )}
+              key={a.id}
+              className="flex items-start gap-3 rounded-xl bg-card border border-[hsl(var(--dp-border))] p-3"
             >
-              <span className="text-sm">{a.diaMes.slice(0, 2)}</span>
-              <span className="opacity-70">{a.diaMes.slice(3)}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium break-words leading-snug">{toUpperCadastro(a.nome)}</p>
-              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "text-[10px] capitalize border-0",
-                    a.tipo === "nascimento"
-                      ? "bg-[hsl(var(--dp-birthday-nasc))] text-foreground"
-                      : "bg-[hsl(var(--dp-birthday-contrat))] text-foreground",
-                  )}
-                >
-                  {a.tipo === "nascimento" ? "Nascimento" : "Contratação"}
-                </Badge>
-                <span className="text-[11px] text-muted-foreground">
-                  {a.tipo === "nascimento"
-                    ? `Completa ${a.anosCompletos} anos`
-                    : `${a.anosCompletos} ${a.anosCompletos === 1 ? "ano" : "anos"} de casa`}
-                </span>
-                <span className="text-[11px] text-muted-foreground">
-                  {a.faltamDias === 0 ? "Hoje 🎉" : `Faltam ${a.faltamDias} ${a.faltamDias === 1 ? "dia" : "dias"}`}
-                </span>
+              <div
+                className={cn(
+                  "h-11 w-11 rounded-full flex flex-col items-center justify-center shrink-0 text-[10px] font-semibold leading-none mt-0.5",
+                  a.tipo === "nascimento"
+                    ? "bg-[hsl(var(--dp-birthday-nasc))]"
+                    : "bg-[hsl(var(--dp-birthday-contrat))]",
+                )}
+              >
+                <span className="text-sm">{a.diaMes.slice(0, 2)}</span>
+                <span className="opacity-70">{a.diaMes.slice(3)}</span>
               </div>
-              {a.unidade && (
-                <p className="text-[11px] text-muted-foreground mt-0.5">🏢 {a.unidade}</p>
-              )}
+              <div className="flex-1 min-w-0">
+                {/* Linha 1 — nome na linha inteira */}
+                <p className="text-sm font-medium break-words leading-snug">{toUpperCadastro(a.nome)}</p>
+                {/* Linha 2 — tipo à esquerda; idade/tempo de casa à direita */}
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-[10px] capitalize border-0 shrink-0",
+                      a.tipo === "nascimento"
+                        ? "bg-[hsl(var(--dp-birthday-nasc))] text-foreground"
+                        : "bg-[hsl(var(--dp-birthday-contrat))] text-foreground",
+                    )}
+                  >
+                    {a.tipo === "nascimento" ? "Nascimento" : "Contratação"}
+                  </Badge>
+                  <span className="text-[11px] text-muted-foreground text-right">
+                    {a.tipo === "nascimento"
+                      ? `Completa ${a.anosCompletos} anos`
+                      : `${a.anosCompletos} ${a.anosCompletos === 1 ? "ano" : "anos"} de casa`}
+                  </span>
+                </div>
+                {/* Linha 3 — unidade à esquerda; dias restantes à direita */}
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <span className="text-[11px] text-muted-foreground min-w-0 break-words">
+                    {a.unidade ? `🏢 ${a.unidade}` : ""}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1 shrink-0">
+                    <Clock className="h-3 w-3" />
+                    {a.faltamDias === 0 ? "Hoje 🎉" : `Faltam ${a.faltamDias} ${a.faltamDias === 1 ? "dia" : "dias"}`}
+                  </span>
+                </div>
+                {/* Linha 4 — ações */}
+                {!portal && (
+                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTarget(a)}>
+                      <MessageSquare className="h-3 w-3 mr-1" />
+                      WhatsApp
+                    </Button>
+                    <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                      <Link to={`/dp/mensagens?to=${a.colaboradorId}`}>
+                        <MessageCircle className="h-3 w-3 mr-1" />
+                        Comunicado
+                      </Link>
+                    </Button>
+                    {emailTo ? (
+                      <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                        <a href={`mailto:${emailTo}?subject=${mailSubject}`}>
+                          <Mail className="h-3 w-3 mr-1" />
+                          E-mail
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        disabled
+                        title="Sem e-mail cadastrado"
+                      >
+                        <Mail className="h-3 w-3 mr-1" />
+                        E-mail
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-            {!portal && (
-            <div className="flex flex-col gap-1 shrink-0">
-              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTarget(a)}>
-                <MessageSquare className="h-3 w-3 mr-1" />
-                WhatsApp
-              </Button>
-              <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
-                <Link to={`/dp/mensagens?to=${a.colaboradorId}`}>
-                  <MessageCircle className="h-3 w-3 mr-1" />
-                  Mensagem
-                </Link>
-              </Button>
-            </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <WhatsappComposerDialog
