@@ -69,3 +69,9 @@
 - [x] Gerar protocolo e vincular cada chamado ao erro técnico original
 - [x] Exibir relatos, situação e histórico na auditoria e no backoffice
 - [x] Validar permissões, celular e fluxos de erro globais
+
+## Início mobile — refinamentos (12/09/2026)
+- [x] Seletor de formato dos atalhos: um botão "5x1" com menu para trocar (4x1/3x1)
+- [x] Distribuição equilibrada e centralizada dos ícones no Início e na tela "Mais"
+- [x] Texto genérico "módulo" no card de Atalhos Favoritos
+- [x] Gesto de arrastar na tela Início troca entre os menus principais

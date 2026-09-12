@@ -70,7 +70,7 @@ export function AtalhosFavoritos({ items }: { items?: Atalho[] } = {}) {
           <Star className="h-8 w-8 opacity-40" />
           <p className="text-sm max-w-sm">
             Clique na <Star className="inline h-4 w-4 -mt-0.5 text-primary" /> no topo de qualquer
-            página do DP para adicioná-la aqui como atalho.
+            página do módulo para adicioná-la aqui como atalho.
           </p>
         </div>
       ) : (
