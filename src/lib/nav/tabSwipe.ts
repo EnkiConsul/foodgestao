@@ -27,17 +27,28 @@ const MIN_DELTA_X = 70;
 const MAX_DURATION_MS = 500;
 const MAX_DELTA_Y = 70;
 
-/** Detecta se o toque começou dentro de um container com rolagem horizontal. */
-function startedInHorizontalScroller(target: EventTarget | null): boolean {
+/** Encontra o container com rolagem horizontal onde o toque começou, se houver. */
+function horizontalScrollerDoToque(target: EventTarget | null): HTMLElement | null {
   let el = target instanceof Element ? target : null;
   while (el) {
     if (el.scrollWidth > el.clientWidth + 8) {
       const overflowX = window.getComputedStyle(el).overflowX;
-      if (overflowX === "auto" || overflowX === "scroll") return true;
+      if (overflowX === "auto" || overflowX === "scroll") return el;
     }
     el = el.parentElement;
   }
-  return false;
+  return null;
+}
+
+/**
+ * O gesto cede ao scroller horizontal apenas quando ele ainda tem conteúdo
+ * para rolar na direção do arrasto; no fim da rolagem, o swipe troca de aba.
+ */
+function scrollerBloqueiaSwipe(scroller: HTMLElement | null, dx: number): boolean {
+  if (!scroller) return false;
+  const max = scroller.scrollWidth - scroller.clientWidth;
+  if (dx < 0) return scroller.scrollLeft < max - 4; // esquerda: ainda há conteúdo à direita
+  return scroller.scrollLeft > 4; // direita: ainda há conteúdo à esquerda
 }
 
 /** Sobe do alvo do toque até o primeiro ancestral que contém uma lista de abas. */
@@ -67,9 +78,11 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
   let startY = 0;
   let startT = 0;
   let list: HTMLElement | null = null;
+  let scroller: HTMLElement | null = null;
 
   const onStart = (e: TouchEvent) => {
     list = null;
+    scroller = null;
     if (window.innerWidth >= 768) return;
     const t = e.touches[0];
     if (!t || e.touches.length > 1) return;
@@ -77,7 +90,6 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
       '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]',
     );
     if (overlay) return;
-    if (startedInHorizontalScroller(e.target)) return;
 
     const w = window.innerWidth;
     if (t.clientX <= EDGE_PX || t.clientX >= w - EDGE_PX) return;
@@ -89,11 +101,14 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
     startY = t.clientY;
     startT = Date.now();
     list = found;
+    scroller = horizontalScrollerDoToque(e.target);
   };
 
   const onEnd = (e: TouchEvent) => {
     const current = list;
+    const currentScroller = scroller;
     list = null;
+    scroller = null;
     if (!current) return;
     const t = e.changedTouches[0];
     if (!t) return;
@@ -101,6 +116,7 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
     if (Math.abs(t.clientY - startY) > MAX_DELTA_Y) return;
     const dx = t.clientX - startX;
     if (Math.abs(dx) < MIN_DELTA_X) return;
+    if (scrollerBloqueiaSwipe(currentScroller, dx)) return;
 
     const triggers = Array.from(current.querySelectorAll<HTMLElement>('[role="tab"]'));
     if (triggers.length < 2) return;
