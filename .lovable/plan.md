@@ -1,51 +1,24 @@
-# Mostrar quem está pendente em cada pendência de unidade
+# Gestos de arrasto nas abas e voltar no menu Mais
 
-## O que está acontecendo
+## O que muda para você
 
-A pendência de adiantamento de maio da Pakerê Garavelo aparece só como
-"PAKERÊ GARAVELO — 2026-05". Os nomes das 5 pessoas que faltam já são apurados
-e guardados junto da pendência, mas nenhuma tela mostra essa lista. Por isso,
-quando parte das pessoas já teve documento anexado, não há como saber quem
-ainda está faltando — foi o que aconteceu com o Herick.
+1. **Arrastar para os lados troca de aba**: em qualquer tela com abas (Férias, Colaboradores, Documentos, Comunicação etc.), arrastar o dedo para a esquerda avança para a próxima aba e para a direita volta para a aba anterior — sem precisar tocar no nome da aba.
+2. **Na tela Mais, arrastar da esquerda para a direita volta**: em vez de abrir o Hub/Analytics, o gesto retorna para a tela de onde você veio antes de abrir o Mais.
 
-Observação: o Herick hoje está sem a marcação de adiantamento, então ele não
-entra mais nessa cobrança. Os nomes que estão faltando nessa pendência de maio
-são Cristiane, Hanna, Karine, Kassiane e Sara.
+## Como vai funcionar
 
-## O que vai mudar
-
-1. **Nomes visíveis na pendência da unidade**
-   - Na tela Início (ao abrir o grupo de pendências) e na lista completa de
-     Pendências, a pendência de unidade passa a mostrar, abaixo do texto atual,
-     os nomes de quem está faltando: "Faltam: CRISTIANE, HANNA, KARINE…".
-   - Com muitos nomes, mostra os primeiros e "e mais N"; ao toque/clique em
-     "e mais N" a lista completa aparece.
-   - Quem foi desligado continua sinalizado ao lado do nome, como já acontece
-     nas pendências individuais.
-
-2. **Contagem honesta**
-   - O rótulo passa a dizer "5 pessoas pendentes" em vez de apenas a unidade,
-     e essa contagem acompanha o que foi importado: ao anexar o documento de
-     uma pessoa, o nome sai da lista na apuração seguinte.
-
-3. **Quando a falta é parcial, a cobrança já é individual**
-   - Essa regra continua: se só algumas pessoas estão faltando, cada uma vira
-     uma pendência com o próprio nome. A lista de nomes resolve o caso em que
-     todas ainda estão faltando (pendência única da unidade).
-
-4. **Busca por nome**
-   - Na lista completa de Pendências, procurar por um nome também encontra a
-     pendência de unidade onde essa pessoa está faltando.
+- O gesto de abas passa a existir no próprio componente de abas, então **todas as telas que já usam abas ganham o gesto automaticamente**, sem mexer tela por tela.
+- O gesto **não interfere** em:
+  - tabelas e listas com rolagem horizontal (o dedo continua rolando o conteúdo);
+  - telas com diálogo/janela aberta;
+  - os gestos de borda já existentes (borda esquerda = voltar, borda direita = menu Mais): os primeiros 28px de cada lateral continuam reservados a esses gestos.
+- Regras do gesto de abas: deslocamento horizontal mínimo de 70px, gesto rápido (até 500ms) e predominantemente horizontal; leve vibração tátil ao trocar.
+- Abas desabilitadas são puladas; ao chegar na última aba, o gesto para a esquerda não faz nada (sem laço infinito).
 
 ## Detalhes técnicos
 
-- Sem mudança de banco. Os campos `pessoas`, `escopo` e `total_elegiveis` já
-  vêm de `dp_pendencias_materializadas` e do cálculo em `useDpPendencias`.
-- Novo componente `src/components/dp/pendencias/PendenciaPessoas.tsx`: recebe
-  `pendencia.pessoas`, mostra até 3 nomes com marcação de desligamento e
-  expande o restante sob demanda.
-- Usado em `src/components/dp/home/PendenciasCard.tsx` (detalhe do grupo) e em
-  `src/pages/dp/cadastros/DpCadastroPendenciasLista.tsx` (cartões da lista).
-- Em `DpCadastroPendenciasLista.tsx`, incluir `p.pessoas` no texto pesquisado.
-- Teste em `src/components/dp/pendencias/PendenciaPessoas.test.tsx`: nomes
-  exibidos, "e mais N" e selo de desligado; rodar Vitest e o typecheck.
+- `src/components/ui/tabs.tsx`: o `Tabs` raiz passa a envolver o conteúdo com detector de `touchstart`/`touchend`; ao detectar swipe, localiza os `TabsTrigger` no DOM, identifica a aba ativa e aciona a anterior/próxima via clique (preserva toda a lógica de estado controlado/não controlado do Radix).
+- Reuso das mesmas regras de `useEdgeGestures.ts` (scroller horizontal, diálogo aberto, faixa de borda de 28px).
+- `src/lib/nav/edgeGestureTargets.ts` + `useEdgeGestures.ts`: quando `pathname` for a rota do "Mais" do módulo, o gesto esquerda→direita passa a retornar "voltar" (navigate(-1)), em vez de Hub/Analytics.
+- Somente mobile (`isMobile`); desktop inalterado.
+- Testes: unitários para a lógica de ordenação/pulo de abas desabilitadas e para o novo destino do gesto na tela Mais; validação Playwright em viewport mobile simulando swipes em uma tela de abas (Férias) e no menu Mais.
