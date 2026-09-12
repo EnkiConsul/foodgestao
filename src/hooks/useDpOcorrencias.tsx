@@ -403,7 +403,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
   const invalidateCoberturas = () => {
     invalidate();
     qc.invalidateQueries({ queryKey: ["dp_ocorrencia_coberturas"] });
-    qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    void resolverPendencias(qc, { companyId: selectedCompanyId });
   };
 
   const criarCobertura = useMutation({

@@ -123,7 +123,7 @@ export default function DpMeuTrocas() {
     onSuccess: (efetivada) => {
       toast.success(efetivada ? "Troca efetivada no calendário" : "Resposta registrada");
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
@@ -138,7 +138,7 @@ export default function DpMeuTrocas() {
     onSuccess: () => {
       toast.success("Troca cancelada");
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
@@ -171,7 +171,7 @@ export default function DpMeuTrocas() {
     onSuccess: () => {
       toast.success("Troca proposta enviada");
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
       setOpen(false);
       setForm({ destino_id: "", data_original: undefined, data_proposta: undefined, motivo: "" });
     },

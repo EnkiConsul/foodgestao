@@ -110,7 +110,7 @@ export function useDpTrocas(filtros: TrocaFiltros = FILTROS_TROCA_PADRAO) {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["dp_trocas"] });
     qc.invalidateQueries({ queryKey: ["dp_folgas"] });
-    qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    void resolverPendencias(qc, { companyId: selectedCompanyId });
   };
 
   /** Decisão do gestor: aprovar (efetiva a troca) ou recusar com justificativa. */

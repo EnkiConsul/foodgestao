@@ -58,7 +58,7 @@ export function useDpFeriasDocumentos() {
     qc.invalidateQueries({ queryKey: ["dp_ferias_gozos"] });
     qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     qc.invalidateQueries({ queryKey: ["dp_ferias_minhas"] });
-    qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    void resolverPendencias(qc, { companyId: selectedCompanyId });
   };
 
   const listQ = useQuery({

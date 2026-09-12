@@ -92,7 +92,7 @@ export function useDpAdiantamentoSolicitacoes(colaboradorId?: string | null) {
     },
     onSuccess: (efeito, args) => {
       qc.invalidateQueries({ queryKey: ["dp_adiantamento_solicitacoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      void resolverPendencias(qc, { companyId: selectedCompanyId });
       qc.invalidateQueries({ queryKey: ["dp_doc_consistencia_janela"] });
       const rotulo = args.tipo === "ativar" ? "Adiantamento ativado" : "Adiantamento cancelado";
       toast.success(`${rotulo} — vale a partir de ${efeito}.`);

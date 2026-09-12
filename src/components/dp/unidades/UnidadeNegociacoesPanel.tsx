@@ -207,7 +207,7 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
     onSuccess: () => {
       toast.success(form.id ? "Negociação atualizada" : "Negociação cadastrada");
       qc.invalidateQueries({ queryKey: ["dp_sindicato_negociacoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      void resolverPendencias(qc, { companyId: selectedCompanyId });
       setOpen(false);
     },
     onError: (e) => toast.error("Erro ao salvar", { description: e instanceof Error ? e.message : String(e) }),
@@ -221,7 +221,7 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
     onSuccess: () => {
       toast.success("Negociação removida");
       qc.invalidateQueries({ queryKey: ["dp_sindicato_negociacoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      void resolverPendencias(qc, { companyId: selectedCompanyId });
     },
     onError: (e) => toast.error("Erro ao remover", { description: e instanceof Error ? e.message : String(e) }),
   });
