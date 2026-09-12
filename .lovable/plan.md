@@ -1,6 +1,7 @@
-# Cabeçalho mobile enxuto, cards de subtelas e favoritos só em telas de uso
+# Cabeçalho mobile enxuto, cards de subtelas, favoritos e alinhamento do rodapé
 
-Três ajustes na experiência mobile do Pessoas 360°.
+Quatro ajustes na experiência mobile do Pessoas 360°.
+
 
 ## 1. Cabeçalho mobile sem informações encavaladas
 
@@ -25,7 +26,16 @@ Telas principais dos menus (hubs de navegação: Cadastros, Documentos, Comunica
 - `FavoriteToggle` já não renderiza nada quando a rota não é favoritável — nenhuma mudança adicional necessária nele.
 - Favoritos já salvos que apontem para hubs deixam de resolver e somem dos atalhos (comportamento já existente em `resolveFavorites`).
 
+## 4. Alinhar ícones do rodapé mobile com o botão "Início"
+
+Na barra inferior (`src/components/mobile/MobileBottomNav.tsx`), os botões laterais (Hub/Folgas, Importar, Mais etc.) ficam encostados na parte inferior, enquanto o botão "Início" está elevado pelo círculo. Isso deixa os ícones desalinhados visualmente.
+
+- Subir os botões laterais para ficarem visualmente alinhados ao centro do botão "Início" (ou reduzir a diferença de altura), sem perder a área de toque mínima de 44 px.
+- Ajustar o container dos slots (`items-end justify-around`) para centralizar melhor os itens em relação ao círculo do início.
+- Manter o círculo do início elevado e com anel, apenas equalizando a posição vertical dos demais ícones.
+
 ## Verificação
 
 - TypeScript e testes existentes.
-- Playwright em 393×830: cabeçalho mobile limpo em tela interna e no hub; cards de subtelas com 2 linhas de descrição; hub sem ícone de favorito e tela de uso (ex.: Colaboradores) com favorito.
+- Playwright em 393×830: cabeçalho mobile limpo em tela interna e no hub; cards de subtelas com 2 linhas de descrição; hub sem ícone de favorito e tela de uso (ex.: Colaboradores) com favorito; rodapé com ícones laterais alinhados ao botão Início.
+
