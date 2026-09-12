@@ -123,25 +123,6 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     ],
   },
   {
-    id: "comunicacao",
-    label: "Comunicação",
-    icon: MessageSquare,
-    hubTo: "/dp/comunicacao",
-    matchPrefixes: [
-      "/dp/comunicacao",
-      "/dp/mensagens",
-      "/dp/modelos-mensagem",
-      "/dp/avisos",
-      "/dp/notificacoes",
-    ],
-    items: [
-      { label: "Mensagens", to: "/dp/mensagens", icon: MessageSquare },
-      { label: "Modelos de Mensagem", to: "/dp/modelos-mensagem", icon: LayoutTemplate },
-      { label: "Quadro de Avisos", to: "/dp/avisos", icon: Bell },
-      { label: "Notificações", to: "/dp/notificacoes", icon: BellRing },
-    ],
-  },
-  {
     id: "rotina",
     label: "Rotina",
     icon: CalendarClock,
@@ -167,6 +148,25 @@ const ADMIN_GROUPS: DpNavGroup[] = [
       { label: "Folgas", to: "/dp/folgas", icon: Calendar, shortcut: true },
       { label: "Férias", to: "/dp/ferias", icon: Palmtree, shortcut: true },
       { label: "Atestados", to: "/dp/atestados", icon: HeartPulse },
+    ],
+  },
+  {
+    id: "comunicacao",
+    label: "Comunicação",
+    icon: MessageSquare,
+    hubTo: "/dp/comunicacao",
+    matchPrefixes: [
+      "/dp/comunicacao",
+      "/dp/mensagens",
+      "/dp/modelos-mensagem",
+      "/dp/avisos",
+      "/dp/notificacoes",
+    ],
+    items: [
+      { label: "Mensagens", to: "/dp/mensagens", icon: MessageSquare },
+      { label: "Modelos de Mensagem", to: "/dp/modelos-mensagem", icon: LayoutTemplate },
+      { label: "Quadro de Avisos", to: "/dp/avisos", icon: Bell },
+      { label: "Notificações", to: "/dp/notificacoes", icon: BellRing },
     ],
   },
   {
