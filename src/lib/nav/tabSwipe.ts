@@ -73,7 +73,6 @@ let instalado = false;
 export function instalarSwipeAbas(onTrocar?: () => void) {
   if (instalado || typeof window === "undefined") return;
   instalado = true;
-  (window as unknown as { __tabSwipeDebug?: unknown[] }).__tabSwipeDebug = [];
 
   let startX = 0;
   let startY = 0;
@@ -110,10 +109,6 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
     const currentScroller = scroller;
     list = null;
     scroller = null;
-    (window as unknown as { __tabSwipeDebug?: unknown[] }).__tabSwipeDebug?.push({
-      tinhaLista: !!current,
-      dx: e.changedTouches[0] ? e.changedTouches[0].clientX - startX : null,
-    });
     if (!current) return;
     const t = e.changedTouches[0];
     if (!t) return;
@@ -124,10 +119,9 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
     if (scrollerBloqueiaSwipe(currentScroller, dx)) return;
 
     const triggers = Array.from(current.querySelectorAll<HTMLElement>('[role="tab"]'));
-    const dbg = (window as unknown as { __tabSwipeDebug?: unknown[] }).__tabSwipeDebug;
-    if (triggers.length < 2) { dbg?.push({ motivo: "poucas-abas" }); return; }
+    if (triggers.length < 2) return;
     const activeIndex = triggers.findIndex((el) => el.dataset.state === "active");
-    if (activeIndex < 0) { dbg?.push({ motivo: "sem-ativa" }); return; }
+    if (activeIndex < 0) return;
     const disabled = triggers.map(
       (el) => el.hasAttribute("disabled") || el.dataset.disabled !== undefined || el.getAttribute("aria-disabled") === "true",
     );
