@@ -92,4 +92,4 @@
 - [x] Liberar a orientação ao abrir pelo atalho instalado
 - [x] Confirmar retrato, paisagem com visual tablet e retorno ao retrato
 - [x] Orientar reinstalação única para atalhos que conservaram a configuração antiga
-- [ ] Convocação intermitente mobile: mensagem clara em conflito de dia, horário habitual da pessoa, aviso de relatar problema não preso, excluir rascunho
+- [x] Convocação intermitente mobile: mensagem clara em conflito de dia, horário habitual da pessoa, aviso de relatar problema não preso, excluir rascunho
