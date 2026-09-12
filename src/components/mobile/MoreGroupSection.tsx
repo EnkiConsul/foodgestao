@@ -9,6 +9,7 @@ import type {
 } from "@/config/mobileNav";
 import { cn } from "@/lib/utils";
 import { makeIsActive } from "@/lib/nav-active";
+import { distribuirLinhas } from "@/lib/dp/menuGridRows";
 
 const ACCENT_CHIP: Record<GroupAccent, string> = {
   primary: "bg-primary/15 text-primary",
@@ -200,21 +201,31 @@ function TileGrid({
   onToggleFav: (to: string, label: string) => void;
 }) {
   // Fixo em 3 colunas para dar mais espaço horizontal aos rótulos.
-  // flex-wrap + justify-center centraliza órfãos na última linha.
+  // Linhas redistribuídas e centralizadas evitam órfãos na última linha.
+  const linhas = distribuirLinhas(items.length, 3);
+  let offset = 0;
   return (
-    <div className="flex flex-wrap justify-center gap-x-2 gap-y-5">
-      {items.map((item) => (
-        <div key={item.to} className="flex w-[calc(33.333%-6px)]">
-          <IFoodTile
-            item={item}
-            accent={accent}
-            active={isActive(item.to)}
-            fav={isFavorite(item.to)}
-            onNavigate={() => onNavigate(item.to)}
-            onToggleFav={() => onToggleFav(item.to, item.label)}
-          />
-        </div>
-      ))}
+    <div className="flex flex-col gap-y-5">
+      {linhas.map((tamanho, li) => {
+        const grupo = items.slice(offset, offset + tamanho);
+        offset += tamanho;
+        return (
+          <div key={li} className="flex justify-center gap-x-2">
+            {grupo.map((item) => (
+              <div key={item.to} className="flex w-[calc(33.333%-6px)]">
+                <IFoodTile
+                  item={item}
+                  accent={accent}
+                  active={isActive(item.to)}
+                  fav={isFavorite(item.to)}
+                  onNavigate={() => onNavigate(item.to)}
+                  onToggleFav={() => onToggleFav(item.to, item.label)}
+                />
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
