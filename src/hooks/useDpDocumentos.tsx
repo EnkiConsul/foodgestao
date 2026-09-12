@@ -6,7 +6,7 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
-import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { porDocumento, resolverPendencias, type PendenciaMatch } from "@/lib/dp/pendencias-resolver";
 
 export type DpDocumentoTipo = Database["public"]["Enums"]["dp_documento_tipo"];
 export type DpDocumentoAprov = "pendente" | "aprovado" | "recusado";
@@ -56,12 +56,12 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
     },
   });
 
-  const invalidateDocs = () => {
+  const invalidateDocs = (match?: PendenciaMatch) => {
     qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
     qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
     // Fonte única das pendências: recalcula ao gravar/apagar documento.
-    void resolverPendencias(qc, { companyId: selectedCompanyId });
+    void resolverPendencias(qc, { companyId: selectedCompanyId, match });
     qc.invalidateQueries({ queryKey: ["dp_doc_consistencia_janela"] });
   };
 
@@ -119,7 +119,16 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
       if (error) throw error;
       ok++;
     }
-    invalidateDocs();
+    // Baixa imediata da pendência que este envio resolve.
+    invalidateDocs(
+      colaborador_id
+        ? porDocumento({
+            docTipo: tipo,
+            colaboradorId: colaborador_id,
+            competencia: referencia_data ? referencia_data.slice(0, 7) : null,
+          })
+        : undefined,
+    );
     return ok;
   };
 
