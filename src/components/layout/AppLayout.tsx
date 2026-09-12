@@ -20,7 +20,7 @@ export function AppLayout() {
   return (
     <SidebarProvider>
       <EdgeGestures />
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-[var(--vvh,100svh)] w-full">
         <AppSidebar />
         <div className="flex flex-1 flex-col min-w-0">
           <SubscriptionBanner />

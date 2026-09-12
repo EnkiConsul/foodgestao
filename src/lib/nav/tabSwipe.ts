@@ -1,3 +1,5 @@
+import { isMobileLayoutViewport } from "@/lib/responsive";
+
 /**
  * Lógica pura do gesto de arrastar entre abas (mobile).
  * Regras: abas desabilitadas são puladas e o gesto para nas pontas
@@ -108,7 +110,7 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
     list = null;
     dialog = null;
     scroller = null;
-    if (window.innerWidth >= 768) return;
+    if (!isMobileLayoutViewport()) return;
     const t = e.touches[0];
     if (!t || e.touches.length > 1) return;
 

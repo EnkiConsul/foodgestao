@@ -14,7 +14,7 @@ export function AdminLayout() {
   return (
     <SidebarProvider>
       <EdgeGestures />
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-[var(--vvh,100svh)] w-full">
         <AdminSidebar />
         <div className="flex flex-1 flex-col">
           <header className="sticky top-0 z-40 flex h-12 md:h-14 items-center gap-3 border-b bg-card px-4">

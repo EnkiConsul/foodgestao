@@ -1,19 +1,42 @@
 import * as React from "react";
-
-const MOBILE_BREAKPOINT = 768;
+import { isCompactLandscapeViewport, isMobileLayoutViewport, TABLET_BREAKPOINT } from "@/lib/responsive";
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const mql = window.matchMedia(`(max-width: ${TABLET_BREAKPOINT - 1}px)`);
+    const orientationMql = window.matchMedia("(orientation: landscape)");
     const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+      setIsMobile(isMobileLayoutViewport());
     };
     mql.addEventListener("change", onChange);
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-    return () => mql.removeEventListener("change", onChange);
+    orientationMql.addEventListener("change", onChange);
+    window.addEventListener("resize", onChange);
+    onChange();
+    return () => {
+      mql.removeEventListener("change", onChange);
+      orientationMql.removeEventListener("change", onChange);
+      window.removeEventListener("resize", onChange);
+    };
   }, []);
 
   return !!isMobile;
+}
+
+export function useIsCompactLandscape() {
+  const [isCompactLandscape, setIsCompactLandscape] = React.useState(false);
+
+  React.useEffect(() => {
+    const onChange = () => setIsCompactLandscape(isCompactLandscapeViewport());
+    window.addEventListener("resize", onChange);
+    window.addEventListener("orientationchange", onChange);
+    onChange();
+    return () => {
+      window.removeEventListener("resize", onChange);
+      window.removeEventListener("orientationchange", onChange);
+    };
+  }, []);
+
+  return isCompactLandscape;
 }
