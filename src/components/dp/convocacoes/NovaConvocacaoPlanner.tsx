@@ -791,6 +791,23 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   };
 
   const publicarGrupo = async () => {
+    // Exceção de antecedência: ciência e justificativas antes de publicar.
+    if (foraDaAntecedencia.length > 0) {
+      if (!cienteAntecedencia) {
+        setFocoPendente("ciente");
+        toast.error("Marque que está ciente da convocação em cima da hora.");
+        return;
+      }
+      if (exigeJustificativa) {
+        const semTexto = foraDaAntecedencia.find((d) => !justificativas[d.id]?.trim());
+        if (semTexto) {
+          setFocoPendente(semTexto.id);
+          toast.error("Escreva a justificativa dos dias em cima da hora.");
+          return;
+        }
+      }
+    }
+    setFocoPendente(null);
     setPublicando(true);
     setDataComErro(null);
     try {
