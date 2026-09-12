@@ -164,6 +164,13 @@
 }
 
 @layer components {
+  .dp-shell {
+    /* Evita que o navegador roube arrastes verticais/horizontais para
+       recarregar a página ou navegar para trás no histórico. */
+    overscroll-behavior-y: contain;
+    overscroll-behavior-x: contain;
+  }
+
   .dp-shell main {
     background-color: hsl(var(--background));
   }

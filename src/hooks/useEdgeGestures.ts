@@ -9,8 +9,8 @@ import { destinoGestoEsquerda } from "@/lib/nav/edgeGestureTargets";
 import { haptic } from "@/lib/haptics";
 
 const EDGE_PX = 28;
-const MIN_DELTA_X = 70;
-const MAX_DURATION_MS = 500;
+const MIN_DELTA_X = 56;
+const MAX_DURATION_MS = 800;
 const MAX_DELTA_Y = 70;
 
 
@@ -63,9 +63,54 @@ export function useEdgeGestures() {
     let startY = 0;
     let startT = 0;
     let mode: "left" | "right" | null = null;
+    let disparado = false;
+
+    const podeDisparar = () => {
+      if (!mode || disparado) return false;
+      if (Date.now() - startT > MAX_DURATION_MS) return false;
+      return true;
+    };
+
+    const executarEsquerda = () => {
+      haptic(8);
+      const destino = destinoGestoEsquerda({ activeModule, pathname, homeTo, moreTo, modulosAtivos });
+      if (destino.tipo === "navegar") {
+        navigate(destino.to);
+        return;
+      }
+      // Sem histórico interno (entrada direta) → volta para a home do módulo.
+      if (depthRef.current > 1 && window.history.length > 1) navigate(-1);
+      else if (pathname !== homeTo) navigate(homeTo);
+    };
+
+    const executarDireita = () => {
+      haptic(8);
+      if (pathname === moreTo) {
+        if (depthRef.current > 1 && window.history.length > 1) navigate(-1);
+        else navigate(homeTo);
+      } else {
+        navigate(moreTo);
+      }
+    };
+
+    const tentarNavegar = (clientX: number, clientY: number) => {
+      if (!podeDisparar()) return;
+      const dx = clientX - startX;
+      const dy = Math.abs(clientY - startY);
+      if (dy > MAX_DELTA_Y) return;
+
+      if (mode === "left" && dx >= MIN_DELTA_X) {
+        disparado = true;
+        executarEsquerda();
+      } else if (mode === "right" && dx <= -MIN_DELTA_X) {
+        disparado = true;
+        executarDireita();
+      }
+    };
 
     const onStart = (e: TouchEvent) => {
       mode = null;
+      disparado = false;
       const t = e.touches[0];
       if (!t || e.touches.length > 1) return;
       const overlay = document.querySelector(
@@ -84,43 +129,27 @@ export function useEdgeGestures() {
       startT = Date.now();
     };
 
-    const onEnd = (e: TouchEvent) => {
-      const current = mode;
-      mode = null;
-      if (!current) return;
-      const t = e.changedTouches[0];
+    const onMove = (e: TouchEvent) => {
+      if (!mode || disparado) return;
+      const t = e.touches[0];
       if (!t) return;
-      const dx = t.clientX - startX;
-      const dy = Math.abs(t.clientY - startY);
-      if (Date.now() - startT > MAX_DURATION_MS) return;
-      if (dy > MAX_DELTA_Y) return;
+      tentarNavegar(t.clientX, t.clientY);
+    };
 
-      if (current === "left" && dx >= MIN_DELTA_X) {
-        haptic(8);
-        const destino = destinoGestoEsquerda({ activeModule, pathname, homeTo, moreTo, modulosAtivos });
-        if (destino.tipo === "navegar") {
-          navigate(destino.to);
-          return;
-        }
-        // Sem histórico interno (entrada direta) → volta para a home do módulo.
-        if (depthRef.current > 1 && window.history.length > 1) navigate(-1);
-        else if (pathname !== homeTo) navigate(homeTo);
-      } else if (current === "right" && dx <= -MIN_DELTA_X) {
-        haptic(8);
-        if (pathname === moreTo) {
-          if (depthRef.current > 1 && window.history.length > 1) navigate(-1);
-          else navigate(homeTo);
-        } else {
-          navigate(moreTo);
-        }
-      }
+    const onEnd = () => {
+      mode = null;
+      disparado = false;
     };
 
     window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: true });
     window.addEventListener("touchend", onEnd, { passive: true });
+    window.addEventListener("touchcancel", onEnd, { passive: true });
     return () => {
       window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchmove", onMove);
       window.removeEventListener("touchend", onEnd);
+      window.removeEventListener("touchcancel", onEnd);
     };
   }, [pathname, navigate, isMobile, moreTo, homeTo, activeModule, modulosAtivos]);
 }
