@@ -6,6 +6,7 @@ import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { Button } from "@/components/ui/button";
 import { DpShell } from "@/components/dp/DpShell";
 import { CarenciaPortalBanner } from "@/components/dp/CarenciaPortalBanner";
+import { DocumentoAssinaturaGate } from "@/components/dp/portal/DocumentoAssinaturaGate";
 
 
 export function ColaboradorShell() {
