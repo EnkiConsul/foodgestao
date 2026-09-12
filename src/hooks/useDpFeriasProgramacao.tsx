@@ -26,12 +26,16 @@ export function useDpFeriasProgramacao(filtro: FiltroProgramacao) {
     queryKey: ["dp_ferias_programacao", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
-      const [empresa, colaboradores, periodos, gozos, afastamentos] = await Promise.all([
+      const [empresa, unidades, colaboradores, periodos, gozos, afastamentos] = await Promise.all([
         supabase
           .from("companies")
           .select("name, trade_name, cnpj")
           .eq("id", selectedCompanyId!)
           .single(),
+        supabase
+          .from("dp_unidades")
+          .select("id, nome, cnpj")
+          .eq("company_id", selectedCompanyId!),
         supabase
           .from("dp_colaboradores")
           .select("id, nome, matricula, data_admissao, unidade_id, ativo, vinculo_label")
