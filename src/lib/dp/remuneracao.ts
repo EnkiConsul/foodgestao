@@ -95,6 +95,23 @@ export function permiteAdiantamento(regime?: string | null, forma?: FormaPagamen
   return contratoPolicy(regime).permiteAdiantamento && (forma ?? "mensalista") === "mensalista";
 }
 
+/**
+ * Motivo exibido quando o adiantamento não se aplica. Quando o vínculo admite
+ * adiantamento e o impedimento é a forma de pagamento, o texto diz isso — em
+ * vez de repetir o motivo genérico do contrato.
+ */
+export function adiantamentoMotivo(
+  regime?: string | null,
+  forma?: FormaPagamento | null,
+  vinculoLabel?: string | null,
+): string | null {
+  const policy = contratoPolicy(regime, vinculoLabel);
+  if (!policy.permiteAdiantamento) return policy.adiantamentoHint;
+  const f = forma ?? "mensalista";
+  if (f === "mensalista") return null;
+  return `O adiantamento quinzenal pressupõe salário mensal fixo, e este contrato está como ${FORMA_PAGAMENTO_LABEL[f]}. Troque a forma de pagamento para mensalista se o adiantamento deve ser oferecido.`;
+}
+
 export interface RemuneracaoColaborador {
   forma_pagamento?: FormaPagamento | null;
   salario_base?: number | null;
