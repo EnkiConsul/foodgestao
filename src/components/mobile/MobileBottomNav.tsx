@@ -211,7 +211,8 @@ function HomeSlot({ leaf }: { leaf: NavLeaf }) {
         role="tab"
         onClick={() => haptic(10)}
         className={cn(
-          "flex flex-col items-center justify-center gap-0.5 h-14 w-14 -mt-5 rounded-full",
+          "flex flex-col items-center justify-center gap-0.5 h-14 w-14 -mt-4 rounded-full",
+
           "bg-primary text-primary-foreground",
           "ring-4 ring-background",
           "shadow-[0_10px_24px_-6px_hsl(var(--primary)/0.5)]",
