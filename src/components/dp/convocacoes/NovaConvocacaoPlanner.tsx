@@ -950,6 +950,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   ciente={cienteAntecedencia}
                   onCienteChange={setCienteAntecedencia}
                   justificadaEm={justificadaEm}
+                  focoPendenteId={focoPendente}
                 />
               </div>
             ) : (
