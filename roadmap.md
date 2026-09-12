@@ -89,6 +89,6 @@
 - [x] Validar celular em pé, celular deitado e tablet
 
 ## Rotação do atalho instalado no Android (12/09/2026)
-- [ ] Liberar a orientação ao abrir pelo atalho instalado
-- [ ] Confirmar retrato, paisagem com visual tablet e retorno ao retrato
-- [ ] Orientar reinstalação única para atalhos que conservaram a configuração antiga
+- [x] Liberar a orientação ao abrir pelo atalho instalado
+- [x] Confirmar retrato, paisagem com visual tablet e retorno ao retrato
+- [x] Orientar reinstalação única para atalhos que conservaram a configuração antiga
