@@ -503,6 +503,7 @@ export function RevisaoConvocacao(props: Props) {
                 </Alert>
               );
             })()}
+            {aberto && (
             <ul className="mt-2 space-y-1">
               {o.linhas.map((l) => (
                 <li
