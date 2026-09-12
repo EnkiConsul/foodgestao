@@ -143,6 +143,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const [justificativas, setJustificativas] = useState<Record<string, string>>({});
   const [cienteAntecedencia, setCienteAntecedencia] = useState(false);
   const [justificadaEm, setJustificadaEm] = useState<string | null>(null);
+  /** Campo pendente que a revisão deve destacar e trazer para a tela. */
+  const [focoPendente, setFocoPendente] = useState<string | null>(null);
   const [revisando, setRevisando] = useState(false);
   /** Cache das sugestões por cargo|data — remarcar um dia não reconsulta. */
   const sugestoesRef = useRef<Map<string, SugestaoCache>>(new Map());
