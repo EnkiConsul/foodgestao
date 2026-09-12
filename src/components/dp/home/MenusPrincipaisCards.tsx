@@ -20,7 +20,7 @@ type Cols = (typeof FORMATOS)[number];
 export function MenusPrincipaisCards() {
   const { hidden } = useHiddenScreens();
   const { layout } = useDpMenuLayout("dp");
-  const { data: prefs, save } = useDpUserPrefs();
+  const { prefs, save } = useDpUserPrefs();
   const cols = ((): Cols => {
     const v = (prefs?.extras as any)?.home_atalhos_cols;
     return FORMATOS.includes(v) ? (v as Cols) : 5;
@@ -47,7 +47,7 @@ export function MenusPrincipaisCards() {
               key={n}
               type="button"
               onClick={() =>
-                save.mutate({ extras: { ...(prefs?.extras ?? {}), home_atalhos_cols: n } })
+                save({ extras: { ...(prefs?.extras ?? {}), home_atalhos_cols: n } })
               }
               className={cn(
                 "h-5 w-6 rounded-full text-[10px] font-medium transition-colors",
