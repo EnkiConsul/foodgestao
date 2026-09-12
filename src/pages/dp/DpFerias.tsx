@@ -243,6 +243,16 @@ export default function DpFerias() {
             Incluir desligados
             {desligadosOcultos > 0 && ` (${desligadosOcultos} período(s) oculto(s))`}
           </label>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground sm:col-span-2">
+            <input
+              type="checkbox"
+              className="size-4 accent-[hsl(var(--primary))]"
+              checked={incluirGozados}
+              onChange={(e) => setIncluirGozados(e.target.checked)}
+            />
+            Incluir períodos já gozados
+            {gozadosOcultos > 0 && ` (${gozadosOcultos} período(s) oculto(s))`}
+          </label>
         </div>
       </DpFilterCard>
 
