@@ -101,6 +101,9 @@ const DpAdminCalendario = lazyWithRetry(() => import("./pages/dp/DpAdminCalendar
 const DpModelosMensagem = lazyWithRetry(() => import("./pages/dp/DpModelosMensagem"));
 
 const DpComunicacaoHub = lazyWithRetry(() => import("./pages/dp/DpComunicacaoHub"));
+const DpDocumentosHub = lazyWithRetry(() => import("./pages/dp/DpDocumentosHub"));
+const DpRotinaHub = lazyWithRetry(() => import("./pages/dp/DpRotinaHub"));
+const DpGeralHub = lazyWithRetry(() => import("./pages/dp/DpGeralHub"));
 const DpAtestados = lazyWithRetry(() => import("./pages/dp/DpAtestados"));
 const DpHistoricoCompleto = lazyWithRetry(() => import("./pages/dp/DpHistoricoCompleto"));
 const DpNotificacoes = lazyWithRetry(() => import("./pages/dp/DpNotificacoes"));
