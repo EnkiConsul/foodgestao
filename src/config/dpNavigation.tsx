@@ -91,44 +91,27 @@ export type DpNavSurface = {
 
 const ADMIN_GROUPS: DpNavGroup[] = [
   {
-    id: "rotina",
-    label: "Rotina",
-    icon: CalendarClock,
-    hubTo: "/dp/escalas/mes",
-    matchPrefixes: [
-      "/dp/escalas",
-      "/dp/operacao",
-      "/dp/convocacoes",
-      "/dp/ocorrencias",
-      "/dp/folgas",
-      "/dp/solicitacoes",
-      "/dp/trocas",
-      "/dp/ferias",
-      "/dp/bloqueios",
-      "/dp/conformidade-dsr",
-    ],
+    id: "cadastro",
+    label: "Cadastro",
+    icon: Users,
+    hubTo: "/dp/cadastros",
+    matchPrefixes: ["/dp/colaboradores", "/dp/cadastros"],
     items: [
-      { label: "Operação", to: "/dp/escalas/mes", icon: CalendarClock, shortcut: true },
-
-      { label: "Ocorrências", to: "/dp/ocorrencias", icon: ClipboardList, shortcut: true },
-      { label: "Convocações", to: "/dp/convocacoes", icon: BellRing, shortcut: true },
-      { label: "Folgas", to: "/dp/folgas", icon: Calendar, shortcut: true },
-      { label: "Férias", to: "/dp/ferias", icon: Palmtree, shortcut: true },
-
+      { label: "Colaboradores", to: "/dp/colaboradores", icon: Users, shortcut: true, end: true },
+      { label: "Cargos e Salários", to: "/dp/cadastros/cargos", icon: Briefcase },
+      { label: "Unidades", to: "/dp/cadastros/unidades", icon: Building2 },
+      { label: "Benefícios", to: "/dp/cadastros/beneficios", icon: Gift },
+      { label: "Pendências", to: "/dp/cadastros/pendencias", icon: BellRing },
     ],
   },
-
-
-
   {
     id: "documentos",
     label: "Documentos",
     icon: FileText,
-    hubTo: "/dp/documentos",
-    matchPrefixes: ["/dp/documentos", "/dp/disciplinar", "/dp/atestados"],
+    hubTo: "/dp/documentos/inicio",
+    matchPrefixes: ["/dp/documentos", "/dp/disciplinar"],
     items: [
       { label: "Importar", to: "/dp/documentos", icon: Upload, end: true, shortcut: true, shortLabel: "Importar" },
-
       {
         label: "Histórico",
         to: "/dp/documentos/historico",
@@ -136,9 +119,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
         shortcut: true,
         shortLabel: "Histórico",
       },
-      { label: "Atestados", to: "/dp/atestados", icon: HeartPulse },
       { label: "Disciplinares", to: "/dp/disciplinar", icon: ShieldAlert },
-
     ],
   },
   {
@@ -161,26 +142,39 @@ const ADMIN_GROUPS: DpNavGroup[] = [
     ],
   },
   {
-    id: "cadastro",
-    label: "Cadastro",
-    icon: Users,
-    hubTo: "/dp/cadastros",
-    matchPrefixes: ["/dp/colaboradores", "/dp/cadastros"],
+    id: "rotina",
+    label: "Rotina",
+    icon: CalendarClock,
+    hubTo: "/dp/rotina",
+    matchPrefixes: [
+      "/dp/rotina",
+      "/dp/escalas",
+      "/dp/operacao",
+      "/dp/convocacoes",
+      "/dp/ocorrencias",
+      "/dp/folgas",
+      "/dp/solicitacoes",
+      "/dp/trocas",
+      "/dp/ferias",
+      "/dp/bloqueios",
+      "/dp/conformidade-dsr",
+      "/dp/atestados",
+    ],
     items: [
-      { label: "Colaboradores", to: "/dp/colaboradores", icon: Users, shortcut: true, end: true },
-      
-      { label: "Cargos e Salários", to: "/dp/cadastros/cargos", icon: Briefcase },
-      { label: "Unidades", to: "/dp/cadastros/unidades", icon: Building2 },
-      { label: "Benefícios", to: "/dp/cadastros/beneficios", icon: Gift },
-      { label: "Pendências", to: "/dp/cadastros/pendencias", icon: BellRing },
+      { label: "Operação", to: "/dp/escalas/mes", icon: CalendarClock, shortcut: true },
+      { label: "Ocorrências", to: "/dp/ocorrencias", icon: ClipboardList, shortcut: true },
+      { label: "Convocações", to: "/dp/convocacoes", icon: BellRing, shortcut: true },
+      { label: "Folgas", to: "/dp/folgas", icon: Calendar, shortcut: true },
+      { label: "Férias", to: "/dp/ferias", icon: Palmtree, shortcut: true },
+      { label: "Atestados", to: "/dp/atestados", icon: HeartPulse },
     ],
   },
   {
     id: "geral",
     label: "Geral",
     icon: Settings,
-    hubTo: "/dp/analytics",
-    matchPrefixes: ["/dp/analytics", "/dp/configuracoes", "/dp/erros"],
+    hubTo: "/dp/geral",
+    matchPrefixes: ["/dp/geral", "/dp/analytics", "/dp/configuracoes", "/dp/erros"],
     items: [
       { label: "Analytics", to: "/dp/analytics", icon: BarChart3, shortcut: true, shortLabel: "Analytics" },
       { label: "Configurações", to: "/dp/configuracoes", icon: Settings },
