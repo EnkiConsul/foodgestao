@@ -56,9 +56,15 @@ export interface ProgramacaoAfastamento {
   data_fim: string;
 }
 
+export interface ProgramacaoUnidade {
+  id: string;
+  nome: string;
+  cnpj: string | null;
+}
+
 export interface ProgramacaoLinha {
   colaboradorId: string;
-  /** Só preenchidos na primeira linha do colaborador (agrupamento visual). */
+  /** Repetidos em todas as linhas do colaborador (uma linha por período). */
   codigo: string | null;
   nome: string | null;
   admissao: string | null;
