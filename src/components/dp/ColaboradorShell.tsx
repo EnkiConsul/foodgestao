@@ -53,6 +53,7 @@ export function ColaboradorShell() {
   return (
     <>
       <CarenciaPortalBanner />
+      <DocumentoAssinaturaGate />
       <DpShell variant="portal" />
     </>
   );
