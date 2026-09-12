@@ -12,7 +12,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { toast } from "sonner";
 import { haptic } from "@/lib/haptics";
 
-const NAV_HEIGHT = 64;
+const NAV_HEIGHT = 56;
+
+
 
 
 type SlotDef =
