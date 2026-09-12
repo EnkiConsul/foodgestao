@@ -65,6 +65,8 @@ interface Props {
   onSalvo?: (grupoId: string) => void;
   /** Quando presente, edita o rascunho existente (nunca cria outro). */
   grupo?: GrupoComOcorrencias | null;
+  /** Atalho do aviso de conflito: abre o rascunho anterior que ocupa o dia. */
+  onAbrirRascunho?: (grupoId: string) => void;
 }
 
 interface DiaPlanejado {
@@ -108,7 +110,7 @@ const rotuloData = (iso: string) =>
     weekday: "short", day: "2-digit", month: "2-digit",
   });
 
-export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = null, inicial = null }: Props) {
+export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = null, inicial = null, onAbrirRascunho }: Props) {
   const agora = new Date();
   const { selectedCompanyId } = useCompanyContext();
 
@@ -412,6 +414,25 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       return { ...f, vira: normalizarVira(f.entrada, f.saida, f.vira) };
     });
 
+  /** Horário habitual da primeira pessoa selecionada que tem jornada nesse dia. */
+  const sugestaoDaPessoa = (cargoId: string, iso: string): SugestaoCache | null => {
+    for (const id of destinatarios) {
+      const c = (colaboradores.data ?? []).find((x: any) => x.id === id);
+      if (!c || (c.cargo_id && c.cargo_id !== cargoId)) continue;
+      const j = preview.jornadaDe(id, iso);
+      if (j?.entrada && j?.saida) {
+        return {
+          entrada: hhmm(j.entrada),
+          saida: hhmm(j.saida),
+          vira: normalizarVira(hhmm(j.entrada), hhmm(j.saida), !!j.termina_no_dia_seguinte),
+          origem: "sugerida",
+          ambiguo: false,
+        };
+      }
+    }
+    return null;
+  };
+
   /**
    * Marcar o dia: sem horário geral, a janela vem dos fixos do mesmo cargo na
    * data (nunca inventada). Sem base cadastrada, o gestor informa manualmente.
@@ -440,7 +461,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       return;
     }
 
-    const sug = await resolverSugestao(cargoAtivo, iso);
+    // O horário habitual da pessoa selecionada tem prioridade sobre o padrão do cargo.
+    const sug = sugestaoDaPessoa(cargoAtivo, iso) ?? (await resolverSugestao(cargoAtivo, iso));
 
     setDias((prev) => ({
       ...prev,
@@ -457,10 +479,53 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     }));
 
     if (!sug?.entrada) {
+      const unica = destinatarios.length === 1 ? nomePessoa(destinatarios[0]) : null;
       toast.warning(
-        `Sem horário de referência em ${rotuloData(iso)}. Informe a janela na lista de datas.`,
+        unica
+          ? `${rotuloData(iso)}: ${unica} não tem horário habitual nesse dia. Complete o cadastro dela em Turno & Jornada ou informe a janela na lista de datas.`
+          : `Sem horário de referência em ${rotuloData(iso)}. Informe a janela na lista de datas.`,
       );
     }
+  };
+
+  /**
+   * Erros de gravação em linguagem clara. Dia já ocupado por outro rascunho
+   * (conflito de necessidade vigente) ganha atalho para abrir o rascunho
+   * anterior — nunca texto técnico na tela.
+   */
+  const tratarErroDeGravacao = async (e: any) => {
+    const msg = String(e?.message ?? "");
+    const ehConflito = e?.code === "23505" || msg.includes("uq_dp_conv_ocor_necessidade_vigente");
+    if (!ehConflito) {
+      toast.error(e?.message ?? "Não foi possível salvar o rascunho.");
+      return;
+    }
+    let rascunhoId: string | null = null;
+    if (selectedCompanyId && unidadeId) {
+      try {
+        const { data } = await supabase
+          .from("dp_convocacao_ocorrencias")
+          .select("grupo_id")
+          .eq("company_id", selectedCompanyId)
+          .eq("unidade_id", unidadeId)
+          .eq("status", "rascunho")
+          .neq("grupo_id", grupoId)
+          .order("data")
+          .limit(1);
+        rascunhoId = (data?.[0] as any)?.grupo_id ?? null;
+      } catch {
+        /* sem o atalho, mantém só a mensagem */
+      }
+    }
+    toast.error("Um dos dias já está em outro rascunho", {
+      duration: 12_000,
+      closeButton: true,
+      description:
+        "Publique ou exclua o rascunho anterior para liberar a data. O que você planejou aqui continua salvo.",
+      ...(rascunhoId && onAbrirRascunho
+        ? { action: { label: "Abrir rascunho", onClick: () => onAbrirRascunho(rascunhoId) } }
+        : {}),
+    });
   };
 
   /** Sugestão do horário padrão: histórico de convocações e, em seguida, equipe fixa. */
@@ -719,7 +784,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       onSalvo?.(grupoId);
       onOpenChange(false);
     } catch (e: any) {
-      toast.error(e?.message ?? "Não foi possível salvar o rascunho.");
+      await tratarErroDeGravacao(e);
     } finally {
       setSalvando(false);
     }
@@ -755,8 +820,12 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       onOpenChange(false);
     } catch (e: any) {
       const msg = String(e?.message ?? "");
-      setDataComErro(dataDoErroDePublicacao(msg));
-      toast.error(textoDoErroDePublicacao(msg));
+      if (e?.code === "23505" || msg.includes("uq_dp_conv_ocor_necessidade_vigente")) {
+        await tratarErroDeGravacao(e);
+      } else {
+        setDataComErro(dataDoErroDePublicacao(msg));
+        toast.error(textoDoErroDePublicacao(msg));
+      }
     } finally {
       setPublicando(false);
     }

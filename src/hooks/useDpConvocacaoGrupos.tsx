@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { optionalRpcArg } from "@/lib/supabase/rpcArgs";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -28,7 +29,10 @@ export function useDpConvocacaoGrupos(status?: string[]) {
       if (status?.length) q = q.in("status", status);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []).map((g: any) => ({
+      return (data ?? [])
+        // Rascunhos excluídos (cancelados) ficam só no histórico do banco.
+        .filter((g: any) => g.status !== "cancelada")
+        .map((g: any) => ({
         ...g,
         unidade_nome: g.dp_unidades?.nome ?? null,
         // Necessidades retiradas do rascunho (canceladas) nunca voltam como ativas.
@@ -433,5 +437,42 @@ export function useSalvarConvocacaoConfig() {
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_convocacao_config"] }),
+  });
+}
+
+/**
+ * Exclui um rascunho de convocação (somente gestores, só em rascunho).
+ * No banco o grupo é marcado como cancelado e as necessidades são canceladas,
+ * liberando os dias para um novo planejamento.
+ */
+export function useExcluirRascunhoConvocacao() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: { id: string; expected_updated_at?: string | null }) => {
+      const { data, error } = await supabase.rpc("dp_convocacao_excluir_grupo", {
+        p_grupo_id: args.id,
+        p_expected_updated_at: args.expected_updated_at ?? undefined,
+      } as any);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_convocacao_grupos"] });
+      qc.invalidateQueries({ queryKey: ["dp_convocacao"] });
+      toast.success("Rascunho excluído", {
+        description: "Os dias planejados foram liberados para um novo planejamento.",
+      });
+    },
+    onError: (e: any) => {
+      const msg = String(e?.message ?? "");
+      toast.error("Não foi possível excluir o rascunho", {
+        description: msg.includes("NOT_DRAFT")
+          ? "Só é possível excluir convocações que ainda estão em rascunho."
+          : msg.includes("STALE_VERSION")
+            ? "Este rascunho foi alterado por outra pessoa. Recarregue a tela e tente de novo."
+            : "Tente novamente. Se o problema continuar, fale com o suporte.",
+      });
+    },
   });
 }

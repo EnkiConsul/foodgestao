@@ -20,6 +20,8 @@ import {
   type ErrorReportReadyDetail,
 } from "@/lib/errorLog";
 
+const ERRO_RELATORIO_TOAST_ID = "erro-relatorio";
+
 export function ErrorReportCenter() {
   const { selectedCompanyId } = useCompanyContext();
   const [pending, setPending] = useState<ErrorReportReadyDetail | null>(null);
@@ -38,9 +40,17 @@ export function ErrorReportCenter() {
       setPending(detail);
       setProtocol(null);
       toast.error("Encontramos um problema", {
-        description: "Ajude-nos a corrigir: conte o que aconteceu.",
+        id: ERRO_RELATORIO_TOAST_ID,
+        closeButton: true,
+        description: "Ajude-nos a corrigir: conte o que aconteceu. Se preferir, feche este aviso no X.",
         duration: 20_000,
-        action: { label: "Relatar problema", onClick: () => setOpen(true) },
+        action: {
+          label: "Relatar problema",
+          onClick: () => {
+            toast.dismiss(ERRO_RELATORIO_TOAST_ID);
+            setOpen(true);
+          },
+        },
       });
     };
     window.addEventListener("app:error-report-ready", onReady);
@@ -88,7 +98,8 @@ export function ErrorReportCenter() {
 
   return (
     <Dialog open={open} onOpenChange={(value) => (value ? setOpen(true) : close())}>
-      <DialogContent className="border-destructive/40 sm:max-w-lg">
+      {/* z alto: o formulário precisa abrir por cima de outros diálogos (ex.: convocações). */}
+      <DialogContent className="z-[110] border-destructive/40 sm:max-w-lg">
         {protocol ? (
           <div className="space-y-5 py-3 text-center">
             <CheckCircle2 className="mx-auto h-12 w-12 text-primary" aria-hidden="true" />
