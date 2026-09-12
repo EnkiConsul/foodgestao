@@ -2,8 +2,25 @@ import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "@/lib/utils";
+import { instalarSwipeAbas } from "@/lib/nav/tabSwipe";
+import { haptic } from "@/lib/haptics";
 
-const Tabs = TabsPrimitive.Root;
+/**
+ * Raiz das abas. No mobile, instala (uma vez) o gesto global de arrastar para
+ * os lados: esquerda avança para a próxima aba, direita volta para a anterior.
+ * O gesto ignora scrollers horizontais, diálogos abertos e as bordas da tela
+ * (reservadas aos gestos de voltar/menu Mais).
+ */
+const Tabs = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root>
+>((props, ref) => {
+  React.useEffect(() => {
+    instalarSwipeAbas(() => haptic(6));
+  }, []);
+  return <TabsPrimitive.Root ref={ref} {...props} />;
+});
+Tabs.displayName = TabsPrimitive.Root.displayName;
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
