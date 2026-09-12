@@ -141,8 +141,12 @@ export interface MontarProgramacaoOpts {
   afastamentos?: ProgramacaoAfastamento[];
   dataBase: string;
   emitidoEm: Date;
+  /** Razão social da empresa (usada quando não há unidade filtrada). */
   razaoSocial: string;
+  /** CNPJ da empresa (matriz). */
   cnpj: string | null;
+  /** Unidades da empresa, para resolver o cabeçalho por unidade filtrada. */
+  unidades?: ProgramacaoUnidade[];
   politica?: FeriasSinalizacaoCiclo;
   /** Filtro de unidade (null = todas). */
   unidadeId?: string | null;
