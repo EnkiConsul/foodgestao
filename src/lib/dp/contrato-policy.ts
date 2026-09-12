@@ -108,7 +108,9 @@ const CLT_LIKE: ContratoPolicy = {
   jornadaHint: null,
   permiteAdiantamento: true,
   adiantamentoHint: null,
-  formasPagamento: ["mensalista", "horista", "diarista"],
+  // Registro em carteira (CLT efetivo, estágio, temporário) pressupõe salário
+  // mensal: horista/diarista existem só no contrato intermitente.
+  formasPagamento: ["mensalista"],
   entraEmFolha: true,
   exigeCienciaLegal: false,
   cienciaLegalMensagem: null,
