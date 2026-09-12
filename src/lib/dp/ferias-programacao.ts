@@ -444,6 +444,7 @@ export function programacaoDocumento(d: ProgramacaoDados, colunas?: ProgramacaoC
       <div>
         <p><strong>${esc(d.razaoSocial)}</strong></p>
         <p>CNPJ: ${esc(d.cnpj ?? "-")}</p>
+        ${escopo ? `<p>${esc(escopo)}</p>` : ""}
         <p>Data base: ${esc(dataBr(d.dataBase))}</p>
       </div>
       <div style="text-align:right">
