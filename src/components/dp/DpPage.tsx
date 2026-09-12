@@ -49,24 +49,26 @@ interface DpPageHeaderProps {
   /** Controles avulsos exibidos só no desktop (ex.: salvar larguras). */
   actionsExtra?: ReactNode;
   className?: string;
+  /** Classe extra do container de ações (ex.: manter ações na mesma linha do título no mobile). */
+  actionsClassName?: string;
 }
 
 function HeaderActions({
-  actions, actionItems, actionsExtra,
-}: Pick<DpPageHeaderProps, "actions" | "actionItems" | "actionsExtra">) {
+  actions, actionItems, actionsExtra, actionsClassName,
+}: Pick<DpPageHeaderProps, "actions" | "actionItems" | "actionsExtra" | "actionsClassName">) {
   if (actionItems && actionItems.length > 0) {
     return <DpActions actions={actionItems} extra={actionsExtra} />;
   }
   if (!actions) return null;
   return (
-    <div className="dp-page-actions flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end [&>*]:min-h-11">
+    <div className={cn("dp-page-actions flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end [&>*]:min-h-11", actionsClassName)}>
       {actions}
     </div>
   );
 }
 
 export function DpPageHeader({
-  icon: Icon, title, description, actions, actionItems, actionsExtra, className,
+  icon: Icon, title, description, actions, actionItems, actionsExtra, className, actionsClassName,
 }: DpPageHeaderProps) {
   const embedded = useDpEmbedded();
   const temAcoes = Boolean(actions || (actionItems && actionItems.length > 0));
@@ -95,7 +97,7 @@ export function DpPageHeader({
           )}
         </div>
       </div>
-      {temAcoes && <HeaderActions actions={actions} actionItems={actionItems} actionsExtra={actionsExtra} />}
+      {temAcoes && <HeaderActions actions={actions} actionItems={actionItems} actionsExtra={actionsExtra} actionsClassName={actionsClassName} />}
     </header>
   );
 }
