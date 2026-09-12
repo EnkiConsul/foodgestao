@@ -20,8 +20,9 @@ Isso explica o comportamento relatado, mas ainda não foi confirmado no aparelho
    e o "voltar" nativo por arraste na área do aplicativo.
 2. Passar a decidir o gesto durante o movimento do dedo (e não só ao soltar), e também tratar
    o toque cancelado — assim o gesto vale mesmo se o navegador interromper.
-3. Reduzir levemente a distância mínima e ampliar a janela de tempo, para que arrastes normais
-   sejam reconhecidos com mais folga.
+3. Tornar a troca de telas mais rápida: a navegação dispara no instante em que o arraste cruza a
+   distância mínima, sem esperar o dedo sair da tela, e a distância mínima é reduzida levemente
+   (com a janela de tempo ampliada), para que arrastes curtos e naturais já respondam de imediato.
 4. Confirmar que a faixa de borda usada no arraste da esquerda cobre a área real de toque e que
    listas com rolagem lateral no Início não estão engolindo o gesto.
 5. Validar no navegador em tamanho de celular: Início → Hub (esquerda→direita), Início → Cadastro
