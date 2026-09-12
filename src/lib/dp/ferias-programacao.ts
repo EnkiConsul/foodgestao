@@ -203,7 +203,7 @@ export function montarProgramacao(opts: MontarProgramacaoOpts): ProgramacaoDados
 
     const vencidas = doColab.filter((p) => p.fim_aquisitivo <= dataBase).length;
 
-    doColab.forEach((p, idx) => {
+    doColab.forEach((p) => {
       const colabAfast = afastamentos
         .filter((a) => a.colaborador_id === colab.id)
         .reduce((s, a) => s + sobreposicaoDias(a.data_inicio, a.data_fim, p.inicio_aquisitivo, p.fim_aquisitivo), 0);
