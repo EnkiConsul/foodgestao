@@ -381,8 +381,8 @@ export function programacaoParaCsv(d: ProgramacaoDados, colunas?: ProgramacaoCol
 }
 
 /** Baixa o CSV com BOM para abrir correto no Excel. */
-export function baixarProgramacaoCsv(d: ProgramacaoDados): void {
-  const blob = new Blob(["\ufeff" + programacaoParaCsv(d)], { type: "text/csv;charset=utf-8" });
+export function baixarProgramacaoCsv(d: ProgramacaoDados, colunas?: ProgramacaoColKey[]): void {
+  const blob = new Blob(["\ufeff" + programacaoParaCsv(d, colunas)], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
