@@ -396,22 +396,19 @@ export function baixarProgramacaoCsv(d: ProgramacaoDados): void {
 const esc = (v: string | number) =>
   String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-function linhaHtml(l: ProgramacaoLinha): string {
+function linhaHtml(l: ProgramacaoLinha, cols: ProgramacaoColMeta[]): string {
   const cor = SITUACAO_PROGRAMACAO_COR[l.situacao];
-  const cell = (v: string | number, cls = "") => `<td class="${cls}">${esc(v)}</td>`;
-  const selo = `<span class="selo" style="background:${cor.fundo};color:${cor.texto}">${esc(
-    SITUACAO_PROGRAMACAO_LABEL[l.situacao],
-  )}</span>`;
-  return `<tr>
-    ${cell(l.codigo ?? "", "r")}${cell(l.nome ?? "", "nome")}${cell(l.admissao ? dataBr(l.admissao) : "")}
-    ${cell(dataBr(l.fimAquisitivo))}${cell(l.feriasVencidas ?? "", "c")}${cell(l.feriasProporcionais ?? "", "c")}
-    ${cell(dataBr(l.inicioAquisitivo))}${cell(dataBr(l.fimAquisitivo))}
-    ${cell(dataBr(l.gozoInicio))}${cell(numOuTraco(l.gozoDias), "c")}${cell(numOuTraco(l.gozoAbono), "c")}
-    ${cell(l.gozoAdianta13 === null ? "...." : l.gozoAdianta13 ? "SIM" : "-", "c")}
-    ${cell(l.diasDireito, "c")}${cell(l.diasGozados, "c")}${cell(l.diasRestantes, "c")}
-    ${cell(dataBr(l.limiteGozo))}${cell(l.diasAfastamento ?? "-", "c")}${cell(l.diasFaltas ?? "-", "c")}
-    <td class="c">${selo}</td>
-  </tr>`;
+  const celulas = cols.map((c) => {
+    if (c.key === "situacao") {
+      const selo = `<span class="selo" style="background:${cor.fundo};color:${cor.texto}">${esc(
+        SITUACAO_PROGRAMACAO_LABEL[l.situacao],
+      )}</span>`;
+      return `<td class="c">${selo}</td>`;
+    }
+    const cls = c.key === "nome" ? "nome" : c.center ? "c" : c.right ? "r" : "";
+    return `<td class="${cls}">${esc(c.valor(l))}</td>`;
+  });
+  return `<tr>${celulas.join("")}</tr>`;
 }
 
 const ESTILO = `
