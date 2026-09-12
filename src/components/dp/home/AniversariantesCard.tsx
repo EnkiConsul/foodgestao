@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Cake, Clock, Mail, MessageCircle, MessageSquare } from "lucide-react";
+import { Cake, Clock, MessageCircle, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useDpAniversariantes30d, type AnivItem } from "@/hooks/useDpAniversariantes30d";
@@ -42,10 +42,6 @@ export function AniversariantesCard({ variant = "admin" }: { variant?: "admin" |
           <p className="text-sm text-muted-foreground py-8 text-center">Nenhum aniversariante nos próximos 30 dias.</p>
         )}
         {data.map((a) => {
-          const emailTo = a.email?.trim() || null;
-          const mailSubject = encodeURIComponent(
-            a.tipo === "nascimento" ? "Feliz aniversário!" : "Parabéns pelo tempo de casa!",
-          );
           return (
             <div
               key={a.id}
@@ -107,25 +103,6 @@ export function AniversariantesCard({ variant = "admin" }: { variant?: "admin" |
                         Comunicado
                       </Link>
                     </Button>
-                    {emailTo ? (
-                      <Button asChild size="sm" variant="outline" className="h-7 text-xs">
-                        <a href={`mailto:${emailTo}?subject=${mailSubject}`}>
-                          <Mail className="h-3 w-3 mr-1" />
-                          E-mail
-                        </a>
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        disabled
-                        title="Sem e-mail cadastrado"
-                      >
-                        <Mail className="h-3 w-3 mr-1" />
-                        E-mail
-                      </Button>
-                    )}
                   </div>
                 )}
               </div>
