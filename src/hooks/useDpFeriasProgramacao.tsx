@@ -26,12 +26,16 @@ export function useDpFeriasProgramacao(filtro: FiltroProgramacao) {
     queryKey: ["dp_ferias_programacao", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
-      const [empresa, colaboradores, periodos, gozos, afastamentos] = await Promise.all([
+      const [empresa, unidades, colaboradores, periodos, gozos, afastamentos] = await Promise.all([
         supabase
           .from("companies")
           .select("name, trade_name, cnpj")
           .eq("id", selectedCompanyId!)
           .single(),
+        supabase
+          .from("dp_unidades")
+          .select("id, nome, cnpj")
+          .eq("company_id", selectedCompanyId!),
         supabase
           .from("dp_colaboradores")
           .select("id, nome, matricula, data_admissao, unidade_id, ativo, vinculo_label")
@@ -55,12 +59,18 @@ export function useDpFeriasProgramacao(filtro: FiltroProgramacao) {
           .in("tipo", [...TIPOS_AFASTAMENTO])
           .eq("status", "aprovada"),
       ]);
-      const err = [empresa, colaboradores, periodos, gozos, afastamentos].find((r) => r.error);
+      const err = [empresa, unidades, colaboradores, periodos, gozos, afastamentos].find((r) => r.error);
       if (err?.error) throw err.error;
 
       return {
-        razaoSocial: (empresa.data?.trade_name || empresa.data?.name || "Empresa").toUpperCase(),
+        // Sem filtro de unidade o cabeçalho é da empresa (razão social), nunca de uma unidade.
+        razaoSocial: (empresa.data?.name || empresa.data?.trade_name || "Empresa").toUpperCase(),
         cnpj: empresa.data?.cnpj ?? null,
+        unidades: (unidades.data ?? []).map((u) => ({
+          id: u.id,
+          nome: (u.nome ?? "").toUpperCase(),
+          cnpj: u.cnpj ?? null,
+        })),
         colaboradores: (colaboradores.data ?? []).map((c) => ({
           id: c.id,
           nome: c.nome,
@@ -96,6 +106,7 @@ export function useDpFeriasProgramacao(filtro: FiltroProgramacao) {
       emitidoEm: new Date(),
       razaoSocial: dados.razaoSocial,
       cnpj: dados.cnpj,
+      unidades: dados.unidades,
       politica: feriasConfig.sinalizacaoCicloEncerrado,
       unidadeId: filtro.unidadeId,
       incluirDesligados: filtro.incluirDesligados,
