@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
 import { reportError } from "@/lib/errorLog";
-import type { Pendencia } from "@/hooks/useDpPendencias";
 import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export type IntermitenteConfirmacao = {
