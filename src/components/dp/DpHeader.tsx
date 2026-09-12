@@ -43,10 +43,8 @@ export function DpHeader({ variant = "admin" }: { variant?: "admin" | "portal" }
         </Button>
       )}
       <SidebarTrigger className={showBack ? "hidden h-9 w-9 shrink-0 md:flex" : "h-10 w-10 shrink-0 md:h-9 md:w-9"} />
-      <div className="min-w-0 shrink md:hidden">
-        <ModuleSwitcherChip />
-      </div>
       {variant === "admin" && (
+
         <Button
           asChild
           variant="ghost"
