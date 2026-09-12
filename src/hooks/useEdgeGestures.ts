@@ -97,7 +97,7 @@ export function useEdgeGestures() {
 
       if (current === "left" && dx >= MIN_DELTA_X) {
         haptic(8);
-        const destino = destinoGestoEsquerda({ activeModule, pathname, homeTo, modulosAtivos });
+        const destino = destinoGestoEsquerda({ activeModule, pathname, homeTo, moreTo, modulosAtivos });
         if (destino.tipo === "navegar") {
           navigate(destino.to);
           return;

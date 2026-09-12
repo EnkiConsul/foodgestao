@@ -20,6 +20,18 @@ describe("destinoGestoEsquerda", () => {
     ).toEqual({ tipo: "voltar" });
   });
 
+  it("na tela Mais, o gesto volta para a tela anterior", () => {
+    expect(
+      destinoGestoEsquerda({
+        activeModule: "dp",
+        pathname: "/dp/mais",
+        homeTo: "/dp",
+        moreTo: "/dp/mais",
+        modulosAtivos: 2,
+      }),
+    ).toEqual({ tipo: "voltar" });
+  });
+
   it("não muda nada nos outros módulos", () => {
     expect(
       destinoGestoEsquerda({
