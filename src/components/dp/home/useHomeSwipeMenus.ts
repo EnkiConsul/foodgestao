@@ -37,7 +37,7 @@ function scrollerBloqueiaSwipe(scroller: HTMLElement | null, dx: number): boolea
  * horizontais nem com diálogo aberto. Só atua quando o toque começa dentro
  * do container informado.
  */
-export function useHomeSwipeMenus(containerRef: React.RefObject<HTMLElement | null>) {
+export function useHomeSwipeMenus() {
   const navigate = useNavigate();
   const { hidden } = useHiddenScreens();
   const { layout } = useDpMenuLayout("dp");

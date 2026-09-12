@@ -15,12 +15,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 export default function DpHome() {
   const isMobile = useIsMobile();
-  const swipeRef = useRef<HTMLDivElement | null>(null);
-  useHomeSwipeMenus(swipeRef);
+  useHomeSwipeMenus();
 
   return (
     <DpPage>
-      <div ref={swipeRef} className="contents" />
       <Helmet><title>Pessoas 360° — Início</title></Helmet>
 
       <DpPageHeader
