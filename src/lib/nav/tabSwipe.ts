@@ -62,6 +62,26 @@ function tablistDoToque(target: EventTarget | null): HTMLElement | null {
   return null;
 }
 
+/** Diálogo/janela aberta que contém o alvo do toque, se houver. */
+function dialogoDoToque(target: EventTarget | null): HTMLElement | null {
+  const el = target instanceof Element ? target : null;
+  const dialog = el?.closest(
+    '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]',
+  );
+  return dialog instanceof HTMLElement ? dialog : null;
+}
+
+/**
+ * Pede o fechamento do diálogo como se o usuário tivesse apertado Esc — assim
+ * os diálogos que confirmam alterações não salvas continuam perguntando.
+ */
+function fecharDialogo(dialog: HTMLElement) {
+  const init = { key: "Escape", code: "Escape", keyCode: 27, bubbles: true, cancelable: true };
+  document.activeElement instanceof HTMLElement && document.activeElement.blur();
+  dialog.dispatchEvent(new KeyboardEvent("keydown", init));
+  dialog.dispatchEvent(new KeyboardEvent("keyup", init));
+}
+
 let instalado = false;
 
 /**
