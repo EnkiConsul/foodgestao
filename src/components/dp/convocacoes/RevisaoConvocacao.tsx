@@ -203,6 +203,80 @@ export function RevisaoConvocacao(props: Props) {
 
   const diasEmCimaDaHora = useMemo(() => ordenados.filter((d) => d.abaixoDaAntecedencia), [ordenados]);
 
+  // -------------------------------------------------- dias que pedem atenção
+  /** `cargoId|data` → o dia tem alguma observação que o gestor precisa ver. */
+  const atencaoPorChave = useMemo(() => {
+    const m = new Map<string, boolean>();
+    for (const o of ofertas) {
+      const chave = `${o.dia.cargo_id}|${o.dia.data}`;
+      const linhasDia = preAvaliacao.filter(
+        (l) => l.data === o.dia.data && (l.cargo_id ?? "") === o.dia.cargo_id,
+      );
+      const ninguemApto =
+        !preAvaliacaoCarregando && linhasDia.length > 0 && !linhasDia.some((l) => l.apto);
+      m.set(chave, o.dia.abaixoDaAntecedencia || o.semHorario > 0 || ninguemApto);
+    }
+    return m;
+  }, [ofertas, preAvaliacao, preAvaliacaoCarregando]);
+
+  const totalAtencao = useMemo(
+    () => [...atencaoPorChave.values()].filter(Boolean).length,
+    [atencaoPorChave],
+  );
+  const totalTranquilos = ofertas.length - totalAtencao;
+
+  const [abertos, setAbertos] = useState<Record<string, boolean>>({});
+  const assinaturaAtencao = useMemo(
+    () =>
+      [...atencaoPorChave.entries()]
+        .map(([k, v]) => `${k}:${v ? 1 : 0}`)
+        .join(","),
+    [atencaoPorChave],
+  );
+
+  // Sem nenhum alerta, tudo aberto; com alertas, só os dias com observação.
+  useEffect(() => {
+    setAbertos(
+      Object.fromEntries(
+        [...atencaoPorChave.entries()].map(([k, v]) => [k, totalAtencao === 0 ? true : v]),
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assinaturaAtencao]);
+
+  const definirTodos = (valor: boolean) =>
+    setAbertos(Object.fromEntries([...atencaoPorChave.keys()].map((k) => [k, valor])));
+
+  // -------------------------------------------------- rolagem para a justificativa
+  const excecaoRef = useRef<HTMLDivElement | null>(null);
+  const cienteRef = useRef<HTMLLabelElement | null>(null);
+  const camposJustificativa = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  const jaRolou = useRef(false);
+
+  useEffect(() => {
+    if (jaRolou.current || diasEmCimaDaHora.length === 0) return;
+    jaRolou.current = true;
+    const t = window.setTimeout(() => {
+      excecaoRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      if (window.matchMedia("(min-width: 768px)").matches) {
+        const alvo = diasEmCimaDaHora.find((d) => !justificativas[d.id]?.trim());
+        if (alvo) camposJustificativa.current[alvo.id]?.focus();
+      }
+    }, 120);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diasEmCimaDaHora.length]);
+
+  useEffect(() => {
+    if (!focoPendenteId) return;
+    const alvo =
+      focoPendenteId === "ciente"
+        ? cienteRef.current
+        : camposJustificativa.current[focoPendenteId] ?? null;
+    alvo?.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (focoPendenteId !== "ciente") camposJustificativa.current[focoPendenteId]?.focus();
+  }, [focoPendenteId]);
+
   return (
     <div className="space-y-4">
       {/* -------------------------------------------------- resumo */}
