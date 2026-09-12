@@ -26,7 +26,7 @@ export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" })
   return (
     <SidebarProvider>
       <EdgeGestures />
-      <div className="dp-shell flex min-h-screen w-full bg-background">
+      <div className="dp-shell flex min-h-[var(--vvh,100svh)] w-full bg-background">
         <DpSidebar variant={variant} />
         <div className="flex flex-1 flex-col min-w-0">
           <DpHeader variant={variant} />

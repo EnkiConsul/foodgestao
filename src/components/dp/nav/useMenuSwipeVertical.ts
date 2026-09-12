@@ -7,6 +7,7 @@ import { useHiddenScreens } from "@/hooks/useHiddenScreens";
 import { filterSurface } from "@/lib/nav/hiddenScreens";
 import { destinoMenuVertical } from "@/lib/nav/menuSwipe";
 import { haptic } from "@/lib/haptics";
+import { isMobileLayoutViewport } from "@/lib/responsive";
 
 const EDGE_PX = 28;
 const MIN_DELTA_Y = 56;
@@ -109,7 +110,7 @@ export function useMenuSwipeVertical() {
       ativo = false;
       disparado = false;
       scroller = null;
-      if (window.innerWidth >= 768) return;
+      if (!isMobileLayoutViewport()) return;
       const t = e.touches[0];
       if (!t || e.touches.length > 1) return;
       if (

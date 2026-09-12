@@ -81,3 +81,9 @@
 - [x] Início deixa de abrir Cadastro no arrasto lateral; gestos de borda (Hub/Mais) mantidos
 - [x] Atualizar arrastando para baixo só no Início e nas telas de uso
 - [x] Arrastar da esquerda para a direita fecha a janela aberta (com confirmação de alterações não salvas)
+
+## Rotação e visual tablet no celular deitado (12/09/2026)
+- [x] Liberar orientação horizontal no aplicativo instalado
+- [x] Usar integralmente o visual tablet no celular deitado
+- [x] Manter o visual mobile e os gestos atuais no celular em pé
+- [x] Validar celular em pé, celular deitado e tablet
