@@ -92,8 +92,11 @@ export interface ProgramacaoLinha {
 }
 
 export interface ProgramacaoDados {
+  /** Identidade do cabeçalho: unidade filtrada ou razão social da empresa. */
   razaoSocial: string;
   cnpj: string | null;
+  /** true quando o relatório reúne mais de uma unidade (sem filtro). */
+  consolidado: boolean;
   dataBase: string;
   emitidoEm: Date;
   linhas: ProgramacaoLinha[];
