@@ -52,17 +52,20 @@ export function NavigationCard({ title, description, to, icon: Icon, count, clas
  */
 function TwoLineDescription({ text }: { text: string }) {
   const words = text.trim().split(/\s+/);
-  // Textos curtos (até ~45 caracteres) cabem em 1 linha; forçamos a quebra.
-  if (words.length >= 2 && text.length <= 45) {
+  // Textos curtos (até ~50 caracteres) cabem em 1 linha no mobile;
+  // forçamos a quebra das duas últimas palavras para preencher a segunda linha.
+  if (words.length >= 2 && text.length <= 50) {
     const first = words.slice(0, -2).join(" ");
     const last = words.slice(-2).join(" ");
     return (
       <span className="inline">
         {first ? <>{first} </> : null}
+        <br className="sm:hidden" />
         <span className="inline">{last}</span>
       </span>
     );
   }
   return <>{text}</>;
 }
+
 
