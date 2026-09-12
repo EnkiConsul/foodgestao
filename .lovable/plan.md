@@ -6,7 +6,7 @@
 - O usuário escolhe quantos ícones por linha: **5, 4 ou 3**. Um seletor discreto fica no canto da faixa de atalhos.
 - O tamanho do ícone e do texto se ajusta ao formato escolhido: 5 por linha = menor, 3 por linha = maior.
 - A escolha é lembrada por usuário e por empresa (guardada nas preferências existentes, sem nova tabela).
-- Padrão inicial: 4 por linha (como está hoje).
+- Padrão inicial: 5 por linha.
 
 ## 2. Card de aniversariantes
 
