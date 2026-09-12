@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { lerPendenciasSnapshot, salvarPendenciasSnapshot } from "@/lib/dp/pendencias-cache";
+import { PENDENCIAS_BAIXA_EVENTO, type PendenciasBaixaDetalhe } from "@/lib/dp/pendencias-resolver";
 
 type StablePendenciasState = {
   companyId: string | null;
