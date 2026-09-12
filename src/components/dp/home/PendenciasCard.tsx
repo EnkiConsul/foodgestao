@@ -133,16 +133,48 @@ export function useStablePendencias({
     });
   }, [companyId, data, dataUpdatedAt, lastCalculatedAt, isLoading, isFetching, confirmed]);
 
+  // Baixa imediata: quando uma ação resolve pendências, o item sai da lista na
+  // hora, sem esperar o fim da nova apuração no servidor.
+  const [baixados, setBaixados] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    const aoBaixar = (evento: Event) => {
+      const detalhe = (evento as CustomEvent<PendenciasBaixaDetalhe>).detail;
+      if (!detalhe || !companyId || detalhe.companyId !== companyId) return;
+      const ids = new Set(detalhe.ids);
+      setConfirmed((anterior) =>
+        anterior.companyId === companyId
+          ? { ...anterior, data: anterior.data.filter((p) => !ids.has(p.id)) }
+          : anterior,
+      );
+      setBaixados((atual) => {
+        const proximo = new Set(atual);
+        ids.forEach((id) => proximo.add(id));
+        return proximo;
+      });
+    };
+    window.addEventListener(PENDENCIAS_BAIXA_EVENTO, aoBaixar);
+    return () => window.removeEventListener(PENDENCIAS_BAIXA_EVENTO, aoBaixar);
+  }, [companyId]);
+
+  // Uma nova apuração já reflete as baixas: a lista volta a ser a fonte única.
+  useEffect(() => {
+    setBaixados((atual) => (atual.size === 0 ? atual : new Set()));
+  }, [companyId, lastCalculatedAt]);
+
   // Retrato local da empresa selecionada: usado enquanto a apuração atual não
   // terminou (inclusive no primeiro carregamento do dia e ao trocar de empresa).
   const snapshotDaEmpresa = useMemo(() => lerPendenciasSnapshot(companyId), [companyId]);
 
+  const semBaixados = (estado: Omit<StablePendenciasState, "companyId">) =>
+    baixados.size === 0 ? estado : { ...estado, data: estado.data.filter((p) => !baixados.has(p.id)) };
+
   if (confirmed.companyId !== companyId) {
     if (snapshotDaEmpresa) {
-      return { ...snapshotDaEmpresa, ready: true };
+      return semBaixados({ ...snapshotDaEmpresa, ready: true });
     }
     if (data !== undefined && !isLoading && !isFetching) {
-      return { data, dataUpdatedAt, lastCalculatedAt, ready: true };
+      return semBaixados({ data, dataUpdatedAt, lastCalculatedAt, ready: true });
     }
     return {
       data: data ?? [],
