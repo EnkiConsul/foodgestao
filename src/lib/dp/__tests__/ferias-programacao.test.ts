@@ -124,15 +124,31 @@ describe("montarProgramacao", () => {
     expect(new Set(r.linhas.map((l) => l.colaboradorId))).toEqual(new Set(["c2"]));
   });
 
-  it("agrupa períodos: dados do colaborador só na primeira linha", () => {
+  it("repete os dados do colaborador em cada período", () => {
     const r = montarProgramacao(BASE);
     const linhasC1 = r.linhas.filter((l) => l.colaboradorId === "c1");
     expect(linhasC1).toHaveLength(2);
-    expect(linhasC1[0].nome).toBe("ALESSANDRA MOREIRA DIAS DA COSTA");
-    expect(linhasC1[0].codigo).toBe("138");
-    expect(linhasC1[0].feriasVencidas).toBe(1);
-    expect(linhasC1[1].nome).toBeNull();
-    expect(linhasC1[1].codigo).toBeNull();
+    for (const l of linhasC1) {
+      expect(l.nome).toBe("ALESSANDRA MOREIRA DIAS DA COSTA");
+      expect(l.codigo).toBe("138");
+      expect(l.feriasVencidas).toBe(1);
+    }
+  });
+
+  it("usa a unidade filtrada no cabeçalho e a empresa quando são todas", () => {
+    const unidades = [
+      { id: "u1", nome: "PAKERÊ GARAVELO", cnpj: "11.111.111/0001-11" },
+      { id: "u2", nome: "PAKERÊ T-63", cnpj: "22.222.222/0001-22" },
+    ];
+    const filtrada = montarProgramacao({ ...BASE, unidades, unidadeId: "u2" });
+    expect(filtrada.razaoSocial).toBe("PAKERÊ T-63");
+    expect(filtrada.cnpj).toBe("22.222.222/0001-22");
+    expect(filtrada.consolidado).toBe(false);
+
+    const todas = montarProgramacao({ ...BASE, unidades, incluirDesligados: true });
+    expect(todas.razaoSocial).toBe(BASE.razaoSocial);
+    expect(todas.cnpj).toBe(BASE.cnpj);
+    expect(todas.consolidado).toBe(true);
   });
 
   it("mostra gozo programado na linha do período", () => {
