@@ -22,6 +22,12 @@ describe("forma de pagamento", () => {
     expect(permiteAdiantamento("intermitente", "horista")).toBe(false);
     expect(permiteAdiantamento("pj", "mensalista")).toBe(false);
   });
+
+  it("explica o motivo pela forma de pagamento quando o vínculo permite", () => {
+    expect(adiantamentoMotivo("clt", "mensalista")).toBeNull();
+    expect(adiantamentoMotivo("clt", "horista")).toMatch(/salário mensal fixo/i);
+    expect(adiantamentoMotivo("intermitente", "horista")).toMatch(/convocação/i);
+  });
 });
 
 describe("salário e valor-hora", () => {
