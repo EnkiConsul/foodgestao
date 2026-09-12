@@ -75,3 +75,9 @@
 - [x] Distribuição equilibrada e centralizada dos ícones no Início e na tela "Mais"
 - [x] Texto genérico "módulo" no card de Atalhos Favoritos
 - [x] Gesto de arrastar na tela Início troca entre os menus principais
+
+## Gestos de navegação no celular (12/09/2026)
+- [x] Arrastar para cima abre o próximo menu; para baixo volta ao anterior (do primeiro volta ao Início)
+- [x] Início deixa de abrir Cadastro no arrasto lateral; gestos de borda (Hub/Mais) mantidos
+- [x] Atualizar arrastando para baixo só no Início e nas telas de uso
+- [x] Arrastar da esquerda para a direita fecha a janela aberta (com confirmação de alterações não salvas)

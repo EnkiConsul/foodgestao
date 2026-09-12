@@ -1,5 +1,6 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { permitePullToRefresh } from "@/lib/nav/pullToRefreshRoutes";
 import { EdgeGestures } from "@/components/mobile/EdgeGestures";
 import { PullToRefresh } from "@/components/mobile/PullToRefresh";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -12,6 +13,15 @@ import { HiddenScreenGuard } from "@/components/nav/HiddenScreenGuard";
 
 export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   const queryClient = useQueryClient();
+  const { pathname } = useLocation();
+  // Nas telas de menu, o arrasto de cima para baixo volta ao menu anterior.
+  const comRefresh = permitePullToRefresh(pathname);
+
+  const conteudo = (
+    <HiddenScreenGuard surface={variant}>
+      <Outlet />
+    </HiddenScreenGuard>
+  );
 
   return (
     <SidebarProvider>
@@ -21,11 +31,11 @@ export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" })
         <div className="flex flex-1 flex-col min-w-0">
           <DpHeader variant={variant} />
           <main className="flex-1 p-3 md:p-8 pb-24 md:pb-8">
-            <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
-              <HiddenScreenGuard surface={variant}>
-                <Outlet />
-              </HiddenScreenGuard>
-            </PullToRefresh>
+            {comRefresh ? (
+              <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>{conteudo}</PullToRefresh>
+            ) : (
+              conteudo
+            )}
           </main>
         </div>
 

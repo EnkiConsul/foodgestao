@@ -6,6 +6,7 @@ import { useHiddenScreens } from "@/hooks/useHiddenScreens";
 import { filterSurface } from "@/lib/nav/hiddenScreens";
 import { applyMenuLayout } from "@/lib/dp/menuLayout";
 import { useDpMenuLayout } from "@/hooks/useDpMenuLayout";
+import { useMenuSwipeVertical } from "@/components/dp/nav/useMenuSwipeVertical";
 
 /** Cards das telas de um menu do Pessoas 360°, na mesma ordem do menu. */
 export function useDpGroupItems(groupId: string): DpNavItem[] {
@@ -26,6 +27,8 @@ interface DpGroupCardsProps {
 
 export function DpGroupCards({ groupId, extras = [] }: DpGroupCardsProps) {
   const items = useDpGroupItems(groupId);
+  // Arrastar para cima abre o próximo menu; para baixo volta ao anterior.
+  useMenuSwipeVertical();
   const cards = [
     ...items.map((i) => ({
       label: i.label,
