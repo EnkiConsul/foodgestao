@@ -12,7 +12,7 @@ Ou seja: nenhum colaborador consegue enviar documentos pelo aplicativo hoje. Nã
 
 ## O que vou fazer
 
-1. **Liberar o envio para o próprio colaborador**, com limites: ele só pode gravar arquivos na pasta dele, dentro da empresa dele, e apenas enquanto estiver ativo. Continua sem poder ver, alterar ou apagar arquivos de outras pessoas, e o documento continua entrando como "pendente de aprovação" para o gestor revisar.
+1. **Liberar o envio de todos os documentos pendentes do cadastro dele** (CNH, RG, CPF, comprovantes, dependentes etc.), com limites: ele só pode gravar arquivos na pasta dele, dentro da empresa dele, e apenas enquanto estiver ativo. Continua sem poder ver, alterar ou apagar arquivos de outras pessoas, e todo documento enviado entra como "pendente de aprovação" para o gestor conferir se está correto, com opção de aprovar ou recusar com motivo.
 2. **Mensagem clara em caso de falha**: em vez do texto técnico, o colaborador verá o motivo em português (arquivo muito grande, formato não aceito, sem permissão, sem internet) com orientação do que fazer.
 3. **Registrar a falha na auditoria de erros**, com tela, ação, colaborador e detalhes técnicos, para que uma próxima ocorrência possa ser resolvida sem depender do relato.
 4. **Testar o fluxo ponta a ponta** entrando como colaborador: enviar uma imagem e um PDF, confirmar que o documento aparece para aprovação do gestor e que a pendência da CNH é baixada.
