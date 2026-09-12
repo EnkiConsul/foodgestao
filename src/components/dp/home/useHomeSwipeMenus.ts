@@ -34,8 +34,8 @@ function scrollerBloqueiaSwipe(scroller: HTMLElement | null, dx: number): boolea
  * Gesto de arrastar na tela de Início (mobile): esquerda abre o próximo menu
  * principal, direita volta ao anterior, na mesma ordem dos ícones. Sem laço
  * nas pontas. Não interfere nos gestos de borda (Hub/Mais), em rolagens
- * horizontais nem com diálogo aberto. Só atua quando o toque começa dentro
- * do container informado.
+ * horizontais nem com diálogo aberto. Ativo apenas enquanto a tela de Início
+ * está montada.
  */
 export function useHomeSwipeMenus() {
   const navigate = useNavigate();

@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { Bell, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
