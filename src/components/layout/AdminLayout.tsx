@@ -25,7 +25,7 @@ export function AdminLayout() {
             </Badge>
             <div className="flex-1" />
           </header>
-          <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6">
+          <main className="flex-1 p-4 md:p-6 pb-22 md:pb-6">
             <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
               <Outlet />
             </PullToRefresh>
