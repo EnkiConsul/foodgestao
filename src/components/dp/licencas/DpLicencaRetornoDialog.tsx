@@ -16,6 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { labelAfastamento } from "@/lib/dp/licencas";
+import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 
 export type LicencaRetornoAlvo = {
   solicitacaoId: string;
@@ -43,6 +45,7 @@ export function DpLicencaRetornoDialog({
   onResolved?: () => void;
 }) {
   const queryClient = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
   const [escolha, setEscolha] = useState<Escolha>("confirmar");
   const [data, setData] = useState("");
   const [observacao, setObservacao] = useState("");
@@ -96,7 +99,11 @@ export function DpLicencaRetornoDialog({
     },
     onSuccess: () => {
       toast.success(escolha === "prorrogar" ? "Licença prorrogada" : "Retorno confirmado");
-      void queryClient.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      void resolverPendencias(queryClient, {
+        companyId: selectedCompanyId,
+        // Prorrogar mantém a licença: só o retorno confirmado dá baixa do item.
+        match: escolha === "prorrogar" || !alvo ? undefined : porIds([`licenca-${alvo.solicitacaoId}`]),
+      });
       void queryClient.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
       void queryClient.invalidateQueries({ queryKey: ["dp_atestados"] });
       onOpenChange(false);

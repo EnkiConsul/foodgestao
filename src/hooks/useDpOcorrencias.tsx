@@ -16,6 +16,7 @@ import {
   type OcorrenciaTipo,
   type OcorrenciaTratativa,
 } from "@/lib/dp/ocorrencias";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export interface OcorrenciaCobertura {
   id: string;
@@ -402,7 +403,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
   const invalidateCoberturas = () => {
     invalidate();
     qc.invalidateQueries({ queryKey: ["dp_ocorrencia_coberturas"] });
-    qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    void resolverPendencias(qc, { companyId: selectedCompanyId });
   };
 
   const criarCobertura = useMutation({

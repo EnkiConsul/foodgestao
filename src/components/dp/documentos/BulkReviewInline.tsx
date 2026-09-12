@@ -33,6 +33,7 @@ import { DP_DOC_GRUPOS, docTipoLabel, assinaturaDocumento } from "@/lib/dp/docum
 import { extrairCpfValido, extrairNomePessoa, isCpfValido, pareceRazaoSocial } from "@/lib/dp/doc-pessoa";
 import { tipoCanonicoPorVinculo } from "@/lib/dp/documento-tipo-por-vinculo";
 import { useNormalizarTipoPorVinculo } from "./useNormalizarTipoPorVinculo";
+import { porDocumento, qualquer, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -469,8 +470,23 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       if (okc + rep > 0) {
         const companyId = (batchInfo.data as any)?.company_id;
         if (companyId) {
-          await supabase.functions.invoke("dp-refresh-pendencias", { body: { companyId } });
-          qc.invalidateQueries({ queryKey: ["dp_pendencias", companyId] });
+          // Baixa imediata das pendências das pessoas aprovadas: a lista do
+          // Início reflete a importação sem esperar a nova apuração.
+          const bInfo = batchInfo.data as any;
+          const aprovadas = (rows as any[])
+            .filter((r) => item_ids.includes(r.id) && r.matched_colaborador_id)
+            .map((r) =>
+              porDocumento({
+                docTipo: r.tipo_detectado ?? bInfo?.tipo ?? null,
+                colaboradorId: r.matched_colaborador_id,
+                competencia:
+                  (normalizeRefDate(r.detected_competencia) ?? bInfo?.referencia_data ?? "").slice(0, 7) || null,
+              }),
+            );
+          await resolverPendencias(qc, {
+            companyId,
+            match: aprovadas.length > 0 ? qualquer(...aprovadas) : undefined,
+          });
         }
       }
       if (okc + rep > 0 && loteConcluido(rows as any[], item_ids, ignorados)) onConcluido?.();

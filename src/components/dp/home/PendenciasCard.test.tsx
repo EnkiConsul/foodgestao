@@ -5,6 +5,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { PendenciasCard, useStablePendencias } from "@/components/dp/home/PendenciasCard";
 import type { Pendencia } from "@/hooks/useDpPendencias";
 import { lerPendenciasSnapshot, salvarPendenciasSnapshot } from "@/lib/dp/pendencias-cache";
+import { QueryClient } from "@tanstack/react-query";
+import { baixarPendencias, porIds } from "@/lib/dp/pendencias-resolver";
 
 // ---- Mocks -----------------------------------------------------------------
 vi.mock("@/hooks/useCompanyContext", () => ({
@@ -81,6 +83,46 @@ describe("useStablePendencias", () => {
     expect(result.current.ready).toBe(true);
     expect(result.current.data.map((p) => p.id)).toEqual(["antiga"]);
     expect(result.current.lastCalculatedAt).toBe("2026-09-10T03:00:00Z");
+  });
+
+  it("dá baixa na hora do item resolvido, mesmo antes da nova apuração", () => {
+    const { result } = renderHook(() =>
+      useStablePendencias({
+        companyId: "empresa-a",
+        data: [antiga, atualizada] as Pendencia[],
+        dataUpdatedAt: 100,
+        lastCalculatedAt: "2026-09-11T03:00:00Z",
+        isLoading: false,
+        isFetching: false,
+      }),
+    );
+
+    expect(result.current.data.map((p) => p.id)).toEqual(["antiga", "atualizada"]);
+
+    act(() => {
+      baixarPendencias(new QueryClient(), "empresa-a", porIds(["antiga"]));
+    });
+
+    expect(result.current.data.map((p) => p.id)).toEqual(["atualizada"]);
+  });
+
+  it("ignora a baixa de outra empresa", () => {
+    const { result } = renderHook(() =>
+      useStablePendencias({
+        companyId: "empresa-a",
+        data: [antiga] as Pendencia[],
+        dataUpdatedAt: 100,
+        lastCalculatedAt: "2026-09-11T03:00:00Z",
+        isLoading: false,
+        isFetching: false,
+      }),
+    );
+
+    act(() => {
+      baixarPendencias(new QueryClient(), "empresa-b", porIds(["antiga"]));
+    });
+
+    expect(result.current.data.map((p) => p.id)).toEqual(["antiga"]);
   });
 
   it("grava o retrato quando a apuração termina e ignora cache corrompido", () => {

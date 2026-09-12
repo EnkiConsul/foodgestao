@@ -12,6 +12,7 @@ import {
   type DpDocumentoRequisito,
   type ItemChecklist,
 } from "@/lib/dp/documentos-requisitos";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 type Opcoes = {
   /** true quando o próprio colaborador está enviando (portal). */
@@ -107,8 +108,7 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ["dp_colaborador_documentos"] });
     qc.invalidateQueries({ queryKey: ["dp_documentos"] });
-    qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
-    qc.invalidateQueries({ queryKey: ["dp_pendencias_colaborador"] });
+    void resolverPendencias(qc, { companyId: base.data?.colaborador?.company_id ?? null });
   };
 
   const arquivoDoAnexo = (anexo?: DpColaboradorDocumento | null) =>

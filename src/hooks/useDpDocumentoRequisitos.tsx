@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { DpDocumentoRequisito } from "@/lib/dp/documentos-requisitos";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 type RequisitoUpdate = Partial<
   Pick<
@@ -33,7 +34,7 @@ export function useDpDocumentoRequisitos() {
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ["dp_documento_requisitos"] });
     qc.invalidateQueries({ queryKey: ["dp_colaborador_documentos"] });
-    qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    void resolverPendencias(qc, { companyId: selectedCompanyId });
   };
 
   const list = useQuery({

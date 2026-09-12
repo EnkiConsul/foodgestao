@@ -7,6 +7,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export type FeriasDocTipo = "aviso_ferias" | "recibo_ferias";
 
@@ -57,7 +58,7 @@ export function useDpFeriasDocumentos() {
     qc.invalidateQueries({ queryKey: ["dp_ferias_gozos"] });
     qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     qc.invalidateQueries({ queryKey: ["dp_ferias_minhas"] });
-    qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    void resolverPendencias(qc, { companyId: selectedCompanyId });
   };
 
   const listQ = useQuery({

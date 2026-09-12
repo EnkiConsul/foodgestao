@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { extrairCpfValido, extrairNomePessoa, isCpfValido, pareceRazaoSocial } from "@/lib/dp/doc-pessoa";
 import { tipoCanonicoPorVinculo } from "@/lib/dp/documento-tipo-por-vinculo";
 import { useNormalizarTipoPorVinculo } from "./useNormalizarTipoPorVinculo";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 // Setup pdfjs worker once
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -289,8 +290,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       if (okc + rep > 0) {
         const companyId = (batchInfo.data as any)?.company_id;
         if (companyId) {
-          await supabase.functions.invoke("dp-refresh-pendencias", { body: { companyId } });
-          qc.invalidateQueries({ queryKey: ["dp_pendencias", companyId] });
+          await resolverPendencias(qc, { companyId });
         }
       }
     } catch (e: any) {
