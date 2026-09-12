@@ -109,5 +109,5 @@ export function useHomeSwipeMenus() {
       container.removeEventListener("touchstart", onStart);
       container.removeEventListener("touchend", onEnd);
     };
-  }, [containerRef, navigate]);
+  }, [navigate]);
 }
