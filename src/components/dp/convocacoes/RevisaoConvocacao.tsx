@@ -361,10 +361,19 @@ export function RevisaoConvocacao(props: Props) {
                   )}
                 </div>
                 <Textarea
+                  ref={(el) => {
+                    camposJustificativa.current[dia.id] = el;
+                  }}
                   rows={2}
                   value={justificativas[dia.id] ?? ""}
                   onChange={(e) => onJustificativaChange(dia.id, e.target.value)}
                   placeholder="Ex.: falta de última hora na equipe"
+                  className={cn(
+                    "scroll-mt-4",
+                    focoPendenteId === dia.id &&
+                      !justificativas[dia.id]?.trim() &&
+                      "border-destructive ring-2 ring-destructive",
+                  )}
                 />
               </div>
             ))}
