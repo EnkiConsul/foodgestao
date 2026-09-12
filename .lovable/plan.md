@@ -1,6 +1,7 @@
-# Cabeçalho mobile enxuto, cards de subtelas e favoritos só em telas de uso
+# Cabeçalho mobile enxuto, cards de subtelas, favoritos e alinhamento do rodapé
 
-Três ajustes na experiência mobile do Pessoas 360°.
+Quatro ajustes na experiência mobile do Pessoas 360°.
+
 
 ## 1. Cabeçalho mobile sem informações encavaladas
 
