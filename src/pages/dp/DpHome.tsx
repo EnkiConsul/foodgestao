@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { Bell, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -6,6 +7,7 @@ import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
 import { KpiCards } from "@/components/dp/home/KpiCards";
 import { MenusPrincipaisCards } from "@/components/dp/home/MenusPrincipaisCards";
+import { useHomeSwipeMenus } from "@/components/dp/home/useHomeSwipeMenus";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
