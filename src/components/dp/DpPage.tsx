@@ -68,7 +68,7 @@ function HeaderActions({
 }
 
 export function DpPageHeader({
-  icon: Icon, title, description, actions, actionItems, actionsExtra, className,
+  icon: Icon, title, description, actions, actionItems, actionsExtra, className, actionsClassName,
 }: DpPageHeaderProps) {
   const embedded = useDpEmbedded();
   const temAcoes = Boolean(actions || (actionItems && actionItems.length > 0));
