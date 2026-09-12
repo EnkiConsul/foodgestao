@@ -251,9 +251,23 @@ export function montarProgramacao(opts: MontarProgramacaoOpts): ProgramacaoDados
     });
   }
 
+  // Cabeçalho: com unidade filtrada usa a identidade daquela unidade; sem filtro
+  // usa a razão social da empresa (nunca o nome de uma unidade qualquer).
+  const unidades = opts.unidades ?? [];
+  const unidadeFiltrada = opts.unidadeId
+    ? unidades.find((u) => u.id === opts.unidadeId) ?? null
+    : null;
+  const unidadesNoRelatorio = new Set(
+    porNome
+      .filter((c) => linhas.some((l) => l.colaboradorId === c.id))
+      .map((c) => c.unidade_id)
+      .filter((id): id is string => !!id),
+  );
+
   return {
-    razaoSocial,
-    cnpj,
+    razaoSocial: unidadeFiltrada ? unidadeFiltrada.nome : razaoSocial,
+    cnpj: unidadeFiltrada ? unidadeFiltrada.cnpj : cnpj,
+    consolidado: !unidadeFiltrada && unidadesNoRelatorio.size > 1,
     dataBase,
     emitidoEm,
     linhas,
