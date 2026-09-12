@@ -312,7 +312,10 @@ export function RevisaoConvocacao(props: Props) {
       )}
 
       {diasEmCimaDaHora.length > 0 && (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+        <div
+          ref={excecaoRef}
+          className="scroll-mt-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3"
+        >
           <h3 className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-300">
             <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             Convocação em cima da hora
