@@ -132,10 +132,13 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
       (el) => el.hasAttribute("disabled") || el.dataset.disabled !== undefined || el.getAttribute("aria-disabled") === "true",
     );
     const next = proximaAbaIndex(disabled, activeIndex, dx < 0 ? "esquerda" : "direita");
-    dbg?.push({ abas: triggers.length, activeIndex, next, alvo: triggers[next]?.textContent });
     if (next < 0) return;
     onTrocar?.();
-    triggers[next].click();
+    // Radix ativa a aba no mousedown (botão esquerdo), não no click.
+    const alvo = triggers[next];
+    alvo.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 }));
+    alvo.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, button: 0 }));
+    alvo.click();
   };
 
   window.addEventListener("touchstart", onStart, { passive: true });
