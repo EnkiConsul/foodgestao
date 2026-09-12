@@ -52,8 +52,8 @@ export function useHomeSwipeMenus() {
   destinosRef.current = destinos;
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container || typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
+    const container: HTMLElement | Window = window;
 
     let startX = 0;
     let startY = 0;
