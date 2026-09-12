@@ -73,6 +73,7 @@ let instalado = false;
 export function instalarSwipeAbas(onTrocar?: () => void) {
   if (instalado || typeof window === "undefined") return;
   instalado = true;
+  (window as unknown as { __tabSwipeDebug?: unknown[] }).__tabSwipeDebug = [];
 
   let startX = 0;
   let startY = 0;
@@ -109,6 +110,10 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
     const currentScroller = scroller;
     list = null;
     scroller = null;
+    (window as unknown as { __tabSwipeDebug?: unknown[] }).__tabSwipeDebug?.push({
+      tinhaLista: !!current,
+      dx: e.changedTouches[0] ? e.changedTouches[0].clientX - startX : null,
+    });
     if (!current) return;
     const t = e.changedTouches[0];
     if (!t) return;
