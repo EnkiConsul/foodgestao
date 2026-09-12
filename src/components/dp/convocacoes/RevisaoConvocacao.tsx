@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { AlertTriangle, CalendarDays, Clock, Users } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, CalendarDays, ChevronDown, Clock, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
