@@ -13,6 +13,8 @@ import {
   type ItemChecklist,
 } from "@/lib/dp/documentos-requisitos";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { mensagemEnvioDocumento } from "@/lib/dp/documento-upload-erro";
+import { reportError } from "@/lib/errorLog";
 
 type Opcoes = {
   /** true quando o próprio colaborador está enviando (portal). */
