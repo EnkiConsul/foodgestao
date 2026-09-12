@@ -1,5 +1,6 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { permitePullToRefresh } from "@/lib/nav/pullToRefreshRoutes";
 import { EdgeGestures } from "@/components/mobile/EdgeGestures";
 import { PullToRefresh } from "@/components/mobile/PullToRefresh";
 import { SidebarProvider } from "@/components/ui/sidebar";

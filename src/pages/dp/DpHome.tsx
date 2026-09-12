@@ -6,7 +6,7 @@ import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
 import { KpiCards } from "@/components/dp/home/KpiCards";
 import { MenusPrincipaisCards } from "@/components/dp/home/MenusPrincipaisCards";
-import { useHomeSwipeMenus } from "@/components/dp/home/useHomeSwipeMenus";
+import { useMenuSwipeVertical } from "@/components/dp/nav/useMenuSwipeVertical";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 export default function DpHome() {
   const isMobile = useIsMobile();
-  useHomeSwipeMenus();
+  useMenuSwipeVertical();
 
   return (
     <DpPage>
