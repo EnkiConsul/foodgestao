@@ -87,3 +87,8 @@
 - [x] Usar integralmente o visual tablet no celular deitado
 - [x] Manter o visual mobile e os gestos atuais no celular em pé
 - [x] Validar celular em pé, celular deitado e tablet
+
+## Rotação do atalho instalado no Android (12/09/2026)
+- [ ] Liberar a orientação ao abrir pelo atalho instalado
+- [ ] Confirmar retrato, paisagem com visual tablet e retorno ao retrato
+- [ ] Orientar reinstalação única para atalhos que conservaram a configuração antiga
