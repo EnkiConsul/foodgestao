@@ -58,7 +58,7 @@ export function AniversariantesCard({ variant = "admin" }: { variant?: "admin" |
               <span className="opacity-70">{a.diaMes.slice(3)}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{toUpperCadastro(a.nome)}</p>
+              <p className="text-sm font-medium break-words leading-snug">{toUpperCadastro(a.nome)}</p>
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 <Badge
                   variant="outline"

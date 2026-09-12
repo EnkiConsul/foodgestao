@@ -19,17 +19,17 @@ export function MenusPrincipaisCards() {
   }, [hidden, layout]);
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-4 gap-2">
       {grupos.map((g) => (
         <Link
           key={g.id}
           to={g.hubTo ?? g.items[0]?.to ?? "/dp"}
-          className="flex items-center gap-3 rounded-2xl border-2 border-[hsl(var(--dp-border))] bg-card p-4 active:scale-[0.98] transition-transform"
+          className="flex flex-col items-center gap-1.5 rounded-xl p-2 active:scale-[0.96] transition-transform"
         >
-          <span className="h-9 w-9 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+          <span className="h-10 w-10 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center">
             <g.icon className="h-5 w-5 text-primary" />
           </span>
-          <span className="text-sm font-semibold truncate">{g.label}</span>
+          <span className="text-[11px] font-medium text-center leading-tight line-clamp-2">{g.label}</span>
         </Link>
       ))}
     </div>
