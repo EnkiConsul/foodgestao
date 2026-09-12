@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 import { Palmtree, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DpPage, DpPageHeader, DpEmbeddedProvider } from "@/components/dp/DpPage";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { FeriasRegrasSection } from "@/components/dp/ferias/FeriasRegrasSection";
@@ -18,18 +19,31 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 
 const PlanejamentoPanel = lazy(() => import("./DpFerias"));
 
-const ABAS = [
-  "planejamento",
-  "programacao",
-  "solicitacoes",
-  "programadas",
-  "em-ferias",
-  "calendario",
-  "contabilidade",
-  "historico",
-  "regras",
-] as const;
+const ABAS = ["ferias", "status", "calendario", "contabilidade", "regras"] as const;
 type Aba = (typeof ABAS)[number];
+
+const VISOES = ["analitica", "sintetica"] as const;
+type Visao = (typeof VISOES)[number];
+
+const STATUS = ["solicitadas", "programadas", "em-ferias", "historico"] as const;
+type StatusVisao = (typeof STATUS)[number];
+
+/** Links antigos continuam funcionando: cada aba antiga aponta para a nova estrutura. */
+const LEGADO: Record<string, { aba: Aba; visao?: Visao; status?: StatusVisao }> = {
+  planejamento: { aba: "ferias", visao: "analitica" },
+  programacao: { aba: "ferias", visao: "sintetica" },
+  solicitacoes: { aba: "status", status: "solicitadas" },
+  programadas: { aba: "status", status: "programadas" },
+  "em-ferias": { aba: "status", status: "em-ferias" },
+  historico: { aba: "status", status: "historico" },
+};
+
+const STATUS_LABEL: Record<StatusVisao, string> = {
+  solicitadas: "Solicitadas",
+  programadas: "Programadas",
+  "em-ferias": "Em férias",
+  historico: "Histórico",
+};
 
 function PanelFallback() {
   return (
@@ -41,8 +55,21 @@ function PanelFallback() {
 
 export default function DpFeriasHub() {
   const [params, setParams] = useSearchParams();
-  const raw = params.get("aba");
-  const aba: Aba = (ABAS as readonly string[]).includes(raw ?? "") ? (raw as Aba) : "planejamento";
+  const raw = params.get("aba") ?? "";
+  const legado = LEGADO[raw];
+  const aba: Aba = (ABAS as readonly string[]).includes(raw)
+    ? (raw as Aba)
+    : (legado?.aba ?? "ferias");
+
+  const rawVisao = params.get("visao") ?? "";
+  const visao: Visao = (VISOES as readonly string[]).includes(rawVisao)
+    ? (rawVisao as Visao)
+    : (legado?.visao ?? "analitica");
+
+  const rawStatus = params.get("status") ?? "";
+  const statusVisao: StatusVisao = (STATUS as readonly string[]).includes(rawStatus)
+    ? (rawStatus as StatusVisao)
+    : (legado?.status ?? "solicitadas");
 
   const { periodos, gozos } = useDpFerias("todos");
   const { data: colaboradores = [] } = useDpColaboradores();
@@ -56,10 +83,10 @@ export default function DpFeriasHub() {
     return map;
   }, [colaboradores]);
 
-  const setAba = (value: string) => {
+  const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
-    next.set("aba", value);
-    next.delete("periodo");
+    next.set(key, value);
+    if (key === "aba") next.delete("periodo");
     setParams(next, { replace: true });
   };
 
@@ -79,60 +106,95 @@ export default function DpFeriasHub() {
         descricaoColaborador={(id) => detalhePorColaborador.get(id) ?? null}
       />
 
-      <Tabs value={aba} onValueChange={setAba} className="space-y-4">
-        <DpTabsBar>
-          <TabsTrigger value="planejamento">Planejamento</TabsTrigger>
-          <TabsTrigger value="programacao">Programação</TabsTrigger>
-          <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
-          <TabsTrigger value="programadas">Programadas</TabsTrigger>
-          <TabsTrigger value="em-ferias">Em férias</TabsTrigger>
+      <Tabs value={aba} onValueChange={(v) => setParam("aba", v)} className="space-y-4">
+        <DpTabsBar
+          sections={ABAS.map((a) => ({
+            value: a,
+            label:
+              a === "ferias" ? "Férias"
+              : a === "status" ? "Status"
+              : a === "calendario" ? "Calendário"
+              : a === "contabilidade" ? "Contabilidade"
+              : "Regras",
+          }))}
+          value={aba}
+          onValueChange={(v) => setParam("aba", v)}
+          sectionTitle="Seções de Férias"
+        >
+          <TabsTrigger value="ferias">Férias</TabsTrigger>
+          <TabsTrigger value="status">Status</TabsTrigger>
           <TabsTrigger value="calendario">Calendário</TabsTrigger>
           <TabsTrigger value="contabilidade">Contabilidade</TabsTrigger>
-          <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="regras">Regras</TabsTrigger>
         </DpTabsBar>
 
-        <TabsContent value="planejamento" className="m-0">
-          {aba === "planejamento" && (
+        <TabsContent value="ferias" className="m-0 space-y-4">
+          {aba === "ferias" && (
             <DpEmbeddedProvider>
-              <Suspense fallback={<PanelFallback />}>
-                <PlanejamentoPanel />
-              </Suspense>
+              <div className="flex flex-wrap items-center gap-2">
+                <ToggleGroup
+                  type="single"
+                  value={visao}
+                  onValueChange={(v) => v && setParam("visao", v)}
+                  className="rounded-full border bg-muted/40 p-1"
+                >
+                  <ToggleGroupItem value="analitica" className="rounded-full px-4 text-xs">
+                    Analítica
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="sintetica" className="rounded-full px-4 text-xs">
+                    Sintética
+                  </ToggleGroupItem>
+                </ToggleGroup>
+                <span className="text-xs text-muted-foreground">
+                  {visao === "analitica"
+                    ? "Cartões por período aquisitivo, com saldo e programação."
+                    : "Relatório no formato da contabilidade, para imprimir ou exportar."}
+                </span>
+              </div>
+
+              {visao === "analitica" ? (
+                <Suspense fallback={<PanelFallback />}>
+                  <PlanejamentoPanel />
+                </Suspense>
+              ) : (
+                <FeriasProgramacaoPanel />
+              )}
             </DpEmbeddedProvider>
           )}
         </TabsContent>
 
-        <TabsContent value="programacao" className="m-0">
-          {aba === "programacao" && (
+        <TabsContent value="status" className="m-0 space-y-4">
+          {aba === "status" && (
             <DpEmbeddedProvider>
-              <FeriasProgramacaoPanel />
-            </DpEmbeddedProvider>
-          )}
-        </TabsContent>
+              <ToggleGroup
+                type="single"
+                value={statusVisao}
+                onValueChange={(v) => v && setParam("status", v)}
+                className="flex-wrap justify-start rounded-full border bg-muted/40 p-1"
+              >
+                {STATUS.map((s) => (
+                  <ToggleGroupItem key={s} value={s} className="rounded-full px-4 text-xs">
+                    {STATUS_LABEL[s]}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
 
-        <TabsContent value="solicitacoes" className="m-0">
-          {aba === "solicitacoes" && (
-            <DpEmbeddedProvider>
-              <FeriasSolicitacoesPanel />
-            </DpEmbeddedProvider>
-          )}
-        </TabsContent>
-
-        <TabsContent value="programadas" className="m-0">
-          {aba === "programadas" && (
-            <DpEmbeddedProvider>
-              <FeriasGozosPanel
-                status={["planejado", "aprovado"]}
-                vazio="Nenhuma férias programada."
-              />
-            </DpEmbeddedProvider>
-          )}
-        </TabsContent>
-
-        <TabsContent value="em-ferias" className="m-0">
-          {aba === "em-ferias" && (
-            <DpEmbeddedProvider>
-              <FeriasGozosPanel status={["em_gozo"]} vazio="Ninguém em férias hoje." />
+              {statusVisao === "solicitadas" && <FeriasSolicitacoesPanel />}
+              {statusVisao === "programadas" && (
+                <FeriasGozosPanel
+                  status={["planejado", "aprovado"]}
+                  vazio="Nenhuma férias programada."
+                />
+              )}
+              {statusVisao === "em-ferias" && (
+                <FeriasGozosPanel status={["em_gozo"]} vazio="Ninguém em férias hoje." />
+              )}
+              {statusVisao === "historico" && (
+                <FeriasGozosPanel
+                  status={["concluido", "cancelado"]}
+                  vazio="Nenhum período de férias concluído ou cancelado."
+                />
+              )}
             </DpEmbeddedProvider>
           )}
         </TabsContent>
@@ -149,17 +211,6 @@ export default function DpFeriasHub() {
           {aba === "contabilidade" && (
             <DpEmbeddedProvider>
               <FeriasContabilidadePanel />
-            </DpEmbeddedProvider>
-          )}
-        </TabsContent>
-
-        <TabsContent value="historico" className="m-0">
-          {aba === "historico" && (
-            <DpEmbeddedProvider>
-              <FeriasGozosPanel
-                status={["concluido", "cancelado"]}
-                vazio="Nenhum período de férias concluído ou cancelado."
-              />
             </DpEmbeddedProvider>
           )}
         </TabsContent>

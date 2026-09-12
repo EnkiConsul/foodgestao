@@ -57,6 +57,11 @@ const GOZO_LABEL: Record<string, string> = {
 
 const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
+/** Período sem saldo a gozar: já foi integralmente usufruído/vendido. */
+function totalmenteGozado(p: FeriasPeriodo) {
+  return (p.dias_saldo ?? 0) <= 0 && (p.status === "concluido" || (p.dias_gozados ?? 0) > 0);
+}
+
 /** Planejamento: períodos aquisitivos, faltas informadas e agendamento das férias. */
 export default function DpFerias() {
   const embedded = useDpEmbedded();
@@ -70,6 +75,7 @@ export default function DpFerias() {
   const [faltasPeriodo, setFaltasPeriodo] = useState<FeriasPeriodo | null>(null);
   const [saldoPeriodo, setSaldoPeriodo] = useState<FeriasPeriodo | null>(null);
   const [incluirDesligados, setIncluirDesligados] = useState(false);
+  const [incluirGozados, setIncluirGozados] = useState(false);
 
 
   const {
@@ -90,6 +96,8 @@ export default function DpFerias() {
     let base = statusFilter === "todos" ? periodos : periodos.filter((p) => p.status === statusFilter);
     // Quem foi desligado não entra na programação: só aparece se o gestor pedir.
     if (!incluirDesligados) base = base.filter((p) => !p.desligado);
+    // A visão analítica é para programar: períodos sem saldo a gozar ficam ocultos.
+    if (!incluirGozados) base = base.filter((p) => !totalmenteGozado(p));
     if (soRisco) {
       base = base
         .filter((p) => riscoPorColab.get(p.colaborador_id)?.emRisco)
@@ -97,11 +105,19 @@ export default function DpFerias() {
         .sort((a, b) => a.limite_concessivo.localeCompare(b.limite_concessivo));
     }
     return base;
-  }, [periodos, statusFilter, soRisco, riscoPorColab, incluirDesligados]);
+  }, [periodos, statusFilter, soRisco, riscoPorColab, incluirDesligados, incluirGozados]);
 
   const desligadosOcultos = useMemo(
     () => (incluirDesligados ? 0 : periodos.filter((p) => p.desligado).length),
     [periodos, incluirDesligados],
+  );
+
+  const gozadosOcultos = useMemo(
+    () =>
+      incluirGozados
+        ? 0
+        : periodos.filter((p) => totalmenteGozado(p) && (incluirDesligados || !p.desligado)).length,
+    [periodos, incluirGozados, incluirDesligados],
   );
 
 
@@ -226,6 +242,16 @@ export default function DpFerias() {
             />
             Incluir desligados
             {desligadosOcultos > 0 && ` (${desligadosOcultos} período(s) oculto(s))`}
+          </label>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground sm:col-span-2">
+            <input
+              type="checkbox"
+              className="size-4 accent-[hsl(var(--primary))]"
+              checked={incluirGozados}
+              onChange={(e) => setIncluirGozados(e.target.checked)}
+            />
+            Incluir períodos já gozados
+            {gozadosOcultos > 0 && ` (${gozadosOcultos} período(s) oculto(s))`}
           </label>
         </div>
       </DpFilterCard>
