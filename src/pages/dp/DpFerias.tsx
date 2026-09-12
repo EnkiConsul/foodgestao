@@ -70,6 +70,7 @@ export default function DpFerias() {
   const [faltasPeriodo, setFaltasPeriodo] = useState<FeriasPeriodo | null>(null);
   const [saldoPeriodo, setSaldoPeriodo] = useState<FeriasPeriodo | null>(null);
   const [incluirDesligados, setIncluirDesligados] = useState(false);
+  const [incluirGozados, setIncluirGozados] = useState(false);
 
 
   const {
