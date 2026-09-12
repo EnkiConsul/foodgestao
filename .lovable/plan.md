@@ -26,8 +26,10 @@ Ainda **não confirmei** por que o botão "Relatar problema" ficou preso: a susp
 - Clicar em "Relatar problema" abre o formulário sempre visível, inclusive com outra janela aberta.
 - Se o formulário não puder abrir, o aviso é fechado em vez de ficar preso.
 
-**4. Limpeza do rascunho antigo**
-- Na lista de convocações, destacar rascunhos antigos com dias já passados e permitir descartá-los, para não bloquearem novos planejamentos.
+**4. Botão de excluir no rascunho (pedido novo)**
+- Todo rascunho de convocação passa a ter botão **Excluir**, com confirmação antes de remover.
+- A exclusão libera os dias do rascunho para novos planejamentos (resolve o bloqueio de hoje).
+- Rascunhos antigos com dias já passados ficam destacados na lista, com sugestão de excluir.
 
 ## Detalhes técnicos
 
