@@ -33,7 +33,7 @@ export function NavigationCard({ title, description, to, icon: Icon, count, clas
                 {count !== undefined && <span className="text-lg sm:text-2xl font-bold tabular-nums">{count}</span>}
               </div>
               {description && (
-                <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1 sm:line-clamp-2">{description}</p>
+                <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 min-h-[2.5em]">{description}</p>
               )}
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors ml-1" />
