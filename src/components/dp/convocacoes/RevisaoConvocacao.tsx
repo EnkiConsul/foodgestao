@@ -103,7 +103,7 @@ export function RevisaoConvocacao(props: Props) {
     unidadeId, unidadeNome, competencia, titulo, observacao, dias,
     destinatarios, overrides, horarioGeral, jornadaDe, prazoRespostaDias, justificativas,
     antecedenciaMinima, exigeJustificativa, onJustificativaChange, onRepetirJustificativa, ciente, onCienteChange,
-    justificadaEm,
+    justificadaEm, focoPendenteId,
     preAvaliacao, preAvaliacaoCarregando, onUsarHorarioParaTodos, onAjustarNecessidade,
 
 
