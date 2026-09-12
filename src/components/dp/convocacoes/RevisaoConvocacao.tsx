@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { AlertTriangle, CalendarDays, Clock, Users } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, CalendarDays, ChevronDown, Clock, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,11 @@ interface Props {
   onCienteChange: (v: boolean) => void;
   /** Data em que a exceção já foi registrada neste rascunho, se houver. */
   justificadaEm?: string | null;
+  /**
+   * Campo pendente que deve receber foco após uma tentativa de publicar
+   * bloqueada: id da ocorrência sem justificativa ou `"ciente"`.
+   */
+  focoPendenteId?: string | null;
 
   /** Verificação prévia feita pelo banco (mesma regra da publicação). */
   preAvaliacao: PreAvaliacaoLinha[];
@@ -98,7 +103,7 @@ export function RevisaoConvocacao(props: Props) {
     unidadeId, unidadeNome, competencia, titulo, observacao, dias,
     destinatarios, overrides, horarioGeral, jornadaDe, prazoRespostaDias, justificativas,
     antecedenciaMinima, exigeJustificativa, onJustificativaChange, onRepetirJustificativa, ciente, onCienteChange,
-    justificadaEm,
+    justificadaEm, focoPendenteId,
     preAvaliacao, preAvaliacaoCarregando, onUsarHorarioParaTodos, onAjustarNecessidade,
 
 
@@ -198,6 +203,80 @@ export function RevisaoConvocacao(props: Props) {
 
   const diasEmCimaDaHora = useMemo(() => ordenados.filter((d) => d.abaixoDaAntecedencia), [ordenados]);
 
+  // -------------------------------------------------- dias que pedem atenção
+  /** `cargoId|data` → o dia tem alguma observação que o gestor precisa ver. */
+  const atencaoPorChave = useMemo(() => {
+    const m = new Map<string, boolean>();
+    for (const o of ofertas) {
+      const chave = `${o.dia.cargo_id}|${o.dia.data}`;
+      const linhasDia = preAvaliacao.filter(
+        (l) => l.data === o.dia.data && (l.cargo_id ?? "") === o.dia.cargo_id,
+      );
+      const ninguemApto =
+        !preAvaliacaoCarregando && linhasDia.length > 0 && !linhasDia.some((l) => l.apto);
+      m.set(chave, o.dia.abaixoDaAntecedencia || o.semHorario > 0 || ninguemApto);
+    }
+    return m;
+  }, [ofertas, preAvaliacao, preAvaliacaoCarregando]);
+
+  const totalAtencao = useMemo(
+    () => [...atencaoPorChave.values()].filter(Boolean).length,
+    [atencaoPorChave],
+  );
+  const totalTranquilos = ofertas.length - totalAtencao;
+
+  const [abertos, setAbertos] = useState<Record<string, boolean>>({});
+  const assinaturaAtencao = useMemo(
+    () =>
+      [...atencaoPorChave.entries()]
+        .map(([k, v]) => `${k}:${v ? 1 : 0}`)
+        .join(","),
+    [atencaoPorChave],
+  );
+
+  // Sem nenhum alerta, tudo aberto; com alertas, só os dias com observação.
+  useEffect(() => {
+    setAbertos(
+      Object.fromEntries(
+        [...atencaoPorChave.entries()].map(([k, v]) => [k, totalAtencao === 0 ? true : v]),
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assinaturaAtencao]);
+
+  const definirTodos = (valor: boolean) =>
+    setAbertos(Object.fromEntries([...atencaoPorChave.keys()].map((k) => [k, valor])));
+
+  // -------------------------------------------------- rolagem para a justificativa
+  const excecaoRef = useRef<HTMLDivElement | null>(null);
+  const cienteRef = useRef<HTMLLabelElement | null>(null);
+  const camposJustificativa = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  const jaRolou = useRef(false);
+
+  useEffect(() => {
+    if (jaRolou.current || diasEmCimaDaHora.length === 0) return;
+    jaRolou.current = true;
+    const t = window.setTimeout(() => {
+      excecaoRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      if (window.matchMedia("(min-width: 768px)").matches) {
+        const alvo = diasEmCimaDaHora.find((d) => !justificativas[d.id]?.trim());
+        if (alvo) camposJustificativa.current[alvo.id]?.focus();
+      }
+    }, 120);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diasEmCimaDaHora.length]);
+
+  useEffect(() => {
+    if (!focoPendenteId) return;
+    const alvo =
+      focoPendenteId === "ciente"
+        ? cienteRef.current
+        : camposJustificativa.current[focoPendenteId] ?? null;
+    alvo?.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (focoPendenteId !== "ciente") camposJustificativa.current[focoPendenteId]?.focus();
+  }, [focoPendenteId]);
+
   return (
     <div className="space-y-4">
       {/* -------------------------------------------------- resumo */}
@@ -233,7 +312,10 @@ export function RevisaoConvocacao(props: Props) {
       )}
 
       {diasEmCimaDaHora.length > 0 && (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+        <div
+          ref={excecaoRef}
+          className="scroll-mt-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3"
+        >
           <h3 className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-300">
             <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             Convocação em cima da hora
@@ -255,7 +337,13 @@ export function RevisaoConvocacao(props: Props) {
               {new Date(justificadaEm).toLocaleDateString("pt-BR")} — você pode manter ou editar.
             </p>
           )}
-          <label className="mt-2 flex items-start gap-2 text-xs font-medium">
+          <label
+            ref={cienteRef}
+            className={cn(
+              "mt-2 flex items-start gap-2 rounded-md p-1 text-xs font-medium",
+              focoPendenteId === "ciente" && !ciente && "ring-2 ring-destructive",
+            )}
+          >
             <Checkbox checked={ciente} onCheckedChange={(v) => onCienteChange(v === true)} />
             <span>Estou ciente e quero publicar mesmo assim</span>
           </label>
@@ -273,10 +361,19 @@ export function RevisaoConvocacao(props: Props) {
                   )}
                 </div>
                 <Textarea
+                  ref={(el) => {
+                    camposJustificativa.current[dia.id] = el;
+                  }}
                   rows={2}
                   value={justificativas[dia.id] ?? ""}
                   onChange={(e) => onJustificativaChange(dia.id, e.target.value)}
                   placeholder="Ex.: falta de última hora na equipe"
+                  className={cn(
+                    "scroll-mt-4",
+                    focoPendenteId === dia.id &&
+                      !justificativas[dia.id]?.trim() &&
+                      "border-destructive ring-2 ring-destructive",
+                  )}
                 />
               </div>
             ))}
@@ -287,14 +384,55 @@ export function RevisaoConvocacao(props: Props) {
       {/* -------------------------------------------------- como cada pessoa recebe */}
 
       <div className="space-y-2">
-        <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-          <Users className="h-4 w-4 text-primary" aria-hidden="true" />
-          Como o colaborador vai receber
-        </h3>
-        {ofertas.map((o) => (
-          <div key={`${o.dia.cargo_id}|${o.dia.data}`} className="rounded-lg border border-border p-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span className="font-medium capitalize">{rotuloData(o.dia.data)} · {o.dia.cargo_nome}</span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+            <Users className="h-4 w-4 text-primary" aria-hidden="true" />
+            Como o colaborador vai receber
+          </h3>
+          {ofertas.length > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">
+                {totalAtencao > 0
+                  ? `${totalAtencao} dia(s) precisam de atenção · ${totalTranquilos} sem observação`
+                  : `${ofertas.length} dia(s) sem observação`}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 text-[11px]"
+                onClick={() => definirTodos(!Object.values(abertos).every(Boolean))}
+              >
+                {Object.values(abertos).every(Boolean) ? "Recolher todos" : "Abrir todos"}
+              </Button>
+            </div>
+          )}
+        </div>
+        {ofertas.map((o) => {
+          const chaveDia = `${o.dia.cargo_id}|${o.dia.data}`;
+          const aberto = abertos[chaveDia] ?? true;
+          const precisaAtencao = atencaoPorChave.get(chaveDia) ?? false;
+          return (
+          <div
+            key={chaveDia}
+            className={cn(
+              "rounded-lg border p-2.5",
+              precisaAtencao ? "border-amber-500/40 bg-amber-500/5" : "border-border",
+            )}
+          >
+            <button
+              type="button"
+              aria-expanded={aberto}
+              onClick={() => setAbertos((a) => ({ ...a, [chaveDia]: !aberto }))}
+              className="flex w-full flex-wrap items-center justify-between gap-2 text-left text-xs"
+            >
+              <span className="flex items-center gap-1.5 font-medium capitalize">
+                <ChevronDown
+                  className={cn("h-3.5 w-3.5 shrink-0 transition-transform", !aberto && "-rotate-90")}
+                  aria-hidden="true"
+                />
+                {rotuloData(o.dia.data)} · {o.dia.cargo_nome}
+              </span>
               <span className="flex flex-wrap items-center gap-1.5">
                 <Badge variant="outline" className="text-[10px]">
                   {o.dia.vagas} vaga{o.dia.vagas > 1 ? "s" : ""}
@@ -320,11 +458,11 @@ export function RevisaoConvocacao(props: Props) {
                 )}
 
               </span>
-            </div>
+            </button>
             <p className="mt-1 text-[11px] text-muted-foreground">
               Janela da necessidade: {o.dia.entrada}–{o.dia.saida}{o.dia.vira ? " (+1)" : ""}
             </p>
-            {(() => {
+            {aberto && (() => {
               const linhasDia = preAvaliacao.filter(
                 (l) => l.data === o.dia.data && (l.cargo_id ?? "") === o.dia.cargo_id,
               );
@@ -365,6 +503,7 @@ export function RevisaoConvocacao(props: Props) {
                 </Alert>
               );
             })()}
+            {aberto && (
             <ul className="mt-2 space-y-1">
               {o.linhas.map((l) => (
                 <li
@@ -415,8 +554,10 @@ export function RevisaoConvocacao(props: Props) {
                 </li>
               )}
             </ul>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* -------------------------------------------------- simulação da rotina */}

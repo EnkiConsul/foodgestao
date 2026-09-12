@@ -143,6 +143,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const [justificativas, setJustificativas] = useState<Record<string, string>>({});
   const [cienteAntecedencia, setCienteAntecedencia] = useState(false);
   const [justificadaEm, setJustificadaEm] = useState<string | null>(null);
+  /** Campo pendente que a revisão deve destacar e trazer para a tela. */
+  const [focoPendente, setFocoPendente] = useState<string | null>(null);
   const [revisando, setRevisando] = useState(false);
   /** Cache das sugestões por cargo|data — remarcar um dia não reconsulta. */
   const sugestoesRef = useRef<Map<string, SugestaoCache>>(new Map());
@@ -791,6 +793,23 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   };
 
   const publicarGrupo = async () => {
+    // Exceção de antecedência: ciência e justificativas antes de publicar.
+    if (foraDaAntecedencia.length > 0) {
+      if (!cienteAntecedencia) {
+        setFocoPendente("ciente");
+        toast.error("Marque que está ciente da convocação em cima da hora.");
+        return;
+      }
+      if (exigeJustificativa) {
+        const semTexto = foraDaAntecedencia.find((d) => !justificativas[d.id]?.trim());
+        if (semTexto) {
+          setFocoPendente(semTexto.id);
+          toast.error("Escreva a justificativa dos dias em cima da hora.");
+          return;
+        }
+      }
+    }
+    setFocoPendente(null);
     setPublicando(true);
     setDataComErro(null);
     try {
@@ -931,6 +950,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   ciente={cienteAntecedencia}
                   onCienteChange={setCienteAntecedencia}
                   justificadaEm={justificadaEm}
+                  focoPendenteId={focoPendente}
                 />
               </div>
             ) : (
@@ -1276,9 +1296,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     size="sm"
                     onClick={publicarGrupo}
                     disabled={!podeSalvar || publicando || salvando ||
-                      preAvaliacao.isLoading || diasSemApto.length > 0 ||
-                       (foraDaAntecedencia.length > 0 &&
-                         (!cienteAntecedencia || (exigeJustificativa && foraDaAntecedencia.some((d) => !justificativas[d.id]?.trim()))))}
+                      preAvaliacao.isLoading || diasSemApto.length > 0}
                   >
                     {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
                     Confirmar e publicar
