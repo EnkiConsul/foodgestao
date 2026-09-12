@@ -9,8 +9,8 @@ import { destinoMenuVertical } from "@/lib/nav/menuSwipe";
 import { haptic } from "@/lib/haptics";
 
 const EDGE_PX = 28;
-const MIN_DELTA_Y = 80;
-const MAX_DURATION_MS = 600;
+const MIN_DELTA_Y = 56;
+const MAX_DURATION_MS = 800;
 const MAX_DELTA_X = 70;
 const HOME_TO = "/dp";
 
@@ -68,10 +68,46 @@ export function useMenuSwipeVertical() {
     let startY = 0;
     let startT = 0;
     let ativo = false;
+    let disparado = false;
     let scroller: HTMLElement | null = null;
+
+    const podeDisparar = () => {
+      if (!ativo || disparado) return false;
+      if (Date.now() - startT > MAX_DURATION_MS) return false;
+      return true;
+    };
+
+    /** Gesto começou numa das bordas verticais (onde não há rolagem a roubar). */
+    const comecouNaBordaVertical = (direcao: "cima" | "baixo") => {
+      const h = window.innerHeight;
+      if (direcao === "cima" && startY >= h - EDGE_PX) return true;
+      if (direcao === "baixo" && startY <= EDGE_PX) return true;
+      return false;
+    };
+
+    const tentarNavegar = (clientX: number, clientY: number) => {
+      if (!podeDisparar()) return;
+      if (Math.abs(clientX - startX) > MAX_DELTA_X) return;
+      const dy = clientY - startY;
+      if (Math.abs(dy) < MIN_DELTA_Y) return;
+      const direcao = dy < 0 ? "cima" : "baixo";
+      if (!comecouNaBordaVertical(direcao) && rolagemBloqueiaGesto(scroller, direcao)) return;
+
+      const destino = destinoMenuVertical({
+        rotas: ref.current.rotas,
+        pathname: ref.current.pathname,
+        direcao,
+        homeTo: HOME_TO,
+      });
+      if (!destino || destino === ref.current.pathname) return;
+      disparado = true;
+      haptic(8);
+      navigate(destino);
+    };
 
     const onStart = (e: TouchEvent) => {
       ativo = false;
+      disparado = false;
       scroller = null;
       if (window.innerWidth >= 768) return;
       const t = e.touches[0];
@@ -91,36 +127,28 @@ export function useMenuSwipeVertical() {
       scroller = verticalScrollerDoToque(e.target);
     };
 
-    const onEnd = (e: TouchEvent) => {
-      if (!ativo) return;
-      ativo = false;
-      const currentScroller = scroller;
-      scroller = null;
-      const t = e.changedTouches[0];
+    const onMove = (e: TouchEvent) => {
+      if (!ativo || disparado) return;
+      const t = e.touches[0];
       if (!t) return;
-      if (Date.now() - startT > MAX_DURATION_MS) return;
-      if (Math.abs(t.clientX - startX) > MAX_DELTA_X) return;
-      const dy = t.clientY - startY;
-      if (Math.abs(dy) < MIN_DELTA_Y) return;
-      const direcao = dy < 0 ? "cima" : "baixo";
-      if (rolagemBloqueiaGesto(currentScroller, direcao)) return;
+      tentarNavegar(t.clientX, t.clientY);
+    };
 
-      const destino = destinoMenuVertical({
-        rotas: ref.current.rotas,
-        pathname: ref.current.pathname,
-        direcao,
-        homeTo: HOME_TO,
-      });
-      if (!destino || destino === ref.current.pathname) return;
-      haptic(8);
-      navigate(destino);
+    const onEnd = () => {
+      ativo = false;
+      disparado = false;
+      scroller = null;
     };
 
     window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: true });
     window.addEventListener("touchend", onEnd, { passive: true });
+    window.addEventListener("touchcancel", onEnd, { passive: true });
     return () => {
       window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchmove", onMove);
       window.removeEventListener("touchend", onEnd);
+      window.removeEventListener("touchcancel", onEnd);
     };
   }, [navigate]);
 }
