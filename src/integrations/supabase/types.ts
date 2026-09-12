@@ -14948,6 +14948,10 @@ export type Database = {
         }
         Returns: string
       }
+      dp_convocacao_excluir_grupo: {
+        Args: { p_expected_updated_at?: string; p_grupo_id: string }
+        Returns: Json
+      }
       dp_convocacao_exige_admin: {
         Args: { _company_id: string }
         Returns: string

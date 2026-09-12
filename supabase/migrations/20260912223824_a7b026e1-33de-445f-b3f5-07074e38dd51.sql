@@ -1,0 +1,2 @@
+revoke execute on function public.dp_convocacao_excluir_grupo(uuid, timestamptz) from public, anon;
+grant execute on function public.dp_convocacao_excluir_grupo(uuid, timestamptz) to authenticated, service_role;

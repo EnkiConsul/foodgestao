@@ -3,8 +3,12 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   BellRing, CalendarClock, CalendarDays, CheckCircle2, ClipboardCheck, Clock, History, Pencil, Plus,
-  Settings2, Users, CalendarRange,
+  Settings2, Trash2, Users, CalendarRange,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,7 +18,9 @@ import { ConvocacoesRegrasPanel } from "@/components/dp/convocacoes/ConvocacoesR
 import { DisponibilidadePainel } from "@/components/dp/convocacoes/DisponibilidadePainel";
 import { PlanejamentoPainel } from "@/components/dp/convocacoes/PlanejamentoPainel";
 import { AprovacaoParcialDialog } from "@/components/dp/convocacoes/AprovacaoParcialDialog";
-import { useDpConvocacaoGrupos, type GrupoComOcorrencias } from "@/hooks/useDpConvocacaoGrupos";
+import {
+  useDpConvocacaoGrupos, useExcluirRascunhoConvocacao, type GrupoComOcorrencias,
+} from "@/hooks/useDpConvocacaoGrupos";
 import {
   useDpConvocacoes, useDpConvocacoesParciais, type ParcialPendente,
 } from "@/hooks/useDpConvocacoes";
@@ -46,10 +52,15 @@ function GrupoCard({
   contagem?: ContagemGrupo;
   onEditar?: (g: GrupoComOcorrencias) => void;
 }) {
+  const excluir = useExcluirRascunhoConvocacao();
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const total = grupo.ocorrencias.length;
   const vagas = grupo.ocorrencias.reduce((s, o) => s + (o.vagas ?? 0), 0);
   const foraPrazo = grupo.ocorrencias.filter((o) => o.fora_antecedencia).length;
   const cargos = new Set(grupo.ocorrencias.map((o) => o.cargo_id).filter(Boolean)).size;
+  /** Rascunho cujas datas já passaram: só serve para bloquear novos planejamentos. */
+  const diasPassados =
+    grupo.status === "rascunho" && total > 0 && grupo.ocorrencias.every((o) => o.data < hoje());
 
   return (
     <div className="rounded-xl border border-border p-3">
@@ -83,6 +94,14 @@ function GrupoCard({
               {foraPrazo} fora da antecedência
             </Badge>
           )}
+          {diasPassados && (
+            <Badge
+              variant="outline"
+              className="border-amber-500/50 text-[10px] text-amber-700 dark:text-amber-400"
+            >
+              Dias já passados — excluir libera as datas
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -110,12 +129,50 @@ function GrupoCard({
         <span className="text-[11px] text-muted-foreground">
           {total} data(s) · {vagas} vaga(s) previstas
         </span>
-        {grupo.status === "rascunho" && onEditar && (
-          <Button size="sm" variant="outline" onClick={() => onEditar(grupo)}>
-            <Pencil className="mr-1 h-3.5 w-3.5" /> Continuar edição
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {grupo.status === "rascunho" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              disabled={excluir.isPending}
+              onClick={() => setConfirmandoExclusao(true)}
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" /> Excluir
+            </Button>
+          )}
+          {grupo.status === "rascunho" && onEditar && (
+            <Button size="sm" variant="outline" onClick={() => onEditar(grupo)}>
+              <Pencil className="mr-1 h-3.5 w-3.5" /> Continuar edição
+            </Button>
+          )}
+        </div>
       </div>
+
+      <AlertDialog open={confirmandoExclusao} onOpenChange={setConfirmandoExclusao}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir este rascunho?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os dias planejados serão liberados para um novo planejamento. O histórico é
+              preservado e a exclusão não afeta convocações já publicadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                excluir.mutate({
+                  id: grupo.id,
+                  expected_updated_at: grupo.updated_at ?? null,
+                })
+              }
+            >
+              Excluir rascunho
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -464,6 +521,10 @@ export default function DpConvocacoes() {
         }}
         grupo={emEdicao}
         inicial={inicial}
+        onAbrirRascunho={(id) => {
+          const alvo = grupos.data?.find((g) => g.id === id);
+          if (alvo) setEmEdicao(alvo);
+        }}
       />
 
       <AprovacaoParcialDialog
