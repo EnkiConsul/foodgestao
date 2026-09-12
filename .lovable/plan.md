@@ -12,6 +12,8 @@
 
 O gesto lateral que troca de aba nas telas com abas continua igual, assim como a rolagem normal das listas.
 
+5. **Arrastar da esquerda para a direita fecha o card/janela aberta.** Em janelas sem abas, o gesto fecha direto. Em janelas com abas, fecha quando você está na primeira aba (nas outras abas o gesto volta uma aba, como hoje). Se houver alteração não salva, aparece a pergunta de sempre: sair sem salvar, salvar e sair, ou continuar editando.
+
 ## Detalhes técnicos
 
 - `src/components/dp/home/useHomeSwipeMenus.ts` deixa de tratar swipe horizontal e passa a um gesto vertical, reaproveitável: novo `src/components/dp/nav/useMenuSwipeVertical.ts` (ou renomear o arquivo atual), com lógica pura extraída em `src/lib/nav/menuSwipe.ts` (`proximoMenuDestino(rotas, pathnameAtual, direcao)`), testável por unidade.
