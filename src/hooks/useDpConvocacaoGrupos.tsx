@@ -464,14 +464,26 @@ export function useExcluirRascunhoConvocacao() {
         description: "Os dias planejados foram liberados para um novo planejamento.",
       });
     },
-    onError: (e: any) => {
+    onError: (e: any, args) => {
       const msg = String(e?.message ?? "");
+      const conhecido =
+        msg.includes("NOT_DRAFT") || msg.includes("STALE_VERSION") || msg.includes("FORBIDDEN");
+      if (!conhecido) {
+        logger.error("Falha ao excluir rascunho de convocação", e, {
+          scope: "dp:convocacoes",
+          action: "excluir rascunho",
+          grupo_id: args?.id,
+          code: e?.code ?? null,
+        });
+      }
       toast.error("Não foi possível excluir o rascunho", {
         description: msg.includes("NOT_DRAFT")
           ? "Só é possível excluir convocações que ainda estão em rascunho."
           : msg.includes("STALE_VERSION")
             ? "Este rascunho foi alterado por outra pessoa. Recarregue a tela e tente de novo."
-            : "Tente novamente. Se o problema continuar, fale com o suporte.",
+            : msg.includes("FORBIDDEN") || msg.includes("NOT_AUTHENTICATED")
+              ? "Só administradores e donos da empresa podem excluir uma convocação."
+              : "Tente novamente. Se o problema continuar, fale com o suporte.",
       });
     },
   });
