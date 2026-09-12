@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { Download, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -7,19 +7,30 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { DpContentCard, DpFilterCard } from "@/components/dp/DpPage";
+import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
+import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
+import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpFeriasProgramacao } from "@/hooks/useDpFeriasProgramacao";
 import {
   baixarProgramacaoCsv,
   imprimirProgramacao,
+  programacaoEscopoTexto,
+  PROGRAMACAO_COLUNAS,
+  PROGRAMACAO_COL_ORDER,
+  PROGRAMACAO_COL_WIDTHS,
   SITUACAO_PROGRAMACAO_LABEL,
+  type ProgramacaoColKey,
+  type ProgramacaoLinha,
 } from "@/lib/dp/ferias-programacao";
 import { NIVEL_VENCIMENTO_META } from "@/lib/dp/ferias-direito";
 
-const fmt = (iso: string | null) => (iso ? format(parseISO(iso), "dd/MM/yyyy") : "..../..../......");
-const num = (v: number | null) => (v === null ? "...." : v);
+const fmt = (iso: string | null) => (iso ? format(parseISO(iso), "dd/MM/yyyy") : "—");
+
+const COL_POR_KEY = new Map(PROGRAMACAO_COLUNAS.map((c) => [c.key, c]));
 
 /** Relatório sintético de férias no formato da contabilidade, com impressão e CSV. */
 export function FeriasProgramacaoPanel() {
@@ -32,6 +43,45 @@ export function FeriasProgramacaoPanel() {
     unidadeId: unidadeId === "todas" ? null : unidadeId,
     incluirDesligados,
   });
+
+  const cols = useDpTableColumns<ProgramacaoColKey, ProgramacaoColKey>({
+    storageKey: "dp_ferias_prog_col",
+    screenKey: "dp_ferias_programacao",
+    defaultOrder: PROGRAMACAO_COL_ORDER,
+    defaultWidths: PROGRAMACAO_COL_WIDTHS,
+    hiddenByDefault: ["diasParaMarcar"],
+    essentialKeys: ["nome"],
+    defaultSortKey: "nome",
+  });
+
+  const linhas = useMemo<ProgramacaoLinha[]>(() => {
+    const base = relatorio?.linhas ?? [];
+    // Filtros por valor exibido, coluna a coluna.
+    const filtradas = base.filter((l) =>
+      cols.visibleOrder.every((k) => {
+        const ativos = cols.colFilters[k] ?? [];
+        if (!ativos.length) return true;
+        return ativos.includes(COL_POR_KEY.get(k)!.valor(l));
+      }),
+    );
+    const meta = COL_POR_KEY.get(cols.sortKey);
+    if (!meta) return filtradas;
+    const dir = cols.sortDir === "asc" ? 1 : -1;
+    return filtradas.slice().sort((a, b) => {
+      const va = meta.valor(a);
+      const vb = meta.valor(b);
+      const na = Number(va.replace(",", "."));
+      const nb = Number(vb.replace(",", "."));
+      const cmp =
+        va !== "" && vb !== "" && !Number.isNaN(na) && !Number.isNaN(nb)
+          ? na - nb
+          : va.localeCompare(vb, "pt-BR");
+      return cmp * dir;
+    });
+  }, [relatorio, cols.visibleOrder, cols.colFilters, cols.sortKey, cols.sortDir]);
+
+  const escopo = relatorio ? programacaoEscopoTexto(relatorio) : null;
+  const semLinhas = linhas.length === 0;
 
   return (
     <>
@@ -58,18 +108,25 @@ export function FeriasProgramacaoPanel() {
             />
             Incluir desligados
           </label>
-          <div className="flex gap-2 pb-0.5">
+          <div className="flex flex-wrap gap-2 pb-0.5">
+            <DpTableColumnsMenu
+              columns={cols.colOrder.map((k) => ({ key: k, label: COL_POR_KEY.get(k)!.label }))}
+              hidden={cols.hidden}
+              essentialKeys={["nome"]}
+              onToggle={cols.toggleHidden}
+              onReset={cols.resetLayout}
+            />
             <Button
               variant="outline"
-              disabled={!relatorio || relatorio.linhas.length === 0}
-              onClick={() => relatorio && imprimirProgramacao(relatorio)}
+              disabled={!relatorio || semLinhas}
+              onClick={() => relatorio && imprimirProgramacao(relatorio, cols.visibleOrder)}
             >
               <Printer className="mr-1 size-4" /> Imprimir / PDF
             </Button>
             <Button
               variant="outline"
-              disabled={!relatorio || relatorio.linhas.length === 0}
-              onClick={() => relatorio && baixarProgramacaoCsv(relatorio)}
+              disabled={!relatorio || semLinhas}
+              onClick={() => relatorio && baixarProgramacaoCsv(relatorio, cols.visibleOrder)}
             >
               <Download className="mr-1 size-4" /> CSV
             </Button>
@@ -84,73 +141,81 @@ export function FeriasProgramacaoPanel() {
             CNPJ: {relatorio?.cnpj ?? "-"} · Data base: {relatorio ? fmt(relatorio.dataBase) : "—"}
             {relatorio ? ` · Total de empregados: ${relatorio.totalEmpregados}` : ""}
           </p>
+          {escopo && <p className="text-xs text-muted-foreground">{escopo}</p>}
         </div>
 
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">Carregando…</div>
-        ) : !relatorio || relatorio.linhas.length === 0 ? (
+        ) : !relatorio || semLinhas ? (
           <div className="p-8 text-center text-muted-foreground">
             Nenhum período aquisitivo para os filtros escolhidos.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full whitespace-nowrap text-xs">
-              <thead>
-                <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="px-2 py-2">Cód.</th>
-                  <th className="px-2 py-2">Empregado</th>
-                  <th className="px-2 py-2">Admissão</th>
-                  <th className="px-2 py-2">Vencto.</th>
-                  <th className="px-2 py-2 text-center">Venc.</th>
-                  <th className="px-2 py-2 text-center">Prop.</th>
-                  <th className="px-2 py-2">Início aquis.</th>
-                  <th className="px-2 py-2">Fim aquis.</th>
-                  <th className="px-2 py-2">Início gozo</th>
-                  <th className="px-2 py-2 text-center">Dias</th>
-                  <th className="px-2 py-2 text-center">Abono</th>
-                  <th className="px-2 py-2 text-center">13º</th>
-                  <th className="px-2 py-2 text-center">Dir.</th>
-                  <th className="px-2 py-2 text-center">Goz.</th>
-                  <th className="px-2 py-2 text-center">Rest.</th>
-                  <th className="px-2 py-2">Limite p/ gozo</th>
-                  <th className="px-2 py-2 text-center">Afast.</th>
-                  <th className="px-2 py-2 text-center">Faltas</th>
-                  <th className="px-2 py-2">Situação</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {relatorio.linhas.map((l, i) => {
-                  const meta = NIVEL_VENCIMENTO_META[l.situacao];
-                  return (
-                    <tr key={`${l.colaboradorId}-${l.inicioAquisitivo}-${i}`}>
-                      <td className="px-2 py-1.5 text-right">{l.codigo ?? ""}</td>
-                      <td className="max-w-56 truncate px-2 py-1.5 font-medium">{l.nome ?? ""}</td>
-                      <td className="px-2 py-1.5">{l.admissao ? fmt(l.admissao) : ""}</td>
-                      <td className="px-2 py-1.5">{fmt(l.fimAquisitivo)}</td>
-                      <td className="px-2 py-1.5 text-center">{l.feriasVencidas ?? ""}</td>
-                      <td className="px-2 py-1.5 text-center">{l.feriasProporcionais ?? ""}</td>
-                      <td className="px-2 py-1.5">{fmt(l.inicioAquisitivo)}</td>
-                      <td className="px-2 py-1.5">{fmt(l.fimAquisitivo)}</td>
-                      <td className="px-2 py-1.5">{fmt(l.gozoInicio)}</td>
-                      <td className="px-2 py-1.5 text-center">{num(l.gozoDias)}</td>
-                      <td className="px-2 py-1.5 text-center">{num(l.gozoAbono)}</td>
-                      <td className="px-2 py-1.5 text-center">
-                        {l.gozoAdianta13 === null ? "...." : l.gozoAdianta13 ? "SIM" : "-"}
-                      </td>
-                      <td className="px-2 py-1.5 text-center">{l.diasDireito}</td>
-                      <td className="px-2 py-1.5 text-center">{l.diasGozados}</td>
-                      <td className="px-2 py-1.5 text-center">{l.diasRestantes}</td>
-                      <td className="px-2 py-1.5">{fmt(l.limiteGozo)}</td>
-                      <td className="px-2 py-1.5 text-center">{l.diasAfastamento ?? "-"}</td>
-                      <td className="px-2 py-1.5 text-center">{l.diasFaltas ?? "-"}</td>
-                      <td className="px-2 py-1.5">
-                        <Badge className={meta.tone}>{SITUACAO_PROGRAMACAO_LABEL[l.situacao]}</Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <Table className="text-xs" style={{ minWidth: cols.larguraTotal }}>
+              <TableHeader>
+                <TableRow>
+                  {cols.visibleOrder.map((k) => {
+                    const meta = COL_POR_KEY.get(k)!;
+                    return (
+                      <DpTableColumnHeader
+                        key={k}
+                        label={meta.curto}
+                        width={cols.colWidths[k]}
+                        center={meta.center}
+                        sortAtivo={cols.sortKey === k}
+                        sortDir={cols.sortDir}
+                        onSort={(dir) => cols.aplicarSort(k, dir)}
+                        ativos={cols.colFilters[k] ?? []}
+                        getOpcoes={() =>
+                          Array.from(new Set((relatorio.linhas ?? []).map((l) => meta.valor(l))))
+                            .filter((v) => v !== "")
+                            .sort((a, b) => a.localeCompare(b, "pt-BR"))
+                        }
+                        onToggle={(v) => cols.toggleColValue(k, v)}
+                        onSelecionarTodos={() =>
+                          cols.setColFilters((prev) => ({
+                            ...prev,
+                            [k]: Array.from(new Set(relatorio.linhas.map((l) => meta.valor(l)))).filter((v) => v !== ""),
+                          }))
+                        }
+                        onLimpar={() => cols.setColFilters((prev) => ({ ...prev, [k]: [] }))}
+                        arrastando={cols.dragCol === k}
+                        onDragStart={() => cols.setDragCol(k)}
+                        onDrop={() => cols.soltarSobre(k)}
+                        onDragEnd={() => cols.setDragCol(null)}
+                        onResize={(largura) => cols.resize(k, largura)}
+                        onResetWidth={() => cols.resetWidth(k)}
+                      />
+                    );
+                  })}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {linhas.map((l, i) => (
+                  <TableRow key={`${l.colaboradorId}-${l.inicioAquisitivo}-${i}`}>
+                    {cols.visibleOrder.map((k) => {
+                      const meta = COL_POR_KEY.get(k)!;
+                      const align = meta.center ? "text-center" : meta.right ? "text-right" : "";
+                      return (
+                        <TableCell
+                          key={k}
+                          className={`whitespace-nowrap px-2 py-1.5 ${align} ${k === "nome" ? "font-medium" : ""}`}
+                        >
+                          {k === "situacao" ? (
+                            <Badge className={NIVEL_VENCIMENTO_META[l.situacao].tone}>
+                              {SITUACAO_PROGRAMACAO_LABEL[l.situacao]}
+                            </Badge>
+                          ) : (
+                            meta.valor(l)
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </DpContentCard>
