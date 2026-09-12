@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export type ExameAso = Database["public"]["Tables"]["dp_exames_aso"]["Row"] & {
   colaborador_nome?: string | null;
@@ -88,7 +89,7 @@ export function useDpConformidade(colaboradorFilter = "todos") {
 
   const invalidate = (...keys: string[]) => {
     keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
-    qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    void resolverPendencias(qc, { companyId: selectedCompanyId });
   };
 
   const examesQ = useQuery({

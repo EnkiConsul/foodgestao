@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export type DpColaborador = Database["public"]["Tables"]["dp_colaboradores"]["Row"] & {
   cargo_nome?: string | null;
@@ -175,7 +176,7 @@ export function useDesligarDpColaborador() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      void resolverPendencias(qc, { companyId: selectedCompanyId });
     },
   });
 }
@@ -196,7 +197,7 @@ export function useEditarDesligamento() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      void resolverPendencias(qc, { companyId: selectedCompanyId });
     },
   });
 }
@@ -240,7 +241,7 @@ export function useRecontratarDpColaborador() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
       qc.invalidateQueries({ queryKey: ["dp_colaborador_condicoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      void resolverPendencias(qc, { companyId: selectedCompanyId });
     },
   });
 }
@@ -254,7 +255,7 @@ export function useReintegrarDpColaborador() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      void resolverPendencias(qc, { companyId: selectedCompanyId });
     },
   });
 }
