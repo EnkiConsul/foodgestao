@@ -227,12 +227,11 @@ export function montarProgramacao(opts: MontarProgramacaoOpts): ProgramacaoDados
 
       linhas.push({
         colaboradorId: colab.id,
-        codigo: idx === 0 ? colab.matricula : null,
-        nome: idx === 0 ? colab.nome : null,
-        admissao: idx === 0 ? colab.data_admissao : null,
-        feriasVencidas: idx === 0 ? vencidas : null,
-        feriasProporcionais:
-          idx === 0 ? mesesProporcionais(p.inicio_aquisitivo, p.fim_aquisitivo, dataBase) : null,
+        codigo: colab.matricula,
+        nome: colab.nome,
+        admissao: colab.data_admissao,
+        feriasVencidas: vencidas,
+        feriasProporcionais: mesesProporcionais(p.inicio_aquisitivo, p.fim_aquisitivo, dataBase),
         inicioAquisitivo: p.inicio_aquisitivo,
         fimAquisitivo: p.fim_aquisitivo,
         gozoInicio: gozoRef?.data_inicio ?? null,
