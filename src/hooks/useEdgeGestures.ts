@@ -160,7 +160,7 @@ export function useEdgeGestures() {
     };
 
     window.addEventListener("touchstart", onStart, { passive: true });
-    window.addEventListener("touchmove", onMove, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: false });
     window.addEventListener("touchend", onEnd, { passive: true });
     window.addEventListener("touchcancel", onEnd, { passive: true });
     return () => {
