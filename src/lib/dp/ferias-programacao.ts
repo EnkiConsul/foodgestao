@@ -294,48 +294,86 @@ export const SITUACAO_PROGRAMACAO_COR: Record<NivelVencimento, { fundo: string; 
   vencido: { fundo: "#fbdcdc", texto: "#b91c1c" },
 };
 
-/* ------------------------------- CSV ------------------------------- */
-
-const CABECALHO_CSV = [
-  "Código", "Empregado", "Data admissão", "Vencto. férias", "Fer. venc.", "Fer. pro.",
-  "Início aquisitivo", "Fim aquisitivo", "Início gozo", "Dias", "Abono", "13º",
-  "Dias dir.", "Dias goz.", "Dias rest.", "Limite p/ gozo", "Dias afast.", "Dias faltas",
-  "Situação", "Dias p/ limite", "Dias p/ marcar",
-];
+/* --------------------------- Colunas ---------------------------- */
 
 const dataBr = (iso: string | null | undefined) =>
   iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "..../..../......";
 const numOuTraco = (v: number | null | undefined) => (v === null || v === undefined ? "...." : v);
 
-export function programacaoParaCsv(d: ProgramacaoDados): string {
-  const linhas = d.linhas.map((l) => [
-    l.codigo ?? "",
-    l.nome ?? "",
-    l.admissao ? dataBr(l.admissao) : "",
-    dataBr(l.fimAquisitivo),
-    l.feriasVencidas ?? "",
-    l.feriasProporcionais ?? "",
-    dataBr(l.inicioAquisitivo),
-    dataBr(l.fimAquisitivo),
-    dataBr(l.gozoInicio),
-    numOuTraco(l.gozoDias),
-    numOuTraco(l.gozoAbono),
-    l.gozoAdianta13 === null ? "...." : l.gozoAdianta13 ? "SIM" : "-",
-    l.diasDireito,
-    l.diasGozados,
-    l.diasRestantes,
-    dataBr(l.limiteGozo),
-    l.diasAfastamento ?? "-",
-    l.diasFaltas ?? "-",
-    SITUACAO_PROGRAMACAO_LABEL[l.situacao],
-    l.diasParaLimite,
-    l.diasParaMarcar,
-  ]);
+export type ProgramacaoColKey =
+  | "codigo" | "nome" | "admissao" | "vencimento" | "feriasVencidas" | "feriasProporcionais"
+  | "inicioAquisitivo" | "fimAquisitivo" | "gozoInicio" | "gozoDias" | "gozoAbono" | "gozoAdianta13"
+  | "diasDireito" | "diasGozados" | "diasRestantes" | "limiteGozo" | "diasAfastamento"
+  | "diasFaltas" | "situacao" | "diasParaLimite" | "diasParaMarcar";
+
+export interface ProgramacaoColMeta {
+  key: ProgramacaoColKey;
+  /** Rótulo completo (CSV e impresso). */
+  label: string;
+  /** Rótulo curto para a tela. */
+  curto: string;
+  center?: boolean;
+  right?: boolean;
+  width: number;
+  valor: (l: ProgramacaoLinha) => string;
+}
+
+/** Metadados das colunas do relatório sintético — fonte única para tela, CSV e impresso. */
+export const PROGRAMACAO_COLUNAS: ProgramacaoColMeta[] = [
+  { key: "codigo", label: "Código", curto: "Cód.", right: true, width: 80, valor: (l) => l.codigo ?? "" },
+  { key: "nome", label: "Empregado", curto: "Empregado", width: 240, valor: (l) => l.nome ?? "" },
+  { key: "admissao", label: "Data admissão", curto: "Admissão", width: 110, valor: (l) => (l.admissao ? dataBr(l.admissao) : "") },
+  { key: "vencimento", label: "Vencto. férias", curto: "Vencto.", width: 110, valor: (l) => dataBr(l.fimAquisitivo) },
+  { key: "feriasVencidas", label: "Fer. venc.", curto: "Venc.", center: true, width: 80, valor: (l) => String(l.feriasVencidas ?? "") },
+  { key: "feriasProporcionais", label: "Fer. pro.", curto: "Prop.", center: true, width: 80, valor: (l) => l.feriasProporcionais ?? "" },
+  { key: "inicioAquisitivo", label: "Início aquisitivo", curto: "Início aquis.", width: 120, valor: (l) => dataBr(l.inicioAquisitivo) },
+  { key: "fimAquisitivo", label: "Fim aquisitivo", curto: "Fim aquis.", width: 120, valor: (l) => dataBr(l.fimAquisitivo) },
+  { key: "gozoInicio", label: "Início gozo", curto: "Início gozo", width: 120, valor: (l) => dataBr(l.gozoInicio) },
+  { key: "gozoDias", label: "Dias", curto: "Dias", center: true, width: 80, valor: (l) => String(numOuTraco(l.gozoDias)) },
+  { key: "gozoAbono", label: "Abono", curto: "Abono", center: true, width: 80, valor: (l) => String(numOuTraco(l.gozoAbono)) },
+  {
+    key: "gozoAdianta13", label: "13º", curto: "13º", center: true, width: 80,
+    valor: (l) => (l.gozoAdianta13 === null ? "...." : l.gozoAdianta13 ? "SIM" : "-"),
+  },
+  { key: "diasDireito", label: "Dias dir.", curto: "Dir.", center: true, width: 80, valor: (l) => String(l.diasDireito) },
+  { key: "diasGozados", label: "Dias goz.", curto: "Goz.", center: true, width: 80, valor: (l) => String(l.diasGozados) },
+  { key: "diasRestantes", label: "Dias rest.", curto: "Rest.", center: true, width: 80, valor: (l) => String(l.diasRestantes) },
+  { key: "limiteGozo", label: "Limite p/ gozo", curto: "Limite p/ gozo", width: 120, valor: (l) => dataBr(l.limiteGozo) },
+  { key: "diasAfastamento", label: "Dias afast.", curto: "Afast.", center: true, width: 80, valor: (l) => String(l.diasAfastamento ?? "-") },
+  { key: "diasFaltas", label: "Dias faltas", curto: "Faltas", center: true, width: 80, valor: (l) => String(l.diasFaltas ?? "-") },
+  { key: "situacao", label: "Situação", curto: "Situação", width: 170, valor: (l) => SITUACAO_PROGRAMACAO_LABEL[l.situacao] },
+  { key: "diasParaLimite", label: "Dias p/ limite", curto: "Dias p/ limite", center: true, width: 110, valor: (l) => String(l.diasParaLimite) },
+  { key: "diasParaMarcar", label: "Dias p/ marcar", curto: "Dias p/ marcar", center: true, width: 110, valor: (l) => String(l.diasParaMarcar) },
+];
+
+export const PROGRAMACAO_COL_ORDER = PROGRAMACAO_COLUNAS.map((c) => c.key);
+export const PROGRAMACAO_COL_WIDTHS = Object.fromEntries(
+  PROGRAMACAO_COLUNAS.map((c) => [c.key, c.width]),
+) as Record<ProgramacaoColKey, number>;
+const COL_POR_KEY = new Map(PROGRAMACAO_COLUNAS.map((c) => [c.key, c]));
+
+/** Colunas escolhidas (na ordem pedida) ou todas quando nada for informado. */
+function colunasDe(keys?: ProgramacaoColKey[]): ProgramacaoColMeta[] {
+  if (!keys?.length) return PROGRAMACAO_COLUNAS;
+  return keys.map((k) => COL_POR_KEY.get(k)).filter((c): c is ProgramacaoColMeta => !!c);
+}
+
+/** Subtítulo do cabeçalho quando o relatório reúne mais de uma unidade. */
+export function programacaoEscopoTexto(d: ProgramacaoDados): string | null {
+  return d.consolidado ? "Consolidado de todas as unidades" : null;
+}
+
+/* ------------------------------- CSV ------------------------------- */
+
+export function programacaoParaCsv(d: ProgramacaoDados, colunas?: ProgramacaoColKey[]): string {
+  const cols = colunasDe(colunas);
+  const escopo = programacaoEscopoTexto(d);
   const corpo = [
     [`Programação de férias — ${d.razaoSocial}`],
+    [`CNPJ: ${d.cnpj ?? "-"}`, ...(escopo ? [escopo] : [])],
     [`Data base: ${dataBr(d.dataBase)}`, `Total de empregados: ${d.totalEmpregados}`],
-    CABECALHO_CSV,
-    ...linhas,
+    cols.map((c) => c.label),
+    ...d.linhas.map((l) => cols.map((c) => c.valor(l))),
   ];
   return corpo
     .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";"))
