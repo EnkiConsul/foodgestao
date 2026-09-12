@@ -231,7 +231,7 @@ function MoreSlot({ to }: { to: string }) {
       role="tab"
       onClick={() => haptic(6)}
       className={cn(
-        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] pb-3 pt-1",
+        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] pb-4 pt-1",
         "text-muted-foreground active:scale-95 transition-all",
       )}
       activeClassName="text-primary"
@@ -242,6 +242,7 @@ function MoreSlot({ to }: { to: string }) {
     </NavLink>
   );
 }
+
 
 
 
