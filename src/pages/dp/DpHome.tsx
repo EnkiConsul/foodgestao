@@ -22,6 +22,8 @@ export default function DpHome() {
         icon={Bell}
         title="Pessoas 360°"
         description="Visão geral e atalhos rápidos."
+        className="flex-row items-center justify-between gap-3"
+        actionsClassName="w-auto shrink-0 [&>*]:min-h-0"
         actions={
           <Tooltip>
             <TooltipTrigger asChild>

@@ -97,7 +97,7 @@ export function DpPageHeader({
           )}
         </div>
       </div>
-      {temAcoes && <HeaderActions actions={actions} actionItems={actionItems} actionsExtra={actionsExtra} />}
+      {temAcoes && <HeaderActions actions={actions} actionItems={actionItems} actionsExtra={actionsExtra} actionsClassName={actionsClassName} />}
     </header>
   );
 }
