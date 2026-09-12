@@ -58,6 +58,7 @@ export function useDpAniversariantes30d() {
             colaboradorId: c.id,
             nome: c.nome,
             cargo: c.cargo,
+            email: c.email ?? c.email_contato ?? null,
             unidade: c.dp_unidades?.nome ?? null,
             unidadeId: c.unidade_id ?? null,
             tipo,
