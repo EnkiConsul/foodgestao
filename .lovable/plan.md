@@ -9,7 +9,7 @@ Na versão anterior, a descrição dos cards de subtelas foi limitada a uma linh
 ## Solução
 - Em `src/components/dp/NavigationCard.tsx`, alterar a descrição para usar `line-clamp-2` em todas as telas (mobile e desktop).
 - Manter o layout compacto com ícone + título na mesma linha.
-- Ajustar, se necessário, o espaçamento interno ou a altura mínima para acomodar as duas linhas sem quebrar o alinhamento.
+- Forçar uma altura fixa equivalente a 2 linhas na descrição, mesmo quando o texto ocupe apenas 1 linha, para manter todos os cards alinhados no mesmo tamanho.
 
 ## Arquivo envolvido
 - `src/components/dp/NavigationCard.tsx`
