@@ -91,6 +91,8 @@ export default function DpFerias() {
     let base = statusFilter === "todos" ? periodos : periodos.filter((p) => p.status === statusFilter);
     // Quem foi desligado não entra na programação: só aparece se o gestor pedir.
     if (!incluirDesligados) base = base.filter((p) => !p.desligado);
+    // A visão analítica é para programar: períodos sem saldo a gozar ficam ocultos.
+    if (!incluirGozados) base = base.filter((p) => !totalmenteGozado(p));
     if (soRisco) {
       base = base
         .filter((p) => riscoPorColab.get(p.colaborador_id)?.emRisco)
@@ -98,11 +100,19 @@ export default function DpFerias() {
         .sort((a, b) => a.limite_concessivo.localeCompare(b.limite_concessivo));
     }
     return base;
-  }, [periodos, statusFilter, soRisco, riscoPorColab, incluirDesligados]);
+  }, [periodos, statusFilter, soRisco, riscoPorColab, incluirDesligados, incluirGozados]);
 
   const desligadosOcultos = useMemo(
     () => (incluirDesligados ? 0 : periodos.filter((p) => p.desligado).length),
     [periodos, incluirDesligados],
+  );
+
+  const gozadosOcultos = useMemo(
+    () =>
+      incluirGozados
+        ? 0
+        : periodos.filter((p) => totalmenteGozado(p) && (incluirDesligados || !p.desligado)).length,
+    [periodos, incluirGozados, incluirDesligados],
   );
 
 
