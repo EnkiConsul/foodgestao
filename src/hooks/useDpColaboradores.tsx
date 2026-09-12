@@ -162,6 +162,7 @@ export type DesligamentoResult = {
 
 export function useDesligarDpColaborador() {
   const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
   return useMutation({
     mutationFn: async (input: DesligamentoInput): Promise<DesligamentoResult> => {
       const { data, error } = await supabase.rpc("dp_desligar_colaborador", {
@@ -184,6 +185,7 @@ export function useDesligarDpColaborador() {
 /** Edita apenas os dados do desligamento (não cancela folgas/solicitações novamente). */
 export function useEditarDesligamento() {
   const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
   return useMutation({
     mutationFn: async (input: DesligamentoInput) => {
       const { error } = await supabase.rpc("dp_editar_desligamento", {
@@ -209,6 +211,7 @@ export function useEditarDesligamento() {
  */
 export function useRecontratarDpColaborador() {
   const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
   return useMutation({
     mutationFn: async (input: {
       id: string;
@@ -248,6 +251,7 @@ export function useRecontratarDpColaborador() {
 
 export function useReintegrarDpColaborador() {
   const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.rpc("dp_reintegrar_colaborador", { p_colaborador_id: id });
