@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { optionalRpcArg } from "@/lib/supabase/rpcArgs";
+import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database, Json } from "@/integrations/supabase/types";
@@ -31,7 +32,7 @@ export function useDpConvocacaoGrupos(status?: string[]) {
       if (error) throw error;
       return (data ?? [])
         // Rascunhos excluídos (cancelados) ficam só no histórico do banco.
-        .filter((g: any) => g.status !== "cancelada")
+        .filter((g: any) => g.status !== "cancelado" && g.status !== "cancelada")
         .map((g: any) => ({
         ...g,
         unidade_nome: g.dp_unidades?.nome ?? null,
@@ -464,14 +465,26 @@ export function useExcluirRascunhoConvocacao() {
         description: "Os dias planejados foram liberados para um novo planejamento.",
       });
     },
-    onError: (e: any) => {
+    onError: (e: any, args) => {
       const msg = String(e?.message ?? "");
+      const conhecido =
+        msg.includes("NOT_DRAFT") || msg.includes("STALE_VERSION") || msg.includes("FORBIDDEN");
+      if (!conhecido) {
+        logger.error("Falha ao excluir rascunho de convocação", e, {
+          scope: "dp:convocacoes",
+          action: "excluir rascunho",
+          grupo_id: args?.id,
+          code: e?.code ?? null,
+        });
+      }
       toast.error("Não foi possível excluir o rascunho", {
         description: msg.includes("NOT_DRAFT")
           ? "Só é possível excluir convocações que ainda estão em rascunho."
           : msg.includes("STALE_VERSION")
             ? "Este rascunho foi alterado por outra pessoa. Recarregue a tela e tente de novo."
-            : "Tente novamente. Se o problema continuar, fale com o suporte.",
+            : msg.includes("FORBIDDEN") || msg.includes("NOT_AUTHENTICATED")
+              ? "Só administradores e donos da empresa podem excluir uma convocação."
+              : "Tente novamente. Se o problema continuar, fale com o suporte.",
       });
     },
   });
