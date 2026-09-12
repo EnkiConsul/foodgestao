@@ -4,6 +4,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
 import { reportError } from "@/lib/errorLog";
 import type { Pendencia } from "@/hooks/useDpPendencias";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export type IntermitenteConfirmacao = {
   id: string;

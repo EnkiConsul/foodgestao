@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { extrairCpfValido, extrairNomePessoa, isCpfValido, pareceRazaoSocial } from "@/lib/dp/doc-pessoa";
 import { tipoCanonicoPorVinculo } from "@/lib/dp/documento-tipo-por-vinculo";
 import { useNormalizarTipoPorVinculo } from "./useNormalizarTipoPorVinculo";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 // Setup pdfjs worker once
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })

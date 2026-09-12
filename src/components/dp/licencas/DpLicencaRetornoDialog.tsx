@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { labelAfastamento } from "@/lib/dp/licencas";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export type LicencaRetornoAlvo = {
   solicitacaoId: string;

@@ -18,6 +18,7 @@ import {
 import { useDpSindicatos } from "@/hooks/useDpCadastros";
 import { AplicarPisoUnidadeDialog } from "@/components/dp/AplicarPisoUnidadeDialog";
 import type { Database } from "@/integrations/supabase/types";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 type Negociacao = Database["public"]["Tables"]["dp_sindicato_negociacoes"]["Row"] & {
   sindicato_laboral_id?: string | null;

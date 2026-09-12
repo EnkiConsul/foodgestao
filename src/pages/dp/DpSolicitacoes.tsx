@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
 import { MobileDetailsSheet } from "@/components/dp/MobileCardKit";
 import type { Database } from "@/integrations/supabase/types";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];

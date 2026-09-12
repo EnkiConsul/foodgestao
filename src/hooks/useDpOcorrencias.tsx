@@ -16,6 +16,7 @@ import {
   type OcorrenciaTipo,
   type OcorrenciaTratativa,
 } from "@/lib/dp/ocorrencias";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export interface OcorrenciaCobertura {
   id: string;

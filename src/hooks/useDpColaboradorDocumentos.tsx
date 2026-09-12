@@ -12,6 +12,7 @@ import {
   type DpDocumentoRequisito,
   type ItemChecklist,
 } from "@/lib/dp/documentos-requisitos";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 type Opcoes = {
   /** true quando o próprio colaborador está enviando (portal). */

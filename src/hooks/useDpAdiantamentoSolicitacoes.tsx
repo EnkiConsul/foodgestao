@@ -10,6 +10,7 @@ import {
   type AdiantamentoSolicitacao,
   type AdiantamentoTipoSolicitacao,
 } from "@/lib/dp/adiantamento-opcao";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 function hojeISO() {
   const d = new Date();

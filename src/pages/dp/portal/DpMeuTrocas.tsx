@@ -21,6 +21,7 @@ import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/
 import { TextoExpansivel } from "@/components/dp/TextoExpansivel";
 import { textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 const statusLabel: Record<string, string> = {
   pendente_colega: "Aguardando colega",

@@ -36,6 +36,7 @@ import {
   labelAfastamento,
   type TipoAfastamento,
 } from "@/lib/dp/licencas";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {

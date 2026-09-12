@@ -8,6 +8,7 @@ import {
   filtrarTrocas,
   type TrocaFiltros,
 } from "@/lib/dp/trocas-filtros";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export type DpTrocaModo = "direta" | "aprovacao_admin" | "proibida";
 
