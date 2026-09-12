@@ -88,6 +88,7 @@ import {
   ajustarFormaPagamento,
   remuneracaoPendente,
   permiteAdiantamento as permiteAdiantamentoRemuneracao,
+  adiantamentoMotivo,
   BASE_HORAS_MES_PADRAO,
   BASE_DIAS_MES_PADRAO,
   type FormaPagamento,
