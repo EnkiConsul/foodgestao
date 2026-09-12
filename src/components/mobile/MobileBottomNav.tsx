@@ -131,7 +131,7 @@ export function MobileBottomNav() {
             />
           )}
 
-          <div className="relative flex items-end justify-around h-full px-1">
+          <div className="relative flex items-center justify-around h-full px-1">
             {slots.map((slot, idx) => (
               <div
                 key={idx}
@@ -146,6 +146,7 @@ export function MobileBottomNav() {
               </div>
             ))}
           </div>
+
         </div>
       </nav>
 
