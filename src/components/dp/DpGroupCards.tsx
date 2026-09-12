@@ -37,7 +37,7 @@ export function DpGroupCards({ groupId, extras = [] }: DpGroupCardsProps) {
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((c) => (
         <NavigationCard key={c.to} title={c.label} description={c.description} to={c.to} icon={c.icon} />
       ))}

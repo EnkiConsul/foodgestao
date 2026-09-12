@@ -93,7 +93,7 @@ export function DpPageHeader({
         <div className="min-w-0">
           <h1 className="text-lg font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">{toTitleCase(title)}</h1>
           {description && (
-            <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground sm:mt-1 sm:line-clamp-none sm:text-sm">{description}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground break-words leading-snug sm:mt-1 sm:text-sm">{description}</p>
           )}
         </div>
       </div>
