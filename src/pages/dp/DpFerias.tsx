@@ -57,6 +57,11 @@ const GOZO_LABEL: Record<string, string> = {
 
 const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
+/** Período sem saldo a gozar: já foi integralmente usufruído/vendido. */
+function totalmenteGozado(p: FeriasPeriodo) {
+  return (p.dias_saldo ?? 0) <= 0 && (p.status === "concluido" || (p.dias_gozados ?? 0) > 0);
+}
+
 /** Planejamento: períodos aquisitivos, faltas informadas e agendamento das férias. */
 export default function DpFerias() {
   const embedded = useDpEmbedded();
