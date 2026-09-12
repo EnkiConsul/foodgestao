@@ -461,15 +461,9 @@ export function programacaoDocumento(d: ProgramacaoDados, colunas?: ProgramacaoC
       ${cabecalho(i + 1)}
       <table>
         <thead>
-          <tr>
-            <th>Código</th><th>Empregado</th><th>Data admissão</th><th>Vencto. férias</th>
-            <th>Fer. venc.</th><th>Fer. pro.</th><th>Início aquisitivo</th><th>Fim aquisitivo</th>
-            <th>Início gozo</th><th>Dias</th><th>Abono</th><th>13º</th>
-            <th>Dias dir.</th><th>Dias goz.</th><th>Dias rest.</th><th>Limite p/ gozo</th>
-            <th>Dias afast.</th><th>Dias faltas</th><th>Situação</th>
-          </tr>
+          <tr>${cols.map((c) => `<th>${esc(c.label)}</th>`).join("")}</tr>
         </thead>
-        <tbody>${linhas.map(linhaHtml).join("")}</tbody>
+        <tbody>${linhas.map((l) => linhaHtml(l, cols)).join("")}</tbody>
       </table>
       ${
         i === total - 1
