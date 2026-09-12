@@ -71,6 +71,22 @@ export function useEdgeGestures() {
       return true;
     };
 
+    /**
+     * Volta uma tela. Quando o histórico não muda a rota (entrada direta pelo
+     * link, histórico externo), cai para a tela inicial do módulo.
+     */
+    const voltarComFallback = () => {
+      const origem = window.location.pathname;
+      if (depthRef.current > 1 && window.history.length > 1) {
+        navigate(-1);
+        window.setTimeout(() => {
+          if (window.location.pathname === origem && origem !== homeTo) navigate(homeTo);
+        }, 400);
+        return;
+      }
+      if (origem !== homeTo) navigate(homeTo);
+    };
+
     const executarEsquerda = () => {
       haptic(8);
       const destino = destinoGestoEsquerda({ activeModule, pathname, homeTo, moreTo, modulosAtivos });
@@ -78,19 +94,13 @@ export function useEdgeGestures() {
         navigate(destino.to);
         return;
       }
-      // Sem histórico interno (entrada direta) → volta para a home do módulo.
-      if (depthRef.current > 1 && window.history.length > 1) navigate(-1);
-      else if (pathname !== homeTo) navigate(homeTo);
+      voltarComFallback();
     };
 
     const executarDireita = () => {
       haptic(8);
-      if (pathname === moreTo) {
-        if (depthRef.current > 1 && window.history.length > 1) navigate(-1);
-        else navigate(homeTo);
-      } else {
-        navigate(moreTo);
-      }
+      if (pathname === moreTo) voltarComFallback();
+      else navigate(moreTo);
     };
 
     const tentarNavegar = (clientX: number, clientY: number) => {
@@ -122,6 +132,9 @@ export function useEdgeGestures() {
       const w = window.innerWidth;
       if (t.clientX <= EDGE_PX) mode = "left";
       else if (t.clientX >= w - EDGE_PX) mode = "right";
+      // Na tela "Mais", voltar também funciona começando no meio da tela —
+      // assim o gesto não disputa com o "voltar" nativo do navegador.
+      else if (pathname === moreTo) mode = "left";
       else return;
 
       startX = t.clientX;
@@ -133,6 +146,11 @@ export function useEdgeGestures() {
       if (!mode || disparado) return;
       const t = e.touches[0];
       if (!t) return;
+      const dx = t.clientX - startX;
+      const dy = Math.abs(t.clientY - startY);
+      // Gesto reconhecido como horizontal: impede o navegador de assumir o
+      // arrasto (voltar nativo / recarregar).
+      if (Math.abs(dx) > 12 && dy <= MAX_DELTA_Y && e.cancelable) e.preventDefault();
       tentarNavegar(t.clientX, t.clientY);
     };
 
@@ -142,7 +160,7 @@ export function useEdgeGestures() {
     };
 
     window.addEventListener("touchstart", onStart, { passive: true });
-    window.addEventListener("touchmove", onMove, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: false });
     window.addEventListener("touchend", onEnd, { passive: true });
     window.addEventListener("touchcancel", onEnd, { passive: true });
     return () => {
