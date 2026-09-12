@@ -193,7 +193,26 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       toast.success(comoColaborador ? "Documento enviado para aprovação" : "Documento anexado");
       invalidar();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao enviar documento"),
+    onError: (e: any, variaveis) => {
+      const amigavel = mensagemEnvioDocumento(e);
+      toast.error(amigavel);
+      void reportError({
+        error: e,
+        surface: comoColaborador ? "Portal do colaborador · Documentos" : "Documentos do colaborador",
+        action: "enviar documento",
+        companyId: base.data?.colaborador?.company_id ?? null,
+        userMessage: amigavel,
+        details: {
+          colaborador_id: base.data?.colaborador?.id ?? null,
+          requisito: variaveis?.item?.requisito?.nome ?? null,
+          tipo_documento: variaveis?.item?.requisito?.tipo_documento ?? null,
+          arquivo_nome: variaveis?.file?.name ?? null,
+          arquivo_tipo: variaveis?.file?.type ?? null,
+          arquivo_tamanho: variaveis?.file?.size ?? null,
+          como_colaborador: comoColaborador,
+        },
+      });
+    },
   });
 
   const aprovar = useMutation({
