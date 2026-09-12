@@ -162,7 +162,11 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
       (el) => el.hasAttribute("disabled") || el.dataset.disabled !== undefined || el.getAttribute("aria-disabled") === "true",
     );
     const next = proximaAbaIndex(disabled, activeIndex, dx < 0 ? "esquerda" : "direita");
-    if (next < 0) return;
+    if (next < 0) {
+      // Primeira aba de um diálogo: o arrasto para a direita fecha a janela.
+      if (currentDialog && dx > 0) fecharDialogo(currentDialog);
+      return;
+    }
     onTrocar?.();
     // Radix ativa a aba no mousedown (botão esquerdo), não no click.
     const alvo = triggers[next];
