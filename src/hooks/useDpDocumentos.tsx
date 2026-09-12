@@ -6,6 +6,7 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
+import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export type DpDocumentoTipo = Database["public"]["Enums"]["dp_documento_tipo"];
 export type DpDocumentoAprov = "pendente" | "aprovado" | "recusado";
