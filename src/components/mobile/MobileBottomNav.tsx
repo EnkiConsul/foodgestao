@@ -292,7 +292,8 @@ function LeafSlot({ leaf, onLongPress }: { leaf: NavLeaf; onLongPress?: () => vo
         haptic(8);
       }}
       className={cn(
-        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] pb-4 pt-1",
+        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] pb-3 pt-1",
+
         "text-muted-foreground active:scale-95 transition-all",
         "select-none [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent]",
       )}
