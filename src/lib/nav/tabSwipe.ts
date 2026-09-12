@@ -87,8 +87,11 @@ let instalado = false;
 /**
  * Instala (uma única vez) o gesto global de swipe entre abas.
  * Arrastar para a esquerda avança para a próxima aba; para a direita volta.
- * Não interfere nos gestos de borda (28px de cada lateral), em scrollers
- * horizontais nem quando há diálogo aberto.
+ * Dentro de um diálogo aberto, o arrasto para a direita na primeira aba (ou em
+ * diálogos sem abas) pede o fechamento da janela — os diálogos que controlam
+ * alterações não salvas continuam mostrando a confirmação.
+ * Não interfere nos gestos de borda (28px de cada lateral) nem em scrollers
+ * horizontais.
  */
 export function instalarSwipeAbas(onTrocar?: () => void) {
   if (instalado || typeof window === "undefined") return;
@@ -98,38 +101,46 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
   let startY = 0;
   let startT = 0;
   let list: HTMLElement | null = null;
+  let dialog: HTMLElement | null = null;
   let scroller: HTMLElement | null = null;
 
   const onStart = (e: TouchEvent) => {
     list = null;
+    dialog = null;
     scroller = null;
     if (window.innerWidth >= 768) return;
     const t = e.touches[0];
     if (!t || e.touches.length > 1) return;
+
     const overlay = document.querySelector(
       '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]',
     );
-    if (overlay) return;
+    const dialogAlvo = dialogoDoToque(e.target);
+    // Diálogo aberto, mas o toque começou fora dele: gesto ignorado.
+    if (overlay && !dialogAlvo) return;
 
     const w = window.innerWidth;
     if (t.clientX <= EDGE_PX || t.clientX >= w - EDGE_PX) return;
 
     const found = tablistDoToque(e.target);
-    if (!found) return;
+    if (!found && !dialogAlvo) return;
 
     startX = t.clientX;
     startY = t.clientY;
     startT = Date.now();
     list = found;
+    dialog = dialogAlvo;
     scroller = horizontalScrollerDoToque(e.target);
   };
 
   const onEnd = (e: TouchEvent) => {
     const current = list;
+    const currentDialog = dialog;
     const currentScroller = scroller;
     list = null;
+    dialog = null;
     scroller = null;
-    if (!current) return;
+    if (!current && !currentDialog) return;
     const t = e.changedTouches[0];
     if (!t) return;
     if (Date.now() - startT > MAX_DURATION_MS) return;
@@ -138,10 +149,15 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
     if (Math.abs(dx) < MIN_DELTA_X) return;
     if (scrollerBloqueiaSwipe(currentScroller, dx)) return;
 
-    const triggers = Array.from(current.querySelectorAll<HTMLElement>('[role="tab"]'));
-    if (triggers.length < 2) return;
+    const triggers = current
+      ? Array.from(current.querySelectorAll<HTMLElement>('[role="tab"]'))
+      : [];
     const activeIndex = triggers.findIndex((el) => el.dataset.state === "active");
-    if (activeIndex < 0) return;
+    if (triggers.length < 2 || activeIndex < 0) {
+      // Sem abas utilizáveis: dentro de um diálogo, o arrasto para a direita fecha.
+      if (currentDialog && dx > 0) fecharDialogo(currentDialog);
+      return;
+    }
     const disabled = triggers.map(
       (el) => el.hasAttribute("disabled") || el.dataset.disabled !== undefined || el.getAttribute("aria-disabled") === "true",
     );
