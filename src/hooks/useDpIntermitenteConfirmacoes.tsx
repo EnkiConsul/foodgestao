@@ -4,7 +4,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
 import { reportError } from "@/lib/errorLog";
 import type { Pendencia } from "@/hooks/useDpPendencias";
-import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 
 export type IntermitenteConfirmacao = {
   id: string;
@@ -55,9 +55,6 @@ export function useDpIntermitenteConfirmacoes() {
     },
     onSuccess: (_d, args) => {
       const pendenciaId = `intermitente-${args.colaboradorId}-${args.competencia.slice(0, 4)}-${Number(args.competencia.slice(5, 7))}`;
-      qc.setQueryData<Pendencia[]>(["dp_pendencias", selectedCompanyId], (atuais) =>
-        atuais?.filter((pendencia) => pendencia.id !== pendenciaId),
-      );
       qc.setQueryData<IntermitenteConfirmacao[]>(
         ["dp_intermitente_confirmacoes", selectedCompanyId],
         (atuais) => {
@@ -77,7 +74,10 @@ export function useDpIntermitenteConfirmacoes() {
         },
       );
       qc.invalidateQueries({ queryKey: ["dp_intermitente_confirmacoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+      void resolverPendencias(qc, {
+        companyId: selectedCompanyId,
+        match: porIds([pendenciaId]),
+      });
       qc.invalidateQueries({ queryKey: ["dp_doc_consistencia_janela"] });
       toast.success(
         args.trabalhou

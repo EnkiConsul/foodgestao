@@ -290,8 +290,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName }: Bul
       if (okc + rep > 0) {
         const companyId = (batchInfo.data as any)?.company_id;
         if (companyId) {
-          await supabase.functions.invoke("dp-refresh-pendencias", { body: { companyId } });
-          qc.invalidateQueries({ queryKey: ["dp_pendencias", companyId] });
+          await resolverPendencias(qc, { companyId });
         }
       }
     } catch (e: any) {

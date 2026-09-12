@@ -470,8 +470,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       if (okc + rep > 0) {
         const companyId = (batchInfo.data as any)?.company_id;
         if (companyId) {
-          await supabase.functions.invoke("dp-refresh-pendencias", { body: { companyId } });
-          qc.invalidateQueries({ queryKey: ["dp_pendencias", companyId] });
+          await resolverPendencias(qc, { companyId });
         }
       }
       if (okc + rep > 0 && loteConcluido(rows as any[], item_ids, ignorados)) onConcluido?.();
