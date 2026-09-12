@@ -3,9 +3,9 @@ import { ArrowLeft, LayoutGrid } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { ContextSelector } from "@/components/layout/ContextSelector";
-import { ModuleSwitcherChip } from "@/components/mobile/ModuleSwitcherChip";
 import { DpNotificacoesBell } from "@/components/dp/DpNotificacoesBell";
 import { FavoriteToggle } from "@/components/dp/FavoriteToggle";
+
 
 /** Rotas "raiz" de cada superfície — nelas não faz sentido oferecer "voltar". */
 const ROOTS = ["/dp", "/dp/mais", "/dp/meu", "/dp/meu/mais"];
@@ -43,10 +43,8 @@ export function DpHeader({ variant = "admin" }: { variant?: "admin" | "portal" }
         </Button>
       )}
       <SidebarTrigger className={showBack ? "hidden h-9 w-9 shrink-0 md:flex" : "h-10 w-10 shrink-0 md:h-9 md:w-9"} />
-      <div className="min-w-0 shrink md:hidden">
-        <ModuleSwitcherChip />
-      </div>
       {variant === "admin" && (
+
         <Button
           asChild
           variant="ghost"

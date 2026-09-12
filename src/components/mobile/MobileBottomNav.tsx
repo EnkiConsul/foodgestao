@@ -131,7 +131,7 @@ export function MobileBottomNav() {
             />
           )}
 
-          <div className="relative flex items-end justify-around h-full px-1">
+          <div className="relative flex items-center justify-around h-full px-1">
             {slots.map((slot, idx) => (
               <div
                 key={idx}
@@ -146,6 +146,7 @@ export function MobileBottomNav() {
               </div>
             ))}
           </div>
+
         </div>
       </nav>
 
@@ -201,14 +202,14 @@ function SlotRenderer({
 function HomeSlot({ leaf }: { leaf: NavLeaf }) {
   const Icon = leaf.icon;
   return (
-    <div className="flex items-start justify-center pt-1 w-full">
+    <div className="flex items-center justify-center w-full">
       <NavLink
         to={leaf.to}
         end={leaf.end}
         role="tab"
         onClick={() => haptic(10)}
         className={cn(
-          "flex flex-col items-center justify-center gap-0.5 h-14 w-14 -mt-7 rounded-full",
+          "flex flex-col items-center justify-center gap-0.5 h-14 w-14 -mt-5 rounded-full",
           "bg-primary text-primary-foreground",
           "ring-4 ring-background",
           "shadow-[0_10px_24px_-6px_hsl(var(--primary)/0.5)]",
@@ -222,6 +223,7 @@ function HomeSlot({ leaf }: { leaf: NavLeaf }) {
   );
 }
 
+
 function MoreSlot({ to }: { to: string }) {
   return (
     <NavLink
@@ -229,7 +231,7 @@ function MoreSlot({ to }: { to: string }) {
       role="tab"
       onClick={() => haptic(6)}
       className={cn(
-        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1.5",
+        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] pb-4 pt-1",
         "text-muted-foreground active:scale-95 transition-all",
       )}
       activeClassName="text-primary"
@@ -240,6 +242,8 @@ function MoreSlot({ to }: { to: string }) {
     </NavLink>
   );
 }
+
+
 
 
 function LeafSlot({ leaf, onLongPress }: { leaf: NavLeaf; onLongPress?: () => void }) {
@@ -284,10 +288,12 @@ function LeafSlot({ leaf, onLongPress }: { leaf: NavLeaf; onLongPress?: () => vo
         haptic(8);
       }}
       className={cn(
-        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1.5",
+        "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] pb-4 pt-1",
         "text-muted-foreground active:scale-95 transition-all",
         "select-none [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent]",
       )}
+
+
       activeClassName="text-primary"
     >
       <Icon className="h-5 w-5" />

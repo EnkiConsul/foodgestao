@@ -33,7 +33,9 @@ export function NavigationCard({ title, description, to, icon: Icon, count, clas
                 {count !== undefined && <span className="text-lg sm:text-2xl font-bold tabular-nums">{count}</span>}
               </div>
               {description && (
-                <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 min-h-[2.5em]">{description}</p>
+                <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 min-h-[2.5em]">
+                  <TwoLineDescription text={description} />
+                </p>
               )}
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors ml-1" />
@@ -43,3 +45,27 @@ export function NavigationCard({ title, description, to, icon: Icon, count, clas
     </Link>
   );
 }
+
+/**
+ * Força o preenchimento de duas linhas quando o texto é curto,
+ * quebrando as duas últimas palavras para a segunda linha.
+ */
+function TwoLineDescription({ text }: { text: string }) {
+  const words = text.trim().split(/\s+/);
+  // Textos curtos (até ~50 caracteres) cabem em 1 linha no mobile;
+  // forçamos a quebra das duas últimas palavras para preencher a segunda linha.
+  if (words.length >= 2 && text.length <= 50) {
+    const first = words.slice(0, -2).join(" ");
+    const last = words.slice(-2).join(" ");
+    return (
+      <span className="inline">
+        {first ? <>{first} </> : null}
+        <br className="sm:hidden" />
+        <span className="inline">{last}</span>
+      </span>
+    );
+  }
+  return <>{text}</>;
+}
+
+
