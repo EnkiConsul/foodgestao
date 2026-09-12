@@ -67,7 +67,7 @@ export function DpTableColumnHeader(props: {
 
   return (
     <TableHead
-      className={`relative uppercase text-xs select-none ${props.arrastando ? "opacity-50" : ""} ${props.center ? "text-center" : ""}`}
+      className={`relative select-none py-2 text-xs uppercase ${props.arrastando ? "opacity-50" : ""} ${props.center ? "text-center" : ""}`}
       style={{ width: props.width, minWidth: props.width, maxWidth: props.width }}
       draggable={!redimensionando}
       onDragStart={props.onDragStart}
@@ -79,15 +79,22 @@ export function DpTableColumnHeader(props: {
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            title="Clique para ordenar/filtrar · arraste para mover a coluna"
-            className={`flex w-full cursor-grab items-center gap-1 uppercase hover:text-foreground ${props.center ? "justify-center text-center" : "text-left"}`}
+            title={`${props.label} — Clique para ordenar/filtrar · arraste para mover a coluna`}
+            className={`flex w-full cursor-grab flex-col gap-0.5 pr-2 uppercase hover:text-foreground ${props.center ? "items-center text-center" : "items-start text-left"}`}
           >
-            <span className="whitespace-nowrap">{props.label}</span>
-
-            {props.sortAtivo
-              ? (props.sortDir === "asc" ? <ArrowUp className="h-3 w-3 shrink-0" /> : <ArrowDown className="h-3 w-3 shrink-0" />)
-              : <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-40" />}
-            <Filter className={`h-3 w-3 shrink-0 ${props.ativos.length ? "text-primary" : "opacity-30"}`} />
+            <span className="flex items-center gap-1">
+              {props.sortAtivo ? (
+                props.sortDir === "asc" ? (
+                  <ArrowUp className="h-3 w-3 shrink-0" />
+                ) : (
+                  <ArrowDown className="h-3 w-3 shrink-0" />
+                )
+              ) : (
+                <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-40" />
+              )}
+              <Filter className={`h-3 w-3 shrink-0 ${props.ativos.length ? "text-primary" : "opacity-40"}`} />
+            </span>
+            <span className="w-full truncate">{props.label}</span>
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-64 p-0">
