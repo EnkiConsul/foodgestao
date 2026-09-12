@@ -1,5 +1,10 @@
 import * as React from "react";
-import { isCompactLandscapeViewport, isMobileLayoutViewport, TABLET_BREAKPOINT } from "@/lib/responsive";
+import {
+  isCompactLandscapeViewport,
+  isMobileLayoutViewport,
+  isTabletLayoutViewport,
+  TABLET_BREAKPOINT,
+} from "@/lib/responsive";
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
@@ -39,4 +44,21 @@ export function useIsCompactLandscape() {
   }, []);
 
   return isCompactLandscape;
+}
+
+export function useIsTabletLayout() {
+  const [isTabletLayout, setIsTabletLayout] = React.useState(() => isTabletLayoutViewport());
+
+  React.useEffect(() => {
+    const onChange = () => setIsTabletLayout(isTabletLayoutViewport());
+    window.addEventListener("resize", onChange);
+    window.addEventListener("orientationchange", onChange);
+    onChange();
+    return () => {
+      window.removeEventListener("resize", onChange);
+      window.removeEventListener("orientationchange", onChange);
+    };
+  }, []);
+
+  return isTabletLayout;
 }
