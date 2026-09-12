@@ -202,14 +202,14 @@ function SlotRenderer({
 function HomeSlot({ leaf }: { leaf: NavLeaf }) {
   const Icon = leaf.icon;
   return (
-    <div className="flex items-start justify-center pt-1 w-full">
+    <div className="flex items-center justify-center w-full">
       <NavLink
         to={leaf.to}
         end={leaf.end}
         role="tab"
         onClick={() => haptic(10)}
         className={cn(
-          "flex flex-col items-center justify-center gap-0.5 h-14 w-14 -mt-7 rounded-full",
+          "flex flex-col items-center justify-center gap-0.5 h-14 w-14 -mt-5 rounded-full",
           "bg-primary text-primary-foreground",
           "ring-4 ring-background",
           "shadow-[0_10px_24px_-6px_hsl(var(--primary)/0.5)]",
@@ -222,6 +222,7 @@ function HomeSlot({ leaf }: { leaf: NavLeaf }) {
     </div>
   );
 }
+
 
 function MoreSlot({ to }: { to: string }) {
   return (
