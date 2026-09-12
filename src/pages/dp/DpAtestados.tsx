@@ -465,7 +465,7 @@ export default function DpAtestados() {
         </TabsList>
 
         <TabsContent value="importar" className="mt-4">
-          <DpContentCard>
+          <DpContentCard contentClassName="p-4 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
               <Upload className="size-5 text-primary" />
               <h3 className="text-lg font-semibold">Cadastrar Atestado ou Licença</h3>
