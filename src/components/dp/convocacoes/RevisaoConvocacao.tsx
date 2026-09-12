@@ -337,7 +337,13 @@ export function RevisaoConvocacao(props: Props) {
               {new Date(justificadaEm).toLocaleDateString("pt-BR")} — você pode manter ou editar.
             </p>
           )}
-          <label className="mt-2 flex items-start gap-2 text-xs font-medium">
+          <label
+            ref={cienteRef}
+            className={cn(
+              "mt-2 flex items-start gap-2 rounded-md p-1 text-xs font-medium",
+              focoPendenteId === "ciente" && !ciente && "ring-2 ring-destructive",
+            )}
+          >
             <Checkbox checked={ciente} onCheckedChange={(v) => onCienteChange(v === true)} />
             <span>Estou ciente e quero publicar mesmo assim</span>
           </label>
