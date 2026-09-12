@@ -416,6 +416,9 @@ const AppRoutes = () => (
 
         <Route path="calendario" element={<DpAdminCalendario />} />
         <Route path="documentos" element={<DpDocumentosImportar />} />
+        <Route path="documentos/inicio" element={<DpDocumentosHub />} />
+        <Route path="rotina" element={<DpRotinaHub />} />
+        <Route path="geral" element={<DpGeralHub />} />
         <Route path="documentos/historico" element={<DpHistoricoCompleto />} />
         <Route path="documentos/todos" element={<Navigate to="/dp/documentos/historico" replace />} />
         <Route path="documentos/contracheque" element={<Navigate to="/dp/documentos/historico?tipo=contracheque" replace />} />
