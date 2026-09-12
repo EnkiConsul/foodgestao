@@ -1296,9 +1296,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     size="sm"
                     onClick={publicarGrupo}
                     disabled={!podeSalvar || publicando || salvando ||
-                      preAvaliacao.isLoading || diasSemApto.length > 0 ||
-                       (foraDaAntecedencia.length > 0 &&
-                         (!cienteAntecedencia || (exigeJustificativa && foraDaAntecedencia.some((d) => !justificativas[d.id]?.trim()))))}
+                      preAvaliacao.isLoading || diasSemApto.length > 0}
                   >
                     {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
                     Confirmar e publicar
