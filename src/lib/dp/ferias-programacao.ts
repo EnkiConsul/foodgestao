@@ -428,7 +428,9 @@ const ESTILO = `
 `;
 
 /** Documento HTML paginado, pronto para imprimir ou salvar em PDF. */
-export function programacaoDocumento(d: ProgramacaoDados): string {
+export function programacaoDocumento(d: ProgramacaoDados, colunas?: ProgramacaoColKey[]): string {
+  const cols = colunasDe(colunas);
+  const escopo = programacaoEscopoTexto(d);
   const paginas: ProgramacaoLinha[][] = [];
   for (let i = 0; i < d.linhas.length; i += MAX_LINHAS_POR_PAGINA) {
     paginas.push(d.linhas.slice(i, i + MAX_LINHAS_POR_PAGINA));
