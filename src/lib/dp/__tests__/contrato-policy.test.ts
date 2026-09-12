@@ -74,6 +74,13 @@ describe("formas de pagamento por regime", () => {
     expect(formaPagamentoValida("intermitente", "mensalista")).toBe("horista");
   });
 
+  it("contrato com registro em carteira é sempre mensalista", () => {
+    for (const regime of ["clt", "estagio", "temporario"]) {
+      expect(formasPagamentoDoRegime(regime)).toEqual(["mensalista"]);
+      expect(formaPagamentoValida(regime, "horista")).toBe("mensalista");
+    }
+  });
+
   it("freelancer tem remuneração flexível (diária/hora/turno/serviço/semana/mensal), fica fora da folha e exige ciência legal", () => {
     const p = contratoPolicy("freelancer");
     expect(p.formasPagamento).toEqual([

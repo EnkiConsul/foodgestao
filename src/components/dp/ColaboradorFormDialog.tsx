@@ -88,6 +88,7 @@ import {
   ajustarFormaPagamento,
   remuneracaoPendente,
   permiteAdiantamento as permiteAdiantamentoRemuneracao,
+  adiantamentoMotivo,
   BASE_HORAS_MES_PADRAO,
   BASE_DIAS_MES_PADRAO,
   type FormaPagamento,
@@ -2464,7 +2465,11 @@ export function ColaboradorFormDialog({
               ) : (
                 <p className="md:col-span-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
                   <strong className="text-foreground">Adiantamento salarial não se aplica.</strong>{" "}
-                  {policy.adiantamentoHint}
+                  {adiantamentoMotivo(
+                    VINCULO_TO_REGIME[form.tipo_vinculo],
+                    rem.forma_pagamento,
+                    form.tipo_vinculo,
+                  )}
                 </p>
               )}
             </div>
