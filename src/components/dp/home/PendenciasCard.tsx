@@ -176,15 +176,15 @@ export function useStablePendencias({
     if (data !== undefined && !isLoading && !isFetching) {
       return semBaixados({ data, dataUpdatedAt, lastCalculatedAt, ready: true });
     }
-    return {
+    return semBaixados({
       data: data ?? [],
       dataUpdatedAt,
       lastCalculatedAt,
       ready: data !== undefined && !isLoading && !isFetching,
-    };
+    });
   }
 
-  return confirmed;
+  return semBaixados(confirmed);
 }
 
 export function PendenciasCard() {
