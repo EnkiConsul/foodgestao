@@ -384,14 +384,55 @@ export function RevisaoConvocacao(props: Props) {
       {/* -------------------------------------------------- como cada pessoa recebe */}
 
       <div className="space-y-2">
-        <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-          <Users className="h-4 w-4 text-primary" aria-hidden="true" />
-          Como o colaborador vai receber
-        </h3>
-        {ofertas.map((o) => (
-          <div key={`${o.dia.cargo_id}|${o.dia.data}`} className="rounded-lg border border-border p-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span className="font-medium capitalize">{rotuloData(o.dia.data)} · {o.dia.cargo_nome}</span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+            <Users className="h-4 w-4 text-primary" aria-hidden="true" />
+            Como o colaborador vai receber
+          </h3>
+          {ofertas.length > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">
+                {totalAtencao > 0
+                  ? `${totalAtencao} dia(s) precisam de atenção · ${totalTranquilos} sem observação`
+                  : `${ofertas.length} dia(s) sem observação`}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 text-[11px]"
+                onClick={() => definirTodos(!Object.values(abertos).every(Boolean))}
+              >
+                {Object.values(abertos).every(Boolean) ? "Recolher todos" : "Abrir todos"}
+              </Button>
+            </div>
+          )}
+        </div>
+        {ofertas.map((o) => {
+          const chaveDia = `${o.dia.cargo_id}|${o.dia.data}`;
+          const aberto = abertos[chaveDia] ?? true;
+          const precisaAtencao = atencaoPorChave.get(chaveDia) ?? false;
+          return (
+          <div
+            key={chaveDia}
+            className={cn(
+              "rounded-lg border p-2.5",
+              precisaAtencao ? "border-amber-500/40 bg-amber-500/5" : "border-border",
+            )}
+          >
+            <button
+              type="button"
+              aria-expanded={aberto}
+              onClick={() => setAbertos((a) => ({ ...a, [chaveDia]: !aberto }))}
+              className="flex w-full flex-wrap items-center justify-between gap-2 text-left text-xs"
+            >
+              <span className="flex items-center gap-1.5 font-medium capitalize">
+                <ChevronDown
+                  className={cn("h-3.5 w-3.5 shrink-0 transition-transform", !aberto && "-rotate-90")}
+                  aria-hidden="true"
+                />
+                {rotuloData(o.dia.data)} · {o.dia.cargo_nome}
+              </span>
               <span className="flex flex-wrap items-center gap-1.5">
                 <Badge variant="outline" className="text-[10px]">
                   {o.dia.vagas} vaga{o.dia.vagas > 1 ? "s" : ""}
