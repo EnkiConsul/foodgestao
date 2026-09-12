@@ -124,13 +124,15 @@ export function instalarSwipeAbas(onTrocar?: () => void) {
     if (scrollerBloqueiaSwipe(currentScroller, dx)) return;
 
     const triggers = Array.from(current.querySelectorAll<HTMLElement>('[role="tab"]'));
-    if (triggers.length < 2) return;
+    const dbg = (window as unknown as { __tabSwipeDebug?: unknown[] }).__tabSwipeDebug;
+    if (triggers.length < 2) { dbg?.push({ motivo: "poucas-abas" }); return; }
     const activeIndex = triggers.findIndex((el) => el.dataset.state === "active");
-    if (activeIndex < 0) return;
+    if (activeIndex < 0) { dbg?.push({ motivo: "sem-ativa" }); return; }
     const disabled = triggers.map(
       (el) => el.hasAttribute("disabled") || el.dataset.disabled !== undefined || el.getAttribute("aria-disabled") === "true",
     );
     const next = proximaAbaIndex(disabled, activeIndex, dx < 0 ? "esquerda" : "direita");
+    dbg?.push({ abas: triggers.length, activeIndex, next, alvo: triggers[next]?.textContent });
     if (next < 0) return;
     onTrocar?.();
     triggers[next].click();
