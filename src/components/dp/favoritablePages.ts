@@ -38,7 +38,6 @@ export const FAVORITABLE_PAGES: FavoritablePage[] = [
   { pattern: "/dp/avisos", label: "Avisos", icon: Megaphone },
   { pattern: "/dp/mensagens", label: "Mensagens", icon: MessageSquare },
   { pattern: "/dp/modelos-mensagem", label: "Modelos", icon: Mail },
-  { pattern: "/dp/comunicacao", label: "Comunicação", icon: MessageSquare },
   {
     pattern: "/dp/comunicacao/:id",
     label: "Comunicação",
@@ -46,20 +45,18 @@ export const FAVORITABLE_PAGES: FavoritablePage[] = [
     labelFor: (p) => `Comunicação #${(p.id ?? "").slice(0, 6)}`,
   },
   { pattern: "/dp/disciplinar", label: "Disciplinar", icon: ShieldAlert },
-  { pattern: "/dp/documentos", label: "Documentos", icon: FileText },
-  
   {
     pattern: "/dp/documentos/:categoria",
     label: "Documentos",
     icon: FileText,
     labelFor: (p) => `Docs — ${capitalize(p.categoria ?? "")}`,
   },
-  { pattern: "/dp/cadastros", label: "Cadastros", icon: Building2 },
   { pattern: "/dp/cadastros/unidades", label: "Unidades", icon: Building2 },
   { pattern: "/dp/cadastros/cargos", label: "Cargos e Salários", icon: Briefcase },
   { pattern: "/dp/cadastros/cargos?aba=sindicatos", label: "Sindicatos Laborais", icon: HandshakeIcon },
 
   // ----- Portal do Colaborador -----
+
   { pattern: "/dp/meu/perfil", label: "Meu Perfil", icon: User },
   { pattern: "/dp/meu/documentos", label: "Meus Documentos", icon: FileText },
   { pattern: "/dp/meu/solicitacoes", label: "Minhas Solicitações", icon: ClipboardList },
