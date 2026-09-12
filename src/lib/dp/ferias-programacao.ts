@@ -480,10 +480,10 @@ export function programacaoDocumento(d: ProgramacaoDados, colunas?: ProgramacaoC
 }
 
 /** Abre a janela de impressão com o relatório. */
-export function imprimirProgramacao(d: ProgramacaoDados): boolean {
+export function imprimirProgramacao(d: ProgramacaoDados, colunas?: ProgramacaoColKey[]): boolean {
   const win = window.open("", "_blank");
   if (!win) return false;
-  win.document.write(programacaoDocumento(d));
+  win.document.write(programacaoDocumento(d, colunas));
   win.document.close();
   setTimeout(() => win.print(), 300);
   return true;
