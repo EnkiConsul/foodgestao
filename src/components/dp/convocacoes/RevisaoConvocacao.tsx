@@ -75,6 +75,11 @@ interface Props {
   onCienteChange: (v: boolean) => void;
   /** Data em que a exceção já foi registrada neste rascunho, se houver. */
   justificadaEm?: string | null;
+  /**
+   * Campo pendente que deve receber foco após uma tentativa de publicar
+   * bloqueada: id da ocorrência sem justificativa ou `"ciente"`.
+   */
+  focoPendenteId?: string | null;
 
   /** Verificação prévia feita pelo banco (mesma regra da publicação). */
   preAvaliacao: PreAvaliacaoLinha[];
