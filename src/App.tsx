@@ -101,6 +101,9 @@ const DpAdminCalendario = lazyWithRetry(() => import("./pages/dp/DpAdminCalendar
 const DpModelosMensagem = lazyWithRetry(() => import("./pages/dp/DpModelosMensagem"));
 
 const DpComunicacaoHub = lazyWithRetry(() => import("./pages/dp/DpComunicacaoHub"));
+const DpDocumentosHub = lazyWithRetry(() => import("./pages/dp/DpDocumentosHub"));
+const DpRotinaHub = lazyWithRetry(() => import("./pages/dp/DpRotinaHub"));
+const DpGeralHub = lazyWithRetry(() => import("./pages/dp/DpGeralHub"));
 const DpAtestados = lazyWithRetry(() => import("./pages/dp/DpAtestados"));
 const DpHistoricoCompleto = lazyWithRetry(() => import("./pages/dp/DpHistoricoCompleto"));
 const DpNotificacoes = lazyWithRetry(() => import("./pages/dp/DpNotificacoes"));
@@ -413,6 +416,9 @@ const AppRoutes = () => (
 
         <Route path="calendario" element={<DpAdminCalendario />} />
         <Route path="documentos" element={<DpDocumentosImportar />} />
+        <Route path="documentos/inicio" element={<DpDocumentosHub />} />
+        <Route path="rotina" element={<DpRotinaHub />} />
+        <Route path="geral" element={<DpGeralHub />} />
         <Route path="documentos/historico" element={<DpHistoricoCompleto />} />
         <Route path="documentos/todos" element={<Navigate to="/dp/documentos/historico" replace />} />
         <Route path="documentos/contracheque" element={<Navigate to="/dp/documentos/historico?tipo=contracheque" replace />} />
