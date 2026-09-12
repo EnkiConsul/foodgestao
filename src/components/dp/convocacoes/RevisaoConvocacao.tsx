@@ -554,8 +554,10 @@ export function RevisaoConvocacao(props: Props) {
                 </li>
               )}
             </ul>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* -------------------------------------------------- simulação da rotina */}
