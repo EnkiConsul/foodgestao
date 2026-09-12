@@ -59,12 +59,18 @@ export function useDpFeriasProgramacao(filtro: FiltroProgramacao) {
           .in("tipo", [...TIPOS_AFASTAMENTO])
           .eq("status", "aprovada"),
       ]);
-      const err = [empresa, colaboradores, periodos, gozos, afastamentos].find((r) => r.error);
+      const err = [empresa, unidades, colaboradores, periodos, gozos, afastamentos].find((r) => r.error);
       if (err?.error) throw err.error;
 
       return {
-        razaoSocial: (empresa.data?.trade_name || empresa.data?.name || "Empresa").toUpperCase(),
+        // Sem filtro de unidade o cabeçalho é da empresa (razão social), nunca de uma unidade.
+        razaoSocial: (empresa.data?.name || empresa.data?.trade_name || "Empresa").toUpperCase(),
         cnpj: empresa.data?.cnpj ?? null,
+        unidades: (unidades.data ?? []).map((u) => ({
+          id: u.id,
+          nome: (u.nome ?? "").toUpperCase(),
+          cnpj: u.cnpj ?? null,
+        })),
         colaboradores: (colaboradores.data ?? []).map((c) => ({
           id: c.id,
           nome: c.nome,
