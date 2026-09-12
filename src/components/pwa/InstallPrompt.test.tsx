@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import { detectPlatform, isStandalone, wasRecentlyDismissed, InstallPrompt } from "./InstallPrompt";
+import {
+  detectPlatform,
+  isStandalone,
+  releaseInstalledOrientation,
+  wasRecentlyDismissed,
+  InstallPrompt,
+} from "./InstallPrompt";
 
 // Real user agents observed in the wild
 const UA = {
@@ -137,6 +143,33 @@ describe("isStandalone", () => {
     setNavigator({ ua: UA.androidChrome });
     Object.defineProperty(document, "referrer", { value: "android-app://com.example", configurable: true });
     expect(isStandalone()).toBe(true);
+  });
+});
+
+describe("releaseInstalledOrientation", () => {
+  it("unlocks orientation in an installed Android shortcut", () => {
+    const unlock = vi.fn();
+    setNavigator({ ua: UA.androidChrome });
+    setMatchMedia({ "(display-mode: standalone)": true });
+    Object.defineProperty(window.screen, "orientation", {
+      value: { unlock },
+      configurable: true,
+    });
+
+    expect(releaseInstalledOrientation()).toBe(true);
+    expect(unlock).toHaveBeenCalledOnce();
+  });
+
+  it("does not change orientation in the regular browser", () => {
+    const unlock = vi.fn();
+    setNavigator({ ua: UA.androidChrome });
+    Object.defineProperty(window.screen, "orientation", {
+      value: { unlock },
+      configurable: true,
+    });
+
+    expect(releaseInstalledOrientation()).toBe(false);
+    expect(unlock).not.toHaveBeenCalled();
   });
 });
 

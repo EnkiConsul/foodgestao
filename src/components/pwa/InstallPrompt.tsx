@@ -23,6 +23,22 @@ export function isStandalone() {
   return mqStandalone || mqFullscreen || mqMinimalUi || iosStandalone || androidApp;
 }
 
+/** Libera uma orientação que tenha ficado presa no atalho instalado do Android. */
+export function releaseInstalledOrientation() {
+  if (typeof window === "undefined" || !isStandalone()) return false;
+  if (!/android/i.test(window.navigator.userAgent)) return false;
+
+  const orientation = window.screen?.orientation;
+  if (!orientation || typeof orientation.unlock !== "function") return false;
+
+  try {
+    orientation.unlock();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function detectPlatform() {
   if (typeof window === "undefined") {
     return { isIos: false, isIpadOs: false, isSafari: false, isInAppBrowser: false, ua: "" };
@@ -73,6 +89,8 @@ export function InstallPrompt() {
     const platform = detectPlatform();
     const standalone = isStandalone();
     const dismissedRecently = wasRecentlyDismissed();
+
+    releaseInstalledOrientation();
 
     console.info(LOG_PREFIX, "evaluating display conditions", {
       isIos: platform.isIos,
