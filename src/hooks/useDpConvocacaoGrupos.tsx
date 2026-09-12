@@ -31,7 +31,7 @@ export function useDpConvocacaoGrupos(status?: string[]) {
       if (error) throw error;
       return (data ?? [])
         // Rascunhos excluídos (cancelados) ficam só no histórico do banco.
-        .filter((g: any) => g.status !== "cancelada")
+        .filter((g: any) => g.status !== "cancelado" && g.status !== "cancelada")
         .map((g: any) => ({
         ...g,
         unidade_nome: g.dp_unidades?.nome ?? null,
