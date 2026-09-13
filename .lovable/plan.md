@@ -13,10 +13,12 @@ Segundo ponto: essa falha veio da resposta do servidor, e nesse caminho a tela s
 1. **Corrigir a regra de férias no banco** para que ela verifique o "tipo" apenas quando o lançamento for da escala, e faça a checagem de férias normalmente nas convocações. Continua valendo o bloqueio de convocar quem está de férias.
 2. **Nunca mais mostrar texto técnico ao publicar**: quando o servidor devolver uma falha que o sistema não reconhece, a tela mostra "Não foi possível publicar a convocação. Tente novamente — se continuar, relate o problema."
 3. **Ligar o registro de erro nesse caminho**: toda falha não reconhecida ao salvar ou publicar convocação passa a ser registrada, o que faz o aviso com o botão "Relatar problema" aparecer, como já acontece nas outras telas.
-4. **Publicar de verdade o rascunho de teste** para confirmar que a correção funciona ponta a ponta.
+4. **"Relatar problema" em todas as telas**: hoje várias telas exibem o texto cru do servidor sem registrar a falha. Vou criar um único atalho interno que (a) mostra mensagem em linguagem clara, (b) registra o erro na auditoria e (c) abre o aviso com o botão de relatar, e passar a usá-lo nas telas e cadastros que hoje mostram texto técnico (começando pelas mais usadas: convocações, documentos, férias, ponto, folgas e cadastros).
+5. **Publicar de verdade o rascunho de teste** para confirmar que a correção funciona ponta a ponta.
 
 ## Detalhes técnicos
 
 - `public.dp_bloquear_durante_ferias()` avalia `NEW.tipo` na mesma expressão de `TG_TABLE_NAME`; PL/pgSQL resolve o campo do registro na execução, então em `dp_convocacoes` (sem coluna `tipo`) o erro `record "new" has no field "tipo"` ocorre mesmo com a comparação de tabela falsa. Migração reescreve a função com `IF` aninhado por tabela (`dp_escala_itens` → checa `tipo`; `dp_folgas` → `status`; `dp_convocacoes` → `status`), mantendo `SECURITY DEFINER`/`search_path` atuais.
 - `NovaConvocacaoPlanner.tsx`: `tratarErroDeGravacao` e o `catch` de `publicarGrupo` deixam de exibir `e.message` cru; usam mensagem amigável e chamam `reportError` de `@/lib/errorLog` com `surface: "Convocações"`, `action: "publicar convocação"` e `details` (grupo, unidade, dias), disparando o fluxo do `ErrorReportCenter`.
+- Novo helper `notifyError` (ex.: `src/lib/notifyError.ts`): `toast.error` com texto amigável + `reportError` no mesmo chamado; substitui os ~40 pontos que hoje fazem `toast.error(e?.message)` nas telas DP/financeiras principais (lotes de arquivos por rodada, mantendo mensagens já amigáveis intactas).
 - Verificação: publicar o rascunho da Pakerê e conferir que não há novo registro dessa assinatura em `app_error_logs`.
