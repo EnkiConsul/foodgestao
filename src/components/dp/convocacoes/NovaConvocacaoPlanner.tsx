@@ -809,7 +809,10 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       if (!ok) return;
       toast.success(
         `Rascunho salvo: ${diasCompletos.length} dia(s), ${destinatarios.length} destinatário(s).` +
-          (diasIncompletos > 0 ? ` ${diasIncompletos} dia(s) sem horário.` : ""),
+          (diasIncompletos > 0 ? ` ${diasIncompletos} dia(s) sem horário.` : "") +
+          (diasJaComecaram.length > 0
+            ? ` ${diasJaComecaram.length} dia(s) com horário já iniciado não poderão ser publicados assim.`
+            : ""),
       );
       onSalvo?.(grupoId);
       onOpenChange(false);
@@ -1274,6 +1277,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                         origem: d.origem,
                         ambiguo: d.ambiguo,
                         faltam: cobertura(d.data, d.cargo_id).faltam ?? null,
+                        jaComecou: horarioJaComecou(d.data, d.entrada),
                       }))}
                     onPatch={patchDia}
                     onRemover={removerDia}
