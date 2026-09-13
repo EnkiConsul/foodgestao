@@ -44,6 +44,8 @@ import {
   ANTECEDENCIA_REFERENCIA_DIAS,
   antecedenciaDias,
   cargaPrevistaHoras,
+  diaSemHorarioPossivel,
+  horarioJaComecou,
   coberturaDoDia,
   janelaMinutos,
   minimoDoCargoNaData,
