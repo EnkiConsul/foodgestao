@@ -21,9 +21,9 @@ import {
   aplicarPadrao, extrairPadrao, resolverPadrao, type PadraoAlcance,
 } from "@/lib/dp/beneficiosPadrao";
 import {
-import { notifyError } from "@/lib/notifyError";
   useDpBeneficiosPadroes, useSalvarDpBeneficiosPadrao,
 } from "@/hooks/useDpBeneficiosPadrao";
+import { notifyError } from "@/lib/notifyError";
 
 type Escopo = "empresa" | "unidade" | "cargo";
 

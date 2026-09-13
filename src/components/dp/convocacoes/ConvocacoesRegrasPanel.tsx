@@ -10,10 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DpContentCard } from "@/components/dp/DpPage";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import {
-import { notifyError } from "@/lib/notifyError";
   useDpConvocacaoConfig,
   useSalvarConvocacaoConfig,
 } from "@/hooks/useDpConvocacaoGrupos";
+import { notifyError } from "@/lib/notifyError";
 
 const EMPRESA = "__empresa__";
 

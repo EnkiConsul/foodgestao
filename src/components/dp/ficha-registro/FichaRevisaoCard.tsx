@@ -22,9 +22,9 @@ import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 import { CargoCorrespondenciaDialog } from "./CargoCorrespondenciaDialog";
 import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
 import {
-import { notifyError } from "@/lib/notifyError";
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
+import { notifyError } from "@/lib/notifyError";
 
 
 

@@ -20,9 +20,9 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
-import { notifyError } from "@/lib/notifyError";
   useDpFichaImportacoes, useDpFichaItens, useEnviarFichaPdf,
 } from "@/hooks/useDpFichaImportacao";
+import { notifyError } from "@/lib/notifyError";
 
 /** Vínculos do cadastro (enum dp_regime_trabalho) — igual ao card de conferência. */
 const REGIMES: Array<{ value: string; label: string }> = [

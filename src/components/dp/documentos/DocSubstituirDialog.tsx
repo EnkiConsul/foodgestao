@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/select";
 import { DP_DOC_GRUPOS } from "@/lib/dp/documentoTipos";
 import {
-import { notifyError } from "@/lib/notifyError";
   docSourceConfig, podeEditarClassificacao, substituirDocumentoHistorico,
 } from "@/lib/dp/historicoDocAcoes";
+import { notifyError } from "@/lib/notifyError";
 
 export type DocSubstituirTarget = {
   rowId: string;

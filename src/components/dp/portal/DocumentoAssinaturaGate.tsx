@@ -10,10 +10,10 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import {
-import { notifyError } from "@/lib/notifyError";
   useDocumentosAguardandoAssinatura,
   type DocParaAssinar,
 } from "@/hooks/portal/useDocumentosAguardandoAssinatura";
+import { notifyError } from "@/lib/notifyError";
 
 const BUCKET = "dp-documentos";
 /** Se o colaborador fechar sem assinar, o aviso volta depois deste intervalo. */

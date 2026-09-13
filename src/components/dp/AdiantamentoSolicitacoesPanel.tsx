@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import {
-import { notifyError } from "@/lib/notifyError";
   competenciaEfeito,
   efeitoHint,
   situacaoAtual,
@@ -17,6 +16,7 @@ import { notifyError } from "@/lib/notifyError";
   type AdiantamentoSolicitacao,
   type AdiantamentoTipoSolicitacao,
 } from "@/lib/dp/adiantamento-opcao";
+import { notifyError } from "@/lib/notifyError";
 
 function hojeISO() {
   return format(new Date(), "yyyy-MM-dd");
