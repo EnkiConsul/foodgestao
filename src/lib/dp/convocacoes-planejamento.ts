@@ -104,6 +104,38 @@ export function antecedenciaDias(dataISO: string, agora: Date = new Date()): num
 
 export const ANTECEDENCIA_REFERENCIA_DIAS = 3;
 
+/**
+ * Margem para a divergência entre a hora do aparelho e o fuso da unidade
+ * usado pelo banco (`dp_convocacao_timezone`). O servidor segue sendo a
+ * autoridade final; aqui só avisamos antes.
+ */
+export const MARGEM_INICIO_MINUTOS = 5;
+
+/**
+ * Espelha a regra de `dp_convocacao_publicar_grupo`: uma necessidade cujo
+ * horário de entrada já passou não pode ser publicada.
+ */
+export function horarioJaComecou(
+  dataISO: string,
+  entrada: string | null | undefined,
+  agora: Date = new Date(),
+): boolean {
+  if (!dataISO || !entrada) return false;
+  const [y, m, d] = dataISO.split("-").map(Number);
+  const [hh, mm] = entrada.split(":").map(Number);
+  if ([y, m, d, hh].some((n) => !Number.isFinite(n))) return false;
+  const inicio = new Date(y, (m ?? 1) - 1, d ?? 1, hh ?? 0, mm ?? 0, 0, 0);
+  return inicio.getTime() <= agora.getTime() + MARGEM_INICIO_MINUTOS * 60_000;
+}
+
+/** Dia em que nenhum horário de entrada ainda cabe (o dia inteiro já passou). */
+export function diaSemHorarioPossivel(dataISO: string, agora: Date = new Date()): boolean {
+  const dias = antecedenciaDias(dataISO, agora);
+  if (dias > 0) return false;
+  if (dias < 0) return true;
+  return horarioJaComecou(dataISO, "23:59", agora);
+}
+
 export function foraDaAntecedencia(
   dataISO: string,
   minimoDias: number = ANTECEDENCIA_REFERENCIA_DIAS,
