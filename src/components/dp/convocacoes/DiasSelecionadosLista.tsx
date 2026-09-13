@@ -20,6 +20,8 @@ export interface DiaSelecionadoItem {
   origem: OrigemHorario;
   ambiguo: boolean;
   faltam: number | null;
+  /** Entrada informada já passou — não dá para publicar assim. */
+  jaComecou?: boolean;
 }
 
 interface Props {
@@ -226,7 +228,12 @@ export function DiasSelecionadosLista({
               </div>
 
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                {semHorario ? (
+                {d.jaComecou ? (
+                  <span className="flex items-center gap-1 font-medium text-destructive">
+                    <AlertTriangle className="h-3 w-3" /> Este horário já começou — ajuste a
+                    entrada ou remova o dia
+                  </span>
+                ) : semHorario ? (
                   <span className="flex items-center gap-1 text-destructive">
                     <AlertTriangle className="h-3 w-3" /> Sem horário de referência — informe
                   </span>
