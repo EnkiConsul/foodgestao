@@ -101,7 +101,7 @@ export function textoDoErroDePublicacao(mensagem: string): string {
     return `Ninguém está apto a receber a convocação${dia}. Revise horário, unidade, cargo e conflitos do dia.`;
   }
   if (msg.includes("OFFER_ALREADY_STARTED") || msg.includes("OCCURRENCE_ALREADY_STARTED")) {
-    return `O horário${dia} já começou e não pode mais ser publicado.`;
+    return `O horário${dia} já começou. Ajuste a entrada ou tire esse dia da convocação.`;
   }
   if (msg.includes("ANTECEDENCE_JUSTIFICATION_REQUIRED")) {
     return "Escreva a justificativa da exceção para publicar em cima da hora.";
