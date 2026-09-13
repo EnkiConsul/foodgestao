@@ -26,6 +26,7 @@ import { resumoEscolhaFolgas } from "@/lib/dp/dsr-rules";
 
 import { calculateDateStatus, type ColaboradorRecord, type FolgaRecord } from "@/lib/dp/folga-rules";
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
+import { notifyError } from "@/lib/notifyError";
 
 const TIPOS = [
   { value: "folga", label: "Folga" },
@@ -306,7 +307,7 @@ export default function DpMeuSolicitacoes() {
       setOpen(false);
       setForm({ tipo: "folga", data_alvo: undefined, data_fim: undefined, motivo: "" });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Minhas solicitações", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const cancelar = useMutation({
@@ -321,7 +322,7 @@ export default function DpMeuSolicitacoes() {
       toast.success("Solicitação cancelada");
       qc.invalidateQueries({ queryKey: ["dp_meu_sol"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Minhas solicitações", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const filtered = useMemo(() => {

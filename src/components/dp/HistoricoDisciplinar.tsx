@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { notifyError } from "@/lib/notifyError";
 
 export const TIPO_LABEL: Record<string, string> = {
   advertencia_verbal: "Advertência verbal",
@@ -55,7 +56,7 @@ export function HistoricoDisciplinar({
 }: HistoricoDisciplinarProps) {
   const openPdf = async (path: string) => {
     const { data, error } = await supabase.storage.from("dp-disciplinar").createSignedUrl(path, 60);
-    if (error) return toast.error(error.message);
+    if (error) return notifyError(error, { surface: "Pessoas 360°", action: "concluir a ação" });
     window.open(data.signedUrl, "_blank");
   };
 

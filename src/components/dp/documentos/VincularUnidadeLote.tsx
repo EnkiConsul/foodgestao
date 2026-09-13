@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
+import { notifyError } from "@/lib/notifyError";
 
 export interface VincularUnidadeLoteProps {
   batchId: string;
@@ -39,7 +40,7 @@ export function VincularUnidadeLote({ batchId, companyId, onLinked }: VincularUn
       toast.success("Unidade Vinculada Ao Lote");
       onLinked?.(unidadeId);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao vincular unidade"),
+    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Falha ao vincular unidade" }),
   });
 
   return (

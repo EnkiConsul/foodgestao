@@ -23,6 +23,7 @@ import {
 } from "@/hooks/useDpModelosMensagem";
 import { toast } from "sonner";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
+import { notifyError } from "@/lib/notifyError";
 
 const TIPO_LABELS: Record<DpModeloTipo, string> = {
   aniversario: "Aniversário",
@@ -159,7 +160,7 @@ export default function DpMensagens() {
       }
       setAssunto(""); setCorpo(""); setModeloSel("nenhum");
     } catch (e: any) {
-      toast.error(e.message ?? "Erro ao enviar");
+      notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação", fallback: "Erro ao enviar" });
     } finally {
       setEnviando(false);
     }

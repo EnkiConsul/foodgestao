@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pencil, Save, X, User } from "lucide-react";
 import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { notifyError } from "@/lib/notifyError";
 
 export default function DpMeuPerfil() {
   const { user } = useAuth();
@@ -94,7 +95,7 @@ export default function DpMeuPerfil() {
       qc.invalidateQueries({ queryKey: ["dp_meu_perfil"] });
       setEditing(false);
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Meu perfil", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const p = perfil.data as any;

@@ -35,6 +35,7 @@ import { Label } from "@/components/ui/label";
 import { AlertTriangle, Crown, Search, UserPlus } from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 type OwnerPerson = {
   userId: string;
@@ -140,7 +141,7 @@ export function AdminCompanyOwners() {
       setAddEmail("");
       invalidate();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => notifyError(e, { surface: "Backoffice", action: "concluir a ação" }),
   });
 
   const removeOwner = useMutation({
@@ -151,7 +152,7 @@ export function AdminCompanyOwners() {
       setRemoveTarget(null);
       invalidate();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => notifyError(e, { surface: "Backoffice", action: "concluir a ação" }),
   });
 
   const transferOwner = useMutation({
@@ -162,7 +163,7 @@ export function AdminCompanyOwners() {
       setTransferTarget(null);
       invalidate();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => notifyError(e, { surface: "Backoffice", action: "concluir a ação" }),
   });
 
   const filtered = useMemo(() => {

@@ -16,6 +16,7 @@ import {
   type AdiantamentoSolicitacao,
   type AdiantamentoTipoSolicitacao,
 } from "@/lib/dp/adiantamento-opcao";
+import { notifyError } from "@/lib/notifyError";
 
 function hojeISO() {
   return format(new Date(), "yyyy-MM-dd");
@@ -96,7 +97,7 @@ export function AdiantamentoSolicitacoesPanel({
         `${tipo === "ativar" ? "Adiantamento ativado" : "Adiantamento cancelado"} — ${efeitoHint(data, diaPagamento, origem)}`,
       );
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível registrar a solicitação."),
+    onError: (e: any) => notifyError(e, { surface: "Adiantamento", action: "concluir a ação", fallback: "Não foi possível registrar a solicitação." }),
   });
 
   return (

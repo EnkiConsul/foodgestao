@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 export function useCoupons() {
   return useQuery({
@@ -33,7 +34,7 @@ export function useUpsertCoupon() {
       qc.invalidateQueries({ queryKey: ["admin-coupons"] });
       toast.success("Cupom salvo");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao salvar cupom"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao salvar cupom" }),
   });
 }
 
@@ -48,6 +49,6 @@ export function useDeleteCoupon() {
       qc.invalidateQueries({ queryKey: ["admin-coupons"] });
       toast.success("Cupom excluído");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro" }),
   });
 }

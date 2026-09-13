@@ -34,6 +34,7 @@ import { extrairCpfValido, extrairNomePessoa, isCpfValido, pareceRazaoSocial } f
 import { tipoCanonicoPorVinculo } from "@/lib/dp/documento-tipo-por-vinculo";
 import { useNormalizarTipoPorVinculo } from "./useNormalizarTipoPorVinculo";
 import { porDocumento, qualquer, resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { notifyError } from "@/lib/notifyError";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -334,7 +335,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao alterar validação digital"),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao alterar validação digital" }),
   });
 
   /** Interruptor do lote: aplica a todas as páginas ainda não importadas. */
@@ -353,7 +354,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao alterar validação digital do lote"),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao alterar validação digital do lote" }),
   });
 
   const setTipoItem = useMutation({
@@ -390,7 +391,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao alterar natureza"),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao alterar natureza" }),
   });
 
 
@@ -428,7 +429,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
     const { error } = await supabase.from("dp_bulk_import_items" as any)
       .update({ status: "rejected", decided_at: new Date().toISOString() })
       .in("id", ids);
-    if (error) toast.error(error.message ?? "Falha ao ignorar duplicados");
+    if (error) notifyError(error, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao ignorar duplicados" });
   }
 
   async function runApprove(
@@ -491,7 +492,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       }
       if (okc + rep > 0 && loteConcluido(rows as any[], item_ids, ignorados)) onConcluido?.();
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao aprovar");
+      notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao aprovar" });
     } finally {
       setIsSaving(false);
     }
@@ -605,7 +606,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
         if (loteConcluido(rows as any[], [], res.ignorar)) onConcluido?.();
       }
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao verificar duplicidade");
+      notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao verificar duplicidade" });
     } finally {
       setCheckingDup(false);
     }

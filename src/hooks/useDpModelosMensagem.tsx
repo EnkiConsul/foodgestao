@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 export type DpModeloTipo = "aniversario" | "tempo_de_casa" | "outro";
 
@@ -57,7 +58,7 @@ export function useDpModelosMensagem(canal?: DpModeloMensagem["canal"]) {
       qc.invalidateQueries({ queryKey: ["dp_modelos_mensagem"] });
       toast.success("Modelo salvo");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const remove = useMutation({
@@ -72,7 +73,7 @@ export function useDpModelosMensagem(canal?: DpModeloMensagem["canal"]) {
       qc.invalidateQueries({ queryKey: ["dp_modelos_mensagem"] });
       toast.success("Modelo removido");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao remover"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao remover" }),
   });
 
   return { ...query, upsert, remove };

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TURNO_LABEL } from "@/lib/dp/dsr-rules";
+import { notifyError } from "@/lib/notifyError";
 
 const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const TODOS = "__all__";
@@ -72,7 +73,7 @@ export function CoberturaMinimaCard() {
       if (error) throw error;
     },
     onSuccess: () => { invalidate(); toast.success("Regra de cobertura adicionada"); },
-    onError: (e: Error) => toast.error(e.message || "Não foi possível salvar a regra"),
+    onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação", fallback: "Não foi possível salvar a regra" }),
   });
 
   const remover = useMutation({

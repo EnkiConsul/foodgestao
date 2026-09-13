@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { notifyError } from "@/lib/notifyError";
 import {
   lerDetalhe,
   lerExtras,
@@ -143,7 +144,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
       toast.success("Status da folha atualizado.");
       invalidate();
     },
-    onError: (e: Error) => toast.error(e.message || "Não foi possível atualizar o status."),
+    onError: (e: Error) => notifyError(e, { surface: "Folha", action: "concluir a ação", fallback: "Não foi possível atualizar o status." }),
   });
 
   const cancelarLancamento = useMutation({
@@ -158,7 +159,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
       toast.success("Lançamento cancelado.");
       invalidate();
     },
-    onError: (e: Error) => toast.error(e.message || "Não foi possível cancelar o lançamento."),
+    onError: (e: Error) => notifyError(e, { surface: "Folha", action: "concluir a ação", fallback: "Não foi possível cancelar o lançamento." }),
   });
 
   /** Fase 16 — salva as rubricas avulsas de um lançamento e recalcula bruto/líquido. */
@@ -189,7 +190,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
       toast.success("Rubricas atualizadas.");
       invalidate();
     },
-    onError: (e: Error) => toast.error(e.message || "Não foi possível salvar as rubricas."),
+    onError: (e: Error) => notifyError(e, { surface: "Folha", action: "concluir a ação", fallback: "Não foi possível salvar as rubricas." }),
   });
 
   /**
@@ -215,7 +216,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
       toast.success(abonado ? "Atestado abonado — prêmio mantido." : "Abono removido.");
       invalidate();
     },
-    onError: (e: Error) => toast.error(e.message || "Não foi possível registrar o abono."),
+    onError: (e: Error) => notifyError(e, { surface: "Folha", action: "concluir a ação", fallback: "Não foi possível registrar o abono." }),
   });
 
   /** Fase 14 — gera a despesa consolidada da folha no financeiro (conta a pagar). */
@@ -236,7 +237,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
       invalidate();
       qc.invalidateQueries({ queryKey: ["transactions"] });
     },
-    onError: (e: Error) => toast.error(e.message || "Não foi possível gerar a despesa."),
+    onError: (e: Error) => notifyError(e, { surface: "Folha", action: "concluir a ação", fallback: "Não foi possível gerar a despesa." }),
   });
 
   /** Fase 14 — remove a despesa gerada, desde que ainda não confirmada. */
@@ -251,7 +252,7 @@ export function useDpFolhaPeriodo(periodoId: string | undefined) {
       invalidate();
       qc.invalidateQueries({ queryKey: ["transactions"] });
     },
-    onError: (e: Error) => toast.error(e.message || "Não foi possível desfazer a despesa."),
+    onError: (e: Error) => notifyError(e, { surface: "Folha", action: "concluir a ação", fallback: "Não foi possível desfazer a despesa." }),
   });
 
   const transactionId = (linhasQuery.data ?? []).find((l) => l.transaction_id)?.transaction_id ?? null;

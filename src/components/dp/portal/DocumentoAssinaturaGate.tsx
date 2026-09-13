@@ -13,6 +13,7 @@ import {
   useDocumentosAguardandoAssinatura,
   type DocParaAssinar,
 } from "@/hooks/portal/useDocumentosAguardandoAssinatura";
+import { notifyError } from "@/lib/notifyError";
 
 const BUCKET = "dp-documentos";
 /** Se o colaborador fechar sem assinar, o aviso volta depois deste intervalo. */
@@ -75,7 +76,7 @@ export function DocumentoAssinaturaGate() {
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias_colaborador"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível registrar a assinatura"),
+    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Não foi possível registrar a assinatura" }),
   });
 
   if (!atual) return null;

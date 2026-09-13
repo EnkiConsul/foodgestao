@@ -27,6 +27,7 @@ import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { cn } from "@/lib/utils";
 import { DpContentCard, DpEmptyState, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import type { Database } from "@/integrations/supabase/types";
+import { notifyError } from "@/lib/notifyError";
 
 type Tipo = Database["public"]["Enums"]["dp_documento_tipo"];
 
@@ -241,7 +242,7 @@ export default function DpMeuDocumentos() {
       });
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao registrar o aceite"),
+    onError: (e: any) => notifyError(e, { surface: "Meus documentos", action: "concluir a ação", fallback: "Erro ao registrar o aceite" }),
   });
 
   /** Certificado imprimível da aprovação eletrônica. */
@@ -281,7 +282,7 @@ export default function DpMeuDocumentos() {
       toast.success("Envio cancelado");
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao cancelar"),
+    onError: (e: any) => notifyError(e, { surface: "Meus documentos", action: "concluir a ação", fallback: "Erro ao cancelar" }),
   });
 
   return (

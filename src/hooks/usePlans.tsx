@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 export function usePlans() {
   return useQuery({
@@ -49,7 +50,7 @@ export function useUpsertPlan() {
       qc.invalidateQueries({ queryKey: ["admin-plans"] });
       toast.success("Plano salvo");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao salvar plano"),
+    onError: (e: any) => notifyError(e, { surface: "Planos", action: "concluir a ação", fallback: "Erro ao salvar plano" }),
   });
 }
 

@@ -22,6 +22,7 @@ import {
 import { DIA_PAGAMENTO_PADRAO, DIAS_CORTE_PADRAO } from "@/lib/dp/va-calculo";
 import type { ValeTipo } from "@/hooks/useDpValeCalculadora";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 interface Props {
   unidades: { id: string; nome: string }[];
@@ -54,7 +55,7 @@ export function ValesCadastroCard({ unidades, cargos }: Props) {
           : `${META[tipo].nome} removido — a empresa deixou de conceder este vale.`,
       );
     } catch (e: any) {
-      toast.error(e?.message ?? "Não foi possível atualizar o benefício.");
+      notifyError(e, { surface: "Vale-alimentação", action: "concluir a ação", fallback: "Não foi possível atualizar o benefício." });
     } finally {
       setRemovendo(null);
     }

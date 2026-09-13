@@ -8,6 +8,7 @@ import { CurrencyInput, formatCurrency, parseCurrencyToNumber } from "@/componen
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { notifyError } from "@/lib/notifyError";
 
 type Account = Database["public"]["Tables"]["accounts"]["Row"];
 
@@ -60,7 +61,7 @@ export function AdjustAccountBalanceDialog({ open, onOpenChange, account, onAdju
     } as never);
     setSaving(false);
     if (error) {
-      toast.error(error.message || "Erro ao ajustar saldo");
+      notifyError(error, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao ajustar saldo" });
       return;
     }
     toast.success("Saldo ajustado com sucesso");

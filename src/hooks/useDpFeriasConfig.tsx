@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { FeriasSinalizacaoCiclo } from "@/lib/dp/ferias-direito";
+import { notifyError } from "@/lib/notifyError";
 
 export type FeriasAdiantamento13 = "nao" | "legal" | "qualquer_epoca";
 
@@ -114,7 +115,7 @@ export function useDpFeriasConfig() {
       void qc.invalidateQueries({ queryKey: ["dp_ferias_config", selectedCompanyId] });
       void qc.invalidateQueries({ queryKey: ["dp_pendencias", selectedCompanyId] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar a regra"),
+    onError: (e: any) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Não foi possível salvar a regra" }),
   });
 
   return {

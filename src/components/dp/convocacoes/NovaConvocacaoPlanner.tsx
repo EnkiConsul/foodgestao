@@ -23,6 +23,7 @@ import {
 import { RevisaoConvocacao } from "@/components/dp/convocacoes/RevisaoConvocacao";
 import { DiaSimulacaoInline } from "@/components/dp/convocacoes/DiaSimulacaoInline";
 import { resolverHorarioDestinatario } from "@/lib/dp/convocacao-revisao";
+import { notifyError } from "@/lib/notifyError";
 import type { PessoaPanorama } from "@/lib/dp/operacao-panorama";
 
 
@@ -525,7 +526,12 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     const msg = String(e?.message ?? "");
     const ehConflito = e?.code === "23505" || msg.includes("uq_dp_conv_ocor_necessidade_vigente");
     if (!ehConflito) {
-      toast.error(e?.message ?? "Não foi possível salvar o rascunho.");
+      // Falha não reconhecida: linguagem clara + registro (abre o "Relatar problema").
+      notifyError(e, {
+        surface: "Convocações",
+        action: "salvar a convocação",
+        details: { grupo_id: grupoId, unidade_id: unidadeId, dias: listaDias.map((d) => d.data) },
+      });
       return;
     }
     let rascunhoId: string | null = null;
@@ -888,7 +894,18 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
         await tratarErroDeGravacao(e);
       } else {
         setDataComErro(dataDoErroDePublicacao(msg));
-        toast.error(textoDoErroDePublicacao(msg));
+        const texto = textoDoErroDePublicacao(msg);
+        // Mensagem reconhecida (horário, antecedência...) já é amigável; o resto
+        // vira texto claro e é registrado para o botão "Relatar problema".
+        if (texto !== msg) {
+          toast.error(texto, { closeButton: true, duration: 10_000 });
+        } else {
+          notifyError(e, {
+            surface: "Convocações",
+            action: "publicar a convocação",
+            details: { grupo_id: grupoId, unidade_id: unidadeId, dias: listaDias.map((d) => d.data) },
+          });
+        }
       }
     } finally {
       setPublicando(false);
@@ -1380,7 +1397,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                         await persistir();
                         setRevisando(true);
                       } catch (e: any) {
-                        toast.error(e?.message ?? "Não foi possível preparar a revisão.");
+                        notifyError(e, { surface: "Convocações", action: "concluir a ação", fallback: "Não foi possível preparar a revisão." });
                       } finally {
                         setSalvando(false);
                       }

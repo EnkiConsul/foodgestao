@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useDpMural, MURAL_EMOJIS, type MuralAviso } from "@/hooks/useDpMural";
 import { DpErrorState } from "@/components/dp/DpErrorState";
+import { notifyError } from "@/lib/notifyError";
 
 function AvisoCard({
   aviso,
@@ -28,7 +29,7 @@ function AvisoCard({
 
   const abrirAnexo = async (path: string) => {
     const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
-    if (error) return toast.error(error.message);
+    if (error) return notifyError(error, { surface: "Pessoas 360°", action: "concluir a ação" });
     window.open(data.signedUrl, "_blank", "noopener");
   };
 

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { notifyError } from "@/lib/notifyError";
 
 export type ExameAso = Database["public"]["Tables"]["dp_exames_aso"]["Row"] & {
   colaborador_nome?: string | null;
@@ -200,7 +201,7 @@ export function useDpConformidade(colaboradorFilter = "todos") {
       toast.success("Exame salvo");
       invalidate("dp_exames_aso");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao salvar exame"),
+    onError: (e: any) => notifyError(e, { surface: "Conformidade", action: "concluir a ação", fallback: "Erro ao salvar exame" }),
   });
 
   const deleteExame = useMutation({
@@ -212,7 +213,7 @@ export function useDpConformidade(colaboradorFilter = "todos") {
       toast.success("Exame excluído");
       invalidate("dp_exames_aso");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
+    onError: (e: any) => notifyError(e, { surface: "Conformidade", action: "concluir a ação", fallback: "Erro ao excluir" }),
   });
 
   const saveEpi = useMutation({
@@ -231,7 +232,7 @@ export function useDpConformidade(colaboradorFilter = "todos") {
       toast.success("EPI salvo");
       invalidate("dp_epis");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao salvar EPI"),
+    onError: (e: any) => notifyError(e, { surface: "Conformidade", action: "concluir a ação", fallback: "Erro ao salvar EPI" }),
   });
 
   const deleteEpi = useMutation({
@@ -266,7 +267,7 @@ export function useDpConformidade(colaboradorFilter = "todos") {
       toast.success("Entrega registrada");
       invalidate("dp_epis_entregas");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao registrar entrega"),
+    onError: (e: any) => notifyError(e, { surface: "Conformidade", action: "concluir a ação", fallback: "Erro ao registrar entrega" }),
   });
 
   const deleteEntrega = useMutation({
@@ -278,7 +279,7 @@ export function useDpConformidade(colaboradorFilter = "todos") {
       toast.success("Entrega excluída");
       invalidate("dp_epis_entregas");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
+    onError: (e: any) => notifyError(e, { surface: "Conformidade", action: "concluir a ação", fallback: "Erro ao excluir" }),
   });
 
   const saveTreinamento = useMutation({
@@ -297,7 +298,7 @@ export function useDpConformidade(colaboradorFilter = "todos") {
       toast.success("Treinamento salvo");
       invalidate("dp_treinamentos");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao salvar treinamento"),
+    onError: (e: any) => notifyError(e, { surface: "Conformidade", action: "concluir a ação", fallback: "Erro ao salvar treinamento" }),
   });
 
   const deleteTreinamento = useMutation({
@@ -309,7 +310,7 @@ export function useDpConformidade(colaboradorFilter = "todos") {
       toast.success("Treinamento excluído");
       invalidate("dp_treinamentos", "dp_treinamentos_participacoes");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
+    onError: (e: any) => notifyError(e, { surface: "Conformidade", action: "concluir a ação", fallback: "Erro ao excluir" }),
   });
 
   const saveParticipacao = useMutation({
@@ -333,7 +334,7 @@ export function useDpConformidade(colaboradorFilter = "todos") {
       toast.success("Participação salva");
       invalidate("dp_treinamentos_participacoes");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao salvar participação"),
+    onError: (e: any) => notifyError(e, { surface: "Conformidade", action: "concluir a ação", fallback: "Erro ao salvar participação" }),
   });
 
   const deleteParticipacao = useMutation({
@@ -345,7 +346,7 @@ export function useDpConformidade(colaboradorFilter = "todos") {
       toast.success("Participação excluída");
       invalidate("dp_treinamentos_participacoes");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
+    onError: (e: any) => notifyError(e, { surface: "Conformidade", action: "concluir a ação", fallback: "Erro ao excluir" }),
   });
 
   return {

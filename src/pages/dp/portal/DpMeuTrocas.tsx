@@ -22,6 +22,7 @@ import { TextoExpansivel } from "@/components/dp/TextoExpansivel";
 import { textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { notifyError } from "@/lib/notifyError";
 
 const statusLabel: Record<string, string> = {
   pendente_colega: "Aguardando colega",
@@ -126,7 +127,7 @@ export default function DpMeuTrocas() {
       void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Trocas de folga", action: "concluir a ação", fallback: "Erro" }),
   });
 
 
@@ -140,7 +141,7 @@ export default function DpMeuTrocas() {
       qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
       void resolverPendencias(qc, { companyId: meRef.data?.company_id ?? null });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Trocas de folga", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const validation = useMemo(() => {
@@ -175,7 +176,7 @@ export default function DpMeuTrocas() {
       setOpen(false);
       setForm({ destino_id: "", data_original: undefined, data_proposta: undefined, motivo: "" });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Trocas de folga", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const filtered = useMemo(() => {

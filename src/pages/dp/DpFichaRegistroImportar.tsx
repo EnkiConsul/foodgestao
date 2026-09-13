@@ -22,6 +22,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   useDpFichaImportacoes, useDpFichaItens, useEnviarFichaPdf,
 } from "@/hooks/useDpFichaImportacao";
+import { notifyError } from "@/lib/notifyError";
 
 /** Vínculos do cadastro (enum dp_regime_trabalho) — igual ao card de conferência. */
 const REGIMES: Array<{ value: string; label: string }> = [
@@ -112,7 +113,7 @@ export default function DpFichaRegistroImportar() {
         if (inputRef.current) inputRef.current.value = "";
         toast.success("Ficha enviada — estamos lendo os dados");
       },
-      onError: (e: Error) => toast.error(e.message),
+      onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação" }),
     });
   };
 

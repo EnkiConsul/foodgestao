@@ -7,6 +7,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
 import { porDocumento, resolverPendencias, type PendenciaMatch } from "@/lib/dp/pendencias-resolver";
+import { notifyError } from "@/lib/notifyError";
 
 export type DpDocumentoTipo = Database["public"]["Enums"]["dp_documento_tipo"];
 export type DpDocumentoAprov = "pendente" | "aprovado" | "recusado";
@@ -173,7 +174,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
       toast.success("Documento aprovado");
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const recusar = useMutation({
@@ -190,7 +191,7 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
       toast.success("Documento recusado");
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro" }),
   });
 
   return {

@@ -42,6 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { docSourceConfig, excluirDocumentoHistorico } from "@/lib/dp/historicoDocAcoes";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
+import { notifyError } from "@/lib/notifyError";
 
 
 type UnifiedDoc = {
@@ -644,7 +645,7 @@ export default function DpHistoricoCompleto() {
       setMotivoExclusao("");
       recarregar();
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao excluir o documento");
+      notifyError(e, { surface: "Histórico", action: "concluir a ação", fallback: "Falha ao excluir o documento" });
     } finally {
       setExcluindo(false);
     }

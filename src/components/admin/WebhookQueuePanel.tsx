@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Loader2, RefreshCw, RotateCcw, AlertTriangle, Clock, Activity, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 type Provider = "asaas" | "pluggy";
 
@@ -105,7 +106,7 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
       _event_id: id,
     });
     if (error) {
-      toast.error(error.message ?? "Falha ao reenfileirar evento");
+      notifyError(error, { surface: "Backoffice", action: "concluir a ação", fallback: "Falha ao reenfileirar evento" });
       return;
     }
     toast.success("Evento reenfileirado — será processado no próximo ciclo");
@@ -119,7 +120,7 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
       _reason: "descartado no painel administrativo",
     });
     if (error) {
-      toast.error(error.message ?? "Falha ao descartar evento");
+      notifyError(error, { surface: "Backoffice", action: "concluir a ação", fallback: "Falha ao descartar evento" });
       return;
     }
     toast.success("Evento descartado");
@@ -133,7 +134,7 @@ export function WebhookQueuePanel({ provider }: { provider: Provider }) {
       _reason: "descarte em lote no painel administrativo",
     });
     if (error) {
-      toast.error(error.message ?? "Falha ao descartar eventos");
+      notifyError(error, { surface: "Backoffice", action: "concluir a ação", fallback: "Falha ao descartar eventos" });
       return;
     }
     toast.success(`${data ?? 0} evento(s) descartado(s)`);

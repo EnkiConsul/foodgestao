@@ -11,6 +11,7 @@ import {
   type AdiantamentoTipoSolicitacao,
 } from "@/lib/dp/adiantamento-opcao";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { notifyError } from "@/lib/notifyError";
 
 function hojeISO() {
   const d = new Date();
@@ -97,7 +98,7 @@ export function useDpAdiantamentoSolicitacoes(colaboradorId?: string | null) {
       const rotulo = args.tipo === "ativar" ? "Adiantamento ativado" : "Adiantamento cancelado";
       toast.success(`${rotulo} — vale a partir de ${efeito}.`);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível registrar a solicitação."),
+    onError: (e: any) => notifyError(e, { surface: "Adiantamento", action: "concluir a ação", fallback: "Não foi possível registrar a solicitação." }),
   });
 
   return {

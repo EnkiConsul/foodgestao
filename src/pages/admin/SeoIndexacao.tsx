@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { notifyError } from "@/lib/notifyError";
 
 interface UrlResult {
   url: string;
@@ -103,7 +104,7 @@ export default function SeoIndexacao() {
       });
       toast.success("Consulta atualizada");
     },
-    onError: (e: Error) => toast.error(e.message || "Falha ao consultar Search Console"),
+    onError: (e: Error) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Falha ao consultar Search Console" }),
   });
 
   const refreshAll = () => inspect.mutate(MONITORED_URLS);

@@ -19,6 +19,7 @@ import { useDpSindicatos } from "@/hooks/useDpCadastros";
 import { AplicarPisoUnidadeDialog } from "@/components/dp/AplicarPisoUnidadeDialog";
 import type { Database } from "@/integrations/supabase/types";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { notifyError } from "@/lib/notifyError";
 
 type Negociacao = Database["public"]["Tables"]["dp_sindicato_negociacoes"]["Row"] & {
   sindicato_laboral_id?: string | null;
@@ -228,7 +229,7 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
 
   const openPdf = async (path: string, download = false) => {
     const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60, { download });
-    if (error || !data) return toast.error(error?.message ?? "Erro ao gerar link");
+    if (error || !data) return notifyError(error, { surface: "Sindicatos", action: "concluir a ação", fallback: "Erro ao gerar link" });
     if (download) {
       const a = document.createElement("a");
       a.href = data.signedUrl;

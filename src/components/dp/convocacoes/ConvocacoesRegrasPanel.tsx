@@ -13,6 +13,7 @@ import {
   useDpConvocacaoConfig,
   useSalvarConvocacaoConfig,
 } from "@/hooks/useDpConvocacaoGrupos";
+import { notifyError } from "@/lib/notifyError";
 
 const EMPRESA = "__empresa__";
 
@@ -95,7 +96,7 @@ export function ConvocacoesRegrasPanel() {
       });
       toast.success("Regras de convocação salvas.");
     } catch (e: any) {
-      toast.error(e?.message ?? "Não foi possível salvar as regras.");
+      notifyError(e, { surface: "Convocações", action: "concluir a ação", fallback: "Não foi possível salvar as regras." });
     }
   };
 

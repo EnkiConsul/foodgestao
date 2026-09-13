@@ -37,6 +37,7 @@ import {
   type TipoAfastamento,
 } from "@/lib/dp/licencas";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { notifyError } from "@/lib/notifyError";
 
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
 type Row = Database["public"]["Tables"]["dp_solicitacoes"]["Row"] & {
@@ -357,7 +358,7 @@ export default function DpAtestados() {
       qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
       setTab("historico");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao importar"),
+    onError: (e: any) => notifyError(e, { surface: "Atestados", action: "concluir a ação", fallback: "Erro ao importar" }),
   });
 
   const respond = useMutation({
@@ -377,7 +378,7 @@ export default function DpAtestados() {
       void resolverPendencias(qc, { companyId: selectedCompanyId });
       setRecusaId(null);
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Atestados", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const doDelete = useMutation({
@@ -392,7 +393,7 @@ export default function DpAtestados() {
       void resolverPendencias(qc, { companyId: selectedCompanyId });
       setToDelete(null);
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
+    onError: (e: any) => notifyError(e, { surface: "Atestados", action: "concluir a ação", fallback: "Erro ao excluir" }),
   });
 
   const doEdit = useMutation({
@@ -416,7 +417,7 @@ export default function DpAtestados() {
       void resolverPendencias(qc, { companyId: selectedCompanyId });
       setEditing(null);
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar"),
+    onError: (e: any) => notifyError(e, { surface: "Atestados", action: "concluir a ação", fallback: "Erro ao atualizar" }),
   });
 
   const handleDownload = async (r: Row) => {

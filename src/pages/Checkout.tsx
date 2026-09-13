@@ -14,6 +14,7 @@ import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { formatCents } from "@/lib/billing";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 type Method = "PIX" | "BOLETO" | "CREDIT_CARD";
 
@@ -104,7 +105,7 @@ export default function Checkout() {
       toast.success("Cobrança criada — finalize o pagamento");
       navigate(`/checkout/pagamento/${data.invoiceId}`);
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao processar"),
+    onError: (e: any) => notifyError(e, { surface: "Assinatura", action: "concluir a ação", fallback: "Erro ao processar" }),
   });
 
   if (isLoading) {

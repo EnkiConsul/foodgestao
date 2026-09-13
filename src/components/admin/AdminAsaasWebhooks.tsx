@@ -19,6 +19,7 @@ import {
 import { Loader2, RefreshCw, Eye, CheckCircle2, AlertCircle, Clock, Send, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { notifyError } from "@/lib/notifyError";
 
 
 type WebhookEvent = {
@@ -86,7 +87,7 @@ export function AdminAsaasWebhooks() {
         toast.error(`Webhook retornou status ${data?.status}`);
       }
     } catch (e: any) {
-      toast.error(e.message ?? "Falha ao enviar webhook de teste");
+      notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Falha ao enviar webhook de teste" });
       setTestResult({ error: e.message });
     } finally {
       setTestSending(false);

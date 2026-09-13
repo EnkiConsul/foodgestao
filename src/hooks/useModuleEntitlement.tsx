@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { AppModule } from "@/lib/modules";
+import { notifyError } from "@/lib/notifyError";
 import {
   DENIED_MODULE_ENTITLEMENT,
   type ModuleEntitlement,
@@ -92,7 +93,7 @@ export function useStartModuleTrial(module: AppModule) {
       queryClient.invalidateQueries({ queryKey: ["company_modules"] });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Não foi possível iniciar o teste gratuito.");
+      notifyError(error, { surface: "Módulos", action: "concluir a ação", fallback: "Não foi possível iniciar o teste gratuito." });
     },
   });
 }

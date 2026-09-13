@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
+import { notifyError } from "@/lib/notifyError";
 
 export type FeriasPeriodo = Database["public"]["Tables"]["dp_ferias_periodos"]["Row"] & {
   colaborador_nome?: string | null;
@@ -102,7 +103,7 @@ export function useDpFerias(colaboradorFilter: string) {
       );
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao gerar períodos"),
+    onError: (e: any) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Erro ao gerar períodos" }),
   });
 
   /**

@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { RefreshCw } from "lucide-react";
 import { parseEdgeFunctionError } from "@/lib/edgeFunctionError";
+import { notifyError } from "@/lib/notifyError";
 
 type RequestRow = {
   id: string;
@@ -84,7 +85,7 @@ export function PluggyConnectRequests() {
       if (!data?.items?.length) toast.info("Nenhum item encontrado na Pluggy para esse filtro");
     } catch (e: any) {
       console.error(e);
-      toast.error(e?.message ?? "Falha ao consultar itens na Pluggy");
+      notifyError(e, { surface: "Conexões bancárias", action: "concluir a ação", fallback: "Falha ao consultar itens na Pluggy" });
     } finally {
       setSearching(false);
     }

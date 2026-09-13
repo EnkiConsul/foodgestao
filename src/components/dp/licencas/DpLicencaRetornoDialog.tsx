@@ -18,6 +18,7 @@ import {
 import { labelAfastamento } from "@/lib/dp/licencas";
 import { porIds, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { notifyError } from "@/lib/notifyError";
 
 export type LicencaRetornoAlvo = {
   solicitacaoId: string;
@@ -109,7 +110,7 @@ export function DpLicencaRetornoDialog({
       onOpenChange(false);
       onResolved?.();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar"),
+    onError: (e: any) => notifyError(e, { surface: "Licenças", action: "concluir a ação", fallback: "Não foi possível salvar" }),
   });
 
   const rotulo = labelAfastamento(alvo?.tipo);

@@ -19,6 +19,7 @@ import { PayInvoiceDialog } from "@/components/credit-cards/PayInvoiceDialog";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import { InvoiceTransactionsList, type InvoiceTransaction } from "@/components/credit-cards/InvoiceTransactionsList";
 import type { Database } from "@/integrations/supabase/types";
+import { notifyError } from "@/lib/notifyError";
 
 type CreditCardRow = Database["public"]["Tables"]["credit_cards"]["Row"];
 type Invoice = Database["public"]["Tables"]["credit_card_invoices"]["Row"];
@@ -159,7 +160,7 @@ export default function CartoesCredito() {
   const handleDelete = async () => {
     if (!deleteCard) return;
     const { error } = await supabase.from("credit_cards").delete().eq("id", deleteCard.id);
-    if (error) toast.error(error.message);
+    if (error) notifyError(error, { surface: "Sistema", action: "concluir a ação" });
     else { toast.success("Cartão excluído"); fetchAll(); }
     setDeleteCard(null);
   };

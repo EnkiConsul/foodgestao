@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { FlaskConical, Loader2, Send, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 /**
  * Sandbox card to fire a synthetic end-to-end checkout flow without using Asaas.
@@ -55,7 +56,7 @@ export function SandboxTestCard() {
         toast.error(`Webhook retornou status ${data?.status ?? "desconhecido"}`);
       }
     } catch (e: any) {
-      toast.error(e.message ?? "Falha ao disparar teste");
+      notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Falha ao disparar teste" });
       setLastResult({ ok: false, invoiceId: null, eventType, at: new Date().toLocaleString("pt-BR") });
     } finally {
       setSending(false);
