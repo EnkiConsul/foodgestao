@@ -631,6 +631,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const diasCompletos = useMemo(() => listaDias.filter(diaCompleto), [listaDias]);
   const diasIncompletos = listaDias.length - diasCompletos.length;
   const foraDaAntecedencia = diasCompletos.filter((d) => antecedenciaDias(d.data) < antecedenciaMinima);
+  /** Dias cujo horário de entrada já passou — o banco recusa a publicação. */
+  const diasJaComecaram = listaDias.filter((d) => horarioJaComecou(d.data, d.entrada));
 
   const podeSalvar = !!unidadeId && cargoIds.length > 0 && destinatarios.length > 0 && diasCompletos.length > 0;
 
