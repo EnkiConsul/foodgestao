@@ -1303,6 +1303,19 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                 <Textarea rows={2} value={observacao} onChange={(e) => setObservacao(e.target.value)} />
               </div>
 
+              {diasJaComecaram.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    {diasJaComecaram.length === 1
+                      ? `O horário de ${rotuloData(diasJaComecaram[0].data)} já começou.`
+                      : `${diasJaComecaram.length} dia(s) com horário já iniciado.`}{" "}
+                    Ajuste a entrada para um horário depois de agora ou remova o dia — não é
+                    possível convocar para um turno que já começou.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {foraDaAntecedencia.length > 0 && (
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
@@ -1342,7 +1355,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     size="sm"
                     onClick={publicarGrupo}
                     disabled={!podeSalvar || publicando || salvando ||
-                      preAvaliacao.isLoading || diasSemApto.length > 0}
+                      preAvaliacao.isLoading || diasSemApto.length > 0 ||
+                      diasJaComecaram.length > 0}
                   >
                     {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
                     Confirmar e publicar
