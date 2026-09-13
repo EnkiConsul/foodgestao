@@ -525,7 +525,12 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     const msg = String(e?.message ?? "");
     const ehConflito = e?.code === "23505" || msg.includes("uq_dp_conv_ocor_necessidade_vigente");
     if (!ehConflito) {
-      toast.error(e?.message ?? "Não foi possível salvar o rascunho.");
+      // Falha não reconhecida: linguagem clara + registro (abre o "Relatar problema").
+      notifyError(e, {
+        surface: "Convocações",
+        action: "salvar a convocação",
+        details: { grupo_id: grupoId, unidade_id: unidadeId, dias: listaDias.map((d) => d.data) },
+      });
       return;
     }
     let rascunhoId: string | null = null;
