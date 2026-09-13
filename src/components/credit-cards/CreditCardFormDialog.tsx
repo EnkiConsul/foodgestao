@@ -13,6 +13,7 @@ import { getAccountPaymentLabel } from "@/lib/accounts/accountLabels";
 const numToInput = (n: number) => formatCurrency(String(Math.round(n * 100)));
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { notifyError } from "@/lib/notifyError";
 
 type CreditCard = Database["public"]["Tables"]["credit_cards"]["Row"];
 type Account = Database["public"]["Tables"]["accounts"]["Row"];
@@ -105,7 +106,7 @@ export function CreditCardFormDialog({ open, onOpenChange, onSaved, card }: Prop
       ? await supabase.from("credit_cards").update(payload).eq("id", card!.id)
       : await supabase.from("credit_cards").insert(payload);
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) return notifyError(error, { surface: "Cartões", action: "concluir a ação" });
     toast.success(isEdit ? "Cartão atualizado" : "Cartão criado");
     onSaved();
     onOpenChange(false);

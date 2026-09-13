@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
+import { notifyError } from "@/lib/notifyError";
 
 const MAX_UPLOAD_MB = 10;
 const ALLOWED_MIMES = [
@@ -78,7 +79,7 @@ function AvisoDialog({
       setArquivoMime(file.type);
       toast.success("Arquivo enviado");
     } catch (e: any) {
-      toast.error(e.message ?? "Erro no upload");
+      notifyError(e, { surface: "Avisos", action: "concluir a ação", fallback: "Erro no upload" });
     } finally { setUploading(false); }
   };
 
@@ -223,7 +224,7 @@ export default function DpAvisos() {
 
   const openAnexo = async (path: string) => {
     const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
-    if (error) return toast.error(error.message);
+    if (error) return notifyError(error, { surface: "Avisos", action: "concluir a ação" });
     window.open(data.signedUrl, "_blank", "noopener");
   };
 

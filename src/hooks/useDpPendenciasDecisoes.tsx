@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 export type PendenciaDecisao = {
   id: string;
@@ -92,7 +93,7 @@ export function useDpPendenciasDecisoes() {
       qc.invalidateQueries({ queryKey: ["dp_pendencias_decisoes"] });
       toast.success(args.acao === "ignorar" ? "Pendência ignorada para toda a empresa." : "Pendência adiada para toda a empresa.");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível registrar a decisão."),
+    onError: (e: any) => notifyError(e, { surface: "Pendências", action: "concluir a ação", fallback: "Não foi possível registrar a decisão." }),
   });
 
   const remover = useMutation({
@@ -108,7 +109,7 @@ export function useDpPendenciasDecisoes() {
       qc.invalidateQueries({ queryKey: ["dp_pendencias_decisoes"] });
       toast.success("Decisão removida — a pendência voltou a aparecer.");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível remover a decisão."),
+    onError: (e: any) => notifyError(e, { surface: "Pendências", action: "concluir a ação", fallback: "Não foi possível remover a decisão." }),
   });
 
   return { decisoes, ignoradas, adiadas, decisaoDe, decidir, remover, isLoading: query.isLoading };

@@ -11,6 +11,7 @@ import { CurrencyInput, parseCurrencyToNumber, formatCurrency } from "@/componen
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { notifyError } from "@/lib/notifyError";
 
 const numToInput = (n: number) => formatCurrency(String(Math.round(n * 100)));
 
@@ -80,7 +81,7 @@ export function PayInvoiceDialog({ open, onOpenChange, onPaid, invoice, defaultP
       _notes: notes || undefined,
     });
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) return notifyError(error, { surface: "Cartões", action: "concluir a ação" });
     const res = (data ?? {}) as { status?: string; remainder?: number; interest_charged?: number };
     if (res.status === "parcial") {
       toast.success(`Pagamento parcial. Rotativo: ${brl(res.remainder ?? 0)} + juros ${brl(res.interest_charged ?? 0)}`);

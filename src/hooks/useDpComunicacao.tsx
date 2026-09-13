@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 export type DpAviso = {
   id: string;
@@ -77,7 +78,7 @@ export function useDpAvisos() {
       qc.invalidateQueries({ queryKey: ["dp_avisos"] });
       toast.success("Aviso salvo");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao salvar aviso"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao salvar aviso" }),
   });
 
   const remove = useMutation({
@@ -89,7 +90,7 @@ export function useDpAvisos() {
       qc.invalidateQueries({ queryKey: ["dp_avisos"] });
       toast.success("Aviso removido");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao remover"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao remover" }),
   });
 
   return { ...query, upsert, remove };
@@ -133,7 +134,7 @@ export function useDpMensagens() {
       qc.invalidateQueries({ queryKey: ["dp_mensagens"] });
       toast.success("Mensagem enviada");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao enviar"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao enviar" }),
   });
 
   const remove = useMutation({
@@ -145,7 +146,7 @@ export function useDpMensagens() {
       qc.invalidateQueries({ queryKey: ["dp_mensagens"] });
       toast.success("Mensagem removida");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao remover"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao remover" }),
   });
 
   return { ...query, send, remove };

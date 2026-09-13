@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { FeriasAdiantamento13 } from "@/hooks/useDpFeriasConfig";
+import { notifyError } from "@/lib/notifyError";
 
 export type OverrideUnidade = {
   id: string;
@@ -65,7 +66,7 @@ export function useDpFeriasConfigUnidades() {
       toast.success("Exceção da unidade atualizada");
       void qc.invalidateQueries({ queryKey: chave });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar a exceção"),
+    onError: (e: any) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Não foi possível salvar a exceção" }),
   });
 
   return { overrides: query.data ?? [], isLoading: query.isLoading, save };

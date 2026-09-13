@@ -335,7 +335,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao alterar validação digital"),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao alterar validação digital" }),
   });
 
   /** Interruptor do lote: aplica a todas as páginas ainda não importadas. */
@@ -354,7 +354,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao alterar validação digital do lote"),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao alterar validação digital do lote" }),
   });
 
   const setTipoItem = useMutation({
@@ -391,7 +391,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao alterar natureza"),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao alterar natureza" }),
   });
 
 
@@ -429,7 +429,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
     const { error } = await supabase.from("dp_bulk_import_items" as any)
       .update({ status: "rejected", decided_at: new Date().toISOString() })
       .in("id", ids);
-    if (error) toast.error(error.message ?? "Falha ao ignorar duplicados");
+    if (error) notifyError(error, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao ignorar duplicados" });
   }
 
   async function runApprove(

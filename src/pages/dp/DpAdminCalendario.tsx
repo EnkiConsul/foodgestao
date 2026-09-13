@@ -83,6 +83,7 @@ import { LiberarEscopoDialog } from "@/components/dp/bloqueios/LiberarEscopoDial
 import { CalendarioMobileLista } from "@/components/dp/CalendarioMobileLista";
 import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
 import { isSocio } from "@/lib/dp/contrato-policy";
+import { notifyError } from "@/lib/notifyError";
 
 
 const isoWeekKey = (d: Date) => `${getISOWeekYear(d)}-${getISOWeek(d)}`;
@@ -435,7 +436,7 @@ export default function DpAdminCalendario() {
       if (data?.ignoradas?.length) toast.info(`${data.ignoradas.length} ignoradas (limites/bloqueios)`);
       qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro no sorteio"),
+    onError: (e: any) => notifyError(e, { surface: "Calendário", action: "concluir a ação", fallback: "Erro no sorteio" }),
   });
 
   const gerarBloqueios = useMutation({
@@ -451,7 +452,7 @@ export default function DpAdminCalendario() {
       toast.success(`${n ?? 0} datas bloqueadas geradas para ${ano}`);
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Calendário", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const removerFolga = useMutation({
@@ -466,7 +467,7 @@ export default function DpAdminCalendario() {
       toast.success("Folga cancelada");
       qc.invalidateQueries({ queryKey: ["dp_folgas_admin"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao cancelar"),
+    onError: (e: any) => notifyError(e, { surface: "Calendário", action: "concluir a ação", fallback: "Erro ao cancelar" }),
   });
 
 
@@ -492,7 +493,7 @@ export default function DpAdminCalendario() {
       toast.success("Limite atualizado");
       qc.invalidateQueries({ queryKey: ["dp_dia_config"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Calendário", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const [liberarEscopoOpen, setLiberarEscopoOpen] = useState(false);
@@ -524,7 +525,7 @@ export default function DpAdminCalendario() {
       setLiberarEscopoOpen(false);
       setDayOpen(null);
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao liberar"),
+    onError: (e: any) => notifyError(e, { surface: "Calendário", action: "concluir a ação", fallback: "Erro ao liberar" }),
   });
 
   /** Remove o override de liberação, devolvendo a data ao estado bloqueado. */
@@ -540,7 +541,7 @@ export default function DpAdminCalendario() {
       qc.invalidateQueries({ queryKey: ["dp_datas_bloqueadas_geral"] });
       setDayOpen(null);
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao bloquear novamente"),
+    onError: (e: any) => notifyError(e, { surface: "Calendário", action: "concluir a ação", fallback: "Erro ao bloquear novamente" }),
   });
 
 
@@ -627,7 +628,7 @@ export default function DpAdminCalendario() {
       }
       setAssignUser("");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao atribuir"),
+    onError: (e: any) => notifyError(e, { surface: "Calendário", action: "concluir a ação", fallback: "Erro ao atribuir" }),
   });
 
 

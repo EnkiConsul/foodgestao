@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import {
+import { notifyError } from "@/lib/notifyError";
   useDocumentosAguardandoAssinatura,
   type DocParaAssinar,
 } from "@/hooks/portal/useDocumentosAguardandoAssinatura";
@@ -75,7 +76,7 @@ export function DocumentoAssinaturaGate() {
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
       qc.invalidateQueries({ queryKey: ["dp_pendencias_colaborador"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível registrar a assinatura"),
+    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Não foi possível registrar a assinatura" }),
   });
 
   if (!atual) return null;

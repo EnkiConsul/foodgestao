@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { ValeTipo } from "@/hooks/useDpValeCalculadora";
+import { notifyError } from "@/lib/notifyError";
 
 /**
  * Cálculo mensal dos vales pagos por dia (alimentação e transporte).
@@ -133,7 +134,7 @@ export function useDpValeApuracoes(tipo: ValeTipo, competencia: string) {
       if (error) throw error;
     },
     onSuccess: invalidar,
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível salvar os dias informados."),
+    onError: (e: any) => notifyError(e, { surface: "Vale-alimentação", action: "concluir a ação", fallback: "Não foi possível salvar os dias informados." }),
   });
 
   /** Fecha o ciclo: grava todas as linhas e marca a data do fechamento. */
@@ -164,7 +165,7 @@ export function useDpValeApuracoes(tipo: ValeTipo, competencia: string) {
       invalidar();
       toast.success("Ciclo fechado. Os dias pagos já valem para o próximo mês.");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível fechar o ciclo."),
+    onError: (e: any) => notifyError(e, { surface: "Vale-alimentação", action: "concluir a ação", fallback: "Não foi possível fechar o ciclo." }),
   });
 
   return {

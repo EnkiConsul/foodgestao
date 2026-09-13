@@ -8,6 +8,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUpsertDpCargo } from "@/hooks/useDpCadastros";
+import { notifyError } from "@/lib/notifyError";
 
 interface Props {
   open: boolean;
@@ -62,7 +63,7 @@ export function CargoCorrespondenciaDialog({ open, onOpenChange, cargoNome, cbo,
                     onCriado((cargo as { id: string }).id);
                     onOpenChange(false);
                   },
-                  onError: (e: Error) => toast.error(e.message),
+                  onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação" }),
                 },
               )
             }

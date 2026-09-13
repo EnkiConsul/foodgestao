@@ -18,6 +18,7 @@ import { DpPage, DpPageHeader, useDpEmbedded } from "@/components/dp/DpPage";
 import { MobileDetailsSheet } from "@/components/dp/MobileCardKit";
 import type { Database } from "@/integrations/supabase/types";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { notifyError } from "@/lib/notifyError";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
@@ -132,7 +133,7 @@ export default function DpSolicitacoes() {
 
   const openArquivo = async (path: string) => {
     const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
-    if (error) return toast.error(error.message);
+    if (error) return notifyError(error, { surface: "Pessoas 360°", action: "concluir a ação" });
     window.open(data.signedUrl, "_blank");
   };
 

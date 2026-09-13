@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Search, Mail, Pencil, MailCheck, Copy } from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 type Row = {
   id: string;
@@ -87,7 +88,7 @@ export default function AdminCadastros() {
       qc.invalidateQueries({ queryKey: ["admin-cadastros"] });
       setEditing(null);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar"),
+    onError: (e: any) => notifyError(e, { surface: "Cadastros", action: "concluir a ação", fallback: "Erro ao salvar" }),
   });
 
   const resend = useMutation({
@@ -99,7 +100,7 @@ export default function AdminCadastros() {
       if ((data as any)?.error) throw new Error((data as any).error);
     },
     onSuccess: () => toast.success("E-mail de confirmação reenviado"),
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao reenviar"),
+    onError: (e: any) => notifyError(e, { surface: "Cadastros", action: "concluir a ação", fallback: "Falha ao reenviar" }),
   });
 
   const openEdit = (row: Row) => {

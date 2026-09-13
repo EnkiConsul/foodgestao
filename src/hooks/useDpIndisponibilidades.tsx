@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { DisponibilidadeJanela } from "@/lib/dp/disponibilidade-janela";
+import { notifyError } from "@/lib/notifyError";
 
 
 export type DisponibilidadeDia =
@@ -159,7 +160,7 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
           : "Dia marcado como indisponível.",
       );
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => notifyError(e, { surface: "Sistema", action: "concluir a ação" }),
   });
 
   const remover = useMutation({
@@ -171,7 +172,7 @@ export function useDpIndisponibilidades({ colaboradorId, ano, mes, enabled = tru
       invalidar();
       toast.success("Indisponibilidade removida. Você volta a receber convocações neste dia.");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => notifyError(e, { surface: "Sistema", action: "concluir a ação" }),
   });
 
   const tardiaPorDia = useMemo(() => {

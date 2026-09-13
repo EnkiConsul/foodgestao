@@ -68,6 +68,7 @@ import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { MinhaDisponibilidadeCard } from "@/components/dp/MinhaDisponibilidadeCard";
 import { regimeConvocavel } from "@/lib/dp/convocacoes-planejamento";
+import { notifyError } from "@/lib/notifyError";
 
 /** Retorno do cálculo do período de escolha feito no servidor. */
 interface JanelaRemota {
@@ -625,7 +626,7 @@ export default function DpMeuCalendario() {
         setSocioBloqueio({ nome: me.nome ?? "Sócio", datas: [iso], unidadeId: me.unidade_id ?? null });
       }
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao marcar folga"),
+    onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao marcar folga" }),
   });
 
   const removerFolga = useMutation({
@@ -652,7 +653,7 @@ export default function DpMeuCalendario() {
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao remover folga"),
+    onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao remover folga" }),
   });
 
   const enviarExcecao = useMutation({
@@ -690,7 +691,7 @@ export default function DpMeuCalendario() {
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao enviar exceção"),
+    onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao enviar exceção" }),
   });
 
 
@@ -740,7 +741,7 @@ export default function DpMeuCalendario() {
       setTradeMotivo("");
       setSelectedDay(null);
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao solicitar troca"),
+    onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao solicitar troca" }),
   });
 
   // -------- Dados do dia selecionado --------

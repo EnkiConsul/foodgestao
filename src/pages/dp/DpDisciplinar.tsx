@@ -26,6 +26,7 @@ import { DpFilePicker } from "@/components/dp/DpFilePicker";
 import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
+import { notifyError } from "@/lib/notifyError";
 
 const BUCKET = "dp-disciplinar";
 
@@ -330,7 +331,7 @@ export default function DpDisciplinar() {
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
       setTab("historico");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao importar"),
+    onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "concluir a ação", fallback: "Erro ao importar" }),
   });
 
   const doDelete = useMutation({
@@ -344,7 +345,7 @@ export default function DpDisciplinar() {
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
       setToDelete(null);
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
+    onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "concluir a ação", fallback: "Erro ao excluir" }),
   });
 
   const doEdit = useMutation({
@@ -369,7 +370,7 @@ export default function DpDisciplinar() {
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
       setEditing(null);
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar"),
+    onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "concluir a ação", fallback: "Erro ao atualizar" }),
   });
 
   const genPdf = useMutation({
@@ -384,7 +385,7 @@ export default function DpDisciplinar() {
       if (data.signed_url) window.open(data.signed_url, "_blank");
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao gerar PDF"),
+    onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "concluir a ação", fallback: "Erro ao gerar PDF" }),
   });
 
   const handleDownload = async (r: Registro) => {

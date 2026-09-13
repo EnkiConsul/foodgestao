@@ -1397,7 +1397,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                         await persistir();
                         setRevisando(true);
                       } catch (e: any) {
-                        toast.error(e?.message ?? "Não foi possível preparar a revisão.");
+                        notifyError(e, { surface: "Convocações", action: "concluir a ação", fallback: "Não foi possível preparar a revisão." });
                       } finally {
                         setSalvando(false);
                       }

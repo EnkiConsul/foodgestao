@@ -27,6 +27,7 @@ import { BulkReviewInline } from "./BulkReviewInline";
 import { NovoColaboradorInlineDialog } from "./NovoColaboradorInlineDialog";
 import { DP_DOC_TIPOS_IMPORTAVEIS, docTipoGrupo, docTipoLabel } from "@/lib/dp/documentoTipos";
 import { competenciaPredominante } from "@/lib/dp/bulk-coverage";
+import { notifyError } from "@/lib/notifyError";
 
 const AUTO_TIPO = "__auto";
 
@@ -301,7 +302,7 @@ export function BulkImportPanel({
       qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao enviar"),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao enviar" }),
     onSettled: () => setUploading(false),
   });
 
@@ -315,7 +316,7 @@ export function BulkImportPanel({
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items"] }),
-    onError: (e: any) => toast.error(e?.message ?? "Falha"),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha" }),
   });
 
   const reject = useMutation({
@@ -354,7 +355,7 @@ export function BulkImportPanel({
       qc.invalidateQueries({ queryKey: ["dp_documentos"] });
       qc.invalidateQueries({ queryKey: ["dp_doc_counts"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao importar"),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao importar" }),
   });
 
   const discardBatch = useMutation({
@@ -372,7 +373,7 @@ export function BulkImportPanel({
       qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao descartar lote"),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao descartar lote" }),
   });
 
   const openPage = async (path: string) => {

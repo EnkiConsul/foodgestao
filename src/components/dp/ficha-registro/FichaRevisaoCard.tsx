@@ -22,6 +22,7 @@ import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 import { CargoCorrespondenciaDialog } from "./CargoCorrespondenciaDialog";
 import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
 import {
+import { notifyError } from "@/lib/notifyError";
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
 
@@ -164,7 +165,7 @@ export function FichaRevisaoCard({
           setComparacao(false);
           toast.success(atualizar ? "Cadastro atualizado" : "Colaborador cadastrado");
         },
-        onError: (e: Error) => toast.error(e.message),
+        onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação" }),
       },
     );
   };
@@ -644,7 +645,7 @@ export function FichaRevisaoCard({
               variant="ghost"
               size="sm"
               disabled={ignorar.isPending}
-              onClick={() => ignorar.mutate(item, { onError: (e: Error) => toast.error(e.message) })}
+              onClick={() => ignorar.mutate(item, { onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação" }) })}
             >
               <X className="mr-1 h-4 w-4" /> Ignorar
             </Button>

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 export type MuralAviso = {
   id: string;
@@ -142,7 +143,7 @@ export function useDpMural() {
       if (error) throw error;
     },
     onSuccess: invalidate,
-    onError: (e: any) => toast.error(e.message ?? "Erro ao confirmar leitura"),
+    onError: (e: any) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao confirmar leitura" }),
   });
 
   const toggleReacao = useMutation({
@@ -166,7 +167,7 @@ export function useDpMural() {
       if (error) throw error;
     },
     onSuccess: invalidate,
-    onError: (e: any) => toast.error(e.message ?? "Erro ao reagir"),
+    onError: (e: any) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao reagir" }),
   });
 
   const comentar = useMutation({
@@ -193,7 +194,7 @@ export function useDpMural() {
       invalidate();
       toast.success("Comentário enviado para moderação");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao comentar"),
+    onError: (e: any) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao comentar" }),
   });
 
   const removerComentario = useMutation({
@@ -202,7 +203,7 @@ export function useDpMural() {
       if (error) throw error;
     },
     onSuccess: invalidate,
-    onError: (e: any) => toast.error(e.message ?? "Erro ao remover"),
+    onError: (e: any) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao remover" }),
   });
 
   return {
@@ -262,7 +263,7 @@ export function useDpAvisoEngajamento(avisoId: string | null) {
       qc.invalidateQueries({ queryKey: ["dp_mural_comentarios"] });
       toast.success("Comentário moderado");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao moderar"),
+    onError: (e: any) => notifyError(e, { surface: "Mural", action: "concluir a ação", fallback: "Erro ao moderar" }),
   });
 
   return { ...query, moderar };

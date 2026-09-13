@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 export function useAdminSubscriptions() {
   return useQuery({
@@ -45,7 +46,7 @@ export function useUpdateSubscription() {
       qc.invalidateQueries({ queryKey: ["current-subscription"] });
       toast.success("Assinatura atualizada");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao atualizar" }),
   });
 }
 
@@ -60,7 +61,7 @@ export function useUpdateInvoice() {
       qc.invalidateQueries({ queryKey: ["admin-invoices"] });
       toast.success("Fatura atualizada");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro" }),
   });
 }
 
@@ -86,7 +87,7 @@ export function useExemptSubscription() {
       qc.invalidateQueries({ queryKey: ["admin-audit-logs"] });
       toast.success("Cliente isentado da mensalidade");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao isentar"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao isentar" }),
   });
 }
 
@@ -108,7 +109,7 @@ export function useRemoveExemption() {
       qc.invalidateQueries({ queryKey: ["admin-audit-logs"] });
       toast.success("Isenção removida");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao remover isenção"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao remover isenção" }),
   });
 }
 

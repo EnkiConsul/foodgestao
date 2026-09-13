@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database } from "@/integrations/supabase/types";
+import { notifyError } from "@/lib/notifyError";
 
 export type Beneficio = Database["public"]["Tables"]["dp_beneficios"]["Row"];
 export type ColaboradorBeneficio =
@@ -125,7 +126,7 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
       toast.success("Benefício salvo");
       invalidate("dp_beneficios", "dp_colaborador_beneficios");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao salvar benefício"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao salvar benefício" }),
   });
 
   const deleteBeneficio = useMutation({
@@ -176,7 +177,7 @@ export function useDpBeneficios(colaboradorFilter = "todos") {
       toast.success("Vínculo removido");
       invalidate("dp_colaborador_beneficios");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro ao excluir"),
+    onError: (e: any) => notifyError(e, { surface: "Sistema", action: "concluir a ação", fallback: "Erro ao excluir" }),
   });
 
   return {

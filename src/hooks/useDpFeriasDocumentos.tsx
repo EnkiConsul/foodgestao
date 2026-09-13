@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { notifyError } from "@/lib/notifyError";
 
 export type FeriasDocTipo = "aviso_ferias" | "recibo_ferias";
 
@@ -125,7 +126,7 @@ export function useDpFeriasDocumentos() {
       toast.success("Documento anexado às férias");
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao anexar documento"),
+    onError: (e: any) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Erro ao anexar documento" }),
   });
 
   const excluir = useMutation({
@@ -138,7 +139,7 @@ export function useDpFeriasDocumentos() {
       toast.success("Documento removido");
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao remover documento"),
+    onError: (e: any) => notifyError(e, { surface: "Férias", action: "concluir a ação", fallback: "Erro ao remover documento" }),
   });
 
   /** Abre o arquivo em nova aba com link temporário. */

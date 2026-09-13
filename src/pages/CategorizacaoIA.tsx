@@ -17,6 +17,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { formatDate } from "@/lib/date-utils";
+import { notifyError } from "@/lib/notifyError";
 
 type Rule = {
   id: string;
@@ -112,7 +113,7 @@ export default function CategorizacaoIA() {
       qc.invalidateQueries({ queryKey: ["categorization-rules"] });
       toast.success("Regra atualizada");
     },
-    onError: (e: any) => toast.error(e.message ?? "Falha ao atualizar"),
+    onError: (e: any) => notifyError(e, { surface: "Categorização", action: "concluir a ação", fallback: "Falha ao atualizar" }),
   });
 
   const updateCategory = useMutation({
@@ -127,7 +128,7 @@ export default function CategorizacaoIA() {
       qc.invalidateQueries({ queryKey: ["categorization-rules"] });
       toast.success("Categoria da regra atualizada");
     },
-    onError: (e: any) => toast.error(e.message ?? "Falha ao atualizar"),
+    onError: (e: any) => notifyError(e, { surface: "Categorização", action: "concluir a ação", fallback: "Falha ao atualizar" }),
   });
 
   const deleteRule = useMutation({
@@ -139,7 +140,7 @@ export default function CategorizacaoIA() {
       qc.invalidateQueries({ queryKey: ["categorization-rules"] });
       toast.success("Regra excluída");
     },
-    onError: (e: any) => toast.error(e.message ?? "Falha ao excluir"),
+    onError: (e: any) => notifyError(e, { surface: "Categorização", action: "concluir a ação", fallback: "Falha ao excluir" }),
   });
 
   const runBatch = async () => {
@@ -157,7 +158,7 @@ export default function CategorizacaoIA() {
       );
       qc.invalidateQueries({ queryKey: ["categorization-rules"] });
     } catch (e: any) {
-      toast.error(e.message ?? "Falha ao rodar categorização");
+      notifyError(e, { surface: "Categorização", action: "concluir a ação", fallback: "Falha ao rodar categorização" });
     } finally {
       setRunningBatch(false);
     }

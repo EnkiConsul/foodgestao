@@ -20,6 +20,7 @@ import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
+import { notifyError } from "@/lib/notifyError";
   useDpFichaImportacoes, useDpFichaItens, useEnviarFichaPdf,
 } from "@/hooks/useDpFichaImportacao";
 
@@ -112,7 +113,7 @@ export default function DpFichaRegistroImportar() {
         if (inputRef.current) inputRef.current.value = "";
         toast.success("Ficha enviada — estamos lendo os dados");
       },
-      onError: (e: Error) => toast.error(e.message),
+      onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação" }),
     });
   };
 

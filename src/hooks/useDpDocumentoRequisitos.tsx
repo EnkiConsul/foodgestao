@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { DpDocumentoRequisito } from "@/lib/dp/documentos-requisitos";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { notifyError } from "@/lib/notifyError";
 
 type RequisitoUpdate = Partial<
   Pick<
@@ -65,7 +66,7 @@ export function useDpDocumentoRequisitos() {
       toast.success(qtd > 0 ? `${qtd} documento(s) padrão adicionados` : "A lista padrão já está completa");
       invalidar();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao restaurar a lista padrão"),
+    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao restaurar a lista padrão" }),
   });
 
   const salvar = useMutation({
@@ -74,7 +75,7 @@ export function useDpDocumentoRequisitos() {
       if (error) throw error;
     },
     onSuccess: invalidar,
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar"),
+    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao salvar" }),
   });
 
   const criar = useMutation({
@@ -110,7 +111,7 @@ export function useDpDocumentoRequisitos() {
       toast.success("Documento adicionado à lista da empresa");
       invalidar();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao adicionar"),
+    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao adicionar" }),
   });
 
   const remover = useMutation({
@@ -122,7 +123,7 @@ export function useDpDocumentoRequisitos() {
       toast.success("Documento removido da lista");
       invalidar();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erro ao remover"),
+    onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao remover" }),
   });
 
   return {

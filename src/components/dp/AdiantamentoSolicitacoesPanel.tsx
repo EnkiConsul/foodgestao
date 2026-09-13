@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import {
+import { notifyError } from "@/lib/notifyError";
   competenciaEfeito,
   efeitoHint,
   situacaoAtual,
@@ -96,7 +97,7 @@ export function AdiantamentoSolicitacoesPanel({
         `${tipo === "ativar" ? "Adiantamento ativado" : "Adiantamento cancelado"} — ${efeitoHint(data, diaPagamento, origem)}`,
       );
     },
-    onError: (e: any) => toast.error(e?.message ?? "Não foi possível registrar a solicitação."),
+    onError: (e: any) => notifyError(e, { surface: "Adiantamento", action: "concluir a ação", fallback: "Não foi possível registrar a solicitação." }),
   });
 
   return (

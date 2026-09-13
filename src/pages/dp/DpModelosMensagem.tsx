@@ -25,6 +25,7 @@ import { DpTableColumnHeader } from "@/components/dp/DpTableColumnHeader";
 import { DpTableColumnsMenu } from "@/components/dp/DpTableColumnsMenu";
 import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { applyModeloVars } from "@/hooks/useDpModelosMensagem";
+import { notifyError } from "@/lib/notifyError";
 
 type Modelo = {
   id: string; titulo: string; corpo: string; canal: "whatsapp" | "email" | "sms";
@@ -109,7 +110,7 @@ export default function DpModelosMensagem() {
       qc.invalidateQueries({ queryKey: ["dp_modelos"] });
       setOpen(false);
     },
-    onError: (e: any) => toast.error(e.message ?? "Erro"),
+    onError: (e: any) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação", fallback: "Erro" }),
   });
 
   const toggleAtivo = useMutation({
