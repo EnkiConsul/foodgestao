@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DpContentCard } from "@/components/dp/DpPage";
 import { useDpUnidades } from "@/hooks/useDpCadastros";
 import {
+import { notifyError } from "@/lib/notifyError";
   useDpConvocacaoConfig,
   useSalvarConvocacaoConfig,
 } from "@/hooks/useDpConvocacaoGrupos";
@@ -95,7 +96,7 @@ export function ConvocacoesRegrasPanel() {
       });
       toast.success("Regras de convocação salvas.");
     } catch (e: any) {
-      toast.error(e?.message ?? "Não foi possível salvar as regras.");
+      notifyError(e, { surface: "Convocações", action: "concluir a ação", fallback: "Não foi possível salvar as regras." });
     }
   };
 

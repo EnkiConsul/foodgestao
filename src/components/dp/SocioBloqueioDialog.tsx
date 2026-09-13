@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { motivoBloqueioSocio } from "@/lib/dp/socio-bloqueios";
+import { notifyError } from "@/lib/notifyError";
 
 export interface SocioBloqueioDialogProps {
   open: boolean;
@@ -88,7 +89,7 @@ export function SocioBloqueioDialog({
         toast.error("Somente o DP pode bloquear datas. Peça ao administrador para aplicar o bloqueio.");
         return;
       }
-      toast.error(err?.message ?? "Não foi possível bloquear.");
+      notifyError(err, { surface: "Sócios", action: "concluir a ação", fallback: "Não foi possível bloquear." });
     },
   });
 

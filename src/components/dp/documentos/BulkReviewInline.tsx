@@ -34,6 +34,7 @@ import { extrairCpfValido, extrairNomePessoa, isCpfValido, pareceRazaoSocial } f
 import { tipoCanonicoPorVinculo } from "@/lib/dp/documento-tipo-por-vinculo";
 import { useNormalizarTipoPorVinculo } from "./useNormalizarTipoPorVinculo";
 import { porDocumento, qualquer, resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { notifyError } from "@/lib/notifyError";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -491,7 +492,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       }
       if (okc + rep > 0 && loteConcluido(rows as any[], item_ids, ignorados)) onConcluido?.();
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao aprovar");
+      notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao aprovar" });
     } finally {
       setIsSaving(false);
     }
@@ -605,7 +606,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
         if (loteConcluido(rows as any[], [], res.ignorar)) onConcluido?.();
       }
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao verificar duplicidade");
+      notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao verificar duplicidade" });
     } finally {
       setCheckingDup(false);
     }

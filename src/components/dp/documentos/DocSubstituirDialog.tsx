@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { DP_DOC_GRUPOS } from "@/lib/dp/documentoTipos";
 import {
+import { notifyError } from "@/lib/notifyError";
   docSourceConfig, podeEditarClassificacao, substituirDocumentoHistorico,
 } from "@/lib/dp/historicoDocAcoes";
 
@@ -94,7 +95,7 @@ export function DocSubstituirDialog(props: {
       props.onOpenChange(false);
 
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao substituir o documento");
+      notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Falha ao substituir o documento" });
     } finally {
       setSaving(false);
     }

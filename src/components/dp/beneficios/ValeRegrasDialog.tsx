@@ -31,6 +31,7 @@ import {
 import { useSalvarValeRegrasEmpresa } from "@/hooks/useDpValeRegras";
 import type { ValeTipo } from "@/hooks/useDpValeCalculadora";
 import { toast } from "sonner";
+import { notifyError } from "@/lib/notifyError";
 
 type Escopo = "empresa" | "unidade" | "cargo";
 
@@ -120,7 +121,7 @@ export function ValeRegrasDialog({ open, onOpenChange, tipo, unidades, cargos }:
       toast.success(`Regras do ${ROTULO[tipo]} salvas.`);
       onOpenChange(false);
     } catch (e: any) {
-      toast.error(e?.message ?? "Não foi possível salvar as regras.");
+      notifyError(e, { surface: "Vale-alimentação", action: "concluir a ação", fallback: "Não foi possível salvar as regras." });
     }
   };
 

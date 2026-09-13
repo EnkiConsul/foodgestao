@@ -21,6 +21,7 @@ import {
   aplicarPadrao, extrairPadrao, resolverPadrao, type PadraoAlcance,
 } from "@/lib/dp/beneficiosPadrao";
 import {
+import { notifyError } from "@/lib/notifyError";
   useDpBeneficiosPadroes, useSalvarDpBeneficiosPadrao,
 } from "@/hooks/useDpBeneficiosPadrao";
 
@@ -79,7 +80,7 @@ export function AssiduidadeRegrasDialog({ open, onOpenChange, unidades, cargos }
       toast.success("Regras do prêmio de assiduidade salvas.");
       onOpenChange(false);
     } catch (e: any) {
-      toast.error(e?.message ?? "Não foi possível salvar as regras.");
+      notifyError(e, { surface: "Assiduidade", action: "concluir a ação", fallback: "Não foi possível salvar as regras." });
     }
   };
 
