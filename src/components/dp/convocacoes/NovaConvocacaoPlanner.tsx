@@ -44,6 +44,8 @@ import {
   ANTECEDENCIA_REFERENCIA_DIAS,
   antecedenciaDias,
   cargaPrevistaHoras,
+  diaSemHorarioPossivel,
+  horarioJaComecou,
   coberturaDoDia,
   janelaMinutos,
   minimoDoCargoNaData,
@@ -367,16 +369,32 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       else if (cob.confirmados > 0) partes.push(`${cob.confirmados} conf.`);
       if (cob.aguardando > 0) partes.push(`+${cob.aguardando} aguard.`);
       if (plan) partes.push(`${plan.vagas} vaga${plan.vagas > 1 ? "s" : ""}`);
+      const ehHoje = antecedenciaDias(iso) === 0;
+      const encerrado = diaSemHorarioPossivel(iso);
+      const inicioPassou = ehHoje && !!plan && horarioJaComecou(iso, plan.entrada);
+      if (ehHoje && !partes.length) partes.push(encerrado ? "encerrado" : "só após agora");
       out[iso] = {
-        desabilitado: antecedenciaDias(iso) < 0,
+        desabilitado: encerrado,
         selo: partes.length ? partes.join(" · ") : null,
-        tom: cob.faltam && cob.faltam > 0 ? "atencao" : plan ? "primario" : "neutro",
+        tom: inicioPassou
+          ? "critico"
+          : cob.faltam && cob.faltam > 0
+            ? "atencao"
+            : plan
+              ? "primario"
+              : "neutro",
         titulo: [
           cob.minimo != null
             ? `${nomeCargo(cargoAtivo)} ${cob.confirmados}/${cob.minimo}${cob.faltam ? ` — faltam ${cob.faltam}` : ""}`
             : `${nomeCargo(cargoAtivo)} — ${cob.confirmados} confirmado(s)`,
           cob.aguardando > 0 ? `+${cob.aguardando} aguardando (não conta como confirmado)` : null,
           plan ? `Janela ${plan.entrada}–${plan.saida}${plan.vira ? " (+1)" : ""}` : null,
+          encerrado
+            ? "Hoje não aceita mais convocação — nenhum horário de início ainda cabe."
+            : ehHoje
+              ? "Hoje só aceita horário de início a partir de agora."
+              : null,
+          inicioPassou ? "Este horário já começou — ajuste a entrada." : null,
           antecedenciaDias(iso) < antecedenciaMinima
             ? `Abaixo da antecedência de ${antecedenciaMinima} dias — a publicação exigirá confirmação.`
             : null,
@@ -449,6 +467,14 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
     const cob = cobertura(iso, cargoAtivo);
     const vagas = Math.max(1, cob.faltam ?? 1);
+
+    if (diaSemHorarioPossivel(iso)) {
+      toast.error("Hoje não aceita mais convocação — nenhum horário de início ainda cabe.");
+      return;
+    }
+    if (antecedenciaDias(iso) === 0) {
+      toast.info("Hoje só aceita horário de início a partir de agora.");
+    }
 
     if (usaHorarioGeral) {
       setDias((prev) => ({
@@ -605,6 +631,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const diasCompletos = useMemo(() => listaDias.filter(diaCompleto), [listaDias]);
   const diasIncompletos = listaDias.length - diasCompletos.length;
   const foraDaAntecedencia = diasCompletos.filter((d) => antecedenciaDias(d.data) < antecedenciaMinima);
+  /** Dias cujo horário de entrada já passou — o banco recusa a publicação. */
+  const diasJaComecaram = listaDias.filter((d) => horarioJaComecou(d.data, d.entrada));
 
   const podeSalvar = !!unidadeId && cargoIds.length > 0 && destinatarios.length > 0 && diasCompletos.length > 0;
 
@@ -781,7 +809,10 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       if (!ok) return;
       toast.success(
         `Rascunho salvo: ${diasCompletos.length} dia(s), ${destinatarios.length} destinatário(s).` +
-          (diasIncompletos > 0 ? ` ${diasIncompletos} dia(s) sem horário.` : ""),
+          (diasIncompletos > 0 ? ` ${diasIncompletos} dia(s) sem horário.` : "") +
+          (diasJaComecaram.length > 0
+            ? ` ${diasJaComecaram.length} dia(s) com horário já iniciado não poderão ser publicados assim.`
+            : ""),
       );
       onSalvo?.(grupoId);
       onOpenChange(false);
@@ -793,6 +824,20 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   };
 
   const publicarGrupo = async () => {
+    // Horário que já começou: o banco recusa — avisamos antes, no dia certo.
+    const jaComecaram = listaDias.filter((d) => horarioJaComecou(d.data, d.entrada));
+    if (jaComecaram.length > 0) {
+      const primeiro = [...jaComecaram].sort((a, b) => a.data.localeCompare(b.data))[0];
+      setDataComErro(primeiro.data);
+      setRevisando(false);
+      toast.error(
+        jaComecaram.length === 1
+          ? `O horário de ${rotuloData(primeiro.data)} já começou. Ajuste a entrada ou tire esse dia da convocação.`
+          : `${jaComecaram.length} dias com horário já iniciado. Ajuste a entrada ou tire esses dias da convocação.`,
+        { duration: 10_000, closeButton: true },
+      );
+      return;
+    }
     // Exceção de antecedência: ciência e justificativas antes de publicar.
     if (foraDaAntecedencia.length > 0) {
       if (!cienteAntecedencia) {
@@ -1232,6 +1277,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                         origem: d.origem,
                         ambiguo: d.ambiguo,
                         faltam: cobertura(d.data, d.cargo_id).faltam ?? null,
+                        jaComecou: horarioJaComecou(d.data, d.entrada),
                       }))}
                     onPatch={patchDia}
                     onRemover={removerDia}
@@ -1256,6 +1302,19 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                 <Label>Observação (opcional)</Label>
                 <Textarea rows={2} value={observacao} onChange={(e) => setObservacao(e.target.value)} />
               </div>
+
+              {diasJaComecaram.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    {diasJaComecaram.length === 1
+                      ? `O horário de ${rotuloData(diasJaComecaram[0].data)} já começou.`
+                      : `${diasJaComecaram.length} dia(s) com horário já iniciado.`}{" "}
+                    Ajuste a entrada para um horário depois de agora ou remova o dia — não é
+                    possível convocar para um turno que já começou.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {foraDaAntecedencia.length > 0 && (
                 <Alert>
@@ -1296,7 +1355,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     size="sm"
                     onClick={publicarGrupo}
                     disabled={!podeSalvar || publicando || salvando ||
-                      preAvaliacao.isLoading || diasSemApto.length > 0}
+                      preAvaliacao.isLoading || diasSemApto.length > 0 ||
+                      diasJaComecaram.length > 0}
                   >
                     {publicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
                     Confirmar e publicar
