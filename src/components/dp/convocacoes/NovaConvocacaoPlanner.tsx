@@ -369,16 +369,32 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       else if (cob.confirmados > 0) partes.push(`${cob.confirmados} conf.`);
       if (cob.aguardando > 0) partes.push(`+${cob.aguardando} aguard.`);
       if (plan) partes.push(`${plan.vagas} vaga${plan.vagas > 1 ? "s" : ""}`);
+      const ehHoje = antecedenciaDias(iso) === 0;
+      const encerrado = diaSemHorarioPossivel(iso);
+      const inicioPassou = ehHoje && !!plan && horarioJaComecou(iso, plan.entrada);
+      if (ehHoje && !partes.length) partes.push(encerrado ? "encerrado" : "só após agora");
       out[iso] = {
-        desabilitado: antecedenciaDias(iso) < 0,
+        desabilitado: encerrado,
         selo: partes.length ? partes.join(" · ") : null,
-        tom: cob.faltam && cob.faltam > 0 ? "atencao" : plan ? "primario" : "neutro",
+        tom: inicioPassou
+          ? "critico"
+          : cob.faltam && cob.faltam > 0
+            ? "atencao"
+            : plan
+              ? "primario"
+              : "neutro",
         titulo: [
           cob.minimo != null
             ? `${nomeCargo(cargoAtivo)} ${cob.confirmados}/${cob.minimo}${cob.faltam ? ` — faltam ${cob.faltam}` : ""}`
             : `${nomeCargo(cargoAtivo)} — ${cob.confirmados} confirmado(s)`,
           cob.aguardando > 0 ? `+${cob.aguardando} aguardando (não conta como confirmado)` : null,
           plan ? `Janela ${plan.entrada}–${plan.saida}${plan.vira ? " (+1)" : ""}` : null,
+          encerrado
+            ? "Hoje não aceita mais convocação — nenhum horário de início ainda cabe."
+            : ehHoje
+              ? "Hoje só aceita horário de início a partir de agora."
+              : null,
+          inicioPassou ? "Este horário já começou — ajuste a entrada." : null,
           antecedenciaDias(iso) < antecedenciaMinima
             ? `Abaixo da antecedência de ${antecedenciaMinima} dias — a publicação exigirá confirmação.`
             : null,
