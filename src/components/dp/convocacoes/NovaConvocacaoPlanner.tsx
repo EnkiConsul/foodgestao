@@ -893,7 +893,18 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
         await tratarErroDeGravacao(e);
       } else {
         setDataComErro(dataDoErroDePublicacao(msg));
-        toast.error(textoDoErroDePublicacao(msg));
+        const texto = textoDoErroDePublicacao(msg);
+        // Mensagem reconhecida (horário, antecedência...) já é amigável; o resto
+        // vira texto claro e é registrado para o botão "Relatar problema".
+        if (texto !== msg) {
+          toast.error(texto, { closeButton: true, duration: 10_000 });
+        } else {
+          notifyError(e, {
+            surface: "Convocações",
+            action: "publicar a convocação",
+            details: { grupo_id: grupoId, unidade_id: unidadeId, dias: listaDias.map((d) => d.data) },
+          });
+        }
       }
     } finally {
       setPublicando(false);
