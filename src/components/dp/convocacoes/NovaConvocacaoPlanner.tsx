@@ -821,6 +821,20 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   };
 
   const publicarGrupo = async () => {
+    // Horário que já começou: o banco recusa — avisamos antes, no dia certo.
+    const jaComecaram = listaDias.filter((d) => horarioJaComecou(d.data, d.entrada));
+    if (jaComecaram.length > 0) {
+      const primeiro = [...jaComecaram].sort((a, b) => a.data.localeCompare(b.data))[0];
+      setDataComErro(primeiro.data);
+      setRevisando(false);
+      toast.error(
+        jaComecaram.length === 1
+          ? `O horário de ${rotuloData(primeiro.data)} já começou. Ajuste a entrada ou tire esse dia da convocação.`
+          : `${jaComecaram.length} dias com horário já iniciado. Ajuste a entrada ou tire esses dias da convocação.`,
+        { duration: 10_000, closeButton: true },
+      );
+      return;
+    }
     // Exceção de antecedência: ciência e justificativas antes de publicar.
     if (foraDaAntecedencia.length > 0) {
       if (!cienteAntecedencia) {
