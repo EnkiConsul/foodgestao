@@ -468,6 +468,14 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
     const cob = cobertura(iso, cargoAtivo);
     const vagas = Math.max(1, cob.faltam ?? 1);
 
+    if (diaSemHorarioPossivel(iso)) {
+      toast.error("Hoje não aceita mais convocação — nenhum horário de início ainda cabe.");
+      return;
+    }
+    if (antecedenciaDias(iso) === 0) {
+      toast.info("Hoje só aceita horário de início a partir de agora.");
+    }
+
     if (usaHorarioGeral) {
       setDias((prev) => ({
         ...prev,
