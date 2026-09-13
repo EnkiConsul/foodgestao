@@ -74,7 +74,7 @@ export function DiasSelecionadosLista({
       <div className="space-y-2">
         {itens.map((d) => {
           const semHorario = !d.entrada || !d.saida;
-          const comErro = !!destacarData && d.data === destacarData;
+          const comErro = (!!destacarData && d.data === destacarData) || !!d.jaComecou;
           const recolhido = !!destacarData && !comErro && !reabertos[d.chave];
           if (recolhido) {
             return (
