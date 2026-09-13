@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { carregarPisosPorCargo, referenciaSalarial } from "@/lib/dp/cargoSalariosQuery";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { apuracaoParaLancamento, type LinhaApuracao } from "@/lib/dp/apuracao";
+import { notifyError } from "@/lib/notifyError";
 import {
   remuneracaoPendente,
   valorHoraEfetivo,
@@ -174,7 +175,7 @@ export function useDpFolhaApuracao(competencia: string) {
       toast.success(`${total} lançamento(s) de folha gerados em rascunho.`);
       qc.invalidateQueries({ queryKey: ["dp_folha_periodo"] });
     },
-    onError: (e: Error) => toast.error(e.message || "Não foi possível gerar os lançamentos da folha."),
+    onError: (e: Error) => notifyError(e, { surface: "Folha", action: "concluir a ação", fallback: "Não foi possível gerar os lançamentos da folha." }),
   });
 
   const semSalario = useMemo(() => {

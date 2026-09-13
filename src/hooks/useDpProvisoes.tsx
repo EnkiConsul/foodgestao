@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { carregarPisosPorCargo, referenciaSalarial } from "@/lib/dp/cargoSalariosQuery";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { lerDetalhe, lerExtras, valoresDoLancamento, type RubricaExtra } from "@/lib/dp/folha";
+import { notifyError } from "@/lib/notifyError";
 import {
   avosDoDecimoTerceiro,
   diasDeGozo,
@@ -169,7 +170,7 @@ export function useDpFolhaFerias(competencia: string) {
       toast.success(`${total} recibo(s) de férias gerados em rascunho.`);
       qc.invalidateQueries({ queryKey: ["dp_folha_periodos"] });
     },
-    onError: (e: Error) => toast.error(e.message || "Não foi possível gerar os recibos de férias."),
+    onError: (e: Error) => notifyError(e, { surface: "Folha", action: "concluir a ação", fallback: "Não foi possível gerar os recibos de férias." }),
   });
 
   return { previa, isLoading: gozosQuery.isLoading, error: gozosQuery.error, gerar };
@@ -247,7 +248,7 @@ export function useDpFolhaDecimoTerceiro(ano: number, parcela: 1 | 2) {
       toast.success(`${total} lançamento(s) de 13º gerados em rascunho.`);
       qc.invalidateQueries({ queryKey: ["dp_folha_periodos"] });
     },
-    onError: (e: Error) => toast.error(e.message || "Não foi possível gerar o 13º salário."),
+    onError: (e: Error) => notifyError(e, { surface: "Folha", action: "concluir a ação", fallback: "Não foi possível gerar o 13º salário." }),
   });
 
   return { previa, isLoading: isLoading || adiantamentosQuery.isLoading, gerar };

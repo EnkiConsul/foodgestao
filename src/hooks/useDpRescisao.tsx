@@ -6,6 +6,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { lerDetalhe, lerExtras, valoresDoLancamento, type RubricaExtra } from "@/lib/dp/folha";
 import { verbasDaRescisao } from "@/lib/dp/rescisao";
 import type { MotivoDesligamento } from "@/lib/dp/desligamento";
+import { notifyError } from "@/lib/notifyError";
 
 export interface ColaboradorDesligado {
   id: string;
@@ -156,6 +157,6 @@ export function useDpGerarRescisao() {
       toast.success("Rescisão gerada em rascunho na folha.");
       qc.invalidateQueries({ queryKey: ["dp_folha_periodos"] });
     },
-    onError: (e: Error) => toast.error(e.message || "Não foi possível gerar a rescisão."),
+    onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação", fallback: "Não foi possível gerar a rescisão." }),
   });
 }
