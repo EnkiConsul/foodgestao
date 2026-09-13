@@ -23,6 +23,7 @@ import {
 import { RevisaoConvocacao } from "@/components/dp/convocacoes/RevisaoConvocacao";
 import { DiaSimulacaoInline } from "@/components/dp/convocacoes/DiaSimulacaoInline";
 import { resolverHorarioDestinatario } from "@/lib/dp/convocacao-revisao";
+import { notifyError } from "@/lib/notifyError";
 import type { PessoaPanorama } from "@/lib/dp/operacao-panorama";
 
 
