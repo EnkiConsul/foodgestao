@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, MessageSquare, Paperclip, Pin, Send, Trash2 } from "lucide-react";
