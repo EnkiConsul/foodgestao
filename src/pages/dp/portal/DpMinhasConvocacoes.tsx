@@ -91,9 +91,11 @@ export default function DpMinhasConvocacoes() {
               ? "Você não está mais elegível para esta convocação."
               : "Não foi possível responder.";
 
-  const responderConvocacao = (id: string, aceito: boolean, motivo?: string) =>
+  const responderConvocacao = (
+    id: string, aceito: boolean, motivo?: string, justificativaAtraso?: string | null,
+  ) =>
     responder.mutate(
-      { id, aceito, motivo },
+      { id, aceito, motivo, justificativaAtraso },
       {
         onSuccess: (res: any) => {
           if (res && res.ok === false) {
@@ -105,24 +107,30 @@ export default function DpMinhasConvocacoes() {
             res?.idempotente
               ? "Sua resposta já estava registrada."
               : aceito
-                ? "Convocação aceita."
+                ? res?.aceite_atrasado
+                  ? "Convocação aceita. O gestor vai ver a explicação do atraso."
+                  : "Convocação aceita."
                 : "Convocação recusada.",
           );
           setRecusa(null);
+          setAtrasado(null);
         },
         onError: (e: any) => {
           const msg = String(e?.message ?? "");
           toast.error(
-            msg.includes("ALREADY_ACCEPTED_TODAY")
-              ? "Você já tem uma convocação confirmada para este mesmo dia."
-              : msg.includes("REFUSAL_REASON_REQUIRED")
-                ? "Informe o motivo da recusa."
-                : msg.includes("ACCEPT_INELIGIBLE")
-                  ? "Você não está mais elegível para esta convocação."
-                  : msg || "Não foi possível responder.",
+            msg.includes("WORKER_ALREADY_BOOKED") || msg.includes("ALREADY_ACCEPTED_TODAY")
+              ? "Você já tem outra convocação confirmada nesse mesmo horário."
+              : msg.includes("LATE_JUSTIFICATION_REQUIRED")
+                ? "Escreva o que aconteceu para responder depois do início."
+                : msg.includes("REFUSAL_REASON_REQUIRED")
+                  ? "Informe o motivo da recusa."
+                  : msg.includes("ACCEPT_INELIGIBLE")
+                    ? "Você não está mais elegível para esta convocação."
+                    : msg || "Não foi possível responder.",
           );
         },
       },
+
     );
 
   const renderCard = (c: MinhaOferta) => {
