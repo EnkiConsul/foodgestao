@@ -5,6 +5,7 @@ import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
 import { DpStatCard, DpStatGrid } from "@/components/dp/DpStatCard";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { Button } from "@/components/ui/button";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
