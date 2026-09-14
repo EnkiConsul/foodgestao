@@ -68,15 +68,25 @@ export default function DpMeuRotinaLoja() {
     return lista.filter((p) => p.id === eu.id || horariosSobrepostos(eu, p));
   }, [escala.data, vinculo?.colaboradorId]);
 
-  const porCargo = useMemo(() => {
+  /**
+   * Como no painel do gestor: quando a loja usa setores, a equipe do dia é
+   * agrupada por setor; sem setor cadastrado, continua agrupada por função.
+   */
+  const usaSetores = useMemo(
+    () => equipeDoMeuTurno.some((p) => !!p.setor),
+    [equipeDoMeuTurno],
+  );
+
+  const grupos = useMemo(() => {
     const m = new Map<string, Pessoa[]>();
     for (const p of equipeDoMeuTurno) {
-      const lista = m.get(p.cargo) ?? [];
+      const chave = usaSetores ? (p.setor ?? "Sem setor definido") : p.cargo;
+      const lista = m.get(chave) ?? [];
       lista.push(p);
-      m.set(p.cargo, lista);
+      m.set(chave, lista);
     }
     return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
-  }, [equipeDoMeuTurno]);
+  }, [equipeDoMeuTurno, usaSetores]);
 
   return (
     <DpPage>
