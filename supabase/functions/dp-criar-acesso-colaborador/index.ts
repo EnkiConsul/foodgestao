@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
     );
     if (secErr) console.error("[dp-criar-acesso-colaborador] security_state:", secErr.message);
 
-    const { codigo, expiresAt } = await emitirToken(admin, {
+    const { tokenId, codigo, expiresAt } = await emitirToken(admin, {
       userId: targetUserId!,
       colaboradorId: colab.id,
       companyId: colab.company_id,
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
       success: true,
       status: "pendente_ativacao",
       cpf,
-      activation_url: linkDeAcesso(origin, "activation", codigo),
+      activation_url: linkDeAcesso(origin, "activation", tokenId, codigo),
       expires_at: expiresAt,
     });
   } catch (e) {

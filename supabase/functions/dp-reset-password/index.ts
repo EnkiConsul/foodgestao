@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { codigo, expiresAt } = await emitirToken(admin, {
+    const { tokenId, codigo, expiresAt } = await emitirToken(admin, {
       userId: colab.user_id,
       colaboradorId: colab.id,
       companyId: colab.company_id,

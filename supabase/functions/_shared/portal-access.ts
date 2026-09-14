@@ -192,3 +192,28 @@ export function linkDeAcesso(
   const rota = purpose === "activation" ? "/ativar-acesso" : "/redefinir-acesso";
   return `${base}${rota}?t=${encodeURIComponent(tokenId)}&c=${encodeURIComponent(codigo)}`;
 }
+
+/**
+ * Tenta encerrar as sessões abertas do usuário pelo mecanismo oficial de
+ * autenticação. Mesmo quando isso não é instantâneo, o banco já nega tudo pela
+ * verificação central de bloqueio.
+ */
+export async function revogarSessoes(userId: string): Promise<boolean> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return false;
+  try {
+    const r = await fetch(`${url}/auth/v1/admin/users/${userId}/logout`, {
+      method: "POST",
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    });
+    if (!r.ok) {
+      console.error(`[revogar_sessoes] status ${r.status}`);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error(`[revogar_sessoes] ${e instanceof Error ? e.message : "falhou"}`);
+    return false;
+  }
+}
