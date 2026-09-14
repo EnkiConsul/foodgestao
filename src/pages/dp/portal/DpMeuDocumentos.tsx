@@ -106,6 +106,7 @@ export default function DpMeuDocumentos() {
   });
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const { somenteDocumentos } = usePortalAcesso();
 
   const visibleTabs = useMemo(
     () => ALL_TABS.filter((t) => !t.requiresPonto || possuiPonto),
