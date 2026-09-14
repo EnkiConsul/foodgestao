@@ -10,18 +10,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 
+/** Regra alinhada ao servidor de contas: 8+ com maiúscula, minúscula, número e símbolo. */
 const schema = z.object({
   password: z.string()
-    .min(10, "Mínimo de 10 caracteres")
+    .min(8, "Use pelo menos 8 caracteres")
     .max(128, "Máximo de 128 caracteres")
-    .regex(/[A-Z]/, "Precisa de ao menos 1 letra maiúscula")
-    .regex(/[a-z]/, "Precisa de ao menos 1 letra minúscula")
-    .regex(/[0-9]/, "Precisa de ao menos 1 número"),
+    .regex(/[A-Z]/, "Inclua ao menos 1 letra maiúscula")
+    .regex(/[a-z]/, "Inclua ao menos 1 letra minúscula")
+    .regex(/[0-9]/, "Inclua ao menos 1 número")
+    .regex(/[^A-Za-z0-9]/, "Inclua ao menos 1 símbolo, como ! @ # ou *"),
   confirm: z.string(),
 }).refine((d) => d.password === d.confirm, {
   message: "As senhas não coincidem",
   path: ["confirm"],
 });
+
+/** Traduz as recusas do servidor de contas para linguagem simples. */
+function mensagemDeSenha(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("should contain at least one character"))
+    return "A senha precisa ter maiúscula, minúscula, número e um símbolo (como ! @ # *).";
+  if (m.includes("at least") && m.includes("characters"))
+    return "A senha está curta. Use pelo menos 8 caracteres.";
+  if (m.includes("different from the old") || m.includes("should be different"))
+    return "Escolha uma senha diferente da provisória.";
+  if (m.includes("weak") || m.includes("pwned") || m.includes("compromised"))
+    return "Essa senha é muito comum. Escolha outra combinação.";
+  return "Não foi possível salvar essa senha. Tente outra combinação.";
+}
 
 export default function PrimeiroAcesso() {
   const [password, setPassword] = useState("");
