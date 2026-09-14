@@ -218,9 +218,9 @@ const PORTAL_GROUPS: DpNavGroup[] = [
       { label: "Calendário", to: "/dp/meu/calendario", icon: Calendar, shortcut: true },
       // "Minha Escala" só faz sentido para quem é chamado por convocação
       // (freelancer e intermitente); some do menu para quem tem escala fixa.
-      { label: "Minha Escala", to: "/dp/meu/escala", icon: CalendarRange, shortcut: true, somenteConvocado: true },
+      { label: "Minha Escala", to: "/dp/meu/escala", icon: CalendarRange, shortcut: true },
       { label: "Rotina da Loja", to: "/dp/meu/rotina", icon: Store, shortcut: true, shortLabel: "Rotina" },
-      { label: "Convocações", to: "/dp/meu/convocacoes", icon: BellRing, shortcut: true, somenteConvocado: true },
+      { label: "Convocações", to: "/dp/meu/convocacoes", icon: BellRing, shortcut: true },
       { label: "Trocas", to: "/dp/meu/trocas", icon: Repeat, shortcut: true },
       { label: "Minhas Férias", to: "/dp/meu/ferias", icon: Palmtree, shortcut: true, shortLabel: "Férias" },
       { label: "Solicitações", to: "/dp/meu/solicitacoes", icon: ClipboardList, shortcut: true },
