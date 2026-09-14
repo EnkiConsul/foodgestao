@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
+import { hojeIsoLocal, horariosSobrepostos } from "@/lib/dp/dataLocal";
 
 type Pessoa = { id: string; nome: string; cargo: string; entrada: string | null; saida: string | null };
 
-const hojeIso = () => new Date().toISOString().slice(0, 10);
+const hojeIso = () => hojeIsoLocal();
 const hhmm = (v: string | null) => (v ? v.slice(0, 5) : null);
 
 /** Rotina da loja: quem trabalha no dia, por função. Somente leitura. */
