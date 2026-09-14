@@ -218,7 +218,7 @@ function AvisoDialog({
 }
 
 export default function DpAvisos() {
-  const { data: avisos = [], isLoading, upsert, remove } = useDpAvisos();
+  const { data: avisos = [], isLoading, isError, error, refetch, upsert, remove } = useDpAvisos();
   const { selectedCompanyId } = useCompanyContext();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpAviso | null>(null);
@@ -316,7 +316,7 @@ export default function DpAvisos() {
           open={open}
           onOpenChange={setOpen}
           companyId={selectedCompanyId}
-          onSave={(v) => upsert.mutate(v)}
+          onSave={async (v) => { await upsert.mutateAsync(v); }}
         />
       </Dialog>
 
