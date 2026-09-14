@@ -17,6 +17,7 @@ import { NovaConvocacaoPlanner } from "@/components/dp/convocacoes/NovaConvocaca
 import { ConvocacoesRegrasPanel } from "@/components/dp/convocacoes/ConvocacoesRegrasPanel";
 import { DisponibilidadePainel } from "@/components/dp/convocacoes/DisponibilidadePainel";
 import { PlanejamentoPainel } from "@/components/dp/convocacoes/PlanejamentoPainel";
+import { CustoGrupoPanel, type ConvocacaoComValor } from "@/components/dp/convocacoes/CustoGrupoPanel";
 import { AprovacaoParcialDialog } from "@/components/dp/convocacoes/AprovacaoParcialDialog";
 import {
   useDpConvocacaoGrupos, useExcluirRascunhoConvocacao, type GrupoComOcorrencias,
@@ -46,10 +47,12 @@ interface ContagemGrupo {
 function GrupoCard({
   grupo,
   contagem,
+  convocacoes,
   onEditar,
 }: {
   grupo: GrupoComOcorrencias;
   contagem?: ContagemGrupo;
+  convocacoes?: ConvocacaoComValor[];
   onEditar?: (g: GrupoComOcorrencias) => void;
 }) {
   const excluir = useExcluirRascunhoConvocacao();
@@ -124,6 +127,10 @@ function GrupoCard({
           <span className="px-1 text-[11px] text-muted-foreground">+{total - 12}</span>
         )}
       </div>
+
+      {convocacoes && convocacoes.length > 0 ? <CustoGrupoPanel convocacoes={convocacoes} /> : null}
+
+
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <span className="text-[11px] text-muted-foreground">
@@ -245,6 +252,23 @@ export default function DpConvocacoes() {
     return m;
   }, [grupos.data, legado.rows]);
 
+  /** Convocações já publicadas de cada grupo — base do custo previsto. */
+  const convocacoesPorGrupo = useMemo(() => {
+    const ocorrenciaParaGrupo = new Map<string, string>();
+    for (const g of grupos.data ?? []) {
+      for (const o of g.ocorrencias) ocorrenciaParaGrupo.set(o.id, g.id);
+    }
+    const m = new Map<string, ConvocacaoComValor[]>();
+    for (const r of (legado.rows ?? []) as any[]) {
+      const grupoId = r.ocorrencia_id ? ocorrenciaParaGrupo.get(r.ocorrencia_id) : null;
+      if (!grupoId) continue;
+      const lista = m.get(grupoId) ?? [];
+      lista.push(r as ConvocacaoComValor);
+      m.set(grupoId, lista);
+    }
+    return m;
+  }, [grupos.data, legado.rows]);
+
   const buckets = useMemo(() => {
     const hj = hoje();
     const lista = grupos.data ?? [];
@@ -286,6 +310,7 @@ export default function DpConvocacoes() {
             key={g.id}
             grupo={g}
             contagem={contagemPorGrupo.get(g.id)}
+            convocacoes={convocacoesPorGrupo.get(g.id)}
             onEditar={abrirEdicao}
           />
         ))}

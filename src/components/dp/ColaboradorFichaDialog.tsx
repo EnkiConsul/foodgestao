@@ -44,6 +44,7 @@ import {
   Baby, ClipboardList,
 } from "lucide-react";
 import { ColaboradorOcorrenciasCard } from "@/components/dp/ocorrencias/ColaboradorOcorrenciasCard";
+import { FichaImportadaLink } from "@/components/dp/FichaImportadaLink";
 import { maskCpf } from "@/lib/cpf";
 import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
@@ -457,6 +458,9 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
               />
             )}
           </Section>
+
+          <FichaImportadaLink colaboradorId={colaborador?.id} />
+
 
           {/* Documentos e filiação — só aparece quando há algo preenchido. */}
           {DOCUMENTOS_PESSOAIS.some((c) => (colaborador as any)?.[c.campo]) && (
