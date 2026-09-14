@@ -59,6 +59,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDpConvocacaoPreAvaliacao } from "@/hooks/useDpConvocacaoPreAvaliacao";
 import { cn } from "@/lib/utils";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
+import {
+  CONDICOES_FREELA_VAZIAS,
+  comporObservacaoFreela,
+  lerCondicoesFreela,
+  separarObservacaoFreela,
+  type CondicoesFreela,
+  type FreelaRefeicao,
+} from "@/lib/dp/convocacao-freela";
 
 interface Props {
   open: boolean;
