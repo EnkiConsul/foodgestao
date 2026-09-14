@@ -8,7 +8,10 @@ import { isTipoAfastamento, labelAfastamento } from "@/lib/dp/licencas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+
 
 type EventoTipo = "Solicitação" | "Troca" | "Documento" | "Disciplinar";
 type Evento = {
@@ -112,8 +115,13 @@ export default function DpMeuHistorico() {
       </Tabs>
 
       <DpContentCard contentClassName="p-2">
-        {filtrados.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-10 text-center">Sem eventos.</p>
+        {eventos.isError || colabQ.isError ? (
+          <div className="p-2"><DpErrorState onRetry={() => { colabQ.refetch(); eventos.refetch(); }} /></div>
+        ) : eventos.isLoading || colabQ.isLoading ? (
+          <div className="p-2"><CardListSkeleton rows={4} /></div>
+        ) : filtrados.length === 0 ? (
+          <DpEmptyState icon={History}>Sem eventos.</DpEmptyState>
+
         ) : (
           <>
             <ol className="relative border-l-2 border-[hsl(var(--dp-border))] ml-4 space-y-4 p-4">

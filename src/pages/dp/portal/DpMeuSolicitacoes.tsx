@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, ClipboardList, CalendarIcon, Ban, AlertTriangle } from "lucide-react";
+import { Plus, ClipboardList, Ban, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,8 +15,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
+import { PortalDateField } from "@/components/dp/portal/PortalDateField";
+
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { AdiantamentoSolicitacoesPanel } from "@/components/dp/AdiantamentoSolicitacoesPanel";
@@ -355,10 +358,11 @@ export default function DpMeuSolicitacoes() {
                     <SelectContent>{TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <DateField label="Data" value={form.data_alvo} onChange={(d) => setForm({ ...form, data_alvo: d })} />
-                  <DateField label="Data fim" value={form.data_fim} onChange={(d) => setForm({ ...form, data_fim: d })} />
+                <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
+                  <PortalDateField label="Data" value={form.data_alvo} onChange={(d) => setForm({ ...form, data_alvo: d })} />
+                  <PortalDateField label="Data fim" value={form.data_fim} onChange={(d) => setForm({ ...form, data_fim: d })} />
                 </div>
+
                 {form.tipo === "folga" && (
                   <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
                 )}
@@ -430,8 +434,15 @@ export default function DpMeuSolicitacoes() {
         </div>
       </Tabs>
 
-      {filtered.length === 0 ? (
+      {list.isError || meRef.isError ? (
+        <DpContentCard contentClassName="p-4">
+          <DpErrorState onRetry={() => { meRef.refetch(); list.refetch(); }} />
+        </DpContentCard>
+      ) : meRef.isLoading || list.isLoading ? (
+        <CardListSkeleton rows={3} />
+      ) : filtered.length === 0 ? (
         <DpContentCard><DpEmptyState icon={ClipboardList}>Sem solicitações.</DpEmptyState></DpContentCard>
+
       ) : (
         <div className="grid gap-3">
           {filtered.map((s: any) => (
@@ -453,16 +464,20 @@ export default function DpMeuSolicitacoes() {
                 )}
                 {s.status === "pendente" && (
                   <div className="pt-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => cancelar.mutate(s.id)}
+                    <ConfirmarAcaoDialog
+                      titulo="Cancelar esta solicitação?"
+                      descricao="Ela deixa de ir para o gestor. Se precisar, você poderá enviar outra depois."
+                      confirmar="Cancelar solicitação"
+                      onConfirm={() => cancelar.mutate(s.id)}
                       disabled={cancelar.isPending}
                     >
-                      <Ban className="h-4 w-4 mr-1" /> Cancelar
-                    </Button>
+                      <Button size="sm" variant="outline" disabled={cancelar.isPending}>
+                        <Ban className="h-4 w-4 mr-1" /> Cancelar
+                      </Button>
+                    </ConfirmarAcaoDialog>
                   </div>
                 )}
+
               </CardContent>
             </Card>
           ))}
@@ -472,33 +487,4 @@ export default function DpMeuSolicitacoes() {
   );
 }
 
-function DateField({
-  label, value, onChange,
-}: { label: string; value: Date | undefined; onChange: (d: Date | undefined) => void }) {
-  return (
-    <div>
-      <Label>{label}</Label>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn("w-full justify-start text-left font-normal", !value && "text-muted-foreground")}
-          >
-            <CalendarIcon className="h-4 w-4 mr-2" />
-            {value ? format(value, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecionar</span>}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={value}
-            onSelect={onChange}
-            initialFocus
-            className={cn("p-3 pointer-events-auto")}
-            locale={ptBR}
-          />
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-}
+

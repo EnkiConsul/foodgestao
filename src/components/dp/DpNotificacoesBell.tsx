@@ -8,12 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDpNotificacoes, useMarkNotifRead, useMarkAllNotifsRead } from "@/hooks/useDpNotificacoes";
 import { useDpAtestadosPendentes } from "@/hooks/useDpAtestadosPendentes";
-import { notificacaoPathGestor } from "@/lib/dp/notificacoes";
+import { notificacaoPathGestor, notificacaoPathPortal } from "@/lib/dp/notificacoes";
 
-export function DpNotificacoesBell() {
+export function DpNotificacoesBell({ variant = "admin" }: { variant?: "admin" | "portal" }) {
+  const portal = variant === "portal";
   const [open, setOpen] = useState(false);
   const { data } = useDpNotificacoes();
-  const { data: atestados = [] } = useDpAtestadosPendentes();
+  // A fila de atestados para análise é do gestor: no portal ela não existe.
+  const { data: atestadosGestor = [] } = useDpAtestadosPendentes();
+  const atestados = portal ? [] : atestadosGestor;
   const markRead = useMarkNotifRead();
   const markAllRead = useMarkAllNotifsRead();
 
@@ -23,6 +26,7 @@ export function DpNotificacoesBell() {
 
   const onError = () => toast.error("Não foi possível atualizar a notificação. Tente novamente.");
   const markAll = () => markAllRead.mutate(undefined, { onError });
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -44,10 +48,11 @@ export function DpNotificacoesBell() {
               Marcar todas
             </Button>
             <Button size="sm" variant="ghost" asChild onClick={() => setOpen(false)}>
-              <Link to="/dp/notificacoes">Ver todas</Link>
+              <Link to={portal ? "/dp/meu" : "/dp/notificacoes"}>Ver todas</Link>
             </Button>
           </div>
         </div>
+
         {atestados.length > 0 && (
           <Link
             to="/dp/folgas?aba=solicitacoes&tipo=atestado"
@@ -67,7 +72,7 @@ export function DpNotificacoesBell() {
           ) : (
             <ul className="divide-y">
               {list.slice(0, 15).map((n) => {
-                const path = notificacaoPathGestor(n.ref_table);
+                const path = portal ? notificacaoPathPortal(n.ref_table) : notificacaoPathGestor(n.ref_table);
                 return (
                   <li key={n.id} className={n.lida ? "opacity-60" : ""}>
                     <Link

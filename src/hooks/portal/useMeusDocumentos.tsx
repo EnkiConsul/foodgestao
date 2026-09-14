@@ -312,6 +312,8 @@ export function useMeusDocumentos() {
     possuiPonto: !!ctx.data?.possui_folha_ponto,
     documentos: list.data ?? [],
     isLoading: ctx.isLoading || list.isLoading,
-    refetch: list.refetch,
+    isError: ctx.isError || list.isError,
+    refetch: () => { ctx.refetch(); list.refetch(); },
   };
+
 }

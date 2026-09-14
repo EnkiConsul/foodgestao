@@ -27,6 +27,9 @@ import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/Colaborad
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { cn } from "@/lib/utils";
 import { DpContentCard, DpEmptyState, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
 
@@ -80,7 +83,7 @@ const TIPOS_SUBMETIVEIS: { value: Tipo; label: string }[] = [
 export default function DpMeuDocumentos() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const { colaborador, possuiPonto, documentos, isLoading } = useMeusDocumentos();
+  const { colaborador, possuiPonto, documentos, isLoading, isError, refetch } = useMeusDocumentos();
 
   const [params, setParams] = useSearchParams();
   /** Quando a pendência aponta para cá, o foco vai direto para o checklist pessoal. */
@@ -437,10 +440,13 @@ export default function DpMeuDocumentos() {
       </DpFilterCard>
 
       {/* Lista */}
-      {isLoading ? (
-        <DpContentCard contentClassName="py-10 text-center text-sm text-muted-foreground">
-          Carregando…
+      {isError ? (
+        <DpContentCard>
+          <DpErrorState onRetry={() => refetch()} />
         </DpContentCard>
+      ) : isLoading ? (
+        <CardListSkeleton rows={4} />
+
       ) : filtered.length === 0 ? (
         <DpContentCard>
           <DpEmptyState icon={FileText}>Nenhum documento nesta categoria.</DpEmptyState>

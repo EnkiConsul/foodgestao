@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, MessageSquare, Paperclip, Pin, Send, Trash2 } from "lucide-react";
@@ -169,12 +170,9 @@ export function MuralFeed() {
   }
 
   if (mural.avisos.isLoading) {
-    return (
-      <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
-        Carregando mural…
-      </div>
-    );
+    return <CardListSkeleton rows={3} />;
   }
+
 
 
   if (avisos.length === 0) {

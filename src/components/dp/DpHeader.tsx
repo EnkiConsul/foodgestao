@@ -61,7 +61,7 @@ export function DpHeader({ variant = "admin" }: { variant?: "admin" | "portal" }
       {variant === "admin" && <ContextSelector />}
       <div className="flex-1" />
       <FavoriteToggle />
-      <DpNotificacoesBell />
+      <DpNotificacoesBell variant={variant} />
     </header>
   );
 }

@@ -355,9 +355,12 @@ export function useMinhasConvocacoes(colaboradorId: string | null) {
     rows: query.data ?? [],
     pendentes,
     isLoading: query.isLoading,
+    isError: query.isError,
+    refetch: query.refetch,
     responder,
     proporParcial,
     registrarVisualizacao,
   };
+
 }
 
