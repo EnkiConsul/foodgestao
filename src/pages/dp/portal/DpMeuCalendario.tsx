@@ -520,10 +520,22 @@ export default function DpMeuCalendario() {
 
       // 2a) período mensal de escolha
       if (!podeMarcarNormal(janela, d)) {
+        const alvo = janela.competencia.toLocaleDateString("pt-BR", {
+          month: "long",
+          year: "numeric",
+        });
+        if (janela.estado === "antes") {
+          throw new Error(
+            `A escolha das folgas de ${alvo} abre em ${formatBR(janela.abreEm)}. Use "Solicitar exceção".`,
+          );
+        }
+        if (janela.estado === "encerrada") {
+          throw new Error(
+            `A escolha das folgas de ${alvo} foi encerrada em ${formatBR(janela.fechaEm)}. Use "Solicitar exceção".`,
+          );
+        }
         throw new Error(
-          janela.estado === "antes"
-            ? `A escolha das folgas abre em ${formatBR(janela.abreEm)}. Use "Solicitar exceção".`
-            : `A escolha das folgas deste período foi encerrada. Use "Solicitar exceção".`,
+          `Agora você escolhe as folgas de ${alvo}. Para folgar neste dia, use "Solicitar exceção".`,
         );
       }
 
