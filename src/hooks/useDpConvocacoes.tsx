@@ -162,6 +162,11 @@ export interface ParcialPendente {
   parcial_termina_no_dia_seguinte: boolean | null;
   parcial_carga_horas: number | null;
   parcial_observacao: string | null;
+  aceite_atrasado?: boolean | null;
+  aceite_atraso_minutos?: number | null;
+  aceite_atraso_justificativa?: string | null;
+  aceite_atraso_forma?: string | null;
+
   proposta_em: string | null;
   prazo_resposta: string | null;
   inicio_previsto: string | null;
