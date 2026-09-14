@@ -458,6 +458,9 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
             )}
           </Section>
 
+          <FichaImportadaLink colaboradorId={colaborador?.id} />
+
+
           {/* Documentos e filiação — só aparece quando há algo preenchido. */}
           {DOCUMENTOS_PESSOAIS.some((c) => (colaborador as any)?.[c.campo]) && (
             <Section icon={User} title="Documentos e Filiação">
