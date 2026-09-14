@@ -331,20 +331,16 @@ export default function DpAtestados() {
       }
 
       const dataFim = d > 0 ? addDays(dataDoc, d) : dataDoc;
-      const { error } = await supabase.from("dp_solicitacoes").insert({
-        company_id: selectedCompanyId,
-        colaborador_id: colaboradorId,
-        tipo: tipoDoc,
+      const { error } = await supabase.rpc("dp_solicitacao_criar_admin", {
+        p_colaborador: colaboradorId,
+        p_tipo: tipoDoc,
+        p_data_alvo: dataDoc,
+        p_data_fim: dataFim as any,
+        p_motivo: (observacao || null) as any,
+        p_arquivo_path: path as any,
         // Licença registrada pelo gestor já entra aprovada e vale na Operação,
         // mesmo com data de início no passado.
-        status: licenca ? "aprovada" : "pendente",
-        respondido_por: licenca ? user?.id : null,
-        respondido_em: licenca ? new Date().toISOString() : null,
-        data_alvo: dataDoc,
-        data_fim: dataFim,
-        motivo: observacao || null,
-        arquivo_path: path,
-        criado_por: user?.id,
+        p_aprovada: licenca,
       });
       if (error) throw error;
       return licenca;

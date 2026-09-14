@@ -200,17 +200,19 @@ export default function DpFolgas() {
       if (!selectedCompanyId) throw new Error("Empresa não selecionada");
       if (!selectedDay) throw new Error("Selecione um dia");
       if (!quickColabId) throw new Error("Escolha um colaborador");
-      const { error } = await supabase.from("dp_solicitacoes").insert({
-        company_id: selectedCompanyId,
-        colaborador_id: quickColabId,
-        tipo: "folga",
-        data_alvo: format(selectedDay, "yyyy-MM-dd"),
-        data_fim: null,
-        motivo: null,
-        criado_por: user?.id,
-        status: "aprovada",
+      const { error } = await supabase.rpc("dp_folga_atribuir_admin", {
+        p_colaborador: quickColabId,
+        p_data: format(selectedDay, "yyyy-MM-dd"),
+        p_motivo: null as any,
       });
-      if (error) throw error;
+      if (error) {
+        const raw = error.message ?? "";
+        if (raw.includes("FOLGA_LIMITE_DIA"))
+          throw new Error("Este dia já atingiu o limite de pessoas em folga.");
+        if (raw.includes("DUPLICATE_REQUEST"))
+          throw new Error("Este colaborador já tem folga registrada neste dia.");
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Folga atribuída");
