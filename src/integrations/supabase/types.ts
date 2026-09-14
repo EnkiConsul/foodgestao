@@ -6110,6 +6110,10 @@ export type Database = {
       }
       dp_convocacoes: {
         Row: {
+          aceite_atrasado: boolean
+          aceite_atraso_forma: string | null
+          aceite_atraso_justificativa: string | null
+          aceite_atraso_minutos: number | null
           carga_prevista_horas: number
           colaborador_id: string
           company_id: string
@@ -6169,6 +6173,10 @@ export type Database = {
           visualizada_em: string | null
         }
         Insert: {
+          aceite_atrasado?: boolean
+          aceite_atraso_forma?: string | null
+          aceite_atraso_justificativa?: string | null
+          aceite_atraso_minutos?: number | null
           carga_prevista_horas?: number
           colaborador_id: string
           company_id: string
@@ -6228,6 +6236,10 @@ export type Database = {
           visualizada_em?: string | null
         }
         Update: {
+          aceite_atrasado?: boolean
+          aceite_atraso_forma?: string | null
+          aceite_atraso_justificativa?: string | null
+          aceite_atraso_minutos?: number | null
           carga_prevista_horas?: number
           colaborador_id?: string
           company_id?: string
@@ -14697,6 +14709,18 @@ export type Database = {
         Returns: string
       }
       dp_colaborador_ativo_of: { Args: { _user_id: string }; Returns: string }
+      dp_colaborador_horario_ocupado: {
+        Args: {
+          _colaborador_id: string
+          _data: string
+          _entrada: string
+          _ignorar_convocacao_id?: string
+          _pendente_bloqueia?: boolean
+          _saida: string
+          _vira?: boolean
+        }
+        Returns: boolean
+      }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
       dp_colaboradores_lixeira: {
         Args: { p_company_id: string }
@@ -14991,6 +15015,10 @@ export type Database = {
       dp_convocacao_minhas_ofertas: {
         Args: never
         Returns: {
+          aceite_atrasado: boolean
+          aceite_atraso_forma: string
+          aceite_atraso_justificativa: string
+          aceite_atraso_minutos: number
           carga_prevista_horas: number
           cargo_nome: string
           compatibilidade: string
@@ -15000,6 +15028,9 @@ export type Database = {
           id: string
           inicio_previsto: string
           intervalo_minutos: number
+          janela_comecou: boolean
+          janela_terminou: boolean
+          minutos_de_atraso: number
           modalidade: string
           motivo_recusa: string
           necessidade_entrada: string
@@ -15061,18 +15092,32 @@ export type Database = {
         Args: { _carga_prevista_horas: number; _colaborador_id: string }
         Returns: Json
       }
-      dp_convocacao_responder_oferta: {
-        Args: {
-          p_aceito: boolean
-          p_convocacao_id: string
-          p_motivo?: string
-          p_parcial_entrada?: string
-          p_parcial_observacao?: string
-          p_parcial_saida?: string
-          p_parcial_termina_no_dia_seguinte?: boolean
-        }
-        Returns: Json
-      }
+      dp_convocacao_responder_oferta:
+        | {
+            Args: {
+              p_aceito: boolean
+              p_convocacao_id: string
+              p_motivo?: string
+              p_parcial_entrada?: string
+              p_parcial_observacao?: string
+              p_parcial_saida?: string
+              p_parcial_termina_no_dia_seguinte?: boolean
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_aceito: boolean
+              p_atraso_justificativa?: string
+              p_convocacao_id: string
+              p_motivo?: string
+              p_parcial_entrada?: string
+              p_parcial_observacao?: string
+              p_parcial_saida?: string
+              p_parcial_termina_no_dia_seguinte?: boolean
+            }
+            Returns: Json
+          }
       dp_convocacao_revisar_ocorrencia: {
         Args: {
           p_carga_prevista_horas?: number
@@ -15523,6 +15568,7 @@ export type Database = {
         Args: { _competencia?: string }
         Returns: Json
       }
+      dp_minutos_do_horario: { Args: { _t: string }; Returns: number }
       dp_nome_normalizado: { Args: { p_nome: string }; Returns: string }
       dp_notificacao_marcar_lida: { Args: { _ids: string[] }; Returns: number }
       dp_notificacoes_marcar_todas: {
