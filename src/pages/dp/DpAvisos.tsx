@@ -343,7 +343,12 @@ export default function DpAvisos() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => { if (toDelete) { remove.mutate(toDelete.id); setToDelete(null); } }}
+              disabled={remove.isPending}
+              onClick={() => {
+                if (!toDelete || remove.isPending) return;
+                remove.mutate(toDelete.id);
+                setToDelete(null);
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir
