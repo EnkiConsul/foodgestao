@@ -20,6 +20,8 @@ import {
   contarFiltrosAtivos,
   type TrocaFiltros,
 } from "@/lib/dp/trocas-filtros";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { mensagemErro } from "@/lib/dp/mensagemErro";
 
 const STATUS_OPCOES: { value: string; label: string }[] = [
   { value: "todos", label: "Todos os status" },
@@ -42,6 +44,9 @@ export default function DpTrocas() {
     rows,
     total,
     isLoading,
+    isError,
+    error,
+    refetch,
     responder: responderMut,
     cancelar: cancelarMut,
   } = useDpTrocas(filtros);
