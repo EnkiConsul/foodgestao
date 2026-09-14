@@ -169,12 +169,9 @@ export function MuralFeed() {
   }
 
   if (mural.avisos.isLoading) {
-    return (
-      <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
-        Carregando mural…
-      </div>
-    );
+    return <CardListSkeleton rows={3} />;
   }
+
 
 
   if (avisos.length === 0) {
