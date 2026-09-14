@@ -709,8 +709,20 @@ export default function DpMeuCalendario() {
         );
       }
 
-      const { error } = await supabase.from("dp_folgas").delete().eq("id", folga.id);
-      if (error) throw error;
+      const { error } = await supabase.rpc("dp_folga_remover", { p_data: iso });
+      if (error) {
+        const raw = error.message ?? "";
+        if (raw.includes("FOLGA_OBRIGATORIA"))
+          throw new Error(
+            "Esta folga dominical é definida pela CLT e não pode ser removida. Solicite uma troca ou uma exceção.",
+          );
+        if (raw.includes("FOLGA_NAO_REMOVIVEL"))
+          throw new Error("Apenas folgas marcadas por você podem ser removidas. Fale com o DP.");
+        if (raw.includes("FOLGA_NAO_ENCONTRADA")) throw new Error("Folga não encontrada.");
+        if (raw.includes("PAST_DATE_NOT_EDITABLE"))
+          throw new Error("Não é possível remover folga passada.");
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Folga removida.");
