@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
 import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
+import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
 export type MinhaFeriasDocumento = {
   id: string;
