@@ -201,8 +201,8 @@ export default function DpMeuTrocas() {
         company_id: meRef.data.company_id,
         solicitante_id: meRef.data.id,
         destino_id: form.destino_id,
-        data_original: toIso(form.data_original),
-        data_proposta: toIso(form.data_proposta),
+        data_original: form.data_original,
+        data_proposta: form.data_proposta,
         motivo: form.motivo,
         created_by: user!.id,
       });
