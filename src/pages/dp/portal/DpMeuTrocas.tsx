@@ -251,20 +251,56 @@ export default function DpMeuTrocas() {
               <DialogHeader><DialogTitle>Nova proposta de troca</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div>
-                  <Label>Colega</Label>
-                  <Select value={form.destino_id} onValueChange={(v) => setForm({ ...form, destino_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar colega" /></SelectTrigger>
+                  <Label>Minha folga (a que você oferece)</Label>
+                  <Select
+                    value={form.data_original}
+                    onValueChange={(v) => setForm({ ...form, data_original: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Escolha uma folga sua" /></SelectTrigger>
                     <SelectContent>
-                      {(colegas.data ?? []).map((c: any) => (
-                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      {minhasFolgas.map((f: any) => (
+                        <SelectItem key={f.id} value={f.data}>{dataBR(f.data)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {minhasFolgas.length === 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Você ainda não tem folga marcada nos próximos dias para oferecer.
+                    </p>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <DateField label="Minha data" value={form.data_original} onChange={(d) => setForm({ ...form, data_original: d })} />
-                  <DateField label="Data proposta" value={form.data_proposta} onChange={(d) => setForm({ ...form, data_proposta: d })} />
+                <div>
+                  <Label>Dia que você quer folgar</Label>
+                  <Select
+                    value={form.data_proposta}
+                    onValueChange={(v) => setForm({ ...form, data_proposta: v, destino_id: "" })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Escolha o dia" /></SelectTrigger>
+                    <SelectContent>
+                      {datasPropostas.map((d) => (
+                        <SelectItem key={d} value={d}>{dataBR(d)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {datasPropostas.length === 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Nenhum colega da sua loja tem folga marcada nos próximos dias.
+                    </p>
+                  )}
                 </div>
+                {form.data_proposta && (
+                  <div>
+                    <Label>Colega que folga nesse dia</Label>
+                    <Select value={form.destino_id} onValueChange={(v) => setForm({ ...form, destino_id: v })}>
+                      <SelectTrigger><SelectValue placeholder="Selecionar colega" /></SelectTrigger>
+                      <SelectContent>
+                        {colegasDaData.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <Label>Motivo<span className="text-destructive ml-0.5">*</span></Label>
                   <Textarea rows={3} value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
