@@ -163,9 +163,17 @@ export default function DpMeuDocumentos() {
 
   const download = async (d: UnifiedDoc) => {
     if (!d.file_path) return toast.warning("Sem arquivo anexado.");
-    const { data, error } = await supabase.storage.from(d.bucket).createSignedUrl(d.file_path, 60);
-    if (error || !data) return toast.error("Erro ao gerar link");
-    window.open(data.signedUrl, "_blank");
+    const r = await abrirArquivoDp({
+      bucket: d.bucket,
+      path: d.file_path,
+      mimeType: d.mime_type,
+      fileName: d.arquivo_nome,
+    });
+    if (r.ok) return;
+    if (r.motivo === "bloqueado") return toast.error("Libere as janelas pop-up para abrir o documento.");
+    if (r.motivo === "sem_permissao")
+      return toast.error("Não conseguimos abrir este arquivo. Avise o DP para reenviá-lo.");
+    toast.error("Não foi possível abrir o documento agora. Tente novamente.");
   };
 
   const downloadAll = async () => {
