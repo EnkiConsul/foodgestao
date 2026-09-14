@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { formatarMinutos } from "@/lib/dp/convocacoes-parcial";
+import { rotuloAtraso } from "@/lib/dp/convocacoes";
+
 import {
   useDpConvocacoesParciais,
   type AvaliacaoParcial,
