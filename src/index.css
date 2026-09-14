@@ -175,6 +175,17 @@
     background-color: hsl(var(--background));
   }
 
+  /* No celular, o rodapé fixo (56px) + área segura do aparelho nunca cobre o conteúdo. */
+  .dp-main-pad {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom) + 1.5rem);
+  }
+
+  @media (min-width: 768px) {
+    .dp-main-pad {
+      padding-bottom: 2rem;
+    }
+  }
+
   .dp-shell .dp-page > header,
   .dp-shell .dp-page > .dp-page-header {
     padding-top: 0.25rem;
