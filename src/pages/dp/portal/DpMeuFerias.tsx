@@ -18,6 +18,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useDpMinhasFerias, type MinhaFeriasPeriodo } from "@/hooks/useDpMinhasFerias";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
+import {
+  decimoTerceiroJaAdiantado,
+  fimDoGozo,
+  inicioMinimoPedido,
+  resumoPedido,
+} from "@/lib/dp/ferias-pedido";
 
 const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
