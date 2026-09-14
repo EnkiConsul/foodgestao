@@ -128,6 +128,10 @@ function GrupoCard({
         )}
       </div>
 
+      {convocacoes && convocacoes.length > 0 ? <CustoGrupoPanel convocacoes={convocacoes} /> : null}
+
+
+
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <span className="text-[11px] text-muted-foreground">
           {total} data(s) · {vagas} vaga(s) previstas
