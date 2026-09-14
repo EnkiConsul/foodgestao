@@ -240,6 +240,7 @@ export function FeriasProgramacaoPanel() {
               </TableBody>
             </Table>
           </div>
+          </>
         )}
       </DpContentCard>
     </>
