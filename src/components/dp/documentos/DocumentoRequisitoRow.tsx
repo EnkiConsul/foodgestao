@@ -199,15 +199,22 @@ export function DocumentoRequisitoRow({
                         </Button>
                       )}
                       {onExcluir && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive"
-                          onClick={() => onExcluir(anexo)}
-                          aria-label="Remover anexo"
+                        <ConfirmarAcaoDialog
+                          titulo="Excluir documento?"
+                          descricao={`"${anexo.file_name ?? "Documento"}" será excluído e não poderá ser recuperado.`}
+                          confirmar="Excluir"
+                          cancelar="Cancelar"
+                          onConfirm={() => onExcluir(anexo)}
                         >
-                          <Trash2 className="size-4" />
-                        </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-11 min-w-11 text-destructive sm:h-9 sm:min-w-9"
+                            aria-label="Excluir documento"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </ConfirmarAcaoDialog>
                       )}
                     </>
                   )}
