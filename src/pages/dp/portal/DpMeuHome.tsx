@@ -34,7 +34,7 @@ export default function DpMeuHome() {
     queryKey: ["colab_of", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
+      const { data } = await supabase.rpc("dp_meu_colaborador");
       return data as string | null;
     },
   });

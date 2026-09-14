@@ -14,13 +14,17 @@ import { DpErrorState } from "@/components/dp/DpErrorState";
 import { CardListSkeleton } from "@/components/dp/DpSkeletons";
 
 import { notifyError } from "@/lib/notifyError";
+import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
 export default function DpMeuPerfil() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  // Identidade resolvida no servidor a partir da sessão (fonte única).
+  const vinculo = useMeuVinculoPortal();
+  const colaboradorId = vinculo.data?.colaboradorId ?? null;
   const perfil = useQuery({
-    queryKey: ["dp_meu_perfil", user?.id],
-    enabled: !!user?.id,
+    queryKey: ["dp_meu_perfil", user?.id, colaboradorId],
+    enabled: !!user?.id && !!colaboradorId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
@@ -49,7 +53,7 @@ export default function DpMeuPerfil() {
             "dp_sindicatos(nome)",
           ].join(", "),
         )
-        .eq("user_id", user!.id)
+        .eq("id", colaboradorId!)
         .maybeSingle();
       if (error) throw error;
       return data;

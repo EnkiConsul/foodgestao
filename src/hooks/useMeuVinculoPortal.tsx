@@ -28,24 +28,22 @@ export function useMeuVinculoPortal() {
     queryKey: ["dp_meu_vinculo_portal", user?.id],
     enabled: !!user?.id,
     queryFn: async (): Promise<MeuVinculoPortal | null> => {
-      const { data, error } = await supabase
-        .from("dp_colaboradores")
-        .select("id, company_id, nome, unidade_id, regime, unidade:dp_unidades(nome, possui_relogio_ponto)")
-        .eq("user_id", user!.id)
-        .maybeSingle();
+      // Identidade vem do servidor a partir da sessão: nenhum id é enviado
+      // pelo navegador. Vínculo inexistente, bloqueado ou em conflito
+      // devolve vazio (nega o acesso ao contexto).
+      const { data, error } = await supabase.rpc("dp_meu_vinculo");
       if (error) throw error;
-      if (!data) return null;
-      const unidade = (data as { unidade?: { nome: string | null; possui_relogio_ponto: boolean } | null })
-        .unidade;
-      const regime = (data.regime as string | null) ?? null;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row?.colaborador_id) return null;
+      const regime = row.regime ?? null;
       return {
-        colaboradorId: data.id,
-        companyId: data.company_id,
-        nome: data.nome,
-        unidadeId: data.unidade_id ?? null,
-        unidadeNome: unidade?.nome ?? null,
+        colaboradorId: row.colaborador_id,
+        companyId: row.company_id,
+        nome: row.nome ?? "",
+        unidadeId: row.unidade_id ?? null,
+        unidadeNome: row.unidade_nome ?? null,
         regime,
-        unidadeUsaPonto: unidade?.possui_relogio_ponto ?? false,
+        unidadeUsaPonto: row.unidade_usa_ponto ?? false,
         podeSerConvocado: !!regime && REGIMES_CONVOCAVEIS.includes(regime),
       };
     },

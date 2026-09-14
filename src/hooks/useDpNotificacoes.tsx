@@ -5,6 +5,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
 import { notificacaoLida } from "@/lib/dp/notificacoes";
+import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
 export type DpNotificacaoRow = Database["public"]["Tables"]["dp_notificacoes"]["Row"];
 export type DpNotificacao = DpNotificacaoRow & { lida: boolean };
@@ -14,19 +15,23 @@ export type DpNotificacao = DpNotificacaoRow & { lida: boolean };
  * pessoais só do próprio usuário; compartilhadas somente para gestores).
  * O estado de leitura é individual por destinatário.
  */
-export function useDpNotificacoes(opts?: { onlyUnread?: boolean }) {
+export function useDpNotificacoes(opts?: { onlyUnread?: boolean; variant?: "admin" | "portal" }) {
   const { selectedCompanyId } = useCompanyContext();
+  const vinculo = useMeuVinculoPortal();
   const { user } = useAuth();
   const qc = useQueryClient();
+  // No portal a empresa vem do vínculo autenticado, nunca do seletor
+  // administrativo de empresa.
+  const companyId = opts?.variant === "portal" ? vinculo.data?.companyId ?? null : selectedCompanyId;
 
   const q = useQuery({
-    queryKey: ["dp_notificacoes", selectedCompanyId, user?.id],
-    enabled: !!selectedCompanyId && !!user?.id,
+    queryKey: ["dp_notificacoes", companyId, user?.id],
+    enabled: !!companyId && !!user?.id,
     queryFn: async () => {
       const { data: rows, error } = await supabase
         .from("dp_notificacoes")
         .select("*")
-        .eq("company_id", selectedCompanyId!)
+        .eq("company_id", companyId!)
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -57,17 +62,17 @@ export function useDpNotificacoes(opts?: { onlyUnread?: boolean }) {
   }, [q.data, opts?.onlyUnread]);
 
   useEffect(() => {
-    if (!selectedCompanyId) return;
+    if (!companyId) return;
     const channel = supabase
-      .channel(`dp_notif_${selectedCompanyId}_${crypto.randomUUID()}`)
+      .channel(`dp_notif_${companyId}_${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "dp_notificacoes", filter: `company_id=eq.${selectedCompanyId}` },
-        () => qc.invalidateQueries({ queryKey: ["dp_notificacoes", selectedCompanyId] }),
+        { event: "*", schema: "public", table: "dp_notificacoes", filter: `company_id=eq.${companyId}` },
+        () => qc.invalidateQueries({ queryKey: ["dp_notificacoes", companyId] }),
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [selectedCompanyId, qc]);
+  }, [companyId, qc]);
 
   return { ...q, data: filtered };
 }
@@ -86,13 +91,15 @@ export function useMarkNotifRead() {
 }
 
 /** Marcar todas como lidas: afeta apenas o que o usuário atual pode ver. */
-export function useMarkAllNotifsRead() {
+export function useMarkAllNotifsRead(opts?: { variant?: "admin" | "portal" }) {
   const { selectedCompanyId } = useCompanyContext();
+  const vinculo = useMeuVinculoPortal();
+  const companyIdAtual = opts?.variant === "portal" ? vinculo.data?.companyId ?? null : selectedCompanyId;
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      if (!selectedCompanyId) return;
-      const { error } = await supabase.rpc("dp_notificacoes_marcar_todas", { _company_id: selectedCompanyId });
+      if (!companyIdAtual) return;
+      const { error } = await supabase.rpc("dp_notificacoes_marcar_todas", { _company_id: companyIdAtual });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_notificacoes"] }),

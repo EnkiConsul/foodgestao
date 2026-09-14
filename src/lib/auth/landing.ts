@@ -25,7 +25,7 @@ export async function resolveLandingTarget(userId: string): Promise<LandingTarge
     supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "super_admin").maybeSingle(),
     supabase.from("companies").select("id").eq("user_id", userId).limit(1),
     supabase.from("company_members").select("role").eq("user_id", userId).in("role", ["owner", "admin"]).limit(1),
-    supabase.rpc("is_dp_colaborador", { _user_id: userId }),
+    supabase.rpc("sou_dp_colaborador"),
   ]);
 
   const isAdminOrOwner =

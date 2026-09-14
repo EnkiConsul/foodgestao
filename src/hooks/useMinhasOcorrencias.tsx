@@ -18,7 +18,7 @@ export function useMinhasOcorrencias() {
     queryKey: ["colab_of", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
+      const { data, error } = await supabase.rpc("dp_meu_colaborador");
       if (error) throw error;
       return data as string | null;
     },

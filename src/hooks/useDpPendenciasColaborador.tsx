@@ -46,7 +46,7 @@ export function useDpPendenciasColaborador() {
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     queryFn: async (): Promise<PendenciaColaborador[]> => {
-      const { data: colabId } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
+      const { data: colabId } = await supabase.rpc("dp_meu_colaborador");
       if (!colabId) return [];
 
       const today = new Date();

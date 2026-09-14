@@ -87,7 +87,7 @@ export function useDocumentosAguardandoAssinatura() {
     queryKey: ["dp_colab_assinatura_ctx", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data: cid } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
+      const { data: cid } = await supabase.rpc("dp_meu_colaborador");
       if (!cid) return null;
       const { data } = await supabase
         .from("dp_colaboradores")

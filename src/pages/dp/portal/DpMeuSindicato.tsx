@@ -38,7 +38,7 @@ export default function DpMeuSindicato() {
     queryKey: ["meu_sindicato_colab", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data: id } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
+      const { data: id } = await supabase.rpc("dp_meu_colaborador");
       if (!id) return null;
       const { data } = await supabase
         .from("dp_colaboradores")

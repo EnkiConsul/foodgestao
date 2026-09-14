@@ -14945,6 +14945,21 @@ export type Database = {
         Args: { p_colaborador: string; p_data: string }
         Returns: Json
       }
+      dp_meu_colaborador: { Args: never; Returns: string }
+      dp_meu_vinculo: {
+        Args: never
+        Returns: {
+          acesso_portal_ate: string
+          ativo: boolean
+          colaborador_id: string
+          company_id: string
+          nome: string
+          regime: string
+          unidade_id: string
+          unidade_nome: string
+          unidade_usa_ponto: boolean
+        }[]
+      }
       dp_minha_disponibilidade_janela: {
         Args: { _competencia?: string }
         Returns: Json
@@ -16005,6 +16020,7 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       soft_delete_account: { Args: { _account_id: string }; Returns: undefined }
+      sou_dp_colaborador: { Args: never; Returns: boolean }
       start_module_trial: {
         Args: {
           p_company_id: string

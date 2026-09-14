@@ -107,9 +107,7 @@ export function useMeusDocumentos() {
     queryKey: ["dp_meu_ctx_docs", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data: cid } = await supabase.rpc("dp_colaborador_of", {
-        _user_id: user!.id,
-      });
+      const { data: cid } = await supabase.rpc("dp_meu_colaborador");
       if (!cid) return null;
       const { data } = await supabase
         .from("dp_colaboradores")

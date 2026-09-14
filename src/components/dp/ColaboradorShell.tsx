@@ -26,10 +26,11 @@ export function ColaboradorShell() {
   });
 
   const check = useQuery({
-    queryKey: ["is_dp_colaborador", user?.id],
+    queryKey: ["sou_dp_colaborador", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("is_dp_colaborador", { _user_id: user!.id });
+      // Identidade derivada da sessão no servidor.
+      const { data, error } = await supabase.rpc("sou_dp_colaborador");
       if (error) throw error;
       return !!data;
     },
