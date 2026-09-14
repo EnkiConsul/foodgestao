@@ -57,13 +57,13 @@ BEGIN
     FROM public.dp_bulk_import_items WHERE batch_id = v_batch AND page_index = 1;
   res := res || CASE WHEN st = 'retry' AND nxt > now() THEN 'PASS T4' ELSE 'FAIL T4 (' || st || ')' END;
 
-  -- T5: erro definitivo vai direto ao estado final
+  -- T5: erro definitivo vai direto ao estado final (failed)
   SELECT locked_by INTO dono FROM public.dp_bulk_import_items WHERE batch_id = v_batch AND page_index = 2;
   PERFORM public.dp_bulk_item_finish_failure(
     (SELECT id FROM public.dp_bulk_import_items WHERE batch_id = v_batch AND page_index = 2),
     dono, 'pdf invalido', 'fatal', true);
   SELECT status INTO st FROM public.dp_bulk_import_items WHERE batch_id = v_batch AND page_index = 2;
-  res := res || CASE WHEN st = 'dead' THEN 'PASS T5' ELSE 'FAIL T5 (' || st || ')' END;
+  res := res || CASE WHEN st = 'failed' THEN 'PASS T5' ELSE 'FAIL T5 (' || st || ')' END;
 
   -- T6: concessão expirada é recuperada
   UPDATE public.dp_bulk_import_items
@@ -78,11 +78,11 @@ BEGIN
   UPDATE public.dp_bulk_import_items
      SET attempt_count = max_attempts, status = 'processing',
          locked_by = 'w-z', lease_expires_at = now() + interval '5 minutes'
-   WHERE batch_id = v_batch AND page_index = 0;
+   WHERE batch_id = v_batch AND page_index = 3;
   PERFORM public.dp_bulk_item_finish_failure(
-    (SELECT id FROM public.dp_bulk_import_items WHERE batch_id = v_batch AND page_index = 0),
+    (SELECT id FROM public.dp_bulk_import_items WHERE batch_id = v_batch AND page_index = 3),
     'w-z', 'timeout', 'transient', false);
-  SELECT status INTO st FROM public.dp_bulk_import_items WHERE batch_id = v_batch AND page_index = 0;
+  SELECT status INTO st FROM public.dp_bulk_import_items WHERE batch_id = v_batch AND page_index = 3;
   res := res || CASE WHEN st = 'dead' THEN 'PASS T7' ELSE 'FAIL T7 (' || st || ')' END;
 
   -- T8: só o dono da reserva encerra o item
