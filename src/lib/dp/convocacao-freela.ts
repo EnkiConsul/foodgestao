@@ -27,7 +27,10 @@ export const CONDICOES_FREELA_VAZIAS: CondicoesFreela = {
   gorjeta: false,
 };
 
-const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+// Espaço normal em vez do espaço fixo do Intl: o texto viaja por WhatsApp e
+// por campos de texto, onde o espaço fixo aparece como caractere estranho.
+const moeda = (v: number) =>
+  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace(/\u00a0/g, " ");
 
 /** true quando alguma condição foi preenchida. */
 export function temCondicoesFreela(c: CondicoesFreela): boolean {
