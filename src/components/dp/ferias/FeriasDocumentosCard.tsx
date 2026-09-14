@@ -130,14 +130,22 @@ function Slot({
           >
             {d.file_name ?? FERIAS_DOC_LABEL[tipo]}
           </button>
-          <Button
-            size="icon"
-            variant="ghost"
-            aria-label="Excluir documento"
-            onClick={() => onExcluir(d)}
+          <ConfirmarAcaoDialog
+            titulo="Excluir documento?"
+            descricao={`"${d.file_name ?? FERIAS_DOC_LABEL[tipo]}" será excluído e não poderá ser recuperado.`}
+            confirmar="Excluir"
+            cancelar="Cancelar"
+            onConfirm={() => onExcluir(d)}
           >
-            <Trash2 className="size-4" />
-          </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-11 w-11 sm:h-9 sm:w-9"
+              aria-label="Excluir documento"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </ConfirmarAcaoDialog>
         </div>
       ))}
 
