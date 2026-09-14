@@ -41,8 +41,10 @@ export function useDpPendenciasColaborador() {
   return useQuery({
     queryKey: ["dp_pendencias_colaborador", user?.id],
     enabled: !!user?.id,
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
+    // Mesma regra do portal do gestor: a lista não se refaz a cada abertura de
+    // tela; ela é atualizada pela rotina diária e pelas ações do próprio portal.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
     queryFn: async (): Promise<PendenciaColaborador[]> => {
       const { data: colabId } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
       if (!colabId) return [];
@@ -283,6 +285,9 @@ export function useDpPendenciasColaborador() {
 
         (docsAceite ?? [])
           .filter((d: any) => !aprovados.has(d.id))
+          // Documento cuja data de referência ainda não chegou (ex.: adiantamento
+          // que só será pago no fim do mês) fica disponível, mas não é cobrado.
+          .filter((d: any) => !d.referencia_data || d.referencia_data <= ymd(today))
           .forEach((d: any) => {
             const limite = vencimentoAprovacao(d.created_at);
             const atraso = atrasoAprovacao(d.created_at, today);
@@ -302,7 +307,8 @@ export function useDpPendenciasColaborador() {
               tipo: "Aprovação de documento",
               vencimento: ymd(limite),
               atrasoDias: atraso,
-              url: "/dp/meu/documentos?foco=pendencias",
+              // Abre direto o documento a ser assinado.
+              url: `/dp/meu/documentos?doc=${d.id}`,
             });
           });
       } catch (e) {

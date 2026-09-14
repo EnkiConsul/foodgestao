@@ -103,8 +103,9 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
       colaborador: base.data.colaborador,
       dependentes: base.data.dependentes,
       vinculos: base.data.vinculos,
+      perspectiva: comoColaborador ? "colaborador" : "gestor",
     });
-  }, [base.data]);
+  }, [base.data, comoColaborador]);
 
   const resumo = useMemo(() => resumirChecklist(itens), [itens]);
 

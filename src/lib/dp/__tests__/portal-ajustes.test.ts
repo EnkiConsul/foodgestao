@@ -39,7 +39,10 @@ describe("título de documento", () => {
 
 describe("telas fora do vínculo", () => {
   it("esconde convocações de quem não é convocável", () => {
-    expect(portalRoutesForaDoVinculo({ podeSerConvocado: false })).toEqual(["/dp/meu/convocacoes"]);
+    expect(portalRoutesForaDoVinculo({ podeSerConvocado: false })).toEqual([
+      "/dp/meu/convocacoes",
+      "/dp/meu/escala",
+    ]);
   });
 
   it("mantém convocações para intermitentes", () => {

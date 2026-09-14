@@ -109,12 +109,28 @@ export function certificadoValidacaoHtml(d: CertificadoValidacaoDados): string {
   </body></html>`;
 }
 
-/** Abre a janela de impressão do certificado. Retorna false se o popup foi bloqueado. */
+const BOTAO_IMPRIMIR = `
+  <div style="text-align:center;margin-top:14px" class="acoes">
+    <button type="button" onclick="window.print()"
+      style="font:600 13px Arial,sans-serif;padding:10px 18px;border:0;border-radius:8px;background:#EB6119;color:#fff">
+      Salvar em PDF / imprimir
+    </button>
+  </div>
+  <style>@media print { .acoes { display:none } }</style>`;
+
+/**
+ * Abre o certificado em uma nova aba para leitura. A impressão (ou "salvar em
+ * PDF", no celular) fica no botão dentro da página — nada é enviado direto
+ * para a impressora. Retorna false se o navegador bloqueou a nova aba.
+ */
 export function imprimirCertificadoValidacao(d: CertificadoValidacaoDados): boolean {
-  const win = window.open("", "_blank");
-  if (!win) return false;
-  win.document.write(certificadoValidacaoHtml(d));
-  win.document.close();
-  setTimeout(() => win.print(), 300);
+  const html = certificadoValidacaoHtml(d).replace("</body>", `${BOTAO_IMPRIMIR}</body>`);
+  const url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
+  const win = window.open(url, "_blank");
+  if (!win) {
+    URL.revokeObjectURL(url);
+    return false;
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
   return true;
 }

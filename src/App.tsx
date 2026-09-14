@@ -121,6 +121,7 @@ const DpMeuEscala = lazyWithRetry(() => import("./pages/dp/portal/DpMeuEscala"))
 const DpMeuRotinaLoja = lazyWithRetry(() => import("./pages/dp/portal/DpMeuRotinaLoja"));
 const DpMinhasConvocacoes = lazyWithRetry(() => import("./pages/dp/portal/DpMinhasConvocacoes"));
 const DpMeuHistorico = lazyWithRetry(() => import("./pages/dp/portal/DpMeuHistorico"));
+const DpMeuSindicato = lazyWithRetry(() => import("./pages/dp/portal/DpMeuSindicato"));
 
 // Admin
 const AdminModulos = lazyWithRetry(() => import("./pages/admin/Modulos"));
@@ -344,7 +345,7 @@ const AppRoutes = () => (
 
         <Route path="atestados" element={<Navigate to="/dp/meu/documentos?tipo=atestado" replace />} />
         <Route path="disciplinar" element={<Navigate to="/dp/meu/documentos?tipo=disciplinar" replace />} />
-        <Route path="sindicato" element={<Navigate to="/dp/meu/documentos?tipo=act_cct" replace />} />
+        <Route path="sindicato" element={<DpMeuSindicato />} />
         <Route path="historico" element={<DpMeuHistorico />} />
         <Route path="mais" element={<Mais />} />
       </Route>

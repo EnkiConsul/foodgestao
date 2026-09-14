@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { LayoutGrid, MoreHorizontal, Sliders } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -114,18 +115,15 @@ export function MobileBottomNav() {
     setIndicator({ left: er.left - pr.left + er.width / 2 - 14, width: 28 });
   }, [activeIdx, pathname, isHomeActive]);
 
-  return (
+  // O rodapé vai direto no <body>: assim nenhum contêiner com transform,
+  // filtro ou rolagem própria consegue "descolar" o menu ao rolar a tela.
+  return createPortal(
     <>
       <nav
         ref={navRef}
         role="tablist"
         className="fixed bottom-0 left-0 right-0 z-50 bg-card md:hidden"
-        style={{
-          paddingBottom: "env(safe-area-inset-bottom)",
-          // Mantém o rodapé colado embaixo mesmo com a barra do navegador aparecendo/sumindo.
-          transform: "translateZ(0)",
-          willChange: "transform",
-        }}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="relative" style={{ height: NAV_HEIGHT }}>
           <BottomNavShape height={NAV_HEIGHT} />
@@ -173,7 +171,8 @@ export function MobileBottomNav() {
           setCustomizerSlot(null);
         }}
       />
-    </>
+    </>,
+    document.body,
   );
 }
 

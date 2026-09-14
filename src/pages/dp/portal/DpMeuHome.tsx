@@ -130,7 +130,11 @@ export default function DpMeuHome() {
           value={folgaTexto}
           hint={
             proximaFolga
-              ? `${new Date(proximaFolga.data + "T00:00:00").toLocaleDateString("pt-BR")} · ${proximaFolga.label}`
+              ? `${new Date(proximaFolga.data + "T00:00:00").toLocaleDateString("pt-BR", {
+                  weekday: "long",
+                  day: "2-digit",
+                  month: "2-digit",
+                })} · ${proximaFolga.label}`
               : "Sem folga prevista"
           }
           to="/dp/meu/calendario"

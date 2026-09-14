@@ -82,5 +82,7 @@ export function portalRoutesForaDoVinculo(vinculo: {
   podeSerConvocado?: boolean | null;
 } | null | undefined): string[] {
   if (!vinculo) return [];
-  return vinculo.podeSerConvocado ? [] : ["/dp/meu/convocacoes"];
+  // "Minha Escala" lista os dias aceitos em convocação: só interessa a quem
+  // pode ser convocado (freelancer e intermitente).
+  return vinculo.podeSerConvocado ? [] : ["/dp/meu/convocacoes", "/dp/meu/escala"];
 }

@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { imprimirCertificadoValidacao } from "@/lib/dp/documento-certificado";
+import { abrirArquivoDp } from "@/lib/dp/abrirDocumento";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { cn } from "@/lib/utils";
@@ -119,6 +120,21 @@ export default function DpMeuDocumentos() {
     return () => clearTimeout(t);
   }, [focoPendencias, isLoading]);
 
+  /**
+   * Pendência de assinatura aponta para ?doc=<id>: abre o próprio documento,
+   * já visível, em vez de largar o colaborador na lista.
+   */
+  const docFoco = params.get("doc");
+  const abriuFoco = useRef(false);
+  useEffect(() => {
+    if (!docFoco || isLoading || abriuFoco.current) return;
+    const alvo = documentos.find((d) => d.meta?.originalId === docFoco || d.id === docFoco);
+    if (!alvo) return;
+    abriuFoco.current = true;
+    setTab("all");
+    setPreview(alvo);
+  }, [docFoco, isLoading, documentos]);
+
   const changeTab = (v: string) => {
     setTab(v);
     setOrigem("dp");
@@ -163,9 +179,17 @@ export default function DpMeuDocumentos() {
 
   const download = async (d: UnifiedDoc) => {
     if (!d.file_path) return toast.warning("Sem arquivo anexado.");
-    const { data, error } = await supabase.storage.from(d.bucket).createSignedUrl(d.file_path, 60);
-    if (error || !data) return toast.error("Erro ao gerar link");
-    window.open(data.signedUrl, "_blank");
+    const r = await abrirArquivoDp({
+      bucket: d.bucket,
+      path: d.file_path,
+      mimeType: d.mime_type,
+      fileName: d.arquivo_nome,
+    });
+    if (r.ok) return;
+    if (r.motivo === "bloqueado") return toast.error("Libere as janelas pop-up para abrir o documento.");
+    if (r.motivo === "sem_permissao")
+      return toast.error("Não conseguimos abrir este arquivo. Avise o DP para reenviá-lo.");
+    toast.error("Não foi possível abrir o documento agora. Tente novamente.");
   };
 
   const downloadAll = async () => {

@@ -213,17 +213,17 @@ const PORTAL_GROUPS: DpNavGroup[] = [
       "/dp/meu/trocas",
       "/dp/meu/ferias",
       "/dp/meu/solicitacoes",
-      "/dp/meu/historico",
     ],
     items: [
       { label: "Calendário", to: "/dp/meu/calendario", icon: Calendar, shortcut: true },
+      // "Minha Escala" só faz sentido para quem é chamado por convocação
+      // (freelancer e intermitente); some do menu para quem tem escala fixa.
       { label: "Minha Escala", to: "/dp/meu/escala", icon: CalendarRange, shortcut: true },
       { label: "Rotina da Loja", to: "/dp/meu/rotina", icon: Store, shortcut: true, shortLabel: "Rotina" },
       { label: "Convocações", to: "/dp/meu/convocacoes", icon: BellRing, shortcut: true },
       { label: "Trocas", to: "/dp/meu/trocas", icon: Repeat, shortcut: true },
       { label: "Minhas Férias", to: "/dp/meu/ferias", icon: Palmtree, shortcut: true, shortLabel: "Férias" },
       { label: "Solicitações", to: "/dp/meu/solicitacoes", icon: ClipboardList, shortcut: true },
-      { label: "Histórico", to: "/dp/meu/historico", icon: ListChecks, shortcut: true },
     ],
   },
   {
@@ -235,12 +235,14 @@ const PORTAL_GROUPS: DpNavGroup[] = [
       "/dp/meu/atestados",
       "/dp/meu/disciplinar",
       "/dp/meu/sindicato",
+      "/dp/meu/historico",
     ],
     items: [
       { label: "Meus Documentos", to: "/dp/meu/documentos", icon: FileText, shortcut: true, shortLabel: "Documentos" },
       { label: "Atestados", to: "/dp/meu/atestados", icon: HeartPulse },
       { label: "Disciplinar", to: "/dp/meu/disciplinar", icon: ShieldAlert },
       { label: "Sindicato", to: "/dp/meu/sindicato", icon: Scale },
+      { label: "Histórico", to: "/dp/meu/historico", icon: ListChecks, shortcut: true },
     ],
   },
 
