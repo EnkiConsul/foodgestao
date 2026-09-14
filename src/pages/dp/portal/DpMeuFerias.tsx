@@ -44,8 +44,8 @@ export default function DpMeuFerias() {
   const [aberto, setAberto] = useState(false);
   const [periodoId, setPeriodoId] = useState("");
   const [inicio, setInicio] = useState("");
-  const [fim, setFim] = useState("");
-  const [abono, setAbono] = useState(0);
+  const [diasTexto, setDiasTexto] = useState("");
+  const [abonoTexto, setAbonoTexto] = useState("");
   const [adiantar13, setAdiantar13] = useState(false);
   const [observacao, setObservacao] = useState("");
 
@@ -53,9 +53,16 @@ export default function DpMeuFerias() {
   const periodoSel: MinhaFeriasPeriodo | null =
     comSaldo.find((p) => p.periodo_id === periodoId) ?? null;
 
-  const dias = inicio && fim ? differenceInCalendarDays(parseISO(fim), parseISO(inicio)) + 1 : 0;
-  const total = dias + (Number(abono) || 0);
-  const excede = !!periodoSel && total > periodoSel.dias_saldo;
+  const abono = Number(abonoTexto) || 0;
+  const dias = Number(diasTexto) || 0;
+  const resumo = periodoSel ? resumoPedido(periodoSel, abono, dias) : null;
+  const total = resumo?.total ?? 0;
+  const excede = !!resumo?.excede;
+  const abonoAcimaDoLegal = !!resumo?.abonoAcimaDoLegal;
+  const inicioMin = periodoSel ? inicioMinimoPedido(periodoSel, hojeIsoLocal()) : "";
+  const inicioAntesDoPermitido = !!inicio && !!inicioMin && inicio < inicioMin;
+  const fim = fimDoGozo(inicio, dias);
+  const jaAdiantou13 = !!periodoSel && decimoTerceiroJaAdiantado(periodoSel);
   const antecedencia = inicio ? differenceInCalendarDays(parseISO(inicio), new Date()) : null;
   const foraDoPrazo =
     !!periodoSel && antecedencia !== null && antecedencia < periodoSel.aviso_antecedencia_dias;
@@ -63,16 +70,11 @@ export default function DpMeuFerias() {
   const abrir = () => {
     setPeriodoId(comSaldo[0]?.periodo_id ?? "");
     setInicio("");
-    setFim("");
-    setAbono(0);
+    setDiasTexto("");
+    setAbonoTexto("");
     setAdiantar13(false);
     setObservacao("");
     setAberto(true);
-  };
-
-  const definirInicio = (v: string) => {
-    setInicio(v);
-    if (v && (!fim || fim < v)) setFim(format(addDays(parseISO(v), 29), "yyyy-MM-dd"));
   };
 
   return (
