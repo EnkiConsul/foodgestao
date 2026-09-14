@@ -19,6 +19,7 @@ import { MinhaJornadaAcoesCard } from "@/components/dp/ocorrencias/MinhaJornadaA
 import { useMinhaProximaFolga } from "@/hooks/useMinhaProximaFolga";
 import { textoProximaFolga } from "@/lib/dp/proxima-folga";
 import { toProperName } from "@/lib/text/properName";
+import { InstalarAppCard } from "@/components/dp/portal/InstalarAppCard";
 
 
 export default function DpMeuHome() {
