@@ -41,8 +41,10 @@ export function useDpPendenciasColaborador() {
   return useQuery({
     queryKey: ["dp_pendencias_colaborador", user?.id],
     enabled: !!user?.id,
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
+    // Mesma regra do portal do gestor: a lista não se refaz a cada abertura de
+    // tela; ela é atualizada pela rotina diária e pelas ações do próprio portal.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
     queryFn: async (): Promise<PendenciaColaborador[]> => {
       const { data: colabId } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
       if (!colabId) return [];
