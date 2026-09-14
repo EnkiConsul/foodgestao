@@ -49,6 +49,7 @@ Lista completa dos pontos relatados, entregue de uma vez. Organizada por tela.
 ## Minha jornada hoje
 
 - Quem tem horário fixo deixa de ver "Sem horário definido para hoje": a tela passa a mostrar o horário habitual do dia da semana quando não há escala publicada.
+- No card de próxima folga, mostrar também o dia da semana da data.
 
 ## Ocorrências e ponto
 
