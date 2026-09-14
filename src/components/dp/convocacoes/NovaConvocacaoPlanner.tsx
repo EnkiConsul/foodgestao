@@ -695,7 +695,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       competencia,
       modalidade: "aberta",
       titulo: titulo.trim() || null,
-      observacao: observacao.trim() || null,
+      observacao: comporObservacaoFreela(observacao, temFreelancer ? freela : CONDICOES_FREELA_VAZIAS) || null,
       expected_updated_at: grupoExpected,
     });
     let expected: string | null = grupoRes?.updated_at ?? null;
@@ -916,7 +916,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   unidadeNome={(unidades.data ?? []).find((u: any) => u.id === unidadeId)?.nome ?? "—"}
                   competencia={competencia}
                   titulo={titulo.trim()}
-                  observacao={observacao.trim()}
+                  observacao={comporObservacaoFreela(observacao, temFreelancer ? freela : CONDICOES_FREELA_VAZIAS)}
                   dias={diasCompletos.map((d) => {
                     const cob = cobertura(d.data, d.cargo_id);
                     return {
