@@ -157,6 +157,50 @@ export default function DpFichaRegistroImportar() {
         </CardContent>
       </Card>
 
+      {importacoes.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Fichas enviadas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 p-4 pt-0">
+            <p className="pb-2 text-sm text-muted-foreground">
+              Toque em um envio para rever as fichas dele e abrir o arquivo original.
+            </p>
+            {importacoes.map((imp) => (
+              <div
+                key={imp.id}
+                className={cn(
+                  "flex flex-wrap items-center gap-2 rounded-lg border p-2 text-sm",
+                  imp.id === atual?.id ? "border-primary bg-primary/5" : "border-border",
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => setImportacaoId(imp.id)}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <span className="block truncate font-medium">{imp.arquivo_nome}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {new Date(imp.created_at).toLocaleString("pt-BR", {
+                      day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+                    })}
+                    {" · "}
+                    {imp.fichas_identificadas ?? 0} ficha(s)
+                    {" · "}
+                    {STATUS_ENVIO[imp.status] ?? imp.status}
+                  </span>
+                </button>
+                {imp.arquivo_path ? (
+                  <Button variant="outline" size="sm" className="h-8" onClick={() => abrirArquivo(imp.arquivo_path!)}>
+                    Abrir PDF
+                  </Button>
+                ) : null}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {atual && (
         <Card>
           <CardContent className="space-y-3 p-4">
