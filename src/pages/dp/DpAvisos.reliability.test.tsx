@@ -1,5 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AvisoDialog } from "@/pages/dp/DpAvisos";
 
@@ -22,7 +21,8 @@ const aviso = {
   escopo: "empresa",
 } as any;
 
-function renderDialog(onSave: (v: any) => Promise<void>, onOpenChange = vi.fn()) {
+function renderDialog(onSave: (v: any) => Promise<void>) {
+  const onOpenChange = vi.fn();
   render(
     <AvisoDialog aviso={aviso} open onOpenChange={onOpenChange} onSave={onSave} companyId="empresa-1" />,
   );
@@ -33,39 +33,37 @@ afterEach(() => cleanup());
 
 describe("formulário de aviso: sucesso só depois do backend", () => {
   it("mantém a janela aberta e os dados quando a gravação falha", async () => {
-    const user = userEvent.setup();
     const onSave = vi.fn().mockRejectedValue(new Error("falha no banco"));
     const { onOpenChange } = renderDialog(onSave);
 
-    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Salvar" })).toBeTruthy());
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(screen.getByDisplayValue("AVISO DE TESTE")).toBeTruthy();
   });
 
   it("fecha a janela somente após a confirmação do backend", async () => {
-    const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(undefined);
     const { onOpenChange } = renderDialog(onSave);
 
-    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
 
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
   });
 
   it("duplo clique em resposta lenta não grava duas vezes", async () => {
-    const user = userEvent.setup();
     let liberar: (() => void) | null = null;
     const onSave = vi.fn(
       () => new Promise<void>((resolve) => { liberar = () => resolve(); }),
     );
     renderDialog(onSave);
 
-    const botao = screen.getByRole("button", { name: "Salvar" });
-    await user.click(botao);
-    await waitFor(() => expect(screen.getByRole("button", { name: "Salvando…" })).toBeDisabled());
-    await user.click(screen.getByRole("button", { name: "Salvando…" })).catch(() => undefined);
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+    const emAndamento = await screen.findByRole("button", { name: "Salvando…" });
+    expect(emAndamento).toBeDisabled();
+    fireEvent.click(emAndamento);
 
     expect(onSave).toHaveBeenCalledTimes(1);
     liberar?.();
