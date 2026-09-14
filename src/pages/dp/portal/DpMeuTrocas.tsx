@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DpStatusBadge, type DpStatusTone } from "@/components/dp/DpStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -36,14 +37,15 @@ const statusLabel: Record<string, string> = {
   expirada: "Expirada",
 };
 
-const statusTone: Record<string, string> = {
-  pendente_colega: "bg-amber-500/10 text-amber-700 border-amber-300",
-  pendente_gestor: "bg-blue-500/10 text-blue-700 border-blue-300",
-  aprovada: "bg-green-500/10 text-green-700 border-green-300",
-  recusada: "bg-red-500/10 text-red-700 border-red-300",
-  cancelada: "bg-muted text-muted-foreground border-transparent",
-  expirada: "bg-muted text-muted-foreground border-transparent",
+const statusTone: Record<string, DpStatusTone> = {
+  pendente_colega: "warning",
+  pendente_gestor: "info",
+  aprovada: "success",
+  recusada: "danger",
+  cancelada: "muted",
+  expirada: "muted",
 };
+
 
 
 function dataBR(iso: string) {
@@ -353,9 +355,10 @@ export default function DpMeuTrocas() {
                     <CardTitle className="text-base flex items-center gap-2">
                       {t.solicitante?.nome} <ArrowRight className="h-4 w-4 text-muted-foreground" /> {t.destino?.nome}
                     </CardTitle>
-                    <Badge variant="outline" className={cn("border", statusTone[t.status])}>
+                    <DpStatusBadge tone={statusTone[t.status] ?? "neutral"}>
                       {statusLabel[t.status] ?? t.status}
-                    </Badge>
+                    </DpStatusBadge>
+
                   </div>
                   {/* Fluxo colega → gestor */}
                   <div className="flex items-center gap-1 mt-1 text-[11px]">
