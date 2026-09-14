@@ -1,32 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { acessoPortalAtivo, diasRestantesCarencia } from "@/lib/dp/desligamento";
+import { usePortalAcesso } from "@/hooks/usePortalAcesso";
+import { diasRestantesCarencia } from "@/lib/dp/desligamento";
 
 /** Banner exibido a colaboradores desligados durante o período de carência do portal. */
 export function CarenciaPortalBanner() {
-  const { user } = useAuth();
+  const { somenteDocumentos, acessoAte } = usePortalAcesso();
+  if (!somenteDocumentos) return null;
 
-  const q = useQuery({
-    queryKey: ["dp_carencia_portal", user?.id],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_colaboradores")
-        .select("ativo, data_desligamento, acesso_portal_ate")
-        .eq("user_id", user!.id)
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data as { ativo: boolean; data_desligamento: string | null; acesso_portal_ate: string | null } | null;
-    },
-  });
-
-  const c = q.data;
-  if (!c || c.ativo || !acessoPortalAtivo(c.acesso_portal_ate)) return null;
-
-  const dias = diasRestantesCarencia(c.acesso_portal_ate) ?? 0;
+  const dias = diasRestantesCarencia(acessoAte) ?? 0;
 
   return (
     <div className="mx-3 mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
@@ -37,17 +18,11 @@ export function CarenciaPortalBanner() {
             Acesso encerra em {dias} {dias === 1 ? "dia" : "dias"}
           </div>
           <p className="text-muted-foreground mt-0.5">
-            Seu vínculo foi encerrado
-            {c.data_desligamento
-              ? ` em ${new Date(`${c.data_desligamento}T12:00:00`).toLocaleDateString("pt-BR")}`
-              : ""}
-            . Você ainda pode consultar e baixar seus documentos até{" "}
+            Seu vínculo foi encerrado. Você ainda pode consultar e baixar seus documentos até{" "}
             <strong>
-              {c.acesso_portal_ate
-                ? new Date(`${c.acesso_portal_ate}T12:00:00`).toLocaleDateString("pt-BR")
-                : "—"}
+              {acessoAte ? new Date(`${acessoAte}T12:00:00`).toLocaleDateString("pt-BR") : "—"}
             </strong>
-            . Novas solicitações, folgas e trocas estão desativadas.
+            . Folgas, trocas, férias, convocações e novas solicitações estão desativadas.
           </p>
         </div>
       </div>
@@ -55,22 +30,8 @@ export function CarenciaPortalBanner() {
   );
 }
 
-/** Indica se o colaborador logado está em período de carência (somente leitura). */
+/** Indica se o colaborador logado está em período de carência (somente documentos). */
 export function useCarenciaPortal() {
-  const { user } = useAuth();
-  const q = useQuery({
-    queryKey: ["dp_carencia_portal", user?.id],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_colaboradores")
-        .select("ativo, data_desligamento, acesso_portal_ate")
-        .eq("user_id", user!.id)
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data as { ativo: boolean; data_desligamento: string | null; acesso_portal_ate: string | null } | null;
-    },
-  });
-  return { somenteLeitura: !!q.data && !q.data.ativo, isLoading: q.isLoading };
+  const { somenteDocumentos, isLoading } = usePortalAcesso();
+  return { somenteLeitura: somenteDocumentos, isLoading };
 }
