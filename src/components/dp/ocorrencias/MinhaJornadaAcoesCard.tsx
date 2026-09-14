@@ -123,9 +123,11 @@ export function MinhaJornadaAcoesCard() {
         <Badge variant="outline" className="ml-auto">
           {entrada && saida
             ? `${entrada} às ${saida}`
-            : folga?.data === hoje
-              ? "Hoje é sua folga"
-              : "Sem horário definido para hoje"}
+            : entrada
+              ? `A partir de ${entrada}`
+              : folga?.data === hoje
+                ? "Hoje é sua folga"
+                : "Horário a confirmar com o gestor"}
         </Badge>
       </div>
 
