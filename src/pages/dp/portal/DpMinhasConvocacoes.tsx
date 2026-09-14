@@ -183,11 +183,7 @@ export default function DpMinhasConvocacoes() {
 
               {prazo ? <p className="text-xs text-muted-foreground">Responder até {prazo}</p> : null}
 
-              {rem ? (
-                <p className="text-sm font-medium text-primary">
-                  {rem.total} <span className="text-xs font-normal text-muted-foreground">({rem.detalhe})</span>
-                </p>
-              ) : null}
+              {rem ? <RemuneracaoDiaDetalhe remuneracao={rem} className="mt-2" /> : null}
 
               {c.observacao ? <p className="text-sm pt-1">{c.observacao}</p> : null}
               {c.motivo_recusa && st === "recusada" ? (
