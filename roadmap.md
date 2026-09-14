@@ -7,49 +7,49 @@ Plano aprovado: `.lovable/plan/ajustes-do-portal-do-colaborador-2026-09-14.md`
 - [ ] Destaque para instalar o app no primeiro acesso ao portal
 
 ## Documentos
-- [ ] Exigir só documentos do colaborador; documentos da empresa ocultos sem anexo
-- [ ] Pendência de assinatura abre o documento certo
-- [ ] Certificado abre como PDF (sem impressora)
-- [ ] Mostrar todos os documentos, inclusive legados (atestado 06, adiantamentos 05/06)
-- [ ] Documentos avisados na tela inicial abrem ali
-- [ ] Documento com prazo futuro não exige assinatura
-- [ ] Corrigir notificação de assinatura já concluída
-- [ ] Tela própria de Sindicato
-- [ ] Histórico migra para o menu Documentos
+- [x] Exigir só documentos do colaborador; documentos da empresa ocultos sem anexo
+- [x] Pendência de assinatura abre o documento certo
+- [x] Certificado abre como PDF (sem impressora)
+- [x] Mostrar todos os documentos, inclusive legados (atestado 06, adiantamentos 05/06)
+- [x] Documentos avisados na tela inicial abrem ali
+- [x] Documento com prazo futuro não exige assinatura
+- [x] Corrigir notificação de assinatura já concluída
+- [x] Tela própria de Sindicato
+- [x] Histórico migra para o menu Documentos
 
 ## Meu Calendário
 - [ ] Folga de domingo aparece junto da semanal
-- [ ] Colegas de folga no dia
-- [ ] Trocar folga / pedir exceção nos dias de meio de semana
+- [x] Colegas de folga no dia
+- [x] Trocar folga / pedir exceção nos dias de meio de semana
 - [ ] Corrigir erro ao marcar folga (20/09)
 
 ## Rotina da Loja
 - [ ] Visão por setor padrão da empresa
-- [ ] Data navegada correta
+- [x] Data navegada correta
 - [ ] Não listar quem está de folga
-- [ ] Só o turno do próprio colaborador
+- [x] Só o turno do próprio colaborador
 
 ## Minhas Trocas
-- [ ] Botão criar nova troca
-- [ ] "Minha data" só com folgas dela
-- [ ] Colegas elegíveis após escolher a data desejada
+- [x] Botão criar nova troca
+- [x] "Minha data" só com folgas dela
+- [x] Colegas elegíveis após escolher a data desejada
 
 ## Minhas Férias
-- [ ] Início não antes do permitido
-- [ ] Campo de venda de dias editável + máximo legal
-- [ ] Sem adiantamento se 13º já antecipado
-- [ ] Data fim calculada (abono reduz)
+- [x] Início não antes do permitido
+- [x] Campo de venda de dias editável + máximo legal
+- [x] Sem adiantamento se 13º já antecipado
+- [x] Data fim calculada (abono reduz)
 
 ## Jornada e folga
-- [ ] Horário habitual em "Minha jornada hoje"
-- [ ] Dia da semana no card de próxima folga
+- [x] Horário habitual em "Minha jornada hoje"
+- [x] Dia da semana no card de próxima folga
 
 ## Ocorrências e ponto
 - [ ] Corrigir corte no celular
-- [ ] Opções "ponto com defeito" e "ponto não registrando"
+- [x] Opções "ponto com defeito" e "ponto não registrando"
 
 ## Menu e desempenho
-- [ ] Menu inferior fixo ao rolar
-- [ ] Esconder Minha Escala para colaborador fixo
-- [ ] Pendências do portal com a regra do gestor
-- [ ] Relatar problema abre no primeiro clique e envia sem erro
+- [x] Menu inferior fixo ao rolar
+- [x] Esconder Minha Escala para colaborador fixo
+- [x] Pendências do portal com a regra do gestor
+- [x] Relatar problema abre no primeiro clique e envia sem erro
