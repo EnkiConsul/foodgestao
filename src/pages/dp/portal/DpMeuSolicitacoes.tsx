@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DpStatusBadge, statusToneFor } from "@/components/dp/DpStatusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -39,12 +40,13 @@ const TIPOS = [
   { value: "outro", label: "Outro" },
 ];
 
-const statusColor: Record<string, string> = {
-  pendente: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  aprovada: "bg-green-500/10 text-green-700 dark:text-green-300",
-  recusada: "bg-red-500/10 text-red-700 dark:text-red-300",
-  cancelada: "bg-muted text-muted-foreground",
+const STATUS_LABEL: Record<string, string> = {
+  pendente: "Pendente",
+  aprovada: "Aprovada",
+  recusada: "Recusada",
+  cancelada: "Cancelada",
 };
+
 
 const STATUS_TABS = ["todas", "pendente", "aprovada", "recusada", "cancelada"] as const;
 type StatusTab = (typeof STATUS_TABS)[number];
@@ -450,7 +452,9 @@ export default function DpMeuSolicitacoes() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-base capitalize">{s.tipo}</CardTitle>
-                  <Badge className={statusColor[s.status]}>{s.status}</Badge>
+                  <DpStatusBadge tone={statusToneFor(s.status)}>
+                    {STATUS_LABEL[s.status] ?? s.status}
+                  </DpStatusBadge>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {s.data_alvo && format(new Date(s.data_alvo + "T00:00:00"), "dd/MM/yyyy")}

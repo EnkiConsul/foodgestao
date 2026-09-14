@@ -954,7 +954,7 @@ export default function DpMeuCalendario() {
 
       {/* Dialog do dia */}
       <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
-        <DialogContent className="max-w-md rounded-2xl sm:rounded-[2rem] border-none shadow-2xl p-5 sm:p-8">
+        <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <CalendarDays className="size-6 text-primary" />
@@ -1116,7 +1116,7 @@ export default function DpMeuCalendario() {
 
       {/* Dialog exceção */}
       <Dialog open={exceptionOpen} onOpenChange={(o) => !o && setExceptionOpen(false)}>
-        <DialogContent className="max-w-md rounded-2xl sm:rounded-[2rem] border-none shadow-2xl p-5 sm:p-8">
+        <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <AlertCircle className="size-6 text-amber-500" />
@@ -1160,7 +1160,7 @@ export default function DpMeuCalendario() {
 
       {/* Dialog troca */}
       <Dialog open={!!tradeOpen} onOpenChange={(o) => !o && setTradeOpen(null)}>
-        <DialogContent className="max-w-md rounded-2xl sm:rounded-[2rem] border-none shadow-2xl p-5 sm:p-8">
+        <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <ArrowLeftRight className="size-6 text-primary" />
