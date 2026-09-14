@@ -17,6 +17,7 @@ import { NovaConvocacaoPlanner } from "@/components/dp/convocacoes/NovaConvocaca
 import { ConvocacoesRegrasPanel } from "@/components/dp/convocacoes/ConvocacoesRegrasPanel";
 import { DisponibilidadePainel } from "@/components/dp/convocacoes/DisponibilidadePainel";
 import { PlanejamentoPainel } from "@/components/dp/convocacoes/PlanejamentoPainel";
+import { CustoGrupoPanel, type ConvocacaoComValor } from "@/components/dp/convocacoes/CustoGrupoPanel";
 import { AprovacaoParcialDialog } from "@/components/dp/convocacoes/AprovacaoParcialDialog";
 import {
   useDpConvocacaoGrupos, useExcluirRascunhoConvocacao, type GrupoComOcorrencias,
@@ -46,10 +47,12 @@ interface ContagemGrupo {
 function GrupoCard({
   grupo,
   contagem,
+  convocacoes,
   onEditar,
 }: {
   grupo: GrupoComOcorrencias;
   contagem?: ContagemGrupo;
+  convocacoes?: ConvocacaoComValor[];
   onEditar?: (g: GrupoComOcorrencias) => void;
 }) {
   const excluir = useExcluirRascunhoConvocacao();
