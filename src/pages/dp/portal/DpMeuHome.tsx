@@ -108,7 +108,7 @@ export default function DpMeuHome() {
             <Bell className="h-5 w-5 text-primary" />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl md:text-2xl font-bold capitalize truncate">
+            <h1 className="truncate text-xl font-bold md:text-2xl">
               {greeting}{firstName ? `, ${firstName}` : ""} 👋
             </h1>
             <p className="text-xs md:text-sm text-muted-foreground capitalize">{dateStr}</p>
