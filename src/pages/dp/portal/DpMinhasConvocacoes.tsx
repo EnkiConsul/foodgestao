@@ -13,6 +13,8 @@ import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import { PropostaParcialDialog } from "@/components/dp/convocacoes/PropostaParcialDialog";
 import { AceiteAtrasadoDialog } from "@/components/dp/convocacoes/AceiteAtrasadoDialog";
 import { useMinhasConvocacoes, type MinhaOferta } from "@/hooks/useDpConvocacoes";
+import { RemuneracaoDiaDetalhe } from "@/components/dp/convocacoes/RemuneracaoDiaDetalhe";
+import { remuneracaoDoSnapshot } from "@/lib/dp/convocacao-remuneracao";
 import {
   STATUS_META, janelaEmAndamento, minutosDeAtraso, podeResponder, rotuloAtraso, statusEfetivo,
 } from "@/lib/dp/convocacoes";
