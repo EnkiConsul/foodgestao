@@ -19,6 +19,8 @@ import { MobileDetailsSheet } from "@/components/dp/MobileCardKit";
 import type { Database } from "@/integrations/supabase/types";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { mensagemErro } from "@/lib/dp/mensagemErro";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
