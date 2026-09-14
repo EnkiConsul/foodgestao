@@ -156,6 +156,8 @@ export default function DpBloqueios() {
             <div className="rounded-2xl border border-border overflow-hidden">
               {regrasLoading ? (
                 <div className="p-8 text-center text-muted-foreground">Carregando…</div>
+              ) : regrasError ? (
+                <DpErrorState className="m-4" message={mensagemErro(regrasError)} onRetry={recarregar} />
               ) : regrasFiltradas.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">Nenhuma regra configurada.</div>
               ) : (
@@ -177,6 +179,8 @@ export default function DpBloqueios() {
             <div className="rounded-2xl border border-border overflow-hidden">
               {datasLoading ? (
                 <div className="p-8 text-center text-muted-foreground">Carregando…</div>
+              ) : datasError ? (
+                <DpErrorState className="m-4" message={mensagemErro(datasError)} onRetry={recarregar} />
               ) : datasFiltradas.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">Nenhuma data bloqueada neste período.</div>
               ) : (
