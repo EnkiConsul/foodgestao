@@ -327,6 +327,11 @@ export default function DpMinhasConvocacoes() {
             termina_no_dia_seguinte:
               parcial.necessidade_termina_no_dia_seguinte ?? parcial.termina_no_dia_seguinte,
           }}
+          minutosDeAtraso={
+            janelaEmAndamento(parcial)
+              ? (parcial.minutos_de_atraso ?? minutosDeAtraso(parcial.inicio_previsto))
+              : 0
+          }
           onConfirm={(p) =>
             proporParcial.mutate(
               { id: parcial.id, ...p },
@@ -342,7 +347,11 @@ export default function DpMinhasConvocacoes() {
                       ? "O horário precisa ficar dentro do horário pedido."
                       : msg.includes("PARTIAL_IS_FULL")
                         ? "Esse é o horário completo — use “Aceitar”."
-                        : msg || "Não foi possível enviar o horário parcial.",
+                        : msg.includes("WORKER_ALREADY_BOOKED")
+                          ? "Você já tem outra convocação confirmada nesse mesmo horário."
+                          : msg.includes("LATE_JUSTIFICATION_REQUIRED")
+                            ? "Escreva o que aconteceu para responder depois do início."
+                            : msg || "Não foi possível enviar o horário parcial.",
                   );
                 },
               },
@@ -350,6 +359,23 @@ export default function DpMinhasConvocacoes() {
           }
         />
       ) : null}
+
+      {atrasado ? (
+        <AceiteAtrasadoDialog
+          open={!!atrasado}
+          onOpenChange={(v) => !v && setAtrasado(null)}
+          loading={responder.isPending}
+          entrada={atrasado.necessidade_entrada ?? atrasado.entrada}
+          saida={atrasado.necessidade_saida ?? atrasado.saida}
+          minutosDeAtraso={
+            atrasado.minutos_de_atraso ?? minutosDeAtraso(atrasado.inicio_previsto)
+          }
+          onConfirm={(justificativa) =>
+            responderConvocacao(atrasado.id, true, undefined, justificativa)
+          }
+        />
+      ) : null}
+
     </DpPage>
   );
 }
