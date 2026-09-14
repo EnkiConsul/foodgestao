@@ -28,6 +28,8 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { notifyError } from "@/lib/notifyError";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { mensagemErro } from "@/lib/dp/mensagemErro";
 
 const MAX_UPLOAD_MB = 10;
 const ALLOWED_MIMES = [
@@ -261,6 +263,8 @@ export default function DpAvisos() {
         <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
           Carregando…
         </div>
+      ) : isError ? (
+        <DpErrorState message={mensagemErro(error)} onRetry={() => void refetch()} />
       ) : sorted.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
           Nenhum aviso cadastrado.
