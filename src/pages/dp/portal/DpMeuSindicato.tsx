@@ -5,7 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+
 import { abrirArquivoDp } from "@/lib/dp/abrirDocumento";
 import { toast } from "sonner";
 
@@ -112,12 +115,15 @@ export default function DpMeuSindicato() {
       />
 
       <DpContentCard>
-        {carregando ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
+        {colab.isError || sindicato.isError ? (
+          <DpErrorState onRetry={() => { colab.refetch(); sindicato.refetch(); }} />
+        ) : carregando ? (
+          <CardListSkeleton rows={1} />
         ) : !sindicato.data ? (
-          <p className="text-sm text-muted-foreground">
+          <DpEmptyState icon={Scale}>
             Ainda não há sindicato registrado para você. Fale com o setor de pessoas.
-          </p>
+          </DpEmptyState>
+
         ) : (
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -150,10 +156,13 @@ export default function DpMeuSindicato() {
 
       <DpContentCard>
         <h2 className="mb-2 text-base font-semibold">Acordos e convenções</h2>
-        {carregando ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
+        {negociacoes.isError ? (
+          <DpErrorState onRetry={() => negociacoes.refetch()} />
+        ) : carregando ? (
+          <CardListSkeleton rows={2} />
         ) : (negociacoes.data ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum acordo publicado até agora.</p>
+          <DpEmptyState icon={FileText}>Nenhum acordo publicado até agora.</DpEmptyState>
+
         ) : (
           <ul className="divide-y">
             {(negociacoes.data ?? []).map((n) => {
