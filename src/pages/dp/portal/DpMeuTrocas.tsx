@@ -252,7 +252,7 @@ export default function DpMeuTrocas() {
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-1" /> Propor troca</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
               <DialogHeader><DialogTitle>Nova proposta de troca</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div>
