@@ -1302,9 +1302,91 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                 </div>
               )}
 
+              {temFreelancer && (
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                  <div>
+                    <Label className="text-sm">Combinado com o freelancer</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Vale só para os freelancers convidados. O intermitente segue as regras do vínculo.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Valor da diária (R$)</Label>
+                      <Input
+                        type="number" min={0} step="0.01" inputMode="decimal"
+                        value={freela.diaria ?? ""}
+                        onChange={(e) =>
+                          setFreela((f) => ({ ...f, diaria: e.target.value === "" ? null : Number(e.target.value) }))
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs">Refeição</Label>
+                      <Select
+                        value={freela.refeicao}
+                        onValueChange={(v) => setFreela((f) => ({ ...f, refeicao: v as FreelaRefeicao }))}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="nenhuma">Não tem</SelectItem>
+                          <SelectItem value="loja">Refeição na loja</SelectItem>
+                          <SelectItem value="vale">Vale-alimentação</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {freela.refeicao === "vale" && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Valor do vale por dia (R$)</Label>
+                        <Input
+                          type="number" min={0} step="0.01" inputMode="decimal"
+                          value={freela.refeicaoValor ?? ""}
+                          onChange={(e) =>
+                            setFreela((f) => ({
+                              ...f,
+                              refeicaoValor: e.target.value === "" ? null : Number(e.target.value),
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <Label className="text-xs">Ajuda de transporte por dia (R$)</Label>
+                      <Input
+                        type="number" min={0} step="0.01" inputMode="decimal"
+                        value={freela.transporteValor ?? ""}
+                        onChange={(e) =>
+                          setFreela((f) => ({
+                            ...f,
+                            transporteValor: e.target.value === "" ? null : Number(e.target.value),
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={freela.gorjeta}
+                      onCheckedChange={(v) => setFreela((f) => ({ ...f, gorjeta: v === true }))}
+                    />
+                    Participa da gorjeta do dia
+                  </label>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Observação (opcional)</Label>
-                <Textarea rows={2} value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+                <Textarea
+                  rows={2}
+                  value={observacao}
+                  placeholder="Recado que aparece no convite (ex.: uniforme, ponto de encontro)"
+                  onChange={(e) => setObservacao(e.target.value)}
+                />
               </div>
 
               {diasJaComecaram.length > 0 && (
