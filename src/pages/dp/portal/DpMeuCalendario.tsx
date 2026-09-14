@@ -1011,6 +1011,16 @@ export default function DpMeuCalendario() {
                 {selectedDay.status === "past" && (
                   <p className="text-xs text-muted-foreground">Data já passou.</p>
                 )}
+                {selectedDay.status === "weekday" && (
+                  <p className="text-xs text-muted-foreground">
+                    Dia de trabalho. Você pode pedir uma troca com um colega que está de folga neste dia ou
+                    solicitar uma exceção ao DP.
+                  </p>
+                )}
+                {dayInfo.occupants.length === 0 && selectedDay.status !== "past" && (
+                  <p className="text-xs text-muted-foreground">Nenhum colega da sua loja está de folga neste dia.</p>
+                )}
+
 
                 {showExceptionBtn && (
                   <Button
