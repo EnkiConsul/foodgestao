@@ -327,11 +327,13 @@ export default function DpMeuSolicitacoes() {
 
   const cancelar = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("dp_solicitacoes")
-        .update({ status: "cancelada" as any })
-        .eq("id", id);
-      if (error) throw error;
+      const { error } = await supabase.rpc("dp_solicitacao_cancelar", { p_id: id });
+      if (error) {
+        const raw = error.message ?? "";
+        if (raw.includes("STATUS_INVALIDO"))
+          throw new Error("Apenas solicitações pendentes podem ser canceladas.");
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Solicitação cancelada");
