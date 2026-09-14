@@ -34,8 +34,11 @@ export function textoDoMotivo(motivo: string | null | undefined, ctx: ContextoMo
       return "Ela não tem horário habitual cadastrado nesse dia da semana.";
     case "HORARIO_INDEFINIDO":
       return "O horário da convocação está incompleto.";
+    case "JA_CONVOCADO_NO_HORARIO":
+      return "Ela já tem convocação confirmada nesse mesmo horário.";
     case "JA_CONVOCADO_NA_DATA":
       return "Ela já tem convocação nesse dia.";
+
     case "ALOCADO_EM_ESCALA":
       return "Ela já está escalada nesse dia.";
     case "EM_FERIAS":
@@ -88,9 +91,13 @@ export function textoDoErroDePublicacao(mensagem: string): string {
   if (msg.includes("SEM_JORNADA_NA_DATA")) {
     return `A pessoa não tem horário habitual nesse dia${dia}. Informe o horário da convocação.`;
   }
+  if (msg.includes("JA_CONVOCADO_NO_HORARIO") || msg.includes("WORKER_ALREADY_BOOKED")) {
+    return `A pessoa já tem convocação confirmada nesse mesmo horário${dia}.`;
+  }
   if (msg.includes("JA_CONVOCADO_NA_DATA") || msg.includes("PUBLICATION_OPTION_A")) {
     return `A pessoa já tem convocação${dia}.`;
   }
+
   if (msg.includes("ALOCADO_EM_ESCALA")) {
     return `A pessoa já está escalada${dia}.`;
   }
