@@ -9703,6 +9703,70 @@ export type Database = {
           },
         ]
       }
+      dp_portal_access_tokens: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          consumed_at: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          purpose: string
+          token_hash: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          consumed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          purpose: string
+          token_hash: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          consumed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          purpose?: string
+          token_hash?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_portal_access_tokens_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_portal_access_tokens_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_portal_access_tokens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_prioridade_aniversario: {
         Row: {
           aniversariante: boolean
@@ -13938,6 +14002,13 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_cargos_salario_base: {
+        Args: { p_company_id: string }
+        Returns: {
+          cargo_id: string
+          salario_base: number
+        }[]
+      }
       dp_colaborador_aplicar_condicao: {
         Args: {
           p_base_dias_mes: number
@@ -15019,6 +15090,13 @@ export type Database = {
       dp_pode_gerenciar_lixeira: {
         Args: { _company_id: string }
         Returns: boolean
+      }
+      dp_portal_acesso_status: {
+        Args: { p_colaborador_id: string }
+        Returns: {
+          expires_at: string
+          status: string
+        }[]
       }
       dp_portal_rotina_dia: {
         Args: { p_data: string }

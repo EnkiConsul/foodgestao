@@ -1,130 +1,106 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+/**
+ * O colaborador define a própria senha do portal.
+ *
+ * Chamada pública (sem sessão): a identidade vem do código de uso único, nunca
+ * de um id enviado pelo navegador. Não existe caminho administrativo aqui — o
+ * gestor não define nem conhece a senha de ninguém.
+ */
+import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
+import { serviceClient } from "../_shared/authz.ts";
+import { consumirToken, registrarEvento } from "../_shared/portal-access.ts";
 
-// Simple in-memory rate limit: 5 requests/min per caller
-const bucket = new Map<string, number[]>();
-function rateLimited(callerId: string): boolean {
-  const now = Date.now();
-  const arr = (bucket.get(callerId) ?? []).filter((t) => now - t < 60_000);
-  arr.push(now);
-  bucket.set(callerId, arr);
-  return arr.length > 5;
+const tentativas = new Map<string, number[]>();
+function limitado(chave: string): boolean {
+  const agora = Date.now();
+  const arr = (tentativas.get(chave) ?? []).filter((t) => agora - t < 60_000);
+  arr.push(agora);
+  tentativas.set(chave, arr);
+  return arr.length > 8;
+}
+
+function senhaForte(s: string): boolean {
+  return (
+    s.length >= 8 &&
+    s.length <= 72 &&
+    /[A-Z]/.test(s) &&
+    /[a-z]/.test(s) &&
+    /[0-9]/.test(s) &&
+    /[^A-Za-z0-9]/.test(s)
+  );
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-
-  const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), {
-      status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
+  if (req.method !== "POST") return jsonError(req, "invalid_input", "método inválido");
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Não autenticado" }, 401);
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims?.sub) return json({ error: "Sessão inválida" }, 401);
-    const callerId = claimsData.claims.sub as string;
-
-    if (rateLimited(callerId)) return json({ error: "Muitas tentativas. Aguarde 1 minuto." }, 429);
+    const ip = req.headers.get("x-forwarded-for") ?? "sem-ip";
+    if (limitado(ip)) return jsonError(req, "rate_limited");
 
     const body = await req.json().catch(() => ({}));
-    const colaboradorId = body?.colaborador_id;
-    const novaSenha = body?.nova_senha;
-    const exigirTroca = body?.exigir_troca === undefined ? true : body.exigir_troca === true;
+    const cpf = String(body?.cpf ?? "").replace(/\D/g, "");
+    const codigo = String(body?.codigo ?? "").trim().toUpperCase();
+    const novaSenha = typeof body?.nova_senha === "string" ? body.nova_senha : "";
 
-    if (!colaboradorId || typeof colaboradorId !== "string") {
-      return json({ error: "colaborador_id obrigatório" }, 400);
+    if (cpf.length !== 11 || codigo.length < 8) return jsonError(req, "invalid_input", "payload incompleto");
+    if (!senhaForte(novaSenha)) {
+      return jsonResponse(req, 400, {
+        error:
+          "A senha precisa ter ao menos 8 caracteres, com maiúscula, minúscula, número e um símbolo.",
+      });
     }
-    if (typeof novaSenha !== "string" || novaSenha.length < 6 || novaSenha.length > 72) {
-      return json({ error: "Senha deve ter entre 6 e 72 caracteres" }, 400);
-    }
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = serviceClient();
 
-    const { data: colab, error: colErr } = await admin
+    const { data: colab } = await admin
       .from("dp_colaboradores")
-      .select("id, cpf, user_id, nome, company_id")
-      .eq("id", colaboradorId)
+      .select("id, user_id, company_id")
+      .eq("cpf", cpf)
+      .not("user_id", "is", null)
       .maybeSingle();
-    if (colErr || !colab) return json({ error: "Colaborador não encontrado" }, 404);
-
-    if (!colab.user_id) return json({ error: "Colaborador não possui usuário vinculado" }, 400);
-    if (colab.user_id === callerId) {
-      return json({ error: "Use a tela do próprio perfil para alterar sua senha" }, 400);
+    if (!colab?.user_id) {
+      return jsonResponse(req, 400, { error: "Link inválido ou já utilizado." });
     }
 
-    // Authorization: super_admin OR company owner OR admin/owner member
-    const { data: isSuper } = await admin.rpc("has_role", {
-      _user_id: callerId,
-      _role: "super_admin",
-    });
-    const { data: company } = await admin
-      .from("companies").select("user_id").eq("id", colab.company_id).maybeSingle();
-    const isOwner = company?.user_id === callerId;
-    let isCompanyAdmin = false;
-    if (!isOwner && !isSuper) {
-      const { data: member } = await admin
-        .from("company_members")
-        .select("role")
-        .eq("company_id", colab.company_id)
-        .eq("user_id", callerId)
-        .maybeSingle();
-      isCompanyAdmin = member?.role === "admin" || member?.role === "owner";
-    }
-    if (!isSuper && !isOwner && !isCompanyAdmin) {
-      return json({ error: "Sem permissão" }, 403);
+    const token = await consumirToken(admin, colab.user_id, codigo);
+    if (!token || token.colaborador_id !== colab.id) {
+      return jsonResponse(req, 400, { error: "Link inválido, expirado ou já utilizado." });
     }
 
     const { error: updErr } = await admin.auth.admin.updateUserById(colab.user_id, {
       password: novaSenha,
     });
     if (updErr) {
-      console.error("[dp-alterar-senha-colaborador]", updErr.message);
-      return json({ error: "Não foi possível concluir a operação." }, 500);
+      return jsonResponse(req, 400, {
+        error: "Não foi possível salvar essa senha. Tente outra combinação.",
+      });
     }
 
-    // Senha provisória quando o gestor pede troca no primeiro acesso
     const { error: secErr } = await admin.from("auth_user_security_state").upsert(
       {
         user_id: colab.user_id,
-        must_change_password: exigirTroca,
-        provisional_password_issued_at: exigirTroca ? new Date().toISOString() : null,
-        password_changed_by: callerId,
+        must_change_password: false,
+        access_blocked: false,
+        password_changed_at: new Date().toISOString(),
+        password_changed_by: colab.user_id,
       },
       { onConflict: "user_id" },
     );
-    if (secErr) console.error("[dp-alterar-senha-colaborador] security_state:", secErr.message);
+    if (secErr) console.error("[dp-definir-senha] security_state:", secErr.message);
 
-    // Audit log (never store the password itself)
-    await admin.from("audit_logs").insert({
-      user_id: callerId,
-      action: "dp_admin_password_change",
-      table_name: "auth.users",
-      record_id: colab.user_id,
-      metadata: {
-        colaborador_id: colab.id,
-        colaborador_nome: colab.nome,
-        company_id: colab.company_id,
+    await registrarEvento(
+      admin,
+      token.purpose === "activation" ? "access_activated" : "password_reset_completed",
+      {
+        actorUserId: colab.user_id,
+        targetUserId: colab.user_id,
+        companyId: colab.company_id,
+        colaboradorId: colab.id,
       },
-    });
+    );
 
-    return json({ success: true });
+    return jsonResponse(req, 200, { success: true });
   } catch (e) {
-    console.error("[dp-alterar-senha-colaborador] fatal:", e);
-    return new Response(JSON.stringify({ error: "Não foi possível concluir a operação." }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonError(req, "internal", e);
   }
 });

@@ -1,16 +1,14 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Check, Copy, Eye, EyeOff, KeyRound, Lock, MessageSquare, ShieldCheck } from "lucide-react";
+import { Check, Copy, KeyRound, Lock, MessageSquare, ShieldAlert, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { maskCpf } from "@/lib/cpf";
 import type { DpColaborador } from "@/hooks/useDpColaboradores";
 import { acessoPortalAtivo, diasRestantesCarencia } from "@/lib/dp/desligamento";
 import { WhatsappComposerDialog } from "@/components/dp/WhatsappComposerDialog";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { PUBLIC_SITE_ORIGIN } from "@/lib/siteOrigin";
 import {
@@ -20,10 +18,25 @@ import {
 } from "@/lib/dp/modelosPortal";
 
 const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
+const fmtPrazo = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+
+type Situacao = "sem_acesso" | "pendente_ativacao" | "ativo" | "reset_solicitado" | "bloqueado";
+
+const ROTULO: Record<Situacao, string> = {
+  sem_acesso: "Sem acesso",
+  pendente_ativacao: "Acesso pendente de ativação",
+  ativo: "Acesso ativo",
+  reset_solicitado: "Redefinição solicitada",
+  bloqueado: "Acesso bloqueado",
+};
 
 /**
- * Aba "Acesso ao portal" do cadastro: gerar acesso, redefinir e definir senha
- * ficam junto da ficha do colaborador, com o login sempre pelo CPF.
+ * Aba "Acesso ao portal" do cadastro.
+ *
+ * O gestor libera, reenvia, redefine e bloqueia o acesso — mas nunca vê, define
+ * nem copia a senha do colaborador: o que ele entrega é um link de uso único
+ * para a pessoa criar a própria senha. O login é sempre o CPF.
  */
 export function ColaboradorAcessoPanel({
   colaborador,
@@ -32,17 +45,34 @@ export function ColaboradorAcessoPanel({
   colaborador: DpColaborador | null;
   onAtualizado?: () => void;
 }) {
-  const [busy, setBusy] = useState<null | "criar" | "reset" | "senha">(null);
-  const [resultado, setResultado] = useState<{ cpf: string; password: string; kind: "created" | "reset" } | null>(null);
-  const [copiado, setCopiado] = useState<string | null>(null);
-  const [novaSenha, setNovaSenha] = useState("");
-  const [confirmSenha, setConfirmSenha] = useState("");
-  const [mostrarSenha, setMostrarSenha] = useState(false);
-  const [exigirTroca, setExigirTroca] = useState(true);
+  const [busy, setBusy] = useState<null | "liberar" | "redefinir" | "bloquear">(null);
+  const [situacao, setSituacao] = useState<Situacao | null>(null);
+  const [prazo, setPrazo] = useState<string | null>(null);
+  const [link, setLink] = useState<{ url: string; kind: "activation" | "reset"; expires: string | null } | null>(null);
+  const [copiado, setCopiado] = useState(false);
   const [waOpen, setWaOpen] = useState(false);
   const { companies, selectedCompanyId } = useCompanyContext();
-  const empresaNome =
-    (companies ?? []).find((c: any) => c.id === selectedCompanyId)?.name ?? "";
+  const empresaNome = (companies ?? []).find((c: any) => c.id === selectedCompanyId)?.name ?? "";
+
+  const colaboradorId = colaborador?.id ?? null;
+
+  const carregarSituacao = useCallback(async () => {
+    if (!colaboradorId) return;
+    const { data, error } = await supabase.rpc("dp_portal_acesso_status", {
+      p_colaborador_id: colaboradorId,
+    });
+    if (error) {
+      setSituacao(null);
+      return;
+    }
+    const linha = (data as any[] | null)?.[0];
+    setSituacao((linha?.status as Situacao) ?? "sem_acesso");
+    setPrazo(linha?.expires_at ?? null);
+  }, [colaboradorId]);
+
+  useEffect(() => {
+    void carregarSituacao();
+  }, [carregarSituacao]);
 
   if (!colaborador?.id) {
     return (
@@ -53,92 +83,86 @@ export function ColaboradorAcessoPanel({
   }
 
   const cpfDigits = (colaborador.cpf ?? "").replace(/\D/g, "");
-  const userId = (colaborador as any).user_id as string | null;
   const acessoAte = (colaborador as any).acesso_portal_ate as string | null;
+  const temAcesso = situacao !== null && situacao !== "sem_acesso";
 
-  const copiar = async (label: string, valor: string) => {
+  const copiarLink = async () => {
+    if (!link) return;
     try {
-      await navigator.clipboard.writeText(valor);
-      setCopiado(label);
-      window.setTimeout(() => setCopiado((v) => (v === label ? null : v)), 1500);
+      await navigator.clipboard.writeText(link.url);
+      setCopiado(true);
+      window.setTimeout(() => setCopiado(false), 1500);
     } catch {
       toast.error("Não foi possível copiar");
     }
   };
 
-  const criarAcesso = async () => {
-    if (userId) { toast.error("Colaborador já possui acesso — use Redefinir senha."); return; }
+  const liberarAcesso = async () => {
     if (cpfDigits.length !== 11) {
-      toast.error("CPF inválido — complete o cadastro (11 dígitos) antes de gerar o acesso.");
+      toast.error("CPF incompleto — complete o cadastro antes de liberar o acesso.");
       return;
     }
-    setBusy("criar");
+    setBusy("liberar");
     try {
       const { data, error } = await supabase.functions.invoke("dp-criar-acesso-colaborador", {
         body: { colaborador_id: colaborador.id },
       });
       if (error) throw error;
-      const payload = data as { password?: string; cpf?: string; error?: string };
+      const payload = data as { error?: string; activation_url?: string; expires_at?: string };
       if (payload?.error) throw new Error(payload.error);
-      if (payload?.password && payload?.cpf) {
-        setResultado({ cpf: payload.cpf, password: payload.password, kind: "created" });
+      if (payload?.activation_url) {
+        setLink({ url: payload.activation_url, kind: "activation", expires: payload.expires_at ?? null });
       }
+      await carregarSituacao();
       onAtualizado?.();
     } catch (e) {
-      toast.error("Erro ao gerar acesso", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Não foi possível liberar o acesso", {
+        description: e instanceof Error ? e.message : String(e),
+      });
     } finally {
       setBusy(null);
     }
   };
 
-  const redefinirSenha = async () => {
-    if (!userId) { toast.error("Colaborador não possui usuário vinculado ao portal"); return; }
-    setBusy("reset");
+  const redefinirAcesso = async () => {
+    setBusy("redefinir");
     try {
       const { data, error } = await supabase.functions.invoke("dp-reset-password", {
         body: { colaborador_id: colaborador.id },
       });
       if (error) throw error;
-      const pwd = (data as any)?.password as string | undefined;
-      if (pwd) setResultado({ cpf: colaborador.cpf ?? "", password: pwd, kind: "reset" });
-      else toast.success("Senha redefinida");
+      const payload = data as { error?: string; reset_url?: string; expires_at?: string };
+      if (payload?.error) throw new Error(payload.error);
+      if (payload?.reset_url) {
+        setLink({ url: payload.reset_url, kind: "reset", expires: payload.expires_at ?? null });
+      }
+      await carregarSituacao();
+      onAtualizado?.();
     } catch (e) {
-      toast.error("Erro ao redefinir senha", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Não foi possível redefinir o acesso", {
+        description: e instanceof Error ? e.message : String(e),
+      });
     } finally {
       setBusy(null);
     }
   };
 
-  const gerarSenhaAleatoria = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-    const arr = new Uint32Array(12);
-    crypto.getRandomValues(arr);
-    let out = "";
-    for (let i = 0; i < 12; i++) out += chars[arr[i] % chars.length];
-    setNovaSenha(out);
-    setConfirmSenha(out);
-    setMostrarSenha(true);
-  };
-
-  const definirSenha = async () => {
-    if (!userId) { toast.error("Gere o acesso ao portal antes de definir uma senha"); return; }
-    if (novaSenha.length < 6 || novaSenha.length > 72) {
-      toast.error("A senha deve ter entre 6 e 72 caracteres");
-      return;
-    }
-    if (novaSenha !== confirmSenha) { toast.error("As senhas não conferem"); return; }
-    setBusy("senha");
+  const alternarBloqueio = async (bloquear: boolean) => {
+    setBusy("bloquear");
     try {
-      const { data, error } = await supabase.functions.invoke("dp-alterar-senha-colaborador", {
-        body: { colaborador_id: colaborador.id, nova_senha: novaSenha, exigir_troca: exigirTroca },
+      const { data, error } = await supabase.functions.invoke("dp-bloquear-acesso-colaborador", {
+        body: { colaborador_id: colaborador.id, bloquear },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      setResultado({ cpf: colaborador.cpf ?? "", password: novaSenha, kind: "reset" });
-      setNovaSenha("");
-      setConfirmSenha("");
+      setLink(null);
+      toast.success(bloquear ? "Acesso bloqueado" : "Acesso reativado");
+      await carregarSituacao();
+      onAtualizado?.();
     } catch (e) {
-      toast.error("Erro ao alterar senha", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Não foi possível concluir", {
+        description: e instanceof Error ? e.message : String(e),
+      });
     } finally {
       setBusy(null);
     }
@@ -152,12 +176,16 @@ export function ColaboradorAcessoPanel({
             <Lock className="h-4 w-4 text-primary" aria-hidden="true" />
             Acesso ao portal do colaborador
           </div>
-          {userId ? (
+          {situacao === "ativo" ? (
             <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-              <ShieldCheck className="mr-1 h-3 w-3" aria-hidden="true" /> Acesso liberado
+              <ShieldCheck className="mr-1 h-3 w-3" aria-hidden="true" /> {ROTULO.ativo}
+            </Badge>
+          ) : situacao === "bloqueado" ? (
+            <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive">
+              <ShieldAlert className="mr-1 h-3 w-3" aria-hidden="true" /> {ROTULO.bloqueado}
             </Badge>
           ) : (
-            <Badge variant="outline">Sem acesso</Badge>
+            <Badge variant="outline">{ROTULO[situacao ?? "sem_acesso"]}</Badge>
           )}
         </div>
 
@@ -166,6 +194,12 @@ export function ColaboradorAcessoPanel({
             <div className="text-xs uppercase tracking-wider text-muted-foreground">Login (CPF)</div>
             <div className="text-sm">{cpfDigits.length === 11 ? maskCpf(cpfDigits) : "CPF incompleto"}</div>
           </div>
+          {prazo && (
+            <div className="space-y-1">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Link válido até</div>
+              <div className="text-sm">{fmtPrazo(prazo)}</div>
+            </div>
+          )}
           {colaborador.data_desligamento && (
             <div className="space-y-1">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Carência do portal</div>
@@ -178,105 +212,70 @@ export function ColaboradorAcessoPanel({
           )}
         </div>
 
+        <p className="text-xs text-muted-foreground">
+          A senha é criada pelo próprio colaborador. Você entrega apenas um link de uso único — ninguém do
+          escritório vê ou define a senha dele.
+        </p>
+
         <div className="flex flex-wrap gap-2">
-          {!userId ? (
-            <Button onClick={() => void criarAcesso()} disabled={busy !== null}>
+          {!temAcesso ? (
+            <Button onClick={() => void liberarAcesso()} disabled={busy !== null}>
               <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />
-              {busy === "criar" ? "Gerando..." : "Gerar acesso ao portal"}
+              {busy === "liberar" ? "Liberando..." : "Liberar acesso"}
             </Button>
           ) : (
-            <Button variant="outline" onClick={() => void redefinirSenha()} disabled={busy !== null}>
-              <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />
-              {busy === "reset" ? "Redefinindo..." : "Redefinir senha (gerar nova)"}
-            </Button>
+            <>
+              {situacao === "pendente_ativacao" && (
+                <Button variant="outline" onClick={() => void liberarAcesso()} disabled={busy !== null}>
+                  <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {busy === "liberar" ? "Gerando..." : "Reenviar ativação"}
+                </Button>
+              )}
+              {situacao !== "bloqueado" && (
+                <Button variant="outline" onClick={() => void redefinirAcesso()} disabled={busy !== null}>
+                  <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {busy === "redefinir" ? "Gerando..." : "Redefinir acesso"}
+                </Button>
+              )}
+              {situacao === "bloqueado" ? (
+                <Button variant="outline" onClick={() => void alternarBloqueio(false)} disabled={busy !== null}>
+                  Reativar acesso
+                </Button>
+              ) : (
+                <ConfirmarAcaoDialog
+                  titulo="Bloquear o acesso ao portal?"
+                  descricao="O colaborador deixa de entrar no portal até você reativar. Links pendentes deixam de valer."
+                  confirmar="Bloquear acesso"
+                  onConfirm={() => void alternarBloqueio(true)}
+                  disabled={busy !== null}
+                >
+                  <Button variant="outline" disabled={busy !== null}>
+                    Bloquear acesso
+                  </Button>
+                </ConfirmarAcaoDialog>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      {userId && (
-        <div className="space-y-3 rounded-xl border border-border p-4">
-          <div className="text-sm font-semibold">Definir uma senha específica</div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="nova-senha-colab">Nova senha</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="nova-senha-colab"
-                  type={mostrarSenha ? "text" : "password"}
-                  value={novaSenha}
-                  onChange={(e) => setNovaSenha(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setMostrarSenha((v) => !v)}
-                  title={mostrarSenha ? "Ocultar" : "Mostrar"}
-                >
-                  {mostrarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="confirma-senha-colab">Confirmar senha</Label>
-              <Input
-                id="confirma-senha-colab"
-                type={mostrarSenha ? "text" : "password"}
-                value={confirmSenha}
-                onChange={(e) => setConfirmSenha(e.target.value)}
-              />
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Checkbox
-              checked={exigirTroca}
-              onCheckedChange={(v) => setExigirTroca(v === true)}
-              aria-label="Exigir troca no primeiro acesso"
-            />
-            Exigir que o colaborador troque a senha no primeiro acesso
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={gerarSenhaAleatoria} disabled={busy !== null}>
-              Gerar senha forte
-            </Button>
-            <Button size="sm" onClick={() => void definirSenha()} disabled={busy !== null}>
-              {busy === "senha" ? "Salvando..." : "Salvar senha"}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {resultado && (
+      {link && (
         <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-4">
           <div className="text-sm font-semibold">
-            {resultado.kind === "created" ? "Acesso criado" : "Senha definida"} — informe ao colaborador
+            {link.kind === "activation" ? "Link de ativação criado" : "Link de nova senha criado"} — envie ao colaborador
           </div>
           <p className="text-xs text-muted-foreground">
-            O login no portal é feito pelo CPF. Esta senha é provisória: o colaborador precisa criar uma nova no
-            primeiro acesso. Ela aparece apenas agora.
+            Serve uma única vez{link.expires ? ` e vale até ${fmtPrazo(link.expires)}` : ""}. O colaborador entra
+            com o CPF e cria a senha dele.
           </p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {[
-              { label: "CPF", valor: resultado.cpf ? maskCpf(resultado.cpf) : "—", copia: resultado.cpf },
-              { label: "Senha", valor: resultado.password, copia: resultado.password },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2">
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{item.label}</div>
-                  <div className="truncate font-mono text-sm">{item.valor}</div>
-                </div>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => void copiar(item.label, item.copia)}
-                  title="Copiar"
-                >
-                  {copiado === item.label ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            ))}
+          <div className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Link</div>
+              <div className="truncate font-mono text-xs">{link.url}</div>
+            </div>
+            <Button type="button" size="icon" variant="ghost" onClick={() => void copiarLink()} title="Copiar link">
+              {copiado ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+            </Button>
           </div>
           <Button type="button" size="sm" onClick={() => setWaOpen(true)}>
             <MessageSquare className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -285,27 +284,28 @@ export function ColaboradorAcessoPanel({
         </div>
       )}
 
-      {resultado && (
+      {link && (
         <WhatsappComposerDialog
           open={waOpen}
           onClose={() => setWaOpen(false)}
           colaboradorId={colaborador.id}
           nome={colaborador.nome ?? ""}
           titulosPreferidos={
-            resultado.kind === "created"
+            link.kind === "activation"
               ? [MODELO_ACESSO_PORTAL_TITULO]
               : [MODELO_NOVA_SENHA_TITULO, MODELO_ACESSO_PORTAL_TITULO]
           }
           contexto={{
             nome: colaborador.nome ?? "",
             empresa: empresaNome,
-            link: `${PUBLIC_SITE_ORIGIN}${PORTAL_COLABORADOR_PATH}`,
-            usuario: resultado.cpf ? maskCpf(resultado.cpf) : "",
-            senha: resultado.password,
+            link: link.url,
+            portal: `${PUBLIC_SITE_ORIGIN}${PORTAL_COLABORADOR_PATH}`,
+            usuario: cpfDigits ? maskCpf(cpfDigits) : "",
+            senha: "",
           }}
-          mensagemSeparada={resultado.password || null}
         />
       )}
+
     </div>
   );
 }
