@@ -9,11 +9,15 @@ Duas mudanças pedidas:
 
 Hoje, quando o horário do dia começa, o dia é encerrado automaticamente e nem aparece botão de resposta. Passa a funcionar assim:
 
-- Enquanto o horário daquele dia **ainda não terminou** e ainda há vaga, o dia continua respondível, com aviso claro: "Este horário começou às 16:30. Se ainda consegue vir, aceite e explique o atraso."
-- Ao aceitar, o colaborador escreve uma justificativa curta (obrigatória nesse caso) e informa a hora em que consegue chegar. Quando a chegada é depois do início pedido, isso é tratado como horário parcial: o dia fica reservado e vai para a sua aprovação, igual já acontece hoje com o horário parcial.
+- Enquanto o horário daquele dia **ainda não terminou** e ainda há vaga, o dia continua respondível, com aviso claro: "Este horário começou às 16:30. Você ainda pode responder."
+- Duas opções de aceite nesse caso:
+  - **"Vim no horário, só não respondi"** — aceite integral retroativo: vale o horário completo pedido, sem virar horário parcial.
+  - **"Vou chegar mais tarde"** — informa a hora de chegada; vira horário parcial, o dia fica reservado e vai para a sua aprovação, como já acontece hoje.
+- Nos dois casos a justificativa curta é obrigatória.
 - Se o horário já terminou, ou as vagas foram preenchidas por outra pessoa, o dia continua encerrado como hoje.
-- Na tela do gestor, o aceite com atraso aparece marcado ("Aceite com atraso · 42 min"), com a justificativa, na aprovação de horário parcial e no histórico do dia.
-- Fica registrado no histórico da convocação (quem aceitou, quantos minutos depois, justificativa).
+- Na tela do gestor, a resposta atrasada aparece marcada ("Respondeu 42 min depois do início · horário completo" ou "· chega 17:15"), com a justificativa, na aprovação de horário parcial e no histórico do dia.
+- Fica registrado no histórico da convocação (quem aceitou, quantos minutos depois, qual das duas opções, justificativa).
+
 
 ## 2. Mesmos dias liberados; a pessoa é que não pode dobrar
 
@@ -26,8 +30,9 @@ Hoje, quando o horário do dia começa, o dia é encerrado automaticamente e nem
 
 ## Detalhes técnicos
 
-- Banco: novas colunas em `dp_convocacoes` (`aceite_atrasado boolean`, `aceite_atraso_minutos int`, `aceite_atraso_justificativa text`).
-- `public.dp_convocacao_responder_oferta`: deixa de encerrar por `OCCURRENCE_ALREADY_STARTED` quando `now()` está entre o início e o fim previsto da necessidade e há vaga; nesse caso exige justificativa, grava as novas colunas, força `resposta_tipo = 'parcial'` quando a chegada é posterior ao início e registra evento `oferta_aceita_com_atraso` via `dp_convocacao_log_evento_trabalhador`. Encerramento por prazo (`sem_resposta`) e por fim do horário seguem como hoje.
+- Banco: novas colunas em `dp_convocacoes` (`aceite_atrasado boolean`, `aceite_atraso_minutos int`, `aceite_atraso_justificativa text`, `aceite_atraso_forma text` com `'integral'`/`'chegada_tardia'`).
+- `public.dp_convocacao_responder_oferta`: deixa de encerrar por `OCCURRENCE_ALREADY_STARTED` quando `now()` está entre o início e o fim previsto da necessidade e há vaga; nesse caso exige justificativa, grava as novas colunas e registra evento `oferta_aceita_com_atraso` via `dp_convocacao_log_evento_trabalhador`. Forma `integral` mantém `resposta_tipo = 'integral'` e `status = 'aceita'` com a janela cheia; forma `chegada_tardia` segue o caminho parcial já existente (`parcial_status = 'aguardando_gestor'`). Encerramento por prazo (`sem_resposta`) e por fim do horário seguem como hoje.
+
 - `dp_convocacao_minhas_ofertas` retorna `janela_terminou` e `minutos_de_atraso` para a tela do portal.
 - Frontend: `DpMinhasConvocacoes.tsx` e `PropostaParcialDialog.tsx` ganham o estado "começou, mas ainda dá" com campo de justificativa; `src/lib/dp/convocacoes.ts` / `convocacoes-parcial.ts` ganham funções puras (`janelaEmAndamento`, `minutosDeAtraso`) com testes em `src/lib/dp/__tests__`.
 - Gestor: `AprovacaoParcialDialog.tsx` e `DiaDetalheSheet.tsx` exibem o selo de atraso e a justificativa.
