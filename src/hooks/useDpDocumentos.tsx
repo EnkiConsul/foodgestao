@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
 import { porDocumento, resolverPendencias, type PendenciaMatch } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
+import { abrirDocumento } from "@/lib/documentoArquivo";
 
 export type DpDocumentoTipo = Database["public"]["Enums"]["dp_documento_tipo"];
 export type DpDocumentoAprov = "pendente" | "aprovado" | "recusado";
