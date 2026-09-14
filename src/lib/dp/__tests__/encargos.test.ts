@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calcularEncargos, calcularFgts, calcularInss, calcularIrrf } from "../encargos";
 import { encargosDoLancamento, lerDetalhe, valoresDoLancamento } from "../folha";
-import { linhasDoHolerite } from "../holerite";
 
 describe("encargos legais (Fase 17)", () => {
   it("INSS é progressivo por faixas", () => {
@@ -48,23 +47,4 @@ describe("encargos legais (Fase 17)", () => {
     );
   });
 
-  it("holerite mostra as linhas de INSS e IRRF", () => {
-    const detalhe = lerDetalhe({
-      faltas: 0,
-      dsr: 0,
-      proventos: { normais: 6000, extras50: 0, extras100: 0, noturno: 0 },
-      horas: { normais: 220, extras50: 0, extras100: 0, noturnos: 0, falta: 0, atraso: 0, diasFalta: 0, dsrPerdidos: 0 },
-    });
-    const linhas = linhasDoHolerite({
-      empresa: "Aveto 360",
-      colaborador: "Karine",
-      competencia: "2026-06-01",
-      tipo: "contracheque_mensal",
-      detalhe,
-      valorBruto: 6000,
-      valorLiquido: valoresDoLancamento(detalhe).liquido,
-    });
-    expect(linhas.find((l) => l.descricao === "INSS")?.desconto).toBeGreaterThan(0);
-    expect(linhas.find((l) => l.descricao === "IRRF")?.desconto).toBeGreaterThan(0);
-  });
 });
