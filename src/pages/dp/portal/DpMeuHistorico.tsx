@@ -84,10 +84,16 @@ export default function DpMeuHistorico() {
   });
 
   const filtrados = useMemo(() => {
-    const list = eventos.data ?? [];
-    if (filtro === "Todos") return list;
-    return list.filter((e) => e.tipo === filtro);
-  }, [eventos.data, filtro]);
+    let list = eventos.data ?? [];
+    if (filtro !== "Todos") list = list.filter((e) => e.tipo === filtro);
+    const termo = busca.trim().toLowerCase();
+    if (termo) {
+      list = list.filter((e) =>
+        `${e.titulo} ${e.tipo} ${e.status ?? ""}`.toLowerCase().includes(termo),
+      );
+    }
+    return list;
+  }, [eventos.data, filtro, busca]);
 
   const visiveisList = filtrados.slice(0, visiveis);
 
