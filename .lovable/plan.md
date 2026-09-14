@@ -12,7 +12,7 @@ Onze pontos levantados no uso real (Alessandra / Pakerê). Agrupados por assunto
 
 - Saudação e demais textos de conversa passam a usar o nome em caixa alta e baixa ("Boa noite, Alessandra"), mesmo com o cadastro gravado em CAIXA ALTA.
 - Documentos (contracheque, folha de ponto etc.) passam a ser ordenados por competência, do mais recente para o mais antigo, em vez da ordem de envio.
-- Minha Escala: passa a mostrar também os dias de convocação aceita, somados aos dias da escala publicada. A frase "a escala deste mês ainda não foi publicada" só aparece quando não há nem escala nem convocação aceita no mês; havendo convocação, o aviso vira uma observação discreta.
+- Minha Escala: mostra apenas os dias em que a pessoa realmente trabalha — para quem responde convocação, só os dias aceitos, sem a lista do mês inteiro. A frase "a escala deste mês ainda não foi publicada" sai; quando não há nenhum dia, aparece "Você ainda não tem dia confirmado neste mês".
 - Indisponibilidade futura: a tela de disponibilidade do mês ganha atalho fixo no menu do portal ("Minha disponibilidade"), e o registro de ausência aceita datas futuras com o aviso de que o gestor analisa depois.
 - Rodapé do menu: fica fixo, com respiro para a barra do sistema Android, sem rolar nem cortar conteúdo.
 - Revisão das telas do portal em tela de celular pequena (407 px), corrigindo textos encavalados e colunas apertadas nas telas de convocação, documentos, disponibilidade e rotina.
