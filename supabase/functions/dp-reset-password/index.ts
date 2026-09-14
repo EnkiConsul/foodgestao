@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
       success: true,
       status: "reset_solicitado",
       cpf: (colab.cpf ?? "").replace(/\D/g, ""),
-      reset_url: linkDeAcesso(req.headers.get("origin"), "reset", codigo),
+      reset_url: linkDeAcesso(req.headers.get("origin"), "reset", tokenId, codigo),
       expires_at: expiresAt,
     });
   } catch (e) {
