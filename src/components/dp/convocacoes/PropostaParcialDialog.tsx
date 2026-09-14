@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   MOTIVO_PARCIAL_TEXTO, formatarMinutos, janelaMinutos, trechosDescobertos, validarHorarioParcial,
 } from "@/lib/dp/convocacoes-parcial";
+import { hhmm } from "@/lib/dp/formato";
 
-const hhmm = (v: string | null | undefined) => (v ? String(v).slice(0, 5) : "");
 
 export interface PropostaParcialDialogProps {
   open: boolean;

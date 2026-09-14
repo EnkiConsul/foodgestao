@@ -153,7 +153,7 @@ export function ComplementosSalariaisPanel({
                   </Badge>
                 )}
                 {onEditarCargo && (
-                  <Button size="icon" variant="ghost" onClick={() => onEditarCargo(c.id)}>
+                  <Button aria-label="Editar complemento" size="icon" variant="ghost" onClick={() => onEditarCargo(c.id)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
                 )}
@@ -441,10 +441,10 @@ export function ComplementosSalariaisPanel({
                 </p>
               </div>
               <Badge variant={r.ativo ? "secondary" : "outline"}>{r.ativo ? "Ativa" : "Inativa"}</Badge>
-              <Button size="icon" variant="ghost" onClick={() => setForm({ ...r })}>
+              <Button aria-label="Editar complemento" size="icon" variant="ghost" onClick={() => setForm({ ...r })}>
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button
+              <Button aria-label="Excluir complemento"
                 size="icon"
                 variant="ghost"
                 disabled={removendo}
@@ -460,7 +460,7 @@ export function ComplementosSalariaisPanel({
           <div className="space-y-3 rounded-xl border border-border p-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">{form.id ? "Editar regra" : "Nova regra"}</p>
-              <Button size="icon" variant="ghost" onClick={() => setForm(null)}>
+              <Button aria-label="Fechar formulário" size="icon" variant="ghost" onClick={() => setForm(null)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>

@@ -162,10 +162,10 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
         <span className="font-medium text-muted-foreground">{year}</span>
       </h2>
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="rounded-full" onClick={onPrev}>
+        <Button variant="ghost" size="icon" className="rounded-full" onClick={onPrev} aria-label="Mês anterior">
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <Button variant="ghost" size="icon" className="rounded-full" onClick={onNext}>
+        <Button variant="ghost" size="icon" className="rounded-full" onClick={onNext} aria-label="Mês seguinte">
           <ChevronRight className="h-5 w-5" />
         </Button>
       </div>

@@ -250,7 +250,7 @@ export function PendenciasCard() {
           {abertas.length}
         </Badge>
         <div className="ml-auto flex items-center gap-0.5 shrink-0">
-          <Button
+          <Button aria-label="Atualizar"
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-muted-foreground hover:text-foreground"
@@ -266,7 +266,7 @@ export function PendenciasCard() {
             size="icon"
             className="h-7 w-7 text-muted-foreground hover:text-foreground"
             title="Configurar prazos das pendências"
-          >
+           aria-label="Abrir link">
             <Link to="/dp/configuracoes/prazos-pendencias" aria-label="Configurar prazos das pendências">
               <Settings className="h-4 w-4" />
             </Link>

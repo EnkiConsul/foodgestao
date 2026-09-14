@@ -1,8 +1,7 @@
 import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
-import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { addDays, differenceInCalendarDays, parseISO } from "date-fns";
 import { Palmtree, Plus, CheckCircle2, FileText } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
@@ -26,8 +25,8 @@ import {
   inicioMinimoPedido,
   resumoPedido,
 } from "@/lib/dp/ferias-pedido";
+import { dataBr as fmt } from "@/lib/dp/formato";
 
-const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
 const STATUS_LABEL: Record<string, string> = {
   planejado: "Aguardando aprovação",

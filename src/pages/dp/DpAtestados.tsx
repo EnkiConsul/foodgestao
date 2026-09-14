@@ -470,9 +470,9 @@ export default function DpAtestados() {
 
             <div className="space-y-3 sm:space-y-4">
               <div className="space-y-2">
-                <Label>Unidade *</Label>
+                <Label htmlFor="unidade-1">Unidade *</Label>
                 <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); }}>
-                  <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
+                  <SelectTrigger id="unidade-1"><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
                   <SelectContent>
                     {(unidades.data ?? []).map((u) => (
                       <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
@@ -482,7 +482,7 @@ export default function DpAtestados() {
               </div>
 
               <div className="space-y-2">
-                <Label>Colaborador *</Label>
+                <Label htmlFor="colaborador-2">Colaborador *</Label>
                 <Select
                   value={colaboradorId}
                   onValueChange={(v) => {
@@ -492,7 +492,7 @@ export default function DpAtestados() {
                   }}
                   disabled={!unidadeId}
                 >
-                  <SelectTrigger><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
+                  <SelectTrigger id="colaborador-2"><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
                   <SelectContent>
                     {(colabs.data ?? [])
                       .filter((c) => !unidadeId || c.unidade_id === unidadeId)
@@ -504,7 +504,7 @@ export default function DpAtestados() {
               </div>
 
               <div className="space-y-2">
-                <Label>Tipo de afastamento *</Label>
+                <Label htmlFor="tipo-de-afastamento-3">Tipo de afastamento *</Label>
                 <Select
                   value={tipoDoc}
                   onValueChange={(v) => {
@@ -513,7 +513,7 @@ export default function DpAtestados() {
                     if (isTipoLicenca(t)) setDias(String(DURACAO_PADRAO_DIAS[t]));
                   }}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="tipo-de-afastamento-3"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TIPOS_AFASTAMENTO.map((t) => (
                       <SelectItem key={t} value={t}>{TIPO_AFASTAMENTO_LABEL[t]}</SelectItem>
@@ -542,8 +542,8 @@ export default function DpAtestados() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Dias de Afastamento *</Label>
-                  <Input type="number" min={0} placeholder="Ex: 3" value={dias} onChange={(e) => setDias(e.target.value)} />
+                  <Label htmlFor="dias-de-afastamento-4">Dias de Afastamento *</Label>
+                  <Input id="dias-de-afastamento-4" type="number" min={0} placeholder="Ex: 3" value={dias} onChange={(e) => setDias(e.target.value)} />
                   {isTipoLicenca(tipoDoc) && (
                     <p className="text-[10px] text-muted-foreground">
                       Padrão legal: {DURACAO_PADRAO_DIAS[tipoDoc as "licenca_maternidade" | "licenca_paternidade"]} dias — ajuste se necessário.
@@ -576,8 +576,8 @@ export default function DpAtestados() {
               </div>
 
               <div className="space-y-2">
-                <Label>Observações</Label>
-                <Textarea rows={3} value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Observações adicionais (opcional)" />
+                <Label htmlFor="observacoes-5">Observações</Label>
+                <Textarea id="observacoes-5" rows={3} value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Observações adicionais (opcional)" />
               </div>
             </div>
 
@@ -598,9 +598,9 @@ export default function DpAtestados() {
           <DpFilterCard>
             <div className="grid gap-3 md:grid-cols-5">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Unidade</Label>
+                <Label htmlFor="unidade-6" className="text-xs font-medium text-muted-foreground">Unidade</Label>
                 <Select value={fUnidade} onValueChange={setFUnidade}>
-                  <SelectTrigger><SelectValue placeholder="Unidade" /></SelectTrigger>
+                  <SelectTrigger id="unidade-6"><SelectValue placeholder="Unidade" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todas</SelectItem>
                     {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
@@ -608,9 +608,9 @@ export default function DpAtestados() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
+                <Label htmlFor="colaborador-7" className="text-xs font-medium text-muted-foreground">Colaborador</Label>
                 <Select value={fColab} onValueChange={setFColab}>
-                  <SelectTrigger><SelectValue placeholder="Colaborador" /></SelectTrigger>
+                  <SelectTrigger id="colaborador-7"><SelectValue placeholder="Colaborador" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
                     {colabsHistorico.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
@@ -618,17 +618,17 @@ export default function DpAtestados() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Data Início</Label>
-                <Input type="date" value={fDataInicio} onChange={(e) => setFDataInicio(e.target.value)} />
+                <Label htmlFor="data-inicio-8" className="text-xs font-medium text-muted-foreground">Data Início</Label>
+                <Input id="data-inicio-8" type="date" value={fDataInicio} onChange={(e) => setFDataInicio(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Data Fim</Label>
-                <Input type="date" value={fDataFim} onChange={(e) => setFDataFim(e.target.value)} />
+                <Label htmlFor="data-fim-9" className="text-xs font-medium text-muted-foreground">Data Fim</Label>
+                <Input id="data-fim-9" type="date" value={fDataFim} onChange={(e) => setFDataFim(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+                <Label htmlFor="status-10" className="text-xs font-medium text-muted-foreground">Status</Label>
                 <Select value={fStatus} onValueChange={setFStatus}>
-                  <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectTrigger id="status-10"><SelectValue placeholder="Status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="pendente">Pendente</SelectItem>
@@ -693,15 +693,15 @@ export default function DpAtestados() {
                         ))}
                         <TableCell className="px-3 text-right" style={{ width: ATEST_ACOES_WIDTH, maxWidth: ATEST_ACOES_WIDTH }}>
                           <div className="flex gap-1 justify-end">
-                            <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing(r)}>
+                            <Button aria-label="Editar atestado" size="icon" variant="ghost" title="Editar" onClick={() => setEditing(r)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                             {r.arquivo_path && (
-                              <Button size="icon" variant="ghost" title="Baixar" onClick={() => handleDownload(r)}>
+                              <Button aria-label="Baixar atestado" size="icon" variant="ghost" title="Baixar" onClick={() => handleDownload(r)}>
                                 <Download className="h-4 w-4" />
                               </Button>
                             )}
-                            <Button size="icon" variant="ghost" title="Excluir" onClick={() => setToDelete(r)}>
+                            <Button aria-label="Excluir atestado" size="icon" variant="ghost" title="Excluir" onClick={() => setToDelete(r)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
@@ -763,7 +763,7 @@ export default function DpAtestados() {
                         <Download className="h-4 w-4 mr-1" /> Baixar
                       </Button>
                     )}
-                    <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(r)}>
+                    <Button aria-label="Excluir atestado" size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(r)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -790,18 +790,18 @@ export default function DpAtestados() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Unidade</Label>
+              <Label htmlFor="unidade-11">Unidade</Label>
               <Select value={editUnidadeId} onValueChange={(v) => { setEditUnidadeId(v); setEditColaboradorId(""); }}>
-                <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
+                <SelectTrigger id="unidade-11"><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
                 <SelectContent>
                   {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Colaborador</Label>
+              <Label htmlFor="colaborador-12">Colaborador</Label>
               <Select value={editColaboradorId} onValueChange={setEditColaboradorId}>
-                <SelectTrigger><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
+                <SelectTrigger id="colaborador-12"><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
                 <SelectContent>
                   {editColabs.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
                 </SelectContent>
@@ -809,12 +809,12 @@ export default function DpAtestados() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Data do Documento</Label>
-                <Input type="date" value={editDataDoc} onChange={(e) => setEditDataDoc(e.target.value)} />
+                <Label htmlFor="data-do-documento-13">Data do Documento</Label>
+                <Input id="data-do-documento-13" type="date" value={editDataDoc} onChange={(e) => setEditDataDoc(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Dias de Afastamento</Label>
-                <Input type="number" min={0} value={editDias} onChange={(e) => setEditDias(e.target.value)} />
+                <Label htmlFor="dias-de-afastamento-14">Dias de Afastamento</Label>
+                <Input id="dias-de-afastamento-14" type="number" min={0} value={editDias} onChange={(e) => setEditDias(e.target.value)} />
               </div>
             </div>
             {editDataRetorno && (
@@ -823,8 +823,8 @@ export default function DpAtestados() {
               </div>
             )}
             <div className="space-y-2">
-              <Label>Observações</Label>
-              <Textarea rows={3} value={editObservacao} onChange={(e) => setEditObservacao(e.target.value)} />
+              <Label htmlFor="observacoes-15">Observações</Label>
+              <Textarea id="observacoes-15" rows={3} value={editObservacao} onChange={(e) => setEditObservacao(e.target.value)} />
             </div>
           </div>
           <DialogFooter>

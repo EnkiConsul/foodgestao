@@ -227,7 +227,7 @@ export default function DpUnidades() {
                       >
                         <Store className="size-4" />
                       </Button>
-                      <Button
+                      <Button aria-label="Editar unidade"
                         variant="ghost"
                         size="icon"
                         className="size-8"
@@ -235,7 +235,7 @@ export default function DpUnidades() {
                       >
                         <Pencil className="size-4" />
                       </Button>
-                      <Button
+                      <Button aria-label="Excluir unidade"
                         variant="ghost"
                         size="icon"
                         className="size-8"

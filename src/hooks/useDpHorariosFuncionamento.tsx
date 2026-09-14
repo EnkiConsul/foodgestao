@@ -3,11 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { turnoViraODia, type HorarioFuncionamentoDia } from "@/lib/dp/turno-utils";
 import type { Database } from "@/integrations/supabase/types";
+import { hhmm as hhmmBase } from "@/lib/dp/formato";
+
+const hhmm = (v?: string | null) => hhmmBase(v) || null;
 
 export type DpHorarioFuncionamentoRow =
   Database["public"]["Tables"]["dp_unidade_horarios_funcionamento"]["Row"];
 
-const hhmm = (v: string | null) => (v ? v.slice(0, 5) : null);
 
 /**
  * Horário de funcionamento da unidade com múltiplos períodos por dia

@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -11,8 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { diasDireitoPorFaltas, exigeRevisaoAdministrativa } from "@/lib/dp/ferias-direito";
 import type { FeriasPeriodo } from "@/hooks/useDpFerias";
+import { dataBr as fmt } from "@/lib/dp/formato";
 
-const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
 type Props = {
   periodo: FeriasPeriodo | null;

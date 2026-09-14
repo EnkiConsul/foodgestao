@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { AlertTriangle, CalendarClock, CheckCircle2, Palmtree, Inbox, Scale } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,9 +15,9 @@ import {
 } from "@/lib/dp/ferias-direito";
 import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
 import type { FeriasGozo, FeriasPeriodo } from "@/hooks/useDpFerias";
+import { dataBr as fmt } from "@/lib/dp/formato";
 
 
-const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
 type Props = {
   periodos: FeriasPeriodo[];

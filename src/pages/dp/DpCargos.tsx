@@ -222,7 +222,7 @@ export default function DpCargos() {
                     </td>
                     <td className="p-4 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-1">
-                        <Button
+                        <Button aria-label="Editar cargo"
                           variant="ghost"
                           size="icon"
                           className="size-8"
@@ -231,7 +231,7 @@ export default function DpCargos() {
                         >
                           <Pencil className="size-4" />
                         </Button>
-                        <Button
+                        <Button aria-label="Excluir cargo"
                           variant="ghost"
                           size="icon"
                           className="size-8 text-destructive hover:bg-destructive/10"

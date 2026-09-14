@@ -16,8 +16,8 @@ import {
   MODELO_NOVA_SENHA_TITULO,
   PORTAL_COLABORADOR_PATH,
 } from "@/lib/dp/modelosPortal";
+import { dataBr as fmt } from "@/lib/dp/formato";
 
-const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 const fmtPrazo = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
 
@@ -278,7 +278,7 @@ export function ColaboradorAcessoPanel({
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Link</div>
               <div className="truncate font-mono text-xs">{link.url}</div>
             </div>
-            <Button type="button" size="icon" variant="ghost" onClick={() => void copiarLink()} title="Copiar link">
+            <Button aria-label="Confirmar" type="button" size="icon" variant="ghost" onClick={() => void copiarLink()} title="Copiar link">
               {copiado ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>

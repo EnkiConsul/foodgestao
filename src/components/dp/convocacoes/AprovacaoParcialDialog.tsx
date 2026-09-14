@@ -17,8 +17,10 @@ import {
   type AvaliacaoParcial,
   type ParcialPendente,
 } from "@/hooks/useDpConvocacoes";
+import { hhmm as hhmmBase } from "@/lib/dp/formato";
 
-const hhmm = (v: string | null | undefined) => (v ? String(v).slice(0, 5) : "—");
+const hhmm = (v?: string | null) => hhmmBase(v, "—");
+
 
 const rotuloData = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", {

@@ -969,7 +969,7 @@ export default function DpAdminCalendario() {
                           </div>
                         </div>
                         {o.type === "monthly" && o.folgaId && (
-                          <Button
+                          <Button aria-label="Excluir"
                             variant="ghost"
                             size="icon"
                             className="h-9 w-9 rounded-xl text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"

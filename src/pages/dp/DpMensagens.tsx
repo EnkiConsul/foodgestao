@@ -204,13 +204,13 @@ export default function DpMensagens() {
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
-                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" disabled={modelos.upsert.isPending} onClick={() => duplicarModelo(m)} title="Duplicar">
+                      <Button aria-label="Duplicar mensagem" size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" disabled={modelos.upsert.isPending} onClick={() => duplicarModelo(m)} title="Duplicar">
                         <Copy className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => editarModelo(m)} title="Editar">
+                      <Button aria-label="Editar mensagem" size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => editarModelo(m)} title="Editar">
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => setToDelete(m)} title="Excluir">
+                      <Button aria-label="Excluir mensagem" size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => setToDelete(m)} title="Excluir">
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { format, parseISO } from "date-fns";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -7,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { FeriasGozo } from "@/hooks/useDpFerias";
+import { dataBr as fmt } from "@/lib/dp/formato";
 
 type Props = {
   gozo: (FeriasGozo & { colaborador_nome?: string | null }) | null;
@@ -15,7 +15,6 @@ type Props = {
   onSubmit: (motivo: string) => void;
 };
 
-const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy");
 
 /** Cancelamento de férias com motivo — o registro fica no histórico. */
 export function FeriasCancelarDialog({ gozo, onOpenChange, saving, onSubmit }: Props) {

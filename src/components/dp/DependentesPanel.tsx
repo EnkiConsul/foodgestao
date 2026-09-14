@@ -234,10 +234,10 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal, socio = fal
               </div>
               {dep.conta_irrf && <Badge variant="outline">IRRF</Badge>}
               {!socio && dependenteElegivel(dep) && <Badge variant="secondary">Salário-família</Badge>}
-              <Button type="button" size="icon" variant="ghost" onClick={() => editar(dep)}>
+              <Button aria-label="Editar dependente" type="button" size="icon" variant="ghost" onClick={() => editar(dep)}>
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button
+              <Button aria-label="Excluir dependente"
                 type="button"
                 size="icon"
                 variant="ghost"
@@ -256,7 +256,7 @@ export function DependentesPanel({ colaboradorId, remuneracaoMensal, socio = fal
         <div className="space-y-3 rounded-xl border border-border p-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium">{form.id ? "Editar dependente" : "Novo dependente"}</p>
-            <Button type="button" size="icon" variant="ghost" onClick={() => setForm(null)}>
+            <Button aria-label="Fechar formulário" type="button" size="icon" variant="ghost" onClick={() => setForm(null)}>
               <X className="h-4 w-4" />
             </Button>
           </div>

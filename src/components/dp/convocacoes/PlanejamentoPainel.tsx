@@ -143,7 +143,7 @@ export function PlanejamentoPainel({
           <div className="space-y-1">
             <Label className="text-xs">Competência</Label>
             <div className="flex items-center gap-1">
-              <Button
+              <Button aria-label="Mês anterior"
                 variant="outline"
                 size="icon"
                 className="h-9 w-9"
@@ -154,7 +154,7 @@ export function PlanejamentoPainel({
               <div className="min-w-[130px] rounded-md border border-border px-3 py-2 text-center text-sm font-medium">
                 {competenciaLabel(competencia)}
               </div>
-              <Button
+              <Button aria-label="Mês seguinte"
                 variant="outline"
                 size="icon"
                 className="h-9 w-9"

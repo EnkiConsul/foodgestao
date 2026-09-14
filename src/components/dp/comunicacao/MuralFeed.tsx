@@ -165,7 +165,7 @@ function AvisoCard({
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
             />
-            <Button
+            <Button aria-label="Enviar comentário"
               size="icon"
               disabled={!texto.trim() || mural.comentar.isPending}
               onClick={() => {

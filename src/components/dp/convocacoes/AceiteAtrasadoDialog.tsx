@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { rotuloAtraso } from "@/lib/dp/convocacoes";
+import { hhmm as hhmmBase } from "@/lib/dp/formato";
 
-const hhmm = (v: string | null | undefined) => (v ? String(v).slice(0, 5) : "—");
+const hhmm = (v?: string | null) => hhmmBase(v, "—");
+
 
 export interface AceiteAtrasadoDialogProps {
   open: boolean;

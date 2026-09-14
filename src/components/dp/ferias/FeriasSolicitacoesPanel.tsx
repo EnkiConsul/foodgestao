@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { format, parseISO, differenceInCalendarDays } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { parseISO, differenceInCalendarDays } from "date-fns";
 import { Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,8 +12,8 @@ import { DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { useDpFeriasSolicitacoes, type FeriasSolicitacao } from "@/hooks/useDpFeriasSolicitacoes";
 import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
+import { dataBr as fmt } from "@/lib/dp/formato";
 
-const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
 /** Pedidos de férias do colaborador, com aprovação e recusa pelo gestor. */
 export function FeriasSolicitacoesPanel() {

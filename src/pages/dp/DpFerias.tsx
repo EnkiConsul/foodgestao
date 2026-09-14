@@ -2,7 +2,6 @@ import { Helmet } from "react-helmet-async";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Palmtree, Plus, Pencil, ClipboardList, AlertTriangle, History, Scale } from "lucide-react";
 import { DpPage, DpPageHeader, DpContentCard, DpFilterCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { Button } from "@/components/ui/button";
@@ -29,6 +28,7 @@ import {
   periodosComAcumulo,
   riscoAcumuloPorColaborador,
 } from "@/lib/dp/ferias-direito";
+import { dataBr as fmt } from "@/lib/dp/formato";
 
 
 const PERIODO_LABEL: Record<FeriasPeriodoStatus, string> = {
@@ -55,7 +55,6 @@ const GOZO_LABEL: Record<string, string> = {
   cancelado: "Cancelada",
 };
 
-const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
 /** Período sem saldo a gozar: já foi integralmente usufruído/vendido. */
 function totalmenteGozado(p: FeriasPeriodo) {

@@ -151,21 +151,21 @@ export default function DpMeuPerfil() {
               {editing ? (
                 <>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><Label>Telefone</Label><Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></div>
-                    <div><Label>WhatsApp</Label><Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} /></div>
+                    <div><Label htmlFor="telefone-1">Telefone</Label><Input id="telefone-1" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></div>
+                    <div><Label htmlFor="whatsapp-2">WhatsApp</Label><Input id="whatsapp-2" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} /></div>
                   </div>
-                  <div><Label>E-mail pessoal</Label><Input type="email" value={form.email_contato} onChange={(e) => setForm({ ...form, email_contato: e.target.value })} /></div>
+                  <div><Label htmlFor="e-mail-pessoal-3">E-mail pessoal</Label><Input id="e-mail-pessoal-3" type="email" value={form.email_contato} onChange={(e) => setForm({ ...form, email_contato: e.target.value })} /></div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="sm:col-span-2"><Label>Logradouro</Label><Input value={form.endereco.logradouro} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, logradouro: e.target.value } })} /></div>
-                    <div><Label>Nº</Label><Input value={form.endereco.numero} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, numero: e.target.value } })} /></div>
+                    <div className="sm:col-span-2"><Label htmlFor="logradouro-4">Logradouro</Label><Input id="logradouro-4" value={form.endereco.logradouro} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, logradouro: e.target.value } })} /></div>
+                    <div><Label htmlFor="no-5">Nº</Label><Input id="no-5" value={form.endereco.numero} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, numero: e.target.value } })} /></div>
                   </div>
-                  <div><Label>Complemento</Label><Input value={form.endereco.complemento} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, complemento: e.target.value } })} /></div>
+                  <div><Label htmlFor="complemento-6">Complemento</Label><Input id="complemento-6" value={form.endereco.complemento} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, complemento: e.target.value } })} /></div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div><Label>Bairro</Label><Input value={form.endereco.bairro} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, bairro: e.target.value } })} /></div>
-                    <div><Label>Cidade</Label><Input value={form.endereco.cidade} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, cidade: e.target.value } })} /></div>
+                    <div><Label htmlFor="bairro-7">Bairro</Label><Input id="bairro-7" value={form.endereco.bairro} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, bairro: e.target.value } })} /></div>
+                    <div><Label htmlFor="cidade-8">Cidade</Label><Input id="cidade-8" value={form.endereco.cidade} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, cidade: e.target.value } })} /></div>
                     <div className="grid grid-cols-2 gap-2">
-                      <div><Label>UF</Label><Input maxLength={2} value={form.endereco.uf} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, uf: e.target.value.toUpperCase() } })} /></div>
-                      <div><Label>CEP</Label><Input value={form.endereco.cep} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, cep: e.target.value } })} /></div>
+                      <div><Label htmlFor="uf-9">UF</Label><Input id="uf-9" maxLength={2} value={form.endereco.uf} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, uf: e.target.value.toUpperCase() } })} /></div>
+                      <div><Label htmlFor="cep-10">CEP</Label><Input id="cep-10" value={form.endereco.cep} onChange={(e) => setForm({ ...form, endereco: { ...form.endereco, cep: e.target.value } })} /></div>
                     </div>
                   </div>
                   <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-2">

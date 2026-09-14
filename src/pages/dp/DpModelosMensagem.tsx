@@ -313,9 +313,9 @@ export default function DpModelosMensagem() {
                     ))}
                     <TableCell className="px-3" style={{ width: MOD_ACOES_WIDTH, maxWidth: MOD_ACOES_WIDTH }}>
                       <div className="flex gap-1 justify-end">
-                        <Button size="icon" variant="ghost" onClick={() => openPreview(m)} title="Preview"><Eye className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(m)}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => setToDelete(m)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        <Button aria-label="Visualizar modelo" size="icon" variant="ghost" onClick={() => openPreview(m)} title="Preview"><Eye className="h-4 w-4" /></Button>
+                        <Button aria-label="Editar modelo" size="icon" variant="ghost" onClick={() => openEdit(m)}><Pencil className="h-4 w-4" /></Button>
+                        <Button aria-label="Excluir modelo" size="icon" variant="ghost" onClick={() => setToDelete(m)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -355,7 +355,7 @@ export default function DpModelosMensagem() {
             <div className="flex gap-1 pt-1 border-t border-border/60">
               <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => openPreview(m)}><Eye className="h-4 w-4 mr-1" /> Preview</Button>
               <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => openEdit(m)}><Pencil className="h-4 w-4 mr-1" /> Editar</Button>
-              <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(m)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              <Button aria-label="Excluir modelo" size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(m)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </div>
           </div>
         ))}

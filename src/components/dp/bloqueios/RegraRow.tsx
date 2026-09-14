@@ -72,12 +72,12 @@ export function RegraRow({ regra: r, onEdit, onDelete }: Props) {
         </div>
       </div>
       <div className="flex gap-2">
-        <Button variant="ghost" size="icon" className="size-8" onClick={() => onEdit(r)}>
+        <Button aria-label="Editar regra" variant="ghost" size="icon" className="size-8" onClick={() => onEdit(r)}>
           <Pencil className="size-4" />
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-8 text-destructive hover:bg-destructive/10">
+            <Button variant="ghost" size="icon" className="size-8 text-destructive hover:bg-destructive/10" aria-label="Excluir regra">
               <Trash2 className="size-4" />
             </Button>
           </AlertDialogTrigger>

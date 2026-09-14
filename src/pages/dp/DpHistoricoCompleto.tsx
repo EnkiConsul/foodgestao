@@ -881,16 +881,16 @@ export default function DpHistoricoCompleto() {
                   ))}
                   <TableCell className="align-middle" style={{ width: ACOES_WIDTH }} onClick={(e) => e.stopPropagation()}>
                     <div className="grid grid-cols-2 gap-0.5 justify-items-center">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Pré-visualizar" onClick={() => setPreview(r)} disabled={!r.file_path}>
+                      <Button aria-label="Visualizar documento" size="icon" variant="ghost" className="h-8 w-8" title="Pré-visualizar" onClick={() => setPreview(r)} disabled={!r.file_path}>
                         <Eye className="h-4 w-4 text-primary" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Baixar" onClick={() => download(r)} disabled={!r.file_path}>
+                      <Button aria-label="Baixar documento" size="icon" variant="ghost" className="h-8 w-8" title="Baixar" onClick={() => download(r)} disabled={!r.file_path}>
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Substituir arquivo" onClick={() => abrirSubstituir(r)}>
+                      <Button aria-label="Substituir arquivo documento" size="icon" variant="ghost" className="h-8 w-8" title="Substituir arquivo" onClick={() => abrirSubstituir(r)}>
                         <Replace className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Excluir documento" onClick={() => setExcluir(r)}>
+                      <Button aria-label="Excluir documento" size="icon" variant="ghost" className="h-8 w-8" title="Excluir documento" onClick={() => setExcluir(r)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
@@ -973,17 +973,17 @@ export default function DpHistoricoCompleto() {
           </Select>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="icon" variant="outline" onClick={() => setPage(1)} disabled={page === 1}>
+          <Button aria-label="Primeira página" size="icon" variant="outline" onClick={() => setPage(1)} disabled={page === 1}>
             <ChevronsLeft className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+          <Button aria-label="Mês anterior" size="icon" variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="px-3 text-sm">Página {page} de {totalPages}</span>
-          <Button size="icon" variant="outline" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+          <Button aria-label="Mês seguinte" size="icon" variant="outline" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="outline" onClick={() => setPage(totalPages)} disabled={page === totalPages}>
+          <Button aria-label="Última página" size="icon" variant="outline" onClick={() => setPage(totalPages)} disabled={page === totalPages}>
             <ChevronsRight className="h-4 w-4" />
           </Button>
         </div>

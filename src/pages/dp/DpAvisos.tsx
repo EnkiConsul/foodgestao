@@ -291,13 +291,13 @@ export default function DpAvisos() {
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  <Button size="icon" variant="ghost" title="Engajamento" onClick={() => setEngajamento(a)}>
+                  <Button aria-label="Ver estatísticas" size="icon" variant="ghost" title="Engajamento" onClick={() => setEngajamento(a)}>
                     <BarChart3 className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => { setEditing(a); setOpen(true); }}>
+                  <Button aria-label="Editar aviso" size="icon" variant="ghost" onClick={() => { setEditing(a); setOpen(true); }}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => setToDelete(a)}>
+                  <Button aria-label="Excluir aviso" size="icon" variant="ghost" onClick={() => setToDelete(a)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>

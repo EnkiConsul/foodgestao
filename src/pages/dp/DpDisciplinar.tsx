@@ -431,9 +431,9 @@ export default function DpDisciplinar() {
 
             <div className="space-y-3 sm:space-y-4">
               <div className="space-y-2">
-                <Label>Unidade *</Label>
+                <Label htmlFor="unidade-1">Unidade *</Label>
                 <Select value={unidadeId} onValueChange={(v) => { setUnidadeId(v); setColaboradorId(""); }}>
-                  <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
+                  <SelectTrigger id="unidade-1"><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
                   <SelectContent>
                     {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                   </SelectContent>
@@ -441,7 +441,7 @@ export default function DpDisciplinar() {
               </div>
 
               <div className="space-y-2">
-                <Label>Colaborador *</Label>
+                <Label htmlFor="colaborador-2">Colaborador *</Label>
                 <Select
                   value={colaboradorId}
                   onValueChange={(v) => {
@@ -451,7 +451,7 @@ export default function DpDisciplinar() {
                   }}
                   disabled={!unidadeId}
                 >
-                  <SelectTrigger><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
+                  <SelectTrigger id="colaborador-2"><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
                   <SelectContent>
                     {(colabs.data ?? [])
                       .filter((c) => !unidadeId || c.unidade_id === unidadeId)
@@ -462,14 +462,14 @@ export default function DpDisciplinar() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Data do Documento *</Label>
-                  <Input type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
+                  <Label htmlFor="data-do-documento-3">Data do Documento *</Label>
+                  <Input id="data-do-documento-3" type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tipo de Registro *</Label>
+                  <Label htmlFor="tipo-de-registro-4">Tipo de Registro *</Label>
                   <Select value={tipo} onValueChange={setTipo}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                    <SelectTrigger id="tipo-de-registro-4"><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
                     <SelectContent>
                       {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                     </SelectContent>
@@ -478,8 +478,8 @@ export default function DpDisciplinar() {
               </div>
 
               <div className="space-y-2">
-                <Label>Dias de Afastamento (se aplicável)</Label>
-                <Input type="number" min={0} value={dias} onChange={(e) => setDias(e.target.value)} />
+                <Label htmlFor="dias-de-afastamento-se-aplicavel-5">Dias de Afastamento (se aplicável)</Label>
+                <Input id="dias-de-afastamento-se-aplicavel-5" type="number" min={0} value={dias} onChange={(e) => setDias(e.target.value)} />
                 <p className="text-xs text-muted-foreground">Preencha com 0 se não houver afastamento.</p>
               </div>
 
@@ -494,8 +494,8 @@ export default function DpDisciplinar() {
               </div>
 
               <div className="space-y-2">
-                <Label>Observações</Label>
-                <Textarea rows={3} value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Observações adicionais (opcional)" />
+                <Label htmlFor="observacoes-6">Observações</Label>
+                <Textarea id="observacoes-6" rows={3} value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Observações adicionais (opcional)" />
               </div>
             </div>
 
@@ -515,9 +515,9 @@ export default function DpDisciplinar() {
           <DpFilterCard>
             <div className="grid gap-3 md:grid-cols-5">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Unidade</Label>
+                <Label htmlFor="unidade-7" className="text-xs font-medium text-muted-foreground">Unidade</Label>
                 <Select value={fUnidade} onValueChange={setFUnidade}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="unidade-7"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todas</SelectItem>
                     {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
@@ -525,9 +525,9 @@ export default function DpDisciplinar() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Colaborador</Label>
+                <Label htmlFor="colaborador-8" className="text-xs font-medium text-muted-foreground">Colaborador</Label>
                 <Select value={fColab} onValueChange={setFColab}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="colaborador-8"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
                     {colabsHistorico.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
@@ -535,17 +535,17 @@ export default function DpDisciplinar() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Data Início</Label>
-                <Input type="date" value={fDataInicio} onChange={(e) => setFDataInicio(e.target.value)} />
+                <Label htmlFor="data-inicio-9" className="text-xs font-medium text-muted-foreground">Data Início</Label>
+                <Input id="data-inicio-9" type="date" value={fDataInicio} onChange={(e) => setFDataInicio(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Data Fim</Label>
-                <Input type="date" value={fDataFim} onChange={(e) => setFDataFim(e.target.value)} />
+                <Label htmlFor="data-fim-10" className="text-xs font-medium text-muted-foreground">Data Fim</Label>
+                <Input id="data-fim-10" type="date" value={fDataFim} onChange={(e) => setFDataFim(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Tipo</Label>
+                <Label htmlFor="tipo-11" className="text-xs font-medium text-muted-foreground">Tipo</Label>
                 <Select value={fTipo} onValueChange={setFTipo}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="tipo-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
                     {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
@@ -607,20 +607,20 @@ export default function DpDisciplinar() {
                         ))}
                         <TableCell className="px-3 text-right" style={{ width: DISC_ACOES_WIDTH, maxWidth: DISC_ACOES_WIDTH }}>
                           <div className="flex gap-1 justify-end">
-                            <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing(r)}>
+                            <Button aria-label="Editar registro" size="icon" variant="ghost" title="Editar" onClick={() => setEditing(r)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                             {!r.pdf_storage_path && (
-                              <Button size="icon" variant="ghost" title="Gerar PDF" disabled={genPdf.isPending} onClick={() => genPdf.mutate(r.id)}>
+                              <Button aria-label="Assinar" size="icon" variant="ghost" title="Gerar PDF" disabled={genPdf.isPending} onClick={() => genPdf.mutate(r.id)}>
                                 <FileSignature className="h-4 w-4" />
                               </Button>
                             )}
                             {r.pdf_storage_path && (
-                              <Button size="icon" variant="ghost" title="Baixar" onClick={() => handleDownload(r)}>
+                              <Button aria-label="Baixar registro" size="icon" variant="ghost" title="Baixar" onClick={() => handleDownload(r)}>
                                 <Download className="h-4 w-4" />
                               </Button>
                             )}
-                            <Button size="icon" variant="ghost" title="Excluir" onClick={() => setToDelete(r)}>
+                            <Button aria-label="Excluir registro" size="icon" variant="ghost" title="Excluir" onClick={() => setToDelete(r)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
@@ -687,7 +687,7 @@ export default function DpDisciplinar() {
                         <Download className="h-4 w-4 mr-1" /> Baixar
                       </Button>
                     )}
-                    <Button size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(r)}>
+                    <Button aria-label="Excluir registro" size="icon" variant="ghost" className="min-h-11 min-w-11" onClick={() => setToDelete(r)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -714,18 +714,18 @@ export default function DpDisciplinar() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Unidade</Label>
+              <Label htmlFor="unidade-12">Unidade</Label>
               <Select value={editUnidadeId} onValueChange={(v) => { setEditUnidadeId(v); setEditColaboradorId(""); }}>
-                <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
+                <SelectTrigger id="unidade-12"><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
                 <SelectContent>
                   {(unidades.data ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Colaborador</Label>
+              <Label htmlFor="colaborador-13">Colaborador</Label>
               <Select value={editColaboradorId} onValueChange={setEditColaboradorId}>
-                <SelectTrigger><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
+                <SelectTrigger id="colaborador-13"><SelectValue placeholder="Selecione o colaborador" /></SelectTrigger>
                 <SelectContent>
                   {editColabs.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
                 </SelectContent>
@@ -733,26 +733,26 @@ export default function DpDisciplinar() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Data</Label>
-                <Input type="date" value={editData} onChange={(e) => setEditData(e.target.value)} />
+                <Label htmlFor="data-14">Data</Label>
+                <Input id="data-14" type="date" value={editData} onChange={(e) => setEditData(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Dias</Label>
-                <Input type="number" min={0} value={editDias} onChange={(e) => setEditDias(e.target.value)} />
+                <Label htmlFor="dias-15">Dias</Label>
+                <Input id="dias-15" type="number" min={0} value={editDias} onChange={(e) => setEditDias(e.target.value)} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Tipo</Label>
+              <Label htmlFor="tipo-16">Tipo</Label>
               <Select value={editTipo} onValueChange={setEditTipo}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="tipo-16"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Observações</Label>
-              <Textarea rows={3} value={editObs} onChange={(e) => setEditObs(e.target.value)} />
+              <Label htmlFor="observacoes-17">Observações</Label>
+              <Textarea id="observacoes-17" rows={3} value={editObs} onChange={(e) => setEditObs(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
