@@ -130,18 +130,27 @@ function AvisoCard({
                     <Badge variant="outline" className="text-[10px]">Em moderação</Badge>
                   )}
                   {c.user_id === mural.userId && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6"
+                    <ConfirmarAcaoDialog
+                      titulo="Excluir comentário?"
+                      descricao="Seu comentário será excluído do mural."
+                      confirmar="Excluir"
+                      cancelar="Cancelar"
                       disabled={mural.removerComentario.isPending}
-                      onClick={() => {
+                      onConfirm={() => {
                         if (mural.removerComentario.isPending) return;
                         mural.removerComentario.mutate(c.id);
                       }}
                     >
-                      <Trash2 className="h-3 w-3 text-destructive" />
-                    </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-11 w-11 sm:h-8 sm:w-8"
+                        aria-label="Excluir comentário"
+                        disabled={mural.removerComentario.isPending}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </ConfirmarAcaoDialog>
                   )}
                 </div>
               </div>

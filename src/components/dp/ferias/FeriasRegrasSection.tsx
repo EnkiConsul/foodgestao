@@ -200,13 +200,20 @@ export function FeriasRegrasSection() {
                 {b.recorrente_anual && <Badge variant="secondary">Todo ano</Badge>}
                 {b.permite_excecao && <Badge variant="outline">Permite exceção</Badge>}
                 <Badge variant="outline">{nomeUnidade(b.unidade_id)}</Badge>
-                <Button
-                  variant="ghost" size="icon" className="ml-auto h-8 w-8"
-                  aria-label="Excluir período bloqueado"
-                  onClick={() => void deleteBloqueio.mutateAsync(b.id)}
+                <ConfirmarAcaoDialog
+                  titulo="Excluir período bloqueado?"
+                  descricao={`O período de ${new Date(`${b.data_inicio}T12:00:00`).toLocaleDateString("pt-BR")} a ${new Date(`${b.data_fim}T12:00:00`).toLocaleDateString("pt-BR")} deixará de bloquear férias.`}
+                  confirmar="Excluir"
+                  cancelar="Cancelar"
+                  onConfirm={() => void deleteBloqueio.mutateAsync(b.id)}
                 >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                </Button>
+                  <Button
+                    variant="ghost" size="icon" className="ml-auto h-11 w-11 sm:h-9 sm:w-9"
+                    aria-label="Excluir período bloqueado"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </ConfirmarAcaoDialog>
               </li>
             ))}
           </ul>

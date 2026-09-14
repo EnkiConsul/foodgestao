@@ -261,10 +261,18 @@ export default function DpBeneficios() {
                               onClick={() => { setCatEdit(x); setCatOpen(true); }}>
                               <Pencil className="size-4" />
                             </Button>
-                            <Button size="icon" variant="ghost" aria-label="Remover benefício"
-                              onClick={() => b.deleteBeneficio.mutate(x.id)}>
-                              <Trash2 className="size-4 text-destructive" />
-                            </Button>
+                            <ConfirmarAcaoDialog
+                              titulo="Excluir benefício?"
+                              descricao={`"${x.nome}" será excluído desta configuração.`}
+                              confirmar="Excluir"
+                              cancelar="Cancelar"
+                              onConfirm={() => b.deleteBeneficio.mutate(x.id)}
+                            >
+                              <Button size="icon" variant="ghost" className="h-11 w-11 sm:h-9 sm:w-9"
+                                aria-label="Excluir benefício">
+                                <Trash2 className="size-4 text-destructive" />
+                              </Button>
+                            </ConfirmarAcaoDialog>
                           </div>
                         </div>
                       ))}
