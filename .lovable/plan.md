@@ -30,8 +30,9 @@ Hoje, quando o horário do dia começa, o dia é encerrado automaticamente e nem
 
 ## Detalhes técnicos
 
-- Banco: novas colunas em `dp_convocacoes` (`aceite_atrasado boolean`, `aceite_atraso_minutos int`, `aceite_atraso_justificativa text`).
-- `public.dp_convocacao_responder_oferta`: deixa de encerrar por `OCCURRENCE_ALREADY_STARTED` quando `now()` está entre o início e o fim previsto da necessidade e há vaga; nesse caso exige justificativa, grava as novas colunas, força `resposta_tipo = 'parcial'` quando a chegada é posterior ao início e registra evento `oferta_aceita_com_atraso` via `dp_convocacao_log_evento_trabalhador`. Encerramento por prazo (`sem_resposta`) e por fim do horário seguem como hoje.
+- Banco: novas colunas em `dp_convocacoes` (`aceite_atrasado boolean`, `aceite_atraso_minutos int`, `aceite_atraso_justificativa text`, `aceite_atraso_forma text` com `'integral'`/`'chegada_tardia'`).
+- `public.dp_convocacao_responder_oferta`: deixa de encerrar por `OCCURRENCE_ALREADY_STARTED` quando `now()` está entre o início e o fim previsto da necessidade e há vaga; nesse caso exige justificativa, grava as novas colunas e registra evento `oferta_aceita_com_atraso` via `dp_convocacao_log_evento_trabalhador`. Forma `integral` mantém `resposta_tipo = 'integral'` e `status = 'aceita'` com a janela cheia; forma `chegada_tardia` segue o caminho parcial já existente (`parcial_status = 'aguardando_gestor'`). Encerramento por prazo (`sem_resposta`) e por fim do horário seguem como hoje.
+
 - `dp_convocacao_minhas_ofertas` retorna `janela_terminou` e `minutos_de_atraso` para a tela do portal.
 - Frontend: `DpMinhasConvocacoes.tsx` e `PropostaParcialDialog.tsx` ganham o estado "começou, mas ainda dá" com campo de justificativa; `src/lib/dp/convocacoes.ts` / `convocacoes-parcial.ts` ganham funções puras (`janelaEmAndamento`, `minutosDeAtraso`) com testes em `src/lib/dp/__tests__`.
 - Gestor: `AprovacaoParcialDialog.tsx` e `DiaDetalheSheet.tsx` exibem o selo de atraso e a justificativa.
