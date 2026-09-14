@@ -813,6 +813,7 @@ export default function DpMeuCalendario() {
 
       <div className="space-y-2">
         <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
+        <p className="text-xs text-muted-foreground">{resumoDomingos}</p>
         {avisoJanela && (
           <div
             className={cn(
