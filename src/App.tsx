@@ -38,6 +38,7 @@ installGlobalErrorHandlers();
 import Auth from "./pages/Auth";
 import OAuthConsent from "./pages/OAuthConsent";
 const PrimeiroAcesso = lazyWithRetry(() => import("./pages/PrimeiroAcesso"));
+const AtivarAcesso = lazyWithRetry(() => import("./pages/AtivarAcesso"));
 const EsqueciSenha = lazyWithRetry(() => import("./pages/EsqueciSenha"));
 import Hub from "./pages/Hub";
 import Dashboard from "./pages/Dashboard";
@@ -269,8 +270,26 @@ function PlanosGate() {
 function PortalProtected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  if (loading) return <PageSpinner />;
-  if (!user) {
+  // Acesso bloqueado pelo setor de pessoal: encerra a sessão em vez de abrir o portal.
+  const [bloqueado, setBloqueado] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!user) {
+      setBloqueado(null);
+      return;
+    }
+    let cancelado = false;
+    supabase.rpc("auth_access_enabled").then(({ data, error }) => {
+      if (cancelado) return;
+      const negado = !error && data === false;
+      setBloqueado(negado);
+      if (negado) void supabase.auth.signOut();
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [user?.id]);
+  if (loading || (user && bloqueado === null)) return <PageSpinner />;
+  if (!user || bloqueado) {
     const redirect = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/auth?redirect=${redirect}`} replace />;
   }
@@ -323,6 +342,8 @@ const AppRoutes = () => (
       <Route path="/login" element={<Navigate to="/auth" replace />} />
       <Route path="/dp/login" element={<Navigate to="/auth" replace />} />
       <Route path="/primeiro-acesso" element={<PrimeiroAcesso />} />
+      <Route path="/ativar-acesso" element={<AtivarAcesso />} />
+      <Route path="/redefinir-acesso" element={<AtivarAcesso />} />
       <Route path="/esqueci-senha" element={<EsqueciSenha />} />
       <Route path="/dp/meu" element={<PortalProtected><ColaboradorShell /></PortalProtected>}>
         <Route index element={<DpMeuHome />} />

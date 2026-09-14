@@ -132,6 +132,14 @@ export function useDeleteDpUnidade() {
 // ---------------- Cargos ----------------
 export type DpCargoWithCount = DpCargo & { colaboradores_count: number };
 
+/**
+ * Colunas legíveis de dp_cargos. O salário do cargo (campo legado
+ * `salario_base`) não é legível pelo cliente: só dono/administrador consulta,
+ * pelo caminho protegido `dp_cargos_salario_base`.
+ */
+export const DP_CARGO_COLUNAS =
+  "id, company_id, nome, cbo, ativo, created_at, updated_at, descricao, insalubre_periculoso, exige_cnh, cnh_categoria_minima, exige_epi, insalubre, perigoso, insalubridade_percentual, periculosidade_percentual, base_horas_mes, base_dias_mes";
+
 export function useDpCargos() {
   const { selectedCompanyId } = useCompanyContext();
   return useQuery({
@@ -140,7 +148,7 @@ export function useDpCargos() {
     queryFn: async (): Promise<DpCargoWithCount[]> => {
       const { data, error } = await supabase
         .from("dp_cargos")
-        .select("*")
+        .select(DP_CARGO_COLUNAS)
         .eq("company_id", selectedCompanyId!)
         .order("nome");
       if (error) throw error;
@@ -173,7 +181,7 @@ export function useUpsertDpCargo() {
           .from("dp_cargos")
           .update(payload)
           .eq("id", input.id)
-          .select("*")
+          .select(DP_CARGO_COLUNAS)
           .single();
         if (error) throw error;
         return data as DpCargo;
@@ -181,7 +189,7 @@ export function useUpsertDpCargo() {
       const { data, error } = await supabase
         .from("dp_cargos")
         .insert(payload)
-        .select("*")
+        .select(DP_CARGO_COLUNAS)
         .single();
       if (error) throw error;
       return data as DpCargo;

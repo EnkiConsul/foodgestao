@@ -30,7 +30,7 @@ const AUTH_REQUIRED = [
   "dp-doc-bulk-ingest",
   "dp-generate-disciplinary-pdf",
   "dp-criar-acesso-colaborador",
-  "dp-alterar-senha-colaborador",
+  "dp-bloquear-acesso-colaborador",
   "dp-reset-password",
   "dp-invite-colaborador",
   "delete-user-account",
@@ -38,6 +38,12 @@ const AUTH_REQUIRED = [
   "asaas-cancel-subscription",
   "pluggy-disconnect-item",
 ];
+
+/**
+ * Funções públicas por desenho: aceitam chamada sem sessão, mas só concluem com
+ * um código de uso único válido — nunca com dados vindos do navegador.
+ */
+const PUBLICAS_COM_CODIGO = ["dp-alterar-senha-colaborador"];
 
 /** Funções administrativas: exigem papel de super admin no servidor. */
 const ADMIN_ONLY = [
@@ -82,6 +88,15 @@ d("Edge Functions: autorização obrigatória", () => {
     it(`${fn} recusa token forjado`, async () => {
       const { status } = await callFn(fn, `Bearer ${FORGED_JWT}`);
       expect(DENIED).toContain(status);
+    }, 30_000);
+  }
+
+  for (const fn of PUBLICAS_COM_CODIGO) {
+    it(`${fn} recusa pedido sem código válido`, async () => {
+      const { status, text } = await callFn(fn);
+      expect(DENIED, `${fn} respondeu ${status}: ${text.slice(0, 120)}`).toContain(status);
+      const forjado = await callFn(fn, `Bearer ${FORGED_JWT}`);
+      expect(DENIED).toContain(forjado.status);
     }, 30_000);
   }
 
