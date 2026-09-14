@@ -12,7 +12,14 @@ import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { hojeIsoLocal, horariosSobrepostos } from "@/lib/dp/dataLocal";
 
-type Pessoa = { id: string; nome: string; cargo: string; entrada: string | null; saida: string | null };
+type Pessoa = {
+  id: string;
+  nome: string;
+  cargo: string;
+  setor: string | null;
+  entrada: string | null;
+  saida: string | null;
+};
 
 const hojeIso = () => hojeIsoLocal();
 const hhmm = (v: string | null) => (v ? v.slice(0, 5) : null);
@@ -41,6 +48,7 @@ export default function DpMeuRotinaLoja() {
           id: l.colaborador_id,
           nome: toUpperCadastro(nomeExibicao(l)),
           cargo: l.cargo || "Sem função definida",
+          setor: l.setor_nome || null,
           entrada: hhmm(l.entrada),
           saida: hhmm(l.saida),
         });
@@ -60,15 +68,25 @@ export default function DpMeuRotinaLoja() {
     return lista.filter((p) => p.id === eu.id || horariosSobrepostos(eu, p));
   }, [escala.data, vinculo?.colaboradorId]);
 
-  const porCargo = useMemo(() => {
+  /**
+   * Como no painel do gestor: quando a loja usa setores, a equipe do dia é
+   * agrupada por setor; sem setor cadastrado, continua agrupada por função.
+   */
+  const usaSetores = useMemo(
+    () => equipeDoMeuTurno.some((p) => !!p.setor),
+    [equipeDoMeuTurno],
+  );
+
+  const grupos = useMemo(() => {
     const m = new Map<string, Pessoa[]>();
     for (const p of equipeDoMeuTurno) {
-      const lista = m.get(p.cargo) ?? [];
+      const chave = usaSetores ? (p.setor ?? "Sem setor definido") : p.cargo;
+      const lista = m.get(chave) ?? [];
       lista.push(p);
-      m.set(p.cargo, lista);
+      m.set(chave, lista);
     }
     return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
-  }, [equipeDoMeuTurno]);
+  }, [equipeDoMeuTurno, usaSetores]);
 
   return (
     <DpPage>
@@ -94,16 +112,16 @@ export default function DpMeuRotinaLoja() {
         </p>
       ) : escala.isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
-      ) : porCargo.length === 0 ? (
+      ) : grupos.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhuma equipe prevista para este dia.</p>
       ) : (
         <div className="space-y-4">
-          {porCargo.map(([cargo, pessoas]) => (
-            <Card key={cargo} className="dp-content-card">
+          {grupos.map(([titulo, pessoas]) => (
+            <Card key={titulo} className="dp-content-card">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Users className="size-4 text-primary" />
-                  <p className="font-medium">{cargo}</p>
+                  <p className="font-medium">{titulo}</p>
                   <Badge variant="outline">{pessoas.length}</Badge>
                 </div>
                 <ul className="space-y-2">
@@ -112,7 +130,12 @@ export default function DpMeuRotinaLoja() {
                       key={p.id}
                       className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2"
                     >
-                      <span className="text-sm min-w-0 break-words">{p.nome}</span>
+                      <span className="text-sm min-w-0 break-words">
+                        {p.nome}
+                        {usaSetores ? (
+                          <span className="block text-xs text-muted-foreground">{p.cargo}</span>
+                        ) : null}
+                      </span>
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {p.entrada && p.saida ? `${p.entrada} às ${p.saida}` : "Horário a confirmar"}
                       </span>

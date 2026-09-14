@@ -24,9 +24,9 @@ Plano aprovado: `.lovable/plan/ajustes-do-portal-do-colaborador-2026-09-14.md`
 - [ ] Corrigir erro ao marcar folga (20/09)
 
 ## Rotina da Loja
-- [ ] Visão por setor padrão da empresa
+- [x] Visão por setor padrão da empresa
 - [x] Data navegada correta
-- [ ] Não listar quem está de folga
+- [x] Não listar quem está de folga
 - [x] Só o turno do próprio colaborador
 
 ## Minhas Trocas
