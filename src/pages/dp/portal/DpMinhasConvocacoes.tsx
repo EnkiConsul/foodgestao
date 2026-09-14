@@ -9,7 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import { PropostaParcialDialog } from "@/components/dp/convocacoes/PropostaParcialDialog";
 import { AceiteAtrasadoDialog } from "@/components/dp/convocacoes/AceiteAtrasadoDialog";
@@ -298,15 +301,13 @@ export default function DpMinhasConvocacoes() {
         }
       />
 
-      {isLoading || me.isLoading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-28 w-full rounded-2xl" />
-          <Skeleton className="h-28 w-full rounded-2xl" />
-        </div>
+      {isError || me.isError ? (
+        <DpErrorState onRetry={() => { me.refetch(); refetch(); }} />
+      ) : isLoading || me.isLoading ? (
+        <CardListSkeleton rows={2} />
       ) : !rows.length ? (
-        <Card><CardContent className="p-8 text-center text-muted-foreground">
-          Você ainda não recebeu convocações.
-        </CardContent></Card>
+        <DpEmptyState icon={BellRing}>Você ainda não recebeu convocações.</DpEmptyState>
+
       ) : (
         <div className="space-y-3">{rows.map(renderCard)}</div>
       )}
