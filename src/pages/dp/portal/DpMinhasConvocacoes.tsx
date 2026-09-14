@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { BellRing, Briefcase, CalendarClock, Check, Clock, MapPin, Users, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,8 @@ import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import { PropostaParcialDialog } from "@/components/dp/convocacoes/PropostaParcialDialog";
 import { AceiteAtrasadoDialog } from "@/components/dp/convocacoes/AceiteAtrasadoDialog";
 import { useMinhasConvocacoes, type MinhaOferta } from "@/hooks/useDpConvocacoes";
+import { RemuneracaoDiaDetalhe } from "@/components/dp/convocacoes/RemuneracaoDiaDetalhe";
+import { remuneracaoDoSnapshot } from "@/lib/dp/convocacao-remuneracao";
 import {
   STATUS_META, janelaEmAndamento, minutosDeAtraso, podeResponder, rotuloAtraso, statusEfetivo,
 } from "@/lib/dp/convocacoes";
@@ -31,21 +34,13 @@ const rotuloPrazo = (iso: string | null) =>
 
 const hhmm = (v: string | null | undefined) => (v ? String(v).slice(0, 5) : "—");
 
-const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
 /** Valor previsto vem do snapshot gravado na publicação — nunca recalculado aqui. */
-const remuneracaoPrevista = (snap: any): { total: string; detalhe: string } | null => {
-  if (!snap || typeof snap !== "object") return null;
-  const total = Number(snap.valor_previsto ?? 0);
-  const unitario = Number(snap.valor_unitario ?? 0);
-  if (!total && !unitario) return null;
-  const unidade = snap.unidade_remuneracao === "diaria" ? "diária" : "hora";
-  const qtd = Number(snap.quantidade_prevista ?? 0);
-  return {
-    total: moeda(total || unitario),
-    detalhe: `${moeda(unitario)} / ${unidade}${qtd ? ` × ${qtd.toLocaleString("pt-BR")}` : ""}`,
-  };
-};
+const remuneracaoPrevista = (c: MinhaOferta) =>
+  remuneracaoDoSnapshot(c.remuneracao_snapshot, {
+    entrada: c.entrada,
+    saida: c.saida,
+    termina_no_dia_seguinte: c.termina_no_dia_seguinte,
+  });
 
 export default function DpMinhasConvocacoes() {
   const { user } = useAuth();
@@ -140,7 +135,7 @@ export default function DpMinhasConvocacoes() {
     const emAndamento = c.status === "pendente" && janelaEmAndamento(c);
     const atraso = c.minutos_de_atraso ?? minutosDeAtraso(c.inicio_previsto);
     const prazo = rotuloPrazo(c.prazo_resposta);
-    const rem = remuneracaoPrevista(c.remuneracao_snapshot);
+    const rem = remuneracaoPrevista(c);
 
 
     return (
@@ -189,11 +184,7 @@ export default function DpMinhasConvocacoes() {
 
               {prazo ? <p className="text-xs text-muted-foreground">Responder até {prazo}</p> : null}
 
-              {rem ? (
-                <p className="text-sm font-medium text-primary">
-                  {rem.total} <span className="text-xs font-normal text-muted-foreground">({rem.detalhe})</span>
-                </p>
-              ) : null}
+              {rem ? <RemuneracaoDiaDetalhe remuneracao={rem} className="mt-2" /> : null}
 
               {c.observacao ? <p className="text-sm pt-1">{c.observacao}</p> : null}
               {c.motivo_recusa && st === "recusada" ? (
@@ -294,7 +285,18 @@ export default function DpMinhasConvocacoes() {
     <DpPage narrow>
       <Helmet><title>Minhas Convocações — Aveto 360</title></Helmet>
 
-      <DpPageHeader icon={BellRing} title="Minhas Convocações" description="Aceite ou recuse os dias oferecidos." />
+      <DpPageHeader
+        icon={BellRing}
+        title="Minhas Convocações"
+        description="Aceite ou recuse os dias oferecidos."
+        actions={
+          <Button asChild size="sm" variant="outline">
+            <Link to="/dp/meu/calendario">
+              <CalendarClock className="h-4 w-4 mr-1" /> Avisar dias indisponíveis
+            </Link>
+          </Button>
+        }
+      />
 
       {isLoading || me.isLoading ? (
         <div className="space-y-3">

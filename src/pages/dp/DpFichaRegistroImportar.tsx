@@ -23,6 +23,15 @@ import {
   useDpFichaImportacoes, useDpFichaItens, useEnviarFichaPdf,
 } from "@/hooks/useDpFichaImportacao";
 import { notifyError } from "@/lib/notifyError";
+import { cn } from "@/lib/utils";
+
+/** Situação de cada envio, em linguagem de tela. */
+const STATUS_ENVIO: Record<string, string> = {
+  pending: "na fila",
+  processing: "em leitura",
+  ready: "lido",
+  failed: "não foi possível ler",
+};
 
 /** Vínculos do cadastro (enum dp_regime_trabalho) — igual ao card de conferência. */
 const REGIMES: Array<{ value: string; label: string }> = [
@@ -104,6 +113,16 @@ export default function DpFichaRegistroImportar() {
   const prontos = itens.filter((i) => ["criado", "atualizado"].includes(i.status));
 
 
+  /** Abre o PDF original de um envio anterior por link temporário. */
+  const abrirArquivo = async (path: string) => {
+    const { data, error } = await supabase.storage.from("dp-bulk-import").createSignedUrl(path, 60);
+    if (error || !data) {
+      toast.error("Não foi possível abrir o arquivo");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
+  };
+
   const enviarArquivo = () => {
     if (!file) return;
     enviar.mutate(file, {
@@ -156,6 +175,50 @@ export default function DpFichaRegistroImportar() {
           </div>
         </CardContent>
       </Card>
+
+      {importacoes.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Fichas enviadas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 p-4 pt-0">
+            <p className="pb-2 text-sm text-muted-foreground">
+              Toque em um envio para rever as fichas dele e abrir o arquivo original.
+            </p>
+            {importacoes.map((imp) => (
+              <div
+                key={imp.id}
+                className={cn(
+                  "flex flex-wrap items-center gap-2 rounded-lg border p-2 text-sm",
+                  imp.id === atual?.id ? "border-primary bg-primary/5" : "border-border",
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => setImportacaoId(imp.id)}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <span className="block truncate font-medium">{imp.arquivo_nome}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {new Date(imp.created_at).toLocaleString("pt-BR", {
+                      day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+                    })}
+                    {" · "}
+                    {imp.fichas_identificadas ?? 0} ficha(s)
+                    {" · "}
+                    {STATUS_ENVIO[imp.status] ?? imp.status}
+                  </span>
+                </button>
+                {imp.arquivo_path ? (
+                  <Button variant="outline" size="sm" className="h-8" onClick={() => abrirArquivo(imp.arquivo_path!)}>
+                    Abrir PDF
+                  </Button>
+                ) : null}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {atual && (
         <Card>

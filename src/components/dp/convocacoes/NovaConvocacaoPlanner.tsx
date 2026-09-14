@@ -59,6 +59,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDpConvocacaoPreAvaliacao } from "@/hooks/useDpConvocacaoPreAvaliacao";
 import { cn } from "@/lib/utils";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
+import {
+  CONDICOES_FREELA_VAZIAS,
+  comporObservacaoFreela,
+  lerCondicoesFreela,
+  separarObservacaoFreela,
+  type CondicoesFreela,
+  type FreelaRefeicao,
+} from "@/lib/dp/convocacao-freela";
 
 interface Props {
   open: boolean;
@@ -131,6 +139,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
   const [titulo, setTitulo] = useState("");
   const [observacao, setObservacao] = useState("");
+  // Freelancer é acerto avulso: diária, refeição, transporte e gorjeta viajam no convite.
+  const [freela, setFreela] = useState<CondicoesFreela>({ ...CONDICOES_FREELA_VAZIAS });
   const [usaHorarioGeral, setUsaHorarioGeral] = useState(false);
   const [horarioGeral, setHorarioGeral] = useState<HorarioOverride>({
     entrada: "18:00", saida: "23:00", intervalo_minutos: 0, vira: false,
@@ -166,6 +176,15 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const antecedenciaMinima = config.data?.antecedencia_minima_dias ?? ANTECEDENCIA_REFERENCIA_DIAS;
   const exigeJustificativa = config.data?.exige_justificativa_excecao !== false;
 
+  /** Condições avulsas só aparecem quando há freelancer entre os convidados. */
+  const temFreelancer = useMemo(
+    () =>
+      (colaboradores.data ?? []).some(
+        (c: any) => destinatarios.includes(c.id) && String(c.regime ?? "") === "freelancer",
+      ),
+    [colaboradores.data, destinatarios],
+  );
+
   // ------------------------------------------------------------ carregar / resetar
   useEffect(() => {
     if (!open) return;
@@ -192,7 +211,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       setAno(a);
       setMes(m);
       setTitulo(grupo.titulo ?? "");
-      setObservacao(grupo.observacao ?? "");
+      setObservacao(separarObservacaoFreela(grupo.observacao));
+      setFreela(lerCondicoesFreela(grupo.observacao));
       const cargosDoGrupo = Array.from(
         new Set(grupo.ocorrencias.map((o) => o.cargo_id).filter(Boolean) as string[]),
       );
@@ -245,6 +265,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
     setTitulo("");
     setObservacao("");
+    setFreela({ ...CONDICOES_FREELA_VAZIAS });
     setUsaHorarioGeral(false);
     setDias({});
 
@@ -683,7 +704,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       competencia,
       modalidade: "aberta",
       titulo: titulo.trim() || null,
-      observacao: observacao.trim() || null,
+      observacao: comporObservacaoFreela(observacao, temFreelancer ? freela : CONDICOES_FREELA_VAZIAS) || null,
       expected_updated_at: grupoExpected,
     });
     let expected: string | null = grupoRes?.updated_at ?? null;
@@ -904,7 +925,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                   unidadeNome={(unidades.data ?? []).find((u: any) => u.id === unidadeId)?.nome ?? "—"}
                   competencia={competencia}
                   titulo={titulo.trim()}
-                  observacao={observacao.trim()}
+                  observacao={comporObservacaoFreela(observacao, temFreelancer ? freela : CONDICOES_FREELA_VAZIAS)}
                   dias={diasCompletos.map((d) => {
                     const cob = cobertura(d.data, d.cargo_id);
                     return {
@@ -1281,9 +1302,91 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                 </div>
               )}
 
+              {temFreelancer && (
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                  <div>
+                    <Label className="text-sm">Combinado com o freelancer</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Vale só para os freelancers convidados. O intermitente segue as regras do vínculo.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Valor da diária (R$)</Label>
+                      <Input
+                        type="number" min={0} step="0.01" inputMode="decimal"
+                        value={freela.diaria ?? ""}
+                        onChange={(e) =>
+                          setFreela((f) => ({ ...f, diaria: e.target.value === "" ? null : Number(e.target.value) }))
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs">Refeição</Label>
+                      <Select
+                        value={freela.refeicao}
+                        onValueChange={(v) => setFreela((f) => ({ ...f, refeicao: v as FreelaRefeicao }))}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="nenhuma">Não tem</SelectItem>
+                          <SelectItem value="loja">Refeição na loja</SelectItem>
+                          <SelectItem value="vale">Vale-alimentação</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {freela.refeicao === "vale" && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Valor do vale por dia (R$)</Label>
+                        <Input
+                          type="number" min={0} step="0.01" inputMode="decimal"
+                          value={freela.refeicaoValor ?? ""}
+                          onChange={(e) =>
+                            setFreela((f) => ({
+                              ...f,
+                              refeicaoValor: e.target.value === "" ? null : Number(e.target.value),
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <Label className="text-xs">Ajuda de transporte por dia (R$)</Label>
+                      <Input
+                        type="number" min={0} step="0.01" inputMode="decimal"
+                        value={freela.transporteValor ?? ""}
+                        onChange={(e) =>
+                          setFreela((f) => ({
+                            ...f,
+                            transporteValor: e.target.value === "" ? null : Number(e.target.value),
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={freela.gorjeta}
+                      onCheckedChange={(v) => setFreela((f) => ({ ...f, gorjeta: v === true }))}
+                    />
+                    Participa da gorjeta do dia
+                  </label>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Observação (opcional)</Label>
-                <Textarea rows={2} value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+                <Textarea
+                  rows={2}
+                  value={observacao}
+                  placeholder="Recado que aparece no convite (ex.: uniforme, ponto de encontro)"
+                  onChange={(e) => setObservacao(e.target.value)}
+                />
               </div>
 
               {diasJaComecaram.length > 0 && (
