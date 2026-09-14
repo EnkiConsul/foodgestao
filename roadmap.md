@@ -3,8 +3,8 @@
 Plano aprovado: `.lovable/plan/ajustes-do-portal-do-colaborador-2026-09-14.md`
 
 ## Acesso e primeiro uso
-- [ ] Botão "Copiar senha" na mensagem de acesso (só a senha)
-- [ ] Destaque para instalar o app no primeiro acesso ao portal
+- [x] Botão "Copiar senha" na mensagem de acesso (só a senha)
+- [x] Destaque para instalar o app no primeiro acesso ao portal
 
 ## Documentos
 - [x] Exigir só documentos do colaborador; documentos da empresa ocultos sem anexo
@@ -18,10 +18,10 @@ Plano aprovado: `.lovable/plan/ajustes-do-portal-do-colaborador-2026-09-14.md`
 - [x] Histórico migra para o menu Documentos
 
 ## Meu Calendário
-- [ ] Folga de domingo aparece junto da semanal
+- [x] Folga de domingo aparece junto da semanal
 - [x] Colegas de folga no dia
 - [x] Trocar folga / pedir exceção nos dias de meio de semana
-- [ ] Corrigir erro ao marcar folga (20/09)
+- [x] Corrigir erro ao marcar folga (20/09)
 
 ## Rotina da Loja
 - [x] Visão por setor padrão da empresa
@@ -45,7 +45,7 @@ Plano aprovado: `.lovable/plan/ajustes-do-portal-do-colaborador-2026-09-14.md`
 - [x] Dia da semana no card de próxima folga
 
 ## Ocorrências e ponto
-- [ ] Corrigir corte no celular
+- [x] Corrigir corte no celular
 - [x] Opções "ponto com defeito" e "ponto não registrando"
 
 ## Menu e desempenho
