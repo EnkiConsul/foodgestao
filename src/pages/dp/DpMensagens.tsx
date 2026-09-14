@@ -95,6 +95,7 @@ export default function DpMensagens() {
   };
 
   const duplicarModelo = (m: DpModeloMensagem) => {
+    if (modelos.upsert.isPending) return;
     modelos.upsert.mutate({
       titulo: `${m.titulo} (cópia)`,
       tipo: (m.tipo ?? "outro") as DpModeloTipo,
@@ -105,6 +106,7 @@ export default function DpMensagens() {
   };
 
   const salvarModelo = () => {
+    if (modelos.upsert.isPending) return;
     if (!modeloForm.titulo || !modeloForm.assunto || !modeloForm.corpo) {
       toast.error("Preencha nome, assunto e corpo");
       return;
