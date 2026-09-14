@@ -9,7 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pencil, Save, X, User } from "lucide-react";
-import { DpContentCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+
 import { notifyError } from "@/lib/notifyError";
 
 export default function DpMeuPerfil() {
@@ -112,8 +115,13 @@ export default function DpMeuPerfil() {
           </Button>
         ) : undefined}
       />
-      {!p ? (
-        <DpContentCard contentClassName="p-6"><p className="text-muted-foreground">Perfil não encontrado.</p></DpContentCard>
+      {perfil.isError ? (
+        <DpContentCard contentClassName="p-4"><DpErrorState onRetry={() => perfil.refetch()} /></DpContentCard>
+      ) : perfil.isLoading ? (
+        <CardListSkeleton rows={2} />
+      ) : !p ? (
+        <DpContentCard contentClassName="p-6"><DpEmptyState icon={User}>Ainda não encontramos seu cadastro. Fale com o setor de pessoas.</DpEmptyState></DpContentCard>
+
       ) : (
         <>
           <Card className="dp-content-card">

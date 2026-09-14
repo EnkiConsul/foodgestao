@@ -2,7 +2,10 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Store, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpEmptyState, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -107,13 +110,16 @@ export default function DpMeuRotinaLoja() {
       </DpFilterCard>
 
       {!vinculo?.unidadeId ? (
-        <p className="text-sm text-muted-foreground">
+        <DpEmptyState icon={Store}>
           Seu cadastro ainda não tem uma unidade definida. Fale com o responsável pela sua loja.
-        </p>
+        </DpEmptyState>
+      ) : escala.isError ? (
+        <DpErrorState onRetry={() => escala.refetch()} />
       ) : escala.isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando…</p>
+        <CardListSkeleton rows={3} />
       ) : grupos.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhuma equipe prevista para este dia.</p>
+        <DpEmptyState icon={Users}>Nenhuma equipe prevista para este dia.</DpEmptyState>
+
       ) : (
         <div className="space-y-4">
           {grupos.map(([titulo, pessoas]) => (
