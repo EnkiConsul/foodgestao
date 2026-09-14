@@ -185,7 +185,7 @@ export function useDpValeCalculadora(
     ],
     enabled: !!selectedCompanyId && colabIds.length > 0,
     queryFn: async () => {
-      const [config, dias, escala, folgas, pontos, ferias, convocacoes] = await Promise.all([
+      const [config, dias, escala, folgas, ferias, convocacoes] = await Promise.all([
         supabase
           .from("dp_colaborador_config_trabalho")
           .select("id, colaborador_id, vigencia_inicio, vigencia_fim")
@@ -211,13 +211,6 @@ export function useDpValeCalculadora(
           .gte("data", janelaInicio)
           .lte("data", janelaFim),
         supabase
-          .from("dp_pontos")
-          .select("colaborador_id, data")
-          .eq("company_id", selectedCompanyId!)
-          .in("colaborador_id", colabIds)
-          .gte("data", janelaInicio)
-          .lte("data", janelaFim),
-        supabase
           .from("dp_ferias_gozos")
           .select("colaborador_id, data_inicio, data_fim, status")
           .eq("company_id", selectedCompanyId!)
@@ -233,14 +226,13 @@ export function useDpValeCalculadora(
           .gte("data", janelaInicio)
           .lte("data", janelaFim),
       ]);
-      const erro = [config, dias, escala, folgas, pontos, ferias, convocacoes].find((r) => r.error)?.error;
+      const erro = [config, dias, escala, folgas, ferias, convocacoes].find((r) => r.error)?.error;
       if (erro) throw erro;
       return {
         config: (config.data ?? []) as any[],
         dias: (dias.data ?? []) as any[],
         escala: (escala.data ?? []) as any[],
         folgas: (folgas.data ?? []) as any[],
-        pontos: (pontos.data ?? []) as any[],
         ferias: (ferias.data ?? []) as any[],
         convocacoes: (convocacoes.data ?? []) as any[],
       };
@@ -281,7 +273,6 @@ export function useDpValeCalculadora(
     };
     const escalaPor = agrupar(ev?.escala ?? []);
     const folgasPor = agrupar(ev?.folgas ?? []);
-    const pontosPor = agrupar(ev?.pontos ?? []);
     const feriasPor = agrupar(ev?.ferias ?? []);
     const convocacoesPor = agrupar(ev?.convocacoes ?? []);
 
@@ -362,13 +353,12 @@ export function useDpValeCalculadora(
           ? escalaConf.filter((e) => e.tipo === "trabalho").map((e) => e.data)
           : datasDaJornada(c.id, periodo.conferencia);
 
-      const pontos = pontosPor.get(c.id) ?? [];
       const descontos = contarDiasDescontaveis({
         periodo: periodo.conferencia,
         regras,
         diasPrevistos: previstosConferencia,
-        diasComPonto: pontos.map((pt) => pt.data),
-        usaPonto: pontos.length > 0,
+        diasComPonto: [],
+        usaPonto: false,
         folgas,
         ferias,
       });

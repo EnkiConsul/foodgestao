@@ -6,7 +6,7 @@ import { useDpPendenciasConfig, type DpPendenciasConfig } from "@/hooks/useDpPen
 import { useDpFeriasConfig } from "@/hooks/useDpFeriasConfig";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Scale, Palmtree, ShieldCheck, HardHat, GraduationCap, UserCog, Baby } from "lucide-react";
+import { ClipboardList, FileCheck2, FileMinus, FileText, Users, Coins, Clock, Scale, Palmtree, UserCog, Baby } from "lucide-react";
 import { LEMBRETE_RETORNO_DIAS, TIPOS_AFASTAMENTO, TIPOS_LICENCA, afastamentoCobreCompetencia, labelAfastamento, situacaoRetorno } from "@/lib/dp/licencas";
 import { resolverChecklist, resumirChecklist, tituloItem } from "@/lib/dp/documentos-requisitos";
 import { camposFaltandoObrigatorios, resumoFaltando } from "@/lib/dp/cadastro-completude";
@@ -293,31 +293,6 @@ export function useDpPendencias() {
       const compVigente = competenciaDe(hojeISO);
       const compAnterior = somarMeses(compVigente, -1);
 
-      // Evidência de trabalho do intermitente: marcações de ponto na competência.
-      // (Convocação aceita/escala entram pelo próprio registro de ponto.)
-      const intermitentesIds = colaboradoresDocs
-        .filter((c) => String(c.regime ?? "").toLowerCase() === "intermitente")
-        .map((c) => c.id);
-      const pontoIntermitente = new Set<string>(); // `${colab}:${comp}`
-      if (intermitentesIds.length > 0) {
-        try {
-          const { data: pts } = await supabase
-            .from("dp_pontos")
-            .select("colaborador_id, data")
-            .eq("company_id", selectedCompanyId!)
-            .in("colaborador_id", intermitentesIds)
-            .gte("data", `${somarMeses(compVigente, -24)}-01`)
-            .lte("data", hojeISO);
-          (pts ?? []).forEach((p: any) => {
-            if (p.colaborador_id && p.data) {
-              pontoIntermitente.add(`${p.colaborador_id}:${String(p.data).slice(0, 7)}`);
-            }
-          });
-        } catch (e) {
-          console.warn("pendencias/intermitente-pontos:", e);
-        }
-      }
-
       // Documentos por tipo — 1 query por tipo cobrindo todo o intervalo.
       // Chave por colaborador: `${colaboradorId}:${competencia}`
       const importados = new Map<string, Set<string>>();
@@ -362,7 +337,6 @@ export function useDpPendencias() {
       // estável para ser compartilhada pela elegibilidade e pelos alertas.
       let folhasPontoImportadas = new Set<string>();
       const intermitenteTemEvidencia = (colaboradorId: string, competencia: string) =>
-        pontoIntermitente.has(`${colaboradorId}:${competencia}`) ||
         folhasPontoImportadas.has(`${colaboradorId}:${competencia}`);
 
       // Afastamentos aprovados (licenças e atestados longos): quando cobrem o
@@ -986,90 +960,6 @@ export function useDpPendencias() {
         });
       } catch (e) {
         console.warn("pendencias/licencas:", e);
-      }
-
-      // 8. Conformidade — ASO, EPIs e treinamentos vencendo
-      try {
-        const limiteAso = new Date(today);
-        limiteAso.setDate(limiteAso.getDate() + cfg.alerta_aso_dias);
-        const { data: exames } = await supabase
-          .from("dp_exames_aso")
-          .select("id, colaborador_id, data_vencimento, tipo, dp_colaboradores(nome)")
-          .eq("company_id", selectedCompanyId!)
-          .not("data_vencimento", "is", null)
-          .lte("data_vencimento", ymd(limiteAso))
-          .order("data_vencimento", { ascending: true })
-          .limit(30);
-        (exames ?? []).forEach((e: any) => {
-          const vencimento = new Date(`${e.data_vencimento}T00:00:00`);
-          const dias = differenceInCalendarDays(today, vencimento);
-          results.push({
-            id: `aso-${e.id}`,
-            icon: ShieldCheck,
-            titulo: dias > 0 ? "Exame ocupacional vencido" : "Exame ocupacional a vencer",
-            subtitulo: `${e.dp_colaboradores?.nome ?? "Colaborador"} — vence ${format(vencimento, "dd/MM/yyyy")}`,
-            tipo: "ASO",
-            colaboradorNome: e.dp_colaboradores?.nome ?? null,
-            vencimento: ymd(vencimento),
-            atrasoDias: dias,
-            url: `/dp/conformidade?aba=aso&colaborador=${e.colaborador_id}`,
-          });
-        });
-
-        const limiteEpi = new Date(today);
-        limiteEpi.setDate(limiteEpi.getDate() + cfg.alerta_epi_dias);
-        const { data: entregas } = await supabase
-          .from("dp_epis_entregas")
-          .select("id, colaborador_id, data_troca_prevista, dp_colaboradores(nome), dp_epis(nome)")
-          .eq("company_id", selectedCompanyId!)
-          .is("data_devolucao", null)
-          .not("data_troca_prevista", "is", null)
-          .lte("data_troca_prevista", ymd(limiteEpi))
-          .order("data_troca_prevista", { ascending: true })
-          .limit(30);
-        (entregas ?? []).forEach((e: any) => {
-          const vencimento = new Date(`${e.data_troca_prevista}T00:00:00`);
-          const dias = differenceInCalendarDays(today, vencimento);
-          results.push({
-            id: `epi-${e.id}`,
-            icon: HardHat,
-            titulo: "Troca de EPI",
-            subtitulo: `${e.dp_colaboradores?.nome ?? "Colaborador"} — ${e.dp_epis?.nome ?? "EPI"} · previsto ${format(vencimento, "dd/MM/yyyy")}`,
-            tipo: "EPI",
-            colaboradorNome: e.dp_colaboradores?.nome ?? null,
-            vencimento: ymd(vencimento),
-            atrasoDias: dias,
-            url: `/dp/conformidade?aba=epis&colaborador=${e.colaborador_id}`,
-          });
-        });
-
-        const limiteTre = new Date(today);
-        limiteTre.setDate(limiteTre.getDate() + cfg.alerta_treinamento_dias);
-        const { data: parts } = await supabase
-          .from("dp_treinamentos_participacoes")
-          .select("id, colaborador_id, data_vencimento, dp_colaboradores(nome), dp_treinamentos(nome)")
-          .eq("company_id", selectedCompanyId!)
-          .not("data_vencimento", "is", null)
-          .lte("data_vencimento", ymd(limiteTre))
-          .order("data_vencimento", { ascending: true })
-          .limit(30);
-        (parts ?? []).forEach((p: any) => {
-          const vencimento = new Date(`${p.data_vencimento}T00:00:00`);
-          const dias = differenceInCalendarDays(today, vencimento);
-          results.push({
-            id: `treino-${p.id}`,
-            icon: GraduationCap,
-            titulo: dias > 0 ? "Treinamento vencido" : "Treinamento a renovar",
-            subtitulo: `${p.dp_colaboradores?.nome ?? "Colaborador"} — ${p.dp_treinamentos?.nome ?? "Treinamento"} · vence ${format(vencimento, "dd/MM/yyyy")}`,
-            tipo: "Treinamento",
-            colaboradorNome: p.dp_colaboradores?.nome ?? null,
-            vencimento: ymd(vencimento),
-            atrasoDias: dias,
-            url: `/dp/conformidade?aba=treinamentos&colaborador=${p.colaborador_id}`,
-          });
-        });
-      } catch (e) {
-        console.warn("pendencias/conformidade:", e);
       }
 
       // 9. Escala do próximo mês — cobrar o gestor nos últimos dias do mês

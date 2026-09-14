@@ -40,7 +40,7 @@ export const MODULOS_EM_DESENVOLVIMENTO: AppModule[] = [];
  * Rotas pausadas individualmente (não pertencem a um módulo comercial pausado).
  * Para liberar, remova a rota desta lista.
  */
-export const ROTAS_EM_DESENVOLVIMENTO: string[] = ["/dp/conformidade"];
+export const ROTAS_EM_DESENVOLVIMENTO: string[] = [];
 
 export function isModuleEmDesenvolvimento(module: AppModule): boolean {
   return MODULOS_EM_DESENVOLVIMENTO.includes(module);
