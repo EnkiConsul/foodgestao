@@ -112,16 +112,16 @@ export default function DpMeuRotinaLoja() {
         </p>
       ) : escala.isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
-      ) : porCargo.length === 0 ? (
+      ) : grupos.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhuma equipe prevista para este dia.</p>
       ) : (
         <div className="space-y-4">
-          {porCargo.map(([cargo, pessoas]) => (
-            <Card key={cargo} className="dp-content-card">
+          {grupos.map(([titulo, pessoas]) => (
+            <Card key={titulo} className="dp-content-card">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Users className="size-4 text-primary" />
-                  <p className="font-medium">{cargo}</p>
+                  <p className="font-medium">{titulo}</p>
                   <Badge variant="outline">{pessoas.length}</Badge>
                 </div>
                 <ul className="space-y-2">
@@ -130,7 +130,12 @@ export default function DpMeuRotinaLoja() {
                       key={p.id}
                       className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2"
                     >
-                      <span className="text-sm min-w-0 break-words">{p.nome}</span>
+                      <span className="text-sm min-w-0 break-words">
+                        {p.nome}
+                        {usaSetores ? (
+                          <span className="block text-xs text-muted-foreground">{p.cargo}</span>
+                        ) : null}
+                      </span>
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {p.entrada && p.saida ? `${p.entrada} às ${p.saida}` : "Horário a confirmar"}
                       </span>
