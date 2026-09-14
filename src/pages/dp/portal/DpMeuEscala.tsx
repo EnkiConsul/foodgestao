@@ -1,17 +1,19 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, Clock, Coffee, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarClock, Clock, Coffee, ChevronLeft, ChevronRight, HelpCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
-import { diasDaCompetencia, TIPO_LABEL, type EscalaItemTipo } from "@/lib/dp/escala-mes";
+import { TIPO_LABEL, type EscalaItemTipo } from "@/lib/dp/escala-mes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { useDpHorarioPrevisto } from "@/hooks/useDpHorarioPrevisto";
+import { useMinhasConvocacoes } from "@/hooks/useDpConvocacoes";
 import { FONTE_LABEL, textoPrevisto } from "@/lib/dp/horario-previsto";
 
 const competenciaAtual = () => new Date().toISOString().slice(0, 7);
@@ -33,6 +35,19 @@ const hojeIso = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
+/** Um dia mostrado na tela: já confirmado ou convocação ainda respondível. */
+type LinhaEscala = {
+  data: string;
+  situacao: "confirmado" | "aguardando";
+  tipo: EscalaItemTipo | "trabalho";
+  entrada: string | null;
+  saida: string | null;
+  termina_no_dia_seguinte: boolean;
+  carga: number;
+  observacao?: string | null;
+  convocacaoId?: string;
+};
+
 export default function DpMeuEscala() {
   const { user } = useAuth();
   const [competencia, setCompetencia] = useState(competenciaAtual);
@@ -47,9 +62,9 @@ export default function DpMeuEscala() {
   });
 
   const colaboradorId = me.data ?? null;
-  const dias = useMemo(() => diasDaCompetencia(competencia), [competencia]);
   const { proximo, hoje: previstoHoje } = useDpHorarioPrevisto(colaboradorId, competencia);
   const destaque = previstoHoje?.trabalha ? previstoHoje : proximo;
+  const { rows: ofertas, isLoading: carregandoOfertas } = useMinhasConvocacoes(colaboradorId);
 
   const escala = useQuery({
     queryKey: ["dp_meu_escala", colaboradorId, competencia],
@@ -74,32 +89,92 @@ export default function DpMeuEscala() {
     },
   });
 
-  const porData = useMemo(() => {
-    const m = new Map<string, NonNullable<typeof escala.data>[number]>();
-    for (const i of escala.data ?? []) m.set(i.data, i);
-    return m;
-  }, [escala.data]);
+  /**
+   * Só entram na lista os dias que interessam à pessoa: dias já confirmados
+   * (escala publicada ou convocação aceita) e convocações que ela ainda pode
+   * responder (dentro do prazo e antes do turno começar).
+   */
+  const linhas = useMemo<LinhaEscala[]>(() => {
+    const agora = Date.now();
+    const mapa = new Map<string, LinhaEscala>();
+
+    for (const i of escala.data ?? []) {
+      mapa.set(i.data, {
+        data: i.data,
+        situacao: "confirmado",
+        tipo: (i.tipo as EscalaItemTipo) ?? "trabalho",
+        entrada: i.entrada ?? null,
+        saida: i.saida ?? null,
+        termina_no_dia_seguinte: !!i.termina_no_dia_seguinte,
+        carga: Number(i.carga_prevista_horas ?? 0),
+        observacao: i.observacao,
+      });
+    }
+
+    for (const o of ofertas ?? []) {
+      if (!o.data?.startsWith(competencia)) continue;
+      const aceita = o.status === "aceita" || o.parcial_status === "aprovada";
+      const parcial = o.parcial_status === "aprovada" || o.resposta_tipo === "parcial";
+      if (aceita) {
+        if (mapa.has(o.data)) continue;
+        mapa.set(o.data, {
+          data: o.data,
+          situacao: "confirmado",
+          tipo: "trabalho",
+          entrada: (parcial ? o.parcial_entrada : o.entrada) ?? o.entrada ?? null,
+          saida: (parcial ? o.parcial_saida : o.saida) ?? o.saida ?? null,
+          termina_no_dia_seguinte: !!(parcial
+            ? o.parcial_termina_no_dia_seguinte
+            : o.termina_no_dia_seguinte),
+          carga: Number((parcial ? o.parcial_carga_horas : o.carga_prevista_horas) ?? 0),
+          observacao: o.observacao,
+          convocacaoId: o.id,
+        });
+        continue;
+      }
+      if (o.status !== "pendente" || mapa.has(o.data)) continue;
+      const prazoOk = !o.prazo_resposta || new Date(o.prazo_resposta).getTime() > agora;
+      const naoComecou = o.inicio_previsto
+        ? new Date(o.inicio_previsto).getTime() > agora
+        : !o.janela_comecou;
+      if (!prazoOk || !naoComecou) continue;
+      mapa.set(o.data, {
+        data: o.data,
+        situacao: "aguardando",
+        tipo: "trabalho",
+        entrada: o.entrada ?? null,
+        saida: o.saida ?? null,
+        termina_no_dia_seguinte: !!o.termina_no_dia_seguinte,
+        carga: Number(o.carga_prevista_horas ?? 0),
+        observacao: o.unidade_nome,
+        convocacaoId: o.id,
+      });
+    }
+
+    return [...mapa.values()].sort((a, b) => (a.data < b.data ? -1 : 1));
+  }, [escala.data, ofertas, competencia]);
 
   const totais = useMemo(() => {
-    const itens = escala.data ?? [];
+    const confirmados = linhas.filter((l) => l.situacao === "confirmado");
     return {
-      trabalho: itens.filter((i) => i.tipo === "trabalho").length,
-      folga: itens.filter((i) => i.tipo !== "trabalho").length,
-      carga: Math.round(itens.reduce((s, i) => s + Number(i.carga_prevista_horas ?? 0), 0) * 100) / 100,
+      trabalho: confirmados.filter((l) => l.tipo === "trabalho").length,
+      folga: confirmados.filter((l) => l.tipo !== "trabalho").length,
+      carga: Math.round(confirmados.reduce((s, l) => s + l.carga, 0) * 100) / 100,
+      aguardando: linhas.filter((l) => l.situacao === "aguardando").length,
     };
-  }, [escala.data]);
+  }, [linhas]);
 
   const hoje = hojeIso();
-  const publicada = (escala.data ?? []).length > 0;
+  const carregando = escala.isLoading || me.isLoading || carregandoOfertas;
 
   return (
     <DpPage narrow>
       <Helmet>
         <title>Minha Escala | Aveto 360</title>
-        <meta name="description" content="Veja seus dias de trabalho, horários e folgas da escala publicada pela sua unidade." />
+        <meta name="description" content="Veja seus dias confirmados de trabalho, horários e convocações que ainda pode responder." />
       </Helmet>
 
-      <DpPageHeader icon={CalendarClock} title="Minha Escala" description="Horários publicados pela sua unidade." />
+      <DpPageHeader icon={CalendarClock} title="Minha Escala" description="Seus dias confirmados e convites em aberto." />
 
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" aria-label="Mês anterior" onClick={() => setCompetencia(somarMes(competencia, -1))}>
@@ -125,12 +200,12 @@ export default function DpMeuEscala() {
         </Card>
       )}
 
-      {escala.isLoading || me.isLoading ? (
+      {carregando ? (
         <Skeleton className="h-64 w-full" />
-      ) : !publicada ? (
+      ) : linhas.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center text-sm text-muted-foreground">
-            A escala deste mês ainda não foi publicada.
+            Você ainda não tem dia confirmado neste mês.
           </CardContent>
         </Card>
       ) : (
@@ -141,8 +216,8 @@ export default function DpMeuEscala() {
               <p className="text-lg font-semibold">{totais.trabalho}</p>
             </CardContent></Card>
             <Card><CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">Folgas</p>
-              <p className="text-lg font-semibold">{totais.folga}</p>
+              <p className="text-xs text-muted-foreground">{totais.folga ? "Folgas" : "Aguardando"}</p>
+              <p className="text-lg font-semibold">{totais.folga || totais.aguardando}</p>
             </CardContent></Card>
             <Card><CardContent className="p-3">
               <p className="text-xs text-muted-foreground">Carga</p>
@@ -152,39 +227,43 @@ export default function DpMeuEscala() {
 
           <Card>
             <CardContent className="divide-y p-0">
-              {dias.map((d) => {
-                const item = porData.get(d);
-                const trabalho = item?.tipo === "trabalho";
-                return (
-                  <div
-                    key={d}
-                    className={`flex items-center justify-between gap-3 px-4 py-2.5 ${d === hoje ? "bg-muted/60" : ""}`}
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium capitalize">{rotuloDia(d)}</p>
-                      {item?.observacao && (
-                        <p className="truncate text-xs text-muted-foreground">{item.observacao}</p>
-                      )}
-                    </div>
-                    {!item ? (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    ) : trabalho ? (
-                      <div className="flex shrink-0 items-center gap-1.5 text-sm">
-                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>
-                          {item.entrada?.slice(0, 5) ?? "--:--"} às {item.saida?.slice(0, 5) ?? "--:--"}
-                          {item.termina_no_dia_seguinte ? " (+1)" : ""}
-                        </span>
-                      </div>
+              {linhas.map((l) => (
+                <div
+                  key={l.data}
+                  className={`flex items-center justify-between gap-3 px-4 py-2.5 ${l.data === hoje ? "bg-muted/60" : ""}`}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium capitalize">{rotuloDia(l.data)}</p>
+                    {l.situacao === "aguardando" ? (
+                      <Link to="/dp/meu/convocacoes" className="text-xs text-primary underline">
+                        Aguardando sua resposta · responder
+                      </Link>
                     ) : (
-                      <Badge variant="outline" className="shrink-0 gap-1">
-                        <Coffee className="h-3 w-3" />
-                        {TIPO_LABEL[item.tipo as EscalaItemTipo]}
-                      </Badge>
+                      l.observacao && (
+                        <p className="truncate text-xs text-muted-foreground">{l.observacao}</p>
+                      )
                     )}
                   </div>
-                );
-              })}
+                  {l.tipo !== "trabalho" ? (
+                    <Badge variant="outline" className="shrink-0 gap-1">
+                      <Coffee className="h-3 w-3" />
+                      {TIPO_LABEL[l.tipo as EscalaItemTipo]}
+                    </Badge>
+                  ) : (
+                    <div className="flex shrink-0 items-center gap-1.5 text-sm">
+                      {l.situacao === "aguardando" ? (
+                        <HelpCircle className="h-3.5 w-3.5 text-amber-500" />
+                      ) : (
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                      <span>
+                        {l.entrada?.slice(0, 5) ?? "--:--"} às {l.saida?.slice(0, 5) ?? "--:--"}
+                        {l.termina_no_dia_seguinte ? " (+1)" : ""}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
             </CardContent>
           </Card>
         </>
