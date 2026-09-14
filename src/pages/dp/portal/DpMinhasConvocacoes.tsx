@@ -61,8 +61,9 @@ export default function DpMinhasConvocacoes() {
     },
   });
 
-  const { rows, isLoading, responder, proporParcial, registrarVisualizacao } =
+  const { rows, isLoading, isError, refetch, responder, proporParcial, registrarVisualizacao } =
     useMinhasConvocacoes(me.data ?? null);
+
 
   // Visualização registrada uma única vez por oferta pendente ainda não vista.
   const vistas = useRef<Set<string>>(new Set());
