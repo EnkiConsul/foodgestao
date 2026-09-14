@@ -283,15 +283,19 @@ export function useMinhasConvocacoes(colaboradorId: string | null) {
    * A RPC devolve `ok: false` quando a oferta é encerrada (prazo, início, vaga).
    */
   const responder = useMutation({
-    mutationFn: async ({ id, aceito, motivo }: { id: string; aceito: boolean; motivo?: string }) => {
-      const { data, error } = await supabase.rpc("dp_convocacao_responder_oferta", {
+    mutationFn: async ({
+      id, aceito, motivo, justificativaAtraso,
+    }: { id: string; aceito: boolean; motivo?: string; justificativaAtraso?: string | null }) => {
+      const { data, error } = await (supabase.rpc as any)("dp_convocacao_responder_oferta", {
         p_convocacao_id: id,
         p_aceito: aceito,
         p_motivo: motivo ?? undefined,
+        p_atraso_justificativa: justificativaAtraso ?? null,
       });
       if (error) throw error;
       return data as any;
     },
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_minhas_convocacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_convocacoes"] });
