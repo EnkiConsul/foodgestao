@@ -11,6 +11,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpPage, DpPageHeader, DpContentCard, useDpEmbedded } from "@/components/dp/DpPage";
 import { DpFilterField, DpFilters } from "@/components/dp/DpFilters";
 import { TableSkeleton } from "@/components/dp/DpSkeletons";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { mensagemErro } from "@/lib/dp/mensagemErro";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 import { OcorrenciaCard } from "@/components/dp/ocorrencias/OcorrenciaCard";
 import { OcorrenciaConfirmarDialog } from "@/components/dp/ocorrencias/OcorrenciaConfirmarDialog";
@@ -419,6 +421,8 @@ export default function DpOcorrencias() {
       <DpContentCard>
         {acoes.loading ? (
           <TableSkeleton rows={5} columns={4} />
+        ) : acoes.isError ? (
+          <DpErrorState message={mensagemErro(acoes.error)} onRetry={() => void acoes.refetch()} />
         ) : acoes.ocorrencias.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             Nenhuma ocorrência nesse período com os filtros escolhidos.

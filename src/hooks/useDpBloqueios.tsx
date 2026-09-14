@@ -394,6 +394,13 @@ export function useDpBloqueios(filters: DpBloqueiosFilters) {
     unidades: unidadesQ.data ?? [],
     regrasLoading: regrasQ.isLoading,
     datasLoading: datasQ.isLoading,
+    regrasError: regrasQ.isError ? regrasQ.error : null,
+    datasError: datasQ.isError ? datasQ.error : null,
+    recarregar: () => {
+      void regrasQ.refetch();
+      void datasQ.refetch();
+      void unidadesQ.refetch();
+    },
     regrasFiltradas,
     datasFiltradas,
     saveRegra,

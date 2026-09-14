@@ -154,6 +154,9 @@ export function useDpTrocas(filtros: TrocaFiltros = FILTROS_TROCA_PADRAO) {
     rows: filtered,
     total: (list.data ?? []).length,
     isLoading: list.isLoading,
+    isError: list.isError,
+    error: list.error,
+    refetch: list.refetch,
     responder,
     cancelar,
   };
