@@ -185,11 +185,10 @@ export default function DpMeuTrocas() {
   });
 
   const validation = useMemo(() => {
-    if (!form.destino_id) return "Selecione um colega.";
-    if (!form.data_original) return "Informe a data que deseja trocar.";
-    if (!form.data_proposta) return "Informe a data proposta.";
-    if (toIso(form.data_original) === toIso(form.data_proposta))
-      return "As datas devem ser diferentes.";
+    if (!form.data_original) return "Escolha uma folga sua para oferecer.";
+    if (!form.data_proposta) return "Escolha o dia que você quer folgar.";
+    if (!form.destino_id) return "Selecione o colega que folga nesse dia.";
+    if (form.data_original === form.data_proposta) return "As datas devem ser diferentes.";
     if (!form.motivo.trim()) return "Motivo obrigatório.";
     return null;
   }, [form]);
