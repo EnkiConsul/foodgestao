@@ -131,6 +131,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
   const [titulo, setTitulo] = useState("");
   const [observacao, setObservacao] = useState("");
+  // Freelancer é acerto avulso: diária, refeição, transporte e gorjeta viajam no convite.
+  const [freela, setFreela] = useState<CondicoesFreela>({ ...CONDICOES_FREELA_VAZIAS });
   const [usaHorarioGeral, setUsaHorarioGeral] = useState(false);
   const [horarioGeral, setHorarioGeral] = useState<HorarioOverride>({
     entrada: "18:00", saida: "23:00", intervalo_minutos: 0, vira: false,
