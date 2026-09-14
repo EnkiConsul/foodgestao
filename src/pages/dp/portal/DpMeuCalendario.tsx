@@ -1034,14 +1034,20 @@ export default function DpMeuCalendario() {
                   </p>
                 )}
                 {selectedDay.status === "mine" && (
-                  <Button
-                    variant="destructive"
-                    onClick={() => removerFolga.mutate(selectedDay.iso)}
+                  <ConfirmarAcaoDialog
+                    titulo="Remover esta folga?"
+                    descricao="O dia volta a ficar livre e pode ser escolhido por outra pessoa da equipe."
+                    confirmar="Remover folga"
+                    cancelar="Manter"
+                    onConfirm={() => removerFolga.mutate(selectedDay.iso)}
                     disabled={removerFolga.isPending}
                   >
-                    {removerFolga.isPending ? "Removendo..." : "Remover folga"}
-                  </Button>
+                    <Button variant="destructive" disabled={removerFolga.isPending}>
+                      {removerFolga.isPending ? "Removendo..." : "Remover folga"}
+                    </Button>
+                  </ConfirmarAcaoDialog>
                 )}
+
                 {selectedDay.status === "fixed" && (
                   <p className="text-xs text-muted-foreground">
                     Esta é sua folga semanal fixa. Para trocar, selecione o dia desejado e use o botão "Trocar" ao

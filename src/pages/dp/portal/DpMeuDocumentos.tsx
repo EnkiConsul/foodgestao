@@ -524,16 +524,25 @@ export default function DpMeuDocumentos() {
                           </Button>
                         )}
                         {d.origem === "meu_envio" && d.status_key === "pendente" && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => cancelar.mutate(d)}
+                          <ConfirmarAcaoDialog
+                            titulo="Cancelar este envio?"
+                            descricao="O documento sai da análise do setor de pessoas. Para reenviar, será preciso anexar o arquivo de novo."
+                            confirmar="Cancelar envio"
+                            cancelar="Manter"
+                            onConfirm={() => cancelar.mutate(d)}
                             disabled={cancelar.isPending}
-                            className="text-destructive min-h-9 flex-1 sm:flex-none"
                           >
-                            <Ban className="h-4 w-4 mr-1" /> Cancelar
-                          </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={cancelar.isPending}
+                              className="text-destructive min-h-9 flex-1 sm:flex-none"
+                            >
+                              <Ban className="h-4 w-4 mr-1" /> Cancelar
+                            </Button>
+                          </ConfirmarAcaoDialog>
                         )}
+
                       </div>
                     </div>
                   </div>
