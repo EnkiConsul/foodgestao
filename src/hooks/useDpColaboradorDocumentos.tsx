@@ -16,6 +16,7 @@ import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { mensagemEnvioDocumento } from "@/lib/dp/documento-upload-erro";
 import { reportError } from "@/lib/errorLog";
 import { notifyError } from "@/lib/notifyError";
+import { abrirDocumento } from "@/lib/documentoArquivo";
 
 type Opcoes = {
   /** true quando o próprio colaborador está enviando (portal). */
@@ -423,21 +424,16 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
     onError: (e: any) => notifyError(e, { surface: "Documentos", action: "concluir a ação", fallback: "Erro ao registrar o aceite" }),
   });
 
-  /** Gera link assinado e abre o arquivo. */
+  /** Abre o arquivo com link temporário liberado pelo servidor. */
   const abrirArquivo = async (anexo?: DpColaboradorDocumento | null) => {
-    const doc = arquivoDoAnexo(anexo);
-    if (!doc?.file_path) return toast.error("Sem arquivo anexado");
-    const { data, error } = await supabase.storage
-      .from(DP_DOCUMENTOS_BUCKET)
-      .createSignedUrl(doc.file_path, 60);
-    if (error || !data) return toast.error("Erro ao gerar link");
-    const a = document.createElement("a");
-    a.href = data.signedUrl;
-    a.target = "_blank";
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    const docId = anexo?.documento_id ?? arquivoDoAnexo(anexo)?.id ?? null;
+    if (!docId) return toast.error("Sem arquivo anexado");
+    try {
+      const ok = await abrirDocumento(docId);
+      if (!ok) toast.error("Sem permissão para abrir este documento");
+    } catch {
+      toast.error("Erro ao gerar link");
+    }
   };
 
   const abrir = async (item: ItemChecklist) => abrirArquivo(item.vinculo);
