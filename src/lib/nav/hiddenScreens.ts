@@ -86,3 +86,22 @@ export function portalRoutesForaDoVinculo(vinculo: {
   // pode ser convocado (freelancer e intermitente).
   return vinculo.podeSerConvocado ? [] : ["/dp/meu/convocacoes", "/dp/meu/escala"];
 }
+
+/**
+ * Telas operacionais do Portal escondidas de quem foi desligado e está no prazo
+ * de 30 dias: nesse período o acesso é apenas para consultar e baixar documentos.
+ * Esconder do menu é complemento — a restrição real está no banco.
+ */
+export const PORTAL_ROTAS_OPERACIONAIS: string[] = [
+  "/dp/meu/calendario",
+  "/dp/meu/escala",
+  "/dp/meu/rotina",
+  "/dp/meu/convocacoes",
+  "/dp/meu/trocas",
+  "/dp/meu/ferias",
+  "/dp/meu/solicitacoes",
+];
+
+export function portalRoutesSomenteDocumentos(somenteDocumentos: boolean | null | undefined): string[] {
+  return somenteDocumentos ? PORTAL_ROTAS_OPERACIONAIS : [];
+}

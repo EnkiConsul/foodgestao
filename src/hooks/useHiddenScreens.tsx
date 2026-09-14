@@ -7,9 +7,11 @@ import {
   effectiveHiddenRoutes,
   isRouteHidden,
   portalRoutesForaDoVinculo,
+  portalRoutesSomenteDocumentos,
   type HiddenScreensConfig,
 } from "@/lib/nav/hiddenScreens";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
+import { usePortalAcesso } from "@/hooks/usePortalAcesso";
 
 const QUERY_KEY = ["app_hidden_screens"];
 
@@ -38,6 +40,7 @@ export function useHiddenScreens() {
   });
 
   const { data: vinculo } = useMeuVinculoPortal();
+  const { somenteDocumentos } = usePortalAcesso();
 
   const config = data ?? EMPTY_HIDDEN;
   const globais = useMemo(() => effectiveHiddenRoutes(config), [config]);
@@ -45,8 +48,9 @@ export function useHiddenScreens() {
   const hidden = useMemo(() => {
     const set = new Set(globais);
     for (const r of portalRoutesForaDoVinculo(vinculo)) set.add(r);
+    for (const r of portalRoutesSomenteDocumentos(somenteDocumentos)) set.add(r);
     return set;
-  }, [globais, vinculo]);
+  }, [globais, vinculo, somenteDocumentos]);
 
   const salvar = useMutation({
     mutationFn: async (next: Partial<HiddenScreensConfig>) => {

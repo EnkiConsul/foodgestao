@@ -16,6 +16,7 @@ import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { DpLayout } from "@/components/dp/DpLayout";
 
 import { ColaboradorShell } from "./components/dp/ColaboradorShell";
+import { PortalSomenteDocumentos } from "./components/dp/portal/PortalSomenteDocumentos";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import { HelmetProvider } from "react-helmet-async";
@@ -299,10 +300,12 @@ function PortalProtected({ children }: { children: React.ReactNode }) {
       setSituacao(decisao);
       if (decisao === "bloqueado") void supabase.auth.signOut();
     });
-    supabase.rpc("dp_meu_colaborador").then(({ data, error }) => {
+    // Decisão central do backend: vínculo, empresa, plano, módulo e prazo pós-desligamento.
+    supabase.rpc("dp_meu_acesso_portal").then(({ data, error }) => {
       if (cancelado) return;
       if (error) return setVinculo("falha");
-      setVinculo(typeof data === "string" && data ? "ok" : "ausente");
+      const row = Array.isArray(data) ? data[0] : data;
+      setVinculo(row?.permitido ? "ok" : "ausente");
     });
     return () => {
       cancelado = true;
@@ -398,13 +401,13 @@ const AppRoutes = () => (
         <Route path="perfil" element={<DpMeuPerfil />} />
         <Route path="cadastro" element={<Navigate to="/dp/meu/perfil" replace />} />
         <Route path="documentos" element={<DpMeuDocumentos />} />
-        <Route path="solicitacoes" element={<DpMeuSolicitacoes />} />
-        <Route path="trocas" element={<DpMeuTrocas />} />
-        <Route path="ferias" element={<DpMeuFerias />} />
-        <Route path="calendario" element={<DpMeuCalendario />} />
-        <Route path="escala" element={<DpMeuEscala />} />
-        <Route path="rotina" element={<DpMeuRotinaLoja />} />
-        <Route path="convocacoes" element={<DpMinhasConvocacoes />} />
+        <Route path="solicitacoes" element={<PortalSomenteDocumentos><DpMeuSolicitacoes /></PortalSomenteDocumentos>} />
+        <Route path="trocas" element={<PortalSomenteDocumentos><DpMeuTrocas /></PortalSomenteDocumentos>} />
+        <Route path="ferias" element={<PortalSomenteDocumentos><DpMeuFerias /></PortalSomenteDocumentos>} />
+        <Route path="calendario" element={<PortalSomenteDocumentos><DpMeuCalendario /></PortalSomenteDocumentos>} />
+        <Route path="escala" element={<PortalSomenteDocumentos><DpMeuEscala /></PortalSomenteDocumentos>} />
+        <Route path="rotina" element={<PortalSomenteDocumentos><DpMeuRotinaLoja /></PortalSomenteDocumentos>} />
+        <Route path="convocacoes" element={<PortalSomenteDocumentos><DpMinhasConvocacoes /></PortalSomenteDocumentos>} />
         <Route path="ponto" element={<Navigate to="/dp/meu" replace />} />
         <Route path="contracheque" element={<Navigate to="/dp/meu/documentos?tipo=contracheque" replace />} />
 

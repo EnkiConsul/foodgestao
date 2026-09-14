@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { useMeusDocumentos, type UnifiedDoc, type UnifiedTipo } from "@/hooks/portal/useMeusDocumentos";
 import { Button } from "@/components/ui/button";
+import { usePortalAcesso } from "@/hooks/usePortalAcesso";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -106,6 +107,7 @@ export default function DpMeuDocumentos() {
   });
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const { somenteDocumentos } = usePortalAcesso();
 
   const visibleTabs = useMemo(
     () => ALL_TABS.filter((t) => !t.requiresPonto || possuiPonto),
@@ -346,10 +348,13 @@ export default function DpMeuDocumentos() {
             <Button size="sm" variant="outline" onClick={baixarLista} disabled={filtered.length === 0}>
               <DownloadCloud className="h-4 w-4 mr-1" /> Baixar meus dados
             </Button>
-            <Dialog open={openSubmit} onOpenChange={setOpenSubmit}>
-              <DialogTrigger asChild>
-                <Button size="sm"><Upload className="h-4 w-4 mr-1" /> Enviar documento</Button>
-              </DialogTrigger>
+            {/* Desligado no prazo de 30 dias: só consulta e download. */}
+            <Dialog open={openSubmit && !somenteDocumentos} onOpenChange={setOpenSubmit}>
+              {!somenteDocumentos && (
+                <DialogTrigger asChild>
+                  <Button size="sm"><Upload className="h-4 w-4 mr-1" /> Enviar documento</Button>
+                </DialogTrigger>
+              )}
               <DialogContent className="sm:max-w-md max-h-[90svh] overflow-y-auto">
                 <DialogHeader><DialogTitle>Enviar documento para aprovação</DialogTitle></DialogHeader>
                 <div className="grid gap-3 py-2">
