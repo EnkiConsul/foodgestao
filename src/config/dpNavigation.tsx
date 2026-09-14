@@ -63,6 +63,11 @@ export type DpNavItem = {
   shortLabel?: string;
   /** Selo discreto ao lado do rótulo (ex.: "Em breve"). */
   badge?: string;
+  /**
+   * Tela que só interessa a quem é chamado por convocação (freelancer e
+   * intermitente). Fica oculta para quem tem escala fixa.
+   */
+  somenteConvocado?: boolean;
 };
 
 
