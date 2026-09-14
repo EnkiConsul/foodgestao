@@ -3,6 +3,7 @@ import { FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DpFilePicker } from "@/components/dp/DpFilePicker";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { useState } from "react";
 import {
   useDpFeriasDocumentos, FERIAS_DOC_LABEL, type FeriasDocTipo, type FeriasDocumento,

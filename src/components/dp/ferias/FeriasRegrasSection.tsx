@@ -105,13 +105,20 @@ export function FeriasRegrasSection() {
                 <span>{nomeCargo(r.cargo_id)}</span>
                 {r.turno && <Badge variant="outline">{TURNOS.find((t) => t.value === r.turno)?.label}</Badge>}
                 {!r.ativo && <Badge variant="outline">Inativa</Badge>}
-                <Button
-                  variant="ghost" size="icon" className="ml-auto h-8 w-8"
-                  aria-label="Excluir regra"
-                  onClick={() => void deleteRegra.mutateAsync(r.id)}
+                <ConfirmarAcaoDialog
+                  titulo="Excluir regra?"
+                  descricao={`A regra de ${nomeUnidade(r.unidade_id)} · ${nomeCargo(r.cargo_id)} será excluída.`}
+                  confirmar="Excluir"
+                  cancelar="Cancelar"
+                  onConfirm={() => void deleteRegra.mutateAsync(r.id)}
                 >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                </Button>
+                  <Button
+                    variant="ghost" size="icon" className="ml-auto h-11 w-11 sm:h-9 sm:w-9"
+                    aria-label="Excluir regra"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </ConfirmarAcaoDialog>
               </li>
             ))}
           </ul>
