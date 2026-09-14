@@ -49,9 +49,20 @@ export default function DpMeuRotinaLoja() {
     },
   });
 
+  /**
+   * Só interessa quem trabalha no mesmo horário do colaborador: quem entra à
+   * noite não precisa ver a equipe do almoço.
+   */
+  const equipeDoMeuTurno = useMemo(() => {
+    const lista = escala.data ?? [];
+    const eu = lista.find((p) => p.id === vinculo?.colaboradorId);
+    if (!eu || !eu.entrada) return lista;
+    return lista.filter((p) => p.id === eu.id || horariosSobrepostos(eu, p));
+  }, [escala.data, vinculo?.colaboradorId]);
+
   const porCargo = useMemo(() => {
     const m = new Map<string, Pessoa[]>();
-    for (const p of escala.data ?? []) {
+    for (const p of equipeDoMeuTurno) {
       const lista = m.get(p.cargo) ?? [];
       lista.push(p);
       m.set(p.cargo, lista);
