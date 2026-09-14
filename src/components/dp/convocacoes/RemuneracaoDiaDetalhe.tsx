@@ -9,6 +9,8 @@ interface Props {
   remuneracao: ConvocacaoRemuneracao;
   /** Começa aberto (telas do gestor) ou fechado (portal). */
   aberto?: boolean;
+  /** Rótulo do resumo. Padrão: visão do colaborador. */
+  titulo?: string;
   className?: string;
 }
 
@@ -16,7 +18,12 @@ interface Props {
  * Abertura do valor do dia: cada parcela que compõe a remuneração,
  * os descontos, o FGTS (depósito da empresa) e o total a receber.
  */
-export function RemuneracaoDiaDetalhe({ remuneracao: r, aberto = false, className }: Props) {
+export function RemuneracaoDiaDetalhe({
+  remuneracao: r,
+  aberto = false,
+  titulo = "Você recebe neste dia",
+  className,
+}: Props) {
   const [open, setOpen] = useState(aberto);
 
   return (
@@ -27,11 +34,12 @@ export function RemuneracaoDiaDetalhe({ remuneracao: r, aberto = false, classNam
         className="flex w-full items-center justify-between gap-2 text-left"
       >
         <span className="min-w-0">
-          <span className="block text-xs text-muted-foreground">Você recebe neste dia</span>
+          <span className="block text-xs text-muted-foreground">{titulo}</span>
           <span className="text-base font-semibold text-primary">{moeda(r.liquido)}</span>
         </span>
         <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} />
       </button>
+
 
       {open ? (
         <div className="mt-3 space-y-1">
