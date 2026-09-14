@@ -173,7 +173,7 @@ export function MinhaJornadaAcoesCard() {
       </p>
 
       <Dialog open={!!acao} onOpenChange={(open) => !open && setAcao(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85svh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {acao === "atraso" && (quando === "ocorrido" ? "Cheguei atrasado" : "Vou me atrasar")}
