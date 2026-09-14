@@ -120,6 +120,21 @@ export default function DpMeuDocumentos() {
     return () => clearTimeout(t);
   }, [focoPendencias, isLoading]);
 
+  /**
+   * Pendência de assinatura aponta para ?doc=<id>: abre o próprio documento,
+   * já visível, em vez de largar o colaborador na lista.
+   */
+  const docFoco = params.get("doc");
+  const abriuFoco = useRef(false);
+  useEffect(() => {
+    if (!docFoco || isLoading || abriuFoco.current) return;
+    const alvo = documentos.find((d) => d.meta?.originalId === docFoco || d.id === docFoco);
+    if (!alvo) return;
+    abriuFoco.current = true;
+    setTab("all");
+    setPreview(alvo);
+  }, [docFoco, isLoading, documentos]);
+
   const changeTab = (v: string) => {
     setTab(v);
     setOrigem("dp");
