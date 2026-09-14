@@ -257,7 +257,15 @@ export default function DpSolicitacoes() {
       <section className="space-y-3">
         <h2 className="font-semibold">Histórico</h2>
         <div className="bg-card border border-border rounded-xl divide-y divide-border">
-          {historico.length === 0 && (
+          {list.isLoading && (
+            <div className="p-4 text-sm text-muted-foreground">Carregando...</div>
+          )}
+          {!list.isLoading && list.isError && (
+            <div className="p-4">
+              <DpErrorState message={mensagemErro(list.error)} onRetry={() => void list.refetch()} />
+            </div>
+          )}
+          {!list.isLoading && !list.isError && historico.length === 0 && (
             <div className="p-4 text-sm text-muted-foreground">Sem registros.</div>
           )}
           {historico.map((s) => {
