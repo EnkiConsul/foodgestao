@@ -116,11 +116,19 @@ export function PropostaParcialDialog({
         )}
 
         <div className="space-y-1.5">
-          <Label htmlFor="parcial-obs">Recado para o gestor (opcional)</Label>
+          <Label htmlFor="parcial-obs">
+            {atrasado
+              ? "Explique por que está respondendo depois do início"
+              : "Recado para o gestor (opcional)"}
+          </Label>
           <Textarea
             id="parcial-obs" rows={3} value={observacao}
             onChange={(e) => setObservacao(e.target.value)}
-            placeholder="Ex.: consigo chegar mais tarde por causa de um compromisso."
+            placeholder={
+              atrasado
+                ? "Ex.: tive um imprevisto e consigo chegar às 17:15."
+                : "Ex.: consigo chegar mais tarde por causa de um compromisso."
+            }
           />
         </div>
 
@@ -129,18 +137,20 @@ export function PropostaParcialDialog({
             Voltar
           </Button>
           <Button
-            disabled={!validacao.ok || loading}
+            disabled={!validacao.ok || loading || (atrasado && observacao.trim().length < 3)}
             onClick={() =>
               onConfirm({
                 entrada,
                 saida,
                 termina_no_dia_seguinte: viraODia,
                 observacao: observacao.trim() || null,
+                justificativaAtraso: atrasado ? observacao.trim() : null,
               })
             }
           >
             Enviar para aprovação
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
