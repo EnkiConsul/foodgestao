@@ -293,31 +293,6 @@ export function useDpPendencias() {
       const compVigente = competenciaDe(hojeISO);
       const compAnterior = somarMeses(compVigente, -1);
 
-      // Evidência de trabalho do intermitente: marcações de ponto na competência.
-      // (Convocação aceita/escala entram pelo próprio registro de ponto.)
-      const intermitentesIds = colaboradoresDocs
-        .filter((c) => String(c.regime ?? "").toLowerCase() === "intermitente")
-        .map((c) => c.id);
-      const pontoIntermitente = new Set<string>(); // `${colab}:${comp}`
-      if (intermitentesIds.length > 0) {
-        try {
-          const { data: pts } = await supabase
-            .from("dp_pontos")
-            .select("colaborador_id, data")
-            .eq("company_id", selectedCompanyId!)
-            .in("colaborador_id", intermitentesIds)
-            .gte("data", `${somarMeses(compVigente, -24)}-01`)
-            .lte("data", hojeISO);
-          (pts ?? []).forEach((p: any) => {
-            if (p.colaborador_id && p.data) {
-              pontoIntermitente.add(`${p.colaborador_id}:${String(p.data).slice(0, 7)}`);
-            }
-          });
-        } catch (e) {
-          console.warn("pendencias/intermitente-pontos:", e);
-        }
-      }
-
       // Documentos por tipo — 1 query por tipo cobrindo todo o intervalo.
       // Chave por colaborador: `${colaboradorId}:${competencia}`
       const importados = new Map<string, Set<string>>();
@@ -362,7 +337,6 @@ export function useDpPendencias() {
       // estável para ser compartilhada pela elegibilidade e pelos alertas.
       let folhasPontoImportadas = new Set<string>();
       const intermitenteTemEvidencia = (colaboradorId: string, competencia: string) =>
-        pontoIntermitente.has(`${colaboradorId}:${competencia}`) ||
         folhasPontoImportadas.has(`${colaboradorId}:${competencia}`);
 
       // Afastamentos aprovados (licenças e atestados longos): quando cobrem o
