@@ -265,6 +265,7 @@ export function resolverChecklist({
   dependentes = [],
   vinculos = [],
   hoje = new Date(),
+  perspectiva = "gestor",
 }: ResolverInput): ItemChecklist[] {
   const porChave = new Map<string, DpColaboradorDocumento[]>();
   for (const v of vinculos) {
