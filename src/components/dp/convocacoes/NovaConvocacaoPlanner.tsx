@@ -202,7 +202,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       setAno(a);
       setMes(m);
       setTitulo(grupo.titulo ?? "");
-      setObservacao(grupo.observacao ?? "");
+      setObservacao(separarObservacaoFreela(grupo.observacao));
+      setFreela(lerCondicoesFreela(grupo.observacao));
       const cargosDoGrupo = Array.from(
         new Set(grupo.ocorrencias.map((o) => o.cargo_id).filter(Boolean) as string[]),
       );
@@ -255,6 +256,7 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
     setTitulo("");
     setObservacao("");
+    setFreela({ ...CONDICOES_FREELA_VAZIAS });
     setUsaHorarioGeral(false);
     setDias({});
 
