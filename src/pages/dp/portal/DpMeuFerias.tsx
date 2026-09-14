@@ -219,32 +219,62 @@ export default function DpMeuFerias() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Início</Label>
-                <Input type="date" value={inicio} onChange={(e) => definirInicio(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Fim</Label>
+                <Label>Primeiro dia de férias</Label>
                 <Input
                   type="date"
-                  min={inicio || undefined}
-                  value={fim}
-                  onChange={(e) => setFim(e.target.value)}
+                  min={inicioMin || undefined}
+                  max={periodoSel?.limite_concessivo || undefined}
+                  value={inicio}
+                  onChange={(e) => setInicio(e.target.value)}
                 />
+                {inicioMin && (
+                  <p className="text-xs text-muted-foreground">
+                    A partir de {fmt(inicioMin)}.
+                  </p>
+                )}
               </div>
+              <div className="space-y-2">
+                <Label>Dias de descanso</Label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={resumo?.maxDias || undefined}
+                  placeholder="Ex.: 20"
+                  value={diasTexto}
+                  onChange={(e) => setDiasTexto(e.target.value.replace(/\D/g, ""))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Até {resumo?.maxDias ?? 0} dias com o saldo atual.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-muted/40 p-3 text-sm">
+              Último dia de férias:{" "}
+              <span className="font-semibold">{fim ? fmt(fim) : "—"}</span>
+              <p className="text-xs text-muted-foreground">
+                Calculado a partir do primeiro dia e dos dias de descanso.
+              </p>
             </div>
 
             <div className="space-y-2">
               <Label>Vender dias (abono)</Label>
               <Input
                 type="number"
+                inputMode="numeric"
                 min={0}
-                max={10}
-                value={abono}
-                onChange={(e) => setAbono(Number(e.target.value) || 0)}
+                max={resumo?.maxAbono ?? 0}
+                placeholder="0"
+                value={abonoTexto}
+                onChange={(e) => setAbonoTexto(e.target.value.replace(/\D/g, ""))}
               />
+              <p className="text-xs text-muted-foreground">
+                A lei permite vender no máximo {resumo?.maxAbono ?? 0} dias deste período.
+              </p>
             </div>
 
-            {periodoSel?.adiantamento_13 !== "nao" && (
+            {periodoSel?.adiantamento_13 !== "nao" && !jaAdiantou13 && (
               <div className="flex items-center justify-between rounded-xl border border-border p-3">
                 <div>
                   <p className="text-sm font-medium">Adiantar a 1ª parcela do 13º</p>
@@ -254,6 +284,13 @@ export default function DpMeuFerias() {
                 </div>
                 <Switch checked={adiantar13} onCheckedChange={setAdiantar13} />
               </div>
+            )}
+
+            {jaAdiantou13 && (
+              <p className="rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground">
+                A 1ª parcela do 13º já foi adiantada neste período, por isso não é possível pedir de
+                novo.
+              </p>
             )}
 
             <div className="space-y-2">
