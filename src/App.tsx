@@ -400,13 +400,13 @@ const AppRoutes = () => (
         <Route path="perfil" element={<DpMeuPerfil />} />
         <Route path="cadastro" element={<Navigate to="/dp/meu/perfil" replace />} />
         <Route path="documentos" element={<DpMeuDocumentos />} />
-        <Route path="solicitacoes" element={<DpMeuSolicitacoes />} />
-        <Route path="trocas" element={<DpMeuTrocas />} />
-        <Route path="ferias" element={<DpMeuFerias />} />
-        <Route path="calendario" element={<DpMeuCalendario />} />
-        <Route path="escala" element={<DpMeuEscala />} />
-        <Route path="rotina" element={<DpMeuRotinaLoja />} />
-        <Route path="convocacoes" element={<DpMinhasConvocacoes />} />
+        <Route path="solicitacoes" element={<PortalSomenteDocumentos><DpMeuSolicitacoes /></PortalSomenteDocumentos>} />
+        <Route path="trocas" element={<PortalSomenteDocumentos><DpMeuTrocas /></PortalSomenteDocumentos>} />
+        <Route path="ferias" element={<PortalSomenteDocumentos><DpMeuFerias /></PortalSomenteDocumentos>} />
+        <Route path="calendario" element={<PortalSomenteDocumentos><DpMeuCalendario /></PortalSomenteDocumentos>} />
+        <Route path="escala" element={<PortalSomenteDocumentos><DpMeuEscala /></PortalSomenteDocumentos>} />
+        <Route path="rotina" element={<PortalSomenteDocumentos><DpMeuRotinaLoja /></PortalSomenteDocumentos>} />
+        <Route path="convocacoes" element={<PortalSomenteDocumentos><DpMinhasConvocacoes /></PortalSomenteDocumentos>} />
         <Route path="ponto" element={<Navigate to="/dp/meu" replace />} />
         <Route path="contracheque" element={<Navigate to="/dp/meu/documentos?tipo=contracheque" replace />} />
 
