@@ -73,13 +73,16 @@ export function WhatsappComposerDialog({
 
   const phone = (colab?.whatsapp || colab?.telefone || "").replace(/\D+/g, "");
 
-  const send = () => {
-    if (!phone) { toast.error("Colaborador sem telefone/WhatsApp cadastrado"); return; }
-    if (!texto.trim()) { toast.error("Escreva uma mensagem"); return; }
+  const abrirWhatsapp = (msg: string) => {
+    if (!phone) { toast.error("Colaborador sem telefone/WhatsApp cadastrado"); return false; }
+    if (!msg.trim()) { toast.error("Escreva uma mensagem"); return false; }
     const num = phone.length <= 11 ? `55${phone}` : phone;
-    const url = `https://wa.me/${num}?text=${encodeURIComponent(texto)}`;
-    window.open(url, "_blank", "noopener");
-    onClose();
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+    return true;
+  };
+
+  const send = () => {
+    if (abrirWhatsapp(texto)) onClose();
   };
 
   return (
