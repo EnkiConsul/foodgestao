@@ -121,7 +121,7 @@ export function MobileBottomNav() {
     <>
       <nav
         ref={navRef}
-        role="tablist"
+        aria-label="Navegação principal"
         className="fixed bottom-0 left-0 right-0 z-50 bg-card md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
@@ -212,7 +212,6 @@ function HomeSlot({ leaf }: { leaf: NavLeaf }) {
       <NavLink
         to={leaf.to}
         end={leaf.end}
-        role="tab"
         onClick={() => haptic(10)}
         className={cn(
           "flex flex-col items-center justify-center gap-0.5 h-14 w-14 -mt-4 rounded-full",
@@ -235,7 +234,6 @@ function MoreSlot({ to }: { to: string }) {
   return (
     <NavLink
       to={to}
-      role="tab"
       onClick={() => haptic(6)}
       className={cn(
         "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] pb-3 pt-1",
@@ -279,7 +277,6 @@ function LeafSlot({ leaf, onLongPress }: { leaf: NavLeaf; onLongPress?: () => vo
     <NavLink
       to={leaf.to}
       end={leaf.end}
-      role="tab"
       draggable={false}
       onContextMenu={(e) => e.preventDefault()}
       onDragStart={(e) => e.preventDefault()}
