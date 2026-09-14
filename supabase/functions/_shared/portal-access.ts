@@ -12,8 +12,8 @@ export type Purpose = "activation" | "reset";
 /** Alfabeto sem caracteres ambíguos (0/O, 1/I/L). */
 const ALFABETO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
-/** Validade: ativação 48h, redefinição 2h. */
-const VALIDADE_HORAS: Record<Purpose, number> = { activation: 48, reset: 2 };
+/** Validade: ativação 24h, redefinição 30 min. */
+const VALIDADE_MINUTOS: Record<Purpose, number> = { activation: 24 * 60, reset: 30 };
 
 export function gerarCodigo(tamanho = 24): string {
   const bytes = new Uint8Array(tamanho);
@@ -40,6 +40,7 @@ export interface EmitirInput {
 }
 
 export interface EmitirResult {
+  tokenId: string;
   codigo: string;
   expiresAt: string;
 }
@@ -62,21 +63,25 @@ export async function emitirToken(
 
   const codigo = gerarCodigo();
   const expiresAt = new Date(
-    agora.getTime() + VALIDADE_HORAS[input.purpose] * 3_600_000,
+    agora.getTime() + VALIDADE_MINUTOS[input.purpose] * 60_000,
   ).toISOString();
 
-  const { error } = await admin.from("dp_portal_access_tokens").insert({
-    user_id: input.userId,
-    colaborador_id: input.colaboradorId,
-    company_id: input.companyId,
-    token_hash: await hashCodigo(input.userId, codigo),
-    purpose: input.purpose,
-    expires_at: expiresAt,
-    created_by: input.createdBy,
-  });
-  if (error) throw new Error(`token_insert: ${error.message}`);
+  const { data, error } = await admin
+    .from("dp_portal_access_tokens")
+    .insert({
+      user_id: input.userId,
+      colaborador_id: input.colaboradorId,
+      company_id: input.companyId,
+      token_hash: await hashCodigo(input.userId, codigo),
+      purpose: input.purpose,
+      expires_at: expiresAt,
+      created_by: input.createdBy,
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(`token_insert: ${error?.message ?? "sem id"}`);
 
-  return { codigo, expiresAt };
+  return { tokenId: data.id as string, codigo, expiresAt };
 }
 
 export interface TokenValido {
@@ -88,28 +93,57 @@ export interface TokenValido {
 }
 
 /**
- * Consome um código: só vale se pertencer ao usuário, estar dentro do prazo e
- * nunca ter sido usado. A troca de `consumed_at` é condicional (uso único
- * mesmo com dois pedidos simultâneos).
+ * Reserva o código para uso exclusivo por alguns instantes.
+ *
+ * A identidade autorizada sai do próprio registro do código (nunca de algo
+ * informado pelo navegador). Dois pedidos simultâneos não conseguem reservar o
+ * mesmo código, e a reserva expira sozinha se o pedido morrer no meio.
  */
-export async function consumirToken(
+export async function reservarToken(
   admin: SupabaseClient,
-  userId: string,
+  tokenId: string,
   codigo: string,
+  purpose: Purpose,
 ): Promise<TokenValido | null> {
-  const hash = await hashCodigo(userId, codigo);
-  const agora = new Date().toISOString();
-  const { data, error } = await admin
+  if (!/^[0-9a-f-]{36}$/i.test(tokenId)) return null;
+
+  // O hash inclui o usuário do código: buscamos o dono antes de conferir o segredo.
+  const { data: dono, error: donoErr } = await admin
     .from("dp_portal_access_tokens")
-    .update({ consumed_at: agora })
-    .eq("token_hash", hash)
-    .eq("user_id", userId)
-    .is("consumed_at", null)
-    .gt("expires_at", agora)
-    .select("id, user_id, colaborador_id, company_id, purpose")
+    .select("user_id")
+    .eq("id", tokenId)
     .maybeSingle();
-  if (error) throw new Error(`token_consume: ${error.message}`);
-  return (data as TokenValido | null) ?? null;
+  if (donoErr) throw new Error(`token_lookup: ${donoErr.message}`);
+  if (!dono?.user_id) return null;
+
+  const hash = await hashCodigo(dono.user_id as string, codigo);
+  const { data, error } = await admin.rpc("dp_portal_token_claim", {
+    p_token_id: tokenId,
+    p_token_hash: hash,
+    p_purpose: purpose,
+  });
+  if (error) throw new Error(`token_claim: ${error.message}`);
+  const linha = Array.isArray(data) ? data[0] : data;
+  if (!linha?.user_id) return null;
+  return {
+    id: tokenId,
+    user_id: linha.user_id as string,
+    colaborador_id: linha.colaborador_id as string,
+    company_id: linha.company_id as string,
+    purpose: linha.purpose as Purpose,
+  };
+}
+
+/** Marca o código como usado — só depois que a senha realmente mudou. */
+export async function confirmarToken(admin: SupabaseClient, tokenId: string): Promise<void> {
+  const { error } = await admin.rpc("dp_portal_token_confirm", { p_token_id: tokenId });
+  if (error) console.error(`[token_confirm] ${error.message}`);
+}
+
+/** Libera a reserva quando a troca de senha não foi concluída. */
+export async function liberarToken(admin: SupabaseClient, tokenId: string): Promise<void> {
+  const { error } = await admin.rpc("dp_portal_token_release", { p_token_id: tokenId });
+  if (error) console.error(`[token_release] ${error.message}`);
 }
 
 export type EventoAcesso =
@@ -148,8 +182,13 @@ export async function registrarEvento(
 const ORIGENS_OK = /^https?:\/\/(localhost(:\d+)?|127\.0\.0\.1(:\d+)?|([a-z0-9-]+\.)*(aveto360\.com|lovable\.app|lovableproject\.com|lovable\.dev))$/i;
 
 /** Link de uso único do portal (ativação ou nova senha). */
-export function linkDeAcesso(origin: string | null, purpose: Purpose, codigo: string): string {
+export function linkDeAcesso(
+  origin: string | null,
+  purpose: Purpose,
+  tokenId: string,
+  codigo: string,
+): string {
   const base = origin && ORIGENS_OK.test(origin) ? origin : "https://aveto360.com";
   const rota = purpose === "activation" ? "/ativar-acesso" : "/redefinir-acesso";
-  return `${base}${rota}?c=${encodeURIComponent(codigo)}`;
+  return `${base}${rota}?t=${encodeURIComponent(tokenId)}&c=${encodeURIComponent(codigo)}`;
 }
