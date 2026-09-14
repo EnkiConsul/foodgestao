@@ -35,6 +35,25 @@ export function TableSkeleton({ columns, rows = 6, headers }: TableSkeletonProps
   );
 }
 
+/** Skeleton para listas de cartões (portal do colaborador e listas mobile). */
+export function CardListSkeleton({ rows = 3, className }: { rows?: number; className?: string }) {
+  return (
+    <div className={`grid gap-3 ${className ?? ""}`} aria-busy="true">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="rounded-2xl border border-border bg-card p-4 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+          <Skeleton className="h-3 w-32" />
+          <Skeleton className="h-3 w-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
 /** Skeleton para o grid de calendário mensal (7 colunas × N linhas). */
 export function CalendarSkeleton({ weeks = 5 }: { weeks?: number }) {
   return (
