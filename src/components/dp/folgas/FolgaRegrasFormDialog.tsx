@@ -447,7 +447,7 @@ export function FolgaRegrasFormDialog({
         <DialogHeader className="shrink-0 border-b pb-4 pr-8">
           <div className="flex items-center gap-2">
             {modo === "criar" && (
-              <Button variant="ghost" size="icon" onClick={() => setEtapa("unidade")}>
+              <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => setEtapa("unidade")}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             )}

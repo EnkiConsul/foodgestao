@@ -55,13 +55,13 @@ export function FeriasCalendarioPanel() {
   return (
     <DpContentCard contentClassName="space-y-4 p-4">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="icon" onClick={() => setMes((m) => addMonths(m, -1))}>
+        <Button aria-label="Mês anterior" variant="ghost" size="icon" onClick={() => setMes((m) => addMonths(m, -1))}>
           <ChevronLeft className="size-4" />
         </Button>
         <p className="font-semibold capitalize">
           {format(mes, "MMMM 'de' yyyy", { locale: ptBR })}
         </p>
-        <Button variant="ghost" size="icon" onClick={() => setMes((m) => addMonths(m, 1))}>
+        <Button aria-label="Mês seguinte" variant="ghost" size="icon" onClick={() => setMes((m) => addMonths(m, 1))}>
           <ChevronRight className="size-4" />
         </Button>
       </div>

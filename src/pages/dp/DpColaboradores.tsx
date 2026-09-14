@@ -790,12 +790,12 @@ export default function DpColaboradores() {
                         <TableCell className="align-top" style={{ width: COLAB_ACOES_WIDTH }} onClick={(e) => e.stopPropagation()}>
                           <div className="flex gap-0.5 justify-center">
 
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); abrirCadastro(c); }} title="Editar">
+                            <Button aria-label="Editar colaborador" size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); abrirCadastro(c); }} title="Editar">
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <Button size="icon" variant="ghost" className="h-8 w-8" title="Mais ações">
+                                <Button size="icon" variant="ghost" className="h-8 w-8" title="Mais ações" aria-label="Mais ações">
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -951,7 +951,7 @@ export default function DpColaboradores() {
                         <TableCell className="align-top">{nomeSetorApoio(p.setor_id) ?? "—"}</TableCell>
                         <TableCell className="align-top">
                           <div className="flex gap-0.5 justify-center" onClick={(e) => e.stopPropagation()}>
-                            <Button
+                            <Button aria-label="Editar colaborador"
                               size="icon"
                               variant="ghost"
                               className="h-8 w-8"
@@ -960,7 +960,7 @@ export default function DpColaboradores() {
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button
+                            <Button aria-label="Criar acesso"
                               size="icon"
                               variant="ghost"
                               className="h-8 w-8"
@@ -970,7 +970,7 @@ export default function DpColaboradores() {
                             >
                               <UserPlus className="h-4 w-4" />
                             </Button>
-                            <Button
+                            <Button aria-label="Excluir colaborador"
                               size="icon"
                               variant="ghost"
                               className="h-8 w-8 text-destructive"
@@ -1075,12 +1075,12 @@ export default function DpColaboradores() {
                             </TableCell>
                             <TableCell className="align-top">
                               <div className="flex gap-0.5 justify-center" onClick={(e) => e.stopPropagation()}>
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); abrirCadastro(c); }} title="Editar">
+                                <Button aria-label="Editar colaborador" size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); abrirCadastro(c); }} title="Editar">
                                   <Pencil className="h-4 w-4" />
                                 </Button>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Mais ações">
+                                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Mais ações" aria-label="Mais ações">
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
@@ -1135,10 +1135,10 @@ export default function DpColaboradores() {
                           </TableCell>
                           <TableCell className="align-top">
                             <div className="flex gap-0.5 justify-center" onClick={(e) => e.stopPropagation()}>
-                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar cadastro" onClick={() => setApoioEditando(p)}>
+                              <Button aria-label="Editar colaborador" size="icon" variant="ghost" className="h-8 w-8" title="Editar cadastro" onClick={() => setApoioEditando(p)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
-                              <Button
+                              <Button aria-label="Criar acesso"
                                 size="icon"
                                 variant="ghost"
                                 className="h-8 w-8"
@@ -1148,7 +1148,7 @@ export default function DpColaboradores() {
                               >
                                 <UserPlus className="h-4 w-4" />
                               </Button>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" title="Excluir" onClick={() => setApoioAExcluir(p)}>
+                              <Button aria-label="Excluir colaborador" size="icon" variant="ghost" className="h-8 w-8 text-destructive" title="Excluir" onClick={() => setApoioAExcluir(p)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>

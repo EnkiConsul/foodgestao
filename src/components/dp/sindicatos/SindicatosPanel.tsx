@@ -30,10 +30,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { maskCnpj } from "@/lib/cnpj";
 import { maskPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
+import { somenteDigitos as onlyDigits } from "@/lib/dp/formato";
 
 export type SindicatoTipo = "patronal" | "laboral";
 
-const onlyDigits = (v: string) => v.replace(/\D/g, "");
 
 /**
  * Cadastro de sindicatos de um tipo (patronal ou laboral).

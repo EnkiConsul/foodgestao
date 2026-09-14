@@ -16,6 +16,7 @@ import {
   PERIODICIDADE_LABEL, STATUS_LABEL, tituloItem,
   type DpColaboradorDocumento, type ItemChecklist, type StatusItem,
 } from "@/lib/dp/documentos-requisitos";
+import { dataBr as fmt } from "@/lib/dp/formato";
 
 const STATUS_STYLE: Record<StatusItem, string> = {
   pendente: "bg-muted text-muted-foreground",
@@ -44,7 +45,6 @@ type Props = {
   onAceitar?: (anexo: Anexo) => void;
 };
 
-const fmt = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString("pt-BR");
 const dtHora = (iso: string) => new Date(iso).toLocaleString("pt-BR");
 
 export function DocumentoRequisitoRow({

@@ -1,6 +1,4 @@
 import { useMemo, useState } from "react";
-import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Ban, CheckCircle2, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,8 +10,8 @@ import { FeriasCoberturaDialog } from "@/components/dp/ferias/FeriasCoberturaDia
 import { FeriasDocumentosCard } from "@/components/dp/ferias/FeriasDocumentosCard";
 import { FeriasAvisoDialog } from "@/components/dp/ferias/FeriasAvisoDialog";
 import { FERIAS_SOCIO_META } from "@/lib/dp/ferias-direito";
+import { dataBr as fmt } from "@/lib/dp/formato";
 
-const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
 const GOZO_LABEL: Record<string, string> = {
   planejado: "Aguardando aprovação",

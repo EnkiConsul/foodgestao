@@ -77,7 +77,7 @@ export function DpPageHeader({
       <header className={cn("dp-page-header-embedded flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
         <div className="min-w-0">
           <h2 className="flex items-center gap-2 text-base font-semibold leading-tight sm:text-lg">
-            <Icon className="h-4 w-4 shrink-0 text-primary" />
+            <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
             {toTitleCase(title)}
           </h2>
           {description && <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{description}</p>}
@@ -89,7 +89,7 @@ export function DpPageHeader({
   return (
     <header className={cn("dp-page-header flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
       <div className="flex min-w-0 items-start gap-2 sm:gap-3">
-        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary sm:mt-1 sm:h-7 sm:w-7" />
+        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary sm:mt-1 sm:h-7 sm:w-7" aria-hidden="true" />
         <div className="min-w-0">
           <h1 className="text-lg font-bold leading-tight tracking-normal sm:text-2xl md:text-3xl">{toTitleCase(title)}</h1>
           {description && (

@@ -26,6 +26,9 @@ import {
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { hhmm as hhmmBase } from "@/lib/dp/formato";
+
+const hhmm = (v?: string | null) => hhmmBase(v, "—");
 
 const rotuloData = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", {
@@ -35,7 +38,6 @@ const rotuloData = (iso: string) =>
 const rotuloPrazo = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : null;
 
-const hhmm = (v: string | null | undefined) => (v ? String(v).slice(0, 5) : "—");
 
 /** Valor previsto vem do snapshot gravado na publicação — nunca recalculado aqui. */
 const remuneracaoPrevista = (c: MinhaOferta) =>

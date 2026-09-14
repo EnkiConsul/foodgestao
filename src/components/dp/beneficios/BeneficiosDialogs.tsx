@@ -102,20 +102,20 @@ export function BeneficioDialog({
         <div className="grid gap-4 sm:grid-cols-2">
 
           <div className="space-y-2 sm:col-span-2">
-            <Label>Nome</Label>
-            <Input
+            <Label htmlFor="nome-1">Nome</Label>
+            <Input id="nome-1"
               value={form.nome}
               onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
               placeholder="Ex.: Vale-transporte urbano"
             />
           </div>
           <div className="space-y-2">
-            <Label>Tipo</Label>
+            <Label htmlFor="tipo-2">Tipo</Label>
             <Select
               value={form.tipo}
               onValueChange={(v) => setForm((f) => ({ ...f, tipo: v as BeneficioTipo }))}
             >
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="tipo-2"><SelectValue /></SelectTrigger>
               <SelectContent className="max-h-72">
                 {(Object.keys(BENEFICIO_TIPO_LABEL) as BeneficioTipo[]).map((t) => (
                   <SelectItem key={t} value={t}>{BENEFICIO_TIPO_LABEL[t]}</SelectItem>
@@ -124,16 +124,16 @@ export function BeneficioDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Valor padrão (R$)</Label>
-            <Input
+            <Label htmlFor="valor-padrao-r-3">Valor padrão (R$)</Label>
+            <Input id="valor-padrao-r-3"
               type="number" min={0} step="0.01"
               value={form.valor_padrao}
               onChange={(e) => setForm((f) => ({ ...f, valor_padrao: Number(e.target.value) }))}
             />
           </div>
           <div className="space-y-2">
-            <Label>Desconto do colaborador (%)</Label>
-            <Input
+            <Label htmlFor="desconto-do-colaborador-4">Desconto do colaborador (%)</Label>
+            <Input id="desconto-do-colaborador-4"
               type="number" min={0} max={100} step="0.01"
               value={form.desconto_percentual}
               onChange={(e) =>
@@ -152,14 +152,14 @@ export function BeneficioDialog({
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Unidade</Label>
+                <Label htmlFor="unidade-5">Unidade</Label>
                 <Select
                   value={form.unidade_id ?? "todas"}
                   onValueChange={(v) =>
                     setForm((f) => ({ ...f, unidade_id: v === "todas" ? null : v }))
                   }
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="unidade-5"><SelectValue /></SelectTrigger>
                   <SelectContent className="max-h-72">
                     <SelectItem value="todas">Todas as unidades</SelectItem>
                     {unidades.map((u) => (
@@ -169,14 +169,14 @@ export function BeneficioDialog({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Cargo</Label>
+                <Label htmlFor="cargo-6">Cargo</Label>
                 <Select
                   value={form.cargo_id ?? "todos"}
                   onValueChange={(v) =>
                     setForm((f) => ({ ...f, cargo_id: v === "todos" ? null : v }))
                   }
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="cargo-6"><SelectValue /></SelectTrigger>
                   <SelectContent className="max-h-72">
                     <SelectItem value="todos">Todos os cargos</SelectItem>
                     {cargos.map((c) => (
@@ -188,8 +188,8 @@ export function BeneficioDialog({
             </div>
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label>Descrição</Label>
-            <Textarea
+            <Label htmlFor="descricao-7">Descrição</Label>
+            <Textarea id="descricao-7"
               value={form.descricao ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value || null }))}
               rows={2}
@@ -279,12 +279,12 @@ export function AtribuicaoDialog({
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
-            <Label>Colaborador</Label>
+            <Label htmlFor="colaborador-8">Colaborador</Label>
             <Select
               value={form.colaborador_id}
               onValueChange={(v) => setForm((f) => ({ ...f, colaborador_id: v }))}
             >
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectTrigger id="colaborador-8"><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent className="max-h-72">
                 {colaboradores.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
@@ -293,9 +293,9 @@ export function AtribuicaoDialog({
             </Select>
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label>Benefício</Label>
+            <Label htmlFor="beneficio-9">Benefício</Label>
             <Select value={form.beneficio_id} onValueChange={onPickBeneficio}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectTrigger id="beneficio-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent className="max-h-72">
                 {beneficios.filter((b) => b.ativo).map((b) => (
                   <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
@@ -304,40 +304,40 @@ export function AtribuicaoDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Valor (R$)</Label>
-            <Input
+            <Label htmlFor="valor-r-10">Valor (R$)</Label>
+            <Input id="valor-r-10"
               type="number" min={0} step="0.01"
               value={form.valor}
               onChange={(e) => setForm((f) => ({ ...f, valor: Number(e.target.value) }))}
             />
           </div>
           <div className="space-y-2">
-            <Label>Desconto do colaborador (R$)</Label>
-            <Input
+            <Label htmlFor="desconto-do-colaborador-r-11">Desconto do colaborador (R$)</Label>
+            <Input id="desconto-do-colaborador-r-11"
               type="number" min={0} step="0.01"
               value={form.desconto_valor}
               onChange={(e) => setForm((f) => ({ ...f, desconto_valor: Number(e.target.value) }))}
             />
           </div>
           <div className="space-y-2">
-            <Label>Início</Label>
-            <Input
+            <Label htmlFor="inicio-12">Início</Label>
+            <Input id="inicio-12"
               type="date"
               value={form.data_inicio}
               onChange={(e) => setForm((f) => ({ ...f, data_inicio: e.target.value }))}
             />
           </div>
           <div className="space-y-2">
-            <Label>Fim (opcional)</Label>
-            <Input
+            <Label htmlFor="fim-opcional-13">Fim (opcional)</Label>
+            <Input id="fim-opcional-13"
               type="date"
               value={form.data_fim ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, data_fim: e.target.value || null }))}
             />
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label>Observação</Label>
-            <Textarea
+            <Label htmlFor="observacao-14">Observação</Label>
+            <Textarea id="observacao-14"
               value={form.observacao ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, observacao: e.target.value || null }))}
               rows={2}

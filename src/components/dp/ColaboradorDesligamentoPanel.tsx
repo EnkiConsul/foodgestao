@@ -25,9 +25,9 @@ import {
 } from "@/lib/dp/desligamento";
 import { ColaboradorRecontratacaoDialog } from "@/components/dp/ColaboradorRecontratacaoDialog";
 import { useDpDesligamentoRessalvas } from "@/hooks/useDpDesligamentoRessalvas";
+import { dataBr as fmt } from "@/lib/dp/formato";
 
 const NONE = "__none__";
-const fmt = (d?: string | null) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 
 /**
  * Desligamento dentro do cadastro do colaborador: a data da demissão é

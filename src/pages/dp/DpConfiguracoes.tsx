@@ -169,7 +169,7 @@ export default function DpConfiguracoes() {
             <li key={r.id} className="rounded-2xl border border-border bg-card p-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="font-semibold">{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</p>
-                <Button variant="ghost" size="icon" onClick={() => setToDelete(r)} className="size-9">
+                <Button aria-label="Excluir item" variant="ghost" size="icon" onClick={() => setToDelete(r)} className="size-9">
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
               </div>
@@ -244,7 +244,7 @@ export default function DpConfiguracoes() {
                     />
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => setToDelete(r)} className="size-8">
+                    <Button aria-label="Excluir item" variant="ghost" size="icon" onClick={() => setToDelete(r)} className="size-8">
                       <Trash2 className="size-4 text-destructive" />
                     </Button>
                   </TableCell>

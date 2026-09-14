@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { format, parseISO } from "date-fns";
 import { Download, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,8 +26,8 @@ import {
   type ProgramacaoLinha,
 } from "@/lib/dp/ferias-programacao";
 import { NIVEL_VENCIMENTO_META } from "@/lib/dp/ferias-direito";
+import { dataBr as fmt } from "@/lib/dp/formato";
 
-const fmt = (iso: string | null) => (iso ? format(parseISO(iso), "dd/MM/yyyy") : "—");
 
 const COL_POR_KEY = new Map(PROGRAMACAO_COLUNAS.map((c) => [c.key, c]));
 

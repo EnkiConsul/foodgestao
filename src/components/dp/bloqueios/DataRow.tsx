@@ -184,12 +184,12 @@ export function DataRow({ data: d, onEdit, onDelete, onRebloquear, onLiberar }: 
 
         {!auto && !liberada && (
           <>
-            <Button variant="ghost" size="icon" className="size-8" onClick={() => onEdit(d)}>
+            <Button aria-label="Editar data" variant="ghost" size="icon" className="size-8" onClick={() => onEdit(d)}>
               <Pencil className="size-4" />
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-8 text-destructive hover:bg-destructive/10">
+                <Button variant="ghost" size="icon" className="size-8 text-destructive hover:bg-destructive/10" aria-label="Excluir data">
                   <Trash2 className="size-4" />
                 </Button>
               </AlertDialogTrigger>

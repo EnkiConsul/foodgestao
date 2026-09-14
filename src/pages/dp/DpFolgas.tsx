@@ -897,10 +897,10 @@ export default function DpFolgas() {
             <Button variant="outline" size="sm" onClick={() => setCursor(startOfMonth(new Date()))}>
               Hoje
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setCursor(subMonths(cursor, 1))}>
+            <Button aria-label="Mês anterior" variant="ghost" size="icon" onClick={() => setCursor(subMonths(cursor, 1))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setCursor(addMonths(cursor, 1))}>
+            <Button aria-label="Mês seguinte" variant="ghost" size="icon" onClick={() => setCursor(addMonths(cursor, 1))}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

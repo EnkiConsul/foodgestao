@@ -31,7 +31,7 @@ export function DpNotificacoesBell({ variant = "admin" }: { variant?: "admin" | 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative" aria-label="Notificações">
           <Bell className="h-5 w-5" />
           {totalBadge > 0 && (
             <Badge className="absolute -top-1 -right-1 h-5 min-w-5 rounded-full px-1 text-[10px] bg-primary">

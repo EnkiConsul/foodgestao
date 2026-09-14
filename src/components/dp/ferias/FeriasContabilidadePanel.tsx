@@ -1,6 +1,4 @@
 import { useMemo, useState } from "react";
-import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,8 +14,8 @@ import { useDpUnidades } from "@/hooks/useDpCadastros";
 import {
   FeriasResumoContabilidadeDialog, type ResumoContabilidade,
 } from "@/components/dp/ferias/FeriasResumoContabilidadeDialog";
+import { dataBr as fmt } from "@/lib/dp/formato";
 
-const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
 const mascararCpf = (cpf?: string | null) => {
   const d = (cpf ?? "").replace(/\D/g, "");

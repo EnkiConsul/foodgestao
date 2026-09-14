@@ -476,9 +476,9 @@ export function DpPessoaAvulsaDialog({
 
           {manual ? (
             <div className="grid gap-1.5">
-              <Label>Colaborador *</Label>
+              <Label htmlFor="colaborador-1">Colaborador *</Label>
               <Select value={form.colaborador_id} onValueChange={escolherColaborador}>
-                <SelectTrigger>
+                <SelectTrigger id="colaborador-1">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -568,9 +568,9 @@ export function DpPessoaAvulsaDialog({
             <>
               {apoioDaUnidade.length > 0 && (
                 <div className="grid gap-1.5">
-                  <Label>Já cadastrada antes?</Label>
+                  <Label htmlFor="ja-cadastrada-antes-2">Já cadastrada antes?</Label>
                   <Select value={form.pessoa_apoio_id || "novo"} onValueChange={escolherApoio}>
-                    <SelectTrigger>
+                    <SelectTrigger id="ja-cadastrada-antes-2">
                       <SelectValue placeholder="Nova pessoa" />
                     </SelectTrigger>
                     <SelectContent>
@@ -591,8 +591,8 @@ export function DpPessoaAvulsaDialog({
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-1.5">
-                  <Label>Nome da pessoa *</Label>
-                  <Input
+                  <Label htmlFor="nome-da-pessoa-3">Nome da pessoa *</Label>
+                  <Input id="nome-da-pessoa-3"
                     value={form.nome}
                     maxLength={120}
                     placeholder="Ex.: Maria Souza"
@@ -600,8 +600,8 @@ export function DpPessoaAvulsaDialog({
                   />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label>Telefone</Label>
-                  <Input
+                  <Label htmlFor="telefone-4">Telefone</Label>
+                  <Input id="telefone-4"
                     value={form.telefone}
                     maxLength={20}
                     inputMode="tel"
@@ -617,12 +617,12 @@ export function DpPessoaAvulsaDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <Label>Unidade *</Label>
+              <Label htmlFor="unidade-5">Unidade *</Label>
               <Select
                 value={form.unidade_id}
                 onValueChange={(v) => setForm({ ...form, unidade_id: v, setor_id: "" })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="unidade-5">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -635,9 +635,9 @@ export function DpPessoaAvulsaDialog({
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label>Cargo do dia *</Label>
+              <Label htmlFor="cargo-do-dia-6">Cargo do dia *</Label>
               <Select value={form.cargo_id} onValueChange={(v) => setForm({ ...form, cargo_id: v })}>
-                <SelectTrigger>
+                <SelectTrigger id="cargo-do-dia-6">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -665,7 +665,7 @@ export function DpPessoaAvulsaDialog({
           {form.tipo === "folguista" && (
             <>
               <div className="grid gap-1.5">
-                <Label>Cobrindo quem (opcional)</Label>
+                <Label htmlFor="cobrindo-quem-opcional-7">Cobrindo quem (opcional)</Label>
                 <Select
                   value={form.cobre_colaborador_id || "nenhum"}
                   onValueChange={(v) =>
@@ -676,7 +676,7 @@ export function DpPessoaAvulsaDialog({
                     })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="cobrindo-quem-opcional-7">
                     <SelectValue placeholder="Ninguém em específico" />
                   </SelectTrigger>
                   <SelectContent>
@@ -696,12 +696,12 @@ export function DpPessoaAvulsaDialog({
               </div>
               {form.cobre_colaborador_id && (
                 <div className="grid gap-1.5">
-                  <Label>Motivo da cobertura</Label>
+                  <Label htmlFor="motivo-da-cobertura-8">Motivo da cobertura</Label>
                   <Select
                     value={form.cobre_motivo}
                     onValueChange={(v) => setForm({ ...form, cobre_motivo: v })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="motivo-da-cobertura-8">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -726,8 +726,8 @@ export function DpPessoaAvulsaDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <Label>Data inicial *</Label>
-              <Input
+              <Label htmlFor="data-inicial-9">Data inicial *</Label>
+              <Input id="data-inicial-9"
                 type="date"
                 value={form.data_inicio}
                 onChange={(e) =>
@@ -740,8 +740,8 @@ export function DpPessoaAvulsaDialog({
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>Data final *</Label>
-              <Input
+              <Label htmlFor="data-final-10">Data final *</Label>
+              <Input id="data-final-10"
                 type="date"
                 min={form.data_inicio || undefined}
                 value={form.data_fim}
@@ -753,8 +753,8 @@ export function DpPessoaAvulsaDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <Label>Entrada</Label>
-              <Input
+              <Label htmlFor="entrada-11">Entrada</Label>
+              <Input id="entrada-11"
                 type="time"
                 value={form.entrada}
                 onChange={(e) => {
@@ -764,8 +764,8 @@ export function DpPessoaAvulsaDialog({
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>Saída</Label>
-              <Input
+              <Label htmlFor="saida-12">Saída</Label>
+              <Input id="saida-12"
                 type="time"
                 value={form.saida}
                 onChange={(e) => {
@@ -793,8 +793,8 @@ export function DpPessoaAvulsaDialog({
           </div>
 
           <div className="grid gap-1.5">
-            <Label>Observação</Label>
-            <Textarea
+            <Label htmlFor="observacao-13">Observação</Label>
+            <Textarea id="observacao-13"
               rows={2}
               maxLength={500}
               placeholder="Contexto do dia (opcional)"

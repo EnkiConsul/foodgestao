@@ -461,12 +461,12 @@ export function RemuneracaoFields({
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div className="space-y-2">
-            <Label>Forma de remuneração *</Label>
+            <Label htmlFor="forma-de-remuneracao-1">Forma de remuneração *</Label>
             <Select
               value={socioRemuneracao}
               onValueChange={(v: SocioRemuneracao) => onSocioRemuneracaoChange?.(v)}
             >
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="forma-de-remuneracao-1"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="pro_labore">Pró-labore</SelectItem>
                 <SelectItem value="somente_lucros">Somente participação de lucros</SelectItem>
@@ -476,8 +476,8 @@ export function RemuneracaoFields({
 
           {proLabore && (
             <div className="space-y-2">
-              <Label>Valor do pró-labore (mensal)</Label>
-              <Input
+              <Label htmlFor="valor-do-pro-labore-mensal-2">Valor do pró-labore (mensal)</Label>
+              <Input id="valor-do-pro-labore-mensal-2"
                 inputMode="decimal"
                 value={value.salario_base}
                 {...marca("salario_base")}
@@ -509,12 +509,12 @@ export function RemuneracaoFields({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="space-y-2">
-          <Label>Forma de pagamento *</Label>
+          <Label htmlFor="forma-de-pagamento-3">Forma de pagamento *</Label>
           <Select
             value={forma}
             onValueChange={(v: FormaPagamento) => onChange({ forma_pagamento: v })}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="forma-de-pagamento-3"><SelectValue /></SelectTrigger>
             <SelectContent>
               {formaOptions.map((o) => (
                 <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
@@ -603,8 +603,8 @@ export function RemuneracaoFields({
         {/* Valor da diária — fonte oficial do cachê em convocações */}
         {forma === "diarista" && (
           <div className="space-y-2 md:col-span-2 rounded-lg border border-border bg-background p-3">
-            <Label>Valor da diária (convocações) *</Label>
-            <Input
+            <Label htmlFor="valor-da-diaria-convocacoes-4">Valor da diária (convocações) *</Label>
+            <Input id="valor-da-diaria-convocacoes-4"
               inputMode="decimal"
               value={value.valor_diaria}
               {...marca("valor_diaria")}
@@ -629,8 +629,8 @@ export function RemuneracaoFields({
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div className="space-y-2">
-                <Label>Base salarial (mês)</Label>
-                <Input
+                <Label htmlFor="base-salarial-mes-5">Base salarial (mês)</Label>
+                <Input id="base-salarial-mes-5"
                   inputMode="decimal"
                   value={value.base_salarial}
                   onChange={(e) => onChange({ base_salarial: e.target.value })}
@@ -644,12 +644,12 @@ export function RemuneracaoFields({
               </div>
               {forma === "horista" ? (
                 <div className="space-y-2">
-                  <Label>Base de horas / mês</Label>
+                  <Label htmlFor="base-de-horas-mes-6">Base de horas / mês</Label>
                   <Select
                     value={value.base_horas_mes}
                     onValueChange={(v) => onChange({ base_horas_mes: v })}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="base-de-horas-mes-6"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {BASES_HORAS_MES.map((h) => (
                         <SelectItem key={h} value={String(h)}>{h} horas</SelectItem>
@@ -659,8 +659,8 @@ export function RemuneracaoFields({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label>Base de dias / mês</Label>
-                  <Input
+                  <Label htmlFor="base-de-dias-mes-7">Base de dias / mês</Label>
+                  <Input id="base-de-dias-mes-7"
                     inputMode="numeric"
                     value={value.base_dias_mes}
                     onChange={(e) => onChange({ base_dias_mes: e.target.value.replace(/\D/g, "") })}
@@ -696,8 +696,8 @@ export function RemuneracaoFields({
         )}
 
         <div className="space-y-2">
-          <Label>Dependentes (IRRF)</Label>
-          <Input
+          <Label htmlFor="dependentes-irrf-8">Dependentes (IRRF)</Label>
+          <Input id="dependentes-irrf-8"
             inputMode="numeric"
             value={value.dependentes_irrf}
             onChange={(e) => onChange({ dependentes_irrf: e.target.value.replace(/\D/g, "") })}
@@ -709,8 +709,8 @@ export function RemuneracaoFields({
           <div className="text-sm font-medium">Adicionais de risco</div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Insalubridade (%)</Label>
-              <Input
+              <Label htmlFor="insalubridade-9">Insalubridade (%)</Label>
+              <Input id="insalubridade-9"
                 inputMode="decimal"
                 value={value.insalubridade_percentual}
                 {...marca("insalubridade_percentual")}
@@ -737,8 +737,8 @@ export function RemuneracaoFields({
             </div>
 
             <div className="space-y-2">
-              <Label>Periculosidade (%)</Label>
-              <Input
+              <Label htmlFor="periculosidade-10">Periculosidade (%)</Label>
+              <Input id="periculosidade-10"
                 inputMode="decimal"
                 value={value.periculosidade_percentual}
                 {...marca("periculosidade_percentual")}
@@ -812,8 +812,8 @@ export function RemuneracaoFields({
         {value.vale_transporte && (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Valor por dia</Label>
-              <Input
+              <Label htmlFor="valor-por-dia-11">Valor por dia</Label>
+              <Input id="valor-por-dia-11"
                 inputMode="decimal"
                 value={value.vale_transporte_valor_dia}
                 {...marca("vale_transporte_valor_dia")}
@@ -876,12 +876,12 @@ export function RemuneracaoFields({
         {value.vale_alimentacao && (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Periodicidade</Label>
+              <Label htmlFor="periodicidade-12">Periodicidade</Label>
               <Select
                 value={value.vale_alimentacao_periodicidade}
                 onValueChange={(v: Periodicidade) => onChange({ vale_alimentacao_periodicidade: v })}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="periodicidade-12"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(PERIODICIDADE_LABEL) as Periodicidade[]).map((t) => (
                     <SelectItem key={t} value={t}>{PERIODICIDADE_LABEL[t]}</SelectItem>
@@ -905,12 +905,12 @@ export function RemuneracaoFields({
             {value.vale_alimentacao_periodicidade === "diario" && (
               <>
                 <div className="space-y-2">
-                  <Label>Dias considerados no mês</Label>
+                  <Label htmlFor="dias-considerados-no-mes-13">Dias considerados no mês</Label>
                   <Select
                     value={value.vale_alimentacao_dias_origem}
                     onValueChange={(v: DiasOrigem) => onChange({ vale_alimentacao_dias_origem: v })}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="dias-considerados-no-mes-13"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {(Object.keys(DIAS_ORIGEM_LABEL) as DiasOrigem[]).map((t) => (
                         <SelectItem key={t} value={t}>{DIAS_ORIGEM_LABEL[t]}</SelectItem>
@@ -949,12 +949,12 @@ export function RemuneracaoFields({
             )}
 
             <div className="space-y-2">
-              <Label>Desconto do colaborador</Label>
+              <Label htmlFor="desconto-do-colaborador-14">Desconto do colaborador</Label>
               <Select
                 value={value.vale_alimentacao_desconto_tipo}
                 onValueChange={(v: DescontoTipo) => onChange({ vale_alimentacao_desconto_tipo: v })}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="desconto-do-colaborador-14"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(DESCONTO_TIPO_LABEL) as DescontoTipo[]).map((t) => (
                     <SelectItem key={t} value={t}>{DESCONTO_TIPO_LABEL[t]}</SelectItem>

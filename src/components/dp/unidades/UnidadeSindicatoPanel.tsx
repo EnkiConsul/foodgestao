@@ -11,8 +11,8 @@ import { useDpSindicatos, useUpsertDpSindicato } from "@/hooks/useDpCadastros";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCnpj } from "@/lib/cnpj";
 import { maskPhone } from "@/lib/phone";
+import { somenteDigitos as onlyDigits } from "@/lib/dp/formato";
 
-const onlyDigits = (v: string) => v.replace(/\D/g, "");
 const SEM_VINCULO = "__sem__";
 
 interface Campos {

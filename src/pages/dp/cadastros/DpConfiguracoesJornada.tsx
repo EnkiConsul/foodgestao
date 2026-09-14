@@ -155,7 +155,7 @@ function UnitCard({
             <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Editar
           </Button>
           {configurada && (
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onLimpar} title="Limpar regras">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onLimpar} title="Limpar regras" aria-label="Excluir item">
               <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
             </Button>
           )}

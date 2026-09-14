@@ -67,6 +67,7 @@ import {
   type CondicoesFreela,
   type FreelaRefeicao,
 } from "@/lib/dp/convocacao-freela";
+import { hhmm } from "@/lib/dp/formato";
 
 interface Props {
   open: boolean;
@@ -111,7 +112,6 @@ interface HorarioOverride {
 }
 
 const novoId = () => crypto.randomUUID();
-const hhmm = (v: string | null | undefined) => (v ? v.slice(0, 5) : "");
 const chave = (cargoId: string, data: string) => `${cargoId}|${data}`;
 /** Virada de dia é obrigatória quando a saída é igual ou anterior à entrada. */
 const normalizarVira = (entrada: string, saida: string, atual: boolean) =>
@@ -1007,9 +1007,9 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label>Unidade *</Label>
+                  <Label htmlFor="unidade-1">Unidade *</Label>
                   <Select value={unidadeId ?? ""} onValueChange={setUnidadeId} disabled={!!grupo}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectTrigger id="unidade-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       {(unidades.data ?? []).map((u: any) => (
                         <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
@@ -1019,10 +1019,10 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Mês *</Label>
+                  <Label htmlFor="mes-2">Mês *</Label>
                   <div className="flex gap-2">
                     <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger id="mes-2"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                           <SelectItem key={m} value={String(m)}>
@@ -1044,8 +1044,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Título (opcional)</Label>
-                  <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex: Fim de semana do evento" />
+                  <Label htmlFor="titulo-opcional-3">Título (opcional)</Label>
+                  <Input id="titulo-opcional-3" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex: Fim de semana do evento" />
                 </div>
               </div>
 
@@ -1159,8 +1159,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                       ))}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Label className="text-[11px]">Intervalo entre níveis (horas)</Label>
-                      <Input
+                      <Label htmlFor="intervalo-entre-niveis-horas-4" className="text-[11px]">Intervalo entre níveis (horas)</Label>
+                      <Input id="intervalo-entre-niveis-horas-4"
                         className="h-8 w-24"
                         inputMode="numeric"
                         placeholder="ex: 12"
@@ -1195,18 +1195,18 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                 {usaHorarioGeral && (
                   <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                     <div className="space-y-1">
-                      <Label className="text-[11px]">Entrada</Label>
-                      <Input type="time" value={horarioGeral.entrada}
+                      <Label htmlFor="entrada-5" className="text-[11px]">Entrada</Label>
+                      <Input id="entrada-5" type="time" value={horarioGeral.entrada}
                         onChange={(e) => patchHorarioGeral({ entrada: e.target.value })} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[11px]">Saída</Label>
-                      <Input type="time" value={horarioGeral.saida}
+                      <Label htmlFor="saida-6" className="text-[11px]">Saída</Label>
+                      <Input id="saida-6" type="time" value={horarioGeral.saida}
                         onChange={(e) => patchHorarioGeral({ saida: e.target.value })} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[11px]">Intervalo (min)</Label>
-                      <Input inputMode="numeric" value={String(horarioGeral.intervalo_minutos)}
+                      <Label htmlFor="intervalo-min-7" className="text-[11px]">Intervalo (min)</Label>
+                      <Input id="intervalo-min-7" inputMode="numeric" value={String(horarioGeral.intervalo_minutos)}
                         onChange={(e) =>
                           setHorarioGeral((h) => ({
                             ...h, intervalo_minutos: Number(e.target.value.replace(/\D/g, "") || 0),
@@ -1313,8 +1313,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1">
-                      <Label className="text-xs">Valor da diária (R$)</Label>
-                      <Input
+                      <Label htmlFor="valor-da-diaria-r-8" className="text-xs">Valor da diária (R$)</Label>
+                      <Input id="valor-da-diaria-r-8"
                         type="number" min={0} step="0.01" inputMode="decimal"
                         value={freela.diaria ?? ""}
                         onChange={(e) =>
@@ -1324,12 +1324,12 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     </div>
 
                     <div className="space-y-1">
-                      <Label className="text-xs">Refeição</Label>
+                      <Label htmlFor="refeicao-9" className="text-xs">Refeição</Label>
                       <Select
                         value={freela.refeicao}
                         onValueChange={(v) => setFreela((f) => ({ ...f, refeicao: v as FreelaRefeicao }))}
                       >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger id="refeicao-9"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="nenhuma">Não tem</SelectItem>
                           <SelectItem value="loja">Refeição na loja</SelectItem>
@@ -1340,8 +1340,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
 
                     {freela.refeicao === "vale" && (
                       <div className="space-y-1">
-                        <Label className="text-xs">Valor do vale por dia (R$)</Label>
-                        <Input
+                        <Label htmlFor="valor-do-vale-por-dia-r-10" className="text-xs">Valor do vale por dia (R$)</Label>
+                        <Input id="valor-do-vale-por-dia-r-10"
                           type="number" min={0} step="0.01" inputMode="decimal"
                           value={freela.refeicaoValor ?? ""}
                           onChange={(e) =>
@@ -1355,8 +1355,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
                     )}
 
                     <div className="space-y-1">
-                      <Label className="text-xs">Ajuda de transporte por dia (R$)</Label>
-                      <Input
+                      <Label htmlFor="ajuda-de-transporte-por-dia-r-11" className="text-xs">Ajuda de transporte por dia (R$)</Label>
+                      <Input id="ajuda-de-transporte-por-dia-r-11"
                         type="number" min={0} step="0.01" inputMode="decimal"
                         value={freela.transporteValor ?? ""}
                         onChange={(e) =>
@@ -1380,8 +1380,8 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
               )}
 
               <div className="space-y-2">
-                <Label>Observação (opcional)</Label>
-                <Textarea
+                <Label htmlFor="observacao-opcional-12">Observação (opcional)</Label>
+                <Textarea id="observacao-opcional-12"
                   rows={2}
                   value={observacao}
                   placeholder="Recado que aparece no convite (ex.: uniforme, ponto de encontro)"

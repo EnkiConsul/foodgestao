@@ -827,7 +827,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                 )}
               </div>
               <div className="flex items-center justify-end gap-0.5 shrink-0">
-                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} title="Diminuir zoom">
+                <Button aria-label="Diminuir" size="icon" variant="ghost" className="h-9 w-9" onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} title="Diminuir zoom">
                   <ZoomOut className="h-4 w-4" />
                 </Button>
                 <button
@@ -838,10 +838,10 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                 >
                   {Math.round(zoom * 100)}%
                 </button>
-                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setZoom((z) => Math.min(3, z + 0.25))} title="Aumentar zoom">
+                <Button aria-label="Aumentar" size="icon" variant="ghost" className="h-9 w-9" onClick={() => setZoom((z) => Math.min(3, z + 0.25))} title="Aumentar zoom">
                   <ZoomIn className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={openInNewTab} title="Abrir em nova aba">
+                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={openInNewTab} title="Abrir em nova aba" aria-label="Abrir em nova aba">
                   <ExternalLink className="h-4 w-4" />
                 </Button>
               </div>
@@ -933,7 +933,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                     defaultUnidadeId={current.detected_unidade_id ?? batchInfo.data?.unidade_id ?? null}
                     onCreated={(id) => setColab.mutate({ id: current.id, colaborador_id: id })}
                     trigger={
-                      <Button size="icon" variant="outline" className="h-10 w-10 shrink-0" title="Cadastrar novo colaborador">
+                      <Button size="icon" variant="outline" className="h-10 w-10 shrink-0" title="Cadastrar novo colaborador" aria-label="Cadastrar novo colaborador">
                         <span className="text-lg leading-none">+</span>
                       </Button>
                     }

@@ -14,6 +14,9 @@ import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { hojeIsoLocal, horariosSobrepostos } from "@/lib/dp/dataLocal";
+import { hhmm as hhmmBase } from "@/lib/dp/formato";
+
+const hhmm = (v?: string | null) => hhmmBase(v) || null;
 
 type Pessoa = {
   id: string;
@@ -25,7 +28,6 @@ type Pessoa = {
 };
 
 const hojeIso = () => hojeIsoLocal();
-const hhmm = (v: string | null) => (v ? v.slice(0, 5) : null);
 
 /** Rotina da loja: quem trabalha no dia, por função. Somente leitura. */
 export default function DpMeuRotinaLoja() {
