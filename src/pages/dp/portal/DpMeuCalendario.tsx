@@ -771,9 +771,12 @@ export default function DpMeuCalendario() {
     );
   }, [selectedDay, folgas, meRef.data?.id]);
 
+  /**
+   * Exceção também vale em dia de meio de semana: é justamente nele que o
+   * colaborador precisa pedir uma folga fora da regra.
+   */
   const showExceptionBtn =
-    selectedDay &&
-    !["past", "mine", "fixed", "pending", "swapped", "weekday"].includes(selectedDay.status);
+    selectedDay && !["past", "mine", "fixed", "pending", "swapped"].includes(selectedDay.status);
 
   return (
     <DpPage className="space-y-6 md:space-y-8">
