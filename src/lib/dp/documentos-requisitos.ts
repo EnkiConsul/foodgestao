@@ -102,6 +102,8 @@ export type ItemChecklist = {
   diasParaVencer: number | null;
   /** Permite mais de um arquivo no mesmo item. */
   multiplos: boolean;
+  /** Documento que a empresa emite (contrato, ASO, termos). */
+  daEmpresa: boolean;
 };
 
 
@@ -281,6 +283,7 @@ export function resolverChecklist({
       (a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""),
     );
     const { status, dias, validade, principal } = resolverItem(req, anexos, hoje);
+    const daEmpresa = requisitoDaEmpresa(req);
     return {
       key: chave,
       requisito: req,
@@ -290,9 +293,17 @@ export function resolverChecklist({
       status,
       validade,
       diasParaVencer: dias,
-      obrigatorio: req.obrigatoriedade === "obrigatorio",
+      // Documento da empresa nunca é obrigação do colaborador.
+      obrigatorio: req.obrigatoriedade === "obrigatorio" && !daEmpresa,
       multiplos: !!req.permite_multiplos,
+      daEmpresa,
     };
+  };
+
+  const guardar = (item: ItemChecklist) => {
+    // No portal, o item da empresa só aparece depois que o arquivo existe.
+    if (perspectiva === "colaborador" && item.daEmpresa && item.anexos.length === 0) return;
+    itens.push(item);
   };
 
   for (const req of requisitos) {
@@ -300,12 +311,12 @@ export function resolverChecklist({
     if (req.categoria === "dependente") {
       for (const dep of dependentes) {
         if (!requisitoAplicaDependente(req, dep, hoje)) continue;
-        itens.push(montar(req, dep));
+        guardar(montar(req, dep));
       }
       continue;
     }
     if (!requisitoAplicaColaborador(req, colaborador)) continue;
-    itens.push(montar(req, null));
+    guardar(montar(req, null));
   }
 
 
