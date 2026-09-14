@@ -16,6 +16,7 @@ import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { DpLayout } from "@/components/dp/DpLayout";
 
 import { ColaboradorShell } from "./components/dp/ColaboradorShell";
+import { PortalSomenteDocumentos } from "./components/dp/portal/PortalSomenteDocumentos";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import { HelmetProvider } from "react-helmet-async";
