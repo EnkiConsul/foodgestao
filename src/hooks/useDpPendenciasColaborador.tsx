@@ -285,6 +285,9 @@ export function useDpPendenciasColaborador() {
 
         (docsAceite ?? [])
           .filter((d: any) => !aprovados.has(d.id))
+          // Documento cuja data de referência ainda não chegou (ex.: adiantamento
+          // que só será pago no fim do mês) fica disponível, mas não é cobrado.
+          .filter((d: any) => !d.referencia_data || d.referencia_data <= ymd(today))
           .forEach((d: any) => {
             const limite = vencimentoAprovacao(d.created_at);
             const atraso = atrasoAprovacao(d.created_at, today);
