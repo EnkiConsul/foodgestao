@@ -229,6 +229,8 @@ export type ResolverInput = {
   dependentes?: DependenteContexto[];
   vinculos?: DpColaboradorDocumento[];
   hoje?: Date;
+  /** "colaborador" = portal (não cobra documento da empresa). */
+  perspectiva?: "colaborador" | "gestor";
 };
 
 const PRIORIDADE_STATUS: StatusItem[] = [
