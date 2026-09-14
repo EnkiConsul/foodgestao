@@ -46,6 +46,10 @@ Lista completa dos pontos relatados, entregue de uma vez. Organizada por tela.
 - Quem já adiantou a primeira parcela do 13º não vê a opção de adiantamento nas férias.
 - A data fim passa a ser calculada: o colaborador escolhe abono, divisão dos períodos e adiantamento; os dias vendidos reduzem a data fim automaticamente.
 
+## Minha jornada hoje
+
+- Quem tem horário fixo deixa de ver "Sem horário definido para hoje": a tela passa a mostrar o horário habitual do dia da semana quando não há escala publicada.
+
 ## Ocorrências e ponto
 
 - Corrigir o corte da tela de ocorrências no celular.
