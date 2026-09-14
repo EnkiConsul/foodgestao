@@ -15080,6 +15080,17 @@ export type Database = {
         Args: { p_colaborador: string; p_data: string }
         Returns: Json
       }
+      dp_meu_acesso_portal: {
+        Args: never
+        Returns: {
+          acesso_ate: string
+          colaborador_id: string
+          company_id: string
+          estado: string
+          permitido: boolean
+          somente_documentos: boolean
+        }[]
+      }
       dp_meu_colaborador: { Args: never; Returns: string }
       dp_meu_vinculo: {
         Args: never
