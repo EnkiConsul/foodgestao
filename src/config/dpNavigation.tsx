@@ -29,7 +29,6 @@ import {
   Scale,
   Settings,
   ShieldAlert,
-  ShieldCheck,
   Store,
   Upload,
   User,
@@ -183,9 +182,7 @@ const ADMIN_GROUPS: DpNavGroup[] = [
   },
 ];
 
-const ADMIN_DIRECT: DpNavItem[] = [
-  { label: "SESMT", to: "/dp/conformidade", icon: ShieldCheck, end: true, badge: "Em breve" },
-];
+const ADMIN_DIRECT: DpNavItem[] = [];
 
 export const DP_ADMIN_NAV: DpNavSurface = {
   home: { label: "Início", to: "/dp", icon: Home, end: true },
