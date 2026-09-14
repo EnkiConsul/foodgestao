@@ -9705,6 +9705,8 @@ export type Database = {
       }
       dp_portal_access_tokens: {
         Row: {
+          claim_expires_at: string | null
+          claimed_at: string | null
           colaborador_id: string
           company_id: string
           consumed_at: string | null
@@ -9718,6 +9720,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          claim_expires_at?: string | null
+          claimed_at?: string | null
           colaborador_id: string
           company_id: string
           consumed_at?: string | null
@@ -9731,6 +9735,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          claim_expires_at?: string | null
+          claimed_at?: string | null
           colaborador_id?: string
           company_id?: string
           consumed_at?: string | null
@@ -15111,6 +15117,23 @@ export type Database = {
           setor_id: string
           setor_nome: string
         }[]
+      }
+      dp_portal_token_claim: {
+        Args: { p_purpose: string; p_token_hash: string; p_token_id: string }
+        Returns: {
+          colaborador_id: string
+          company_id: string
+          purpose: string
+          user_id: string
+        }[]
+      }
+      dp_portal_token_confirm: {
+        Args: { p_token_id: string }
+        Returns: boolean
+      }
+      dp_portal_token_release: {
+        Args: { p_token_id: string }
+        Returns: boolean
       }
       dp_processar_troca: { Args: { _troca_id: string }; Returns: Json }
       dp_processar_troca_direta: { Args: { _troca_id: string }; Returns: Json }
