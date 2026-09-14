@@ -14857,6 +14857,10 @@ export type Database = {
         Args: { _company: string; _unidade: string }
         Returns: number[]
       }
+      dp_folga_escopo_empresa_ok: {
+        Args: { _company: string }
+        Returns: boolean
+      }
       dp_folga_exige_descanso_fds: {
         Args: {
           _colab: string
