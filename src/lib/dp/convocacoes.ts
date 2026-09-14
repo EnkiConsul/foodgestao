@@ -199,3 +199,37 @@ export function horasAceitas(convocacoes: Pick<Convocacao, "status" | "carga_pre
     .reduce((acc, c) => acc + Number(c.carga_prevista_horas || 0), 0);
   return Math.round(total * 100) / 100;
 }
+
+
+/**
+ * Janela do dia já começou e ainda não terminou? Nesse intervalo a pessoa
+ * ainda pode responder — com justificativa. Espelha a regra do servidor.
+ */
+export function janelaEmAndamento(
+  args: { inicio_previsto?: string | null; fim_previsto?: string | null },
+  agora: Date = new Date(),
+): boolean {
+  if (!args.inicio_previsto || !args.fim_previsto) return false;
+  const t = agora.getTime();
+  return t >= new Date(args.inicio_previsto).getTime() && t < new Date(args.fim_previsto).getTime();
+}
+
+/** Minutos entre o início previsto e agora (0 quando ainda não começou). */
+export function minutosDeAtraso(
+  inicio_previsto: string | null | undefined,
+  agora: Date = new Date(),
+): number {
+  if (!inicio_previsto) return 0;
+  const diff = agora.getTime() - new Date(inicio_previsto).getTime();
+  return diff <= 0 ? 0 : Math.floor(diff / 60000);
+}
+
+/** "42 min depois do início" / "1h05 depois do início". */
+export function rotuloAtraso(minutos: number | null | undefined): string {
+  const m = Number(minutos ?? 0);
+  if (!Number.isFinite(m) || m <= 0) return "no horário";
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  const tempo = h ? (r ? `${h}h${String(r).padStart(2, "0")}` : `${h}h`) : `${m} min`;
+  return `${tempo} depois do início`;
+}
