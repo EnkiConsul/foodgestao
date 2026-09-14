@@ -32,6 +32,7 @@ export function WhatsappComposerDialog({
   nome,
   contexto = {},
   titulosPreferidos = [],
+  mensagemSeparada = null,
 }: Props) {
   const { data: modelos = [] } = useDpModelosMensagem("whatsapp");
   const [modeloId, setModeloId] = useState<string>("");
