@@ -143,15 +143,49 @@ export function snapshotDaConvocacao(input: NovaConvocacaoInput): TurnoSnapshot 
   });
 }
 
+/** Minutos do dia a partir de "HH:MM[:SS]". */
+function minutosDoHorario(h: string | null | undefined): number | null {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(h ?? ""));
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+interface JanelaDia {
+  data: string;
+  entrada?: string | null;
+  saida?: string | null;
+  termina_no_dia_seguinte?: boolean | null;
+}
+
+/**
+ * Duas janelas de dias (podendo virar a madrugada) se sobrepõem?
+ * Espelha `dp_colaborador_horario_ocupado` no banco.
+ */
+export function janelasSobrepostas(a: JanelaDia, b: JanelaDia): boolean {
+  const base = (j: JanelaDia) => new Date(`${j.data}T00:00:00`).getTime() / 60000;
+  const ini = (j: JanelaDia) => {
+    const m = minutosDoHorario(j.entrada);
+    return m === null ? null : base(j) + m;
+  };
+  const fim = (j: JanelaDia) => {
+    const m = minutosDoHorario(j.saida);
+    if (m === null) return null;
+    return base(j) + m + (j.termina_no_dia_seguinte ? 1440 : 0);
+  };
+  const a1 = ini(a), a2 = fim(a), b1 = ini(b), b2 = fim(b);
+  if (a1 === null || a2 === null || b1 === null || b2 === null) return a.data === b.data;
+  return a1 < b2 && b1 < a2;
+}
+
 /**
  * Valida a convocação antes de gravar: regime, horário, prazo e sobreposição
- * com convocações já ativas (pendentes ou aceitas) do mesmo colaborador.
+ * de HORÁRIO com convocações já ativas do mesmo colaborador. Repetir o mesmo
+ * dia é permitido, desde que os horários não se cruzem.
  */
 export function validarConvocacao(args: {
   colaboradorId: string | null;
   regime: RegimeTrabalho | null | undefined;
   input: NovaConvocacaoInput;
-  existentes: Pick<Convocacao, "data" | "status" | "prazo_resposta">[];
+  existentes: (Pick<Convocacao, "data" | "status" | "prazo_resposta"> & Partial<JanelaDia>)[];
   agora?: Date;
 }): ValidacaoConvocacao[] {
   const agora = args.agora ?? new Date();
@@ -179,15 +213,32 @@ export function validarConvocacao(args: {
     erros.push({ campo: "prazo", mensagem: "O prazo de resposta precisa ser no futuro." });
   }
 
+  const nova: JanelaDia = {
+    data: args.input.data,
+    entrada: (args.input as any).entrada ?? null,
+    saida: (args.input as any).saida ?? null,
+    termina_no_dia_seguinte: (args.input as any).termina_no_dia_seguinte ?? null,
+  };
   const conflito = args.existentes.some(
-    (c) => c.data === args.input.data && (c.status === "pendente" || c.status === "aceita"),
+    (c) =>
+      (c.status === "pendente" || c.status === "aceita") &&
+      janelasSobrepostas(nova, {
+        data: c.data,
+        entrada: c.entrada ?? null,
+        saida: c.saida ?? null,
+        termina_no_dia_seguinte: c.termina_no_dia_seguinte ?? null,
+      }),
   );
   if (conflito) {
     erros.push({
       campo: "duplicidade",
-      mensagem: "Já existe uma convocação ativa para este colaborador nesta data.",
+      mensagem: "Este colaborador já tem convocação ativa em horário que se sobrepõe a este.",
     });
   }
+
+  return erros;
+}
+
 
   return erros;
 }
