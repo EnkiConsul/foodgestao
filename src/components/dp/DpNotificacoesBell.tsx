@@ -8,12 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDpNotificacoes, useMarkNotifRead, useMarkAllNotifsRead } from "@/hooks/useDpNotificacoes";
 import { useDpAtestadosPendentes } from "@/hooks/useDpAtestadosPendentes";
-import { notificacaoPathGestor } from "@/lib/dp/notificacoes";
+import { notificacaoPathGestor, notificacaoPathPortal } from "@/lib/dp/notificacoes";
 
-export function DpNotificacoesBell() {
+export function DpNotificacoesBell({ variant = "admin" }: { variant?: "admin" | "portal" }) {
+  const portal = variant === "portal";
   const [open, setOpen] = useState(false);
   const { data } = useDpNotificacoes();
-  const { data: atestados = [] } = useDpAtestadosPendentes();
+  // A fila de atestados para análise é do gestor: no portal ela não existe.
+  const { data: atestadosGestor = [] } = useDpAtestadosPendentes();
+  const atestados = portal ? [] : atestadosGestor;
   const markRead = useMarkNotifRead();
   const markAllRead = useMarkAllNotifsRead();
 
@@ -23,6 +26,7 @@ export function DpNotificacoesBell() {
 
   const onError = () => toast.error("Não foi possível atualizar a notificação. Tente novamente.");
   const markAll = () => markAllRead.mutate(undefined, { onError });
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
