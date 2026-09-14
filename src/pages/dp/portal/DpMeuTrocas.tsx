@@ -66,7 +66,7 @@ export default function DpMeuTrocas() {
       const { data } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
       if (!data) return null;
       const { data: c } = await supabase
-        .from("dp_colaboradores").select("id, company_id").eq("id", data).single();
+        .from("dp_colaboradores").select("id, company_id, unidade_id").eq("id", data).single();
       return c;
     },
   });
