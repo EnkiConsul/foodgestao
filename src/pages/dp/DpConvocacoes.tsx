@@ -28,6 +28,8 @@ import {
 import { statusEfetivo, STATUS_META } from "@/lib/dp/convocacoes";
 import { antecedenciaDias } from "@/lib/dp/convocacoes-planejamento";
 import { cn } from "@/lib/utils";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { mensagemErro } from "@/lib/dp/mensagemErro";
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 const emDias = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
@@ -296,6 +298,8 @@ export default function DpConvocacoes() {
   ) =>
     grupos.isLoading ? (
       <p className="text-sm text-muted-foreground">Carregando…</p>
+    ) : grupos.isError ? (
+      <DpErrorState message={mensagemErro(grupos.error)} onRetry={() => void grupos.refetch()} />
     ) : lista.length === 0 ? (
       <DpEmptyState icon={icone} dashed>
         <div className="space-y-1">

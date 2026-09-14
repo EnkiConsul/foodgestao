@@ -19,6 +19,8 @@ import { MobileDetailsSheet } from "@/components/dp/MobileCardKit";
 import type { Database } from "@/integrations/supabase/types";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { mensagemErro } from "@/lib/dp/mensagemErro";
 
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 type Status = Database["public"]["Enums"]["dp_solicitacao_status"];
@@ -165,7 +167,10 @@ export default function DpSolicitacoes() {
               Carregando...
             </div>
           )}
-          {!list.isLoading && pendentes.length === 0 && (
+          {!list.isLoading && list.isError && (
+            <DpErrorState message={mensagemErro(list.error)} onRetry={() => void list.refetch()} />
+          )}
+          {!list.isLoading && !list.isError && pendentes.length === 0 && (
             <div className="bg-card border border-border rounded-xl p-6 text-center text-muted-foreground text-sm">
               Nenhuma solicitação pendente.
             </div>
@@ -252,7 +257,15 @@ export default function DpSolicitacoes() {
       <section className="space-y-3">
         <h2 className="font-semibold">Histórico</h2>
         <div className="bg-card border border-border rounded-xl divide-y divide-border">
-          {historico.length === 0 && (
+          {list.isLoading && (
+            <div className="p-4 text-sm text-muted-foreground">Carregando...</div>
+          )}
+          {!list.isLoading && list.isError && (
+            <div className="p-4">
+              <DpErrorState message={mensagemErro(list.error)} onRetry={() => void list.refetch()} />
+            </div>
+          )}
+          {!list.isLoading && !list.isError && historico.length === 0 && (
             <div className="p-4 text-sm text-muted-foreground">Sem registros.</div>
           )}
           {historico.map((s) => {

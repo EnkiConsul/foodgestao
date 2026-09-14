@@ -76,7 +76,11 @@ function AvisoCard({
               <button
                 key={emoji}
                 type="button"
-                onClick={() => mural.toggleReacao.mutate({ avisoId: aviso.id, emoji })}
+                disabled={mural.toggleReacao.isPending}
+                onClick={() => {
+                  if (mural.toggleReacao.isPending) return;
+                  mural.toggleReacao.mutate({ avisoId: aviso.id, emoji });
+                }}
                 className={cn(
                   "rounded-full border px-2 py-1 text-sm transition-colors",
                   ativo ? "border-primary bg-primary/10" : "hover:bg-muted",
@@ -100,9 +104,14 @@ function AvisoCard({
             size="sm"
             variant={aviso.leitura_obrigatoria ? "default" : "outline"}
             className="ml-auto"
-            onClick={() => mural.marcarLeitura.mutate(aviso.id)}
+            disabled={mural.marcarLeitura.isPending}
+            onClick={() => {
+              if (mural.marcarLeitura.isPending) return;
+              mural.marcarLeitura.mutate(aviso.id);
+            }}
           >
-            <CheckCircle2 className="mr-1 h-4 w-4" /> Confirmar leitura
+            <CheckCircle2 className="mr-1 h-4 w-4" />
+            {mural.marcarLeitura.isPending ? "Confirmando…" : "Confirmar leitura"}
           </Button>
         )}
       </div>
@@ -125,7 +134,11 @@ function AvisoCard({
                       size="icon"
                       variant="ghost"
                       className="h-6 w-6"
-                      onClick={() => mural.removerComentario.mutate(c.id)}
+                      disabled={mural.removerComentario.isPending}
+                      onClick={() => {
+                        if (mural.removerComentario.isPending) return;
+                        mural.removerComentario.mutate(c.id);
+                      }}
                     >
                       <Trash2 className="h-3 w-3 text-destructive" />
                     </Button>

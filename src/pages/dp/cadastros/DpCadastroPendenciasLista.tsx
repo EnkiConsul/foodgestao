@@ -24,6 +24,8 @@ import {
   type PendenciaUrgencia,
 } from "@/lib/dp/pendencias";
 import { UrgenciaBadge } from "@/components/dp/home/PendenciasCard";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { mensagemErro } from "@/lib/dp/mensagemErro";
 
 type Filtro = {
   tipo: string;
@@ -40,7 +42,7 @@ const URGENCIA_OP: { value: Filtro["urgencia"]; label: string }[] = [
 ];
 
 export default function DpCadastroPendenciasLista() {
-  const { data = [], isLoading } = useDpPendencias();
+  const { data = [], isLoading, isError, error, refetch } = useDpPendencias();
   const { prefs } = useDpUserPrefs();
   const { ignoradas, adiadas, decisaoDe } = useDpPendenciasDecisoes();
   const [mostrarAdiadas, setMostrarAdiadas] = useState(false);
@@ -147,7 +149,10 @@ export default function DpCadastroPendenciasLista() {
       </div>
 
       {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
-      {!isLoading && base.length === 0 && (
+      {!isLoading && isError && (
+        <DpErrorState message={mensagemErro(error)} onRetry={() => void refetch()} />
+      )}
+      {!isLoading && !isError && base.length === 0 && (
         <p className="text-sm text-muted-foreground py-10 text-center">
           Nenhuma pendência encontrada com os filtros atuais.
         </p>

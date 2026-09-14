@@ -95,6 +95,7 @@ export default function DpMensagens() {
   };
 
   const duplicarModelo = (m: DpModeloMensagem) => {
+    if (modelos.upsert.isPending) return;
     modelos.upsert.mutate({
       titulo: `${m.titulo} (cópia)`,
       tipo: (m.tipo ?? "outro") as DpModeloTipo,
@@ -105,6 +106,7 @@ export default function DpMensagens() {
   };
 
   const salvarModelo = () => {
+    if (modelos.upsert.isPending) return;
     if (!modeloForm.titulo || !modeloForm.assunto || !modeloForm.corpo) {
       toast.error("Preencha nome, assunto e corpo");
       return;
@@ -202,7 +204,7 @@ export default function DpMensagens() {
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
-                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => duplicarModelo(m)} title="Duplicar">
+                      <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" disabled={modelos.upsert.isPending} onClick={() => duplicarModelo(m)} title="Duplicar">
                         <Copy className="h-4 w-4" />
                       </Button>
                       <Button size="icon" variant="ghost" className="h-10 w-10 sm:h-8 sm:w-8" onClick={() => editarModelo(m)} title="Editar">
@@ -329,8 +331,10 @@ export default function DpMensagens() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setModeloOpen(false)}>Cancelar</Button>
-            <Button onClick={salvarModelo}>Salvar</Button>
+            <Button variant="ghost" disabled={modelos.upsert.isPending} onClick={() => setModeloOpen(false)}>Cancelar</Button>
+            <Button disabled={modelos.upsert.isPending} onClick={salvarModelo}>
+              {modelos.upsert.isPending ? "Salvando…" : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -346,7 +350,12 @@ export default function DpMensagens() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => { if (toDelete) { modelos.remove.mutate(toDelete.id); setToDelete(null); } }}
+              disabled={modelos.remove.isPending}
+              onClick={() => {
+                if (!toDelete || modelos.remove.isPending) return;
+                modelos.remove.mutate(toDelete.id);
+                setToDelete(null);
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir

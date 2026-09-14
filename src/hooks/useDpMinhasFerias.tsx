@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
 import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
+import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
 export type MinhaFeriasDocumento = {
   id: string;
@@ -57,10 +58,14 @@ export type SolicitarFeriasInput = {
 /** Minhas férias no portal do colaborador: saldo, programações e pedidos. */
 export function useDpMinhasFerias() {
   const qc = useQueryClient();
+  const vinculo = useMeuVinculoPortal();
   const invalidate = () => void qc.invalidateQueries({ queryKey: ["dp_ferias_minhas"] });
 
+  // A empresa do vínculo entra na chave: ao trocar de contexto, os dados da
+  // empresa anterior nunca continuam na tela.
   const query = useQuery({
-    queryKey: ["dp_ferias_minhas"],
+    queryKey: ["dp_ferias_minhas", vinculo.data?.companyId ?? null],
+    enabled: !vinculo.isLoading,
     queryFn: async (): Promise<MinhaFeriasPeriodo[]> => {
       const { data, error } = await supabase.rpc("dp_ferias_minhas");
       if (error) throw error;

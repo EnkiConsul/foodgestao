@@ -20,6 +20,8 @@ import {
   contarFiltrosAtivos,
   type TrocaFiltros,
 } from "@/lib/dp/trocas-filtros";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { mensagemErro } from "@/lib/dp/mensagemErro";
 
 const STATUS_OPCOES: { value: string; label: string }[] = [
   { value: "todos", label: "Todos os status" },
@@ -42,6 +44,9 @@ export default function DpTrocas() {
     rows,
     total,
     isLoading,
+    isError,
+    error,
+    refetch,
     responder: responderMut,
     cancelar: cancelarMut,
   } = useDpTrocas(filtros);
@@ -196,6 +201,8 @@ export default function DpTrocas() {
           <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">
             Carregando…
           </div>
+        ) : isError ? (
+          <DpErrorState message={mensagemErro(error)} onRetry={() => void refetch()} />
         ) : rows.length === 0 ? (
           <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">
             Nenhuma troca encontrada com estes filtros.

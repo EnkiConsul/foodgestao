@@ -28,19 +28,21 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { notifyError } from "@/lib/notifyError";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { mensagemErro } from "@/lib/dp/mensagemErro";
 
 const MAX_UPLOAD_MB = 10;
 const ALLOWED_MIMES = [
   "application/pdf", "image/png", "image/jpeg", "image/webp",
 ];
 
-function AvisoDialog({
+export function AvisoDialog({
   aviso, open, onOpenChange, onSave, companyId,
 }: {
   aviso?: DpAviso | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onSave: (v: Partial<DpAviso> & { titulo: string; conteudo: string }) => void;
+  onSave: (v: Partial<DpAviso> & { titulo: string; conteudo: string }) => Promise<void>;
   companyId: string | null;
 }) {
   const [titulo, setTitulo] = useState(aviso?.titulo ?? "");
@@ -54,6 +56,7 @@ function AvisoDialog({
   const [arquivoPath, setArquivoPath] = useState(aviso?.arquivo_path ?? "");
   const [arquivoMime, setArquivoMime] = useState(aviso?.arquivo_mime ?? "");
   const [uploading, setUploading] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [leituraObrigatoria, setLeituraObrigatoria] = useState<boolean>((aviso as any)?.leitura_obrigatoria ?? false);
   const [permitirReacoes, setPermitirReacoes] = useState<boolean>((aviso as any)?.permitir_reacoes ?? true);
   const [permitirComentarios, setPermitirComentarios] = useState<boolean>((aviso as any)?.permitir_comentarios ?? false);
@@ -177,12 +180,15 @@ function AvisoDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" disabled={salvando} onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
-            disabled={!titulo || !conteudo || !dataInicio || !dataFim}
-            onClick={() => {
+            disabled={!titulo || !conteudo || !dataInicio || !dataFim || uploading || salvando}
+            onClick={async () => {
+              if (salvando) return;
               const dest = parseDest();
-              onSave({
+              setSalvando(true);
+              try {
+                await onSave({
                 id: aviso?.id,
                 titulo,
                 conteudo,
@@ -196,11 +202,16 @@ function AvisoDialog({
                 leitura_obrigatoria: leituraObrigatoria,
                 permitir_reacoes: permitirReacoes,
                 permitir_comentarios: permitirComentarios,
-              } as any);
-              onOpenChange(false);
+                } as any);
+                onOpenChange(false);
+              } catch {
+                /* Erro já sinalizado pela mutação; janela e dados permanecem. */
+              } finally {
+                setSalvando(false);
+              }
             }}
           >
-            Salvar
+            {salvando ? "Salvando…" : "Salvar"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -209,7 +220,7 @@ function AvisoDialog({
 }
 
 export default function DpAvisos() {
-  const { data: avisos = [], isLoading, upsert, remove } = useDpAvisos();
+  const { data: avisos = [], isLoading, isError, error, refetch, upsert, remove } = useDpAvisos();
   const { selectedCompanyId } = useCompanyContext();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpAviso | null>(null);
@@ -252,6 +263,8 @@ export default function DpAvisos() {
         <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
           Carregando…
         </div>
+      ) : isError ? (
+        <DpErrorState message={mensagemErro(error)} onRetry={() => void refetch()} />
       ) : sorted.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
           Nenhum aviso cadastrado.
@@ -307,7 +320,7 @@ export default function DpAvisos() {
           open={open}
           onOpenChange={setOpen}
           companyId={selectedCompanyId}
-          onSave={(v) => upsert.mutate(v)}
+          onSave={async (v) => { await upsert.mutateAsync(v); }}
         />
       </Dialog>
 
@@ -330,7 +343,12 @@ export default function DpAvisos() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => { if (toDelete) { remove.mutate(toDelete.id); setToDelete(null); } }}
+              disabled={remove.isPending}
+              onClick={() => {
+                if (!toDelete || remove.isPending) return;
+                remove.mutate(toDelete.id);
+                setToDelete(null);
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir
