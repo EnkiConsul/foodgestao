@@ -56,10 +56,10 @@ export default function DpMeuEscala() {
   const [competencia, setCompetencia] = useState(competenciaAtual);
 
   const me = useQuery({
-    queryKey: ["dp_colaborador_of", user?.id],
+    queryKey: ["dp_meu_colaborador", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
+      const { data } = await supabase.rpc("dp_meu_colaborador");
       return (data as string | null) ?? null;
     },
   });

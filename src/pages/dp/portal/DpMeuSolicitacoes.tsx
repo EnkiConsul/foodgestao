@@ -86,7 +86,7 @@ export default function DpMeuSolicitacoes() {
     queryKey: ["colab_of_sol", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
+      const { data } = await supabase.rpc("dp_meu_colaborador");
       if (!data) return null;
       const { data: c } = await supabase
         .from("dp_colaboradores")

@@ -13,12 +13,12 @@ import { notificacaoPathGestor, notificacaoPathPortal } from "@/lib/dp/notificac
 export function DpNotificacoesBell({ variant = "admin" }: { variant?: "admin" | "portal" }) {
   const portal = variant === "portal";
   const [open, setOpen] = useState(false);
-  const { data } = useDpNotificacoes();
+  const { data } = useDpNotificacoes({ variant });
   // A fila de atestados para análise é do gestor: no portal ela não existe.
   const { data: atestadosGestor = [] } = useDpAtestadosPendentes();
   const atestados = portal ? [] : atestadosGestor;
   const markRead = useMarkNotifRead();
-  const markAllRead = useMarkAllNotifsRead();
+  const markAllRead = useMarkAllNotifsRead({ variant });
 
   const list = data ?? [];
   const unread = list.filter((n) => !n.lida);

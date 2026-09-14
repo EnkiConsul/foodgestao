@@ -281,26 +281,37 @@ function PortalProtected({ children }: { children: React.ReactNode }) {
   const [situacao, setSituacao] = useState<"verificando" | "liberado" | "bloqueado" | "falha">(
     "verificando",
   );
+  // Vínculo: só quem o servidor reconhece como colaborador entra no portal.
+  const [vinculo, setVinculo] = useState<"verificando" | "ok" | "ausente" | "falha">("verificando");
   const [tentativa, setTentativa] = useState(0);
   useEffect(() => {
     if (!user) {
       setSituacao("verificando");
+      setVinculo("verificando");
       return;
     }
     let cancelado = false;
     setSituacao("verificando");
+    setVinculo("verificando");
     supabase.rpc("auth_access_enabled").then(({ data, error }) => {
       if (cancelado) return;
       const decisao = decidirAcessoPortal({ data, error });
       setSituacao(decisao);
       if (decisao === "bloqueado") void supabase.auth.signOut();
     });
+    supabase.rpc("dp_meu_colaborador").then(({ data, error }) => {
+      if (cancelado) return;
+      if (error) return setVinculo("falha");
+      setVinculo(typeof data === "string" && data ? "ok" : "ausente");
+    });
     return () => {
       cancelado = true;
     };
   }, [user?.id, tentativa]);
-  if (loading || (user && situacao === "verificando")) return <PageSpinner />;
-  if (user && situacao === "falha") {
+  if (loading || (user && (situacao === "verificando" || vinculo === "verificando"))) {
+    return <PageSpinner />;
+  }
+  if (user && (situacao === "falha" || vinculo === "falha")) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
         <p className="text-base font-medium">Não foi possível confirmar seu acesso agora.</p>
@@ -308,6 +319,20 @@ function PortalProtected({ children }: { children: React.ReactNode }) {
           Verifique sua conexão e tente novamente. Se continuar, fale com o setor de pessoal.
         </p>
         <Button onClick={() => setTentativa((n) => n + 1)}>Tentar novamente</Button>
+      </div>
+    );
+  }
+  if (user && situacao === "liberado" && vinculo === "ausente") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
+        <p className="text-base font-medium">Esta área é do colaborador.</p>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Sua conta não está vinculada a um cadastro de colaborador. Se você trabalha aqui, peça ao
+          setor de pessoal para liberar seu acesso.
+        </p>
+        <Button asChild>
+          <a href="/dp">Ir para a área de gestão</a>
+        </Button>
       </div>
     );
   }
