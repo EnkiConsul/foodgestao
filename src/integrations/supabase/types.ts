@@ -14248,6 +14248,10 @@ export type Database = {
         Args: { p_convocacao_id: string }
         Returns: Json
       }
+      dp_convocacao_cancelar: {
+        Args: { p_id: string; p_motivo?: string }
+        Returns: Json
+      }
       dp_convocacao_cancelar_ocorrencia_rascunho: {
         Args: { p_expected_updated_at?: string; p_ocorrencia_id: string }
         Returns: Json
@@ -14283,6 +14287,22 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      dp_convocacao_criar: {
+        Args: {
+          p_carga_prevista_horas?: number
+          p_colaborador: string
+          p_data: string
+          p_entrada: string
+          p_intervalo_minutos?: number
+          p_observacao?: string
+          p_prazo_resposta?: string
+          p_saida: string
+          p_termina_no_dia_seguinte?: boolean
+          p_turno?: string
+          p_unidade?: string
+        }
+        Returns: Json
       }
       dp_convocacao_criar_grupo: {
         Args: {
@@ -14631,6 +14651,15 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_escala_publicar: {
+        Args: {
+          p_competencia?: string
+          p_escala_id?: string
+          p_unidade_id?: string
+        }
+        Returns: Json
+      }
+      dp_escala_reabrir: { Args: { p_escala_id: string }; Returns: Json }
       dp_excluir_colaborador: {
         Args: { p_colaborador_id: string; p_motivo: string }
         Returns: undefined
@@ -14698,6 +14727,19 @@ export type Database = {
       dp_ferias_gerar_periodos: {
         Args: { _colaborador_id: string }
         Returns: number
+      }
+      dp_ferias_gozo_editar: {
+        Args: {
+          p_adiantar_13?: boolean
+          p_aviso_em?: string
+          p_data_fim: string
+          p_data_inicio: string
+          p_dias_abono?: number
+          p_gozo_id: string
+          p_justificativa?: string
+          p_observacao?: string
+        }
+        Returns: Json
       }
       dp_ferias_informar_faltas: {
         Args: { _faltas: number; _motivo?: string; _periodo_id: string }
@@ -15358,6 +15400,24 @@ export type Database = {
       dp_timezone_resolvido: {
         Args: { _company_id: string; _unidade_id?: string }
         Returns: string
+      }
+      dp_troca_cancelar_self: { Args: { p_id: string }; Returns: Json }
+      dp_troca_propor: {
+        Args: {
+          p_data_original: string
+          p_data_proposta: string
+          p_destino: string
+          p_motivo: string
+        }
+        Returns: Json
+      }
+      dp_troca_responder_colega: {
+        Args: { p_aceito: boolean; p_id: string }
+        Returns: Json
+      }
+      dp_troca_responder_gestor: {
+        Args: { p_aceito: boolean; p_id: string; p_observacao?: string }
+        Returns: Json
       }
       dp_turno_colaboradores: {
         Args: { p_turno_id: string }

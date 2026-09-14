@@ -46,6 +46,7 @@ import {
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga, domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
 import { folgasOfertaveis } from "@/lib/dp/troca-oferta";
+import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 
 
 import {
@@ -786,29 +787,14 @@ export default function DpMeuCalendario() {
       if (!check.permitida) throw new Error(check.motivo ?? "Troca de folga não permitida.");
 
 
-      // duplicidade
-      const { data: existing } = await supabase
-        .from("dp_trocas")
-        .select("id")
-        .eq("solicitante_id", meRef.data.id)
-        .eq("destino_id", tradeOpen.occupantId)
-        .eq("data_proposta", tradeOpen.iso)
-
-        .eq("status", "pendente_colega")
-        .maybeSingle();
-      if (existing) throw new Error("Você já enviou uma troca pendente para este dia com este colega.");
-
-      const { error } = await supabase.from("dp_trocas").insert({
-        company_id: meRef.data.company_id,
-        solicitante_id: meRef.data.id,
-        destino_id: tradeOpen.occupantId,
-        data_original: tradeMyDate,
-        data_proposta: tradeOpen.iso,
-        motivo,
-        status: "pendente_colega",
-        created_by: user!.id,
+      // duplicidade, folgas envolvidas e concorrência são revalidadas no servidor
+      const { error } = await supabase.rpc("dp_troca_propor", {
+        p_destino: tradeOpen.occupantId,
+        p_data_original: tradeMyDate,
+        p_data_proposta: tradeOpen.iso,
+        p_motivo: motivo,
       });
-      if (error) throw error;
+      if (error) throw new Error(mensagemErroTroca(error.message));
     },
     onSuccess: () => {
       toast.success("Solicitação de troca enviada ao colega.");

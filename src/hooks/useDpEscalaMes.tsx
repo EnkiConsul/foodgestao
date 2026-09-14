@@ -21,6 +21,16 @@ const limites = (competencia: string) => {
   return { inicio: dias[0], fim: dias[dias.length - 1] };
 };
 
+/** Traduz os códigos do servidor para o texto que o gestor lê na tela. */
+function mensagemErroEscala(raw: string | null | undefined): string {
+  const msg = raw ?? "";
+  if (msg.includes("ESCALA_VAZIA")) return "Gere os dias da escala antes de publicar.";
+  if (msg.includes("ESCALA_NAO_ENCONTRADA")) return "Gere a escala do mês antes de publicar.";
+  if (msg.includes("FORBIDDEN")) return "Você não tem permissão para publicar esta escala.";
+  if (msg.includes("INVALID_INPUT")) return "Selecione a unidade e o mês da escala.";
+  return "Não foi possível concluir a ação. Tente novamente.";
+}
+
 /** Converte a linha do banco no item de domínio. */
 export function linhaParaItem(row: EscalaItemRow): EscalaItem {
   return {
@@ -273,19 +283,19 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
     onSuccess: invalidate,
   });
 
+  /**
+   * Publicação: o servidor confere empresa e papel, trava a escala do mês,
+   * recusa escala vazia, ignora clique repetido e registra quem publicou.
+   */
   const publicar = useMutation({
     mutationFn: async () => {
       const id = await garantirEscala();
-      const { data: userData } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("dp_escalas")
-        .update({
-          status: "publicada",
-          publicada_em: new Date().toISOString(),
-          publicada_por: userData.user?.id ?? null,
-        })
-        .eq("id", id);
-      if (error) throw error;
+      const { error } = await supabase.rpc("dp_escala_publicar", {
+        p_competencia: competencia,
+        p_unidade_id: unidadeId,
+        p_escala_id: id,
+      });
+      if (error) throw new Error(mensagemErroEscala(error.message));
     },
     onSuccess: invalidate,
   });
@@ -293,11 +303,8 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
   const reabrir = useMutation({
     mutationFn: async () => {
       if (!escalaId) return;
-      const { error } = await supabase
-        .from("dp_escalas")
-        .update({ status: "rascunho", publicada_em: null, publicada_por: null })
-        .eq("id", escalaId);
-      if (error) throw error;
+      const { error } = await supabase.rpc("dp_escala_reabrir", { p_escala_id: escalaId });
+      if (error) throw new Error(mensagemErroEscala(error.message));
     },
     onSuccess: invalidate,
   });

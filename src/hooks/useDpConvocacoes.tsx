@@ -17,6 +17,20 @@ export interface NovaConvocacao extends NovaConvocacaoInput {
   observacao: string | null;
 }
 
+/** Traduz os códigos do servidor para o texto que o gestor lê na tela. */
+function mensagemErroConvocacao(raw: string | null | undefined): string {
+  const msg = raw ?? "";
+  if (msg.includes("DUPLICATE_REQUEST"))
+    return "Este colaborador já tem uma convocação ativa nesta data.";
+  if (msg.includes("STATUS_INVALIDO")) return "Esta convocação não pode mais ser cancelada.";
+  if (msg.includes("CONVOCACAO_FLUXO_NOVO"))
+    return "Cancele esta oferta pelo painel de convocações.";
+  if (msg.includes("FORBIDDEN")) return "Você não tem permissão para esta ação.";
+  if (msg.includes("INVALID_INPUT")) return "Revise os dados informados da convocação.";
+  return "Não foi possível concluir a ação. Tente novamente.";
+}
+
+
 /** Convocações da empresa (visão administrativa) para um intervalo de datas. */
 export function useDpConvocacoes(inicio: string, fim: string, colaboradorId?: string | null) {
   const { selectedCompanyId } = useCompanyContext();
@@ -44,47 +58,40 @@ export function useDpConvocacoes(inicio: string, fim: string, colaboradorId?: st
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["dp_convocacoes"] });
 
+  /** Criação da convocação: empresa, papel, horário e duplicidade validados no servidor. */
   const criar = useMutation({
     mutationFn: async (form: NovaConvocacao) => {
-      if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
       const snap = snapshotDaConvocacao(form);
-      const { data: auth } = await supabase.auth.getUser();
-      const { error } = await supabase.from("dp_convocacoes").insert({
-        company_id: selectedCompanyId,
-        colaborador_id: form.colaborador_id,
-        unidade_id: form.unidade_id,
-        turno_id: form.turno_id,
-        data: form.data,
-        prazo_resposta: form.prazo_resposta ?? null,
-        observacao: form.observacao,
-        criada_por: auth.user?.id ?? null,
-        ...snap,
+      const { error } = await supabase.rpc("dp_convocacao_criar", {
+        p_colaborador: form.colaborador_id,
+        p_data: form.data,
+        p_entrada: snap.entrada,
+        p_saida: snap.saida,
+        p_intervalo_minutos: snap.intervalo_minutos,
+        p_termina_no_dia_seguinte: snap.termina_no_dia_seguinte,
+        p_carga_prevista_horas: snap.carga_prevista_horas,
+        p_unidade: form.unidade_id,
+        p_turno: form.turno_id,
+        p_prazo_resposta: form.prazo_resposta ?? null,
+        p_observacao: form.observacao,
       });
-      if (error) throw error;
+      if (error) throw new Error(mensagemErroConvocacao(error.message));
     },
     onSuccess: invalidate,
   });
 
   const cancelar = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("dp_convocacoes")
-        .update({ status: "cancelada" })
-        .eq("id", id);
-      if (error) throw error;
+      const { error } = await supabase.rpc("dp_convocacao_cancelar", {
+        p_id: id,
+        p_motivo: null,
+      });
+      if (error) throw new Error(mensagemErroConvocacao(error.message));
     },
     onSuccess: invalidate,
   });
 
-  const remover = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_convocacoes").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-  });
-
-  return { rows: query.data ?? [], isLoading: query.isLoading, error: query.error, criar, cancelar, remover };
+  return { rows: query.data ?? [], isLoading: query.isLoading, error: query.error, criar, cancelar };
 }
 
 /** Oferta enriquecida devolvida pela RPC do Portal (dados do snapshot). */
