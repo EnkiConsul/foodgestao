@@ -175,7 +175,11 @@ export default function DpMeuHistorico() {
         ) : eventos.isLoading || colabQ.isLoading ? (
           <div className="p-2"><CardListSkeleton rows={4} /></div>
         ) : filtrados.length === 0 ? (
-          <DpEmptyState icon={History}>Sem eventos.</DpEmptyState>
+          <DpEmptyState icon={History}>
+            {busca || filtro !== "Todos"
+              ? "Nada encontrado com esses filtros. Tente limpar a busca ou escolher outro tipo."
+              : "Você ainda não tem eventos. Suas solicitações, folgas e documentos aparecerão aqui."}
+          </DpEmptyState>
 
         ) : (
           <>
@@ -198,7 +202,7 @@ export default function DpMeuHistorico() {
             </ol>
             {visiveis < filtrados.length && (
               <div className="p-4 pt-0 flex justify-center">
-                <Button variant="outline" size="sm" onClick={() => setVisiveis((v) => v + PAGE)}>
+                <Button variant="outline" className="min-h-11" onClick={() => setVisiveis((v) => v + PAGE)}>
                   Carregar mais ({filtrados.length - visiveis} restantes)
                 </Button>
               </div>

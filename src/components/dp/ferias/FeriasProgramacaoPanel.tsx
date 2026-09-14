@@ -151,7 +151,30 @@ export function FeriasProgramacaoPanel() {
             Nenhum período aquisitivo para os filtros escolhidos.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <ul className="divide-y divide-border md:hidden">
+            {linhas.map((l, i) => (
+              <li key={`m-${l.colaboradorId}-${l.inicioAquisitivo}-${i}`} className="space-y-1.5 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="min-w-0 flex-1 font-semibold">{l.nome ?? "—"}</p>
+                  <Badge className={NIVEL_VENCIMENTO_META[l.situacao].tone}>
+                    {SITUACAO_PROGRAMACAO_LABEL[l.situacao]}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Período: {fmt(l.inicioAquisitivo)} a {fmt(l.fimAquisitivo)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Prazo para tirar: {fmt(l.limiteGozo)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Dias a tirar: {l.diasRestantes} de {l.diasDireito}
+                  {l.gozoInicio ? ` · Início marcado: ${fmt(l.gozoInicio)}` : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
             <Table className="text-xs" style={{ minWidth: cols.larguraTotal }}>
               <TableHeader>
                 <TableRow>
@@ -217,6 +240,7 @@ export function FeriasProgramacaoPanel() {
               </TableBody>
             </Table>
           </div>
+          </>
         )}
       </DpContentCard>
     </>

@@ -65,6 +65,7 @@ import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { Label } from "@/components/ui/label";
 
 /** Rótulo curto do motivo operacional da cobertura. */
@@ -706,9 +707,17 @@ function DetalheDiaOperacao({
                       <Button variant="ghost" size="sm" onClick={() => onEditarAvulsa(a)}>
                         Editar
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => onExcluirAvulsa(a)}>
-                        Remover
-                      </Button>
+                      <ConfirmarAcaoDialog
+                        titulo="Remover do dia?"
+                        descricao={`${a.nome ?? "A pessoa"} deixará de constar neste dia.`}
+                        confirmar="Remover"
+                        cancelar="Cancelar"
+                        onConfirm={() => onExcluirAvulsa(a)}
+                      >
+                        <Button variant="ghost" size="sm" className="h-11 sm:h-9">
+                          Remover
+                        </Button>
+                      </ConfirmarAcaoDialog>
                     </>
                   )}
                 </div>

@@ -3,6 +3,7 @@ import {
   Upload, Eye, Check, X, Ban, CalendarClock, Loader2, Trash2, PenLine, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -199,15 +200,22 @@ export function DocumentoRequisitoRow({
                         </Button>
                       )}
                       {onExcluir && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive"
-                          onClick={() => onExcluir(anexo)}
-                          aria-label="Remover anexo"
+                        <ConfirmarAcaoDialog
+                          titulo="Excluir documento?"
+                          descricao={`"${doc?.file_name ?? "Documento"}" será excluído e não poderá ser recuperado.`}
+                          confirmar="Excluir"
+                          cancelar="Cancelar"
+                          onConfirm={() => onExcluir(anexo)}
                         >
-                          <Trash2 className="size-4" />
-                        </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-11 min-w-11 text-destructive sm:h-9 sm:min-w-9"
+                            aria-label="Excluir documento"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </ConfirmarAcaoDialog>
                       )}
                     </>
                   )}
