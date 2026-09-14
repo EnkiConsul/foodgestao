@@ -46,6 +46,8 @@ const PROBLEMAS: { label: string; marcacao?: OcorrenciaMarcacao; tipo: Ocorrenci
   { label: "Esqueci o início do intervalo", marcacao: "intervalo_inicio", tipo: "esquecimento_marcacao" },
   { label: "Esqueci o retorno do intervalo", marcacao: "intervalo_retorno", tipo: "esquecimento_marcacao" },
   { label: "Atrasei o retorno do intervalo", tipo: "atraso_intervalo" },
+  { label: "Relógio de ponto com defeito", tipo: "divergencia_jornada" },
+  { label: "Ponto não está registrando minha marcação", tipo: "divergencia_jornada" },
   { label: "Outra divergência", tipo: "divergencia_jornada" },
 ];
 
