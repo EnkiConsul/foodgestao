@@ -23,6 +23,15 @@ import {
   useDpFichaImportacoes, useDpFichaItens, useEnviarFichaPdf,
 } from "@/hooks/useDpFichaImportacao";
 import { notifyError } from "@/lib/notifyError";
+import { cn } from "@/lib/utils";
+
+/** Situação de cada envio, em linguagem de tela. */
+const STATUS_ENVIO: Record<string, string> = {
+  pending: "na fila",
+  processing: "em leitura",
+  ready: "lido",
+  failed: "não foi possível ler",
+};
 
 /** Vínculos do cadastro (enum dp_regime_trabalho) — igual ao card de conferência. */
 const REGIMES: Array<{ value: string; label: string }> = [
