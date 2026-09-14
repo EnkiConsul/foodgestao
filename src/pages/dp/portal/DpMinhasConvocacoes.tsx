@@ -11,8 +11,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import { PropostaParcialDialog } from "@/components/dp/convocacoes/PropostaParcialDialog";
+import { AceiteAtrasadoDialog } from "@/components/dp/convocacoes/AceiteAtrasadoDialog";
 import { useMinhasConvocacoes, type MinhaOferta } from "@/hooks/useDpConvocacoes";
-import { STATUS_META, podeResponder, statusEfetivo } from "@/lib/dp/convocacoes";
+import {
+  STATUS_META, janelaEmAndamento, minutosDeAtraso, podeResponder, rotuloAtraso, statusEfetivo,
+} from "@/lib/dp/convocacoes";
+
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -123,8 +127,11 @@ export default function DpMinhasConvocacoes() {
     const st = statusEfetivo(c as any);
     const meta = STATUS_META[st] ?? { label: c.status, className: "bg-muted text-muted-foreground border-border" };
     const responderAgora = podeResponder(c as any);
+    const emAndamento = c.status === "pendente" && janelaEmAndamento(c);
+    const atraso = c.minutos_de_atraso ?? minutosDeAtraso(c.inicio_previsto);
     const prazo = rotuloPrazo(c.prazo_resposta);
     const rem = remuneracaoPrevista(c.remuneracao_snapshot);
+
 
     return (
       <Card key={c.id}>
