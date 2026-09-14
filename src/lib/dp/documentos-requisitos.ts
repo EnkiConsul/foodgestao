@@ -78,6 +78,15 @@ export type DependenteContexto = {
   cessado_em?: string | null;
 };
 
+/**
+ * Quem tem a obrigação de fornecer o documento. Itens da empresa (contrato,
+ * ASO, termos) nunca são cobrados do colaborador: aparecem apenas depois que
+ * a empresa anexa o arquivo.
+ */
+export function requisitoDaEmpresa(req: DpDocumentoRequisito): boolean {
+  return ((req as { responsavel?: string | null }).responsavel ?? "colaborador") === "empresa";
+}
+
 export type ItemChecklist = {
   /** Chave única (requisito + dependente, quando houver). */
   key: string;
