@@ -87,8 +87,13 @@ export default function DpMeuHome() {
   const hour = now.getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   const dateStr = now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
-  const firstName =
-    meu?.nome?.split(" ")[0] ?? user?.email?.split("@")[0]?.split(".")[0] ?? "";
+  // Cadastro é gravado em CAIXA ALTA; na conversa usamos caixa alta e baixa.
+  const firstName = toProperName(
+    (meu as any)?.nome_social?.split(" ")[0] ??
+      meu?.nome?.split(" ")[0] ??
+      user?.email?.split("@")[0]?.split(".")[0] ??
+      "",
+  );
 
   const folgaTexto = textoProximaFolga(proximaFolga, hojeISO);
 
