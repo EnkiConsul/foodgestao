@@ -165,7 +165,10 @@ export default function DpSolicitacoes() {
               Carregando...
             </div>
           )}
-          {!list.isLoading && pendentes.length === 0 && (
+          {!list.isLoading && list.isError && (
+            <DpErrorState message={mensagemErro(list.error)} onRetry={() => void list.refetch()} />
+          )}
+          {!list.isLoading && !list.isError && pendentes.length === 0 && (
             <div className="bg-card border border-border rounded-xl p-6 text-center text-muted-foreground text-sm">
               Nenhuma solicitação pendente.
             </div>
