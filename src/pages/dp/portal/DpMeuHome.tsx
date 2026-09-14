@@ -18,6 +18,7 @@ import { DpPage } from "@/components/dp/DpPage";
 import { MinhaJornadaAcoesCard } from "@/components/dp/ocorrencias/MinhaJornadaAcoesCard";
 import { useMinhaProximaFolga } from "@/hooks/useMinhaProximaFolga";
 import { textoProximaFolga } from "@/lib/dp/proxima-folga";
+import { toProperName } from "@/lib/text/properName";
 
 
 export default function DpMeuHome() {
@@ -86,8 +87,13 @@ export default function DpMeuHome() {
   const hour = now.getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   const dateStr = now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
-  const firstName =
-    meu?.nome?.split(" ")[0] ?? user?.email?.split("@")[0]?.split(".")[0] ?? "";
+  // Cadastro é gravado em CAIXA ALTA; na conversa usamos caixa alta e baixa.
+  const firstName = toProperName(
+    (meu as any)?.nome_social?.split(" ")[0] ??
+      meu?.nome?.split(" ")[0] ??
+      user?.email?.split("@")[0]?.split(".")[0] ??
+      "",
+  );
 
   const folgaTexto = textoProximaFolga(proximaFolga, hojeISO);
 
@@ -102,7 +108,7 @@ export default function DpMeuHome() {
             <Bell className="h-5 w-5 text-primary" />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl md:text-2xl font-bold capitalize truncate">
+            <h1 className="truncate text-xl font-bold md:text-2xl">
               {greeting}{firstName ? `, ${firstName}` : ""} 👋
             </h1>
             <p className="text-xs md:text-sm text-muted-foreground capitalize">{dateStr}</p>

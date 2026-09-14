@@ -10,18 +10,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 
+/** Regra alinhada ao servidor de contas: 8+ com maiúscula, minúscula, número e símbolo. */
 const schema = z.object({
   password: z.string()
-    .min(10, "Mínimo de 10 caracteres")
+    .min(8, "Use pelo menos 8 caracteres")
     .max(128, "Máximo de 128 caracteres")
-    .regex(/[A-Z]/, "Precisa de ao menos 1 letra maiúscula")
-    .regex(/[a-z]/, "Precisa de ao menos 1 letra minúscula")
-    .regex(/[0-9]/, "Precisa de ao menos 1 número"),
+    .regex(/[A-Z]/, "Inclua ao menos 1 letra maiúscula")
+    .regex(/[a-z]/, "Inclua ao menos 1 letra minúscula")
+    .regex(/[0-9]/, "Inclua ao menos 1 número")
+    .regex(/[^A-Za-z0-9]/, "Inclua ao menos 1 símbolo, como ! @ # ou *"),
   confirm: z.string(),
 }).refine((d) => d.password === d.confirm, {
   message: "As senhas não coincidem",
   path: ["confirm"],
 });
+
+/** Traduz as recusas do servidor de contas para linguagem simples. */
+function mensagemDeSenha(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("should contain at least one character"))
+    return "A senha precisa ter maiúscula, minúscula, número e um símbolo (como ! @ # *).";
+  if (m.includes("at least") && m.includes("characters"))
+    return "A senha está curta. Use pelo menos 8 caracteres.";
+  if (m.includes("different from the old") || m.includes("should be different"))
+    return "Escolha uma senha diferente da provisória.";
+  if (m.includes("weak") || m.includes("pwned") || m.includes("compromised"))
+    return "Essa senha é muito comum. Escolha outra combinação.";
+  return "Não foi possível salvar essa senha. Tente outra combinação.";
+}
 
 export default function PrimeiroAcesso() {
   const [password, setPassword] = useState("");
@@ -32,9 +48,27 @@ export default function PrimeiroAcesso() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) navigate("/auth", { replace: true });
-    });
+    let ativo = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!ativo) return;
+      if (!data.session) {
+        navigate("/auth", { replace: true });
+        return;
+      }
+      // Se a senha já foi trocada, esta tela não deve aparecer de novo.
+      const { data: estado } = await supabase
+        .from("auth_user_security_state")
+        .select("must_change_password")
+        .eq("user_id", data.session.user.id)
+        .maybeSingle();
+      if (ativo && estado && estado.must_change_password === false) {
+        navigate("/", { replace: true });
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,19 +85,26 @@ export default function PrimeiroAcesso() {
     try {
       const { error: updErr } = await supabase.auth.updateUser({ password });
       if (updErr) {
-        toast.error("Erro ao atualizar senha", { description: updErr.message });
+        const texto = mensagemDeSenha(updErr.message ?? "");
+        setErrors({ password: texto });
+        toast.error("Não foi possível salvar a senha", { description: texto });
         return;
       }
       const { data: userRes } = await supabase.auth.getUser();
       if (userRes.user) {
-        await supabase
+        // Marca a troca; se falhar, o acesso continua — não trava a pessoa aqui.
+        const { error: estadoErr } = await supabase
           .from("auth_user_security_state")
-          .update({
-            must_change_password: false,
-            password_changed_at: new Date().toISOString(),
-            password_changed_by: userRes.user.id,
-          })
-          .eq("user_id", userRes.user.id);
+          .upsert(
+            {
+              user_id: userRes.user.id,
+              must_change_password: false,
+              password_changed_at: new Date().toISOString(),
+              password_changed_by: userRes.user.id,
+            },
+            { onConflict: "user_id" },
+          );
+        if (estadoErr) console.warn("[primeiro-acesso] estado de senha:", estadoErr.message);
       }
       toast.success("Senha atualizada!", { description: "Você já pode continuar." });
       navigate("/", { replace: true });
@@ -116,7 +157,9 @@ export default function PrimeiroAcesso() {
                 </button>
               </div>
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-              <p className="text-xs text-muted-foreground">Mín. 10 caracteres com maiúscula, minúscula e número.</p>
+              <p className="text-xs text-muted-foreground">
+                Pelo menos 8 caracteres, com maiúscula, minúscula, número e um símbolo (ex.: Ale!2026).
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm">Confirmar nova senha</Label>
