@@ -208,7 +208,7 @@ export default function DpMeuEscala() {
       ) : carregando ? (
         <CardListSkeleton rows={3} />
       ) : linhas.length === 0 ? (
-        <DpEmptyState icon={CalendarDays}>Você ainda não tem dia confirmado neste mês.</DpEmptyState>
+        <DpEmptyState icon={CalendarClock}>Você ainda não tem dia confirmado neste mês.</DpEmptyState>
 
       ) : (
         <>
