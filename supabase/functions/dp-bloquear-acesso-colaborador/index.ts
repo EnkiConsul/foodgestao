@@ -1,11 +1,11 @@
 /**
- * Bloqueia (ou reativa) o acesso do colaborador ao portal.
+ * Bloqueia (ou reativa) o acesso do colaborador ao portal — caminho único.
  *
  * Só dono/administrador da empresa do colaborador. Bloquear invalida os códigos
  * pendentes e encerra as sessões abertas.
  */
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
-import { canAdminister, requireCompanyAccess, requireUser, serviceClient } from "../_shared/authz.ts";
+import { requireColaboradorAdmin } from "../_shared/authz.ts";
 import { registrarEvento, revogarSessoes } from "../_shared/portal-access.ts";
 
 Deno.serve(async (req) => {
@@ -13,30 +13,16 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return jsonError(req, "invalid_input", "método inválido");
 
   try {
-    const caller = await requireUser(req);
-    if (!caller) return jsonError(req, "unauthorized");
-
     const body = await req.json().catch(() => ({}));
     const colaboradorId = String(body?.colaborador_id ?? "").trim();
     const bloquear = body?.bloquear !== false;
     if (!colaboradorId) return jsonError(req, "invalid_input", "colaborador_id ausente");
 
-    const admin = serviceClient();
-    const { data: colab } = await admin
-      .from("dp_colaboradores")
-      .select("id, user_id, company_id")
-      .eq("id", colaboradorId)
-      .maybeSingle();
-    if (!colab) return jsonError(req, "not_found");
+    const auth = await requireColaboradorAdmin(req, colaboradorId);
+    if (!auth.ok) return jsonError(req, auth.reason);
+    const { caller, colaborador: colab, admin } = auth;
+
     if (colab.user_id === caller.id) return jsonError(req, "invalid_input", "auto bloqueio");
-
-    const { data: isSuper } = await admin.rpc("has_role", {
-      _user_id: caller.id,
-      _role: "super_admin",
-    });
-    const access = await requireCompanyAccess(caller.id, colab.company_id);
-    if (!isSuper && (!access || !canAdminister(access))) return jsonError(req, "forbidden");
-
     if (!colab.user_id) return jsonError(req, "invalid_input", "sem acesso");
 
     const agora = new Date().toISOString();
