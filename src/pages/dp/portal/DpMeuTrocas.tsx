@@ -84,21 +84,61 @@ export default function DpMeuTrocas() {
     },
   });
 
-  // Colegas elegíveis (mesma empresa, exceto eu mesmo).
-  const colegas = useQuery({
-    queryKey: ["dp_colegas_trocas", meRef.data?.company_id, meRef.data?.id],
+  /**
+   * Folgas futuras da loja: as minhas viram opção de "minha data" e as dos
+   * colegas viram as datas que eu posso pedir — com quem folga em cada uma.
+   */
+  const folgasFuturas = useQuery({
+    queryKey: ["dp_folgas_trocas", meRef.data?.company_id, meRef.data?.id],
     enabled: !!meRef.data?.company_id,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("dp_colaboradores")
-        .select("id, nome")
+      const hoje = hojeIsoLocal();
+      const { data, error } = await supabase
+        .from("dp_folgas")
+        .select("id, data, colaborador_id, status, dp_colaboradores(nome, unidade_id, ativo)")
         .eq("company_id", meRef.data!.company_id!)
-        .eq("ativo", true)
-        .neq("id", meRef.data!.id)
-        .order("nome");
-      return data ?? [];
+        .gte("data", hoje)
+        .order("data");
+      if (error) throw error;
+      return (data ?? []).filter((f: any) => f.status !== "cancelada");
     },
   });
+
+  const minhaUnidade = (meRef.data as { unidade_id?: string | null } | undefined)?.unidade_id ?? null;
+
+  /** Minhas folgas futuras — o que eu tenho para oferecer. */
+  const minhasFolgas = useMemo(
+    () =>
+      (folgasFuturas.data ?? []).filter((f: any) => f.colaborador_id === meRef.data?.id),
+    [folgasFuturas.data, meRef.data?.id],
+  );
+
+  /** Folgas de colegas da minha loja, agrupadas por data. */
+  const folgasDeColegasPorData = useMemo(() => {
+    const m = new Map<string, { id: string; nome: string }[]>();
+    for (const f of (folgasFuturas.data ?? []) as any[]) {
+      if (f.colaborador_id === meRef.data?.id) continue;
+      const colega = f.dp_colaboradores ?? {};
+      if (colega.ativo === false) continue;
+      if (minhaUnidade && colega.unidade_id && colega.unidade_id !== minhaUnidade) continue;
+      const lista = m.get(f.data) ?? [];
+      if (!lista.some((c) => c.id === f.colaborador_id)) {
+        lista.push({ id: f.colaborador_id, nome: colega.nome ?? "Colega" });
+      }
+      m.set(f.data, lista);
+    }
+    return m;
+  }, [folgasFuturas.data, meRef.data?.id, minhaUnidade]);
+
+  const datasPropostas = useMemo(
+    () => Array.from(folgasDeColegasPorData.keys()).sort(),
+    [folgasDeColegasPorData],
+  );
+
+  const colegasDaData = useMemo(
+    () => (form.data_proposta ? folgasDeColegasPorData.get(form.data_proposta) ?? [] : []),
+    [folgasDeColegasPorData, form.data_proposta],
+  );
 
   const responderColega = useMutation({
     mutationFn: async ({ id, aceito }: { id: string; aceito: boolean }) => {
