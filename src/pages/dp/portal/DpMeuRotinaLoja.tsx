@@ -12,7 +12,14 @@ import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { hojeIsoLocal, horariosSobrepostos } from "@/lib/dp/dataLocal";
 
-type Pessoa = { id: string; nome: string; cargo: string; entrada: string | null; saida: string | null };
+type Pessoa = {
+  id: string;
+  nome: string;
+  cargo: string;
+  setor: string | null;
+  entrada: string | null;
+  saida: string | null;
+};
 
 const hojeIso = () => hojeIsoLocal();
 const hhmm = (v: string | null) => (v ? v.slice(0, 5) : null);
