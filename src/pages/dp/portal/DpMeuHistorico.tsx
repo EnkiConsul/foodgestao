@@ -112,6 +112,28 @@ export default function DpMeuHistorico() {
       <Helmet><title>Meu Histórico — Portal do Colaborador</title></Helmet>
       <DpPageHeader icon={History} title="Meu Histórico" description="Todos os eventos vinculados à sua conta." />
 
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={filtrados.length === 0}
+          onClick={() =>
+            baixarCsv(
+              `meu-historico-${new Date().toISOString().slice(0, 10)}`,
+              ["Data", "Tipo", "Item", "Situação"],
+              filtrados.map((e) => [
+                new Date(e.data).toLocaleString("pt-BR"),
+                e.tipo,
+                e.titulo,
+                e.status ?? "",
+              ]),
+            )
+          }
+        >
+          <Download className="mr-2 h-4 w-4" /> Baixar meus dados
+        </Button>
+      </div>
+
       <Tabs value={filtro} onValueChange={(v) => { setFiltro(v as any); setVisiveis(PAGE); }}>
         <div className="-mx-1 overflow-x-auto px-1">
           <TabsList className="w-max">
