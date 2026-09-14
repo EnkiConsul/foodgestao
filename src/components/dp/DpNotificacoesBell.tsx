@@ -48,10 +48,11 @@ export function DpNotificacoesBell({ variant = "admin" }: { variant?: "admin" | 
               Marcar todas
             </Button>
             <Button size="sm" variant="ghost" asChild onClick={() => setOpen(false)}>
-              <Link to="/dp/notificacoes">Ver todas</Link>
+              <Link to={portal ? "/dp/meu" : "/dp/notificacoes"}>Ver todas</Link>
             </Button>
           </div>
         </div>
+
         {atestados.length > 0 && (
           <Link
             to="/dp/folgas?aba=solicitacoes&tipo=atestado"
@@ -71,7 +72,7 @@ export function DpNotificacoesBell({ variant = "admin" }: { variant?: "admin" | 
           ) : (
             <ul className="divide-y">
               {list.slice(0, 15).map((n) => {
-                const path = notificacaoPathGestor(n.ref_table);
+                const path = portal ? notificacaoPathPortal(n.ref_table) : notificacaoPathGestor(n.ref_table);
                 return (
                   <li key={n.id} className={n.lida ? "opacity-60" : ""}>
                     <Link
