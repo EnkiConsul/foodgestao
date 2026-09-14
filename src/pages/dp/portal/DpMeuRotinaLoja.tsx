@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
+import { hojeIsoLocal, horariosSobrepostos } from "@/lib/dp/dataLocal";
 
 type Pessoa = { id: string; nome: string; cargo: string; entrada: string | null; saida: string | null };
 
-const hojeIso = () => new Date().toISOString().slice(0, 10);
+const hojeIso = () => hojeIsoLocal();
 const hhmm = (v: string | null) => (v ? v.slice(0, 5) : null);
 
 /** Rotina da loja: quem trabalha no dia, por função. Somente leitura. */
@@ -48,15 +49,26 @@ export default function DpMeuRotinaLoja() {
     },
   });
 
+  /**
+   * Só interessa quem trabalha no mesmo horário do colaborador: quem entra à
+   * noite não precisa ver a equipe do almoço.
+   */
+  const equipeDoMeuTurno = useMemo(() => {
+    const lista = escala.data ?? [];
+    const eu = lista.find((p) => p.id === vinculo?.colaboradorId);
+    if (!eu || !eu.entrada) return lista;
+    return lista.filter((p) => p.id === eu.id || horariosSobrepostos(eu, p));
+  }, [escala.data, vinculo?.colaboradorId]);
+
   const porCargo = useMemo(() => {
     const m = new Map<string, Pessoa[]>();
-    for (const p of escala.data ?? []) {
+    for (const p of equipeDoMeuTurno) {
       const lista = m.get(p.cargo) ?? [];
       lista.push(p);
       m.set(p.cargo, lista);
     }
     return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
-  }, [escala.data]);
+  }, [equipeDoMeuTurno]);
 
   return (
     <DpPage>

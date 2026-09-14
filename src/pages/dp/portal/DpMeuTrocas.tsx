@@ -23,6 +23,7 @@ import { textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 
 const statusLabel: Record<string, string> = {
   pendente_colega: "Aguardando colega",
@@ -43,8 +44,8 @@ const statusTone: Record<string, string> = {
 };
 
 
-function toIso(d: Date | undefined) {
-  return d ? format(d, "yyyy-MM-dd") : "";
+function dataBR(iso: string) {
+  return format(new Date(`${iso}T00:00:00`), "EEEE, dd/MM/yyyy", { locale: ptBR });
 }
 
 export default function DpMeuTrocas() {
@@ -54,10 +55,10 @@ export default function DpMeuTrocas() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<{
     destino_id: string;
-    data_original: Date | undefined;
-    data_proposta: Date | undefined;
+    data_original: string;
+    data_proposta: string;
     motivo: string;
-  }>({ destino_id: "", data_original: undefined, data_proposta: undefined, motivo: "" });
+  }>({ destino_id: "", data_original: "", data_proposta: "", motivo: "" });
 
   const meRef = useQuery({
     queryKey: ["colab_of_trocas", user?.id],
@@ -66,7 +67,7 @@ export default function DpMeuTrocas() {
       const { data } = await supabase.rpc("dp_colaborador_of", { _user_id: user!.id });
       if (!data) return null;
       const { data: c } = await supabase
-        .from("dp_colaboradores").select("id, company_id").eq("id", data).single();
+        .from("dp_colaboradores").select("id, company_id, unidade_id").eq("id", data).single();
       return c;
     },
   });
@@ -84,21 +85,61 @@ export default function DpMeuTrocas() {
     },
   });
 
-  // Colegas elegíveis (mesma empresa, exceto eu mesmo).
-  const colegas = useQuery({
-    queryKey: ["dp_colegas_trocas", meRef.data?.company_id, meRef.data?.id],
+  /**
+   * Folgas futuras da loja: as minhas viram opção de "minha data" e as dos
+   * colegas viram as datas que eu posso pedir — com quem folga em cada uma.
+   */
+  const folgasFuturas = useQuery({
+    queryKey: ["dp_folgas_trocas", meRef.data?.company_id, meRef.data?.id],
     enabled: !!meRef.data?.company_id,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("dp_colaboradores")
-        .select("id, nome")
+      const hoje = hojeIsoLocal();
+      const { data, error } = await supabase
+        .from("dp_folgas")
+        .select("id, data, colaborador_id, status, dp_colaboradores(nome, unidade_id, ativo)")
         .eq("company_id", meRef.data!.company_id!)
-        .eq("ativo", true)
-        .neq("id", meRef.data!.id)
-        .order("nome");
-      return data ?? [];
+        .gte("data", hoje)
+        .order("data");
+      if (error) throw error;
+      return (data ?? []).filter((f: any) => f.status !== "cancelada");
     },
   });
+
+  const minhaUnidade = (meRef.data as { unidade_id?: string | null } | undefined)?.unidade_id ?? null;
+
+  /** Minhas folgas futuras — o que eu tenho para oferecer. */
+  const minhasFolgas = useMemo(
+    () =>
+      (folgasFuturas.data ?? []).filter((f: any) => f.colaborador_id === meRef.data?.id),
+    [folgasFuturas.data, meRef.data?.id],
+  );
+
+  /** Folgas de colegas da minha loja, agrupadas por data. */
+  const folgasDeColegasPorData = useMemo(() => {
+    const m = new Map<string, { id: string; nome: string }[]>();
+    for (const f of (folgasFuturas.data ?? []) as any[]) {
+      if (f.colaborador_id === meRef.data?.id) continue;
+      const colega = f.dp_colaboradores ?? {};
+      if (colega.ativo === false) continue;
+      if (minhaUnidade && colega.unidade_id && colega.unidade_id !== minhaUnidade) continue;
+      const lista = m.get(f.data) ?? [];
+      if (!lista.some((c) => c.id === f.colaborador_id)) {
+        lista.push({ id: f.colaborador_id, nome: colega.nome ?? "Colega" });
+      }
+      m.set(f.data, lista);
+    }
+    return m;
+  }, [folgasFuturas.data, meRef.data?.id, minhaUnidade]);
+
+  const datasPropostas = useMemo(
+    () => Array.from(folgasDeColegasPorData.keys()).sort(),
+    [folgasDeColegasPorData],
+  );
+
+  const colegasDaData = useMemo(
+    () => (form.data_proposta ? folgasDeColegasPorData.get(form.data_proposta) ?? [] : []),
+    [folgasDeColegasPorData, form.data_proposta],
+  );
 
   const responderColega = useMutation({
     mutationFn: async ({ id, aceito }: { id: string; aceito: boolean }) => {
@@ -145,11 +186,10 @@ export default function DpMeuTrocas() {
   });
 
   const validation = useMemo(() => {
-    if (!form.destino_id) return "Selecione um colega.";
-    if (!form.data_original) return "Informe a data que deseja trocar.";
-    if (!form.data_proposta) return "Informe a data proposta.";
-    if (toIso(form.data_original) === toIso(form.data_proposta))
-      return "As datas devem ser diferentes.";
+    if (!form.data_original) return "Escolha uma folga sua para oferecer.";
+    if (!form.data_proposta) return "Escolha o dia que você quer folgar.";
+    if (!form.destino_id) return "Selecione o colega que folga nesse dia.";
+    if (form.data_original === form.data_proposta) return "As datas devem ser diferentes.";
     if (!form.motivo.trim()) return "Motivo obrigatório.";
     return null;
   }, [form]);
@@ -162,8 +202,8 @@ export default function DpMeuTrocas() {
         company_id: meRef.data.company_id,
         solicitante_id: meRef.data.id,
         destino_id: form.destino_id,
-        data_original: toIso(form.data_original),
-        data_proposta: toIso(form.data_proposta),
+        data_original: form.data_original,
+        data_proposta: form.data_proposta,
         motivo: form.motivo,
         created_by: user!.id,
       });
@@ -212,20 +252,56 @@ export default function DpMeuTrocas() {
               <DialogHeader><DialogTitle>Nova proposta de troca</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div>
-                  <Label>Colega</Label>
-                  <Select value={form.destino_id} onValueChange={(v) => setForm({ ...form, destino_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar colega" /></SelectTrigger>
+                  <Label>Minha folga (a que você oferece)</Label>
+                  <Select
+                    value={form.data_original}
+                    onValueChange={(v) => setForm({ ...form, data_original: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Escolha uma folga sua" /></SelectTrigger>
                     <SelectContent>
-                      {(colegas.data ?? []).map((c: any) => (
-                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      {minhasFolgas.map((f: any) => (
+                        <SelectItem key={f.id} value={f.data}>{dataBR(f.data)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {minhasFolgas.length === 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Você ainda não tem folga marcada nos próximos dias para oferecer.
+                    </p>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <DateField label="Minha data" value={form.data_original} onChange={(d) => setForm({ ...form, data_original: d })} />
-                  <DateField label="Data proposta" value={form.data_proposta} onChange={(d) => setForm({ ...form, data_proposta: d })} />
+                <div>
+                  <Label>Dia que você quer folgar</Label>
+                  <Select
+                    value={form.data_proposta}
+                    onValueChange={(v) => setForm({ ...form, data_proposta: v, destino_id: "" })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Escolha o dia" /></SelectTrigger>
+                    <SelectContent>
+                      {datasPropostas.map((d) => (
+                        <SelectItem key={d} value={d}>{dataBR(d)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {datasPropostas.length === 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Nenhum colega da sua loja tem folga marcada nos próximos dias.
+                    </p>
+                  )}
                 </div>
+                {form.data_proposta && (
+                  <div>
+                    <Label>Colega que folga nesse dia</Label>
+                    <Select value={form.destino_id} onValueChange={(v) => setForm({ ...form, destino_id: v })}>
+                      <SelectTrigger><SelectValue placeholder="Selecionar colega" /></SelectTrigger>
+                      <SelectContent>
+                        {colegasDaData.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <Label>Motivo<span className="text-destructive ml-0.5">*</span></Label>
                   <Textarea rows={3} value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />

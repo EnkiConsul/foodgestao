@@ -43,7 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
-import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga } from "@/lib/dp/dsr-rules";
+import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga, domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
 import { folgasOfertaveis } from "@/lib/dp/troca-oferta";
 
 
@@ -371,6 +371,50 @@ export default function DpMeuCalendario() {
   const folgas = (folgasQuery.data ?? []) as any[];
   const pendentes = (pendentesQuery.data ?? []) as any[];
 
+  /**
+   * Folgas de domingo: quantas a regra prevê no mês visto e quantas já estão
+   * marcadas para mim, para o domingo não ficar invisível no calendário.
+   */
+  const resumoDomingos = useMemo(() => {
+    const dias = eachDayOfInterval({ start: range.startDate, end: range.endDate });
+    const domingosNoMes = dias.filter((d) => d.getDay() === 0).length;
+    const previstas = domingosFolgaNoPeriodo(regrasConfig, domingosNoMes, {
+      sexo: (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null,
+      domingosMes:
+        (meRef.data as { domingos_folga_mes?: number | null } | undefined)?.domingos_folga_mes ??
+        null,
+    });
+    if (previstas <= 0) return "Neste mês a regra da sua loja não prevê folga em domingo.";
+    const minhas = folgas.filter(
+      (f) =>
+        f.colaborador_id === meRef.data?.id &&
+        f.status !== "cancelada" &&
+        parseYMD(f.data).getDay() === 0 &&
+        parseYMD(f.data) >= range.startDate &&
+        parseYMD(f.data) <= range.endDate,
+    ).length;
+    const fixaNoDomingo = diasFixosDeFolga({
+      folga_fixa_semana: meRef.data?.folga_fixa_semana ?? null,
+      folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
+    }).includes(0);
+    if (fixaNoDomingo) return "Domingo é seu dia de folga fixa.";
+    const plural = previstas === 1 ? "folga em domingo" : "folgas em domingo";
+    if (minhas >= previstas) return `Sua folga de domingo deste mês já está marcada.`;
+    return `Você tem ${previstas} ${plural} neste mês e ${minhas} já marcada(s). ${
+      folgaCltAutomatica
+        ? "O domingo é definido pelo setor de pessoal."
+        : "Toque em um domingo livre para marcar."
+    }`;
+  }, [
+    folgas,
+    folgaCltAutomatica,
+    meRef.data,
+    meusDiasFixosQuery.data,
+    range.endDate,
+    range.startDate,
+    regrasConfig,
+  ]);
+
   const occupantsByDate = useMemo(() => {
     const days = eachDayOfInterval({ start: range.startDate, end: range.endDate });
     // Também filtra folgas/pendentes pela unidade
@@ -520,10 +564,22 @@ export default function DpMeuCalendario() {
 
       // 2a) período mensal de escolha
       if (!podeMarcarNormal(janela, d)) {
+        const alvo = janela.competencia.toLocaleDateString("pt-BR", {
+          month: "long",
+          year: "numeric",
+        });
+        if (janela.estado === "antes") {
+          throw new Error(
+            `A escolha das folgas de ${alvo} abre em ${formatBR(janela.abreEm)}. Use "Solicitar exceção".`,
+          );
+        }
+        if (janela.estado === "encerrada") {
+          throw new Error(
+            `A escolha das folgas de ${alvo} foi encerrada em ${formatBR(janela.fechaEm)}. Use "Solicitar exceção".`,
+          );
+        }
         throw new Error(
-          janela.estado === "antes"
-            ? `A escolha das folgas abre em ${formatBR(janela.abreEm)}. Use "Solicitar exceção".`
-            : `A escolha das folgas deste período foi encerrada. Use "Solicitar exceção".`,
+          `Agora você escolhe as folgas de ${alvo}. Para folgar neste dia, use "Solicitar exceção".`,
         );
       }
 
@@ -771,9 +827,12 @@ export default function DpMeuCalendario() {
     );
   }, [selectedDay, folgas, meRef.data?.id]);
 
+  /**
+   * Exceção também vale em dia de meio de semana: é justamente nele que o
+   * colaborador precisa pedir uma folga fora da regra.
+   */
   const showExceptionBtn =
-    selectedDay &&
-    !["past", "mine", "fixed", "pending", "swapped", "weekday"].includes(selectedDay.status);
+    selectedDay && !["past", "mine", "fixed", "pending", "swapped"].includes(selectedDay.status);
 
   return (
     <DpPage className="space-y-6 md:space-y-8">
@@ -798,6 +857,7 @@ export default function DpMeuCalendario() {
 
       <div className="space-y-2">
         <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
+        <p className="text-xs text-muted-foreground">{resumoDomingos}</p>
         {avisoJanela && (
           <div
             className={cn(
@@ -1008,6 +1068,16 @@ export default function DpMeuCalendario() {
                 {selectedDay.status === "past" && (
                   <p className="text-xs text-muted-foreground">Data já passou.</p>
                 )}
+                {selectedDay.status === "weekday" && (
+                  <p className="text-xs text-muted-foreground">
+                    Dia de trabalho. Você pode pedir uma troca com um colega que está de folga neste dia ou
+                    solicitar uma exceção ao DP.
+                  </p>
+                )}
+                {dayInfo.occupants.length === 0 && selectedDay.status !== "past" && (
+                  <p className="text-xs text-muted-foreground">Nenhum colega da sua loja está de folga neste dia.</p>
+                )}
+
 
                 {showExceptionBtn && (
                   <Button

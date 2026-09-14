@@ -18,6 +18,8 @@ type Props = {
   contexto?: Record<string, string>;
   /** Títulos de modelo preferidos, em ordem de prioridade. */
   titulosPreferidos?: string[];
+  /** Texto enviado em mensagem separada (ex.: só a senha, fácil de copiar). */
+  mensagemSeparada?: string | null;
 };
 
 const norm = (s: string) =>
@@ -30,6 +32,7 @@ export function WhatsappComposerDialog({
   nome,
   contexto = {},
   titulosPreferidos = [],
+  mensagemSeparada = null,
 }: Props) {
   const { data: modelos = [] } = useDpModelosMensagem("whatsapp");
   const [modeloId, setModeloId] = useState<string>("");
@@ -70,13 +73,16 @@ export function WhatsappComposerDialog({
 
   const phone = (colab?.whatsapp || colab?.telefone || "").replace(/\D+/g, "");
 
-  const send = () => {
-    if (!phone) { toast.error("Colaborador sem telefone/WhatsApp cadastrado"); return; }
-    if (!texto.trim()) { toast.error("Escreva uma mensagem"); return; }
+  const abrirWhatsapp = (msg: string) => {
+    if (!phone) { toast.error("Colaborador sem telefone/WhatsApp cadastrado"); return false; }
+    if (!msg.trim()) { toast.error("Escreva uma mensagem"); return false; }
     const num = phone.length <= 11 ? `55${phone}` : phone;
-    const url = `https://wa.me/${num}?text=${encodeURIComponent(texto)}`;
-    window.open(url, "_blank", "noopener");
-    onClose();
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+    return true;
+  };
+
+  const send = () => {
+    if (abrirWhatsapp(texto)) onClose();
   };
 
   return (
@@ -111,6 +117,24 @@ export function WhatsappComposerDialog({
             <Label className="text-xs">Mensagem</Label>
             <Textarea rows={6} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Digite ou escolha um modelo…" />
           </div>
+          {mensagemSeparada && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+              <p className="text-xs">
+                Envie a senha em uma mensagem separada: assim o colaborador só precisa tocar e
+                segurar nela para copiar.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-2"
+                disabled={!phone}
+                onClick={() => abrirWhatsapp(mensagemSeparada)}
+              >
+                Enviar só a senha
+              </Button>
+            </div>
+          )}
           <p className="text-[11px] text-muted-foreground">
             {phone ? `Será aberto WhatsApp Web para ${phone}` : "Sem número de WhatsApp no cadastro"}
           </p>

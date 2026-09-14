@@ -18,6 +18,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useDpMinhasFerias, type MinhaFeriasPeriodo } from "@/hooks/useDpMinhasFerias";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
+import {
+  decimoTerceiroJaAdiantado,
+  fimDoGozo,
+  inicioMinimoPedido,
+  resumoPedido,
+} from "@/lib/dp/ferias-pedido";
 
 const fmt = (iso: string) => format(parseISO(iso), "dd/MM/yyyy", { locale: ptBR });
 
@@ -44,8 +51,8 @@ export default function DpMeuFerias() {
   const [aberto, setAberto] = useState(false);
   const [periodoId, setPeriodoId] = useState("");
   const [inicio, setInicio] = useState("");
-  const [fim, setFim] = useState("");
-  const [abono, setAbono] = useState(0);
+  const [diasTexto, setDiasTexto] = useState("");
+  const [abonoTexto, setAbonoTexto] = useState("");
   const [adiantar13, setAdiantar13] = useState(false);
   const [observacao, setObservacao] = useState("");
 
@@ -53,9 +60,16 @@ export default function DpMeuFerias() {
   const periodoSel: MinhaFeriasPeriodo | null =
     comSaldo.find((p) => p.periodo_id === periodoId) ?? null;
 
-  const dias = inicio && fim ? differenceInCalendarDays(parseISO(fim), parseISO(inicio)) + 1 : 0;
-  const total = dias + (Number(abono) || 0);
-  const excede = !!periodoSel && total > periodoSel.dias_saldo;
+  const abono = Number(abonoTexto) || 0;
+  const dias = Number(diasTexto) || 0;
+  const resumo = periodoSel ? resumoPedido(periodoSel, abono, dias) : null;
+  const total = resumo?.total ?? 0;
+  const excede = !!resumo?.excede;
+  const abonoAcimaDoLegal = !!resumo?.abonoAcimaDoLegal;
+  const inicioMin = periodoSel ? inicioMinimoPedido(periodoSel, hojeIsoLocal()) : "";
+  const inicioAntesDoPermitido = !!inicio && !!inicioMin && inicio < inicioMin;
+  const fim = fimDoGozo(inicio, dias);
+  const jaAdiantou13 = !!periodoSel && decimoTerceiroJaAdiantado(periodoSel);
   const antecedencia = inicio ? differenceInCalendarDays(parseISO(inicio), new Date()) : null;
   const foraDoPrazo =
     !!periodoSel && antecedencia !== null && antecedencia < periodoSel.aviso_antecedencia_dias;
@@ -63,16 +77,11 @@ export default function DpMeuFerias() {
   const abrir = () => {
     setPeriodoId(comSaldo[0]?.periodo_id ?? "");
     setInicio("");
-    setFim("");
-    setAbono(0);
+    setDiasTexto("");
+    setAbonoTexto("");
     setAdiantar13(false);
     setObservacao("");
     setAberto(true);
-  };
-
-  const definirInicio = (v: string) => {
-    setInicio(v);
-    if (v && (!fim || fim < v)) setFim(format(addDays(parseISO(v), 29), "yyyy-MM-dd"));
   };
 
   return (
@@ -210,32 +219,62 @@ export default function DpMeuFerias() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Início</Label>
-                <Input type="date" value={inicio} onChange={(e) => definirInicio(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Fim</Label>
+                <Label>Primeiro dia de férias</Label>
                 <Input
                   type="date"
-                  min={inicio || undefined}
-                  value={fim}
-                  onChange={(e) => setFim(e.target.value)}
+                  min={inicioMin || undefined}
+                  max={periodoSel?.limite_concessivo || undefined}
+                  value={inicio}
+                  onChange={(e) => setInicio(e.target.value)}
                 />
+                {inicioMin && (
+                  <p className="text-xs text-muted-foreground">
+                    A partir de {fmt(inicioMin)}.
+                  </p>
+                )}
               </div>
+              <div className="space-y-2">
+                <Label>Dias de descanso</Label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={resumo?.maxDias || undefined}
+                  placeholder="Ex.: 20"
+                  value={diasTexto}
+                  onChange={(e) => setDiasTexto(e.target.value.replace(/\D/g, ""))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Até {resumo?.maxDias ?? 0} dias com o saldo atual.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-muted/40 p-3 text-sm">
+              Último dia de férias:{" "}
+              <span className="font-semibold">{fim ? fmt(fim) : "—"}</span>
+              <p className="text-xs text-muted-foreground">
+                Calculado a partir do primeiro dia e dos dias de descanso.
+              </p>
             </div>
 
             <div className="space-y-2">
               <Label>Vender dias (abono)</Label>
               <Input
                 type="number"
+                inputMode="numeric"
                 min={0}
-                max={10}
-                value={abono}
-                onChange={(e) => setAbono(Number(e.target.value) || 0)}
+                max={resumo?.maxAbono ?? 0}
+                placeholder="0"
+                value={abonoTexto}
+                onChange={(e) => setAbonoTexto(e.target.value.replace(/\D/g, ""))}
               />
+              <p className="text-xs text-muted-foreground">
+                A lei permite vender no máximo {resumo?.maxAbono ?? 0} dias deste período.
+              </p>
             </div>
 
-            {periodoSel?.adiantamento_13 !== "nao" && (
+            {periodoSel?.adiantamento_13 !== "nao" && !jaAdiantou13 && (
               <div className="flex items-center justify-between rounded-xl border border-border p-3">
                 <div>
                   <p className="text-sm font-medium">Adiantar a 1ª parcela do 13º</p>
@@ -245,6 +284,13 @@ export default function DpMeuFerias() {
                 </div>
                 <Switch checked={adiantar13} onCheckedChange={setAdiantar13} />
               </div>
+            )}
+
+            {jaAdiantou13 && (
+              <p className="rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground">
+                A 1ª parcela do 13º já foi adiantada neste período, por isso não é possível pedir de
+                novo.
+              </p>
             )}
 
             <div className="space-y-2">
@@ -261,6 +307,16 @@ export default function DpMeuFerias() {
                   Passa do seu saldo ({periodoSel?.dias_saldo} dias).
                 </p>
               )}
+              {abonoAcimaDoLegal && (
+                <p className="mt-1 text-destructive">
+                  A lei permite vender no máximo {resumo?.maxAbono} dias.
+                </p>
+              )}
+              {inicioAntesDoPermitido && (
+                <p className="mt-1 text-destructive">
+                  As férias só podem começar a partir de {fmt(inicioMin)}.
+                </p>
+              )}
               {foraDoPrazo && !excede && (
                 <p className="mt-1 text-amber-700">
                   A empresa pede {periodoSel?.aviso_antecedencia_dias} dias de antecedência. Seu
@@ -273,15 +329,23 @@ export default function DpMeuFerias() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAberto(false)}>Cancelar</Button>
             <Button
-              disabled={solicitar.isPending || excede || !periodoId || !inicio || !fim}
+              disabled={
+                solicitar.isPending ||
+                excede ||
+                abonoAcimaDoLegal ||
+                inicioAntesDoPermitido ||
+                !periodoId ||
+                !inicio ||
+                !fim
+              }
               onClick={() =>
                 solicitar.mutate(
                   {
                     periodoId,
                     dataInicio: inicio,
                     dataFim: fim,
-                    diasAbono: Number(abono) || 0,
-                    adiantar13,
+                    diasAbono: abono,
+                    adiantar13: adiantar13 && !jaAdiantou13,
                     observacao,
                   },
                   { onSuccess: () => setAberto(false) },

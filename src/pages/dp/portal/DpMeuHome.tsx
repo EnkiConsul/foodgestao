@@ -19,6 +19,7 @@ import { MinhaJornadaAcoesCard } from "@/components/dp/ocorrencias/MinhaJornadaA
 import { useMinhaProximaFolga } from "@/hooks/useMinhaProximaFolga";
 import { textoProximaFolga } from "@/lib/dp/proxima-folga";
 import { toProperName } from "@/lib/text/properName";
+import { InstalarAppCard } from "@/components/dp/portal/InstalarAppCard";
 
 
 export default function DpMeuHome() {
@@ -118,6 +119,9 @@ export default function DpMeuHome() {
           </Button>
         </div>
       </header>
+
+      {/* Convite para instalar o app, no primeiro acesso pelo celular. */}
+      <InstalarAppCard />
 
       {/* Pendências em destaque, logo depois da saudação. */}
       <MinhasPendenciasCard />

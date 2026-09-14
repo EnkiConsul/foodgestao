@@ -303,6 +303,7 @@ export function ColaboradorAcessoPanel({
             usuario: resultado.cpf ? maskCpf(resultado.cpf) : "",
             senha: resultado.password,
           }}
+          mensagemSeparada={resultado.password || null}
         />
       )}
     </div>
