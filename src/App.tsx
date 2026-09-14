@@ -121,6 +121,7 @@ const DpMeuEscala = lazyWithRetry(() => import("./pages/dp/portal/DpMeuEscala"))
 const DpMeuRotinaLoja = lazyWithRetry(() => import("./pages/dp/portal/DpMeuRotinaLoja"));
 const DpMinhasConvocacoes = lazyWithRetry(() => import("./pages/dp/portal/DpMinhasConvocacoes"));
 const DpMeuHistorico = lazyWithRetry(() => import("./pages/dp/portal/DpMeuHistorico"));
+const DpMeuSindicato = lazyWithRetry(() => import("./pages/dp/portal/DpMeuSindicato"));
 
 // Admin
 const AdminModulos = lazyWithRetry(() => import("./pages/admin/Modulos"));
