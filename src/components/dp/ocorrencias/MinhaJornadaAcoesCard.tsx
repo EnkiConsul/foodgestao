@@ -268,7 +268,7 @@ export function MinhaJornadaAcoesCard() {
                       key={p.label}
                       size="sm"
                       variant={problema.label === p.label ? "default" : "outline"}
-                      className="justify-start"
+                      className="h-auto min-h-9 justify-start whitespace-normal py-2 text-left leading-snug"
                       onClick={() => setProblema(p)}
                     >
                       {p.label}
