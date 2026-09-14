@@ -662,17 +662,24 @@ export default function DpMeuCalendario() {
 
 
 
-      const { error } = await supabase.from("dp_folgas").insert({
-        company_id: meRef.data.company_id,
-        colaborador_id: meRef.data.id,
-        data: iso,
-        tipo: "normal",
-        origem: "solicitacao",
-        status: "agendada",
-        extra: false,
-        criado_por: user!.id,
-      });
-      if (error) throw error;
+      const { error } = await supabase.rpc("dp_folga_marcar", { p_data: iso });
+      if (error) {
+        const raw = error.message ?? "";
+        if (raw.includes("FOLGA_FORA_DA_JANELA"))
+          throw new Error("Fora do período de escolha das folgas. Use \"Solicitar exceção\".");
+        if (raw.includes("FOLGA_LIMITE_DIA"))
+          throw new Error("Data indisponível. Limite de folgas atingido.");
+        if (raw.includes("FOLGA_INCOMPATIBILIDADE"))
+          throw new Error(
+            raw.split("FOLGA_INCOMPATIBILIDADE:").pop()?.trim() ||
+              "Você não pode folgar no mesmo dia de um colega desta regra.",
+          );
+        if (raw.includes("DUPLICATE_REQUEST"))
+          throw new Error("Você já tem folga marcada neste dia.");
+        if (raw.includes("PAST_DATE_NOT_EDITABLE"))
+          throw new Error("Não é possível marcar folga em datas passadas.");
+        throw error;
+      }
     },
     onSuccess: (_data, iso: string) => {
       toast.success("Folga marcada!");
@@ -702,8 +709,20 @@ export default function DpMeuCalendario() {
         );
       }
 
-      const { error } = await supabase.from("dp_folgas").delete().eq("id", folga.id);
-      if (error) throw error;
+      const { error } = await supabase.rpc("dp_folga_remover", { p_data: iso });
+      if (error) {
+        const raw = error.message ?? "";
+        if (raw.includes("FOLGA_OBRIGATORIA"))
+          throw new Error(
+            "Esta folga dominical é definida pela CLT e não pode ser removida. Solicite uma troca ou uma exceção.",
+          );
+        if (raw.includes("FOLGA_NAO_REMOVIVEL"))
+          throw new Error("Apenas folgas marcadas por você podem ser removidas. Fale com o DP.");
+        if (raw.includes("FOLGA_NAO_ENCONTRADA")) throw new Error("Folga não encontrada.");
+        if (raw.includes("PAST_DATE_NOT_EDITABLE"))
+          throw new Error("Não é possível remover folga passada.");
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Folga removida.");

@@ -83,15 +83,14 @@ export default function DpSolicitacoes() {
     mutationFn: async () => {
       if (!selectedCompanyId) throw new Error("Sem empresa");
       if (!form.colaborador_id) throw new Error("Selecione um colaborador");
-      const { error } = await supabase.from("dp_solicitacoes").insert({
-        company_id: selectedCompanyId,
-        colaborador_id: form.colaborador_id,
-        tipo: form.tipo,
-        data_alvo: form.data_alvo || null,
-        data_fim: form.data_fim || null,
-        motivo: form.motivo.trim() || null,
-        criado_por: user?.id,
-        status: "pendente",
+      const { error } = await supabase.rpc("dp_solicitacao_criar_admin", {
+        p_colaborador: form.colaborador_id,
+        p_tipo: form.tipo,
+        p_data_alvo: form.data_alvo,
+        p_data_fim: (form.data_fim || null) as any,
+        p_motivo: (form.motivo.trim() || null) as any,
+        p_arquivo_path: null as any,
+        p_aprovada: false,
       });
       if (error) throw error;
     },
@@ -108,12 +107,11 @@ export default function DpSolicitacoes() {
 
   const respond = useMutation({
     mutationFn: async ({ id, status, resposta }: { id: string; status: Status; resposta?: string }) => {
-      const { error } = await supabase.from("dp_solicitacoes").update({
-        status,
-        respondido_por: user?.id,
-        respondido_em: new Date().toISOString(),
-        resposta_admin: resposta ?? null,
-      }).eq("id", id);
+      const { error } = await supabase.rpc("dp_solicitacao_responder", {
+        p_id: id,
+        p_status: status as "aprovada" | "recusada",
+        p_resposta: (resposta ?? null) as any,
+      });
       if (error) throw error;
     },
     onSuccess: (_data, vars) => {

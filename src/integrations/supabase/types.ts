@@ -14803,6 +14803,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      dp_folga_atribuir_admin: {
+        Args: { p_colaborador: string; p_data: string; p_motivo?: string }
+        Returns: Json
+      }
       dp_folga_autoatribuicao_plano: {
         Args: { _company: string; _competencia: string; _unidade: string }
         Returns: Json
@@ -14853,6 +14857,10 @@ export type Database = {
         Args: { _company: string; _unidade: string }
         Returns: number[]
       }
+      dp_folga_escopo_empresa_ok: {
+        Args: { _company: string }
+        Returns: boolean
+      }
       dp_folga_exige_descanso_fds: {
         Args: {
           _colab: string
@@ -14882,10 +14890,12 @@ export type Database = {
         }
         Returns: number
       }
+      dp_folga_marcar: { Args: { p_data: string }; Returns: Json }
       dp_folga_ocupado_no_dia: {
         Args: { _colab: string; _company: string; _data: string }
         Returns: boolean
       }
+      dp_folga_remover: { Args: { p_data: string }; Returns: Json }
       dp_folga_reserva_indisponibilidade: {
         Args: {
           p_cargo?: string
@@ -14896,16 +14906,10 @@ export type Database = {
         }
         Returns: number
       }
-      dp_folga_solicitar:
-        | { Args: { p_data: string; p_motivo?: string }; Returns: Json }
-        | {
-            Args: {
-              p_data: string
-              p_fora_da_janela?: boolean
-              p_motivo?: string
-            }
-            Returns: Json
-          }
+      dp_folga_solicitar: {
+        Args: { p_data: string; p_fora_da_janela?: boolean; p_motivo?: string }
+        Returns: Json
+      }
       dp_folgas_janela_efetiva: {
         Args: { _company: string; _data_ref?: string; _unidade?: string }
         Returns: Json
@@ -15319,6 +15323,37 @@ export type Database = {
           sindicato_id: string
           sindicato_nome: string
         }[]
+      }
+      dp_solicitacao_cancelar: { Args: { p_id: string }; Returns: Json }
+      dp_solicitacao_criar: {
+        Args: {
+          p_arquivo_path?: string
+          p_data_alvo: string
+          p_data_fim?: string
+          p_motivo?: string
+          p_tipo: Database["public"]["Enums"]["dp_solicitacao_tipo"]
+        }
+        Returns: Json
+      }
+      dp_solicitacao_criar_admin: {
+        Args: {
+          p_aprovada?: boolean
+          p_arquivo_path?: string
+          p_colaborador: string
+          p_data_alvo: string
+          p_data_fim?: string
+          p_motivo?: string
+          p_tipo: Database["public"]["Enums"]["dp_solicitacao_tipo"]
+        }
+        Returns: Json
+      }
+      dp_solicitacao_responder: {
+        Args: {
+          p_id: string
+          p_resposta?: string
+          p_status: Database["public"]["Enums"]["dp_solicitacao_status"]
+        }
+        Returns: Json
       }
       dp_timezone_resolvido: {
         Args: { _company_id: string; _unidade_id?: string }

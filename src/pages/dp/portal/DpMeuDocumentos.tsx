@@ -316,7 +316,7 @@ export default function DpMeuDocumentos() {
   const cancelar = useMutation({
     mutationFn: async (d: UnifiedDoc) => {
       if (d.meta?.source === "solicitacao") {
-        const { error } = await supabase.from("dp_solicitacoes").update({ status: "cancelada" }).eq("id", d.meta.originalId);
+        const { error } = await supabase.rpc("dp_solicitacao_cancelar", { p_id: d.meta.originalId });
         if (error) throw error;
       } else {
         if (d.file_path) await supabase.storage.from(d.bucket).remove([d.file_path]);

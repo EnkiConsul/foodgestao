@@ -296,16 +296,25 @@ export default function DpMeuSolicitacoes() {
     mutationFn: async () => {
       if (!meRef.data) throw new Error("Colaborador não encontrado");
       if (validation.length) throw new Error(validation[0]);
-      const { error } = await supabase.from("dp_solicitacoes").insert({
-        company_id: meRef.data.company_id,
-        colaborador_id: meRef.data.id,
-        tipo: form.tipo as any,
-        data_alvo: toIso(form.data_alvo) || null,
-        data_fim: toIso(form.data_fim) || null,
-        motivo: form.motivo || null,
-        criado_por: user!.id,
+      const { error } = await supabase.rpc("dp_solicitacao_criar", {
+        p_tipo: form.tipo as any,
+        p_data_alvo: toIso(form.data_alvo) as string,
+        p_data_fim: (toIso(form.data_fim) || null) as any,
+        p_motivo: (form.motivo || null) as any,
+        p_arquivo_path: null as any,
       });
-      if (error) throw error;
+      if (error) {
+        const raw = error.message ?? "";
+        if (raw.includes("FOLGA_FORA_DA_JANELA"))
+          throw new Error("Fora do período de escolha das folgas. Solicite uma exceção pelo calendário.");
+        if (raw.includes("FOLGA_LIMITE_DIA"))
+          throw new Error("Data indisponível. Limite de folgas atingido.");
+        if (raw.includes("DUPLICATE_REQUEST"))
+          throw new Error("Você já tem uma solicitação pendente para este dia.");
+        if (raw.includes("PAST_DATE_NOT_EDITABLE"))
+          throw new Error("Não é possível solicitar folga em data passada.");
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Solicitação enviada");
@@ -318,11 +327,13 @@ export default function DpMeuSolicitacoes() {
 
   const cancelar = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("dp_solicitacoes")
-        .update({ status: "cancelada" as any })
-        .eq("id", id);
-      if (error) throw error;
+      const { error } = await supabase.rpc("dp_solicitacao_cancelar", { p_id: id });
+      if (error) {
+        const raw = error.message ?? "";
+        if (raw.includes("STATUS_INVALIDO"))
+          throw new Error("Apenas solicitações pendentes podem ser canceladas.");
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Solicitação cancelada");

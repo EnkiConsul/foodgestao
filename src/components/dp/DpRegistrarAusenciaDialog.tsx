@@ -88,15 +88,14 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial }: P
       if (!form.data_alvo) throw new Error("Informe a data inicial");
       if (form.motivo.length > 500) throw new Error("Observações muito longas (máx. 500)");
       const aprovada = form.tipo !== "folga";
-      const { error } = await supabase.from("dp_solicitacoes").insert({
-        company_id: selectedCompanyId,
-        colaborador_id: form.colaborador_id,
-        tipo: form.tipo,
-        data_alvo: form.data_alvo,
-        data_fim: form.data_fim || null,
-        motivo: form.motivo.trim() || null,
-        criado_por: user?.id,
-        status: aprovada ? "aprovada" : "pendente",
+      const { error } = await supabase.rpc("dp_solicitacao_criar_admin", {
+        p_colaborador: form.colaborador_id,
+        p_tipo: form.tipo,
+        p_data_alvo: form.data_alvo,
+        p_data_fim: (form.data_fim || null) as any,
+        p_motivo: (form.motivo.trim() || null) as any,
+        p_arquivo_path: null as any,
+        p_aprovada: aprovada,
       });
       if (error) throw error;
       return aprovada;
