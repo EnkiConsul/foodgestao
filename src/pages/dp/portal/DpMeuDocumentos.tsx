@@ -325,6 +325,9 @@ export default function DpMeuDocumentos() {
             <Button size="sm" variant="outline" onClick={downloadAll} disabled={filtered.filter((d) => d.file_path).length === 0}>
               <DownloadCloud className="h-4 w-4 mr-1" /> Baixar todos ({filtered.filter((d) => d.file_path).length})
             </Button>
+            <Button size="sm" variant="outline" onClick={baixarLista} disabled={filtered.length === 0}>
+              <DownloadCloud className="h-4 w-4 mr-1" /> Baixar meus dados
+            </Button>
             <Dialog open={openSubmit} onOpenChange={setOpenSubmit}>
               <DialogTrigger asChild>
                 <Button size="sm"><Upload className="h-4 w-4 mr-1" /> Enviar documento</Button>
