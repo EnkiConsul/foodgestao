@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { imprimirCertificadoValidacao } from "@/lib/dp/documento-certificado";
 import { abrirArquivoDp } from "@/lib/dp/abrirDocumento";
+import { baixarCsv } from "@/lib/dp/portal-csv";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { cn } from "@/lib/utils";
@@ -181,6 +182,23 @@ export default function DpMeuDocumentos() {
     return Array.from(m.entries());
   }, [filtered]);
 
+  /** Planilha com os documentos que estão na tela (respeita busca e filtros). */
+  const baixarLista = () => {
+    baixarCsv(
+      `meus-documentos-${new Date().toISOString().slice(0, 10)}`,
+      ["Data", "Competência", "Tipo", "Documento", "Situação", "Origem", "Arquivo"],
+      filtered.map((d) => [
+        new Date(d.created_at).toLocaleDateString("pt-BR"),
+        d.competencia_label,
+        d.tipo_label,
+        d.titulo,
+        d.status_label,
+        d.origem === "meu_envio" ? "Meu envio" : "Recebido do DP",
+        d.arquivo_nome ?? "",
+      ]),
+    );
+  };
+
   const download = async (d: UnifiedDoc) => {
     if (!d.file_path) return toast.warning("Sem arquivo anexado.");
     const r = await abrirArquivoDp({
@@ -324,6 +342,9 @@ export default function DpMeuDocumentos() {
           <div className="flex gap-2 flex-wrap">
             <Button size="sm" variant="outline" onClick={downloadAll} disabled={filtered.filter((d) => d.file_path).length === 0}>
               <DownloadCloud className="h-4 w-4 mr-1" /> Baixar todos ({filtered.filter((d) => d.file_path).length})
+            </Button>
+            <Button size="sm" variant="outline" onClick={baixarLista} disabled={filtered.length === 0}>
+              <DownloadCloud className="h-4 w-4 mr-1" /> Baixar meus dados
             </Button>
             <Dialog open={openSubmit} onOpenChange={setOpenSubmit}>
               <DialogTrigger asChild>
