@@ -37,9 +37,11 @@ Deno.serve(async (req) => {
 
   try {
     const admin = serviceClient();
+    // As duas bibliotecas do cliente têm tipos próprios; aqui é o mesmo objeto.
+    const limiter = admin as unknown as Parameters<typeof ipRateLimited>[0];
 
     // Limite persistente (compartilhado entre instâncias), por IP e por link.
-    if (await ipRateLimited(admin, req, "dp_definir_senha", MAX_POR_IP)) {
+    if (await ipRateLimited(limiter, req, "dp_definir_senha", MAX_POR_IP)) {
       return jsonError(req, "rate_limited");
     }
 
@@ -66,7 +68,7 @@ Deno.serve(async (req) => {
     }
 
     const chaveToken = await sha256Hex(`dp_definir_senha:token:${tokenId}`);
-    if (await isRateLimited(admin, "dp_definir_senha_token", chaveToken, MAX_POR_TOKEN)) {
+    if (await isRateLimited(limiter, "dp_definir_senha_token", chaveToken, MAX_POR_TOKEN)) {
       return jsonError(req, "rate_limited");
     }
 
