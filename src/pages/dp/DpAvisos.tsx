@@ -200,11 +200,16 @@ function AvisoDialog({
                 leitura_obrigatoria: leituraObrigatoria,
                 permitir_reacoes: permitirReacoes,
                 permitir_comentarios: permitirComentarios,
-              } as any);
-              onOpenChange(false);
+                } as any);
+                onOpenChange(false);
+              } catch {
+                /* Erro já sinalizado pela mutação; janela e dados permanecem. */
+              } finally {
+                setSalvando(false);
+              }
             }}
           >
-            Salvar
+            {salvando ? "Salvando…" : "Salvar"}
           </Button>
         </DialogFooter>
       </DialogContent>
