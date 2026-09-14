@@ -119,6 +119,9 @@ export default function DpMeuHome() {
         </div>
       </header>
 
+      {/* Convite para instalar o app, no primeiro acesso pelo celular. */}
+      <InstalarAppCard />
+
       {/* Pendências em destaque, logo depois da saudação. */}
       <MinhasPendenciasCard />
 
