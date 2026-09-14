@@ -1,3 +1,4 @@
+import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
@@ -12,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -326,7 +327,7 @@ export default function DpMeuFerias() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DpFormFooter className="-mx-6 -mb-6 mt-2">
             <Button variant="outline" onClick={() => setAberto(false)}>Cancelar</Button>
             <Button
               disabled={
@@ -354,7 +355,7 @@ export default function DpMeuFerias() {
             >
               {solicitar.isPending ? "Enviando…" : "Enviar pedido"}
             </Button>
-          </DialogFooter>
+          </DpFormFooter>
         </DialogContent>
       </Dialog>
     </DpPage>

@@ -1,3 +1,4 @@
+import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DpStatusBadge, type DpStatusTone } from "@/components/dp/DpStatusBadge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -312,10 +313,10 @@ export default function DpMeuTrocas() {
                 </div>
                 {validation && <p className="text-xs text-destructive">{validation}</p>}
               </div>
-              <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
-                <Button variant="outline" onClick={() => setOpen(false)} className="min-h-10 w-full sm:w-auto">Cancelar</Button>
-                <Button disabled={criar.isPending || !!validation} onClick={() => criar.mutate()} className="min-h-10 w-full sm:w-auto">Enviar</Button>
-              </DialogFooter>
+              <DpFormFooter className="-mx-6 -mb-6 mt-2">
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                <Button disabled={criar.isPending || !!validation} onClick={() => criar.mutate()}>Enviar</Button>
+              </DpFormFooter>
             </DialogContent>
           </Dialog>
         }

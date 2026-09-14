@@ -1,3 +1,4 @@
+import { DpFormFooter } from "@/components/dp/DpFormFooter";
 import { Helmet } from "react-helmet-async";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -12,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DpStatusBadge, statusToneFor } from "@/components/dp/DpStatusBadge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -398,16 +399,15 @@ export default function DpMeuSolicitacoes() {
                   <p className="text-xs text-destructive">{validation[0]}</p>
                 )}
               </div>
-              <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
-                <Button variant="outline" onClick={() => setOpen(false)} className="min-h-10 w-full sm:w-auto">Cancelar</Button>
+              <DpFormFooter className="-mx-6 -mb-6 mt-2">
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
                 <Button
                   disabled={create.isPending || validation.length > 0}
                   onClick={() => create.mutate()}
-                  className="min-h-10 w-full sm:w-auto"
                 >
                   Enviar
                 </Button>
-              </DialogFooter>
+              </DpFormFooter>
             </DialogContent>
           </Dialog>
         }

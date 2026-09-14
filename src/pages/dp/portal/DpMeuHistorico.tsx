@@ -3,9 +3,11 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { History, ClipboardList, Repeat, HeartPulse, FileText, ShieldAlert } from "lucide-react";
+import { History, ClipboardList, Repeat, HeartPulse, FileText, ShieldAlert, Search, X } from "lucide-react";
 import { isTipoAfastamento, labelAfastamento } from "@/lib/dp/licencas";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
@@ -30,6 +32,7 @@ export default function DpMeuHistorico() {
   const { user } = useAuth();
   const [filtro, setFiltro] = useState<(typeof TIPOS)[number]>("Todos");
   const [visiveis, setVisiveis] = useState(PAGE);
+  const [busca, setBusca] = useState("");
 
   const colabQ = useQuery({
     queryKey: ["colab_of_hist", user?.id],
@@ -84,10 +87,16 @@ export default function DpMeuHistorico() {
   });
 
   const filtrados = useMemo(() => {
-    const list = eventos.data ?? [];
-    if (filtro === "Todos") return list;
-    return list.filter((e) => e.tipo === filtro);
-  }, [eventos.data, filtro]);
+    let list = eventos.data ?? [];
+    if (filtro !== "Todos") list = list.filter((e) => e.tipo === filtro);
+    const termo = busca.trim().toLowerCase();
+    if (termo) {
+      list = list.filter((e) =>
+        `${e.titulo} ${e.tipo} ${e.status ?? ""}`.toLowerCase().includes(termo),
+      );
+    }
+    return list;
+  }, [eventos.data, filtro, busca]);
 
   const visiveisList = filtrados.slice(0, visiveis);
 
@@ -113,6 +122,29 @@ export default function DpMeuHistorico() {
           </TabsList>
         </div>
       </Tabs>
+
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={busca}
+          onChange={(e) => { setBusca(e.target.value); setVisiveis(PAGE); }}
+          placeholder="Buscar no histórico"
+          aria-label="Buscar no histórico"
+          className={cn("min-h-11 pl-9", busca && "pr-9")}
+        />
+        {busca && (
+          <button
+            type="button"
+            onClick={() => setBusca("")}
+            aria-label="Limpar busca"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+
 
       <DpContentCard contentClassName="p-2">
         {eventos.isError || colabQ.isError ? (
