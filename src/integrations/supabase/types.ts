@@ -3815,6 +3815,7 @@ export type Database = {
           assinatura_detectada: boolean | null
           assinatura_evidencia: string | null
           batch_id: string
+          claim_expires_at: string | null
           company_id: string
           confidence: number
           created_at: string
@@ -3850,6 +3851,7 @@ export type Database = {
           assinatura_detectada?: boolean | null
           assinatura_evidencia?: string | null
           batch_id: string
+          claim_expires_at?: string | null
           company_id: string
           confidence?: number
           created_at?: string
@@ -3885,6 +3887,7 @@ export type Database = {
           assinatura_detectada?: boolean | null
           assinatura_evidencia?: string | null
           batch_id?: string
+          claim_expires_at?: string | null
           company_id?: string
           confidence?: number
           created_at?: string
@@ -6852,7 +6855,11 @@ export type Database = {
       dp_documentos: {
         Row: {
           aprovacao_status: Database["public"]["Enums"]["dp_documento_aprovacao_status"]
+          arquivado_em: string | null
+          arquivado_por: string | null
+          arquivamento_motivo: string | null
           assinatura_detectada: boolean | null
+          ciclo_status: string
           colaborador_id: string | null
           company_id: string
           created_at: string
@@ -6866,19 +6873,28 @@ export type Database = {
           mime_type: string | null
           motivo_recusao: string | null
           referencia_data: string | null
+          replaced_by_documento_id: string | null
+          replaces_documento_id: string | null
           rescisao_grupo_id: string | null
           revisado_em: string | null
           revisado_por: string | null
           submetido_por_colaborador: boolean
+          superseded_at: string | null
+          superseded_by: string | null
           tipo: Database["public"]["Enums"]["dp_documento_tipo"]
           titulo: string
           unidade_id: string | null
           updated_at: string
           uploaded_by: string | null
+          versao: number
         }
         Insert: {
           aprovacao_status?: Database["public"]["Enums"]["dp_documento_aprovacao_status"]
+          arquivado_em?: string | null
+          arquivado_por?: string | null
+          arquivamento_motivo?: string | null
           assinatura_detectada?: boolean | null
+          ciclo_status?: string
           colaborador_id?: string | null
           company_id: string
           created_at?: string
@@ -6892,19 +6908,28 @@ export type Database = {
           mime_type?: string | null
           motivo_recusao?: string | null
           referencia_data?: string | null
+          replaced_by_documento_id?: string | null
+          replaces_documento_id?: string | null
           rescisao_grupo_id?: string | null
           revisado_em?: string | null
           revisado_por?: string | null
           submetido_por_colaborador?: boolean
+          superseded_at?: string | null
+          superseded_by?: string | null
           tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
           titulo: string
           unidade_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
+          versao?: number
         }
         Update: {
           aprovacao_status?: Database["public"]["Enums"]["dp_documento_aprovacao_status"]
+          arquivado_em?: string | null
+          arquivado_por?: string | null
+          arquivamento_motivo?: string | null
           assinatura_detectada?: boolean | null
+          ciclo_status?: string
           colaborador_id?: string | null
           company_id?: string
           created_at?: string
@@ -6918,15 +6943,20 @@ export type Database = {
           mime_type?: string | null
           motivo_recusao?: string | null
           referencia_data?: string | null
+          replaced_by_documento_id?: string | null
+          replaces_documento_id?: string | null
           rescisao_grupo_id?: string | null
           revisado_em?: string | null
           revisado_por?: string | null
           submetido_por_colaborador?: boolean
+          superseded_at?: string | null
+          superseded_by?: string | null
           tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
           titulo?: string
           unidade_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
+          versao?: number
         }
         Relationships: [
           {
@@ -6955,6 +6985,20 @@ export type Database = {
             columns: ["ferias_gozo_id"]
             isOneToOne: false
             referencedRelation: "dp_ferias_gozos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documentos_replaced_by_documento_id_fkey"
+            columns: ["replaced_by_documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documentos_replaces_documento_id_fkey"
+            columns: ["replaces_documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
             referencedColumns: ["id"]
           },
           {
@@ -13980,6 +14024,14 @@ export type Database = {
         Args: { p_batch_id: string }
         Returns: undefined
       }
+      dp_bulk_item_reservar: {
+        Args: { _item_id: string }
+        Returns: {
+          id: string
+          imported_documento_id: string
+          ja_importado: boolean
+        }[]
+      }
       dp_calc_carga_dia: {
         Args: {
           _entrada: string
@@ -14529,9 +14581,29 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_documento_arquivar: {
+        Args: { _documento_id: string; _motivo?: string }
+        Returns: boolean
+      }
+      dp_documento_arquivo: {
+        Args: { _documento_id: string }
+        Returns: {
+          file_name: string
+          file_path: string
+          mime_type: string
+        }[]
+      }
+      dp_documento_excluir_definitivo: {
+        Args: { _documento_id: string; _motivo: string }
+        Returns: string
+      }
       dp_documento_requisitos_seed: {
         Args: { _company_id: string }
         Returns: number
+      }
+      dp_documento_versao_publicar: {
+        Args: { _anterior_id?: string; _motivo?: string; _novo_id: string }
+        Returns: boolean
       }
       dp_e_dia_util: { Args: { _data: string }; Returns: boolean }
       dp_editar_desligamento: {
