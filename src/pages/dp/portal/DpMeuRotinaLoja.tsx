@@ -48,6 +48,7 @@ export default function DpMeuRotinaLoja() {
           id: l.colaborador_id,
           nome: toUpperCadastro(nomeExibicao(l)),
           cargo: l.cargo || "Sem função definida",
+          setor: l.setor_nome || null,
           entrada: hhmm(l.entrada),
           saida: hhmm(l.saida),
         });
