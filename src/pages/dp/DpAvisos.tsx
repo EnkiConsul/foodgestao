@@ -40,7 +40,7 @@ function AvisoDialog({
   aviso?: DpAviso | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onSave: (v: Partial<DpAviso> & { titulo: string; conteudo: string }) => void;
+  onSave: (v: Partial<DpAviso> & { titulo: string; conteudo: string }) => Promise<void>;
   companyId: string | null;
 }) {
   const [titulo, setTitulo] = useState(aviso?.titulo ?? "");
@@ -54,6 +54,7 @@ function AvisoDialog({
   const [arquivoPath, setArquivoPath] = useState(aviso?.arquivo_path ?? "");
   const [arquivoMime, setArquivoMime] = useState(aviso?.arquivo_mime ?? "");
   const [uploading, setUploading] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [leituraObrigatoria, setLeituraObrigatoria] = useState<boolean>((aviso as any)?.leitura_obrigatoria ?? false);
   const [permitirReacoes, setPermitirReacoes] = useState<boolean>((aviso as any)?.permitir_reacoes ?? true);
   const [permitirComentarios, setPermitirComentarios] = useState<boolean>((aviso as any)?.permitir_comentarios ?? false);
