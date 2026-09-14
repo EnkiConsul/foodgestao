@@ -36,7 +36,7 @@ const ALLOWED_MIMES = [
   "application/pdf", "image/png", "image/jpeg", "image/webp",
 ];
 
-function AvisoDialog({
+export function AvisoDialog({
   aviso, open, onOpenChange, onSave, companyId,
 }: {
   aviso?: DpAviso | null;
