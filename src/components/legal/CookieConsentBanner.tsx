@@ -56,17 +56,19 @@ export function CookieConsentBanner() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
-              <Button size="sm" onClick={acceptAll} className="flex-1 min-w-[100px]">
+            {/* No celular os botões ficam empilhados para o texto nunca vazar. */}
+            <div className="mt-2 grid gap-1.5 sm:mt-3 sm:grid-cols-3 sm:gap-2">
+              <Button size="sm" onClick={acceptAll} className="w-full">
                 Aceitar todos
               </Button>
-              <Button size="sm" variant="outline" onClick={rejectAll} className="flex-1 min-w-[100px]">
+              <Button size="sm" variant="outline" onClick={rejectAll} className="w-full">
                 Apenas essenciais
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setOpen(true)} className="flex-1 min-w-[100px]">
+              <Button size="sm" variant="ghost" onClick={() => setOpen(true)} className="w-full">
                 Personalizar
               </Button>
             </div>
+
           </div>
         </div>
       )}
