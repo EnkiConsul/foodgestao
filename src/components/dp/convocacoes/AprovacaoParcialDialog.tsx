@@ -152,9 +152,21 @@ export function AprovacaoParcialDialog({ parcial, onOpenChange }: AprovacaoParci
           ) : (
             <Skeleton className="h-4 w-40" />
           )}
+          {parcial.aceite_atrasado ? (
+            <p className="pt-1 text-amber-700 dark:text-amber-300">
+              Respondeu {rotuloAtraso(parcial.aceite_atraso_minutos)} ·{" "}
+              {parcial.aceite_atraso_forma === "integral"
+                ? "diz ter vindo no horário completo"
+                : `chega ${hhmm(parcial.parcial_entrada)}`}
+              {parcial.aceite_atraso_justificativa
+                ? ` — “${parcial.aceite_atraso_justificativa}”`
+                : ""}
+            </p>
+          ) : null}
           {parcial.parcial_observacao ? (
             <p className="pt-1">Recado: {parcial.parcial_observacao}</p>
           ) : null}
+
           {parcial.reofertas_pendentes > 0 ? (
             <p className="text-amber-700 dark:text-amber-300">
               {parcial.reofertas_pendentes} pessoa(s) já receberam este dia

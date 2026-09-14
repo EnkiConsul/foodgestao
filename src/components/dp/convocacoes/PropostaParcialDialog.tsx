@@ -18,24 +18,29 @@ export interface PropostaParcialDialogProps {
   onOpenChange: (v: boolean) => void;
   loading?: boolean;
   necessidade: { entrada: string; saida: string; termina_no_dia_seguinte?: boolean | null };
+  /** Minutos desde o início do horário, quando o dia já começou. */
+  minutosDeAtraso?: number | null;
   onConfirm: (p: {
     entrada: string;
     saida: string;
     termina_no_dia_seguinte: boolean;
     observacao: string | null;
+    justificativaAtraso: string | null;
   }) => void;
 }
 
 /**
  * O colaborador informa até quando/desde quando consegue vir naquele dia.
  * Só é possível ENCURTAR a janela pedida — a mesma regra vale no servidor.
+ * Quando o horário já começou, a explicação passa a ser obrigatória.
  */
 export function PropostaParcialDialog({
-  open, onOpenChange, loading, necessidade, onConfirm,
+  open, onOpenChange, loading, necessidade, minutosDeAtraso, onConfirm,
 }: PropostaParcialDialogProps) {
   const [entrada, setEntrada] = useState(hhmm(necessidade.entrada));
   const [saida, setSaida] = useState(hhmm(necessidade.saida));
   const [observacao, setObservacao] = useState("");
+  const atrasado = Number(minutosDeAtraso ?? 0) > 0;
 
   useEffect(() => {
     if (!open) return;
@@ -43,6 +48,7 @@ export function PropostaParcialDialog({
     setSaida(hhmm(necessidade.saida));
     setObservacao("");
   }, [open, necessidade.entrada, necessidade.saida]);
+
 
   const { validacao, descoberto, viraODia } = useMemo(() => {
     // A saída "vira o dia" sempre que for menor ou igual à entrada proposta.
