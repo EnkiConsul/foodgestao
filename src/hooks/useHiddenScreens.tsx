@@ -7,9 +7,11 @@ import {
   effectiveHiddenRoutes,
   isRouteHidden,
   portalRoutesForaDoVinculo,
+  portalRoutesSomenteDocumentos,
   type HiddenScreensConfig,
 } from "@/lib/nav/hiddenScreens";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
+import { usePortalAcesso } from "@/hooks/usePortalAcesso";
 
 const QUERY_KEY = ["app_hidden_screens"];
 
