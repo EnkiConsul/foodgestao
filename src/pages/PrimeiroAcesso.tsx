@@ -48,9 +48,27 @@ export default function PrimeiroAcesso() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) navigate("/auth", { replace: true });
-    });
+    let ativo = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!ativo) return;
+      if (!data.session) {
+        navigate("/auth", { replace: true });
+        return;
+      }
+      // Se a senha já foi trocada, esta tela não deve aparecer de novo.
+      const { data: estado } = await supabase
+        .from("auth_user_security_state")
+        .select("must_change_password")
+        .eq("user_id", data.session.user.id)
+        .maybeSingle();
+      if (ativo && estado && estado.must_change_password === false) {
+        navigate("/", { replace: true });
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,19 +85,26 @@ export default function PrimeiroAcesso() {
     try {
       const { error: updErr } = await supabase.auth.updateUser({ password });
       if (updErr) {
-        toast.error("Erro ao atualizar senha", { description: updErr.message });
+        const texto = mensagemDeSenha(updErr.message ?? "");
+        setErrors({ password: texto });
+        toast.error("Não foi possível salvar a senha", { description: texto });
         return;
       }
       const { data: userRes } = await supabase.auth.getUser();
       if (userRes.user) {
-        await supabase
+        // Marca a troca; se falhar, o acesso continua — não trava a pessoa aqui.
+        const { error: estadoErr } = await supabase
           .from("auth_user_security_state")
-          .update({
-            must_change_password: false,
-            password_changed_at: new Date().toISOString(),
-            password_changed_by: userRes.user.id,
-          })
-          .eq("user_id", userRes.user.id);
+          .upsert(
+            {
+              user_id: userRes.user.id,
+              must_change_password: false,
+              password_changed_at: new Date().toISOString(),
+              password_changed_by: userRes.user.id,
+            },
+            { onConflict: "user_id" },
+          );
+        if (estadoErr) console.warn("[primeiro-acesso] estado de senha:", estadoErr.message);
       }
       toast.success("Senha atualizada!", { description: "Você já pode continuar." });
       navigate("/", { replace: true });
