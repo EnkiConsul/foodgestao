@@ -662,17 +662,24 @@ export default function DpMeuCalendario() {
 
 
 
-      const { error } = await supabase.from("dp_folgas").insert({
-        company_id: meRef.data.company_id,
-        colaborador_id: meRef.data.id,
-        data: iso,
-        tipo: "normal",
-        origem: "solicitacao",
-        status: "agendada",
-        extra: false,
-        criado_por: user!.id,
-      });
-      if (error) throw error;
+      const { error } = await supabase.rpc("dp_folga_marcar", { p_data: iso });
+      if (error) {
+        const raw = error.message ?? "";
+        if (raw.includes("FOLGA_FORA_DA_JANELA"))
+          throw new Error("Fora do período de escolha das folgas. Use \"Solicitar exceção\".");
+        if (raw.includes("FOLGA_LIMITE_DIA"))
+          throw new Error("Data indisponível. Limite de folgas atingido.");
+        if (raw.includes("FOLGA_INCOMPATIBILIDADE"))
+          throw new Error(
+            raw.split("FOLGA_INCOMPATIBILIDADE:").pop()?.trim() ||
+              "Você não pode folgar no mesmo dia de um colega desta regra.",
+          );
+        if (raw.includes("DUPLICATE_REQUEST"))
+          throw new Error("Você já tem folga marcada neste dia.");
+        if (raw.includes("PAST_DATE_NOT_EDITABLE"))
+          throw new Error("Não é possível marcar folga em datas passadas.");
+        throw error;
+      }
     },
     onSuccess: (_data, iso: string) => {
       toast.success("Folga marcada!");
