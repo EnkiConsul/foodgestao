@@ -216,6 +216,24 @@ export default function DpMinhasConvocacoes() {
             </p>
           ) : null}
 
+          {responderAgora && emAndamento ? (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm space-y-1">
+              <p className="font-medium">
+                Este horário começou às {hhmm(c.entrada)}. Você ainda pode responder.
+              </p>
+              <p className="text-muted-foreground">
+                Sua resposta está {rotuloAtraso(atraso)} — escolha abaixo e explique o que aconteceu.
+              </p>
+            </div>
+          ) : null}
+
+          {c.aceite_atrasado ? (
+            <p className="text-xs text-muted-foreground">
+              Resposta registrada {rotuloAtraso(c.aceite_atraso_minutos)}
+              {c.aceite_atraso_forma === "integral" ? " · horário completo" : ""}.
+            </p>
+          ) : null}
+
           {responderAgora ? (
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-2">
@@ -227,9 +245,11 @@ export default function DpMinhasConvocacoes() {
                 </Button>
                 <Button
                   className="h-11 gap-2"
-                  onClick={() => responderConvocacao(c.id, true)} disabled={responder.isPending}
+                  onClick={() => (emAndamento ? setAtrasado(c) : responderConvocacao(c.id, true))}
+                  disabled={responder.isPending}
                 >
-                  <Check className="h-4 w-4" /> Aceitar
+                  <Check className="h-4 w-4" />
+                  {emAndamento ? "Vim no horário" : "Aceitar"}
                 </Button>
               </div>
               {c.necessidade_entrada && c.necessidade_saida ? (
@@ -238,13 +258,16 @@ export default function DpMinhasConvocacoes() {
                   onClick={() => setParcial(c)} disabled={proporParcial.isPending}
                 >
                   <Clock className="h-4 w-4" />
-                  {c.parcial_status === "aguardando_gestor"
-                    ? "Mudar o horário parcial"
-                    : "Posso vir parte do horário"}
+                  {emAndamento
+                    ? "Vou chegar mais tarde"
+                    : c.parcial_status === "aguardando_gestor"
+                      ? "Mudar o horário parcial"
+                      : "Posso vir parte do horário"}
                 </Button>
               ) : null}
             </div>
           ) : null}
+
         </CardContent>
       </Card>
     );
