@@ -6966,130 +6966,6 @@ export type Database = {
           },
         ]
       }
-      dp_epis: {
-        Row: {
-          ativo: boolean
-          ca: string | null
-          company_id: string
-          created_at: string
-          descricao: string | null
-          id: string
-          nome: string
-          updated_at: string
-          validade_dias: number | null
-        }
-        Insert: {
-          ativo?: boolean
-          ca?: string | null
-          company_id: string
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          nome: string
-          updated_at?: string
-          validade_dias?: number | null
-        }
-        Update: {
-          ativo?: boolean
-          ca?: string | null
-          company_id?: string
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          nome?: string
-          updated_at?: string
-          validade_dias?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dp_epis_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dp_epis_entregas: {
-        Row: {
-          arquivo_path: string | null
-          colaborador_id: string
-          company_id: string
-          created_at: string
-          criado_por: string | null
-          data_devolucao: string | null
-          data_entrega: string
-          data_troca_prevista: string | null
-          epi_id: string
-          id: string
-          observacao: string | null
-          quantidade: number
-          recebido_em: string | null
-          updated_at: string
-        }
-        Insert: {
-          arquivo_path?: string | null
-          colaborador_id: string
-          company_id: string
-          created_at?: string
-          criado_por?: string | null
-          data_devolucao?: string | null
-          data_entrega?: string
-          data_troca_prevista?: string | null
-          epi_id: string
-          id?: string
-          observacao?: string | null
-          quantidade?: number
-          recebido_em?: string | null
-          updated_at?: string
-        }
-        Update: {
-          arquivo_path?: string | null
-          colaborador_id?: string
-          company_id?: string
-          created_at?: string
-          criado_por?: string | null
-          data_devolucao?: string | null
-          data_entrega?: string
-          data_troca_prevista?: string | null
-          epi_id?: string
-          id?: string
-          observacao?: string | null
-          quantidade?: number
-          recebido_em?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dp_epis_entregas_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_epis_entregas_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_epis_entregas_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_epis_entregas_epi_id_fkey"
-            columns: ["epi_id"]
-            isOneToOne: false
-            referencedRelation: "dp_epis"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       dp_escala_itens: {
         Row: {
           carga_prevista_horas: number
@@ -7249,82 +7125,6 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "dp_unidades"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dp_exames_aso: {
-        Row: {
-          arquivo_path: string | null
-          clinica: string | null
-          colaborador_id: string
-          company_id: string
-          created_at: string
-          criado_por: string | null
-          data_realizado: string | null
-          data_vencimento: string | null
-          id: string
-          medico: string | null
-          observacao: string | null
-          restricoes: string | null
-          resultado: Database["public"]["Enums"]["dp_exame_resultado"]
-          tipo: Database["public"]["Enums"]["dp_exame_tipo"]
-          updated_at: string
-        }
-        Insert: {
-          arquivo_path?: string | null
-          clinica?: string | null
-          colaborador_id: string
-          company_id: string
-          created_at?: string
-          criado_por?: string | null
-          data_realizado?: string | null
-          data_vencimento?: string | null
-          id?: string
-          medico?: string | null
-          observacao?: string | null
-          restricoes?: string | null
-          resultado?: Database["public"]["Enums"]["dp_exame_resultado"]
-          tipo: Database["public"]["Enums"]["dp_exame_tipo"]
-          updated_at?: string
-        }
-        Update: {
-          arquivo_path?: string | null
-          clinica?: string | null
-          colaborador_id?: string
-          company_id?: string
-          created_at?: string
-          criado_por?: string | null
-          data_realizado?: string | null
-          data_vencimento?: string | null
-          id?: string
-          medico?: string | null
-          observacao?: string | null
-          restricoes?: string | null
-          resultado?: Database["public"]["Enums"]["dp_exame_resultado"]
-          tipo?: Database["public"]["Enums"]["dp_exame_tipo"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dp_exames_aso_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_exames_aso_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_exames_aso_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -8336,186 +8136,6 @@ export type Database = {
             columns: ["folga_id"]
             isOneToOne: false
             referencedRelation: "dp_folgas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dp_folha_lancamentos: {
-        Row: {
-          assiduidade_abono_em: string | null
-          assiduidade_abono_motivo: string | null
-          assiduidade_abono_por: string | null
-          assiduidade_atestado_abonado: boolean
-          colaborador_id: string
-          company_id: string
-          contracheque_documento_id: string | null
-          created_at: string
-          descontos: Json
-          financeiro_account_id: string | null
-          financeiro_categoria_id: string | null
-          id: string
-          observacoes: string | null
-          periodo_id: string
-          status: Database["public"]["Enums"]["dp_folha_lancamento_status"]
-          tipo: Database["public"]["Enums"]["dp_folha_tipo"]
-          transaction_id: string | null
-          updated_at: string
-          valor_bruto: number
-          valor_liquido: number
-        }
-        Insert: {
-          assiduidade_abono_em?: string | null
-          assiduidade_abono_motivo?: string | null
-          assiduidade_abono_por?: string | null
-          assiduidade_atestado_abonado?: boolean
-          colaborador_id: string
-          company_id: string
-          contracheque_documento_id?: string | null
-          created_at?: string
-          descontos?: Json
-          financeiro_account_id?: string | null
-          financeiro_categoria_id?: string | null
-          id?: string
-          observacoes?: string | null
-          periodo_id: string
-          status?: Database["public"]["Enums"]["dp_folha_lancamento_status"]
-          tipo: Database["public"]["Enums"]["dp_folha_tipo"]
-          transaction_id?: string | null
-          updated_at?: string
-          valor_bruto?: number
-          valor_liquido?: number
-        }
-        Update: {
-          assiduidade_abono_em?: string | null
-          assiduidade_abono_motivo?: string | null
-          assiduidade_abono_por?: string | null
-          assiduidade_atestado_abonado?: boolean
-          colaborador_id?: string
-          company_id?: string
-          contracheque_documento_id?: string | null
-          created_at?: string
-          descontos?: Json
-          financeiro_account_id?: string | null
-          financeiro_categoria_id?: string | null
-          id?: string
-          observacoes?: string | null
-          periodo_id?: string
-          status?: Database["public"]["Enums"]["dp_folha_lancamento_status"]
-          tipo?: Database["public"]["Enums"]["dp_folha_tipo"]
-          transaction_id?: string | null
-          updated_at?: string
-          valor_bruto?: number
-          valor_liquido?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dp_folha_lancamentos_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_folha_lancamentos_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_folha_lancamentos_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_folha_lancamentos_contracheque_documento_id_fkey"
-            columns: ["contracheque_documento_id"]
-            isOneToOne: false
-            referencedRelation: "dp_documentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_folha_lancamentos_financeiro_account_id_fkey"
-            columns: ["financeiro_account_id"]
-            isOneToOne: false
-            referencedRelation: "accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_folha_lancamentos_financeiro_categoria_id_fkey"
-            columns: ["financeiro_categoria_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_folha_lancamentos_periodo_id_fkey"
-            columns: ["periodo_id"]
-            isOneToOne: false
-            referencedRelation: "dp_folha_periodos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_folha_lancamentos_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "transaction_sources"
-            referencedColumns: ["transaction_id"]
-          },
-          {
-            foreignKeyName: "dp_folha_lancamentos_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "transactions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dp_folha_periodos: {
-        Row: {
-          company_id: string
-          competencia: string
-          created_at: string
-          created_by: string | null
-          data_pagamento: string | null
-          id: string
-          observacoes: string | null
-          status: Database["public"]["Enums"]["dp_folha_periodo_status"]
-          tipo: Database["public"]["Enums"]["dp_folha_tipo"]
-          updated_at: string
-        }
-        Insert: {
-          company_id: string
-          competencia: string
-          created_at?: string
-          created_by?: string | null
-          data_pagamento?: string | null
-          id?: string
-          observacoes?: string | null
-          status?: Database["public"]["Enums"]["dp_folha_periodo_status"]
-          tipo: Database["public"]["Enums"]["dp_folha_tipo"]
-          updated_at?: string
-        }
-        Update: {
-          company_id?: string
-          competencia?: string
-          created_at?: string
-          created_by?: string | null
-          data_pagamento?: string | null
-          id?: string
-          observacoes?: string | null
-          status?: Database["public"]["Enums"]["dp_folha_periodo_status"]
-          tipo?: Database["public"]["Enums"]["dp_folha_tipo"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dp_folha_periodos_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -10083,244 +9703,6 @@ export type Database = {
           },
         ]
       }
-      dp_ponto_ajustes: {
-        Row: {
-          acao: Database["public"]["Enums"]["dp_ponto_ajuste_acao"]
-          analisado_em: string | null
-          analisado_por: string | null
-          colaborador_id: string
-          company_id: string
-          created_at: string
-          criado_por: string | null
-          data: string
-          hora_solicitada: string | null
-          id: string
-          motivo: string
-          observacao_analise: string | null
-          status: Database["public"]["Enums"]["dp_aprovacao_status"]
-          tipo: Database["public"]["Enums"]["dp_ponto_tipo"]
-          updated_at: string
-        }
-        Insert: {
-          acao?: Database["public"]["Enums"]["dp_ponto_ajuste_acao"]
-          analisado_em?: string | null
-          analisado_por?: string | null
-          colaborador_id: string
-          company_id: string
-          created_at?: string
-          criado_por?: string | null
-          data: string
-          hora_solicitada?: string | null
-          id?: string
-          motivo: string
-          observacao_analise?: string | null
-          status?: Database["public"]["Enums"]["dp_aprovacao_status"]
-          tipo: Database["public"]["Enums"]["dp_ponto_tipo"]
-          updated_at?: string
-        }
-        Update: {
-          acao?: Database["public"]["Enums"]["dp_ponto_ajuste_acao"]
-          analisado_em?: string | null
-          analisado_por?: string | null
-          colaborador_id?: string
-          company_id?: string
-          created_at?: string
-          criado_por?: string | null
-          data?: string
-          hora_solicitada?: string | null
-          id?: string
-          motivo?: string
-          observacao_analise?: string | null
-          status?: Database["public"]["Enums"]["dp_aprovacao_status"]
-          tipo?: Database["public"]["Enums"]["dp_ponto_tipo"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dp_ponto_ajustes_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_ponto_ajustes_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_ponto_ajustes_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dp_ponto_fechamentos: {
-        Row: {
-          atraso_minutos: number
-          colaborador_id: string
-          company_id: string
-          competencia: string
-          created_at: string
-          faltas: number
-          fechado_em: string
-          fechado_por: string | null
-          id: string
-          minutos_previstos: number
-          minutos_trabalhados: number
-          observacao: string | null
-          saldo_acumulado_minutos: number
-          saldo_anterior_minutos: number
-          saldo_minutos: number
-          updated_at: string
-        }
-        Insert: {
-          atraso_minutos?: number
-          colaborador_id: string
-          company_id: string
-          competencia: string
-          created_at?: string
-          faltas?: number
-          fechado_em?: string
-          fechado_por?: string | null
-          id?: string
-          minutos_previstos?: number
-          minutos_trabalhados?: number
-          observacao?: string | null
-          saldo_acumulado_minutos?: number
-          saldo_anterior_minutos?: number
-          saldo_minutos?: number
-          updated_at?: string
-        }
-        Update: {
-          atraso_minutos?: number
-          colaborador_id?: string
-          company_id?: string
-          competencia?: string
-          created_at?: string
-          faltas?: number
-          fechado_em?: string
-          fechado_por?: string | null
-          id?: string
-          minutos_previstos?: number
-          minutos_trabalhados?: number
-          observacao?: string | null
-          saldo_acumulado_minutos?: number
-          saldo_anterior_minutos?: number
-          saldo_minutos?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dp_ponto_fechamentos_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_ponto_fechamentos_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_ponto_fechamentos_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dp_pontos: {
-        Row: {
-          ajustado_por: string | null
-          colaborador_id: string
-          company_id: string
-          created_at: string
-          data: string
-          id: string
-          latitude: number | null
-          longitude: number | null
-          observacao: string | null
-          origem: Database["public"]["Enums"]["dp_ponto_origem"]
-          registrado_em: string
-          registrado_por: string | null
-          tipo: Database["public"]["Enums"]["dp_ponto_tipo"]
-          unidade_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          ajustado_por?: string | null
-          colaborador_id: string
-          company_id: string
-          created_at?: string
-          data: string
-          id?: string
-          latitude?: number | null
-          longitude?: number | null
-          observacao?: string | null
-          origem?: Database["public"]["Enums"]["dp_ponto_origem"]
-          registrado_em?: string
-          registrado_por?: string | null
-          tipo: Database["public"]["Enums"]["dp_ponto_tipo"]
-          unidade_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          ajustado_por?: string | null
-          colaborador_id?: string
-          company_id?: string
-          created_at?: string
-          data?: string
-          id?: string
-          latitude?: number | null
-          longitude?: number | null
-          observacao?: string | null
-          origem?: Database["public"]["Enums"]["dp_ponto_origem"]
-          registrado_em?: string
-          registrado_por?: string | null
-          tipo?: Database["public"]["Enums"]["dp_ponto_tipo"]
-          unidade_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dp_pontos_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_pontos_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_pontos_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_pontos_unidade_id_fkey"
-            columns: ["unidade_id"]
-            isOneToOne: false
-            referencedRelation: "dp_unidades"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       dp_prioridade_aniversario: {
         Row: {
           aniversariante: boolean
@@ -10842,130 +10224,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dp_treinamentos: {
-        Row: {
-          ativo: boolean
-          carga_horaria: number | null
-          company_id: string
-          created_at: string
-          descricao: string | null
-          id: string
-          nome: string
-          obrigatorio: boolean
-          updated_at: string
-          validade_meses: number | null
-        }
-        Insert: {
-          ativo?: boolean
-          carga_horaria?: number | null
-          company_id: string
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          nome: string
-          obrigatorio?: boolean
-          updated_at?: string
-          validade_meses?: number | null
-        }
-        Update: {
-          ativo?: boolean
-          carga_horaria?: number | null
-          company_id?: string
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          nome?: string
-          obrigatorio?: boolean
-          updated_at?: string
-          validade_meses?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dp_treinamentos_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dp_treinamentos_participacoes: {
-        Row: {
-          certificado_path: string | null
-          colaborador_id: string
-          company_id: string
-          created_at: string
-          criado_por: string | null
-          data_conclusao: string | null
-          data_vencimento: string | null
-          id: string
-          nota: number | null
-          observacao: string | null
-          status: Database["public"]["Enums"]["dp_treinamento_status"]
-          treinamento_id: string
-          updated_at: string
-        }
-        Insert: {
-          certificado_path?: string | null
-          colaborador_id: string
-          company_id: string
-          created_at?: string
-          criado_por?: string | null
-          data_conclusao?: string | null
-          data_vencimento?: string | null
-          id?: string
-          nota?: number | null
-          observacao?: string | null
-          status?: Database["public"]["Enums"]["dp_treinamento_status"]
-          treinamento_id: string
-          updated_at?: string
-        }
-        Update: {
-          certificado_path?: string | null
-          colaborador_id?: string
-          company_id?: string
-          created_at?: string
-          criado_por?: string | null
-          data_conclusao?: string | null
-          data_vencimento?: string | null
-          id?: string
-          nota?: number | null
-          observacao?: string | null
-          status?: Database["public"]["Enums"]["dp_treinamento_status"]
-          treinamento_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dp_treinamentos_participacoes_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_treinamentos_participacoes_colaborador_id_fkey"
-            columns: ["colaborador_id"]
-            isOneToOne: false
-            referencedRelation: "dp_colaboradores_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_treinamentos_participacoes_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dp_treinamentos_participacoes_treinamento_id_fkey"
-            columns: ["treinamento_id"]
-            isOneToOne: false
-            referencedRelation: "dp_treinamentos"
             referencedColumns: ["id"]
           },
         ]
@@ -14648,10 +13906,6 @@ export type Database = {
         Args: { _base: string; _dias: number; _timezone: string }
         Returns: string
       }
-      dp_beneficios_gerar_lancamentos: {
-        Args: { _periodo_id: string }
-        Returns: number
-      }
       dp_bulk_increment_processed: {
         Args: { p_batch_id: string }
         Returns: undefined
@@ -15507,27 +14761,6 @@ export type Database = {
         Args: { _company: string; _data_ref?: string; _unidade?: string }
         Returns: Json
       }
-      dp_folha_desfazer_despesa: {
-        Args: { p_periodo_id: string }
-        Returns: boolean
-      }
-      dp_folha_enviar_financeiro: {
-        Args: { _periodo_id: string }
-        Returns: undefined
-      }
-      dp_folha_gerar_despesa: {
-        Args: {
-          p_account_id?: string
-          p_category_id?: string
-          p_data_pagamento?: string
-          p_periodo_id: string
-        }
-        Returns: string
-      }
-      dp_folha_gerar_lancamentos: {
-        Args: { _periodo_id: string }
-        Returns: number
-      }
       dp_folha_pendencias_remuneracao: {
         Args: { _company_id: string }
         Returns: {
@@ -15536,10 +14769,6 @@ export type Database = {
           motivo: string
           nome: string
         }[]
-      }
-      dp_folha_reabrir_periodo: {
-        Args: { _periodo_id: string }
-        Returns: undefined
       }
       dp_gerar_bloqueios_ano: {
         Args: { _ano: number; _company_id: string }
@@ -15826,6 +15055,10 @@ export type Database = {
           p_valor_hora?: number
         }
         Returns: string
+      }
+      dp_refresh_document_pending: {
+        Args: { p_company_id: string }
+        Returns: undefined
       }
       dp_refresh_my_company_pending: {
         Args: { p_company_id: string }
@@ -16730,13 +15963,6 @@ export type Database = {
         | "afastamento"
         | "feriado"
       dp_escala_status: "rascunho" | "publicada" | "arquivada"
-      dp_exame_resultado: "apto" | "apto_com_restricoes" | "inapto" | "pendente"
-      dp_exame_tipo:
-        | "admissional"
-        | "periodico"
-        | "retorno_trabalho"
-        | "mudanca_funcao"
-        | "demissional"
       dp_ferias_gozo_status:
         | "planejado"
         | "aprovado"
@@ -16760,18 +15986,6 @@ export type Database = {
         | "auto_fechamento_periodo"
       dp_folga_status: "agendada" | "cancelada" | "realizada"
       dp_folga_tipo: "normal" | "extra" | "ferias" | "abono" | "licenca"
-      dp_folha_lancamento_status:
-        | "rascunho"
-        | "aprovado_dp"
-        | "aprovado_financeiro"
-        | "pago"
-        | "cancelado"
-      dp_folha_periodo_status:
-        | "aberto"
-        | "fechado"
-        | "aprovado_dp"
-        | "aprovado_financeiro"
-        | "pago"
       dp_folha_tipo:
         | "adiantamento"
         | "contracheque_mensal"
@@ -16857,9 +16071,6 @@ export type Database = {
       dp_pessoa_avulsa_tipo: "teste" | "folguista" | "registro_manual"
       dp_politica_feriado: "compensa" | "dobro"
       dp_politica_sabado: "trabalha" | "folga" | "alterna" | "especifica"
-      dp_ponto_ajuste_acao: "incluir" | "alterar" | "excluir"
-      dp_ponto_origem: "portal" | "admin" | "importado"
-      dp_ponto_tipo: "entrada" | "intervalo_inicio" | "intervalo_fim" | "saida"
       dp_regime_trabalho:
         | "clt"
         | "pj"
@@ -16887,11 +16098,6 @@ export type Database = {
         | "12x36"
         | "intermitente"
         | "personalizada"
-      dp_treinamento_status:
-        | "planejado"
-        | "em_andamento"
-        | "concluido"
-        | "cancelado"
       dp_troca_status:
         | "pendente_colega"
         | "pendente_gestor"
@@ -17215,14 +16421,6 @@ export const Constants = {
         "feriado",
       ],
       dp_escala_status: ["rascunho", "publicada", "arquivada"],
-      dp_exame_resultado: ["apto", "apto_com_restricoes", "inapto", "pendente"],
-      dp_exame_tipo: [
-        "admissional",
-        "periodico",
-        "retorno_trabalho",
-        "mudanca_funcao",
-        "demissional",
-      ],
       dp_ferias_gozo_status: [
         "planejado",
         "aprovado",
@@ -17249,20 +16447,6 @@ export const Constants = {
       ],
       dp_folga_status: ["agendada", "cancelada", "realizada"],
       dp_folga_tipo: ["normal", "extra", "ferias", "abono", "licenca"],
-      dp_folha_lancamento_status: [
-        "rascunho",
-        "aprovado_dp",
-        "aprovado_financeiro",
-        "pago",
-        "cancelado",
-      ],
-      dp_folha_periodo_status: [
-        "aberto",
-        "fechado",
-        "aprovado_dp",
-        "aprovado_financeiro",
-        "pago",
-      ],
       dp_folha_tipo: [
         "adiantamento",
         "contracheque_mensal",
@@ -17360,9 +16544,6 @@ export const Constants = {
       dp_pessoa_avulsa_tipo: ["teste", "folguista", "registro_manual"],
       dp_politica_feriado: ["compensa", "dobro"],
       dp_politica_sabado: ["trabalha", "folga", "alterna", "especifica"],
-      dp_ponto_ajuste_acao: ["incluir", "alterar", "excluir"],
-      dp_ponto_origem: ["portal", "admin", "importado"],
-      dp_ponto_tipo: ["entrada", "intervalo_inicio", "intervalo_fim", "saida"],
       dp_regime_trabalho: [
         "clt",
         "pj",
@@ -17392,12 +16573,6 @@ export const Constants = {
         "12x36",
         "intermitente",
         "personalizada",
-      ],
-      dp_treinamento_status: [
-        "planejado",
-        "em_andamento",
-        "concluido",
-        "cancelado",
       ],
       dp_troca_status: [
         "pendente_colega",

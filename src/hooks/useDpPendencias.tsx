@@ -443,7 +443,7 @@ export function useDpPendencias() {
       const rangeInicio = intervaloCompetencia(menorComp).inicio;
       const rangeFim = intervaloCompetencia(compVigente).fim;
       // Uma folha de ponto já importada confirma que o intermitente trabalhou
-      // naquela competência, ainda que não existam marcações em dp_pontos.
+      // naquela competência, ainda que não haja marcação alguma.
       folhasPontoImportadas = await carregarTipo("ponto", rangeInicio, rangeFim);
 
       // 3-5. Documentos do colaborador (contracheque, adiantamento, folha de ponto).
