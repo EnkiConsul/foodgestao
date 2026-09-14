@@ -104,6 +104,8 @@ BEGIN
   res := res || CASE WHEN st = 'imported' THEN 'PASS T9' ELSE 'FAIL T9 (' || st || ')' END;
 
   -- T10: lote não finaliza com trabalho pendente
+  UPDATE public.dp_bulk_import_items SET status = 'queued', locked_by = NULL
+   WHERE batch_id = v_batch AND page_index = 2;
   PERFORM public.dp_bulk_batch_finalize(v_batch);
   SELECT status INTO st FROM public.dp_bulk_import_batches WHERE id = v_batch;
   res := res || CASE WHEN st = 'processing' THEN 'PASS T10' ELSE 'FAIL T10 (' || st || ')' END;
