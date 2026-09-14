@@ -194,7 +194,7 @@ export default function DpMeuFerias() {
       )}
 
       <Dialog open={aberto} onOpenChange={setAberto}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90svh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Pedir férias</DialogTitle>
             <DialogDescription>

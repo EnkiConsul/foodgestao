@@ -329,7 +329,7 @@ export default function DpMeuDocumentos() {
               <DialogTrigger asChild>
                 <Button size="sm"><Upload className="h-4 w-4 mr-1" /> Enviar documento</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md max-h-[90svh] overflow-y-auto">
                 <DialogHeader><DialogTitle>Enviar documento para aprovação</DialogTitle></DialogHeader>
                 <div className="grid gap-3 py-2">
                   <div className="grid gap-1.5">
