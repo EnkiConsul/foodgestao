@@ -119,8 +119,13 @@ export function MobileBottomNav() {
       <nav
         ref={navRef}
         role="tablist"
-        className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className="fixed bottom-0 left-0 right-0 z-50 bg-card md:hidden"
+        style={{
+          paddingBottom: "env(safe-area-inset-bottom)",
+          // Mantém o rodapé colado embaixo mesmo com a barra do navegador aparecendo/sumindo.
+          transform: "translateZ(0)",
+          willChange: "transform",
+        }}
       >
         <div className="relative" style={{ height: NAV_HEIGHT }}>
           <BottomNavShape height={NAV_HEIGHT} />
