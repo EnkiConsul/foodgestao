@@ -178,12 +178,15 @@ function AvisoDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" disabled={salvando} onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
-            disabled={!titulo || !conteudo || !dataInicio || !dataFim}
-            onClick={() => {
+            disabled={!titulo || !conteudo || !dataInicio || !dataFim || uploading || salvando}
+            onClick={async () => {
+              if (salvando) return;
               const dest = parseDest();
-              onSave({
+              setSalvando(true);
+              try {
+                await onSave({
                 id: aviso?.id,
                 titulo,
                 conteudo,
