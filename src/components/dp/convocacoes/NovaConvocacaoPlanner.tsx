@@ -518,49 +518,18 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   };
 
   /**
-   * Erros de gravação em linguagem clara. Dia já ocupado por outro rascunho
-   * (conflito de necessidade vigente) ganha atalho para abrir o rascunho
-   * anterior — nunca texto técnico na tela.
+   * Erros de gravação em linguagem clara. Repetir o mesmo dia em outro rascunho
+   * é permitido — o único impedimento é a pessoa já ocupada no horário, e isso
+   * o servidor avalia por candidato.
    */
   const tratarErroDeGravacao = async (e: any) => {
-    const msg = String(e?.message ?? "");
-    const ehConflito = e?.code === "23505" || msg.includes("uq_dp_conv_ocor_necessidade_vigente");
-    if (!ehConflito) {
-      // Falha não reconhecida: linguagem clara + registro (abre o "Relatar problema").
-      notifyError(e, {
-        surface: "Convocações",
-        action: "salvar a convocação",
-        details: { grupo_id: grupoId, unidade_id: unidadeId, dias: listaDias.map((d) => d.data) },
-      });
-      return;
-    }
-    let rascunhoId: string | null = null;
-    if (selectedCompanyId && unidadeId) {
-      try {
-        const { data } = await supabase
-          .from("dp_convocacao_ocorrencias")
-          .select("grupo_id")
-          .eq("company_id", selectedCompanyId)
-          .eq("unidade_id", unidadeId)
-          .eq("status", "rascunho")
-          .neq("grupo_id", grupoId)
-          .order("data")
-          .limit(1);
-        rascunhoId = (data?.[0] as any)?.grupo_id ?? null;
-      } catch {
-        /* sem o atalho, mantém só a mensagem */
-      }
-    }
-    toast.error("Um dos dias já está em outro rascunho", {
-      duration: 12_000,
-      closeButton: true,
-      description:
-        "Publique ou exclua o rascunho anterior para liberar a data. O que você planejou aqui continua salvo.",
-      ...(rascunhoId && onAbrirRascunho
-        ? { action: { label: "Abrir rascunho", onClick: () => onAbrirRascunho(rascunhoId) } }
-        : {}),
+    notifyError(e, {
+      surface: "Convocações",
+      action: "salvar a convocação",
+      details: { grupo_id: grupoId, unidade_id: unidadeId, dias: listaDias.map((d) => d.data) },
     });
   };
+
 
   /** Sugestão do horário padrão: histórico de convocações e, em seguida, equipe fixa. */
   const resolverSugestao = async (cargoId: string, iso: string): Promise<SugestaoCache | null> => {
@@ -890,23 +859,20 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
       onOpenChange(false);
     } catch (e: any) {
       const msg = String(e?.message ?? "");
-      if (e?.code === "23505" || msg.includes("uq_dp_conv_ocor_necessidade_vigente")) {
-        await tratarErroDeGravacao(e);
+      setDataComErro(dataDoErroDePublicacao(msg));
+      const texto = textoDoErroDePublicacao(msg);
+      // Mensagem reconhecida (horário, antecedência...) já é amigável; o resto
+      // vira texto claro e é registrado para o botão "Relatar problema".
+      if (texto !== msg) {
+        toast.error(texto, { closeButton: true, duration: 10_000 });
       } else {
-        setDataComErro(dataDoErroDePublicacao(msg));
-        const texto = textoDoErroDePublicacao(msg);
-        // Mensagem reconhecida (horário, antecedência...) já é amigável; o resto
-        // vira texto claro e é registrado para o botão "Relatar problema".
-        if (texto !== msg) {
-          toast.error(texto, { closeButton: true, duration: 10_000 });
-        } else {
-          notifyError(e, {
-            surface: "Convocações",
-            action: "publicar a convocação",
-            details: { grupo_id: grupoId, unidade_id: unidadeId, dias: listaDias.map((d) => d.data) },
-          });
-        }
+        notifyError(e, {
+          surface: "Convocações",
+          action: "publicar a convocação",
+          details: { grupo_id: grupoId, unidade_id: unidadeId, dias: listaDias.map((d) => d.data) },
+        });
       }
+
     } finally {
       setPublicando(false);
     }

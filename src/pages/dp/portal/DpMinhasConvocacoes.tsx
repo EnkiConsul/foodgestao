@@ -11,8 +11,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
 import { PropostaParcialDialog } from "@/components/dp/convocacoes/PropostaParcialDialog";
+import { AceiteAtrasadoDialog } from "@/components/dp/convocacoes/AceiteAtrasadoDialog";
 import { useMinhasConvocacoes, type MinhaOferta } from "@/hooks/useDpConvocacoes";
-import { STATUS_META, podeResponder, statusEfetivo } from "@/lib/dp/convocacoes";
+import {
+  STATUS_META, janelaEmAndamento, minutosDeAtraso, podeResponder, rotuloAtraso, statusEfetivo,
+} from "@/lib/dp/convocacoes";
+
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -47,6 +51,8 @@ export default function DpMinhasConvocacoes() {
   const { user } = useAuth();
   const [recusa, setRecusa] = useState<string | null>(null);
   const [parcial, setParcial] = useState<MinhaOferta | null>(null);
+  const [atrasado, setAtrasado] = useState<MinhaOferta | null>(null);
+
 
   const me = useQuery({
     queryKey: ["dp_colaborador_of", user?.id],
@@ -85,9 +91,11 @@ export default function DpMinhasConvocacoes() {
               ? "Você não está mais elegível para esta convocação."
               : "Não foi possível responder.";
 
-  const responderConvocacao = (id: string, aceito: boolean, motivo?: string) =>
+  const responderConvocacao = (
+    id: string, aceito: boolean, motivo?: string, justificativaAtraso?: string | null,
+  ) =>
     responder.mutate(
-      { id, aceito, motivo },
+      { id, aceito, motivo, justificativaAtraso },
       {
         onSuccess: (res: any) => {
           if (res && res.ok === false) {
@@ -99,32 +107,41 @@ export default function DpMinhasConvocacoes() {
             res?.idempotente
               ? "Sua resposta já estava registrada."
               : aceito
-                ? "Convocação aceita."
+                ? res?.aceite_atrasado
+                  ? "Convocação aceita. O gestor vai ver a explicação do atraso."
+                  : "Convocação aceita."
                 : "Convocação recusada.",
           );
           setRecusa(null);
+          setAtrasado(null);
         },
         onError: (e: any) => {
           const msg = String(e?.message ?? "");
           toast.error(
-            msg.includes("ALREADY_ACCEPTED_TODAY")
-              ? "Você já tem uma convocação confirmada para este mesmo dia."
-              : msg.includes("REFUSAL_REASON_REQUIRED")
-                ? "Informe o motivo da recusa."
-                : msg.includes("ACCEPT_INELIGIBLE")
-                  ? "Você não está mais elegível para esta convocação."
-                  : msg || "Não foi possível responder.",
+            msg.includes("WORKER_ALREADY_BOOKED") || msg.includes("ALREADY_ACCEPTED_TODAY")
+              ? "Você já tem outra convocação confirmada nesse mesmo horário."
+              : msg.includes("LATE_JUSTIFICATION_REQUIRED")
+                ? "Escreva o que aconteceu para responder depois do início."
+                : msg.includes("REFUSAL_REASON_REQUIRED")
+                  ? "Informe o motivo da recusa."
+                  : msg.includes("ACCEPT_INELIGIBLE")
+                    ? "Você não está mais elegível para esta convocação."
+                    : msg || "Não foi possível responder.",
           );
         },
       },
+
     );
 
   const renderCard = (c: MinhaOferta) => {
     const st = statusEfetivo(c as any);
     const meta = STATUS_META[st] ?? { label: c.status, className: "bg-muted text-muted-foreground border-border" };
     const responderAgora = podeResponder(c as any);
+    const emAndamento = c.status === "pendente" && janelaEmAndamento(c);
+    const atraso = c.minutos_de_atraso ?? minutosDeAtraso(c.inicio_previsto);
     const prazo = rotuloPrazo(c.prazo_resposta);
     const rem = remuneracaoPrevista(c.remuneracao_snapshot);
+
 
     return (
       <Card key={c.id}>
@@ -216,6 +233,24 @@ export default function DpMinhasConvocacoes() {
             </p>
           ) : null}
 
+          {responderAgora && emAndamento ? (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm space-y-1">
+              <p className="font-medium">
+                Este horário começou às {hhmm(c.entrada)}. Você ainda pode responder.
+              </p>
+              <p className="text-muted-foreground">
+                Sua resposta está {rotuloAtraso(atraso)} — escolha abaixo e explique o que aconteceu.
+              </p>
+            </div>
+          ) : null}
+
+          {c.aceite_atrasado ? (
+            <p className="text-xs text-muted-foreground">
+              Resposta registrada {rotuloAtraso(c.aceite_atraso_minutos)}
+              {c.aceite_atraso_forma === "integral" ? " · horário completo" : ""}.
+            </p>
+          ) : null}
+
           {responderAgora ? (
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-2">
@@ -227,9 +262,11 @@ export default function DpMinhasConvocacoes() {
                 </Button>
                 <Button
                   className="h-11 gap-2"
-                  onClick={() => responderConvocacao(c.id, true)} disabled={responder.isPending}
+                  onClick={() => (emAndamento ? setAtrasado(c) : responderConvocacao(c.id, true))}
+                  disabled={responder.isPending}
                 >
-                  <Check className="h-4 w-4" /> Aceitar
+                  <Check className="h-4 w-4" />
+                  {emAndamento ? "Vim no horário" : "Aceitar"}
                 </Button>
               </div>
               {c.necessidade_entrada && c.necessidade_saida ? (
@@ -238,13 +275,16 @@ export default function DpMinhasConvocacoes() {
                   onClick={() => setParcial(c)} disabled={proporParcial.isPending}
                 >
                   <Clock className="h-4 w-4" />
-                  {c.parcial_status === "aguardando_gestor"
-                    ? "Mudar o horário parcial"
-                    : "Posso vir parte do horário"}
+                  {emAndamento
+                    ? "Vou chegar mais tarde"
+                    : c.parcial_status === "aguardando_gestor"
+                      ? "Mudar o horário parcial"
+                      : "Posso vir parte do horário"}
                 </Button>
               ) : null}
             </div>
           ) : null}
+
         </CardContent>
       </Card>
     );
@@ -287,6 +327,11 @@ export default function DpMinhasConvocacoes() {
             termina_no_dia_seguinte:
               parcial.necessidade_termina_no_dia_seguinte ?? parcial.termina_no_dia_seguinte,
           }}
+          minutosDeAtraso={
+            janelaEmAndamento(parcial)
+              ? (parcial.minutos_de_atraso ?? minutosDeAtraso(parcial.inicio_previsto))
+              : 0
+          }
           onConfirm={(p) =>
             proporParcial.mutate(
               { id: parcial.id, ...p },
@@ -302,7 +347,11 @@ export default function DpMinhasConvocacoes() {
                       ? "O horário precisa ficar dentro do horário pedido."
                       : msg.includes("PARTIAL_IS_FULL")
                         ? "Esse é o horário completo — use “Aceitar”."
-                        : msg || "Não foi possível enviar o horário parcial.",
+                        : msg.includes("WORKER_ALREADY_BOOKED")
+                          ? "Você já tem outra convocação confirmada nesse mesmo horário."
+                          : msg.includes("LATE_JUSTIFICATION_REQUIRED")
+                            ? "Escreva o que aconteceu para responder depois do início."
+                            : msg || "Não foi possível enviar o horário parcial.",
                   );
                 },
               },
@@ -310,6 +359,23 @@ export default function DpMinhasConvocacoes() {
           }
         />
       ) : null}
+
+      {atrasado ? (
+        <AceiteAtrasadoDialog
+          open={!!atrasado}
+          onOpenChange={(v) => !v && setAtrasado(null)}
+          loading={responder.isPending}
+          entrada={atrasado.necessidade_entrada ?? atrasado.entrada}
+          saida={atrasado.necessidade_saida ?? atrasado.saida}
+          minutosDeAtraso={
+            atrasado.minutos_de_atraso ?? minutosDeAtraso(atrasado.inicio_previsto)
+          }
+          onConfirm={(justificativa) =>
+            responderConvocacao(atrasado.id, true, undefined, justificativa)
+          }
+        />
+      ) : null}
+
     </DpPage>
   );
 }

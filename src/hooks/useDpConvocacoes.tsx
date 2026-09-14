@@ -124,6 +124,13 @@ export interface MinhaOferta {
   parcial_carga_horas: number | null;
   parcial_observacao: string | null;
   parcial_decisao_motivo: string | null;
+  janela_comecou?: boolean | null;
+  janela_terminou?: boolean | null;
+  minutos_de_atraso?: number | null;
+  aceite_atrasado?: boolean | null;
+  aceite_atraso_minutos?: number | null;
+  aceite_atraso_justificativa?: string | null;
+  aceite_atraso_forma?: string | null;
 }
 
 /** Proposta de horário parcial de um dia (Portal do colaborador). */
@@ -133,7 +140,10 @@ export interface PropostaParcialInput {
   saida: string;
   termina_no_dia_seguinte: boolean;
   observacao?: string | null;
+  /** Obrigatória quando o horário do dia já começou. */
+  justificativaAtraso?: string | null;
 }
+
 
 /** Uma proposta parcial aguardando a decisão do gestor. */
 export interface ParcialPendente {
@@ -152,6 +162,11 @@ export interface ParcialPendente {
   parcial_termina_no_dia_seguinte: boolean | null;
   parcial_carga_horas: number | null;
   parcial_observacao: string | null;
+  aceite_atrasado?: boolean | null;
+  aceite_atraso_minutos?: number | null;
+  aceite_atraso_justificativa?: string | null;
+  aceite_atraso_forma?: string | null;
+
   proposta_em: string | null;
   prazo_resposta: string | null;
   inicio_previsto: string | null;
@@ -273,15 +288,19 @@ export function useMinhasConvocacoes(colaboradorId: string | null) {
    * A RPC devolve `ok: false` quando a oferta é encerrada (prazo, início, vaga).
    */
   const responder = useMutation({
-    mutationFn: async ({ id, aceito, motivo }: { id: string; aceito: boolean; motivo?: string }) => {
-      const { data, error } = await supabase.rpc("dp_convocacao_responder_oferta", {
+    mutationFn: async ({
+      id, aceito, motivo, justificativaAtraso,
+    }: { id: string; aceito: boolean; motivo?: string; justificativaAtraso?: string | null }) => {
+      const { data, error } = await (supabase.rpc as any)("dp_convocacao_responder_oferta", {
         p_convocacao_id: id,
         p_aceito: aceito,
         p_motivo: motivo ?? undefined,
+        p_atraso_justificativa: justificativaAtraso ?? null,
       });
       if (error) throw error;
       return data as any;
     },
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_minhas_convocacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_convocacoes"] });
@@ -301,6 +320,8 @@ export function useMinhasConvocacoes(colaboradorId: string | null) {
         p_parcial_saida: input.saida,
         p_parcial_termina_no_dia_seguinte: input.termina_no_dia_seguinte,
         p_parcial_observacao: input.observacao ?? null,
+        p_atraso_justificativa: input.justificativaAtraso ?? null,
+
       });
       if (error) throw error;
       return data as any;

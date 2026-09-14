@@ -18,24 +18,29 @@ export interface PropostaParcialDialogProps {
   onOpenChange: (v: boolean) => void;
   loading?: boolean;
   necessidade: { entrada: string; saida: string; termina_no_dia_seguinte?: boolean | null };
+  /** Minutos desde o início do horário, quando o dia já começou. */
+  minutosDeAtraso?: number | null;
   onConfirm: (p: {
     entrada: string;
     saida: string;
     termina_no_dia_seguinte: boolean;
     observacao: string | null;
+    justificativaAtraso: string | null;
   }) => void;
 }
 
 /**
  * O colaborador informa até quando/desde quando consegue vir naquele dia.
  * Só é possível ENCURTAR a janela pedida — a mesma regra vale no servidor.
+ * Quando o horário já começou, a explicação passa a ser obrigatória.
  */
 export function PropostaParcialDialog({
-  open, onOpenChange, loading, necessidade, onConfirm,
+  open, onOpenChange, loading, necessidade, minutosDeAtraso, onConfirm,
 }: PropostaParcialDialogProps) {
   const [entrada, setEntrada] = useState(hhmm(necessidade.entrada));
   const [saida, setSaida] = useState(hhmm(necessidade.saida));
   const [observacao, setObservacao] = useState("");
+  const atrasado = Number(minutosDeAtraso ?? 0) > 0;
 
   useEffect(() => {
     if (!open) return;
@@ -43,6 +48,7 @@ export function PropostaParcialDialog({
     setSaida(hhmm(necessidade.saida));
     setObservacao("");
   }, [open, necessidade.entrada, necessidade.saida]);
+
 
   const { validacao, descoberto, viraODia } = useMemo(() => {
     // A saída "vira o dia" sempre que for menor ou igual à entrada proposta.
@@ -110,11 +116,19 @@ export function PropostaParcialDialog({
         )}
 
         <div className="space-y-1.5">
-          <Label htmlFor="parcial-obs">Recado para o gestor (opcional)</Label>
+          <Label htmlFor="parcial-obs">
+            {atrasado
+              ? "Explique por que está respondendo depois do início"
+              : "Recado para o gestor (opcional)"}
+          </Label>
           <Textarea
             id="parcial-obs" rows={3} value={observacao}
             onChange={(e) => setObservacao(e.target.value)}
-            placeholder="Ex.: consigo chegar mais tarde por causa de um compromisso."
+            placeholder={
+              atrasado
+                ? "Ex.: tive um imprevisto e consigo chegar às 17:15."
+                : "Ex.: consigo chegar mais tarde por causa de um compromisso."
+            }
           />
         </div>
 
@@ -123,18 +137,20 @@ export function PropostaParcialDialog({
             Voltar
           </Button>
           <Button
-            disabled={!validacao.ok || loading}
+            disabled={!validacao.ok || loading || (atrasado && observacao.trim().length < 3)}
             onClick={() =>
               onConfirm({
                 entrada,
                 saida,
                 termina_no_dia_seguinte: viraODia,
                 observacao: observacao.trim() || null,
+                justificativaAtraso: atrasado ? observacao.trim() : null,
               })
             }
           >
             Enviar para aprovação
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
