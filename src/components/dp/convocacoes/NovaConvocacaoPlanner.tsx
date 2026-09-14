@@ -176,6 +176,15 @@ export function NovaConvocacaoPlanner({ open, onOpenChange, onSalvo, grupo = nul
   const antecedenciaMinima = config.data?.antecedencia_minima_dias ?? ANTECEDENCIA_REFERENCIA_DIAS;
   const exigeJustificativa = config.data?.exige_justificativa_excecao !== false;
 
+  /** Condições avulsas só aparecem quando há freelancer entre os convidados. */
+  const temFreelancer = useMemo(
+    () =>
+      (colaboradores.data ?? []).some(
+        (c: any) => destinatarios.includes(c.id) && String(c.regime ?? "") === "freelancer",
+      ),
+    [colaboradores.data, destinatarios],
+  );
+
   // ------------------------------------------------------------ carregar / resetar
   useEffect(() => {
     if (!open) return;
