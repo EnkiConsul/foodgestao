@@ -181,6 +181,23 @@ export default function DpMeuDocumentos() {
     return Array.from(m.entries());
   }, [filtered]);
 
+  /** Planilha com os documentos que estão na tela (respeita busca e filtros). */
+  const baixarLista = () => {
+    baixarCsv(
+      `meus-documentos-${new Date().toISOString().slice(0, 10)}`,
+      ["Data", "Competência", "Tipo", "Documento", "Situação", "Origem", "Arquivo"],
+      filtered.map((d) => [
+        new Date(d.created_at).toLocaleDateString("pt-BR"),
+        d.competencia_label,
+        d.tipo_label,
+        d.titulo,
+        d.status_label,
+        d.origem === "meu_envio" ? "Meu envio" : "Recebido do DP",
+        d.arquivo_nome ?? "",
+      ]),
+    );
+  };
+
   const download = async (d: UnifiedDoc) => {
     if (!d.file_path) return toast.warning("Sem arquivo anexado.");
     const r = await abrirArquivoDp({
