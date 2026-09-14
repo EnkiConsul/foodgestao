@@ -23,6 +23,7 @@ import { textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 
 const statusLabel: Record<string, string> = {
   pendente_colega: "Aguardando colega",
