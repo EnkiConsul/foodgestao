@@ -154,17 +154,34 @@ export function MinhaJornadaAcoesCard() {
       )}
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <Button variant="outline" onClick={() => abrir("atraso")}>
-          <Timer className="mr-2 h-4 w-4" /> Atraso na entrada
+        {/* No celular os rótulos são longos: deixa o botão crescer em vez de cortar o texto. */}
+        <Button
+          variant="outline"
+          className="h-auto min-h-10 justify-start whitespace-normal py-2 text-left leading-snug"
+          onClick={() => abrir("atraso")}
+        >
+          <Timer className="mr-2 h-4 w-4 shrink-0" /> Atraso na entrada
         </Button>
-        <Button variant="outline" onClick={() => abrir("ausencia")}>
-          <UserX className="mr-2 h-4 w-4" /> Falta no dia
+        <Button
+          variant="outline"
+          className="h-auto min-h-10 justify-start whitespace-normal py-2 text-left leading-snug"
+          onClick={() => abrir("ausencia")}
+        >
+          <UserX className="mr-2 h-4 w-4 shrink-0" /> Falta no dia
         </Button>
-        <Button variant="outline" onClick={() => abrir("saida")}>
-          <LogOut className="mr-2 h-4 w-4" /> Saída antes do horário
+        <Button
+          variant="outline"
+          className="h-auto min-h-10 justify-start whitespace-normal py-2 text-left leading-snug"
+          onClick={() => abrir("saida")}
+        >
+          <LogOut className="mr-2 h-4 w-4 shrink-0" /> Saída antes do horário
         </Button>
-        <Button variant="outline" onClick={() => abrir("ponto")}>
-          <Clock className="mr-2 h-4 w-4" />{" "}
+        <Button
+          variant="outline"
+          className="h-auto min-h-10 justify-start whitespace-normal py-2 text-left leading-snug"
+          onClick={() => abrir("ponto")}
+        >
+          <Clock className="mr-2 h-4 w-4 shrink-0" />{" "}
           {usaPonto ? "Informar problema com ponto" : "Registrar ocorrência de pontualidade"}
         </Button>
       </div>
