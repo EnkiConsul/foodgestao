@@ -171,7 +171,8 @@ export function MobileBottomNav() {
           setCustomizerSlot(null);
         }}
       />
-    </>
+    </>,
+    document.body,
   );
 }
 
