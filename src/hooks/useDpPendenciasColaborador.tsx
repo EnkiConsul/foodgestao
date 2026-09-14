@@ -307,7 +307,8 @@ export function useDpPendenciasColaborador() {
               tipo: "Aprovação de documento",
               vencimento: ymd(limite),
               atrasoDias: atraso,
-              url: "/dp/meu/documentos?foco=pendencias",
+              // Abre direto o documento a ser assinado.
+              url: `/dp/meu/documentos?doc=${d.id}`,
             });
           });
       } catch (e) {
