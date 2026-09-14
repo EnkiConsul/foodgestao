@@ -30,11 +30,7 @@ export function DpShell({ variant = "admin" }: { variant?: "admin" | "portal" })
         <DpSidebar variant={variant} />
         <div className="flex flex-1 flex-col min-w-0">
           <DpHeader variant={variant} />
-          <main
-            className="flex-1 p-3 md:p-8 md:pb-8"
-            // Rodapé fixo (56px) + área segura do aparelho: o conteúdo nunca fica cortado.
-            style={{ paddingBottom: "calc(56px + env(safe-area-inset-bottom) + 1.5rem)" }}
-          >
+          <main className="dp-main-pad flex-1 p-3 md:p-8">
             {comRefresh ? (
               <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>{conteudo}</PullToRefresh>
             ) : (
