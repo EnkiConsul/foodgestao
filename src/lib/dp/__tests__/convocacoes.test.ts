@@ -130,3 +130,47 @@ describe("convocacoes", () => {
     ).toBe(8.5);
   });
 });
+
+describe("sobreposição de horário entre convocações", () => {
+  it("permite o mesmo dia em horários que não se cruzam", () => {
+    expect(
+      janelasSobrepostas(
+        { data: "2026-09-14", entrada: "08:00", saida: "12:00" },
+        { data: "2026-09-14", entrada: "18:00", saida: "23:00" },
+      ),
+    ).toBe(false);
+  });
+
+  it("bloqueia horários que se cruzam no mesmo dia", () => {
+    expect(
+      janelasSobrepostas(
+        { data: "2026-09-14", entrada: "16:00", saida: "22:00" },
+        { data: "2026-09-14", entrada: "20:00", saida: "23:30" },
+      ),
+    ).toBe(true);
+  });
+
+  it("considera a virada da madrugada", () => {
+    expect(
+      janelasSobrepostas(
+        { data: "2026-09-14", entrada: "18:00", saida: "02:00", termina_no_dia_seguinte: true },
+        { data: "2026-09-15", entrada: "01:00", saida: "05:00" },
+      ),
+    ).toBe(true);
+  });
+
+  it("dia seguinte sem cruzar não bloqueia", () => {
+    expect(
+      janelasSobrepostas(
+        { data: "2026-09-14", entrada: "18:00", saida: "23:00" },
+        { data: "2026-09-15", entrada: "08:00", saida: "12:00" },
+      ),
+    ).toBe(false);
+  });
+
+  it("rotuloAtraso descreve o atraso em linguagem simples", () => {
+    expect(rotuloAtraso(0)).toBe("no horário");
+    expect(rotuloAtraso(42)).toBe("42 min depois do início");
+    expect(rotuloAtraso(65)).toBe("1h05 depois do início");
+  });
+});
