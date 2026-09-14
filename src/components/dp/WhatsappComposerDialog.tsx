@@ -117,6 +117,24 @@ export function WhatsappComposerDialog({
             <Label className="text-xs">Mensagem</Label>
             <Textarea rows={6} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Digite ou escolha um modelo…" />
           </div>
+          {mensagemSeparada && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+              <p className="text-xs">
+                Envie a senha em uma mensagem separada: assim o colaborador só precisa tocar e
+                segurar nela para copiar.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-2"
+                disabled={!phone}
+                onClick={() => abrirWhatsapp(mensagemSeparada)}
+              >
+                Enviar só a senha
+              </Button>
+            </div>
+          )}
           <p className="text-[11px] text-muted-foreground">
             {phone ? `Será aberto WhatsApp Web para ${phone}` : "Sem número de WhatsApp no cadastro"}
           </p>
