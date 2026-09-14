@@ -12,7 +12,6 @@ import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { usePageviewTracking } from "@/hooks/usePageviewTracking";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { DpLayout } from "@/components/dp/DpLayout";
-import { ModuloEmDesenvolvimentoGate } from "@/components/dp/ModuloEmDesenvolvimentoGate";
 
 import { ColaboradorShell } from "./components/dp/ColaboradorShell";
 import { AdminLayout } from "@/components/layout/AdminLayout";
@@ -76,7 +75,6 @@ const DpFichaRegistroImportar = lazyWithRetry(() => import("./pages/dp/DpFichaRe
 
 const DpDocumentosImportar = lazyWithRetry(() => import("./pages/dp/DpDocumentosImportar"));
 const DpFerias = lazyWithRetry(() => import("./pages/dp/DpFeriasHub"));
-const DpConformidade = lazyWithRetry(() => import("./pages/dp/DpConformidade"));
 const DpBeneficios = lazyWithRetry(() => import("./pages/dp/DpBeneficios"));
 const DpAnalytics = lazyWithRetry(() => import("./pages/dp/DpAnalytics"));
 const DpErros = lazyWithRetry(() => import("./pages/dp/DpErros"));
