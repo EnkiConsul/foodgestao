@@ -268,6 +268,11 @@ export function ColaboradorAcessoPanel({
             Serve uma única vez{link.expires ? ` e vale até ${fmtPrazo(link.expires)}` : ""}. O colaborador entra
             com o CPF e cria a senha dele.
           </p>
+          <p className="text-xs text-muted-foreground">
+            Envie o link apenas para o WhatsApp do próprio colaborador e não guarde cópias: quem
+            tiver o link em mãos consegue criar a primeira senha. A senha definitiva fica só com o
+            colaborador — ninguém aqui consegue vê-la ou defini-la.
+          </p>
           <div className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2">
             <div className="min-w-0">
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Link</div>
