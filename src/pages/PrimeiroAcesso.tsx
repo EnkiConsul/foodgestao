@@ -157,7 +157,9 @@ export default function PrimeiroAcesso() {
                 </button>
               </div>
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-              <p className="text-xs text-muted-foreground">Mín. 10 caracteres com maiúscula, minúscula e número.</p>
+              <p className="text-xs text-muted-foreground">
+                Pelo menos 8 caracteres, com maiúscula, minúscula, número e um símbolo (ex.: Ale!2026).
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm">Confirmar nova senha</Label>
