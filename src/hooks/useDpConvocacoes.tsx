@@ -124,6 +124,13 @@ export interface MinhaOferta {
   parcial_carga_horas: number | null;
   parcial_observacao: string | null;
   parcial_decisao_motivo: string | null;
+  janela_comecou?: boolean | null;
+  janela_terminou?: boolean | null;
+  minutos_de_atraso?: number | null;
+  aceite_atrasado?: boolean | null;
+  aceite_atraso_minutos?: number | null;
+  aceite_atraso_justificativa?: string | null;
+  aceite_atraso_forma?: string | null;
 }
 
 /** Proposta de horário parcial de um dia (Portal do colaborador). */
@@ -133,7 +140,10 @@ export interface PropostaParcialInput {
   saida: string;
   termina_no_dia_seguinte: boolean;
   observacao?: string | null;
+  /** Obrigatória quando o horário do dia já começou. */
+  justificativaAtraso?: string | null;
 }
+
 
 /** Uma proposta parcial aguardando a decisão do gestor. */
 export interface ParcialPendente {
