@@ -30,6 +30,7 @@ export default function DpMeuHistorico() {
   const { user } = useAuth();
   const [filtro, setFiltro] = useState<(typeof TIPOS)[number]>("Todos");
   const [visiveis, setVisiveis] = useState(PAGE);
+  const [busca, setBusca] = useState("");
 
   const colabQ = useQuery({
     queryKey: ["colab_of_hist", user?.id],
