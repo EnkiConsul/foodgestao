@@ -310,6 +310,7 @@ export default function DpConvocacoes() {
             key={g.id}
             grupo={g}
             contagem={contagemPorGrupo.get(g.id)}
+            convocacoes={convocacoesPorGrupo.get(g.id)}
             onEditar={abrirEdicao}
           />
         ))}
