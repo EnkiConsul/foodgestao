@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { decidirAcessoPortal } from "@/lib/portalAccessDecision";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
@@ -290,20 +291,9 @@ function PortalProtected({ children }: { children: React.ReactNode }) {
     setSituacao("verificando");
     supabase.rpc("auth_access_enabled").then(({ data, error }) => {
       if (cancelado) return;
-      if (error) {
-        setSituacao("falha");
-        return;
-      }
-      if (data === true) {
-        setSituacao("liberado");
-        return;
-      }
-      if (data === false) {
-        setSituacao("bloqueado");
-        void supabase.auth.signOut();
-        return;
-      }
-      setSituacao("falha");
+      const decisao = decidirAcessoPortal({ data, error });
+      setSituacao(decisao);
+      if (decisao === "bloqueado") void supabase.auth.signOut();
     });
     return () => {
       cancelado = true;
