@@ -15801,6 +15801,8 @@ export type Database = {
           nome_social: string
           origem: string
           saida: string
+          setor_id: string
+          setor_nome: string
         }[]
       }
       dp_processar_troca: { Args: { _troca_id: string }; Returns: Json }
