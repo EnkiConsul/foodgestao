@@ -295,7 +295,14 @@ export function useMeusDocumentos() {
         }
       }
 
-      out.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+      // Ordem cronológica pela competência (mais recente primeiro); sem
+      // competência, cai para a data de envio.
+      out.sort((a, b) => {
+        const ca = a.competencia_sort || "0000-00";
+        const cb = b.competencia_sort || "0000-00";
+        if (ca !== cb) return ca < cb ? 1 : -1;
+        return a.created_at < b.created_at ? 1 : -1;
+      });
       return out;
     },
   });

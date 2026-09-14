@@ -49,6 +49,8 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
         .from("dp_documentos")
         .select("*, dp_colaboradores(nome)")
         .eq("company_id", selectedCompanyId!)
+        // Cronológico pela competência do documento; empate pela data de envio.
+        .order("referencia_data", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (filterTipo) q = q.eq("tipo", filterTipo);
       const { data, error } = await q;
