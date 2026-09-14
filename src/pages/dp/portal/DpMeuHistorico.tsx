@@ -121,6 +121,29 @@ export default function DpMeuHistorico() {
         </div>
       </Tabs>
 
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={busca}
+          onChange={(e) => { setBusca(e.target.value); setVisiveis(PAGE); }}
+          placeholder="Buscar no histórico"
+          aria-label="Buscar no histórico"
+          className={cn("min-h-11 pl-9", busca && "pr-9")}
+        />
+        {busca && (
+          <button
+            type="button"
+            onClick={() => setBusca("")}
+            aria-label="Limpar busca"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+
+
       <DpContentCard contentClassName="p-2">
         {eventos.isError || colabQ.isError ? (
           <div className="p-2"><DpErrorState onRetry={() => { colabQ.refetch(); eventos.refetch(); }} /></div>
