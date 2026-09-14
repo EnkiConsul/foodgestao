@@ -307,6 +307,16 @@ export default function DpMeuFerias() {
                   Passa do seu saldo ({periodoSel?.dias_saldo} dias).
                 </p>
               )}
+              {abonoAcimaDoLegal && (
+                <p className="mt-1 text-destructive">
+                  A lei permite vender no máximo {resumo?.maxAbono} dias.
+                </p>
+              )}
+              {inicioAntesDoPermitido && (
+                <p className="mt-1 text-destructive">
+                  As férias só podem começar a partir de {fmt(inicioMin)}.
+                </p>
+              )}
               {foraDoPrazo && !excede && (
                 <p className="mt-1 text-amber-700">
                   A empresa pede {periodoSel?.aviso_antecedencia_dias} dias de antecedência. Seu
@@ -319,15 +329,23 @@ export default function DpMeuFerias() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAberto(false)}>Cancelar</Button>
             <Button
-              disabled={solicitar.isPending || excede || !periodoId || !inicio || !fim}
+              disabled={
+                solicitar.isPending ||
+                excede ||
+                abonoAcimaDoLegal ||
+                inicioAntesDoPermitido ||
+                !periodoId ||
+                !inicio ||
+                !fim
+              }
               onClick={() =>
                 solicitar.mutate(
                   {
                     periodoId,
                     dataInicio: inicio,
                     dataFim: fim,
-                    diasAbono: Number(abono) || 0,
-                    adiantar13,
+                    diasAbono: abono,
+                    adiantar13: adiantar13 && !jaAdiantou13,
                     observacao,
                   },
                   { onSuccess: () => setAberto(false) },
