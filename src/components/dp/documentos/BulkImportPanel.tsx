@@ -139,7 +139,8 @@ export function BulkImportPanel({
     enabled: !!selectedCompanyId,
     refetchInterval: (q) => {
       const rows = (q.state.data as any[] | undefined) ?? [];
-      return rows.some((b) => b.status === "processing") ? 1500 : false;
+      // Fila durável: "na fila" também é trabalho em andamento.
+      return rows.some((b) => b.status === "processing" || b.status === "queued") ? 1500 : false;
     },
     queryFn: async () => {
       let query = supabase
@@ -175,7 +176,7 @@ export function BulkImportPanel({
 
   const openedIds = Object.keys(expanded).filter((k) => expanded[k]);
   const anyBatchProcessing = (batches.data ?? []).some(
-    (b) => b.status === "processing" && expanded[b.id],
+    (b) => (b.status === "processing" || b.status === "queued") && expanded[b.id],
   );
   const items = useQuery({
     queryKey: ["dp_bulk_items", openedIds],
@@ -242,7 +243,7 @@ export function BulkImportPanel({
           source_file_path: provisional,
           source_file_name: file.name,
           referencia_data: competenciaToDate(referencia),
-          status: "processing",
+          status: "queued",
           uploaded_by: uid,
            rescisao_grupo_id: rescisaoGrupoId,
         })
@@ -266,8 +267,8 @@ export function BulkImportPanel({
       loteNovoRef.current = batch.id;
       rolarAte(lotesRef.current);
 
-      // Dispara a Edge Function; ela retorna 202 imediatamente e processa em background.
-      // Não bloqueamos aqui — o polling atualiza a UI.
+      // Coloca o lote na fila durável; o processamento é feito pelo worker de
+      // segundo plano (garantido por agendamento). Não bloqueamos aqui.
       supabase.functions
         .invoke("dp-doc-bulk-ingest", { body: { batch_id: batch.id } })
         .then(({ error: iErr }) => {
@@ -504,6 +505,7 @@ export function BulkImportPanel({
               <SelectTrigger className="w-40 h-8"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos status</SelectItem>
+                <SelectItem value="queued">Na fila</SelectItem>
                 <SelectItem value="processing">Processando</SelectItem>
                 <SelectItem value="ready">Pronto</SelectItem>
                 <SelectItem value="partially_imported">Parcial</SelectItem>
@@ -528,7 +530,7 @@ export function BulkImportPanel({
             const totalPag = b.total_pages ?? 0;
             const processed = b.processed_pages ?? 0;
             const importadas = bItems.filter((i) => i.status === "imported").length;
-            const isProcessing = b.status === "processing";
+            const isProcessing = b.status === "processing" || b.status === "queued";
             const canDiscard = importadas === 0 && b.status !== "imported" && b.status !== "partially_imported";
             return (
               <div key={b.id} id={`lote-${b.id}`} className="border rounded-md scroll-mt-20">

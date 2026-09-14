@@ -3739,6 +3739,9 @@ export type Database = {
           exigir_aceite: boolean
           id: string
           matched_count: number
+          prep_attempt_count: number
+          prep_lease_expires_at: string | null
+          prep_locked_by: string | null
           processed_pages: number
           referencia_data: string | null
           rescisao_grupo_id: string | null
@@ -3760,6 +3763,9 @@ export type Database = {
           exigir_aceite?: boolean
           id?: string
           matched_count?: number
+          prep_attempt_count?: number
+          prep_lease_expires_at?: string | null
+          prep_locked_by?: string | null
           processed_pages?: number
           referencia_data?: string | null
           rescisao_grupo_id?: string | null
@@ -3781,6 +3787,9 @@ export type Database = {
           exigir_aceite?: boolean
           id?: string
           matched_count?: number
+          prep_attempt_count?: number
+          prep_lease_expires_at?: string | null
+          prep_locked_by?: string | null
           processed_pages?: number
           referencia_data?: string | null
           rescisao_grupo_id?: string | null
@@ -3814,6 +3823,7 @@ export type Database = {
         Row: {
           assinatura_detectada: boolean | null
           assinatura_evidencia: string | null
+          attempt_count: number
           batch_id: string
           claim_expires_at: string | null
           company_id: string
@@ -3825,19 +3835,27 @@ export type Database = {
           detected_competencia: string | null
           detected_unidade_id: string | null
           duplicate_of: string | null
+          error_class: string | null
           error_message: string | null
           exige_aceite: boolean | null
+          finished_at: string | null
           id: string
           imported_documento_id: string | null
+          last_error: string | null
+          lease_expires_at: string | null
+          locked_by: string | null
           manual_override: boolean
           matched_colaborador_ativo: boolean | null
           matched_colaborador_id: string | null
           matched_cpf: string | null
           matched_nome: string | null
+          max_attempts: number
+          next_attempt_at: string | null
           ocr_text: string | null
           page_file_path: string
           page_index: number
           page_thumb_url: string | null
+          started_at: string | null
           status: string
           tipo_assinatura: string | null
           tipo_confidence: number | null
@@ -3850,6 +3868,7 @@ export type Database = {
         Insert: {
           assinatura_detectada?: boolean | null
           assinatura_evidencia?: string | null
+          attempt_count?: number
           batch_id: string
           claim_expires_at?: string | null
           company_id: string
@@ -3861,19 +3880,27 @@ export type Database = {
           detected_competencia?: string | null
           detected_unidade_id?: string | null
           duplicate_of?: string | null
+          error_class?: string | null
           error_message?: string | null
           exige_aceite?: boolean | null
+          finished_at?: string | null
           id?: string
           imported_documento_id?: string | null
+          last_error?: string | null
+          lease_expires_at?: string | null
+          locked_by?: string | null
           manual_override?: boolean
           matched_colaborador_ativo?: boolean | null
           matched_colaborador_id?: string | null
           matched_cpf?: string | null
           matched_nome?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
           ocr_text?: string | null
           page_file_path: string
           page_index: number
           page_thumb_url?: string | null
+          started_at?: string | null
           status?: string
           tipo_assinatura?: string | null
           tipo_confidence?: number | null
@@ -3886,6 +3913,7 @@ export type Database = {
         Update: {
           assinatura_detectada?: boolean | null
           assinatura_evidencia?: string | null
+          attempt_count?: number
           batch_id?: string
           claim_expires_at?: string | null
           company_id?: string
@@ -3897,19 +3925,27 @@ export type Database = {
           detected_competencia?: string | null
           detected_unidade_id?: string | null
           duplicate_of?: string | null
+          error_class?: string | null
           error_message?: string | null
           exige_aceite?: boolean | null
+          finished_at?: string | null
           id?: string
           imported_documento_id?: string | null
+          last_error?: string | null
+          lease_expires_at?: string | null
+          locked_by?: string | null
           manual_override?: boolean
           matched_colaborador_ativo?: boolean | null
           matched_colaborador_id?: string | null
           matched_cpf?: string | null
           matched_nome?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
           ocr_text?: string | null
           page_file_path?: string
           page_index?: number
           page_thumb_url?: string | null
+          started_at?: string | null
           status?: string
           tipo_assinatura?: string | null
           tipo_confidence?: number | null
@@ -14020,9 +14056,60 @@ export type Database = {
         Args: { _base: string; _dias: number; _timezone: string }
         Returns: string
       }
+      dp_bulk_batch_finalize: { Args: { _batch_id: string }; Returns: string }
+      dp_bulk_claim_batches: {
+        Args: { _lease_seconds?: number; _limit?: number; _worker: string }
+        Returns: {
+          company_id: string
+          deteccao_automatica: boolean
+          exigir_aceite: boolean
+          id: string
+          prep_attempt_count: number
+          referencia_data: string
+          source_file_name: string
+          source_file_path: string
+          tipo: Database["public"]["Enums"]["dp_documento_tipo"]
+        }[]
+      }
+      dp_bulk_claim_items: {
+        Args: { _lease_seconds?: number; _limit?: number; _worker: string }
+        Returns: {
+          attempt_count: number
+          batch_deteccao_automatica: boolean
+          batch_exigir_aceite: boolean
+          batch_id: string
+          batch_referencia_data: string
+          batch_source_file_name: string
+          batch_source_file_path: string
+          batch_tipo: Database["public"]["Enums"]["dp_documento_tipo"]
+          company_id: string
+          id: string
+          max_attempts: number
+          page_file_path: string
+          page_index: number
+        }[]
+      }
+      dp_bulk_enqueue_pages: {
+        Args: { _batch_id: string; _total_pages: number; _worker: string }
+        Returns: number
+      }
       dp_bulk_increment_processed: {
         Args: { p_batch_id: string }
         Returns: undefined
+      }
+      dp_bulk_item_finish_failure: {
+        Args: {
+          _error: string
+          _error_class: string
+          _fatal?: boolean
+          _item_id: string
+          _worker: string
+        }
+        Returns: string
+      }
+      dp_bulk_item_finish_success: {
+        Args: { _item_id: string; _payload: Json; _worker: string }
+        Returns: boolean
       }
       dp_bulk_item_reservar: {
         Args: { _item_id: string }
@@ -14032,6 +14119,8 @@ export type Database = {
           ja_importado: boolean
         }[]
       }
+      dp_bulk_reclaim_expired: { Args: { _limit?: number }; Returns: Json }
+      dp_bulk_worker_secret: { Args: never; Returns: string }
       dp_calc_carga_dia: {
         Args: {
           _entrada: string
