@@ -14906,16 +14906,10 @@ export type Database = {
         }
         Returns: number
       }
-      dp_folga_solicitar:
-        | { Args: { p_data: string; p_motivo?: string }; Returns: Json }
-        | {
-            Args: {
-              p_data: string
-              p_fora_da_janela?: boolean
-              p_motivo?: string
-            }
-            Returns: Json
-          }
+      dp_folga_solicitar: {
+        Args: { p_data: string; p_fora_da_janela?: boolean; p_motivo?: string }
+        Returns: Json
+      }
       dp_folgas_janela_efetiva: {
         Args: { _company: string; _data_ref?: string; _unidade?: string }
         Returns: Json
