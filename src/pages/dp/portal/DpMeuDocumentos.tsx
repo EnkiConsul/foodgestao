@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { DpContentCard, DpEmptyState, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
@@ -328,7 +329,7 @@ export default function DpMeuDocumentos() {
               <DialogTrigger asChild>
                 <Button size="sm"><Upload className="h-4 w-4 mr-1" /> Enviar documento</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md max-h-[90svh] overflow-y-auto">
                 <DialogHeader><DialogTitle>Enviar documento para aprovação</DialogTitle></DialogHeader>
                 <div className="grid gap-3 py-2">
                   <div className="grid gap-1.5">
@@ -524,16 +525,25 @@ export default function DpMeuDocumentos() {
                           </Button>
                         )}
                         {d.origem === "meu_envio" && d.status_key === "pendente" && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => cancelar.mutate(d)}
+                          <ConfirmarAcaoDialog
+                            titulo="Cancelar este envio?"
+                            descricao="O documento sai da análise do setor de pessoas. Para reenviar, será preciso anexar o arquivo de novo."
+                            confirmar="Cancelar envio"
+                            cancelar="Manter"
+                            onConfirm={() => cancelar.mutate(d)}
                             disabled={cancelar.isPending}
-                            className="text-destructive min-h-9 flex-1 sm:flex-none"
                           >
-                            <Ban className="h-4 w-4 mr-1" /> Cancelar
-                          </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={cancelar.isPending}
+                              className="text-destructive min-h-9 flex-1 sm:flex-none"
+                            >
+                              <Ban className="h-4 w-4 mr-1" /> Cancelar
+                            </Button>
+                          </ConfirmarAcaoDialog>
                         )}
+
                       </div>
                     </div>
                   </div>

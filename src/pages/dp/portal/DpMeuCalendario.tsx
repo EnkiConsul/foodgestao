@@ -17,6 +17,7 @@ import { FolgaCalendarShared } from "@/components/dp/FolgaCalendarShared";
 import { Button } from "@/components/ui/button";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import {
   Dialog,
   DialogContent,
@@ -953,7 +954,7 @@ export default function DpMeuCalendario() {
 
       {/* Dialog do dia */}
       <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
-        <DialogContent className="max-w-md rounded-2xl sm:rounded-[2rem] border-none shadow-2xl p-5 sm:p-8">
+        <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <CalendarDays className="size-6 text-primary" />
@@ -1034,14 +1035,20 @@ export default function DpMeuCalendario() {
                   </p>
                 )}
                 {selectedDay.status === "mine" && (
-                  <Button
-                    variant="destructive"
-                    onClick={() => removerFolga.mutate(selectedDay.iso)}
+                  <ConfirmarAcaoDialog
+                    titulo="Remover esta folga?"
+                    descricao="O dia volta a ficar livre e pode ser escolhido por outra pessoa da equipe."
+                    confirmar="Remover folga"
+                    cancelar="Manter"
+                    onConfirm={() => removerFolga.mutate(selectedDay.iso)}
                     disabled={removerFolga.isPending}
                   >
-                    {removerFolga.isPending ? "Removendo..." : "Remover folga"}
-                  </Button>
+                    <Button variant="destructive" disabled={removerFolga.isPending}>
+                      {removerFolga.isPending ? "Removendo..." : "Remover folga"}
+                    </Button>
+                  </ConfirmarAcaoDialog>
                 )}
+
                 {selectedDay.status === "fixed" && (
                   <p className="text-xs text-muted-foreground">
                     Esta é sua folga semanal fixa. Para trocar, selecione o dia desejado e use o botão "Trocar" ao
@@ -1109,7 +1116,7 @@ export default function DpMeuCalendario() {
 
       {/* Dialog exceção */}
       <Dialog open={exceptionOpen} onOpenChange={(o) => !o && setExceptionOpen(false)}>
-        <DialogContent className="max-w-md rounded-2xl sm:rounded-[2rem] border-none shadow-2xl p-5 sm:p-8">
+        <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <AlertCircle className="size-6 text-amber-500" />
@@ -1153,7 +1160,7 @@ export default function DpMeuCalendario() {
 
       {/* Dialog troca */}
       <Dialog open={!!tradeOpen} onOpenChange={(o) => !o && setTradeOpen(null)}>
-        <DialogContent className="max-w-md rounded-2xl sm:rounded-[2rem] border-none shadow-2xl p-5 sm:p-8">
+        <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <ArrowLeftRight className="size-6 text-primary" />
