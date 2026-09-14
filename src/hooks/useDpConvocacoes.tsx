@@ -315,6 +315,8 @@ export function useMinhasConvocacoes(colaboradorId: string | null) {
         p_parcial_saida: input.saida,
         p_parcial_termina_no_dia_seguinte: input.termina_no_dia_seguinte,
         p_parcial_observacao: input.observacao ?? null,
+        p_atraso_justificativa: input.justificativaAtraso ?? null,
+
       });
       if (error) throw error;
       return data as any;
