@@ -43,8 +43,8 @@ const statusTone: Record<string, string> = {
 };
 
 
-function toIso(d: Date | undefined) {
-  return d ? format(d, "yyyy-MM-dd") : "";
+function dataBR(iso: string) {
+  return format(new Date(`${iso}T00:00:00`), "EEEE, dd/MM/yyyy", { locale: ptBR });
 }
 
 export default function DpMeuTrocas() {
@@ -54,10 +54,10 @@ export default function DpMeuTrocas() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<{
     destino_id: string;
-    data_original: Date | undefined;
-    data_proposta: Date | undefined;
+    data_original: string;
+    data_proposta: string;
     motivo: string;
-  }>({ destino_id: "", data_original: undefined, data_proposta: undefined, motivo: "" });
+  }>({ destino_id: "", data_original: "", data_proposta: "", motivo: "" });
 
   const meRef = useQuery({
     queryKey: ["colab_of_trocas", user?.id],
