@@ -252,6 +252,23 @@ export default function DpConvocacoes() {
     return m;
   }, [grupos.data, legado.rows]);
 
+  /** Convocações já publicadas de cada grupo — base do custo previsto. */
+  const convocacoesPorGrupo = useMemo(() => {
+    const ocorrenciaParaGrupo = new Map<string, string>();
+    for (const g of grupos.data ?? []) {
+      for (const o of g.ocorrencias) ocorrenciaParaGrupo.set(o.id, g.id);
+    }
+    const m = new Map<string, ConvocacaoComValor[]>();
+    for (const r of (legado.rows ?? []) as any[]) {
+      const grupoId = r.ocorrencia_id ? ocorrenciaParaGrupo.get(r.ocorrencia_id) : null;
+      if (!grupoId) continue;
+      const lista = m.get(grupoId) ?? [];
+      lista.push(r as ConvocacaoComValor);
+      m.set(grupoId, lista);
+    }
+    return m;
+  }, [grupos.data, legado.rows]);
+
   const buckets = useMemo(() => {
     const hj = hoje();
     const lista = grupos.data ?? [];
