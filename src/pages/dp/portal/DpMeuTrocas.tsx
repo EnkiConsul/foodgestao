@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Repeat, Check, X, Ban, Plus, ArrowRight, User, Users, CalendarIcon } from "lucide-react";
+import { Repeat, Check, X, Ban, Plus, ArrowRight, User, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,8 +14,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
+
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DpContentCard, DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { TextoExpansivel } from "@/components/dp/TextoExpansivel";
@@ -327,8 +329,15 @@ export default function DpMeuTrocas() {
         </div>
       </Tabs>
 
-      {filtered.length === 0 ? (
+      {list.isError || meRef.isError ? (
+        <DpContentCard contentClassName="p-4">
+          <DpErrorState onRetry={() => { meRef.refetch(); list.refetch(); }} />
+        </DpContentCard>
+      ) : meRef.isLoading || list.isLoading ? (
+        <CardListSkeleton rows={3} />
+      ) : filtered.length === 0 ? (
         <DpContentCard><DpEmptyState icon={Repeat}>Sem trocas.</DpEmptyState></DpContentCard>
+
       ) : (
         <div className="grid gap-3">
           {filtered.map((t: any) => {
@@ -393,19 +402,33 @@ export default function DpMeuTrocas() {
                             disabled={responderColega.isPending}>
                             <Check className="h-4 w-4 mr-1" /> Aceitar
                           </Button>
-                          <Button size="sm" variant="outline"
-                            onClick={() => responderColega.mutate({ id: t.id, aceito: false })}
-                            disabled={responderColega.isPending}>
-                            <X className="h-4 w-4 mr-1" /> Recusar
-                          </Button>
+                          <ConfirmarAcaoDialog
+                            titulo="Recusar esta troca?"
+                            descricao="O colega será avisado de que você não aceitou trocar essa folga. Não é possível desfazer."
+                            confirmar="Recusar troca"
+                            onConfirm={() => responderColega.mutate({ id: t.id, aceito: false })}
+                            disabled={responderColega.isPending}
+                          >
+                            <Button size="sm" variant="outline" disabled={responderColega.isPending}>
+                              <X className="h-4 w-4 mr-1" /> Recusar
+                            </Button>
+                          </ConfirmarAcaoDialog>
                         </>
                       )}
                       {podeCancelar && (
-                        <Button size="sm" variant="ghost"
-                          onClick={() => cancelar.mutate(t.id)} disabled={cancelar.isPending}>
-                          <Ban className="h-4 w-4 mr-1" /> Cancelar
-                        </Button>
+                        <ConfirmarAcaoDialog
+                          titulo="Cancelar esta troca?"
+                          descricao="A proposta deixa de valer e você precisará fazer outra se mudar de ideia."
+                          confirmar="Cancelar troca"
+                          onConfirm={() => cancelar.mutate(t.id)}
+                          disabled={cancelar.isPending}
+                        >
+                          <Button size="sm" variant="ghost" disabled={cancelar.isPending}>
+                            <Ban className="h-4 w-4 mr-1" /> Cancelar
+                          </Button>
+                        </ConfirmarAcaoDialog>
                       )}
+
                     </div>
                   )}
                 </CardContent>
@@ -429,33 +452,4 @@ function StepBadge({ label, state }: { label: string; state: "ok" | "no" | "cur"
   );
 }
 
-function DateField({
-  label, value, onChange,
-}: { label: string; value: Date | undefined; onChange: (d: Date | undefined) => void }) {
-  return (
-    <div>
-      <Label>{label}</Label>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn("w-full justify-start text-left font-normal", !value && "text-muted-foreground")}
-          >
-            <CalendarIcon className="h-4 w-4 mr-2" />
-            {value ? format(value, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecionar</span>}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={value}
-            onSelect={onChange}
-            initialFocus
-            className={cn("p-3 pointer-events-auto")}
-            locale={ptBR}
-          />
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-}
+
