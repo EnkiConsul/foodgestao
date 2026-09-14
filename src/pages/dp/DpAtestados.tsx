@@ -359,12 +359,11 @@ export default function DpAtestados() {
 
   const respond = useMutation({
     mutationFn: async ({ id, status, resposta }: { id: string; status: Status; resposta?: string }) => {
-      const { error } = await supabase.from("dp_solicitacoes").update({
-        status,
-        respondido_por: user?.id,
-        respondido_em: new Date().toISOString(),
-        resposta_admin: resposta ?? null,
-      }).eq("id", id);
+      const { error } = await supabase.rpc("dp_solicitacao_responder", {
+        p_id: id,
+        p_status: status as "aprovada" | "recusada",
+        p_resposta: (resposta ?? null) as any,
+      });
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
