@@ -326,7 +326,7 @@ export default function DpMeuFerias() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DpFormFooter className="-mx-6 -mb-6 mt-2">
             <Button variant="outline" onClick={() => setAberto(false)}>Cancelar</Button>
             <Button
               disabled={
@@ -354,7 +354,7 @@ export default function DpMeuFerias() {
             >
               {solicitar.isPending ? "Enviando…" : "Enviar pedido"}
             </Button>
-          </DialogFooter>
+          </DpFormFooter>
         </DialogContent>
       </Dialog>
     </DpPage>

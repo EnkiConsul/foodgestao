@@ -398,16 +398,15 @@ export default function DpMeuSolicitacoes() {
                   <p className="text-xs text-destructive">{validation[0]}</p>
                 )}
               </div>
-              <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
-                <Button variant="outline" onClick={() => setOpen(false)} className="min-h-10 w-full sm:w-auto">Cancelar</Button>
+              <DpFormFooter className="-mx-6 -mb-6 mt-2">
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
                 <Button
                   disabled={create.isPending || validation.length > 0}
                   onClick={() => create.mutate()}
-                  className="min-h-10 w-full sm:w-auto"
                 >
                   Enviar
                 </Button>
-              </DialogFooter>
+              </DpFormFooter>
             </DialogContent>
           </Dialog>
         }

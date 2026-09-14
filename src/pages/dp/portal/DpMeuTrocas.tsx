@@ -312,10 +312,10 @@ export default function DpMeuTrocas() {
                 </div>
                 {validation && <p className="text-xs text-destructive">{validation}</p>}
               </div>
-              <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
-                <Button variant="outline" onClick={() => setOpen(false)} className="min-h-10 w-full sm:w-auto">Cancelar</Button>
-                <Button disabled={criar.isPending || !!validation} onClick={() => criar.mutate()} className="min-h-10 w-full sm:w-auto">Enviar</Button>
-              </DialogFooter>
+              <DpFormFooter className="-mx-6 -mb-6 mt-2">
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                <Button disabled={criar.isPending || !!validation} onClick={() => criar.mutate()}>Enviar</Button>
+              </DpFormFooter>
             </DialogContent>
           </Dialog>
         }
