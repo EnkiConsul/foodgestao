@@ -17,6 +17,7 @@ import { FolgaCalendarShared } from "@/components/dp/FolgaCalendarShared";
 import { Button } from "@/components/ui/button";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import {
   Dialog,
   DialogContent,

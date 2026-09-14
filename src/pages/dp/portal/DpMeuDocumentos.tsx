@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { DpContentCard, DpEmptyState, DpFilterCard, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
