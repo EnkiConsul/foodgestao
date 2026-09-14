@@ -332,19 +332,21 @@ export function useDpColaboradorDocumentos(colaboradorId?: string | null, opcoes
 
   /** Remove um anexo (arquivo) do requisito. */
   const excluirAnexo = useMutation({
-    mutationFn: async ({ anexo }: { anexo: DpColaboradorDocumento }) => {
+    mutationFn: async ({ anexo, motivo }: { anexo: DpColaboradorDocumento; motivo?: string }) => {
+      // O documento em si é arquivado (histórico preservado); apenas o
+      // vínculo com o requisito deixa de existir.
+      if (anexo.documento_id) {
+        const { error: aErr } = await supabase.rpc("dp_documento_arquivar", {
+          _documento_id: anexo.documento_id,
+          _motivo: motivo ?? "anexo_removido_do_requisito",
+        });
+        if (aErr) throw aErr;
+      }
       const { error } = await supabase
         .from("dp_colaborador_documentos")
         .delete()
         .eq("id", anexo.id);
       if (error) throw error;
-      const doc = arquivoDoAnexo(anexo);
-      if (doc?.file_path) {
-        await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([doc.file_path]);
-      }
-      if (anexo.documento_id) {
-        await supabase.from("dp_documentos").delete().eq("id", anexo.documento_id);
-      }
     },
     onSuccess: () => {
       toast.success("Anexo removido");
