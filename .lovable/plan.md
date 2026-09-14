@@ -31,4 +31,7 @@ Hoje, quando o horário do dia começa, o dia é encerrado automaticamente e nem
 - `dp_convocacao_minhas_ofertas` retorna `janela_terminou` e `minutos_de_atraso` para a tela do portal.
 - Frontend: `DpMinhasConvocacoes.tsx` e `PropostaParcialDialog.tsx` ganham o estado "começou, mas ainda dá" com campo de justificativa; `src/lib/dp/convocacoes.ts` / `convocacoes-parcial.ts` ganham funções puras (`janelaEmAndamento`, `minutosDeAtraso`) com testes em `src/lib/dp/__tests__`.
 - Gestor: `AprovacaoParcialDialog.tsx` e `DiaDetalheSheet.tsx` exibem o selo de atraso e a justificativa.
-- Conflito de dias: `NovaConvocacaoPlanner.tsx` (`tratarErroDeGravacao`) passa a consultar a ocorrência vigente pelo mesmo `company_id/unidade/data/cargo/janela` e oferece a ação "Abrir e incluir", reaproveitando `onAbrirRascunho` e a gravação de destinatários.
+- Dias repetidos: remover o índice único `uq_dp_conv_ocor_necessidade_vigente` (unidade+data+cargo+janela) e o tratamento de erro `23505` correspondente em `NovaConvocacaoPlanner.tsx`.
+- Sobreposição por pessoa: função `public.dp_colaborador_horario_ocupado(_colaborador_id, _data, _entrada, _saida, _vira_dia)` (SECURITY DEFINER, `search_path = public`) comparando janelas absolutas de `dp_convocacoes` com `status = 'aceita'` ou `parcial_status = 'aguardando_gestor'` em todas as unidades da empresa, ignorando a própria oferta. Usada em: validação de destinatários na gravação/publicação do grupo, `dp_convocacao_responder_oferta` (recusa com motivo `WORKER_ALREADY_BOOKED`) e na listagem de disponibilidade do planner (`DisponibilidadePainel.tsx`), com texto amigável em `convocacoes-motivos.ts`.
+- Testes: casos puros de sobreposição (com virada de dia) em `src/lib/dp/__tests__/convocacoes.test.ts`.
+
