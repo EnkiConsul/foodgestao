@@ -176,24 +176,26 @@ export function useDpFerias(colaboradorFilter: string) {
     onError: (e: any) => toast.error(textoErroFerias(e?.message)),
   });
 
+  /**
+   * Edição de férias já programadas: o servidor revalida saldo, bloqueios,
+   * simultâneos e antecedência do aviso, como na programação.
+   */
   const saveGozo = useMutation({
-    mutationFn: async (input: GozoInput) => {
-      if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+    mutationFn: async (input: GozoInput & { justificativa?: string | null }) => {
       if (!input.id) throw new Error("Registro inválido");
       if (!input.data_inicio || !input.data_fim) throw new Error("Informe as datas de início e fim");
       if (input.data_fim < input.data_inicio) throw new Error("A data final não pode ser anterior à inicial");
 
-      const { error } = await supabase
-        .from("dp_ferias_gozos")
-        .update({
-          data_inicio: input.data_inicio,
-          data_fim: input.data_fim,
-          dias_abono: input.dias_abono,
-          adiantar_13: input.adiantar_13,
-          aviso_em: input.aviso_em || null,
-          observacao: input.observacao?.trim() || null,
-        })
-        .eq("id", input.id);
+      const { error } = await supabase.rpc("dp_ferias_gozo_editar", {
+        p_gozo_id: input.id,
+        p_data_inicio: input.data_inicio,
+        p_data_fim: input.data_fim,
+        p_dias_abono: input.dias_abono ?? 0,
+        p_adiantar_13: input.adiantar_13 ?? false,
+        p_aviso_em: input.aviso_em || null,
+        p_observacao: input.observacao?.trim() || null,
+        p_justificativa: input.justificativa?.trim() || null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {

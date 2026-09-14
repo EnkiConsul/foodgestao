@@ -27,6 +27,7 @@ import { textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
+import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 
 const statusLabel: Record<string, string> = {
@@ -146,26 +147,19 @@ export default function DpMeuTrocas() {
     [folgasDeColegasPorData, form.data_proposta],
   );
 
+  /**
+   * Resposta do colega: o servidor confere quem está respondendo, o status e,
+   * quando a unidade usa troca direta, efetiva as folgas na mesma operação.
+   */
   const responderColega = useMutation({
     mutationFn: async ({ id, aceito }: { id: string; aceito: boolean }) => {
-      const { error } = await supabase.from("dp_trocas").update({
-        colega_resposta: aceito ? "aprovada" : "recusada",
-        colega_respondido_em: new Date().toISOString(),
-        status: aceito ? "pendente_gestor" : "recusada",
-      }).eq("id", id);
-      if (error) throw error;
-      if (!aceito) return false;
-
-      // Regra da unidade: na troca direta o aceite já efetiva a troca.
-      const { data: cfg } = await supabase.rpc("dp_config_resolvida", {
-        _company_id: meRef.data!.company_id!,
-        _unidade_id: (meRef.data as { unidade_id?: string | null } | undefined)?.unidade_id ?? undefined,
+      const { data, error } = await supabase.rpc("dp_troca_responder_colega", {
+        p_id: id,
+        p_aceito: aceito,
       });
-      const row = (Array.isArray(cfg) ? cfg[0] : cfg) as { troca_folga_modo?: string } | null;
-      if (row?.troca_folga_modo !== "direta") return false;
-      const { error: dirErr } = await supabase.rpc("dp_processar_troca_direta", { _troca_id: id });
-      if (dirErr) throw dirErr;
-      return true;
+      if (error) throw new Error(mensagemErroTroca(error.message));
+      const res = (data ?? null) as { efetivada?: boolean } | null;
+      return !!res?.efetivada;
     },
     onSuccess: (efetivada) => {
       toast.success(efetivada ? "Troca efetivada no calendário" : "Resposta registrada");
@@ -179,8 +173,8 @@ export default function DpMeuTrocas() {
 
   const cancelar = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_trocas").update({ status: "cancelada" }).eq("id", id);
-      if (error) throw error;
+      const { error } = await supabase.rpc("dp_troca_cancelar_self", { p_id: id });
+      if (error) throw new Error(mensagemErroTroca(error.message));
     },
     onSuccess: () => {
       toast.success("Troca cancelada");
@@ -203,16 +197,13 @@ export default function DpMeuTrocas() {
     mutationFn: async () => {
       if (!meRef.data) throw new Error("Colaborador não encontrado");
       if (validation) throw new Error(validation);
-      const { error } = await supabase.from("dp_trocas").insert({
-        company_id: meRef.data.company_id,
-        solicitante_id: meRef.data.id,
-        destino_id: form.destino_id,
-        data_original: form.data_original,
-        data_proposta: form.data_proposta,
-        motivo: form.motivo,
-        created_by: user!.id,
+      const { error } = await supabase.rpc("dp_troca_propor", {
+        p_destino: form.destino_id,
+        p_data_original: form.data_original!,
+        p_data_proposta: form.data_proposta!,
+        p_motivo: form.motivo,
       });
-      if (error) throw error;
+      if (error) throw new Error(mensagemErroTroca(error.message));
     },
     onSuccess: () => {
       toast.success("Troca proposta enviada");

@@ -9,6 +9,7 @@ import {
   type TrocaFiltros,
 } from "@/lib/dp/trocas-filtros";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
+import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 
 export type DpTrocaModo = "direta" | "aprovacao_admin" | "proibida";
 
@@ -113,32 +114,18 @@ export function useDpTrocas(filtros: TrocaFiltros = FILTROS_TROCA_PADRAO) {
     void resolverPendencias(qc, { companyId: selectedCompanyId });
   };
 
-  /** Decisão do gestor: aprovar (efetiva a troca) ou recusar com justificativa. */
+  /**
+   * Decisão do gestor: aprovar ou recusar. Na aprovação, a decisão e a troca
+   * das folgas acontecem na mesma operação no servidor.
+   */
   const responder = useMutation({
     mutationFn: async ({ id, aceito, obs }: ResponderTrocaInput) => {
-      const now = new Date().toISOString();
-      const { data: userRes } = await supabase.auth.getUser();
-
-      if (!aceito) {
-        const { error } = await supabase.from("dp_trocas").update({
-          gestor_resposta: obs ? `recusada: ${obs}` : "recusada",
-          gestor_respondido_em: now,
-          gestor_id: userRes.user?.id ?? null,
-          status: "recusada",
-        }).eq("id", id);
-        if (error) throw error;
-        return;
-      }
-
-      const { error: upErr } = await supabase.from("dp_trocas").update({
-        gestor_resposta: "aprovada",
-        gestor_respondido_em: now,
-        gestor_id: userRes.user?.id ?? null,
-      }).eq("id", id);
-      if (upErr) throw upErr;
-
-      const { error: rpcErr } = await supabase.rpc("dp_processar_troca", { _troca_id: id });
-      if (rpcErr) throw rpcErr;
+      const { error } = await supabase.rpc("dp_troca_responder_gestor", {
+        p_id: id,
+        p_aceito: aceito,
+        p_observacao: obs?.trim() || null,
+      });
+      if (error) throw new Error(mensagemErroTroca(error.message));
     },
     onSuccess: () => {
       invalidate();
