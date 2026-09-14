@@ -113,6 +113,16 @@ export default function DpFichaRegistroImportar() {
   const prontos = itens.filter((i) => ["criado", "atualizado"].includes(i.status));
 
 
+  /** Abre o PDF original de um envio anterior por link temporário. */
+  const abrirArquivo = async (path: string) => {
+    const { data, error } = await supabase.storage.from("dp-bulk-import").createSignedUrl(path, 60);
+    if (error || !data) {
+      toast.error("Não foi possível abrir o arquivo");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
+  };
+
   const enviarArquivo = () => {
     if (!file) return;
     enviar.mutate(file, {
