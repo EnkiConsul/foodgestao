@@ -11,7 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { DpErrorState } from "@/components/dp/DpErrorState";
+import { CardListSkeleton } from "@/components/dp/DpSkeletons";
+
 import { useDpHorarioPrevisto } from "@/hooks/useDpHorarioPrevisto";
 import { useMinhasConvocacoes } from "@/hooks/useDpConvocacoes";
 import { FONTE_LABEL, textoPrevisto } from "@/lib/dp/horario-previsto";
@@ -200,14 +203,13 @@ export default function DpMeuEscala() {
         </Card>
       )}
 
-      {carregando ? (
-        <Skeleton className="h-64 w-full" />
+      {escala.isError || me.isError ? (
+        <DpErrorState onRetry={() => { me.refetch(); escala.refetch(); }} />
+      ) : carregando ? (
+        <CardListSkeleton rows={3} />
       ) : linhas.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 text-center text-sm text-muted-foreground">
-            Você ainda não tem dia confirmado neste mês.
-          </CardContent>
-        </Card>
+        <DpEmptyState icon={CalendarDays}>Você ainda não tem dia confirmado neste mês.</DpEmptyState>
+
       ) : (
         <>
           <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
