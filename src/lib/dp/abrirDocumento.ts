@@ -38,9 +38,11 @@ export type AbrirArquivoParams = {
   fileName?: string | null;
 };
 
-export type AbrirArquivoResultado =
-  | { ok: true }
-  | { ok: false; motivo: "sem_arquivo" | "sem_permissao" | "bloqueado" | "erro"; erro?: unknown };
+export type AbrirArquivoResultado = {
+  ok: boolean;
+  motivo?: "sem_arquivo" | "sem_permissao" | "bloqueado" | "erro";
+  erro?: unknown;
+};
 
 /** Abre o arquivo em nova aba com o tipo correto. Nunca dispara impressão. */
 export async function abrirArquivoDp({
