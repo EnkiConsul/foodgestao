@@ -12,7 +12,10 @@ import { cn } from "@/lib/utils";
  */
 export const STATUS_SHORT_PT: Record<string, string> = {
   // Lotes / documentos
+  queued: "Na fila",
   processing: "Processando",
+  retry: "Nova tentativa",
+  dead: "Falhou",
   ready: "Pronto",
   imported: "Importado",
   partially_imported: "Parcial",

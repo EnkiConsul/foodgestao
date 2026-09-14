@@ -87,7 +87,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
     refetchInterval: (q) => {
       const b = q.state.data as any;
       // Enquanto processando OCR OU enquanto salvamento em curso, poll rápido.
-      if (!b || b.status === "processing" || isSaving) return 900;
+      if (!b || b.status === "processing" || b.status === "queued" || isSaving) return 900;
       return false;
     },
     queryFn: async () => {
@@ -108,7 +108,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       const rows = (q.state.data as any[] | undefined) ?? [];
       const b = batchInfo.data as any;
       const total = b?.total_pages ?? 0;
-      const notReady = !b || b.status === "processing";
+      const notReady = !b || b.status === "processing" || b.status === "queued";
       const missingRows = total > 0 && rows.length < total;
       const anyUnresolved = rows.some((r: any) => r.status === "pending" && !r.matched_colaborador_id && !r.error_message);
       return (notReady || missingRows || anyUnresolved || !rows.length) ? 2000 : false;
@@ -617,7 +617,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       + rows.filter((r: any) => r.status === "imported").length;
     const ign = rows.filter((r: any) => r.status === "rejected").length;
     const pend = rows.filter((r: any) => r.status === "pending" && !r.matched_colaborador_id).length
-      + rows.filter((r: any) => r.status === "failed").length;
+      + rows.filter((r: any) => r.status === "failed" || r.status === "dead").length;
     return { vinc, ign, pend, total: rows.length };
   }, [rows]);
 
@@ -634,7 +634,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   const bannerVariant = !current ? "neutral"
     : current.status === "imported" ? "success"
     : current.status === "rejected" ? "muted"
-    : current.status === "failed" ? "danger"
+    : current.status === "failed" || current.status === "dead" ? "danger"
     : current.matched_colaborador_id ? "success"
     : "warning";
 
@@ -643,7 +643,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   const bInfo = batchInfo.data as any;
   const totalPages = bInfo?.total_pages ?? 0;
   const processedPages = bInfo?.processed_pages ?? 0;
-  const ocrInProgress = !bInfo || bInfo.status === "processing" || (bInfo.status !== "ready" ? false : totalPages > 0 && rows.length < totalPages);
+  const ocrInProgress = !bInfo || bInfo.status === "processing" || bInfo.status === "queued" || (bInfo.status !== "ready" ? false : totalPages > 0 && rows.length < totalPages);
   const approvedCount = Math.min(savingTotal, bInfo?.approved_count ?? 0);
 
   // Conferência de cobertura: quem deveria ter documento e não tem página no lote

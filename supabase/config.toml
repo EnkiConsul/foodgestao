@@ -11,6 +11,10 @@ project_id = "grtxmbffgmgnkawlvqhm"
     verify_jwt = false
   [functions.pluggy-webhook-worker]
     verify_jwt = false
+  # Worker da fila de importação de documentos: autorizado por segredo interno
+  # em cabeçalho (x-worker-secret), acionado por agendamento no banco.
+  [functions.dp-doc-bulk-worker]
+    verify_jwt = false
 
   [functions.close-credit-card-invoices]
     verify_jwt = false

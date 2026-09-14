@@ -1,44 +1,28 @@
 // Edge function: dp-doc-bulk-ingest
-// Retorna 202 imediatamente e processa o OCR em background (EdgeRuntime.waitUntil),
-// em janelas de 5 páginas paralelas. Extrai automaticamente CNPJ e competência
-// (mês/ano) do texto de cada página e casa com dp_colaboradores por CPF ou nome
-// exato (bounded), respeitando unidade (via CNPJ) e a flag possui_folha_ponto
-// para lotes do tipo 'ponto'. Inclui colaboradores inativos no match, sinalizando-os.
+//
+// Receptor do lote: valida quem chamou, coloca o lote na fila durável e
+// responde 202. O processamento (split de páginas + OCR + casamento) é feito
+// pelo worker `dp-doc-bulk-worker`, que é acionado por agendamento no banco.
+//
+// O aviso ao worker aqui é apenas melhor esforço (latência baixa no caminho
+// normal): se ele falhar, o agendamento garante a execução. Nada de
+// EdgeRuntime.waitUntil como garantia de trabalho importante.
 //
 // Body: { batch_id: uuid }
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireCompanyAccess, requireUser } from "../_shared/authz.ts";
-import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { z } from "npm:zod@3";
-import { extractPeriodo, extractPeriodoFromFilename } from "../_shared/competencia.ts";
-import { detectTipoFromText, parseNaturezaLine, assinaturaDocumento, detectarAssinatura, DOC_TIPO_EXIGE_ACEITE, type DocTipo } from "../_shared/doc-tipos.ts";
-import { tipoCanonicoPorVinculo } from "../_shared/doc-tipo-vinculo.ts";
-import { extrairCpfValido, extrairNomePessoa, isCpfValido } from "../_shared/doc-pessoa.ts";
-
-const BUCKET = "dp-bulk-import";
-const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const OCR_MODEL = "google/gemini-2.5-flash";
-const OCR_PARALLELISM = 8;
-const MAX_PAGES = 60;
 
 const BodySchema = z.object({ batch_id: z.string().uuid() });
 
-// deno-lint-ignore no-explicit-any
-declare const EdgeRuntime: any;
-
-type Colab = {
-  id: string;
-  nome: string;
-  cpf: string | null;
-  matricula: string | null;
-  ativo: boolean;
-  unidade_id: string | null;
-  possui_folha_ponto: boolean | null;
-  vinculo_label: string | null;
-  socio_remuneracao: string | null;
-};
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -55,17 +39,16 @@ Deno.serve(async (req) => {
     const url = Deno.env.get("SUPABASE_URL")!;
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const aiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!aiKey) return json({ error: "LOVABLE_API_KEY não configurado" }, 500);
 
     const userClient = createClient(url, anon, {
       global: { headers: { Authorization: authHeader } },
     });
     const svc = createClient(url, service);
 
-    // Carrega o batch respeitando RLS do usuário — garante que ele pode processá-lo
+    // Lê o lote sob as regras do usuário — garante que ele pode processá-lo
     const { data: batch, error: bErr } = await userClient
-      .from("dp_bulk_import_batches").select("*").eq("id", batch_id).maybeSingle();
+      .from("dp_bulk_import_batches").select("id, company_id, status").eq("id", batch_id)
+      .maybeSingle();
     if (bErr || !batch) {
       if (bErr) console.error("[dp-doc-bulk-ingest] read batch:", bErr.message);
       return json({ error: "Lote não encontrado" }, 404);
@@ -74,386 +57,44 @@ Deno.serve(async (req) => {
       return json({ error: "Sem permissão para esta operação." }, 403);
     }
 
-    // Sinaliza processing imediatamente
-    await svc.from("dp_bulk_import_batches")
-      .update({ status: "processing", processed_pages: 0, error_message: null })
-      .eq("id", batch_id);
-
-    // Dispara worker em background (não bloqueia o response)
-    const worker = processBatchAsync({ svc, aiKey, batch });
-    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
-      EdgeRuntime.waitUntil(worker);
-    } else {
-      // Fallback local: não aguarda, apenas loga
-      worker.catch((e) => console.error("[dp-doc-bulk-ingest] worker error", e));
+    // Enfileira (idempotente: reenviar o mesmo lote não duplica trabalho —
+    // as páginas têm chave única por lote+página).
+    const { error: upErr } = await svc.from("dp_bulk_import_batches")
+      .update({
+        status: "queued",
+        processed_pages: 0,
+        error_message: null,
+        prep_locked_by: null,
+        prep_lease_expires_at: null,
+      })
+      .eq("id", batch_id)
+      .in("status", ["queued", "processing", "failed"]);
+    if (upErr) {
+      console.error("[dp-doc-bulk-ingest] enqueue:", upErr.message);
+      return json({ error: "Não foi possível enfileirar o lote." }, 500);
     }
 
-    return json({ ok: true, batch_id, status: "processing" }, 202);
+    // Aviso ao worker: melhor esforço, nunca a garantia.
+    const workerSecret = Deno.env.get("DP_BULK_WORKER_SECRET") ??
+      Deno.env.get("WEBHOOK_WORKER_SECRET");
+    if (workerSecret) {
+      try {
+        await fetch(`${url}/functions/v1/dp-doc-bulk-worker`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-worker-secret": workerSecret,
+          },
+          body: "{}",
+        });
+      } catch (_e) {
+        // Silencioso de propósito: o agendamento assume o serviço.
+      }
+    }
+
+    return json({ ok: true, batch_id, status: "queued" }, 202);
   } catch (e) {
-    console.error("[dp-doc-bulk-ingest] fatal:", e);
+    console.error("[dp-doc-bulk-ingest] fatal:", (e as Error).message);
     return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });
-
-// ---------- Worker ----------
-
-// deno-lint-ignore no-explicit-any
-async function processBatchAsync({ svc, aiKey, batch }: { svc: any; aiKey: string; batch: any }) {
-  const batch_id = batch.id as string;
-  try {
-    // 1) Download do PDF de origem
-    const src = await svc.storage.from(BUCKET).download(batch.source_file_path);
-    if (src.error || !src.data) throw new Error(src.error?.message ?? "Falha ao baixar PDF");
-    const srcBytes = new Uint8Array(await src.data.arrayBuffer());
-
-    let pdf: PDFDocument;
-    try {
-      pdf = await PDFDocument.load(srcBytes);
-    } catch (e) {
-      await svc.from("dp_bulk_import_batches")
-        .update({ status: "failed", error_message: "PDF inválido: " + (e as Error).message })
-        .eq("id", batch_id);
-      return;
-    }
-    const totalPages = Math.min(pdf.getPageCount(), MAX_PAGES);
-
-    await svc.from("dp_bulk_import_batches")
-      .update({ total_pages: totalPages, processed_pages: 0 })
-      .eq("id", batch_id);
-
-    // 2) Colaboradores da empresa (inclui inativos para permitir sinalizar)
-    const { data: colabs } = await svc
-      .from("dp_colaboradores")
-      .select("id, nome, cpf, matricula, ativo, unidade_id, possui_folha_ponto, vinculo_label, socio_remuneracao")
-      .eq("company_id", batch.company_id);
-    const colabList = (colabs ?? []) as Colab[];
-
-    // Unidades por CNPJ para filtrar candidatos por CNPJ detectado
-    const { data: unidades } = await svc
-      .from("dp_unidades").select("id, cnpj").eq("company_id", batch.company_id);
-    const cnpjToUnidade = new Map<string, string>();
-    for (const u of (unidades ?? []) as Array<{ id: string; cnpj: string | null }>) {
-      if (u.cnpj) cnpjToUnidade.set(onlyDigits(u.cnpj), u.id);
-    }
-
-    const cpfMap = new Map<string, Colab>();
-    for (const c of colabList) if (c.cpf) cpfMap.set(onlyDigits(c.cpf), c);
-
-    // 3) Processa páginas em janelas paralelas
-    for (let start = 0; start < totalPages; start += OCR_PARALLELISM) {
-      const end = Math.min(start + OCR_PARALLELISM, totalPages);
-      const tasks: Promise<void>[] = [];
-      for (let i = start; i < end; i++) {
-        tasks.push(processPage({
-          svc, aiKey, batch, pdf, pageIndex: i,
-          colabList, cpfMap, cnpjToUnidade,
-        }));
-      }
-      await Promise.all(tasks);
-    }
-
-    // 4) Recontagem final
-    const { count: matchedCount } = await svc
-      .from("dp_bulk_import_items")
-      .select("id", { count: "exact", head: true })
-      .eq("batch_id", batch_id)
-      .not("matched_colaborador_id", "is", null);
-
-    // Se todas as páginas reconhecidas pertencem à mesma unidade, promove a
-    // unidade para o cabeçalho do lote. Lotes realmente multiunidade continuam
-    // sem unidade global e preservam a unidade individual de cada página.
-    const { data: processedItems } = await svc
-      .from("dp_bulk_import_items")
-      .select("detected_unidade_id")
-      .eq("batch_id", batch_id)
-      .not("detected_unidade_id", "is", null);
-    const detectedUnitIds = [
-      ...new Set((processedItems ?? []).map((item: { detected_unidade_id: string }) => item.detected_unidade_id)),
-    ];
-
-    await svc.from("dp_bulk_import_batches")
-      .update({
-        status: "ready",
-        matched_count: matchedCount ?? 0,
-        processed_pages: totalPages,
-        ...(detectedUnitIds.length === 1 ? { unidade_id: detectedUnitIds[0] } : {}),
-      })
-      .eq("id", batch_id);
-  } catch (e) {
-    await svc.from("dp_bulk_import_batches")
-      .update({ status: "failed", error_message: (e as Error).message })
-      .eq("id", batch_id);
-  }
-}
-
-// deno-lint-ignore no-explicit-any
-async function processPage(args: {
-  svc: any; aiKey: string; batch: any; pdf: PDFDocument; pageIndex: number;
-  colabList: Colab[]; cpfMap: Map<string, Colab>; cnpjToUnidade: Map<string, string>;
-}): Promise<void> {
-  const { svc, aiKey, batch, pdf, pageIndex, colabList, cpfMap, cnpjToUnidade } = args;
-  const batch_id = batch.id as string;
-  const pageNum = pageIndex + 1;
-  const pagePath = `${batch.company_id}/${batch_id}/page_${pageNum}.pdf`;
-
-  try {
-    // Split página
-    const single = await PDFDocument.create();
-    const [copied] = await single.copyPages(pdf, [pageIndex]);
-    single.addPage(copied);
-    const pageBytes = await single.save();
-
-    await svc.storage.from(BUCKET).upload(pagePath, pageBytes, {
-      contentType: "application/pdf", upsert: true,
-    });
-
-    // OCR (com 1 retry)
-    const b64 = base64Encode(pageBytes);
-    let ocr = "";
-    try {
-      ocr = await ocrPage(aiKey, b64);
-    } catch (_e) {
-      ocr = await ocrPage(aiKey, b64);
-    }
-
-    // Extrações
-    // Casamento por CPF continua tolerante (qualquer CPF válido do texto);
-    // já o CPF sugerido no cadastro exige rótulo "CPF" + dígitos verificadores.
-    const cpfs = extractCPFs(ocr).filter((c) => isCpfValido(c));
-    const cpfPessoa = extrairCpfValido(ocr);
-    const nomePessoa = extrairNomePessoa(ocr);
-    const cnpjs = extractCNPJs(ocr);
-    const competencia =
-      extractPeriodo(ocr) ??
-      extractPeriodoFromFilename(batch.source_file_name ?? ""); // "YYYY-MM" ou null
-    const unidadePorCnpj = cnpjs.map((c) => cnpjToUnidade.get(c)).find(Boolean) ?? null;
-
-    // Natureza: regra aprendida da empresa > IA > heurística por palavra-chave.
-    const assinatura = assinaturaDocumento(batch.source_file_name ?? "", ocr);
-    let tipoAprendido: DocTipo | null = null;
-    if (assinatura) {
-      const { data: regra } = await svc.from("dp_doc_tipo_aprendizado")
-        .select("id, tipo, hits")
-        .eq("company_id", batch.company_id)
-        .eq("assinatura", assinatura)
-        .limit(1).maybeSingle();
-      if (regra?.tipo) {
-        tipoAprendido = regra.tipo as DocTipo;
-        await svc.from("dp_doc_tipo_aprendizado")
-          .update({ hits: (regra.hits ?? 1) + 1, last_used_at: new Date().toISOString() })
-          .eq("id", regra.id);
-      }
-
-    }
-    const tipoIa: DocTipo | null = parseNaturezaLine(ocr);
-    const tipoHeuristica: DocTipo | null =
-      detectTipoFromText(ocr) ?? detectTipoFromText(batch.source_file_name ?? "");
-    const tipoDetectado: DocTipo | null = tipoAprendido ?? tipoIa ?? tipoHeuristica;
-    const tipoOrigem = tipoAprendido ? "aprendido" : tipoIa ? "ia" : tipoHeuristica ? "keyword" : null;
-    const tipoEfetivo = batch.deteccao_automatica
-      ? (tipoDetectado ?? "outros")
-      : batch.tipo;
-
-
-    // Restrição por unidade + possui_folha_ponto (para tipo=ponto)
-    const restrictPonto = tipoEfetivo === "ponto";
-    const candidates = colabList.filter((c) => {
-      if (restrictPonto && c.possui_folha_ponto === false) return false;
-      if (unidadePorCnpj && c.unidade_id && c.unidade_id !== unidadePorCnpj) return false;
-      return true;
-    });
-    const candCpf = new Map<string, Colab>();
-    for (const c of candidates) if (c.cpf) candCpf.set(onlyDigits(c.cpf), c);
-
-    let match: Colab | undefined;
-    let confidence = 0;
-    let matchedCpf: string | null = null;
-    let matchedNome: string | null = null;
-
-    // 1) CPF nos candidatos filtrados
-    for (const cpf of cpfs) {
-      const c = candCpf.get(cpf);
-      if (c) { match = c; confidence = 0.95; matchedCpf = cpf; break; }
-    }
-    // 2) CPF em toda a lista (fallback — sem filtro)
-    if (!match) {
-      for (const cpf of cpfs) {
-        const c = cpfMap.get(cpf);
-        if (c) { match = c; confidence = 0.9; matchedCpf = cpf; break; }
-      }
-    }
-
-    // O vínculo inequívoco do colaborador também identifica a unidade. Isso é
-    // especialmente importante em folhas sem CNPJ legível no cabeçalho.
-    const unidadeDetectada = unidadePorCnpj ?? match?.unidade_id ?? null;
-    // 3) Nome exato bounded
-    if (!match) {
-      const upper = normalizeName(ocr);
-      for (const c of candidates) {
-        if (!c.nome) continue;
-        const nome = normalizeName(c.nome);
-        if (nome.length < 8) continue;
-        const re = new RegExp(`(^|[^A-Z])${escapeRegex(nome)}([^A-Z]|$)`);
-        if (re.test(upper)) { match = c; confidence = 0.75; matchedNome = c.nome; break; }
-      }
-    }
-
-    /**
-     * Sócio remunerado por pró-labore: o recibo mensal é impresso igual ao de
-     * um empregado, então a natureza só pode ser resolvida depois do vínculo.
-     */
-    const tipoFinal = tipoCanonicoPorVinculo(tipoEfetivo, match ?? null) as DocTipo;
-
-    // Duplicidade: mesmo colaborador+tipo+referência (YYYY-MM-01)
-    let duplicateOf: string | null = null;
-    if (match && (competencia || batch.referencia_data)) {
-      const ref = competencia
-        ? `${competencia}-01`
-        : String(batch.referencia_data);
-      const { data: dup } = await svc.from("dp_documentos")
-        .select("id").eq("colaborador_id", match.id).eq("tipo", tipoFinal)
-        .eq("referencia_data", ref).limit(1).maybeSingle();
-      if (dup?.id) duplicateOf = dup.id as string;
-    }
-
-    // Assinatura do colaborador na página: se já vier assinado, o padrão é
-    // dispensar a validação digital (o usuário confirma na revisão).
-    const assin = detectarAssinatura(ocr);
-    const exigeAceiteTipo = DOC_TIPO_EXIGE_ACEITE[tipoFinal] ?? false;
-    const exigirLote = batch.exigir_aceite !== false;
-    const exigeAceite = exigirLote && exigeAceiteTipo && !assin.detectada;
-
-    await svc.from("dp_bulk_import_items").upsert({
-      batch_id,
-      company_id: batch.company_id,
-      page_index: pageNum,
-      page_file_path: pagePath,
-      ocr_text: ocr.slice(0, 8000),
-      matched_cpf: matchedCpf ?? cpfPessoa,
-      matched_nome: matchedNome ?? nomePessoa,
-      matched_colaborador_id: match?.id ?? null,
-      matched_colaborador_ativo: match ? match.ativo : null,
-      detected_cnpj: cnpjs[0] ?? null,
-      detected_unidade_id: unidadeDetectada,
-      detected_competencia: competencia,
-      tipo_detectado: tipoFinal,
-      tipo_confidence: tipoAprendido ? 1 : tipoDetectado ? 0.9 : 0,
-      tipo_origem: tipoOrigem,
-      tipo_assinatura: assinatura || null,
-      assinatura_detectada: assin.detectada,
-      assinatura_evidencia: assin.evidencia,
-      exige_aceite: exigeAceite,
-      duplicate_of: duplicateOf,
-      confidence,
-      status: "pending",
-    }, { onConflict: "batch_id,page_index" });
-  } catch (pageErr) {
-    await svc.from("dp_bulk_import_items").upsert({
-      batch_id,
-      company_id: batch.company_id,
-      page_index: pageNum,
-      page_file_path: pagePath,
-      confidence: 0,
-      status: "failed",
-      error_message: (pageErr as Error).message,
-    }, { onConflict: "batch_id,page_index" });
-  } finally {
-    // Incrementa progresso de forma atômica (rpc não expõe .catch — usar await + error)
-    try {
-      const { error: incErr } = await svc.rpc("dp_bulk_increment_processed", { p_batch_id: batch_id });
-      if (incErr) {
-        const { data } = await svc.from("dp_bulk_import_batches")
-          .select("processed_pages,total_pages").eq("id", batch_id).maybeSingle();
-        const next = Math.min((data?.total_pages ?? 0), (data?.processed_pages ?? 0) + 1);
-        await svc.from("dp_bulk_import_batches").update({ processed_pages: next }).eq("id", batch_id);
-      }
-    } catch (e) {
-      console.error("[dp-doc-bulk-ingest] increment progress failed", e);
-    }
-  }
-}
-
-// ---------- Utils ----------
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
-function onlyDigits(s: string) { return (s ?? "").replace(/\D+/g, ""); }
-
-function normalizeName(s: string): string {
-  return (s ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase();
-}
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function extractCPFs(text: string): string[] {
-  const out = new Set<string>();
-  const re = /(\d{3}\.?\d{3}\.?\d{3}-?\d{2})/g;
-  for (const m of text.matchAll(re)) {
-    const d = onlyDigits(m[1]);
-    if (d.length === 11) out.add(d);
-  }
-  return [...out];
-}
-
-function extractCNPJs(text: string): string[] {
-  const out = new Set<string>();
-  const re = /(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/g;
-  for (const m of text.matchAll(re)) {
-    const d = onlyDigits(m[1]);
-    if (d.length === 14) out.add(d);
-  }
-  return [...out];
-}
-
-function base64Encode(bytes: Uint8Array): string {
-  let bin = "";
-  const CHUNK = 0x8000;
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(bin);
-}
-
-async function ocrPage(apiKey: string, pdfB64: string): Promise<string> {
-  const body = {
-    model: OCR_MODEL,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: "Extraia TODO o texto legível deste documento de departamento pessoal. Responda apenas com o texto puro extraído, sem comentários. Inclua CPF, CNPJ, matrícula e nome do colaborador. Acrescente uma linha exatamente `PESSOA: <nome completo da pessoa a que o documento se refere>` — use SEMPRE o nome que aparece no campo/rótulo do funcionário, colaborador, empregado ou sócio (que pode estar na linha ABAIXO do rótulo), NUNCA a razão social/nome fantasia da empresa do cabeçalho nem nomes com LTDA, ME, MEI, EIRELI, EPP, S/A, COMÉRCIO, ALIMENTOS, RESTAURANTE ou similares; em caso de dúvida escreva `PESSOA: DESCONHECIDO` e outra linha exatamente `CPF_PESSOA: <apenas o CPF dessa pessoa>` — use somente um número rotulado como CPF; NUNCA use PIS, PASEP, NIT, matrícula INSS, RG, CTPS ou código interno; se o documento não informar o CPF, escreva `CPF_PESSOA: DESCONHECIDO`. Na ANTEPENÚLTIMA linha, acrescente exatamente `COMPETENCIA: MM/AAAA` com o mês/ano de referência do documento (o período trabalhado ou a folha a que ele se refere). NUNCA use a data de emissão, impressão, admissão ou pagamento como competência. Se não for possível determinar, escreva `COMPETENCIA: DESCONHECIDA`. Na PENÚLTIMA linha, acrescente exatamente `NATUREZA: x` onde x é UM destes valores, conforme o documento: contracheque (contracheque/holerite mensal), contracheque_13 (décimo terceiro), contracheque_ferias (folha de pagamento de férias), adiantamento (adiantamento/antecipação salarial), ponto (folha/espelho de ponto), aviso_ferias, recibo_ferias, informe_rendimentos (comprovante anual de rendimentos), atestado, disciplinar (advertência/suspensão), contrato, outros. Se não tiver certeza, escreva `NATUREZA: outros`. Na ÚLTIMA linha, acrescente exatamente `ASSINADO: SIM` se o documento JÁ contiver a assinatura do colaborador (rubrica manuscrita sobre a linha de assinatura, campo de assinatura preenchido, carimbo/selo de assinatura eletrônica como ICP-Brasil, Gov.br, DocuSign, Clicksign), ou `ASSINADO: NAO` se a linha de assinatura estiver em branco ou não houver assinatura do colaborador.",
-          },
-          {
-            type: "file",
-            file: {
-              filename: "page.pdf",
-              file_data: `data:application/pdf;base64,${pdfB64}`,
-            },
-          },
-        ],
-      },
-    ],
-  };
-  const r = await fetch(AI_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Lovable-API-Key": apiKey,
-    },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(`OCR HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
-  const j = await r.json();
-  return String(j?.choices?.[0]?.message?.content ?? "");
-}
