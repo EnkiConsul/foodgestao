@@ -31,21 +31,13 @@ const rotuloPrazo = (iso: string | null) =>
 
 const hhmm = (v: string | null | undefined) => (v ? String(v).slice(0, 5) : "—");
 
-const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
 /** Valor previsto vem do snapshot gravado na publicação — nunca recalculado aqui. */
-const remuneracaoPrevista = (snap: any): { total: string; detalhe: string } | null => {
-  if (!snap || typeof snap !== "object") return null;
-  const total = Number(snap.valor_previsto ?? 0);
-  const unitario = Number(snap.valor_unitario ?? 0);
-  if (!total && !unitario) return null;
-  const unidade = snap.unidade_remuneracao === "diaria" ? "diária" : "hora";
-  const qtd = Number(snap.quantidade_prevista ?? 0);
-  return {
-    total: moeda(total || unitario),
-    detalhe: `${moeda(unitario)} / ${unidade}${qtd ? ` × ${qtd.toLocaleString("pt-BR")}` : ""}`,
-  };
-};
+const remuneracaoPrevista = (c: MinhaOferta) =>
+  remuneracaoDoSnapshot(c.remuneracao_snapshot, {
+    entrada: c.entrada,
+    saida: c.saida,
+    termina_no_dia_seguinte: c.termina_no_dia_seguinte,
+  });
 
 export default function DpMinhasConvocacoes() {
   const { user } = useAuth();
