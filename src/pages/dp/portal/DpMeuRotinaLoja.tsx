@@ -68,7 +68,7 @@ export default function DpMeuRotinaLoja() {
       m.set(p.cargo, lista);
     }
     return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
-  }, [escala.data]);
+  }, [equipeDoMeuTurno]);
 
   return (
     <DpPage>
