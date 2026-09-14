@@ -284,7 +284,18 @@ export default function DpMinhasConvocacoes() {
     <DpPage narrow>
       <Helmet><title>Minhas Convocações — Aveto 360</title></Helmet>
 
-      <DpPageHeader icon={BellRing} title="Minhas Convocações" description="Aceite ou recuse os dias oferecidos." />
+      <DpPageHeader
+        icon={BellRing}
+        title="Minhas Convocações"
+        description="Aceite ou recuse os dias oferecidos."
+        actions={
+          <Button asChild size="sm" variant="outline">
+            <Link to="/dp/meu/calendario">
+              <CalendarClock className="h-4 w-4 mr-1" /> Avisar dias indisponíveis
+            </Link>
+          </Button>
+        }
+      />
 
       {isLoading || me.isLoading ? (
         <div className="space-y-3">
