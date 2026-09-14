@@ -134,7 +134,7 @@ export default function DpMinhasConvocacoes() {
     const emAndamento = c.status === "pendente" && janelaEmAndamento(c);
     const atraso = c.minutos_de_atraso ?? minutosDeAtraso(c.inicio_previsto);
     const prazo = rotuloPrazo(c.prazo_resposta);
-    const rem = remuneracaoPrevista(c.remuneracao_snapshot);
+    const rem = remuneracaoPrevista(c);
 
 
     return (
