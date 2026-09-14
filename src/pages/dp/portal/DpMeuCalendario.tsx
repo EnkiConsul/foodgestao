@@ -371,6 +371,50 @@ export default function DpMeuCalendario() {
   const folgas = (folgasQuery.data ?? []) as any[];
   const pendentes = (pendentesQuery.data ?? []) as any[];
 
+  /**
+   * Folgas de domingo: quantas a regra prevê no mês visto e quantas já estão
+   * marcadas para mim, para o domingo não ficar invisível no calendário.
+   */
+  const resumoDomingos = useMemo(() => {
+    const dias = eachDayOfInterval({ start: range.startDate, end: range.endDate });
+    const domingosNoMes = dias.filter((d) => d.getDay() === 0).length;
+    const previstas = domingosFolgaNoPeriodo(regrasConfig, domingosNoMes, {
+      sexo: (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null,
+      domingosMes:
+        (meRef.data as { domingos_folga_mes?: number | null } | undefined)?.domingos_folga_mes ??
+        null,
+    });
+    if (previstas <= 0) return "Neste mês a regra da sua loja não prevê folga em domingo.";
+    const minhas = folgas.filter(
+      (f) =>
+        f.colaborador_id === meRef.data?.id &&
+        f.status !== "cancelada" &&
+        parseYMD(f.data).getDay() === 0 &&
+        parseYMD(f.data) >= range.startDate &&
+        parseYMD(f.data) <= range.endDate,
+    ).length;
+    const fixaNoDomingo = diasFixosDeFolga({
+      folga_fixa_semana: meRef.data?.folga_fixa_semana ?? null,
+      folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
+    }).includes(0);
+    if (fixaNoDomingo) return "Domingo é seu dia de folga fixa.";
+    const plural = previstas === 1 ? "folga em domingo" : "folgas em domingo";
+    if (minhas >= previstas) return `Sua folga de domingo deste mês já está marcada.`;
+    return `Você tem ${previstas} ${plural} neste mês e ${minhas} já marcada(s). ${
+      folgaCltAutomatica
+        ? "O domingo é definido pelo setor de pessoal."
+        : "Toque em um domingo livre para marcar."
+    }`;
+  }, [
+    folgas,
+    folgaCltAutomatica,
+    meRef.data,
+    meusDiasFixosQuery.data,
+    range.endDate,
+    range.startDate,
+    regrasConfig,
+  ]);
+
   const occupantsByDate = useMemo(() => {
     const days = eachDayOfInterval({ start: range.startDate, end: range.endDate });
     // Também filtra folgas/pendentes pela unidade
