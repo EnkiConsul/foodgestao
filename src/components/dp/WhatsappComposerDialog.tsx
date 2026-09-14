@@ -18,6 +18,8 @@ type Props = {
   contexto?: Record<string, string>;
   /** Títulos de modelo preferidos, em ordem de prioridade. */
   titulosPreferidos?: string[];
+  /** Texto enviado em mensagem separada (ex.: só a senha, fácil de copiar). */
+  mensagemSeparada?: string | null;
 };
 
 const norm = (s: string) =>
