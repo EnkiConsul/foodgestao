@@ -1,6 +1,8 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { decidirAcessoPortal } from "@/lib/portalAccessDecision";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
@@ -267,29 +269,49 @@ function PlanosGate() {
   );
 }
 
+/**
+ * Portão do portal do colaborador — nega por padrão.
+ *
+ * Só libera com resposta explícita de acesso permitido. Falha de rede, resposta
+ * inesperada ou vazia também negam: erro nunca vira permissão.
+ */
 function PortalProtected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  // Acesso bloqueado pelo setor de pessoal: encerra a sessão em vez de abrir o portal.
-  const [bloqueado, setBloqueado] = useState<boolean | null>(null);
+  const [situacao, setSituacao] = useState<"verificando" | "liberado" | "bloqueado" | "falha">(
+    "verificando",
+  );
+  const [tentativa, setTentativa] = useState(0);
   useEffect(() => {
     if (!user) {
-      setBloqueado(null);
+      setSituacao("verificando");
       return;
     }
     let cancelado = false;
+    setSituacao("verificando");
     supabase.rpc("auth_access_enabled").then(({ data, error }) => {
       if (cancelado) return;
-      const negado = !error && data === false;
-      setBloqueado(negado);
-      if (negado) void supabase.auth.signOut();
+      const decisao = decidirAcessoPortal({ data, error });
+      setSituacao(decisao);
+      if (decisao === "bloqueado") void supabase.auth.signOut();
     });
     return () => {
       cancelado = true;
     };
-  }, [user?.id]);
-  if (loading || (user && bloqueado === null)) return <PageSpinner />;
-  if (!user || bloqueado) {
+  }, [user?.id, tentativa]);
+  if (loading || (user && situacao === "verificando")) return <PageSpinner />;
+  if (user && situacao === "falha") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
+        <p className="text-base font-medium">Não foi possível confirmar seu acesso agora.</p>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Verifique sua conexão e tente novamente. Se continuar, fale com o setor de pessoal.
+        </p>
+        <Button onClick={() => setTentativa((n) => n + 1)}>Tentar novamente</Button>
+      </div>
+    );
+  }
+  if (!user || situacao !== "liberado") {
     const redirect = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/auth?redirect=${redirect}`} replace />;
   }

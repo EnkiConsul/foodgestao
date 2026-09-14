@@ -32,6 +32,7 @@ export default function AtivarAcesso() {
   const modo: "activation" | "reset" = pathname.startsWith("/redefinir-acesso") ? "reset" : "activation";
   const navigate = useNavigate();
   const codigo = (params.get("c") ?? "").trim();
+  const tokenId = (params.get("t") ?? "").trim();
   const [cpf, setCpf] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmar, setConfirmar] = useState("");
@@ -52,7 +53,7 @@ export default function AtivarAcesso() {
       setErro("Informe seu CPF completo");
       return;
     }
-    if (!codigo) {
+    if (!codigo || !tokenId) {
       setErro("Este link está incompleto. Peça um novo ao setor de pessoal.");
       return;
     }
@@ -68,7 +69,7 @@ export default function AtivarAcesso() {
     setEnviando(true);
     try {
       const { data, error } = await supabase.functions.invoke("dp-alterar-senha-colaborador", {
-        body: { cpf: digitos, codigo, nova_senha: senha },
+        body: { cpf: digitos, token_id: tokenId, codigo, purpose: modo, nova_senha: senha },
       });
       if (error) throw error;
       if ((data as any)?.error) {
@@ -104,7 +105,8 @@ export default function AtivarAcesso() {
           <CardHeader className="space-y-3 text-center">
             <CardTitle className="text-2xl font-bold">{titulo}</CardTitle>
             <CardDescription>
-              Confirme seu CPF e escolha uma senha só sua. Este link serve uma única vez.
+              Confirme seu CPF e escolha uma senha só sua. Este link é pessoal e serve uma única
+              vez. Se outra pessoa tiver visto o link, troque a senha depois de entrar.
             </CardDescription>
           </CardHeader>
           <form onSubmit={enviar}>

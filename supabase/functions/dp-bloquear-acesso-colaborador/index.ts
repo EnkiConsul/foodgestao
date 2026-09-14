@@ -6,7 +6,7 @@
  */
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
 import { canAdminister, requireCompanyAccess, requireUser, serviceClient } from "../_shared/authz.ts";
-import { registrarEvento } from "../_shared/portal-access.ts";
+import { registrarEvento, revogarSessoes } from "../_shared/portal-access.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
@@ -60,6 +60,9 @@ Deno.serve(async (req) => {
         .is("consumed_at", null);
     }
 
+    let sessoesRevogadas = false;
+    if (bloquear) sessoesRevogadas = await revogarSessoes(colab.user_id);
+
     await registrarEvento(admin, bloquear ? "access_blocked" : "access_unblocked", {
       actorUserId: caller.id,
       targetUserId: colab.user_id,
@@ -67,7 +70,7 @@ Deno.serve(async (req) => {
       colaboradorId: colab.id,
     });
 
-    return jsonResponse(req, 200, { success: true, bloqueado: bloquear });
+    return jsonResponse(req, 200, { success: true, bloqueado: bloquear, sessoes_revogadas: sessoesRevogadas });
   } catch (e) {
     return jsonError(req, "internal", e);
   }
