@@ -9,6 +9,7 @@ import { textoErroFerias } from "@/lib/dp/ferias-direito";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
+import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
 
 export type FeriasDocTipo = "aviso_ferias" | "recibo_ferias";
 
@@ -144,11 +145,13 @@ export function useDpFeriasDocumentos() {
 
   /** Abre o arquivo em nova aba com link temporário. */
   const abrir = async (doc: FeriasDocumento) => {
-    const { data, error } = await supabase.storage
-      .from(DP_DOCUMENTOS_BUCKET)
-      .createSignedUrl(doc.file_path, 60);
-    if (error || !data) return toast.error("Erro ao gerar link do arquivo");
-    window.open(data.signedUrl, "_blank", "noopener");
+    try {
+      const link = await linkDocumentoAssinado(doc.id, 60);
+      if (!link) return toast.error("Sem permissão para abrir este documento");
+      window.open(link.url, "_blank", "noopener");
+    } catch {
+      toast.error("Erro ao gerar link do arquivo");
+    }
   };
 
   const registrarAviso = useMutation({

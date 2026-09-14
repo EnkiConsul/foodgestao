@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { textoErroFerias } from "@/lib/dp/ferias-direito";
+import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
 
 export type MinhaFeriasDocumento = {
   id: string;
@@ -117,11 +118,13 @@ export function useDpMinhasFerias() {
 
   /** Abre o aviso ou recibo de férias em nova aba, com link temporário. */
   const abrirDocumento = async (doc: MinhaFeriasDocumento) => {
-    const { data, error } = await supabase.storage
-      .from("dp-documentos")
-      .createSignedUrl(doc.file_path, 60);
-    if (error || !data) return toast.error("Erro ao abrir o arquivo");
-    window.open(data.signedUrl, "_blank", "noopener");
+    try {
+      const link = await linkDocumentoAssinado(doc.id, 60);
+      if (!link) return toast.error("Sem permissão para abrir este documento");
+      window.open(link.url, "_blank", "noopener");
+    } catch {
+      toast.error("Erro ao abrir o arquivo");
+    }
   };
 
   return {

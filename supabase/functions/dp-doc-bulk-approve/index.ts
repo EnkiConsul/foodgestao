@@ -120,15 +120,32 @@ Deno.serve(async (req) => {
 
     let processedSoFar = 0;
     for (const it of items as any[]) {
+      // Documento criado nesta iteração — usado para compensar falhas.
+      let novoDocId: string | null = null;
+      let novoPath: string | null = null;
+      let reservado = false;
       try {
         if (!it.matched_colaborador_id) {
           results.push({ id: it.id, ok: false, error: "Sem colaborador vinculado" });
           continue;
         }
-        if (it.status === "imported") {
-          results.push({ id: it.id, ok: true, documento_id: it.imported_documento_id });
+
+        // Idempotência e concorrência: a reserva acontece no banco. Item já
+        // importado devolve o mesmo documento; item reservado por outra
+        // chamada simultânea é ignorado nesta.
+        const { data: claim, error: claimErr } = await svc
+          .rpc("dp_bulk_item_reservar", { _item_id: it.id });
+        if (claimErr) throw new Error(claimErr.message);
+        const reserva = Array.isArray(claim) ? claim[0] : claim;
+        if (!reserva) {
+          results.push({ id: it.id, ok: false, error: "em_processamento" });
           continue;
         }
+        if (reserva.ja_importado) {
+          results.push({ id: it.id, ok: true, documento_id: reserva.imported_documento_id });
+          continue;
+        }
+        reservado = true;
 
         const batch = it.dp_bulk_import_batches;
 
@@ -139,27 +156,24 @@ Deno.serve(async (req) => {
           vinculoPorColab.get(it.matched_colaborador_id) ?? null,
         );
 
-        // Duplicidade: já existe documento para (colaborador, tipo, referencia_data)?
-        let replacedFlag = false;
+        // Duplicidade: já existe documento ativo para (colaborador, tipo, competência)?
+        // O anterior NUNCA é apagado aqui — ele só é marcado como substituído
+        // depois que a nova versão estiver gravada com o arquivo no lugar.
+        let anteriorId: string | null = null;
         if (referenciaData) {
           const { data: dup } = await svc
             .from("dp_documentos")
-            .select("id, file_path")
+            .select("id, versao")
             .eq("company_id", batch.company_id)
             .eq("colaborador_id", it.matched_colaborador_id)
             .eq("tipo", tipoDoc)
             .eq("referencia_data", referenciaData)
+            .eq("ciclo_status", "ativo")
             .limit(1)
             .maybeSingle();
           if (dup?.id) {
             if (onDuplicate === "replace") {
-              // Remove storage antigo (ignora falhas — o registro é a fonte da verdade)
-              if (dup.file_path) {
-                try { await svc.storage.from(DST_BUCKET).remove([dup.file_path]); } catch { /* noop */ }
-              }
-              const { error: delErr } = await svc.from("dp_documentos").delete().eq("id", dup.id);
-              if (delErr) throw new Error(`Falha ao substituir: ${delErr.message}`);
-              replacedFlag = true;
+              anteriorId = dup.id;
             } else {
               // Skip: NÃO marca como failed — deixa pending pra próxima decisão.
               results.push({ id: it.id, ok: false, error: "duplicate", documento_id: dup.id });
@@ -172,12 +186,6 @@ Deno.serve(async (req) => {
         if (src.error || !src.data) throw new Error(src.error?.message ?? "Falha ao ler página");
         const bytes = new Uint8Array(await src.data.arrayBuffer());
 
-        const dstPath = `${batch.company_id}/${it.matched_colaborador_id}/${batch.id}_p${it.page_index}.pdf`;
-        const up = await svc.storage.from(DST_BUCKET).upload(dstPath, bytes, {
-          contentType: "application/pdf", upsert: true,
-        });
-        if (up.error) throw new Error(up.error.message);
-
         const nowIso = new Date().toISOString();
         const titulo = `${prettyTipo(tipoDoc)} p.${it.page_index} — ${batch.source_file_name ?? "lote"}`;
         // Validação digital: decisão da página tem prioridade; sem decisão,
@@ -185,6 +193,12 @@ Deno.serve(async (req) => {
         const exigeAceite = typeof it.exige_aceite === "boolean"
           ? it.exige_aceite
           : (batch.exigir_aceite !== false) && (DOC_TIPO_EXIGE_ACEITE[tipoDoc] ?? false);
+
+        // Caminho novo e único a cada versão: nada é sobrescrito no Storage.
+        const dstPath =
+          `${batch.company_id}/${it.matched_colaborador_id}/${batch.id}_p${it.page_index}_${crypto.randomUUID()}.pdf`;
+
+        // 1) Registro da nova versão em processamento.
         const { data: doc, error: dErr } = await svc.from("dp_documentos").insert({
           company_id: batch.company_id,
           colaborador_id: it.matched_colaborador_id,
@@ -204,11 +218,33 @@ Deno.serve(async (req) => {
           referencia_data: referenciaData,
           uploaded_by: uid,
           aprovacao_status: "aprovado",
+          ciclo_status: "processando",
           revisado_em: nowIso,
           revisado_por: uid,
            rescisao_grupo_id: TIPOS_RESCISAO.has(tipoDoc) ? batch.rescisao_grupo_id ?? null : null,
         }).select("id").single();
         if (dErr) throw new Error(dErr.message);
+        novoDocId = doc.id;
+
+        // 2) Arquivo da nova versão.
+        const up = await svc.storage.from(DST_BUCKET).upload(dstPath, bytes, {
+          contentType: "application/pdf", upsert: false,
+        });
+        if (up.error) throw new Error(up.error.message);
+        novoPath = dstPath;
+
+        // 3) Confere que o arquivo realmente ficou no lugar.
+        const check = await svc.storage.from(DST_BUCKET).download(dstPath);
+        if (check.error || !check.data) throw new Error("arquivo_nao_confirmado");
+
+        // 4) Publica a nova versão e marca a anterior como substituída — em
+        // uma única transação no banco.
+        const { error: pubErr } = await svc.rpc("dp_documento_versao_publicar", {
+          _novo_id: doc.id,
+          _anterior_id: anteriorId,
+          _motivo: anteriorId ? "substituicao_importacao_lote" : null,
+        });
+        if (pubErr) throw new Error(pubErr.message);
 
         await svc.from("dp_bulk_import_items").update({
           status: "imported",
@@ -216,14 +252,27 @@ Deno.serve(async (req) => {
           decided_at: nowIso,
           imported_documento_id: doc.id,
           error_message: null,
+          claim_expires_at: null,
         }).eq("id", it.id);
 
-        results.push({ id: it.id, ok: true, documento_id: doc.id, replaced: replacedFlag });
+        results.push({ id: it.id, ok: true, documento_id: doc.id, replaced: !!anteriorId });
       } catch (e) {
-        await svc.from("dp_bulk_import_items").update({
-          status: "failed", error_message: (e as Error).message,
-        }).eq("id", it.id);
-        console.error("[dp-doc-bulk-approve] item:", (e as Error).message);
+        // Compensação: a versão anterior continua ativa e a nova fica marcada
+        // como falha (com o arquivo pendente de limpeza, se houver).
+        if (novoDocId) {
+          await svc.from("dp_documentos")
+            .update({ ciclo_status: "falhou" })
+            .eq("id", novoDocId);
+        }
+        if (novoPath) {
+          try { await svc.storage.from(DST_BUCKET).remove([novoPath]); } catch { /* noop */ }
+        }
+        if (reservado) {
+          await svc.from("dp_bulk_import_items").update({
+            status: "failed", error_message: "falha_ao_aprovar", claim_expires_at: null,
+          }).eq("id", it.id);
+        }
+        console.error("[dp-doc-bulk-approve] item falhou:", it.id, (e as Error).message);
         results.push({ id: it.id, ok: false, error: "falha_ao_aprovar" });
       } finally {
         processedSoFar += 1;

@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
 import { porDocumento, resolverPendencias, type PendenciaMatch } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
+import { abrirDocumento } from "@/lib/documentoArquivo";
 
 export type DpDocumentoTipo = Database["public"]["Enums"]["dp_documento_tipo"];
 export type DpDocumentoAprov = "pendente" | "aprovado" | "recusado";
@@ -135,28 +136,30 @@ export function useDpDocumentos(filterTipo: DpDocumentoTipo | undefined, filters
     return ok;
   };
 
-  /** Gera link assinado e dispara o download (compatível com iOS Safari). */
+  /** Link temporário concedido pelo servidor e download (compatível com iOS Safari). */
   const download = async (row: DpDocumentoRow) => {
-    const { data, error } = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).createSignedUrl(row.file_path, 60);
-    if (error || !data) return toast.error("Erro ao gerar link");
-    const a = document.createElement("a");
-    a.href = data.signedUrl;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.download = row.file_name ?? "";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    try {
+      const ok = await abrirDocumento(row.id, { download: true });
+      if (!ok) toast.error("Sem permissão para abrir este documento");
+    } catch {
+      toast.error("Erro ao gerar link");
+    }
   };
 
+  /**
+   * Documento trabalhista não é apagado: fica arquivado, com autor, data e
+   * motivo, preservando o histórico.
+   */
   const remover = useMutation({
-    mutationFn: async (row: DpDocumentoRow) => {
-      await supabase.storage.from(DP_DOCUMENTOS_BUCKET).remove([row.file_path]);
-      const { error } = await supabase.from("dp_documentos").delete().eq("id", row.id);
+    mutationFn: async ({ row, motivo }: { row: DpDocumentoRow; motivo?: string }) => {
+      const { error } = await supabase.rpc("dp_documento_arquivar", {
+        _documento_id: row.id,
+        _motivo: motivo ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Removido");
+      toast.success("Documento arquivado");
       invalidateDocs();
     },
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
