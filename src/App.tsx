@@ -299,10 +299,12 @@ function PortalProtected({ children }: { children: React.ReactNode }) {
       setSituacao(decisao);
       if (decisao === "bloqueado") void supabase.auth.signOut();
     });
-    supabase.rpc("dp_meu_colaborador").then(({ data, error }) => {
+    // Decisão central do backend: vínculo, empresa, plano, módulo e prazo pós-desligamento.
+    supabase.rpc("dp_meu_acesso_portal").then(({ data, error }) => {
       if (cancelado) return;
       if (error) return setVinculo("falha");
-      setVinculo(typeof data === "string" && data ? "ok" : "ausente");
+      const row = Array.isArray(data) ? data[0] : data;
+      setVinculo(row?.permitido ? "ok" : "ausente");
     });
     return () => {
       cancelado = true;
