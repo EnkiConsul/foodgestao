@@ -32,7 +32,6 @@ const AUTH_REQUIRED = [
   "dp-criar-acesso-colaborador",
   "dp-bloquear-acesso-colaborador",
   "dp-reset-password",
-  "dp-invite-colaborador",
   "delete-user-account",
   "export-user-data",
   "asaas-cancel-subscription",

@@ -1,13 +1,17 @@
 /**
- * Libera o acesso do colaborador ao portal.
+ * Libera o acesso do colaborador ao portal — caminho único de criação de conta.
  *
  * O gestor não define nem recebe senha: a função cria a conta (login pelo CPF)
  * com uma senha aleatória descartada e devolve apenas um link de ativação de
  * uso único, para o colaborador criar a própria senha.
+ *
+ * Nunca há busca global por e-mail/CPF nem reaproveitamento automático de conta:
+ * se já existir conta com aquele login sem vínculo com este cadastro, a operação
+ * falha fechada, preserva os dados e devolve um erro administrativo claro.
  */
 
 import { jsonError, jsonResponse, strictCorsHeaders } from "../_shared/http.ts";
-import { canAdminister, requireCompanyAccess, requireUser, serviceClient } from "../_shared/authz.ts";
+import { requireColaboradorAdmin } from "../_shared/authz.ts";
 import { emitirToken, gerarCodigo, linkDeAcesso, registrarEvento } from "../_shared/portal-access.ts";
 
 const SYNTHETIC_EMAIL_DOMAIN = "portal.360food.local";
@@ -16,34 +20,29 @@ function digitsOnly(s: string | null | undefined): string {
   return (s ?? "").replace(/\D/g, "");
 }
 
+/** Erro do GoTrue que indica login já existente. */
+function jaRegistrado(msg: string | undefined): boolean {
+  const m = (msg ?? "").toLowerCase();
+  return (
+    m.includes("already registered") ||
+    m.includes("already been registered") ||
+    m.includes("already exists") ||
+    m.includes("duplicate key")
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: strictCorsHeaders(req) });
   if (req.method !== "POST") return jsonError(req, "invalid_input", "método inválido");
 
   try {
-    const caller = await requireUser(req);
-    if (!caller) return jsonError(req, "unauthorized");
-
     const body = await req.json().catch(() => ({}));
     const colaboradorId = String(body?.colaborador_id ?? "").trim();
     if (!colaboradorId) return jsonError(req, "invalid_input", "colaborador_id ausente");
 
-    const admin = serviceClient();
-
-    const { data: colab } = await admin
-      .from("dp_colaboradores")
-      .select("id, cpf, user_id, nome, company_id, email_portal")
-      .eq("id", colaboradorId)
-      .maybeSingle();
-    if (!colab) return jsonError(req, "not_found");
-
-    // Autorização sempre pela empresa do colaborador (nunca pelo corpo do pedido)
-    const { data: isSuper } = await admin.rpc("has_role", {
-      _user_id: caller.id,
-      _role: "super_admin",
-    });
-    const access = await requireCompanyAccess(caller.id, colab.company_id);
-    if (!isSuper && (!access || !canAdminister(access))) return jsonError(req, "forbidden");
+    const auth = await requireColaboradorAdmin(req, colaboradorId);
+    if (!auth.ok) return jsonError(req, auth.reason);
+    const { caller, colaborador: colab, admin } = auth;
 
     const cpf = digitsOnly(colab.cpf);
     if (cpf.length !== 11) {
@@ -58,14 +57,21 @@ Deno.serve(async (req) => {
     if (!targetUserId) {
       const email = `cpf${cpf}@${SYNTHETIC_EMAIL_DOMAIN}`;
 
-      // Já existe conta com este login? Reaproveita em vez de duplicar.
+      // Conflito de cadastro: o mesmo CPF já é login de outro colaborador.
       const { data: existente } = await admin
         .from("dp_colaboradores")
         .select("id")
         .eq("email_portal", email)
         .neq("id", colab.id)
         .maybeSingle();
-      if (existente) return jsonError(req, "conflict", "cpf já vinculado a outro colaborador");
+      if (existente) {
+        return jsonResponse(req, 409, {
+          code: "conflito_cadastro",
+          error:
+            "Este CPF já está em uso como login de outro cadastro de colaborador. " +
+            "Verifique se há cadastro duplicado antes de liberar o acesso.",
+        });
+      }
 
       const created = await admin.auth.admin.createUser({
         email,
@@ -74,6 +80,18 @@ Deno.serve(async (req) => {
         email_confirm: true,
         user_metadata: { colaborador_id: colab.id, kind: "dp_colaborador", cpf, nome: colab.nome },
       });
+
+      if (created.error && jaRegistrado(created.error.message)) {
+        // Falha fechada: existe conta com este login e ela não pertence a este
+        // cadastro. Nada é vinculado, nada é sobrescrito.
+        console.error("[dp-criar-acesso-colaborador] conflito de conta para colaborador", colab.id);
+        return jsonResponse(req, 409, {
+          code: "conflito_cadastro",
+          error:
+            "Já existe uma conta de acesso com este CPF que não está vinculada a este cadastro. " +
+            "Peça a revisão do cadastro do CPF ao suporte antes de liberar o acesso.",
+        });
+      }
       if (created.error || !created.data.user) {
         return jsonError(req, "internal", created.error?.message ?? "createUser falhou");
       }
@@ -82,7 +100,8 @@ Deno.serve(async (req) => {
       const { error: linkErr } = await admin
         .from("dp_colaboradores")
         .update({ user_id: targetUserId, email_portal: email })
-        .eq("id", colab.id);
+        .eq("id", colab.id)
+        .is("user_id", null);
       if (linkErr) return jsonError(req, "internal", linkErr.message);
 
       await admin.from("user_roles").upsert(
